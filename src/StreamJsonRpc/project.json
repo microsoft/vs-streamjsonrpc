@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "MicroBuild.VisualStudio": {
+      "version": "1.0.117-rc",
+      "suppressParent": "none"
+    },
+    "MicroBuild.Core": {
+      "version": "0.2.0",
+      "suppressParent": "none"
+    },
+    "Nerdbank.GitVersioning": {
+      "version": "1.4.19",
+      "suppressParent": "none"
+    },
+    "Newtonsoft.Json": "6.0.6",
+    "NuSpec.ReferenceGenerator": "1.4.2",
+    "Microsoft.VisualStudio.Threading": "14.1.114",
+    "ReadOnlySourceTree": {
+      "version": "0.1.36-beta",
+      "suppressParent": "none"
+    }
+  },
+  "frameworks": {
+    ".NETPortable,Version=v4.5,Profile=Profile111": { }
+  },
+  "runtimes": {
+    "win": { }
+  }
+}

@@ -1,0 +1,27 @@
+﻿{
+  "frameworks": {
+    "net451": { }
+  },
+  "dependencies": {
+    "MicroBuild.VisualStudio": {
+      "version": "1.0.117-rc",
+      "suppressParent": "none"
+    },
+    "MicroBuild.Core": {
+      "version": "0.2.0",
+      "suppressParent": "none"
+    },
+    "Nerdbank.GitVersioning": {
+      "version": "1.4.19",
+      "suppressParent": "none"
+    },
+    "NuProj": "0.10.48-beta-gea4a31bbc5",
+    "ReadOnlySourceTree": {
+      "version": "0.1.36-beta",
+      "suppressParent": "none"
+    }
+  },
+  "runtimes": {
+    "win": { }
+  }
+}
