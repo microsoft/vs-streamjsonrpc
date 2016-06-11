@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/AArnott/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "0.13-alpha",
+  "cloudBuild": {
+    "buildNumber": {
+      "enabled": true,
+      "includeCommitId": {
+        "when": "always",
+        "where": "fourthVersionComponent" // keep it short, so we don't have max_path problems
+      }
+    }
+  }
+}
