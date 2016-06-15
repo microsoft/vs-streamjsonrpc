@@ -57,12 +57,39 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Resources.cs.resx" />
+    <EmbeddedResource Include="Resources.de.resx" />
+    <EmbeddedResource Include="Resources.es.resx" />
+    <EmbeddedResource Include="Resources.fr.resx" />
+    <EmbeddedResource Include="Resources.it.resx" />
+    <EmbeddedResource Include="Resources.ja.resx" />
+    <EmbeddedResource Include="Resources.ko.resx" />
+    <EmbeddedResource Include="Resources.pl.resx" />
+    <EmbeddedResource Include="Resources.pt-BR.resx" />
     <EmbeddedResource Include="Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources.ru.resx" />
+    <EmbeddedResource Include="Resources.tr.resx" />
+    <EmbeddedResource Include="Resources.zh-Hans.resx" />
+    <EmbeddedResource Include="Resources.zh-Hant.resx" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.cs.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.de.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.es.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.fr.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.it.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.ja.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.ko.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.pl.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.pt-BR.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.ru.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.tr.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.zh-Hans.xlf" />
+    <XliffResource Include="MultilingualResources\StreamJsonRpc.Desktop.zh-Hant.xlf" />
+  </ItemGroup>
   <Import Project="..\StreamJsonRpc.Shared\StreamJsonRpc.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets" Label="MultilingualAppToolkit" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets')" />
