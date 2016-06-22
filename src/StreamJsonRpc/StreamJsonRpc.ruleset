@@ -71,5 +71,7 @@
   <Rules AnalyzerId="AsyncUsageAnalyzers" RuleNamespace="AsyncUsageAnalyzers">
     <Rule Id="UseConfigureAwait" Action="Error" />
     <Rule Id="AvoidAsyncVoid" Action="Error" />
+    <Rule Id="AvoidAsyncSuffix" Action="Error" />
+    <Rule Id="UseAsyncSuffix" Action="Error" />
   </Rules>
 </RuleSet>

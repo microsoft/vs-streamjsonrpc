@@ -69,9 +69,6 @@
     <Rule Id="CA2242" Action="Warning" />
   </Rules>
   <Rules AnalyzerId="AsyncUsageAnalyzers" RuleNamespace="AsyncUsageAnalyzers">
-    <Rule Id="UseConfigureAwait" Action="Error" />
-    <Rule Id="AvoidAsyncVoid" Action="Error" />
-    <Rule Id="UseAsyncSuffix" Action="Error" />
-    <Rule Id="AvoidAsyncSuffix" Action="Error" />
+    <Rule Id="UseAsyncSuffix" Action="Hidden" />
   </Rules>
 </RuleSet>
