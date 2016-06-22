@@ -107,6 +107,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed parsing Content-Length header into a positive integer..
+        /// </summary>
+        internal static string HeaderContentLengthNotParseable {
+            get {
+                return ResourceManager.GetString("HeaderContentLengthNotParseable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to JSON RPC must not be null..
         /// </summary>
         internal static string JsonRpcCannotBeNull {
@@ -256,6 +265,15 @@ namespace StreamJsonRpc {
         internal static string UnexpectedErrorProcessingJsonRpc {
             get {
                 return ResourceManager.GetString("UnexpectedErrorProcessingJsonRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unexpected token &apos;{0}&apos; while parsing header..
+        /// </summary>
+        internal static string UnexpectedTokenReadingHeader {
+            get {
+                return ResourceManager.GetString("UnexpectedTokenReadingHeader", resourceCulture);
             }
         }
         

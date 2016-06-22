@@ -136,6 +136,10 @@
     <value>Failure deserializing incoming JSON-RPC '{0}': {1}</value>
     <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Failed parsing Content-Length header ("{0}") into a positive integer.</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON-RPC must not be null.</value>
   </data>
@@ -195,6 +199,10 @@
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>Unexpected error processing JSON-RPC '{0}': {1}</value>
     <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Unexpected token '{0}' while parsing header.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Unrecognized incoming JSON-RPC '{0}'</value>

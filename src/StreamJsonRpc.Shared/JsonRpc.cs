@@ -30,13 +30,10 @@ namespace StreamJsonRpc
 
         private const int BufferSize = 1024;
         private readonly object callbackTarget;
-        private readonly Encoding encoding;
-        private readonly Stream stream;
         private readonly object dispatcherMapLock = new object();
         private readonly object disconnectedEventLock = new object();
         private readonly Dictionary<string, OutstandingCallData> resultDispatcherMap = new Dictionary<string, OutstandingCallData>(StringComparer.Ordinal);
 
-        private readonly SplitJoinStream splitJoinStream;
         private readonly Task readLinesTask;
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -44,32 +41,27 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
 
+        private HeaderDelimitedMessages messageHandler;
+
         public static JsonRpc Attach(Stream stream, object target = null)
         {
-            return new JsonRpc(stream, target);
+            return Attach(stream, stream, target);
         }
 
-        protected JsonRpc(Stream stream, object target = null)
+        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
-            if (stream == null)
-            {
-                throw new ArgumentNullException(nameof(stream));
-            }
+            return new JsonRpc(sendingStream, receivingStream, target);
+        }
 
-            this.stream = stream;
+        protected JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
+        {
+            Requires.NotNull(sendingStream, nameof(sendingStream));
+            Requires.NotNull(receivingStream, nameof(receivingStream));
+
+            this.messageHandler = new StreamJsonRpc.HeaderDelimitedMessages(sendingStream, receivingStream);
+
             this.callbackTarget = target;
-            this.encoding = Encoding.UTF8;
 
-            var options = new SplitJoinStreamOptions
-            {
-                Encoding = this.encoding,
-                LeaveOpen = false,
-                Readable = this.stream,
-                Writable = this.stream,
-                ReadTrailing = true
-            };
-
-            this.splitJoinStream = new SplitJoinStream(options);
             this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
         }
 
@@ -102,6 +94,11 @@ namespace StreamJsonRpc
                 this.onDisconnected -= value;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the encoding to use for transmitted JSON messages.
+        /// </summary>
+        public Encoding Encoding { get; set; } = Encoding.UTF8;
 
         /// <summary>
         /// Invoke a method on the server.
@@ -216,7 +213,6 @@ namespace StreamJsonRpc
                 // Dispose the stream and cancel pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
                 this.disposeCts.Cancel();
-                this.splitJoinStream.Dispose();
                 this.CancelPendingRequests();
             }
         }
@@ -228,6 +224,7 @@ namespace StreamJsonRpc
                 this.disposed = true;
                 if (disposing)
                 {
+                    this.messageHandler.Dispose();
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
@@ -261,7 +258,7 @@ namespace StreamJsonRpc
             JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments);
             if (id == null)
             {
-                await this.WriteAsync(request.ToJson()).ConfigureAwait(false);
+                await this.messageHandler.WriteAsync(request.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
                 return default(ReturnType);
             }
 
@@ -299,10 +296,10 @@ namespace StreamJsonRpc
                 this.resultDispatcherMap.Add(id, new OutstandingCallData(tcs, dispatcher));
             }
 
-            await this.WriteAsync(request.ToJson()).ConfigureAwait(false);
+            await this.messageHandler.WriteAsync(request.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
 
             // This task will be completed when the Response object comes back from the other end of the pipe
-            await tcs.Task.NoThrowAwaitable();
+            await tcs.Task.NoThrowAwaitable(false);
             await Task.Yield(); // ensure we don't inline anything further, including the continuation of our caller.
             return await tcs.Task.ConfigureAwait(false);
         }
@@ -425,7 +422,7 @@ namespace StreamJsonRpc
                     string json = null;
                     try
                     {
-                        json = await this.splitJoinStream.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
+                        json = await this.messageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -514,7 +511,7 @@ namespace StreamJsonRpc
                 {
                     try
                     {
-                        await this.WriteAsync(result.ToJson()).ConfigureAwait(false);
+                        await this.messageHandler.WriteAsync(result.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -560,11 +557,6 @@ namespace StreamJsonRpc
                 string.Format(CultureInfo.CurrentCulture, Resources.UnrecognizedIncomingJsonRpc, json),
                 DisconnectedReason.ParseError,
                 json));
-        }
-
-        private async Task WriteAsync(string data)
-        {
-            await this.splitJoinStream.WriteAsync(data, this.disposeCts.Token).ConfigureAwait(false);
         }
 
         private void CancelPendingRequests()

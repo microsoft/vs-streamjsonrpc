@@ -46,7 +46,7 @@
     <Compile Include="JsonRpcTests.cs" />
     <Compile Include="MessageHeaderTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SplitJoinStreamTests.cs" />
+    <Compile Include="TestBase.cs" />
     <Compile Include="WrappedStream.cs" />
   </ItemGroup>
   <ItemGroup>

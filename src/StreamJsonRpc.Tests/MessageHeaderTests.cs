@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,21 +10,22 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class MessageHeaderTests
+public class MessageHeaderTests : TestBase
 {
-    private readonly ITestOutputHelper logger;
     private readonly Stream clientStream;
     private readonly Stream serverStream;
     private readonly JsonRpc clientRpc;
 
     public MessageHeaderTests(ITestOutputHelper logger)
+        : base(logger)
     {
-        this.logger = logger;
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
         this.clientRpc = JsonRpc.Attach(this.clientStream);
+
+        this.TimeoutToken.Register(this.clientRpc.Dispose);
     }
 
     [Fact]
@@ -37,7 +39,7 @@ public class MessageHeaderTests
         var headerRegEx = new Regex("(.+?): (.+)");
         while ((header = sr.ReadLine())?.Length > 0)
         {
-            this.logger.WriteLine(header);
+            this.Logger.WriteLine(header);
             var match = headerRegEx.Match(header);
             Assert.True(match.Success);
             headers[match.Groups[1].Value] = match.Groups[2].Value;
@@ -61,6 +63,6 @@ public class MessageHeaderTests
         // Actually deserializing the message is beyond the scope of this test.
         Encoding encoding = Encoding.UTF8;
         string message = encoding.GetString(messageBuffer);
-        this.logger.WriteLine(message);
+        this.Logger.WriteLine(message);
     }
 }
