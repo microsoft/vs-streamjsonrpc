@@ -64,7 +64,7 @@ namespace StreamJsonRpc
                 // We could have used StreamReader, but it doesn't support cancellation.
                 // So we have to fall back to using the stream directly and Decoder() for decoding it.
                 // Decoder takes care if there are un-decoded leftovers from the previous reads.
-                int byteCount = await this.readable.ReadAsync(byteBuffer, 0, byteBuffer.Length, cancellationToken);
+                int byteCount = await this.readable.ReadAsync(byteBuffer, 0, byteBuffer.Length, cancellationToken).ConfigureAwait(false);
                 if (byteCount == 0)
                 {
                     // End of stream reached
@@ -91,7 +91,7 @@ namespace StreamJsonRpc
             Verify.Operation(this.writable != null, Resources.WritableNotSet);
 
             var bytes = this.encoding.GetBytes(message + this.delimiter);
-            await this.writable.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
+            await this.writable.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
        }
 
         protected virtual void Dispose(bool disposing)

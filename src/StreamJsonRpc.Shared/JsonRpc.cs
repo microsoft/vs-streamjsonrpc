@@ -70,7 +70,7 @@ namespace StreamJsonRpc
             };
 
             this.splitJoinStream = new SplitJoinStream(options);
-            this.readLinesTask = Task.Run(this.ReadAndHandleRequests, this.disposeCts.Token);
+            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -180,7 +180,7 @@ namespace StreamJsonRpc
             }
 
             this.ThrowIfDisposed();
-            await this.InvokeCoreAsync<object>(id: null, targetName: targetName, arguments: arguments);
+            await this.InvokeCoreAsync<object>(id: null, targetName: targetName, arguments: arguments).ConfigureAwait(false);
         }
 
         #region IDisposable
@@ -261,7 +261,7 @@ namespace StreamJsonRpc
             JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments);
             if (id == null)
             {
-                await this.WriteAsync(request.ToJson());
+                await this.WriteAsync(request.ToJson()).ConfigureAwait(false);
                 return default(ReturnType);
             }
 
@@ -304,7 +304,7 @@ namespace StreamJsonRpc
             // This task will be completed when the Response object comes back from the other end of the pipe
             await tcs.Task.NoThrowAwaitable();
             await Task.Yield(); // ensure we don't inline anything further, including the continuation of our caller.
-            return await tcs.Task;
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
@@ -325,7 +325,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequest(JsonRpcMessage request)
+        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
         {
             if (this.callbackTarget == null)
             {
@@ -347,7 +347,7 @@ namespace StreamJsonRpc
                     return JsonRpcMessage.CreateResult(request.Id, result);
                 }
 
-                return await ((Task)result).ContinueWith((t, id) => HandleInvocationTaskResult((string)id, t), request.Id, TaskScheduler.Default);
+                return await ((Task)result).ContinueWith((t, id) => HandleInvocationTaskResult((string)id, t), request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -414,7 +414,7 @@ namespace StreamJsonRpc
             return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, message, data);
         }
 
-        private async Task ReadAndHandleRequests()
+        private async Task ReadAndHandleRequestsAsync()
         {
             JsonRpcDisconnectedEventArgs disconnectedEventArgs = null;
 
@@ -425,7 +425,7 @@ namespace StreamJsonRpc
                     string json = null;
                     try
                     {
-                        json = await this.splitJoinStream.ReadAsync(this.disposeCts.Token);
+                        json = await this.splitJoinStream.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -457,7 +457,7 @@ namespace StreamJsonRpc
                     {
                         try
                         {
-                            this.HandleRpc(json);
+                            this.HandleRpcAsync(json);
                         }
                         catch (Exception exception)
                         {
@@ -487,7 +487,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task HandleRpc(string json)
+        private async Task HandleRpcAsync(string json)
         {
             JsonRpcMessage rpc;
             try
@@ -508,13 +508,13 @@ namespace StreamJsonRpc
 
             if (rpc.IsRequest)
             {
-                JsonRpcMessage result = await this.DispatchIncomingRequest(rpc);
+                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
 
                 if (!rpc.IsNotification)
                 {
                     try
                     {
-                        await this.WriteAsync(result.ToJson());
+                        await this.WriteAsync(result.ToJson()).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -564,7 +564,7 @@ namespace StreamJsonRpc
 
         private async Task WriteAsync(string data)
         {
-            await this.splitJoinStream.WriteAsync(data, this.disposeCts.Token);
+            await this.splitJoinStream.WriteAsync(data, this.disposeCts.Token).ConfigureAwait(false);
         }
 
         private void CancelPendingRequests()
