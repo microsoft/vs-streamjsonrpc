@@ -9,141 +9,116 @@
         <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
           <source>Both readable and writable are null.</source>
           <target state="translated">읽고 쓸 수 있는 개체는 null입니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">'readable' and 'writable' are parameter names and should not be localized.</note>
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
           <target state="translated">‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
           <source>Delimiter is empty string.</source>
           <target state="translated">구분 기호가 빈 문자열입니다.</target>
-          
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON-RPC Result: {0}: {1}</source>
           <target state="translated">JSON-RPC 결과를 쓰는 동안 오류 발생: {0}: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</note>
         </trans-unit>
         <trans-unit id="FailureDeserializingJsonRpc" translate="yes" xml:space="preserve">
           <source>Failure deserializing incoming JSON-RPC '{0}': {1}</source>
           <target state="translated">들어오는 JSON-RPC '{0}'을(를) deserialize하는 데 실패:{1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON that could not be deserialized, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
           <source>JSON-RPC must not be null.</source>
           <target state="translated">JSON-RPC는 null이면 안 됩니다.</target>
-          
         </trans-unit>
         <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
           <source>{0} has ref or out parameter(s), which is not supported</source>
           <target state="translated">{0}에 ref 또는 지원되지 않는 출력 매개 변수가 있습니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
           <source>{0} is not public</source>
           <target state="translated">{0}이(가) public이 아닙니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
           <source>'{0}' method name has different case from requested '{1}'</source>
           <target state="translated">'{0}' 메서드 이름에 요청된 '{1}'과(와) 다른 대/소문자가 있습니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s): {1}, but the request supplies {2}</source>
           <target state="translated">{0} 매개 변수는 {1}이지만 요청은 {2}을(를) 제공합니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the request: {1}</source>
           <target state="translated">{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
         </trans-unit>
         <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
           <source>More than one target method found: {0}.</source>
           <target state="translated">둘 이상의 대상 메서드 발견: {0}.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
           <target state="translated">스트림 끝에 도달했습니다.</target>
-          
         </trans-unit>
         <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
           <source>Readable cannot read.</source>
           <target state="translated">읽을 수 있는 개체를 읽을 수 없습니다.</target>
-          
         </trans-unit>
         <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
           <source>Readable is not set.</source>
           <target state="translated">읽을 수 있는 개체가 설정되지 않았습니다.</target>
-          
         </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON-RPC from the stream failed with {0}: {1}</source>
           <target state="translated">{0}(으)로 인해 스트림에서 JSON-RPC 읽기 실패: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
           <source>Response is not error.</source>
           <target state="translated">응답은 오류가 아닙니다.</target>
-          
         </trans-unit>
         <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
           <source>Stream has been disposed</source>
           <target state="translated">스트림이 삭제되었습니다.</target>
-          
         </trans-unit>
         <trans-unit id="TaskNotCompleted" translate="yes" xml:space="preserve">
           <source>The task is not completed.</source>
           <target state="translated">작업이 완료되지 않았습니다.</target>
-          
         </trans-unit>
         <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
           <source>The task was cancelled.</source>
           <target state="translated">작업이 취소되었습니다.</target>
-          
         </trans-unit>
         <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
           <source>Unable to find method '{0}/{1}' on {2} for the following reason: {3}</source>
           <target state="translated">{2}에서 '{0}/{1}' 메서드를 다음과 같은 이유로 찾을 수 없음: {3}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unexpected error processing JSON-RPC '{0}': {1}</source>
           <target state="translated">JSON-RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류 발생: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unrecognized incoming JSON-RPC '{0}'</source>
           <target state="translated">인식되지 않은 들어오는 JSON-RPC '{0}'</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
         <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
           <source>Writable cannot write.</source>
           <target state="translated">쓸 수 있는 개체를 쓸 수 없습니다.</target>
-          
         </trans-unit>
         <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
           <source>Writable is not set.</source>
           <target state="translated">쓸 수 있는 개체가 설정되지 않았습니다.</target>
-          
         </trans-unit>
       </group>
     </body>
