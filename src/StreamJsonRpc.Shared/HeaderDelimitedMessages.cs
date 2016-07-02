@@ -11,6 +11,13 @@ using Microsoft.VisualStudio.Threading;
 
 namespace StreamJsonRpc
 {
+    /// <summary>
+    /// Adds headers before each text message transmitted over a stream.
+    /// </summary>
+    /// <remarks>
+    /// This is based on the language server protocol spec:
+    /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol
+    /// </remarks>
     internal class HeaderDelimitedMessages : IDisposable
     {
         private const int MaxHeaderSize = 1024;
@@ -20,7 +27,8 @@ namespace StreamJsonRpc
         /// </summary>
         /// <remarks>
         /// Although the spec dictates using ASCII encoding, that's equivalent to UTF8
-        /// for the characters we expect to be sending and receiving.
+        /// for the characters we expect to be sending and receiving,
+        /// and portable profiles don't have ASCII available.
         /// Also note that when writing we use the encoding set by this field,
         /// but when reading, we have highly optimized code that hard-codes the assumption
         /// that each character is one byte.
@@ -80,6 +88,8 @@ namespace StreamJsonRpc
             {
                 this.receivingStream?.Dispose();
                 this.sendingStream?.Dispose();
+                this.sendingSemaphore.Dispose();
+                this.receivingSemaphore.Dispose();
             }
         }
 
@@ -96,7 +106,13 @@ namespace StreamJsonRpc
                 string headerName = null;
                 do
                 {
-                    int justRead = await this.receivingStream.ReadAsync(this.receivingBuffer, headerBytesLength, 1, cancellationToken).ConfigureAwait(false);
+                    int maxBytesToRead = Math.Min(1, this.receivingBuffer.Length - headerBytesLength);
+                    if (maxBytesToRead < 1)
+                    {
+                        throw new BadHeaderException(Resources.HeaderValueTooLarge);
+                    }
+
+                    int justRead = await this.receivingStream.ReadAsync(this.receivingBuffer, headerBytesLength, maxBytesToRead, cancellationToken).ConfigureAwait(false);
                     if (justRead == 0)
                     {
                         return null; // remote end disconnected
@@ -109,7 +125,7 @@ namespace StreamJsonRpc
                         case HeaderParseState.Name:
                             if (lastCharRead == ':')
                             {
-                                headerName = HeaderEncoding.GetString(this.receivingBuffer, 0, headerBytesLength - 1);
+                                headerName = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
                                 state = HeaderParseState.NameValueDelimiter;
                                 headerBytesLength = 0;
                             }
@@ -130,9 +146,9 @@ namespace StreamJsonRpc
                             headerBytesLength = 0;
                             break;
                         case HeaderParseState.Value:
-                            if (lastCharRead == '\r')
+                            if (lastCharRead == '\r') // spec mandates \r always precedes \n
                             {
-                                string value = HeaderEncoding.GetString(this.receivingBuffer, 0, headerBytesLength - 1);
+                                string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
                                 headers[headerName] = value;
                                 headerName = null;
                                 state = HeaderParseState.FieldDelimiter;

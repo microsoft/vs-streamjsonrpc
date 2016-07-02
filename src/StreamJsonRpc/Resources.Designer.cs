@@ -116,6 +116,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The size of the message header exceeds the maximum supported size..
+        /// </summary>
+        internal static string HeaderValueTooLarge {
+            get {
+                return ResourceManager.GetString("HeaderValueTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to JSON RPC must not be null..
         /// </summary>
         internal static string JsonRpcCannotBeNull {

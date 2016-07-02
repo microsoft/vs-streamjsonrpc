@@ -120,6 +120,20 @@
           <source>Writable is not set.</source>
           <target state="translated">La propiedad de escritura no se ha establecido.</target>
         </trans-unit>
+        <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+          <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">No se pudo analizar encabezado Content-Length ("{0}") en un número entero positivo.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}. {0} is the actual header.</note>
+        </trans-unit>
+        <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+          <source>The size of the message header exceeds the maximum supported size.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">El tamaño del encabezado del mensaje supera el tamaño máximo soportado.</target>
+        </trans-unit>
+        <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+          <source>Unexpected token '{0}' while parsing header.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Inesperado símbolo (token) '{0}' al analizar el encabezado.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

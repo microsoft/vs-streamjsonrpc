@@ -119,6 +119,20 @@
           <source>Writable is not set.</source>
           <target state="translated">쓸 수 있는 개체가 설정되지 않았습니다.</target>
         </trans-unit>
+        <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+          <source>Failed parsing Content-Length header into a positive integer.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">양의 정수에 콘텐츠 길이 헤더를 구문 분석 하지 못했습니다.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
+        </trans-unit>
+        <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+          <source>The size of the message header exceeds the maximum supported size.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">메시지 헤더의 크기는 지원 되는 최대 크기를 초과합니다.</target>
+        </trans-unit>
+        <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+          <source>Unexpected token '{0}' while parsing header.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">예기치 않은 토큰 ' {0} ' 헤더를 구문 분석 하는 동안.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

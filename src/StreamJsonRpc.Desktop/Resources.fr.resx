@@ -101,4 +101,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable n’est pas défini.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Échec de l’analyse en-tête Content-Length (« {0} ») dans un entier positif.</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>La taille de l’en-tête du message dépasse la taille maximale prise en charge.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Jeton inattendu « {0} » lors de l’analyse d’en-tête.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

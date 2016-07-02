@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Parametr writable není nastaven.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Selhala analýzy záhlaví Content-Length do kladné celé číslo.</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Velikost záhlaví zprávy překračuje maximální podporovanou velikost.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Neočekávaný token {0} při analýze záhlaví.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

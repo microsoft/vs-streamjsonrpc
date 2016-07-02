@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>未设置可写内容。</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>无法解析内容长度标头入一个正整数。</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>消息标题的大小超过了最大支持的大小。</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>意外的标记"{0}"分析标头时。</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

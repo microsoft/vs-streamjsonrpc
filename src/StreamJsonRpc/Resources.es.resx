@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>La propiedad de escritura no se ha establecido.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>No se pudo analizar encabezado Content-Length en un número entero positivo.</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>El tamaño del encabezado del mensaje supera el tamaño máximo soportado.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Inesperado símbolo (token) '{0}' al analizar el encabezado.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

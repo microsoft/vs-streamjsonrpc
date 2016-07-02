@@ -101,4 +101,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>쓸 수 있는 개체가 설정되지 않았습니다.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>양의 정수를 구문 분석 콘텐츠 길이 헤더 ("{0}")를 실패 했습니다.</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>메시지 헤더의 크기는 지원 되는 최대 크기를 초과합니다.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>예기치 않은 토큰 ' {0} ' 헤더를 구문 분석 하는 동안.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

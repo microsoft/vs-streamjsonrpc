@@ -101,4 +101,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>O gravável não foi definido.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Falha análise cabeçalho Content-Length ("{0}") em um número inteiro positivo.</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>O tamanho do cabeçalho da mensagem excede o tamanho máximo suportado.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Token inesperado '{0}' durante a análise de cabeçalho.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

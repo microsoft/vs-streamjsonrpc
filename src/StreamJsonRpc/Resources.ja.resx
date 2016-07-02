@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable が設定されていません。</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>正の整数に解析のコンテンツ長ヘッダーをできませんでした。</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>メッセージ ヘッダーのサイズは、サポートされる最大サイズを超えています。</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>予期しないトークン '{0}' ヘッダーを解析中。</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

@@ -119,6 +119,20 @@
           <source>Writable is not set.</source>
           <target state="translated">Writable 未設定。</target>
         </trans-unit>
+        <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+          <source>Failed parsing Content-Length header into a positive integer.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">無法解析內容長度標頭入一個正整數。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
+        </trans-unit>
+        <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+          <source>The size of the message header exceeds the maximum supported size.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">消息標題的大小超過了最大支援的大小。</target>
+        </trans-unit>
+        <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+          <source>Unexpected token '{0}' while parsing header.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">意外的標記"{0}"分析標頭時。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

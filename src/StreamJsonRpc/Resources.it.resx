@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable non è impostato.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Intestazione Content-Length analisi venuto a mancare in un numero intero positivo.</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>La dimensione dell'intestazione del messaggio supera la dimensione massima supportata.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Imprevisto token '{0}' durante l'analisi di intestazione.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

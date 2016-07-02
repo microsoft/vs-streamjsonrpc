@@ -101,4 +101,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Nie ustawiono elementu writable.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Na dodatnią liczbą całkowitą, nie powiodło się podczas analizowania nagłówka Content-Length ("{0}").</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Rozmiar nagłówka wiadomości przekracza maksymalny rozmiar obsługiwany.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Nieoczekiwany token '{0}' podczas analizowania nagłówka.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

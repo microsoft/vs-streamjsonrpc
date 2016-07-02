@@ -101,4 +101,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable ayarlanmadı.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Pozitif bir tamsayı ayrıştırma Content-Length üstbilgisi ("{0}") başarısız oldu.</value>
+    <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>İleti üstbilgisi boyutunu desteklenen boyut üst sınırını aşıyor.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Beklenmeyen belirteç '{0}' üstbilgisi ayrıştırılırken.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

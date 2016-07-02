@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>Элемент, доступный для записи, не задан.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Ошибка разбора заголовка Content-Length в положительное целое число.</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Размер заголовка сообщения превышает максимальный размер, поддерживаемый.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Непредвиденная лексема «{0}» при разборе заголовков.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

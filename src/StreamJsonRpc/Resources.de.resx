@@ -100,4 +100,15 @@
   <data name="WritableNotSet" xml:space="preserve">
     <value>"Writable" ist nicht festgelegt.</value>
   </data>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Fehler beim Parsen Content-Length-Header in eine positive ganze Zahl.</value>
+    <comment>{locked="Content-Length"}</comment>
+  </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Die Größe der Kopfzeile der Nachricht überschreitet die maximale unterstützte Größe.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Unerwartetes Token "{0}" beim Header analysieren.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
 </root>

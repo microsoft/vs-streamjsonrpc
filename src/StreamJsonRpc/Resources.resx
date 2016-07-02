@@ -139,6 +139,9 @@
     <value>Failed parsing Content-Length header into a positive integer.</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>The size of the message header exceeds the maximum supported size.</value>
+  </data>
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON RPC must not be null.</value>
   </data>
