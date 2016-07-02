@@ -51,7 +51,7 @@ public class MessageHeaderTests : TestBase
         int bytesRead = 0;
         while (bytesRead < length)
         {
-            bytesRead += this.serverStream.Read(messageBuffer, bytesRead, length - bytesRead);
+            bytesRead += await this.serverStream.ReadAsync(messageBuffer, bytesRead, length - bytesRead, this.TimeoutToken);
         }
 
         // Assert that the stream terminates after the alleged length of the only message sent.
@@ -81,12 +81,12 @@ public class MessageHeaderTests : TestBase
         var headerBuffer = new MemoryStream();
         string header = $"Content-Length: {message.Length}\r\nContent-Type: text/plain; charset={encodingName}\r\n\r\n";
         byte[] headerBytes = headerEncoding.GetBytes(header);
-        await this.clientStream.WriteAsync(headerBytes, 0, headerBytes.Length);
-        await this.clientStream.WriteAsync(message, 0, message.Length);
+        await this.clientStream.WriteAsync(headerBytes, 0, headerBytes.Length, this.TimeoutToken);
+        await this.clientStream.WriteAsync(message, 0, message.Length, this.TimeoutToken);
 
         // Wait for response.
         byte[] receiveBuffer = new byte[1];
-        await this.clientStream.ReadAsync(receiveBuffer, 0, 1); // just wait for the response to start.
+        await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
 
         Assert.Equal(1, server.FooCalledCount);
     }
