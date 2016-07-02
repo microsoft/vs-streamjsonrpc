@@ -12,4 +12,93 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>И элементы, которые можно считать, и элементы, которые доступны для записи, имеют значение NULL.</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>Разделитель является пустой строкой.</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>Произошла ошибка при записи результата JSON-RPC. {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>Ошибка при десериализации входящих данных JSON-RPC "{0}": {1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC не должен равняться NULL.</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} имеет параметры REF или OUT, что не поддерживается</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} не является открытым</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>Регистр имени метода "{0}" отличается от запрошенного "{1}"</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>Число параметров в {0}: {1}; в запросе же указано {2}</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>Параметры {0} несовместимы с запросом: {1}</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>Найдено более одного целевого метода: {0}.</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>Достигнут конец потока.</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>Не удается считать доступный для чтения элемент.</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>Доступный для чтения элемент не задан.</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>Произошел сбой при чтении JSON-RPC из потока. Исключение {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>Отклик не является ошибкой.</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>Поток был удален</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>Задача не завершена.</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>Задача отменена.</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>Не удалось найти метод "{0}/{1}" в {2} по следующей причине: {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>Непредвиденная ошибка при обработке JSON-RPC "{0}": {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>Нераспознанный входящий JSON-RPC "{0}"</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>Доступный для записи элемент не позволяет выполнить запись.</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>Доступный для записи элемент не задан.</value>
+  </data>
 </root>

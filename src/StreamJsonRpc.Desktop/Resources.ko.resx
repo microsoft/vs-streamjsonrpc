@@ -12,4 +12,93 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>읽고 쓸 수 있는 개체는 null입니다.</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>구분 기호가 빈 문자열입니다.</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>JSON-RPC 결과를 쓰는 동안 오류 발생: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>들어오는 JSON-RPC '{0}'을(를) deserialize하는 데 실패:{1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC는 null이면 안 됩니다.</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0}에 ref 또는 지원되지 않는 출력 매개 변수가 있습니다.</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0}이(가) public이 아닙니다.</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>'{0}' 메서드 이름에 요청된 '{1}'과(와) 다른 대/소문자가 있습니다.</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>{0} 매개 변수는 {1}이지만 요청은 {2}을(를) 제공합니다.</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>둘 이상의 대상 메서드 발견: {0}.</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>스트림 끝에 도달했습니다.</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>읽을 수 있는 개체를 읽을 수 없습니다.</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>읽을 수 있는 개체가 설정되지 않았습니다.</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>{0}(으)로 인해 스트림에서 JSON-RPC 읽기 실패: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>응답은 오류가 아닙니다.</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>스트림이 삭제되었습니다.</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>작업이 완료되지 않았습니다.</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>작업이 취소되었습니다.</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>{2}에서 '{0}/{1}' 메서드를 다음과 같은 이유로 찾을 수 없음: {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>JSON-RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류 발생: {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>인식되지 않은 들어오는 JSON-RPC '{0}'</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>쓸 수 있는 개체를 쓸 수 없습니다.</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>쓸 수 있는 개체가 설정되지 않았습니다.</value>
+  </data>
 </root>

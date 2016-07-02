@@ -12,4 +12,93 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>可读内容和可写内容均为 null。</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>已获得执行“{0}”的请求，但没有回调对象。删除请求。</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>分隔符为空字符串。</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>写入 JSON-RPC 结果 {0} 时出错：{1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>反序列化传入 JSON-RPC“{0}”时失败：{1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC 不得为 null。</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} 具有不受支持的 ref 或 out 参数</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} 不是公共的</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>“{0}”方法名具有与请求的“{1}”不同的事例</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>{0} 个参数：{1}，但请求提供 {2}</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>{0} 个参数与请求 {1} 不兼容</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>找到多个目标方法 {0}。</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>已达到流结尾。</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>无法读取可读内容。</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>未设置可读内容。</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>从流读取 JSON-RPC 失败，出现 {0}：{1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>响应不是错误。</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>已释放流</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>任务未完成。</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>任务已取消。</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>找不到 {2} 上的方法“{0}/{1}”，原因如下：{3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>处理 JSON-RPC“{0}”时出现意外错误：{1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>无法识别传入 JSON-RPC“{0}”</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>无法写入可写内容。</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>未设置可写内容。</value>
+  </data>
 </root>
