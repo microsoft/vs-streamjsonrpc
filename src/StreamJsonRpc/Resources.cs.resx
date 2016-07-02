@@ -12,4 +12,92 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>Parametr readable i writable jsou null.</value>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>Byla přijata žádost o provedení {0}, ale chybí objekt zpětného volání. Žádost se ruší.</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>Oddělovač je prázdný řetězec.</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>Chyba při zápisu výsledku JSON RPC: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>Selhání při deserializaci příchozího JSON RPC: {0}: {1}</value>
+    <comment>{0} is the JSON RPC, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON RPC nesmí být null.</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} má parametry ref nebo out, což se nepodporuje.</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} není veřejné.</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>Název metody {0} má jinak velká a malá písmena než požadovaný objekt {1}.</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>Parametry {0}: {1}, ale žádost poskytuje {2}.</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>Parametry {0} nejsou kompatibilní s žádostí: {1}.</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>Nalezena víc než jedna cílová metoda: {0}</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>Bylo dosaženo konce streamu.</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>Parametr readable neumožňuje čtení.</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>Parametr readable není nastaven.</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>Čtení RPC JSON ze streamu se nezdařilo s {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>Odpověď není chyba.</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>Stream byl vyřazen.</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>Úloha není dokončena.</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>Úloha byla zrušena.</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>Nebyla nalezena metoda {0}/{1} v {2} z následujících důvodů: {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>Neočekávaná chyba při zpracování JSON RPC {0}: {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>Nerozpoznané příchozí JSON RPC {0}</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>Parametr writable neumožňuje zápis.</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>Parametr writable není nastaven.</value>
+  </data>
 </root>

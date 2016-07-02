@@ -12,4 +12,93 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>readable et writable sont tous les deux Null.</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel.A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>Le délimiteur est une chaîne vide.</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>Erreur lors de l’écriture du résultat de JSON-RPC : {0} : {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>Échec de la désérialisation du protocole JSON-RPC entrant '{0}' : {1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC ne doit pas être Null.</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} a un ou des paramètres ref ou out non pris en charge</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} n’est pas public</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>Le nom de la méthode '{0}' a une casse différente du '{1}' demandé</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>{0} paramètre(s) : {1}, mais la demande fournit {2}</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>{0} paramètres ne sont pas compatibles avec la demande : {1}</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>Plusieurs méthodes cibles trouvées : {0}.</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>Fin de flux atteinte.</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>Lecture impossible avec Readable.</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>Readable n’est pas défini.</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>La lecture de JSON-RPC à partir du flux a échoué avec {0} : {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>La réponse n’est pas une erreur.</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>Le flux a été supprimé</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>La tâche n’est pas effectuée.</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>La tâche a été annulée.</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>Impossible de trouver la méthode '{0}/{1}' sur {2} pour la raison suivante : {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>Erreur inattendue lors du traitement du protocole JSON-RPC '{0}' : {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>JSON-RPC entrant non reconnu '{0}'</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>Écriture impossible avec Writable.</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>Writable n’est pas défini.</value>
+  </data>
 </root>
