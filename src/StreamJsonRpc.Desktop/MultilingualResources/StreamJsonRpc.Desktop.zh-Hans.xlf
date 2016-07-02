@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hans" original="STREAMJSONRPC.DESKTOP/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
+    <header>
+      <tool tool-id="MultilingualAppToolkit" tool-name="Multilingual App Toolkit" tool-version="4.0.1605.0" tool-company="Microsoft" />
+    </header>
+    <body>
+      <group id="STREAMJSONRPC.DESKTOP/RESOURCES.RESX" datatype="resx">
+        <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
+          <source>Both readable and writable are null.</source>
+          <target state="translated">可读内容和可写内容均为 null。</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">'readable' and 'writable' are parameter names and should not be localized.</note>
+        </trans-unit>
+        <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
+          <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
+          <target state="translated">已获得执行“{0}”的请求，但没有回调对象。删除请求。</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
+        </trans-unit>
+        <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
+          <source>Delimiter is empty string.</source>
+          <target state="translated">分隔符为空字符串。</target>
+          
+        </trans-unit>
+        <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
+          <source>Error writing JSON-RPC Result: {0}: {1}</source>
+          <target state="translated">写入 JSON-RPC 结果 {0} 时出错：{1}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</note>
+        </trans-unit>
+        <trans-unit id="FailureDeserializingJsonRpc" translate="yes" xml:space="preserve">
+          <source>Failure deserializing incoming JSON-RPC '{0}': {1}</source>
+          <target state="translated">反序列化传入 JSON-RPC“{0}”时失败：{1}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON that could not be deserialized, {1} is the exception message.</note>
+        </trans-unit>
+        <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
+          <source>JSON-RPC must not be null.</source>
+          <target state="translated">JSON-RPC 不得为 null。</target>
+          
+        </trans-unit>
+        <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
+          <source>{0} has ref or out parameter(s), which is not supported</source>
+          <target state="translated">{0} 具有不受支持的 ref 或 out 参数</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+        </trans-unit>
+        <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
+          <source>{0} is not public</source>
+          <target state="translated">{0} 不是公共的</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+        </trans-unit>
+        <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
+          <source>'{0}' method name has different case from requested '{1}'</source>
+          <target state="translated">“{0}”方法名具有与请求的“{1}”不同的事例</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
+        </trans-unit>
+        <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
+          <source>{0} parameter(s): {1}, but the request supplies {2}</source>
+          <target state="translated">{0} 个参数：{1}，但请求提供 {2}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
+        </trans-unit>
+        <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
+          <source>{0} parameters are not compatible with the request: {1}</source>
+          <target state="translated">{0} 个参数与请求 {1} 不兼容</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+        </trans-unit>
+        <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
+          <source>More than one target method found: {0}.</source>
+          <target state="translated">找到多个目标方法 {0}。</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
+        </trans-unit>
+        <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
+          <source>Reached end of stream.</source>
+          <target state="translated">已达到流结尾。</target>
+          
+        </trans-unit>
+        <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
+          <source>Readable cannot read.</source>
+          <target state="translated">无法读取可读内容。</target>
+          
+        </trans-unit>
+        <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
+          <source>Readable is not set.</source>
+          <target state="translated">未设置可读内容。</target>
+          
+        </trans-unit>
+        <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
+          <source>Reading JSON-RPC from the stream failed with {0}: {1}</source>
+          <target state="translated">从流读取 JSON-RPC 失败，出现 {0}：{1}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+        </trans-unit>
+        <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
+          <source>Response is not error.</source>
+          <target state="translated">响应不是错误。</target>
+          
+        </trans-unit>
+        <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
+          <source>Stream has been disposed</source>
+          <target state="translated">已释放流</target>
+          
+        </trans-unit>
+        <trans-unit id="TaskNotCompleted" translate="yes" xml:space="preserve">
+          <source>The task is not completed.</source>
+          <target state="translated">任务未完成。</target>
+          
+        </trans-unit>
+        <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
+          <source>The task was cancelled.</source>
+          <target state="translated">任务已取消。</target>
+          
+        </trans-unit>
+        <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
+          <source>Unable to find method '{0}/{1}' on {2} for the following reason: {3}</source>
+          <target state="translated">找不到 {2} 上的方法“{0}/{1}”，原因如下：{3}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
+        </trans-unit>
+        <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
+          <source>Unexpected error processing JSON-RPC '{0}': {1}</source>
+          <target state="translated">处理 JSON-RPC“{0}”时出现意外错误：{1}</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
+        </trans-unit>
+        <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
+          <source>Unrecognized incoming JSON-RPC '{0}'</source>
+          <target state="translated">无法识别传入 JSON-RPC“{0}”</target>
+          
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
+        </trans-unit>
+        <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
+          <source>Writable cannot write.</source>
+          <target state="translated">无法写入可写内容。</target>
+          
+        </trans-unit>
+        <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
+          <source>Writable is not set.</source>
+          <target state="translated">未设置可写内容。</target>
+          
+        </trans-unit>
+      </group>
+    </body>
+  </file>
+</xliff>

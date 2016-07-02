@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>Readable 和 Writable 都是 Null。</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>收到執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>分隔符號為空字串。</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>寫入 JSON RPC 結果時發生錯誤: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>將傳入的 JSON RPC '{0}' 還原序列化失敗: {1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC 不得為 null。</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} 有不支援的 ref 或 out 參數</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} 不是公用的</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>'{0}' 方法名稱，其大小寫與所要求的 '{1}' 不同</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>{0} 參數: {1}，但要求提供 {2}</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>{0} 參數與下列要求不相容: {1}</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>找到多個目標方法: {0}。</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>已達資料流的結尾。</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>Readable 無法讀取。</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>Readable 未設定。</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>從資料流讀取 JSON-RPC 失敗。發生 {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>回應不是錯誤。</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>資料流已處置</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>此工作未完成。</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>此工作已取消。</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>在 {2} 上找不到方法 '{0}/{1}'，原因如下: {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>處理 JSON RPC '{0}' 時發生未預期的錯誤: {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>無法識別傳入的 JSON RPC '{0}'</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>Writable 無法寫入。</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>Writable 未設定。</value>
+  </data>
+</root>

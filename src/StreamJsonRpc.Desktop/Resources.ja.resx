@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BothReadableWritableAreNull" xml:space="preserve">
+    <value>Readable と Writable の両方が null です。</value>
+    <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
+  </data>
+  <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
+    <value>'{0}' の実行の要求を受け取りましたが、コールバック オブジェクトがありません。要求を削除しています。</value>
+    <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="EmptyDelimiter" xml:space="preserve">
+    <value>区切り記号は、空の文字列です。</value>
+  </data>
+  <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
+    <value>JSON-RPC 結果の書き込み時のエラー: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
+  </data>
+  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
+    <value>受信 JSON-RPC '{0}' の逆シリアル化の失敗: {1}</value>
+    <comment>{0} is the JSON that could not be deserialized, {1} is the exception message.</comment>
+  </data>
+  <data name="JsonRpcCannotBeNull" xml:space="preserve">
+    <value>JSON-RPC は null にできません。</value>
+  </data>
+  <data name="MethodHasRefOrOutParameters" xml:space="preserve">
+    <value>{0} は ref または out パラメーターを含んでいますが、サポートされていません</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodIsNotPublic" xml:space="preserve">
+    <value>{0} はパブリックではありません</value>
+    <comment>{0} is the method signature.</comment>
+  </data>
+  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
+    <value>'{0}' メソッド名は要求された '{1}' とは大文字と小文字が異なります</value>
+    <comment>{0} is the method signature, {1} is the requested method name.</comment>
+  </data>
+  <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
+    <value>{0} パラメーター: {1} ですが、要求は {2} を提供しています</value>
+    <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
+  </data>
+  <data name="MethodParametersNotCompatible" xml:space="preserve">
+    <value>{0} パラメーターは、要求と互換性がありません: {1}</value>
+    <comment>{0} is the method signature, {1} is the error message.</comment>
+  </data>
+  <data name="MoreThanOneMethodFound" xml:space="preserve">
+    <value>複数のターゲット メソッドが見つかりました: {0}。</value>
+    <comment>{0} is the list of method signatures.</comment>
+  </data>
+  <data name="ReachedEndOfStream" xml:space="preserve">
+    <value>ストリームの終わりに達しました。</value>
+  </data>
+  <data name="ReadableCannotRead" xml:space="preserve">
+    <value>Readable を読み取れません。</value>
+  </data>
+  <data name="ReadableNotSet" xml:space="preserve">
+    <value>Readable が設定されていません。</value>
+  </data>
+  <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
+    <value>ストリームからの JSON-RPC の読み取りに {0} で失敗しました: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
+  <data name="ResponseIsNotError" xml:space="preserve">
+    <value>応答は、エラーではありません。</value>
+  </data>
+  <data name="StreamDisposed" xml:space="preserve">
+    <value>ストリームが破棄されました</value>
+  </data>
+  <data name="TaskNotCompleted" xml:space="preserve">
+    <value>タスクが完了していません。</value>
+  </data>
+  <data name="TaskWasCancelled" xml:space="preserve">
+    <value>タスクはキャンセルされました。</value>
+  </data>
+  <data name="UnableToFindMethod" xml:space="preserve">
+    <value>次の理由により、{2} でメソッド '{0}/{1}' が見つかりません: {3}</value>
+    <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
+  </data>
+  <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
+    <value>JSON-RPC '{0}' の処理中に予期しないエラーが発生しました: {1}</value>
+    <comment>{0} is the json, {1} is the exception message.</comment>
+  </data>
+  <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
+    <value>認識されない受信 JSON-RPC '{0}'</value>
+    <comment>{0} is the json.</comment>
+  </data>
+  <data name="WritableCannotWrite" xml:space="preserve">
+    <value>Writable が書き込めません。</value>
+  </data>
+  <data name="WritableNotSet" xml:space="preserve">
+    <value>Writable が設定されていません。</value>
+  </data>
+</root>

@@ -13,7 +13,7 @@ Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "StreamJsonRpc.NuGet", "Stre
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "StreamJsonRpc.Shared", "StreamJsonRpc.Shared\StreamJsonRpc.Shared.shproj", "{DF6B6DC7-7C77-42F2-84CB-E520B2771375}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D980CB66-08DF-4949-8946-574642845359}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68DDB820-140B-4178-B030-3E47C460376B}"
 	ProjectSection(SolutionItems) = preProject
 		..\init.ps1 = ..\init.ps1
 		nuget.config = nuget.config

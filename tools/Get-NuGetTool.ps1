@@ -28,9 +28,9 @@ if (!(Test-Path $nugetPath)) {
     Copy-Item $bundleDir\CredentialProvider.VSS.exe $binaryToolsPath
 
     # Replace the nuget.exe that came in the bundle with the version we want to use. 
-    $NuGetVersion = "3.4.4"
+    $NuGetVersion = "3.3.0"
     Write-Host "Downloading nuget.exe $NuGetVersion..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/v$NuGetVersion/NuGet.exe" -OutFile $nugetPath
+    Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/v$NuGetVersion/nuget.exe" -OutFile $nugetPath
 }
 
 $nugetPath
