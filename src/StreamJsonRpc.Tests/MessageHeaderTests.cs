@@ -73,7 +73,7 @@ public class MessageHeaderTests : TestBase
         var rpcServer = JsonRpc.Attach(this.serverStream, server);
 
         Encoding contentEncoding = Encoding.GetEncoding(encodingName);
-        string jsonMessage = @"{""method"":""Foo""}";
+        string jsonMessage = @"{""method"":""Foo"",""id"":1}";
         byte[] message = contentEncoding.GetBytes(jsonMessage);
 
         // Write the header, which is always in ASCII.
