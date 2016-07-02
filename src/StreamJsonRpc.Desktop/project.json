@@ -1,6 +1,9 @@
 ﻿{
   "dependencies": {
-    "AsyncUsageAnalyzers": "1.0.0-alpha003",
+    "AsyncUsageAnalyzers": {
+      "version": "1.0.0-alpha003",
+      "type": "build"
+    },
     "MicroBuild.VisualStudio": {
       "version": "1.0.119-rc",
       "suppressParent": "none"
