@@ -98,7 +98,11 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the encoding to use for transmitted JSON messages.
         /// </summary>
-        public Encoding Encoding { get; set; } = Encoding.UTF8;
+        public Encoding Encoding
+        {
+            get { return this.messageHandler.Encoding; }
+            set { this.messageHandler.Encoding = value; }
+        }
 
         /// <summary>
         /// Invoke a method on the server.

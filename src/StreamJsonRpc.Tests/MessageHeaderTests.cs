@@ -65,8 +65,7 @@ public class MessageHeaderTests : TestBase
     }
 
     [Theory]
-    [InlineData("utf-8")]
-    [InlineData("utf-16")]
+    [MemberData(nameof(TestedEncodings))]
     public async Task ReceiveMessageWithEncoding(string encodingName)
     {
         var server = new Server();
@@ -90,6 +89,36 @@ public class MessageHeaderTests : TestBase
 
         Assert.Equal(1, server.FooCalledCount);
     }
+
+    [Theory]
+    [MemberData(nameof(TestedEncodings))]
+    public async Task SendMessageWithEncoding(string encodingName)
+    {
+        var rpcClient = JsonRpc.Attach(this.clientStream);
+        rpcClient.Encoding = Encoding.GetEncoding(encodingName);
+        await rpcClient.NotifyAsync("Foo");
+        rpcClient.Dispose();
+
+        var reader = new StreamReader(this.serverStream, Encoding.ASCII);
+        var headerLines = new List<string>();
+        string line;
+        while ((line = reader.ReadLine()) != string.Empty)
+        {
+            headerLines.Add(line);
+        }
+
+        this.Logger.WriteLine(string.Join(Environment.NewLine, headerLines));
+        Assert.Contains(headerLines, l => l.Contains($"charset={encodingName}"));
+
+        reader = new StreamReader(this.serverStream, Encoding.GetEncoding(encodingName));
+        string json = reader.ReadToEnd();
+        Assert.Equal('{', json[0]);
+    }
+
+    public static IEnumerable<object[]> TestedEncodings => new[] {
+        new [] { "utf-8" },
+        new [] { "utf-16" },
+    };
 
     private class Server
     {

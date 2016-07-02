@@ -63,6 +63,11 @@ namespace StreamJsonRpc
         /// </summary>
         public Encoding Encoding { get; set; } = Encoding.UTF8;
 
+        /// <summary>
+        /// Gets or sets the value to use as the subtype in the Content-Type header (e.g. "application/SUBTYPE").
+        /// </summary>
+        public string SubType { get; set; } = "jsonrpc";
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -237,6 +242,14 @@ namespace StreamJsonRpc
                 await this.sendingStream.WriteAsync(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length, cancellationToken).ConfigureAwait(false);
                 await this.sendingStream.WriteAsync(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length).ConfigureAwait(false);
                 int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
+                await this.sendingStream.WriteAsync(this.sendingHeaderBuffer, 0, headerValueBytesLength, cancellationToken).ConfigureAwait(false);
+                await this.sendingStream.WriteAsync(CrlfBytes, 0, CrlfBytes.Length, cancellationToken).ConfigureAwait(false);
+
+                // Transmit the Content-Type header.
+                await this.sendingStream.WriteAsync(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length, cancellationToken).ConfigureAwait(false);
+                await this.sendingStream.WriteAsync(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length).ConfigureAwait(false);
+                var contentTypeHeaderValue = $"application/{this.SubType}; charset={this.Encoding.WebName}";
+                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
                 await this.sendingStream.WriteAsync(this.sendingHeaderBuffer, 0, headerValueBytesLength, cancellationToken).ConfigureAwait(false);
                 await this.sendingStream.WriteAsync(CrlfBytes, 0, CrlfBytes.Length, cancellationToken).ConfigureAwait(false);
 
