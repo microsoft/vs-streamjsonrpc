@@ -11,6 +11,10 @@ namespace StreamJsonRpc
         {
         }
 
+        internal BadHeaderException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
 #if DESKTOP
         protected BadHeaderException(
           System.Runtime.Serialization.SerializationInfo info,

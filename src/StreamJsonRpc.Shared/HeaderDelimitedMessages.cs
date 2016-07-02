@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -154,7 +155,27 @@ namespace StreamJsonRpc
                     throw new BadHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
                 }
 
-                Encoding contentEncoding = this.Encoding; // TODO: parse the Content-Type header for the real encoding.
+                Encoding contentEncoding = this.Encoding;
+                string contentTypeAsText;
+                if (headers.TryGetValue(ContentTypeHeaderNameText, out contentTypeAsText))
+                {
+                    try
+                    {
+                        var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
+                        if (mediaType.CharSet != null)
+                        {
+                            contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
+                            if (contentEncoding == null)
+                            {
+                                throw new BadHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
+                            }
+                        }
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new BadHeaderException(ex.Message, ex);
+                    }
+                }
 
                 byte[] contentBuffer = contentLength <= this.receivingBuffer.Length
                     ? this.receivingBuffer
