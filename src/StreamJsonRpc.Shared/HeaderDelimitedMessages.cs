@@ -109,7 +109,7 @@ namespace StreamJsonRpc
                     int maxBytesToRead = Math.Min(1, this.receivingBuffer.Length - headerBytesLength);
                     if (maxBytesToRead < 1)
                     {
-                        throw new BadHeaderException(Resources.HeaderValueTooLarge);
+                        throw new BadRpcHeaderException(Resources.HeaderValueTooLarge);
                     }
 
                     int justRead = await this.receivingStream.ReadAsync(this.receivingBuffer, headerBytesLength, maxBytesToRead, cancellationToken).ConfigureAwait(false);
@@ -173,7 +173,7 @@ namespace StreamJsonRpc
                 string contentLengthAsText = headers[ContentLengthHeaderNameText];
                 if (!int.TryParse(contentLengthAsText, out contentLength))
                 {
-                    throw new BadHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
+                    throw new BadRpcHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
                 }
 
                 Encoding contentEncoding = this.Encoding;
@@ -188,13 +188,13 @@ namespace StreamJsonRpc
                             contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
                             if (contentEncoding == null)
                             {
-                                throw new BadHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
+                                throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
                             }
                         }
                     }
                     catch (FormatException ex)
                     {
-                        throw new BadHeaderException(ex.Message, ex);
+                        throw new BadRpcHeaderException(ex.Message, ex);
                     }
                 }
 
@@ -229,7 +229,7 @@ namespace StreamJsonRpc
 
         private static Exception ThrowUnexpectedToken(char actual, char? expected = null)
         {
-            throw new BadHeaderException(
+            throw new BadRpcHeaderException(
                 string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedTokenReadingHeader, actual));
         }
 

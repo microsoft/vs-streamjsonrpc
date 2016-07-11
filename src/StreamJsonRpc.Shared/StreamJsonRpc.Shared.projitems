@@ -14,7 +14,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventArgs\DisconnectedReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventArgs\JsonRpcDisconnectedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Exceptions\BadHeaderException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Exceptions\BadRpcHeaderException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteInvocationException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteMethodNotFoundException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteRpcException.cs" />

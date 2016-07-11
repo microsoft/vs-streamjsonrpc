@@ -5,18 +5,18 @@ namespace StreamJsonRpc
 #if DESKTOP
     [Serializable]
 #endif
-    public class BadHeaderException : RemoteRpcException
+    public class BadRpcHeaderException : RemoteRpcException
     {
-        internal BadHeaderException(string message) : base(message)
+        internal BadRpcHeaderException(string message) : base(message)
         {
         }
 
-        internal BadHeaderException(string message, Exception innerException) : base(message, innerException)
+        internal BadRpcHeaderException(string message, Exception innerException) : base(message, innerException)
         {
         }
 
 #if DESKTOP
-        protected BadHeaderException(
+        protected BadRpcHeaderException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
         { }
