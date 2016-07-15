@@ -41,7 +41,7 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
 
-        private HeaderDelimitedMessages messageHandler;
+        private HeaderDelimitedMessageHandler messageHandler;
 
         public static JsonRpc Attach(Stream stream, object target = null)
         {
@@ -58,7 +58,7 @@ namespace StreamJsonRpc
             Requires.NotNull(sendingStream, nameof(sendingStream));
             Requires.NotNull(receivingStream, nameof(receivingStream));
 
-            this.messageHandler = new StreamJsonRpc.HeaderDelimitedMessages(sendingStream, receivingStream);
+            this.messageHandler = new StreamJsonRpc.HeaderDelimitedMessageHandler(sendingStream, receivingStream);
 
             this.callbackTarget = target;
 

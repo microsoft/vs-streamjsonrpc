@@ -18,7 +18,7 @@ namespace StreamJsonRpc
     /// This is based on the language server protocol spec:
     /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol
     /// </remarks>
-    internal class HeaderDelimitedMessages : IDisposable
+    internal class HeaderDelimitedMessageHandler : IDisposable
     {
         private const int MaxHeaderSize = 1024;
 
@@ -50,7 +50,7 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
         private readonly byte[] receivingBuffer = new byte[MaxHeaderSize];
 
-        internal HeaderDelimitedMessages(Stream sendingStream, Stream receivingStream)
+        internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
         {
             this.sendingStream = sendingStream;
             this.receivingStream = receivingStream;
