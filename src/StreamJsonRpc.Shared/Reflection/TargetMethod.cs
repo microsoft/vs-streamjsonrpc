@@ -9,6 +9,7 @@ namespace StreamJsonRpc
 {
     internal sealed class TargetMethod
     {
+        private const string ImpliedMethodNameAsyncSuffix = "Async";
         private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
         private readonly JsonRpcMessage request;
         private readonly object callbackObject;
@@ -26,15 +27,17 @@ namespace StreamJsonRpc
             var targetMethods = new Dictionary<MethodSignature, object[]>();
             for (TypeInfo t = callbackObject.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
             {
-                foreach (MethodSignature method in t.GetDeclaredMethods(request.Method).Select(method => new MethodSignature(method)))
+                bool matchFound = false;
+                foreach (MethodInfo method in t.GetDeclaredMethods(request.Method))
                 {
-                    if (!targetMethods.ContainsKey(method))
+                    matchFound |= ConsiderMethodMatch(request, targetMethods, method);
+                }
+
+                if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
+                {
+                    foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
                     {
-                        object[] parameters = TargetMethod.TryGetParameters(request, method, this.errorMessages);
-                        if (parameters != null)
-                        {
-                            targetMethods.Add(method, parameters);
-                        }
+                        matchFound |= ConsiderMethodMatch(request, targetMethods, method);
                     }
                 }
             }
@@ -59,7 +62,7 @@ namespace StreamJsonRpc
         {
             get
             {
-                return  string.Format(
+                return string.Format(
                     CultureInfo.CurrentCulture,
                     Resources.UnableToFindMethod,
                     this.request.Method,
@@ -88,7 +91,7 @@ namespace StreamJsonRpc
             }
 
             // The method name and the number of parameters must match
-            if (!string.Equals(method.Name, request.Method, StringComparison.Ordinal))
+            if (!string.Equals(method.Name, request.Method, StringComparison.Ordinal) && !string.Equals(method.Name, request.Method + ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodNameCaseIsDifferent, method, request.Method));
                 return null;
@@ -132,6 +135,22 @@ namespace StreamJsonRpc
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method, exception.Message));
                 return null;
             }
+        }
+
+        private bool ConsiderMethodMatch(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method)
+        {
+            var methodSignature = new MethodSignature(method);
+            if (!targetMethods.ContainsKey(methodSignature))
+            {
+                object[] parameters = TargetMethod.TryGetParameters(request, methodSignature, this.errorMessages);
+                if (parameters != null)
+                {
+                    targetMethods.Add(methodSignature, parameters);
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

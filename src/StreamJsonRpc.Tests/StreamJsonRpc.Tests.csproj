@@ -45,6 +45,7 @@
     <Compile Include="JsonRpcRawStreamTests.cs" />
     <Compile Include="JsonRpcTests.cs" />
     <Compile Include="MessageHeaderTests.cs" />
+    <Compile Include="PerfTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestBase.cs" />
     <Compile Include="WrappedStream.cs" />

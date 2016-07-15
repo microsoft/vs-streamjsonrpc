@@ -251,6 +251,13 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodWithRefParameter), 20));
     }
 
+    [Fact]
+    public async Task CanCallMethodOmittingAsyncSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>("MethodThatEndsIn");
+        Assert.Equal(3, result);
+    }
+
     public class BaseClass
     {
         public string BaseMethod() => "base";
@@ -347,6 +354,11 @@ public class JsonRpcTests : TestBase
             var result = new Task<InternalClass>(() => new InternalClass());
             result.Start();
             return result;
+        }
+
+        public Task<int> MethodThatEndsInAsync()
+        {
+            return Task.FromResult(3);
         }
 
         public int OverloadedMethod(Foo foo)
