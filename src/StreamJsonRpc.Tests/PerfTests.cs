@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.IO.Pipes;
 using System.Threading.Tasks;
 using Nerdbank;
 using StreamJsonRpc;
@@ -19,11 +18,27 @@ public class PerfTests
     }
 
     [Fact]
-    public async Task ChattyPerf()
+    public async Task ChattyPerf_OverNamedPipes()
+    {
+        string pipeName = Guid.NewGuid().ToString();
+        var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        var connectTask = serverPipe.WaitForConnectionAsync();
+        var clientPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        clientPipe.Connect();
+        await ChattyPerfAsync(serverPipe, clientPipe);
+    }
+
+    [Fact]
+    public async Task ChattyPerf_OverFullDuplexStream()
     {
         var streams = FullDuplexStream.CreateStreams();
-        JsonRpc.Attach(streams.Item1, new Server());
-        var client = JsonRpc.Attach(streams.Item2);
+        await ChattyPerfAsync(streams.Item1, streams.Item2);
+    }
+
+    private async Task ChattyPerfAsync(Stream serverStream, Stream clientStream)
+    {
+        JsonRpc.Attach(serverStream, new Server());
+        var client = JsonRpc.Attach(clientStream);
 
         const int iterations = 10000;
         var timer = Stopwatch.StartNew();
