@@ -37,11 +37,11 @@ namespace StreamJsonRpc
         private readonly Task readLinesTask;
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
+        private readonly HeaderDelimitedMessageHandler messageHandler;
+
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
-
-        private HeaderDelimitedMessageHandler messageHandler;
 
         public static JsonRpc Attach(Stream stream, object target = null)
         {
@@ -229,7 +229,6 @@ namespace StreamJsonRpc
                 this.disposed = true;
                 if (disposing)
                 {
-                    this.messageHandler.Dispose();
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
@@ -304,7 +303,7 @@ namespace StreamJsonRpc
             await this.messageHandler.WriteAsync(request.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
 
             // This task will be completed when the Response object comes back from the other end of the pipe
-            await tcs.Task.NoThrowAwaitable(false);
+            await tcs.Task.NoThrowAwaitable(captureContext: false);
             await Task.Yield(); // ensure we don't inline anything further, including the continuation of our caller.
             return await tcs.Task.ConfigureAwait(false);
         }
