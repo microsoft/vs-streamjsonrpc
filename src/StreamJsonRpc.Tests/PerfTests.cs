@@ -40,17 +40,24 @@ public class PerfTests
         JsonRpc.Attach(serverStream, new Server());
         var client = JsonRpc.Attach(clientStream);
 
-        const int iterations = 10000;
+        const int maxIterations = 10000;
         var timer = Stopwatch.StartNew();
-        for (int i = 0; i < iterations; i++)
+        int i;
+        for (i = 0; i < maxIterations; i++)
         {
             await client.InvokeAsync("NoOp");
+
+            if (timer.ElapsedMilliseconds > 2000)
+            {
+                // It's taking too long to reach maxIterations. Break out.
+                break;
+            }
         }
 
         timer.Stop();
-        this.logger.WriteLine($"{iterations} iterations completed in {timer.ElapsedMilliseconds} ms.");
-        this.logger.WriteLine($"Rate: {iterations / timer.Elapsed.TotalSeconds} invocations per second.");
-        this.logger.WriteLine($"Overhead: {(double)timer.ElapsedMilliseconds / iterations} ms per invocation.");
+        this.logger.WriteLine($"{i} iterations completed in {timer.ElapsedMilliseconds} ms.");
+        this.logger.WriteLine($"Rate: {i / timer.Elapsed.TotalSeconds} invocations per second.");
+        this.logger.WriteLine($"Overhead: {(double)timer.ElapsedMilliseconds / i} ms per invocation.");
     }
 
     public class Server
