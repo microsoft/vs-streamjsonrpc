@@ -261,6 +261,20 @@ public class JsonRpcTests : IDisposable
         Assert.Equal(3, result);
     }
 
+    [Fact]
+    public async Task CanCallMethodWithAsyncSuffixInPresenceOfOneMissingSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndInAsync));
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public async Task CanCallMethodOmittingAsyncSuffixInPresenceOfOneWithSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndIn));
+        Assert.Equal(5, result);
+    }
+
     public class BaseClass
     {
         public string BaseMethod() => "base";
@@ -362,6 +376,16 @@ public class JsonRpcTests : IDisposable
         public Task<int> MethodThatEndsInAsync()
         {
             return Task.FromResult(3);
+        }
+
+        public Task<int> MethodThatMayEndInAsync()
+        {
+            return Task.FromResult(4);
+        }
+
+        public Task<int> MethodThatMayEndIn()
+        {
+            return Task.FromResult(5);
         }
 
         public int OverloadedMethod(Foo foo)
