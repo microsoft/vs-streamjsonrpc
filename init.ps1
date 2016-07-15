@@ -8,8 +8,6 @@
 #>
 Param(
     [Parameter()]
-    [switch]$Localization,
-    [Parameter()]
     [switch]$Signing
 )
 
@@ -25,13 +23,6 @@ try {
     & "$toolsPath\Restore-NuGetPackages.ps1" -Path "$PSScriptRoot\src"
 
     $MicroBuildPackageSource = 'https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
-    if ($Localization) {
-        Write-Host "Installing MicroBuild localization plugin"
-        & "$toolsPath\Install-NuGetPackage.ps1" MicroBuild.Plugins.Localization -source $MicroBuildPackageSource
-        $env:LocType = "Pseudo"
-        $env:LocLanguages = "VS"
-    }
-
     if ($Signing) {
         Write-Host "Installing MicroBuild signing plugin"
         & "$toolsPath\Install-NuGetPackage.ps1" MicroBuild.Plugins.Signing -source $MicroBuildPackageSource
