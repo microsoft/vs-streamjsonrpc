@@ -30,7 +30,9 @@ public class ReadBufferingStreamTests
     {
         this.logger = logger;
         this.randomDataStream = new MemoryStream(randomDataBuffer.ToArray(), writable: false);
-        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, 10);
+        const int capacity = 10;
+        Assert.True(capacity < randomDataBuffer.Length);
+        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, capacity);
     }
 
     [Fact]
@@ -79,6 +81,38 @@ public class ReadBufferingStreamTests
         }
 
         Assert.Throws<InvalidOperationException>(() => this.bufferingStream.ReadByte());
+    }
+
+    [Fact]
+    public async Task ReadByte_MoreThanCapacitySize_FillWhenEmpty()
+    {
+        for (int i = 0; i < this.bufferingStream.BufferCapacity * 3; i++)
+        {
+            if (this.bufferingStream.IsBufferEmpty)
+            {
+                await this.bufferingStream.FillBufferAsync();
+            }
+
+            int b = this.bufferingStream.ReadByte();
+            Assert.Equal(randomDataBuffer[i], (byte)b);
+        }
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public async Task ReadByte_MoreThanCapacitySize_FillMoreFrequently(int interval)
+    {
+        for (int i = 0; i < this.bufferingStream.BufferCapacity * 3; i++)
+        {
+            if (this.bufferingStream.IsBufferEmpty || (i % interval) == 0)
+            {
+                await this.bufferingStream.FillBufferAsync();
+            }
+
+            int b = this.bufferingStream.ReadByte();
+            Assert.Equal(randomDataBuffer[i], (byte)b);
+        }
     }
 
     [Fact]
