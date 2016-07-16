@@ -65,7 +65,7 @@
 
         public async Task FillBufferAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (this.length < this.buffer.Length && !this.endOfStreamEncountered)
+            if (this.length < this.buffer.Length)
             {
                 int fillStart, fillCount;
                 if (this.start + this.length < this.buffer.Length)

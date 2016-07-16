@@ -107,6 +107,10 @@ public class ReadBufferingStreamTests
         Assert.Throws<InvalidOperationException>(() => this.bufferingStream.ReadByte());
         await this.bufferingStream.FillBufferAsync();
         Assert.Equal(-1, this.bufferingStream.ReadByte());
+
+        // Do it again, just to make sure it's repeatable.
+        await this.bufferingStream.FillBufferAsync();
+        Assert.Equal(-1, this.bufferingStream.ReadByte());
     }
 
     [Fact]
@@ -236,5 +240,25 @@ public class ReadBufferingStreamTests
         {
             this.underlyingStream.Seek(0, SeekOrigin.Begin);
         }
+    }
+
+    [Fact]
+    public void CanProperties()
+    {
+        Assert.True(this.bufferingStream.CanRead);
+        Assert.False(this.bufferingStream.CanWrite);
+        Assert.False(this.bufferingStream.CanSeek);
+    }
+
+    [Fact]
+    public void UnsupportedMethodsThrow()
+    {
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Flush());
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Seek(0, SeekOrigin.Begin));
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Length);
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Position);
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Position = 0);
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.SetLength(0));
+        Assert.Throws<NotSupportedException>(() => this.bufferingStream.Write(new byte[2], 0, 1));
     }
 }
