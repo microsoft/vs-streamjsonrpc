@@ -46,14 +46,14 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
         private readonly byte[] sendingHeaderBuffer = new byte[MaxHeaderSize];
 
-        private readonly Stream receivingStream;
+        private readonly ReadBufferingStream receivingStream;
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
         private readonly byte[] receivingBuffer = new byte[MaxHeaderSize];
 
         internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
         {
             this.sendingStream = sendingStream;
-            this.receivingStream = receivingStream;
+            this.receivingStream = new ReadBufferingStream(receivingStream, MaxHeaderSize);
         }
 
         private enum HeaderParseState
@@ -106,20 +106,25 @@ namespace StreamJsonRpc
                 string headerName = null;
                 do
                 {
-                    int maxBytesToRead = Math.Min(1, this.receivingBuffer.Length - headerBytesLength);
-                    if (maxBytesToRead < 1)
+                    if (this.receivingBuffer.Length - headerBytesLength == 0)
                     {
                         throw new BadRpcHeaderException(Resources.HeaderValueTooLarge);
                     }
 
-                    int justRead = await this.receivingStream.ReadAsync(this.receivingBuffer, headerBytesLength, maxBytesToRead, cancellationToken).ConfigureAwait(false);
-                    if (justRead == 0)
+                    if (this.receivingStream.IsBufferEmpty)
+                    {
+                        await this.receivingStream.FillBufferAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    int justRead = this.receivingStream.ReadByte();
+                    if (justRead == -1)
                     {
                         return null; // remote end disconnected
                     }
 
-                    headerBytesLength += justRead;
-                    char lastCharRead = (char)this.receivingBuffer[headerBytesLength - 1];
+                    this.receivingBuffer[headerBytesLength] = (byte)justRead;
+                    headerBytesLength++;
+                    char lastCharRead = (char)justRead;
                     switch (state)
                     {
                         case HeaderParseState.Name:
