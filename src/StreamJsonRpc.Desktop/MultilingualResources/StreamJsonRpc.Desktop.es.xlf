@@ -134,6 +134,14 @@
           <target state="needs-review-translation" state-qualifier="mt-suggestion">Inesperado símbolo (token) '{0}' al analizar el encabezado.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
+        <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A positive integer is required.</source>
+          <target state="new">A positive integer is required.</target>
+        </trans-unit>
+        <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
+          <source>The buffer is empty. Call the async method to fill it first.</source>
+          <target state="new">The buffer is empty. Call the async method to fill it first.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

@@ -106,6 +106,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The buffer is empty. Call the async method to fill it first..
+        /// </summary>
+        internal static string FillBufferFirst {
+            get {
+                return ResourceManager.GetString("FillBufferFirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed parsing Content-Length header (&quot;{0}&quot;) into a positive integer..
         /// </summary>
         internal static string HeaderContentLengthNotParseable {
@@ -183,6 +192,15 @@ namespace StreamJsonRpc {
         internal static string MoreThanOneMethodFound {
             get {
                 return ResourceManager.GetString("MoreThanOneMethodFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A positive integer is required..
+        /// </summary>
+        internal static string PositiveIntegerRequired {
+            get {
+                return ResourceManager.GetString("PositiveIntegerRequired", resourceCulture);
             }
         }
         
