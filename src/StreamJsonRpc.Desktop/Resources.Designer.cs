@@ -196,6 +196,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A non-negative integer is required..
+        /// </summary>
+        internal static string NonNegativeIntegerRequired {
+            get {
+                return ResourceManager.GetString("NonNegativeIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A positive integer is required..
         /// </summary>
         internal static string PositiveIntegerRequired {
@@ -255,6 +264,15 @@ namespace StreamJsonRpc {
         internal static string StreamDisposed {
             get {
                 return ResourceManager.GetString("StreamDisposed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The {0] and {1} parameters exceed length of array..
+        /// </summary>
+        internal static string SumOfTwoParametersExceedsArrayLength {
+            get {
+                return ResourceManager.GetString("SumOfTwoParametersExceedsArrayLength", resourceCulture);
             }
         }
         

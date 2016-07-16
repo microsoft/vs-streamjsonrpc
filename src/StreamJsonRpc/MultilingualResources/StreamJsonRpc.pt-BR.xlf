@@ -141,6 +141,14 @@
           <source>The buffer is empty. Call the async method to fill it first.</source>
           <target state="new">The buffer is empty. Call the async method to fill it first.</target>
         </trans-unit>
+        <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A non-negative integer is required.</source>
+          <target state="new">A non-negative integer is required.</target>
+        </trans-unit>
+        <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
+          <source>The {0] and {1} parameters exceed length of array.</source>
+          <target state="new">The {0] and {1} parameters exceed length of array.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

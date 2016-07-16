@@ -48,12 +48,22 @@
             set { throw new NotSupportedException(); }
         }
 
+        /// <summary>
+        /// Gets the length of the first block of data in our buffer (before wraparound).
+        /// </summary>
+        private int FirstBlockLength => Math.Min(this.length, this.buffer.Length - this.start);
+
+        /// <summary>
+        /// Gets the length of the block of data that wrapped around to the front of our buffer.
+        /// </summary>
+        private int WraparoundBlockLength => (this.start + this.length) % this.buffer.Length;
+
         public override void Flush()
         {
             throw new NotSupportedException();
         }
 
-        public async Task FillBufferAsync()
+        public async Task FillBufferAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (this.length < this.buffer.Length && !this.endOfStreamEncountered)
             {
@@ -71,7 +81,15 @@
                     fillStart = this.start - fillCount;
                 }
 
-                int bytesRead = await this.underlyingStream.ReadAsync(this.buffer, fillStart, fillCount).ConfigureAwait(false);
+                // Note we do NOT call ReadAsync twice in order to ensure we totally fill our buffer because
+                // the semantics of reading streams is that if we call twice, it must return a non-empty array
+                // of bytes twice (requiring at least two bytes in total). This could lead us to blocking for
+                // an unknown length of time for the second byte when our caller only needed one more byte.
+                // Instead, we just fill up whatever section of the array we can (even if it's just one byte)
+                // and our caller can ask for more if they want it.
+                // As an alterative, we *could* create a temporary buffer just large enough for all the bytes
+                // we need to fill our wraparound buffer and then manually copy bytes around.
+                int bytesRead = await this.underlyingStream.ReadAsync(this.buffer, fillStart, fillCount, cancellationToken).ConfigureAwait(false);
                 this.length += bytesRead;
 
                 if (bytesRead == 0)
@@ -94,19 +112,53 @@
             }
 
             byte result = this.buffer[this.start];
-            this.length--;
-            this.start = (this.start + 1) % this.buffer.Length;
+            this.ConsumeBuffer(1);
             return result;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            throw new InvalidOperationException(Resources.FillBufferFirst);
+            ValidateReadArgs(buffer, offset, count);
+
+            if (this.length == 0)
+            {
+                if (this.endOfStreamEncountered)
+                {
+                    return 0;
+                }
+
+                throw new InvalidOperationException(Resources.FillBufferFirst);
+            }
+
+            count = Math.Min(count, this.length);
+            int firstBlockLength = Math.Min(this.FirstBlockLength, count);
+            if (firstBlockLength > 0)
+            {
+                Array.Copy(this.buffer, this.start, buffer, offset, firstBlockLength);
+                offset += firstBlockLength;
+                this.ConsumeBuffer(firstBlockLength);
+            }
+
+            int secondBlockLength = Math.Min(count - firstBlockLength, this.WraparoundBlockLength);
+            if (secondBlockLength > 0)
+            {
+                Array.Copy(this.buffer, 0, buffer, offset, secondBlockLength);
+                this.ConsumeBuffer(secondBlockLength);
+            }
+
+            return count;
         }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            throw new InvalidOperationException(Resources.FillBufferFirst);
+            ValidateReadArgs(buffer, offset, count);
+
+            if (this.length == 0)
+            {
+                await this.FillBufferAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return this.Read(buffer, offset, count);
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -135,6 +187,20 @@
             }
 
             base.Dispose(disposing);
+        }
+
+        private static void ValidateReadArgs(byte[] buffer, int offset, int count)
+        {
+            Requires.NotNull(buffer, nameof(buffer));
+            Requires.Range(offset >= 0, nameof(offset), Resources.NonNegativeIntegerRequired);
+            Requires.Range(count >= 0, nameof(count), Resources.NonNegativeIntegerRequired);
+            Requires.Range(offset + count <= buffer.Length, nameof(count), Resources.SumOfTwoParametersExceedsArrayLength);
+        }
+
+        private void ConsumeBuffer(int count)
+        {
+            this.start = (this.start + count) % this.buffer.Length;
+            this.length -= count;
         }
     }
 }

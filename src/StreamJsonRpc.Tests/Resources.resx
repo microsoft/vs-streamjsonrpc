@@ -172,6 +172,9 @@
     <value>More than one target method found: {0}.</value>
     <comment>{0} is the list of method signatures.</comment>
   </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>A non-negative integer is required.</value>
+  </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
     <value>A positive integer is required.</value>
   </data>
@@ -193,6 +196,9 @@
   </data>
   <data name="StreamDisposed" xml:space="preserve">
     <value>Stream has been disposed</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>The {0] and {1} parameters exceed length of array.</value>
   </data>
   <data name="TaskNotCompleted" xml:space="preserve">
     <value>The task is not completed.</value>
