@@ -255,27 +255,33 @@ namespace StreamJsonRpc
 
             using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
             {
+                var sendingBufferStream = new MemoryStream(MaxHeaderSize);
+
                 // Understand the content we need to send in terms of bytes and length.
                 byte[] contentBytes = this.Encoding.GetBytes(json);
                 string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
 
                 // Transmit the Content-Length header.
-                await this.sendingStream.WriteAsync(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length, cancellationToken).ConfigureAwait(false);
-                await this.sendingStream.WriteAsync(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length).ConfigureAwait(false);
+                sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
+                sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
                 int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
-                await this.sendingStream.WriteAsync(this.sendingHeaderBuffer, 0, headerValueBytesLength, cancellationToken).ConfigureAwait(false);
-                await this.sendingStream.WriteAsync(CrlfBytes, 0, CrlfBytes.Length, cancellationToken).ConfigureAwait(false);
+                sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
 
                 // Transmit the Content-Type header.
-                await this.sendingStream.WriteAsync(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length, cancellationToken).ConfigureAwait(false);
-                await this.sendingStream.WriteAsync(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length).ConfigureAwait(false);
+                sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
+                sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
                 var contentTypeHeaderValue = $"application/{this.SubType}; charset={this.Encoding.WebName}";
                 headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
-                await this.sendingStream.WriteAsync(this.sendingHeaderBuffer, 0, headerValueBytesLength, cancellationToken).ConfigureAwait(false);
-                await this.sendingStream.WriteAsync(CrlfBytes, 0, CrlfBytes.Length, cancellationToken).ConfigureAwait(false);
+                sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
 
                 // Terminate the headers.
-                await this.sendingStream.WriteAsync(CrlfBytes, 0, CrlfBytes.Length, cancellationToken).ConfigureAwait(false);
+                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+
+                // Transmit the headers.
+                sendingBufferStream.Position = 0;
+                await sendingBufferStream.CopyToAsync(this.sendingStream, MaxHeaderSize, cancellationToken).ConfigureAwait(false);
 
                 // Transmit the content itself.
                 await this.sendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
