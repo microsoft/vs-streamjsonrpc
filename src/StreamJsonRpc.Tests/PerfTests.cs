@@ -21,10 +21,11 @@ public class PerfTests
     public async Task ChattyPerf_OverNamedPipes()
     {
         string pipeName = Guid.NewGuid().ToString();
-        var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, /*maxConnections*/ 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         var connectTask = serverPipe.WaitForConnectionAsync();
         var clientPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         clientPipe.Connect();
+        connectTask.GetAwaiter().GetResult(); // rethrow any exception
         await ChattyPerfAsync(serverPipe, clientPipe);
     }
 
@@ -37,27 +38,28 @@ public class PerfTests
 
     private async Task ChattyPerfAsync(Stream serverStream, Stream clientStream)
     {
-        JsonRpc.Attach(serverStream, new Server());
-        var client = JsonRpc.Attach(clientStream);
-
-        const int maxIterations = 10000;
-        var timer = Stopwatch.StartNew();
-        int i;
-        for (i = 0; i < maxIterations; i++)
+        using (JsonRpc.Attach(serverStream, new Server()))
+        using (var client = JsonRpc.Attach(clientStream))
         {
-            await client.InvokeAsync("NoOp");
-
-            if (timer.ElapsedMilliseconds > 2000)
+            const int maxIterations = 10000;
+            var timer = Stopwatch.StartNew();
+            int i;
+            for (i = 0; i < maxIterations; i++)
             {
-                // It's taking too long to reach maxIterations. Break out.
-                break;
-            }
-        }
+                await client.InvokeAsync("NoOp");
 
-        timer.Stop();
-        this.logger.WriteLine($"{i} iterations completed in {timer.ElapsedMilliseconds} ms.");
-        this.logger.WriteLine($"Rate: {i / timer.Elapsed.TotalSeconds} invocations per second.");
-        this.logger.WriteLine($"Overhead: {(double)timer.ElapsedMilliseconds / i} ms per invocation.");
+                if (timer.ElapsedMilliseconds > 2000 && i > 0)
+                {
+                    // It's taking too long to reach maxIterations. Break out.
+                    break;
+                }
+            }
+
+            timer.Stop();
+            this.logger.WriteLine($"{i} iterations completed in {timer.ElapsedMilliseconds} ms.");
+            this.logger.WriteLine($"Rate: {i / timer.Elapsed.TotalSeconds} invocations per second.");
+            this.logger.WriteLine($"Overhead: {(double)timer.ElapsedMilliseconds / i} ms per invocation.");
+        }
     }
 
     public class Server
