@@ -57,15 +57,23 @@
         {
             if (this.length < this.buffer.Length && !this.endOfStreamEncountered)
             {
-                int fillStart = (this.start + this.length) % this.buffer.Length;
-                var fillEnd = this.buffer.Length - fillStart;
-                int bytesRead = 0;
-                if (fillEnd - fillStart > 0)
+                int fillStart, fillCount;
+                if (this.start + this.length < this.buffer.Length)
                 {
-                    bytesRead += await this.underlyingStream.ReadAsync(this.buffer, fillStart, fillEnd - fillStart).ConfigureAwait(false);
+                    // The buffer has empty space at the end.
+                    fillStart = this.start + this.length;
+                    fillCount = this.buffer.Length - fillStart;
+                }
+                else
+                {
+                    // The buffer's last byte is allocated, but there is available buffer before the start position.
+                    fillCount = this.buffer.Length - this.length;
+                    fillStart = this.start - fillCount;
                 }
 
+                int bytesRead = await this.underlyingStream.ReadAsync(this.buffer, fillStart, fillCount).ConfigureAwait(false);
                 this.length += bytesRead;
+
                 if (bytesRead == 0)
                 {
                     this.endOfStreamEncountered = true;
@@ -75,13 +83,13 @@
 
         public override int ReadByte()
         {
-            if (this.endOfStreamEncountered)
-            {
-                return -1;
-            }
-
             if (this.length == 0)
             {
+                if (this.endOfStreamEncountered)
+                {
+                    return -1;
+                }
+
                 throw new InvalidOperationException(Resources.FillBufferFirst);
             }
 

@@ -12,36 +12,27 @@ using Xunit.Abstractions;
 
 public class ReadBufferingStreamTests
 {
-    private const int randomDataLength = 10 * 1024;
-    private static readonly ImmutableArray<byte> randomDataBuffer;
+    private const int DefaultCapacity = 10;
+    private const int defaultUnderlyingStreamLength = DefaultCapacity * 10;
+    private static readonly ImmutableArray<byte> underlyingStreamBuffer = Enumerable.Range(1, defaultUnderlyingStreamLength).Select(n => (byte)n).ToImmutableArray();
     private readonly ITestOutputHelper logger;
-    private readonly MemoryStream randomDataStream;
+    private readonly MemoryStream underlyingStream;
     private ReadBufferingStream bufferingStream;
-
-    static ReadBufferingStreamTests()
-    {
-        var r = new Random();
-        byte[] buffer = new byte[randomDataLength];
-        r.NextBytes(buffer);
-        randomDataBuffer = buffer.ToImmutableArray();
-    }
 
     public ReadBufferingStreamTests(ITestOutputHelper logger)
     {
         this.logger = logger;
-        this.randomDataStream = new MemoryStream(randomDataBuffer.ToArray(), writable: false);
-        const int capacity = 10;
-        Assert.True(capacity < randomDataBuffer.Length);
-        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, capacity);
+        this.underlyingStream = new MemoryStream(underlyingStreamBuffer.ToArray(), writable: false);
+        Assert.True(DefaultCapacity < underlyingStreamBuffer.Length);
+        this.bufferingStream = new ReadBufferingStream(this.underlyingStream, DefaultCapacity);
     }
 
     [Fact]
     public void BufferCapacity()
     {
-        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, 5);
-        Assert.Equal(5, this.bufferingStream.BufferCapacity);
-        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, 15);
-        Assert.Equal(15, this.bufferingStream.BufferCapacity);
+        Assert.Equal(DefaultCapacity, this.bufferingStream.BufferCapacity);
+        this.bufferingStream = new ReadBufferingStream(this.underlyingStream, DefaultCapacity * 2);
+        Assert.Equal(DefaultCapacity * 2, this.bufferingStream.BufferCapacity);
     }
 
     [Fact]
@@ -77,42 +68,32 @@ public class ReadBufferingStreamTests
         for (int i = 0; i < this.bufferingStream.BufferCapacity; i++)
         {
             int b = this.bufferingStream.ReadByte();
-            Assert.Equal(randomDataBuffer[i], (byte)b);
+            Assert.Equal(underlyingStreamBuffer[i], (byte)b);
         }
 
         Assert.Throws<InvalidOperationException>(() => this.bufferingStream.ReadByte());
     }
 
-    [Fact]
-    public async Task ReadByte_MoreThanCapacitySize_FillWhenEmpty()
-    {
-        for (int i = 0; i < this.bufferingStream.BufferCapacity * 3; i++)
-        {
-            if (this.bufferingStream.IsBufferEmpty)
-            {
-                await this.bufferingStream.FillBufferAsync();
-            }
-
-            int b = this.bufferingStream.ReadByte();
-            Assert.Equal(randomDataBuffer[i], (byte)b);
-        }
-    }
-
     [Theory]
+    [InlineData(0)]
     [InlineData(2)]
     [InlineData(3)]
-    public async Task ReadByte_MoreThanCapacitySize_FillMoreFrequently(int interval)
+    public async Task ReadByte_MoreThanCapacitySize(int interval)
     {
-        for (int i = 0; i < this.bufferingStream.BufferCapacity * 3; i++)
+        for (int i = 0; i < underlyingStreamBuffer.Length; i++)
         {
-            if (this.bufferingStream.IsBufferEmpty || (i % interval) == 0)
+            if (this.bufferingStream.IsBufferEmpty || (interval != 0 && (i % interval) == 0))
             {
                 await this.bufferingStream.FillBufferAsync();
             }
 
             int b = this.bufferingStream.ReadByte();
-            Assert.Equal(randomDataBuffer[i], (byte)b);
+            Assert.NotEqual(-1, b);
+            Assert.Equal(underlyingStreamBuffer[i], (byte)b);
         }
+
+        await this.bufferingStream.FillBufferAsync();
+        Assert.Equal(-1, this.bufferingStream.ReadByte());
     }
 
     [Fact]
@@ -133,15 +114,15 @@ public class ReadBufferingStreamTests
     [InlineData(false)]
     public void Dispose_DisposesStream(bool disposeStream)
     {
-        this.bufferingStream = new ReadBufferingStream(this.randomDataStream, 10, disposeStream);
+        this.bufferingStream = new ReadBufferingStream(this.underlyingStream, 10, disposeStream);
         this.bufferingStream.Dispose();
         if (disposeStream)
         {
-            Assert.Throws<ObjectDisposedException>(() => this.randomDataStream.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<ObjectDisposedException>(() => this.underlyingStream.Seek(0, SeekOrigin.Begin));
         }
         else
         {
-            this.randomDataStream.Seek(0, SeekOrigin.Begin);
+            this.underlyingStream.Seek(0, SeekOrigin.Begin);
         }
     }
 }
