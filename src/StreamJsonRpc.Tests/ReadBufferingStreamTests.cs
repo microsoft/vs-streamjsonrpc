@@ -261,4 +261,55 @@ public class ReadBufferingStreamTests
         Assert.Throws<NotSupportedException>(() => this.bufferingStream.SetLength(0));
         Assert.Throws<NotSupportedException>(() => this.bufferingStream.Write(new byte[2], 0, 1));
     }
+
+    [Fact]
+    public async Task Read_AtBufferSizeAfterFullyDrainBuffer()
+    {
+        // Fill the buffer, then read half of it so that we have the second half filled.
+        await this.bufferingStream.FillBufferAsync();
+        var buffer = new byte[this.bufferingStream.BufferCapacity];
+        int bytesRead = this.bufferingStream.Read(buffer, 0, buffer.Length / 2);
+
+        // Now fill the buffer, so that it wraps around.
+        // Then drain it fully.
+        await this.bufferingStream.FillBufferAsync();
+        int bytesRead2 = this.bufferingStream.Read(buffer, 0, buffer.Length);
+        Assert.Equal(buffer.Length, bytesRead2);
+        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
+
+        // Now fill the buffer again. Since the buffer is empty, it *should* fully refill
+        // so we can get a full buffer back again.
+        await this.bufferingStream.FillBufferAsync();
+        int bytesRead3 = this.bufferingStream.Read(buffer, 0, buffer.Length);
+        Assert.Equal(buffer.Length, bytesRead3);
+        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead + bytesRead2).Take(bytesRead3), buffer.Take(bytesRead3));
+    }
+
+    [Fact]
+    public async Task ReadAsync_RequestLargeSizeWithEmptyBuffer()
+    {
+        var buffer = new byte[this.bufferingStream.BufferCapacity * 3];
+        int bytesRead = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
+        Assert.Equal(buffer.Length, bytesRead);
+
+        Assert.Equal(underlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
+    }
+
+    [Fact]
+    public async Task ReadAsync_RequestLargeSizeWithPartiallyFilledBuffer()
+    {
+        await this.bufferingStream.FillBufferAsync();
+        var buffer = new byte[this.bufferingStream.BufferCapacity * 3];
+
+        // The first time we read, it should just give us what's in the internal buffer.
+        int bytesRead = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
+        Assert.Equal(this.bufferingStream.BufferCapacity, bytesRead);
+        Assert.Equal(underlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
+
+        // The second time we read, it should give us everything we ask for because
+        // it can skip the internal buffer.
+        int bytesRead2 = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
+        Assert.Equal(buffer.Length, bytesRead2);
+        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
+    }
 }

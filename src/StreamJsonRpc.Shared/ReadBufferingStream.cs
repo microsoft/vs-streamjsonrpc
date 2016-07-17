@@ -149,16 +149,16 @@
             return count;
         }
 
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             ValidateReadArgs(buffer, offset, count);
 
             if (this.length == 0)
             {
-                await this.FillBufferAsync(cancellationToken).ConfigureAwait(false);
+                return this.underlyingStream.ReadAsync(buffer, offset, count, cancellationToken);
             }
 
-            return this.Read(buffer, offset, count);
+            return Task.FromResult(this.Read(buffer, offset, count));
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -215,6 +215,11 @@
         {
             this.start = (this.start + count) % this.buffer.Length;
             this.length -= count;
+
+            if (this.length == 0)
+            {
+                this.start = 0;
+            }
         }
     }
 }
