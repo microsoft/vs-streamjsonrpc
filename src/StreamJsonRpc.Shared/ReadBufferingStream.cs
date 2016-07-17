@@ -192,9 +192,23 @@
         private static void ValidateReadArgs(byte[] buffer, int offset, int count)
         {
             Requires.NotNull(buffer, nameof(buffer));
-            Requires.Range(offset >= 0, nameof(offset), Resources.NonNegativeIntegerRequired);
-            Requires.Range(count >= 0, nameof(count), Resources.NonNegativeIntegerRequired);
-            Requires.Range(offset + count <= buffer.Length, nameof(count), Resources.SumOfTwoParametersExceedsArrayLength);
+
+            // We use if's instead of Requires.Range to avoid loading localized resources
+            // except in error conditions for better perf.
+            if (offset < 0)
+            {
+                Requires.FailRange(nameof(offset), Resources.NonNegativeIntegerRequired);
+            }
+
+            if (count < 0)
+            {
+                Requires.FailRange(nameof(count), Resources.NonNegativeIntegerRequired);
+            }
+
+            if (offset + count > buffer.Length)
+            {
+                Requires.FailRange(nameof(count), Resources.SumOfTwoParametersExceedsArrayLength);
+            }
         }
 
         private void ConsumeBuffer(int count)
