@@ -41,6 +41,9 @@ public class PerfTests
         using (JsonRpc.Attach(serverStream, new Server()))
         using (var client = JsonRpc.Attach(clientStream))
         {
+            // warmup
+            await client.InvokeAsync("NoOp");
+
             const int maxIterations = 10000;
             var timer = Stopwatch.StartNew();
             int i;
