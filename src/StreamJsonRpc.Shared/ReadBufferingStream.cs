@@ -1,13 +1,13 @@
-﻿namespace StreamJsonRpc
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft;
 
+namespace StreamJsonRpc
+{
     internal class ReadBufferingStream : Stream
     {
         private readonly Stream underlyingStream;
