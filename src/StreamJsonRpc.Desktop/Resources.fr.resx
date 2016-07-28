@@ -20,9 +20,6 @@
     <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel.A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Le délimiteur est une chaîne vide.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Erreur lors de l’écriture du résultat de JSON-RPC : {0} : {1}</value>
     <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
@@ -61,9 +58,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Fin de flux atteinte.</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Readable n’est pas défini.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>La lecture de JSON-RPC à partir du flux a échoué avec {0} : {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -91,9 +85,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>JSON-RPC entrant non reconnu '{0}'</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Writable n’est pas défini.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Échec de l’analyse en-tête Content-Length (« {0} ») dans un entier positif.</value>

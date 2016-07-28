@@ -16,10 +16,6 @@
           <target state="translated">‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
-        <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
-          <source>Delimiter is empty string.</source>
-          <target state="translated">구분 기호가 빈 문자열입니다.</target>
-        </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON-RPC Result: {0}: {1}</source>
           <target state="translated">JSON-RPC 결과를 쓰는 동안 오류 발생: {0}: {1}</target>
@@ -68,10 +64,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">스트림 끝에 도달했습니다.</target>
         </trans-unit>
-        <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
-          <source>Readable is not set.</source>
-          <target state="translated">읽을 수 있는 개체가 설정되지 않았습니다.</target>
-        </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON-RPC from the stream failed with {0}: {1}</source>
           <target state="translated">{0}(으)로 인해 스트림에서 JSON-RPC 읽기 실패: {1}</target>
@@ -107,10 +99,6 @@
           <source>Unrecognized incoming JSON-RPC '{0}'</source>
           <target state="translated">인식되지 않은 들어오는 JSON-RPC '{0}'</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
-        </trans-unit>
-        <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
-          <source>Writable is not set.</source>
-          <target state="translated">쓸 수 있는 개체가 설정되지 않았습니다.</target>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>

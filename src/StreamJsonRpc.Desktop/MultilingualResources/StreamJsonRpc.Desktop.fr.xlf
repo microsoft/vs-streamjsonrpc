@@ -16,10 +16,6 @@
           <target state="translated">A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel.A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
-        <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
-          <source>Delimiter is empty string.</source>
-          <target state="translated">Le délimiteur est une chaîne vide.</target>
-        </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON-RPC Result: {0}: {1}</source>
           <target state="translated">Erreur lors de l’écriture du résultat de JSON-RPC : {0} : {1}</target>
@@ -68,10 +64,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">Fin de flux atteinte.</target>
         </trans-unit>
-        <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
-          <source>Readable is not set.</source>
-          <target state="translated">Readable n’est pas défini.</target>
-        </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON-RPC from the stream failed with {0}: {1}</source>
           <target state="translated">La lecture de JSON-RPC à partir du flux a échoué avec {0} : {1}</target>
@@ -107,10 +99,6 @@
           <source>Unrecognized incoming JSON-RPC '{0}'</source>
           <target state="translated">JSON-RPC entrant non reconnu '{0}'</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
-        </trans-unit>
-        <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
-          <source>Writable is not set.</source>
-          <target state="translated">Writable n’est pas défini.</target>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>

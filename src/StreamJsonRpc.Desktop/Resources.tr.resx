@@ -20,9 +20,6 @@
     <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Sınırlayıcı boş bir dize.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>JSON-RPC Sonucu yazılırken bir hata oluştu: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</comment>
@@ -61,9 +58,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Akışın sonuna ulaşıldı.</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Readable ayarlanmadı.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Akıştan JSON-RPC okunamadı. Özel durum: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -91,9 +85,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Tanınmayan gelen JSON-RPC '{0}'</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Writable ayarlanmadı.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Pozitif bir tamsayı ayrıştırma Content-Length üstbilgisi ("{0}") başarısız oldu.</value>

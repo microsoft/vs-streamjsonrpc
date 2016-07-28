@@ -19,9 +19,6 @@
     <value>'{0}' の実行の要求を受け取りましたが、コールバック オブジェクトがありません。要求を削除しています。</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>区切り記号は、空の文字列です。</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>JSON RPC 結果の書き込み時のエラー: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,9 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>ストリームの終わりに達しました。</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Readable が設定されていません。</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>ストリームからの JSON RPC の読み取りに {0} で失敗しました: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -90,9 +84,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>認識されない受信した JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Writable が設定されていません。</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>正の整数に解析のコンテンツ長ヘッダーをできませんでした。</value>

@@ -124,9 +124,6 @@
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Delimiter is empty string.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Error writing JSON RPC Result: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -181,9 +178,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Reached end of stream.</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Readable is not set.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Reading JSON RPC from the stream failed with {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -226,8 +220,5 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Unrecognized incoming JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Writable is not set.</value>
   </data>
 </root>

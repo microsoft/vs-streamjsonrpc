@@ -79,15 +79,6 @@ internal class Resources {
     }
     
     /// <summary>
-    ///   Looks up a localized string similar to Delimiter is empty string..
-    /// </summary>
-    internal static string EmptyDelimiter {
-        get {
-            return ResourceManager.GetString("EmptyDelimiter", resourceCulture);
-        }
-    }
-    
-    /// <summary>
     ///   Looks up a localized string similar to Error writing JSON RPC Result: {0}: {1}.
     /// </summary>
     internal static string ErrorWritingJsonRpcResult {
@@ -223,15 +214,6 @@ internal class Resources {
     }
     
     /// <summary>
-    ///   Looks up a localized string similar to Readable is not set..
-    /// </summary>
-    internal static string ReadableNotSet {
-        get {
-            return ResourceManager.GetString("ReadableNotSet", resourceCulture);
-        }
-    }
-    
-    /// <summary>
     ///   Looks up a localized string similar to Reading JSON RPC from the stream failed with {0}: {1}.
     /// </summary>
     internal static string ReadingJsonRpcStreamFailed {
@@ -336,15 +318,6 @@ internal class Resources {
     internal static string UnrecognizedIncomingJsonRpc {
         get {
             return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
-        }
-    }
-    
-    /// <summary>
-    ///   Looks up a localized string similar to Writable is not set..
-    /// </summary>
-    internal static string WritableNotSet {
-        get {
-            return ResourceManager.GetString("WritableNotSet", resourceCulture);
         }
     }
 }

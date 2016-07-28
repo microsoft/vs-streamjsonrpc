@@ -19,9 +19,6 @@
     <value>Otrzymano żądanie wykonania metody „{0}”, ale brakuje obiektu wywołania zwrotnego. Żądanie zostanie odrzucone.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Wartość ogranicznika jest pustym ciągiem.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Błąd zapisywania wyniku JSON RPC: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,9 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Osiągnięto koniec strumienia.</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Nie ustawiono elementu readable.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Odczytywanie wywołania JSON RPC ze strumienia nie powiodło się — {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -90,9 +84,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Nie ustawiono elementu writable.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Na dodatnią liczbą całkowitą, nie powiodło się podczas analizowania nagłówka Content-Length.</value>

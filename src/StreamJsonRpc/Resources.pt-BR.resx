@@ -19,9 +19,6 @@
     <value>Recebeu uma solicitação para executar '{0}', mas não há nenhum objeto de retorno de chamada. Removendo a solicitação.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>O delimitador é uma cadeia de caracteres vazia.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Erro ao gravar o resultado de RPC de JSON: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,9 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Fim do fluxo alcançado.</value>
   </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>O legível não foi definido.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Falha na leitura de RPC de JSON do fluxo com {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -90,9 +84,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>RPC de JSON de entrada '{0}' não reconhecido</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>O gravável não foi definido.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Falhou o cabeçalho de Content-Length análise em um número inteiro positivo.</value>
