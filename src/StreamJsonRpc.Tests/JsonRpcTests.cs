@@ -13,14 +13,10 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcTests : IDisposable
+public class JsonRpcTests : TestBase
 {
     private const int CustomTaskResult = 100;
     private const string HubName = "TestHub";
-
-    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
-    private readonly CancellationTokenSource timeoutTokenSource;
-    private readonly ITestOutputHelper logger;
 
     private readonly Server server;
     private readonly Stream serverStream;
@@ -30,10 +26,9 @@ public class JsonRpcTests : IDisposable
     private readonly JsonRpc clientRpc;
 
     public JsonRpcTests(ITestOutputHelper logger)
+        : base(logger)
     {
-        this.logger = logger;
         TaskCompletionSource<JsonRpc> serverRpcTcs = new TaskCompletionSource<JsonRpc>();
-        this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
 
         this.server = new Server();
 
@@ -45,16 +40,18 @@ public class JsonRpcTests : IDisposable
         this.clientRpc = JsonRpc.Attach(this.clientStream);
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        this.timeoutTokenSource.Dispose();
-        this.serverRpc.Dispose();
-        this.clientRpc.Dispose();
-        this.serverStream.Dispose();
-        this.clientStream.Dispose();
-    }
+        if (disposing)
+        {
+            this.serverRpc.Dispose();
+            this.clientRpc.Dispose();
+            this.serverStream.Dispose();
+            this.clientStream.Dispose();
+        }
 
-    protected CancellationToken TimeoutToken => this.timeoutTokenSource.Token;
+        base.Dispose(disposing);
+    }
 
     [Fact]
     public async Task CanInvokeMethodOnServer()

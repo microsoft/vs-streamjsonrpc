@@ -19,9 +19,6 @@
     <value>‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>구분 기호가 빈 문자열입니다.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>JSON RPC 결과를 쓰는 동안 오류 발생: {0}:{1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,12 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>스트림 끝에 도달했습니다.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>읽을 수 있는 개체를 읽을 수 없습니다.</value>
-  </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>읽을 수 있는 개체가 설정되지 않았습니다.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>{0}(으)로 인해 스트림에서 JSON RPC 읽기 실패:{1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -94,10 +85,35 @@
     <value>인식되지 않은 들어오는 JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>쓸 수 있는 개체를 쓸 수 없습니다.</value>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>양의 정수에 콘텐츠 길이 헤더를 구문 분석 하지 못했습니다.</value>
+    <comment>{locked="Content-Length"}</comment>
   </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>쓸 수 있는 개체가 설정되지 않았습니다.</value>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>메시지 헤더의 크기는 지원 되는 최대 크기를 초과합니다.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>예기치 않은 토큰 ' {0} ' 헤더를 구문 분석 하는 동안.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>양의 정수는 필요 합니다.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>버퍼가 비어입니다. 그것을 채우기 위해 먼저 비동기 메서드를 호출 합니다.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>음수가 아닌 정수는 필요 합니다.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] {1} 매개 변수 배열의 길이 초과 하는 고.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>스트림을 읽을 수 있어야 합니다.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>스트림 쓰기 가능 해야 합니다.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

@@ -15,10 +15,6 @@
           <target state="translated">È stata ricevuta una richiesta per l'esecuzione di '{0}' ma non sono presenti oggetti di callback. La richiesta verrà eliminata.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
-        <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
-          <source>Delimiter is empty string.</source>
-          <target state="translated">Il delimitatore è una stringa vuota.</target>
-        </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON RPC Result: {0}: {1}</source>
           <target state="translated">Si è verificato un errore durante la scrittura del risultato della RPC JSON. {0}: {1}</target>
@@ -67,14 +63,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">È stata raggiunta la fine del flusso.</target>
         </trans-unit>
-        <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
-          <source>Readable cannot read.</source>
-          <target state="translated">Non è possibile leggere Readable.</target>
-        </trans-unit>
-        <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
-          <source>Readable is not set.</source>
-          <target state="translated">Readable non è impostato.</target>
-        </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON RPC from the stream failed with {0}: {1}</source>
           <target state="translated">La lettura della RPC JSON dal flusso non è riuscita. {0}: {1}</target>
@@ -111,13 +99,45 @@
           <target state="translated">La RPC JSON in arrivo '{0}' non è stata riconosciuta</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
-        <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
-          <source>Writable cannot write.</source>
-          <target state="translated">Non è possibile scrivere Writable.</target>
+        <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+          <source>Failed parsing Content-Length header into a positive integer.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Intestazione Content-Length analisi venuto a mancare in un numero intero positivo.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
-        <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
-          <source>Writable is not set.</source>
-          <target state="translated">Writable non è impostato.</target>
+        <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+          <source>The size of the message header exceeds the maximum supported size.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">La dimensione dell'intestazione del messaggio supera la dimensione massima supportata.</target>
+        </trans-unit>
+        <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+          <source>Unexpected token '{0}' while parsing header.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Imprevisto token '{0}' durante l'analisi di intestazione.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+        </trans-unit>
+        <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A positive integer is required.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Un numero intero positivo è necessario.</target>
+        </trans-unit>
+        <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
+          <source>The buffer is empty. Call the async method to fill it first.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Il buffer è vuoto. Chiamare il metodo async per riempirlo prima.</target>
+        </trans-unit>
+        <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A non-negative integer is required.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Un intero non negativo è necessario.</target>
+        </trans-unit>
+        <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
+          <source>The {0] and {1} parameters exceed length of array.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">La {0] e {1} parametri superano la lunghezza della matrice.</target>
+        </trans-unit>
+        <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
+          <source>The stream must be readable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Il flusso deve essere leggibile.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+        </trans-unit>
+        <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
+          <source>The stream must be writeable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Il flusso deve essere scrivibile.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
       </group>
     </body>

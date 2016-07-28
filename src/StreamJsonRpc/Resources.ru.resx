@@ -19,9 +19,6 @@
     <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Разделитель является пустой строкой.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Произошла ошибка при записи результата RPC JSON. {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,12 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Достигнут конец потока.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Не удается считать доступный для чтения элемент.</value>
-  </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Доступный для чтения элемент не задан.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Произошел сбой при чтении RPC JSON из потока. Исключение {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -94,10 +85,35 @@
     <value>Нераспознанный входящий RPC JSON "{0}"</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Элемент, доступный для записи, не может выполнить запись.</value>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Ошибка разбора заголовка Content-Length в положительное целое число.</value>
+    <comment>{locked="Content-Length"}</comment>
   </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Элемент, доступный для записи, не задан.</value>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Размер заголовка сообщения превышает максимальный размер, поддерживаемый.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Непредвиденная лексема «{0}» при разборе заголовков.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Положительное целое число не требуется.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>Буфер не будет пустым. Вызовите метод async, чтобы заполнить его сначала.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Неотрицательное целое число не требуется.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] и {1} параметров превышает длину массива.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>Поток должен быть читаемым.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>Поток должен быть доступным для записи.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

@@ -3,8 +3,7 @@
 namespace StreamJsonRpc
 {
     /// <summary>
-    /// Base exception class for any exception that happen on the server side of JSON RPC communication.
-    /// Descendants of this exception may be thrown by JSON RPC client in response to calling a server method.
+    /// Base exception class for any exception that happens while receiving an JSON RPC communication.
     /// </summary>
 #if DESKTOP
     [System.Serializable]

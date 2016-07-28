@@ -15,10 +15,6 @@
           <target state="translated">Byla přijata žádost o provedení {0}, ale chybí objekt zpětného volání. Žádost se ruší.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
-        <trans-unit id="EmptyDelimiter" translate="yes" xml:space="preserve">
-          <source>Delimiter is empty string.</source>
-          <target state="translated">Oddělovač je prázdný řetězec.</target>
-        </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON RPC Result: {0}: {1}</source>
           <target state="translated">Chyba při zápisu výsledku JSON RPC: {0}: {1}</target>
@@ -67,14 +63,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">Bylo dosaženo konce streamu.</target>
         </trans-unit>
-        <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
-          <source>Readable cannot read.</source>
-          <target state="translated">Parametr readable neumožňuje čtení.</target>
-        </trans-unit>
-        <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
-          <source>Readable is not set.</source>
-          <target state="translated">Parametr readable není nastaven.</target>
-        </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON RPC from the stream failed with {0}: {1}</source>
           <target state="translated">Čtení RPC JSON ze streamu se nezdařilo s {0}: {1}</target>
@@ -111,13 +99,45 @@
           <target state="translated">Nerozpoznané příchozí JSON RPC {0}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
-        <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
-          <source>Writable cannot write.</source>
-          <target state="translated">Parametr writable neumožňuje zápis.</target>
+        <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+          <source>Failed parsing Content-Length header into a positive integer.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Selhala analýzy záhlaví Content-Length do kladné celé číslo.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
-        <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
-          <source>Writable is not set.</source>
-          <target state="translated">Parametr writable není nastaven.</target>
+        <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+          <source>The size of the message header exceeds the maximum supported size.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Velikost záhlaví zprávy překračuje maximální podporovanou velikost.</target>
+        </trans-unit>
+        <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+          <source>Unexpected token '{0}' while parsing header.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Neočekávaný token {0} při analýze záhlaví.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+        </trans-unit>
+        <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A positive integer is required.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Kladné celé číslo je požadováno.</target>
+        </trans-unit>
+        <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
+          <source>The buffer is empty. Call the async method to fill it first.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Vyrovnávací paměť je prázdná. Zavolejte metodu asynchronní vyplnit první.</target>
+        </trans-unit>
+        <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
+          <source>A non-negative integer is required.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Je vyžadováno nezáporné celé číslo.</target>
+        </trans-unit>
+        <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
+          <source>The {0] and {1} parameters exceed length of array.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">{0] a {1} parametry přesahují délku pole.</target>
+        </trans-unit>
+        <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
+          <source>The stream must be readable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Datový proud musí být čitelný.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+        </trans-unit>
+        <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
+          <source>The stream must be writeable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Datový proud musí být zapisovatelný.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
       </group>
     </body>

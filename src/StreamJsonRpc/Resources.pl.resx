@@ -19,9 +19,6 @@
     <value>Otrzymano żądanie wykonania metody „{0}”, ale brakuje obiektu wywołania zwrotnego. Żądanie zostanie odrzucone.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Wartość ogranicznika jest pustym ciągiem.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Błąd zapisywania wyniku JSON RPC: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,12 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Osiągnięto koniec strumienia.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Nie można odczytać elementu readable.</value>
-  </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Nie ustawiono elementu readable.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Odczytywanie wywołania JSON RPC ze strumienia nie powiodło się — {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -94,10 +85,35 @@
     <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Nie można zapisać elementu writable.</value>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Na dodatnią liczbą całkowitą, nie powiodło się podczas analizowania nagłówka Content-Length.</value>
+    <comment>{locked="Content-Length"}</comment>
   </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Nie ustawiono elementu writable.</value>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>Rozmiar nagłówka wiadomości przekracza maksymalny rozmiar obsługiwany.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Nieoczekiwany token '{0}' podczas analizowania nagłówka.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Wymagane jest dodatnią liczbą całkowitą.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>Bufor jest pusty. Wywołanie metody asynchronicznej, aby wypełnić go po raz pierwszy.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Wymagane jest nieujemną liczbą całkowitą.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] i {1} parametrów przekracza długość tablicy.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>Strumień musi być czytelny.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>Strumień musi być zapisywalny.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

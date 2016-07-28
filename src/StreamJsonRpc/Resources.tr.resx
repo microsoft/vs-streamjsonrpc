@@ -19,9 +19,6 @@
     <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
-  <data name="EmptyDelimiter" xml:space="preserve">
-    <value>Sınırlayıcı boş bir dize.</value>
-  </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>JSON RPC Sonucu yazılırken bir hata oluştu: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -60,12 +57,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Akışın sonuna ulaşıldı.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Okunabilir okuyamıyor.</value>
-  </data>
-  <data name="ReadableNotSet" xml:space="preserve">
-    <value>Okunabilir ayarlanmadı.</value>
-  </data>
   <data name="ReadingJsonRpcStreamFailed" xml:space="preserve">
     <value>Akıştan JSON RPC okunamadı. Özel durum: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
@@ -94,10 +85,35 @@
     <value>Tanınmayan gelen JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Yazılabilir yazamıyor.</value>
+  <data name="HeaderContentLengthNotParseable" xml:space="preserve">
+    <value>Ayrıştırma Content-Length üstbilgisi pozitif bir tamsayı başarısız oldu.</value>
+    <comment>{locked="Content-Length"}</comment>
   </data>
-  <data name="WritableNotSet" xml:space="preserve">
-    <value>Yazılabilir ayarlanmadı.</value>
+  <data name="HeaderValueTooLarge" xml:space="preserve">
+    <value>İleti üstbilgisi boyutunu desteklenen boyut üst sınırını aşıyor.</value>
+  </data>
+  <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
+    <value>Beklenmeyen belirteç '{0}' üstbilgisi ayrıştırılırken.</value>
+    <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Pozitif bir tamsayı gereklidir.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>Arabellek boş olur. İlk doldurmak için zaman uyumsuz yöntemini çağırın.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Negatif olmayan tamsayı gereklidir.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] ve {1} parametreleri dizi uzunluğu.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>Akış okunabilir olmalıdır.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>Akış yazılabilir olması gerekir.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

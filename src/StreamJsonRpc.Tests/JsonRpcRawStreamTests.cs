@@ -11,11 +11,12 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.VisualStudio.Threading;
 
-public class JsonRpcRawStreamTests
+public class JsonRpcRawStreamTests : TestBase
 {
-    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
-    private readonly CancellationTokenSource timeoutTokenSource = new CancellationTokenSource(TestTimeout);
-    private CancellationToken TimeoutToken => this.timeoutTokenSource.Token;
+    public JsonRpcRawStreamTests(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
 
     [Fact]
     public async Task JsonRpcClosesStreamAfterDisconnectedEvent()
@@ -48,10 +49,8 @@ public class JsonRpcRawStreamTests
             };
 
             // Send a bad json to the server
-            using (var split = new SplitJoinStream(new SplitJoinStreamOptions { Writable = clientStream, LeaveOpen = true }))
-            {
-                await split.WriteAsync("{");
-            }
+            byte[] badJson = Encoding.UTF8.GetBytes("Content-Length: 1\r\n\r\n{");
+            await clientStream.WriteAsync(badJson, 0, badJson.Length);
 
             // The server must fire disonnected event because bad json must make it disconnect
             JsonRpcDisconnectedEventArgs args = await disconnectedEventFired.Task.WithCancellation(this.TimeoutToken);

@@ -79,15 +79,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delimiter is empty string..
-        /// </summary>
-        internal static string EmptyDelimiter {
-            get {
-                return ResourceManager.GetString("EmptyDelimiter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Error writing JSON-RPC Result: {0}: {1}.
         /// </summary>
         internal static string ErrorWritingJsonRpcResult {
@@ -102,6 +93,33 @@ namespace StreamJsonRpc {
         internal static string FailureDeserializingJsonRpc {
             get {
                 return ResourceManager.GetString("FailureDeserializingJsonRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The buffer is empty. Call the async method to fill it first..
+        /// </summary>
+        internal static string FillBufferFirst {
+            get {
+                return ResourceManager.GetString("FillBufferFirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed parsing Content-Length header (&quot;{0}&quot;) into a positive integer..
+        /// </summary>
+        internal static string HeaderContentLengthNotParseable {
+            get {
+                return ResourceManager.GetString("HeaderContentLengthNotParseable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The size of the message header exceeds the maximum supported size..
+        /// </summary>
+        internal static string HeaderValueTooLarge {
+            get {
+                return ResourceManager.GetString("HeaderValueTooLarge", resourceCulture);
             }
         }
         
@@ -169,29 +187,29 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A non-negative integer is required..
+        /// </summary>
+        internal static string NonNegativeIntegerRequired {
+            get {
+                return ResourceManager.GetString("NonNegativeIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A positive integer is required..
+        /// </summary>
+        internal static string PositiveIntegerRequired {
+            get {
+                return ResourceManager.GetString("PositiveIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Reached end of stream..
         /// </summary>
         internal static string ReachedEndOfStream {
             get {
                 return ResourceManager.GetString("ReachedEndOfStream", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Readable cannot read..
-        /// </summary>
-        internal static string ReadableCannotRead {
-            get {
-                return ResourceManager.GetString("ReadableCannotRead", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Readable is not set..
-        /// </summary>
-        internal static string ReadableNotSet {
-            get {
-                return ResourceManager.GetString("ReadableNotSet", resourceCulture);
             }
         }
         
@@ -219,6 +237,33 @@ namespace StreamJsonRpc {
         internal static string StreamDisposed {
             get {
                 return ResourceManager.GetString("StreamDisposed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The stream must be readable..
+        /// </summary>
+        internal static string StreamMustBeReadable {
+            get {
+                return ResourceManager.GetString("StreamMustBeReadable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The stream must be writeable..
+        /// </summary>
+        internal static string StreamMustBeWriteable {
+            get {
+                return ResourceManager.GetString("StreamMustBeWriteable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The {0] and {1} parameters exceed length of array..
+        /// </summary>
+        internal static string SumOfTwoParametersExceedsArrayLength {
+            get {
+                return ResourceManager.GetString("SumOfTwoParametersExceedsArrayLength", resourceCulture);
             }
         }
         
@@ -259,29 +304,20 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unexpected token &apos;{0}&apos; while parsing header..
+        /// </summary>
+        internal static string UnexpectedTokenReadingHeader {
+            get {
+                return ResourceManager.GetString("UnexpectedTokenReadingHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unrecognized incoming JSON-RPC &apos;{0}&apos;.
         /// </summary>
         internal static string UnrecognizedIncomingJsonRpc {
             get {
                 return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Writable cannot write..
-        /// </summary>
-        internal static string WritableCannotWrite {
-            get {
-                return ResourceManager.GetString("WritableCannotWrite", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Writable is not set..
-        /// </summary>
-        internal static string WritableNotSet {
-            get {
-                return ResourceManager.GetString("WritableNotSet", resourceCulture);
             }
         }
     }
