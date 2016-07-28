@@ -28,7 +28,6 @@ namespace StreamJsonRpc
             }
         }
 
-        private const int BufferSize = 1024;
         private readonly object callbackTarget;
         private readonly object dispatcherMapLock = new object();
         private readonly object disconnectedEventLock = new object();
