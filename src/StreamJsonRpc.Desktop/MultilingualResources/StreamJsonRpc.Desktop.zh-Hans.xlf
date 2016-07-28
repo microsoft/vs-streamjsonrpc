@@ -68,10 +68,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">已达到流结尾。</target>
         </trans-unit>
-        <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
-          <source>Readable cannot read.</source>
-          <target state="translated">无法读取可读内容。</target>
-        </trans-unit>
         <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
           <source>Readable is not set.</source>
           <target state="translated">未设置可读内容。</target>
@@ -112,10 +108,6 @@
           <target state="translated">无法识别传入 JSON-RPC“{0}”</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
-        <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
-          <source>Writable cannot write.</source>
-          <target state="translated">无法写入可写内容。</target>
-        </trans-unit>
         <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
           <source>Writable is not set.</source>
           <target state="translated">未设置可写内容。</target>
@@ -136,19 +128,29 @@
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="new">A positive integer is required.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">一个正整数是必需的。</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="new">The buffer is empty. Call the async method to fill it first.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">缓冲区为空。调用异步方法来第一次填满它。</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="new">A non-negative integer is required.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">一个非负整数是必需的。</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="new">The {0] and {1} parameters exceed length of array.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">{0] 和 {1} 参数超过数组的长度。</target>
+        </trans-unit>
+        <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
+          <source>The stream must be readable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">流必须清晰易读。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+        </trans-unit>
+        <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
+          <source>The stream must be writeable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">流必须可写。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
       </group>
     </body>

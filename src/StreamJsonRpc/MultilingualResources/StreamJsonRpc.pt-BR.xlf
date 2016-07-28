@@ -67,10 +67,6 @@
           <source>Reached end of stream.</source>
           <target state="translated">Fim do fluxo alcançado.</target>
         </trans-unit>
-        <trans-unit id="ReadableCannotRead" translate="yes" xml:space="preserve">
-          <source>Readable cannot read.</source>
-          <target state="translated">Não é possível ler o legível.</target>
-        </trans-unit>
         <trans-unit id="ReadableNotSet" translate="yes" xml:space="preserve">
           <source>Readable is not set.</source>
           <target state="translated">O legível não foi definido.</target>
@@ -111,10 +107,6 @@
           <target state="translated">RPC de JSON de entrada '{0}' não reconhecido</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
-        <trans-unit id="WritableCannotWrite" translate="yes" xml:space="preserve">
-          <source>Writable cannot write.</source>
-          <target state="translated">Não é possível gravar graváveis.</target>
-        </trans-unit>
         <trans-unit id="WritableNotSet" translate="yes" xml:space="preserve">
           <source>Writable is not set.</source>
           <target state="translated">O gravável não foi definido.</target>
@@ -135,19 +127,29 @@
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="new">A positive integer is required.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Um número inteiro positivo é necessário.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="new">The buffer is empty. Call the async method to fill it first.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="new">A non-negative integer is required.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">Um inteiro não negativo é necessário.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="new">The {0] and {1} parameters exceed length of array.</target>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">O {0] e {1} parâmetros excederem o comprimento da matriz.</target>
+        </trans-unit>
+        <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
+          <source>The stream must be readable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">O fluxo deve ser legível.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+        </trans-unit>
+        <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
+          <source>The stream must be writeable.</source>
+          <target state="needs-review-translation" state-qualifier="mt-suggestion">O fluxo deve ser gravável.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
       </group>
     </body>

@@ -60,9 +60,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>已到達資料流結尾。</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Readable 無法讀取。</value>
-  </data>
   <data name="ReadableNotSet" xml:space="preserve">
     <value>Readable 未設定。</value>
   </data>
@@ -94,9 +91,6 @@
     <value>無法識別的傳入 JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Writable 無法寫入。</value>
-  </data>
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable 未設定。</value>
   </data>
@@ -110,5 +104,25 @@
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>意外的標記"{0}"分析標頭時。</value>
     <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>一個正整數是必需的。</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>緩衝區為空。調用非同步方法來第一次填滿它。</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>一個非負整數是必需的。</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] 和 {1} 參數超過陣列的長度。</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>流必須清晰易讀。</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>流必須可寫。</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

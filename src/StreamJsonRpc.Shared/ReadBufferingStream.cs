@@ -20,6 +20,7 @@ namespace StreamJsonRpc
         public ReadBufferingStream(Stream underlyingStream, int bufferSize, bool disposeUnderlyingStream = true)
         {
             Requires.NotNull(underlyingStream, nameof(underlyingStream));
+            Requires.Argument(underlyingStream.CanRead, nameof(underlyingStream), Resources.StreamMustBeReadable);
             Requires.Range(bufferSize > 0, nameof(bufferSize), Resources.PositiveIntegerRequired);
 
             this.underlyingStream = underlyingStream;

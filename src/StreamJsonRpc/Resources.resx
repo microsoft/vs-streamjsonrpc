@@ -181,9 +181,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Reached end of stream.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Readable cannot read.</value>
-  </data>
   <data name="ReadableNotSet" xml:space="preserve">
     <value>Readable is not set.</value>
   </data>
@@ -196,6 +193,14 @@
   </data>
   <data name="StreamDisposed" xml:space="preserve">
     <value>Stream has been disposed</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>The stream must be readable.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>The stream must be writeable.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
     <value>The {0] and {1} parameters exceed length of array.</value>
@@ -221,9 +226,6 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Unrecognized incoming JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
-  </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Writable cannot write.</value>
   </data>
   <data name="WritableNotSet" xml:space="preserve">
     <value>Writable is not set.</value>

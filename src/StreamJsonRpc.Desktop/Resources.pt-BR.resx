@@ -61,9 +61,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Fim do fluxo alcançado.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Não é possível ler o legível.</value>
-  </data>
   <data name="ReadableNotSet" xml:space="preserve">
     <value>O legível não foi definido.</value>
   </data>
@@ -95,9 +92,6 @@
     <value>RPC de JSON de entrada '{0}' não reconhecido</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Não é possível gravar graváveis.</value>
-  </data>
   <data name="WritableNotSet" xml:space="preserve">
     <value>O gravável não foi definido.</value>
   </data>
@@ -111,5 +105,25 @@
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Token inesperado '{0}' durante a análise de cabeçalho.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Um número inteiro positivo é necessário.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Um inteiro não negativo é necessário.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>O {0] e {1} parâmetros excederem o comprimento da matriz.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>O fluxo deve ser legível.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>O fluxo deve ser gravável.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

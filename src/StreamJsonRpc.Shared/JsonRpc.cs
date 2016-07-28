@@ -56,6 +56,8 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(sendingStream, nameof(sendingStream));
             Requires.NotNull(receivingStream, nameof(receivingStream));
+            Requires.Argument(sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
+            Requires.Argument(receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
 
             this.messageHandler = new StreamJsonRpc.HeaderDelimitedMessageHandler(sendingStream, receivingStream);
 

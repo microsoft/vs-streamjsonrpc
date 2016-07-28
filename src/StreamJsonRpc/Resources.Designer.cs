@@ -224,15 +224,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Readable cannot read..
-        /// </summary>
-        internal static string ReadableCannotRead {
-            get {
-                return ResourceManager.GetString("ReadableCannotRead", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Readable is not set..
         /// </summary>
         internal static string ReadableNotSet {
@@ -265,6 +256,24 @@ namespace StreamJsonRpc {
         internal static string StreamDisposed {
             get {
                 return ResourceManager.GetString("StreamDisposed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The stream must be readable..
+        /// </summary>
+        internal static string StreamMustBeReadable {
+            get {
+                return ResourceManager.GetString("StreamMustBeReadable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The stream must be writeable..
+        /// </summary>
+        internal static string StreamMustBeWriteable {
+            get {
+                return ResourceManager.GetString("StreamMustBeWriteable", resourceCulture);
             }
         }
         
@@ -328,15 +337,6 @@ namespace StreamJsonRpc {
         internal static string UnrecognizedIncomingJsonRpc {
             get {
                 return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Writable cannot write..
-        /// </summary>
-        internal static string WritableCannotWrite {
-            get {
-                return ResourceManager.GetString("WritableCannotWrite", resourceCulture);
             }
         }
         

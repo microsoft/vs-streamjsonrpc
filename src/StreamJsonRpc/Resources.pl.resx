@@ -60,9 +60,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Osiągnięto koniec strumienia.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Nie można odczytać elementu readable.</value>
-  </data>
   <data name="ReadableNotSet" xml:space="preserve">
     <value>Nie ustawiono elementu readable.</value>
   </data>
@@ -94,9 +91,6 @@
     <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Nie można zapisać elementu writable.</value>
-  </data>
   <data name="WritableNotSet" xml:space="preserve">
     <value>Nie ustawiono elementu writable.</value>
   </data>
@@ -110,5 +104,25 @@
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Nieoczekiwany token '{0}' podczas analizowania nagłówka.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Wymagane jest dodatnią liczbą całkowitą.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>Bufor jest pusty. Wywołanie metody asynchronicznej, aby wypełnić go po raz pierwszy.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Wymagane jest nieujemną liczbą całkowitą.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] i {1} parametrów przekracza długość tablicy.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>Strumień musi być czytelny.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>Strumień musi być zapisywalny.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>

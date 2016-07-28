@@ -61,9 +61,6 @@
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Bylo dosaženo konce streamu.</value>
   </data>
-  <data name="ReadableCannotRead" xml:space="preserve">
-    <value>Parametr readable neumožňuje čtení.</value>
-  </data>
   <data name="ReadableNotSet" xml:space="preserve">
     <value>Parametr readable není nastaven.</value>
   </data>
@@ -95,9 +92,6 @@
     <value>Nerozpoznané příchozí JSON-RPC {0}</value>
     <comment>{0} is the json.</comment>
   </data>
-  <data name="WritableCannotWrite" xml:space="preserve">
-    <value>Parametr writable neumožňuje zápis.</value>
-  </data>
   <data name="WritableNotSet" xml:space="preserve">
     <value>Parametr writable není nastaven.</value>
   </data>
@@ -111,5 +105,25 @@
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Neočekávaný token {0} při analýze záhlaví.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
+  </data>
+  <data name="PositiveIntegerRequired" xml:space="preserve">
+    <value>Kladné celé číslo je požadováno.</value>
+  </data>
+  <data name="FillBufferFirst" xml:space="preserve">
+    <value>Vyrovnávací paměť je prázdná. Zavolejte metodu asynchronní vyplnit první.</value>
+  </data>
+  <data name="NonNegativeIntegerRequired" xml:space="preserve">
+    <value>Je vyžadováno nezáporné celé číslo.</value>
+  </data>
+  <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
+    <value>{0] a {1} parametry přesahují délku pole.</value>
+  </data>
+  <data name="StreamMustBeReadable" xml:space="preserve">
+    <value>Datový proud musí být čitelný.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="StreamMustBeWriteable" xml:space="preserve">
+    <value>Datový proud musí být zapisovatelný.</value>
+    <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
 </root>
