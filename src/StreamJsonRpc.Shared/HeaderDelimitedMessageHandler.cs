@@ -20,7 +20,10 @@ namespace StreamJsonRpc
     /// </remarks>
     internal class HeaderDelimitedMessageHandler : IDisposable
     {
-        private const int MaxHeaderSize = 1024;
+        /// <summary>
+        /// The maximum supported size of a single element in the header.
+        /// </summary>
+        private const int MaxHeaderElementSize = 1024;
 
         /// <summary>
         /// The encoding to use when writing/reading headers.
@@ -44,16 +47,16 @@ namespace StreamJsonRpc
 
         private readonly Stream sendingStream;
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
-        private readonly byte[] sendingHeaderBuffer = new byte[MaxHeaderSize];
+        private readonly byte[] sendingHeaderBuffer = new byte[MaxHeaderElementSize];
 
         private readonly ReadBufferingStream receivingStream;
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
-        private readonly byte[] receivingBuffer = new byte[MaxHeaderSize];
+        private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
 
         internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
         {
             this.sendingStream = sendingStream;
-            this.receivingStream = new ReadBufferingStream(receivingStream, MaxHeaderSize);
+            this.receivingStream = new ReadBufferingStream(receivingStream, MaxHeaderElementSize);
         }
 
         private enum HeaderParseState
@@ -255,7 +258,7 @@ namespace StreamJsonRpc
 
             using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
             {
-                var sendingBufferStream = new MemoryStream(MaxHeaderSize);
+                var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
 
                 // Understand the content we need to send in terms of bytes and length.
                 byte[] contentBytes = this.Encoding.GetBytes(json);
@@ -281,7 +284,7 @@ namespace StreamJsonRpc
 
                 // Transmit the headers.
                 sendingBufferStream.Position = 0;
-                await sendingBufferStream.CopyToAsync(this.sendingStream, MaxHeaderSize, cancellationToken).ConfigureAwait(false);
+                await sendingBufferStream.CopyToAsync(this.sendingStream, MaxHeaderElementSize, cancellationToken).ConfigureAwait(false);
 
                 // Transmit the content itself.
                 await this.sendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
