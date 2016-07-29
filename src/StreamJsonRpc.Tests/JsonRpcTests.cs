@@ -272,6 +272,13 @@ public class JsonRpcTests : TestBase
         Assert.Equal(5, result);
     }
 
+    [Fact]
+    public void SetEncodingToNullThrows()
+    {
+        Assert.Throws<ArgumentNullException>(() => this.clientRpc.Encoding = null);
+        Assert.NotNull(this.clientRpc.Encoding);
+    }
+
     public class BaseClass
     {
         public string BaseMethod() => "base";
