@@ -61,6 +61,8 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
         private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
 
+        private Encoding encoding = DefaultContentEncoding;
+
         internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
         {
             this.sendingStream = sendingStream;
@@ -80,7 +82,19 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the encoding to use for transmitted JSON messages.
         /// </summary>
-        public Encoding Encoding { get; set; } = DefaultContentEncoding;
+        public Encoding Encoding
+        {
+            get
+            {
+                return this.encoding;
+            }
+
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.encoding = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the value to use as the subtype in the Content-Type header (e.g. "application/SUBTYPE").
