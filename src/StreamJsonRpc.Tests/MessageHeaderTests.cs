@@ -108,7 +108,12 @@ public class MessageHeaderTests : TestBase
         }
 
         this.Logger.WriteLine(string.Join(Environment.NewLine, headerLines));
-        Assert.Contains(headerLines, l => l.Contains($"charset={encodingName}"));
+
+        // utf-8 headers may not be present because they are the default, per the protocol spec.
+        if (encodingName != "utf-8")
+        {
+            Assert.Contains(headerLines, l => l.Contains($"charset={encodingName}"));
+        }
 
         reader = new StreamReader(this.serverStream, Encoding.GetEncoding(encodingName));
         string json = reader.ReadToEnd();

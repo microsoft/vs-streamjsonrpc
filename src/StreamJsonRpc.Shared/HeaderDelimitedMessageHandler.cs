@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,13 @@ namespace StreamJsonRpc
         /// </remarks>
         private static readonly Encoding HeaderEncoding = Encoding.UTF8;
 
+        /// <summary>
+        /// The default encoding to use when writing content,
+        /// and to assume as the encoding when reading content
+        /// that doesn't have a header identifying its encoding.
+        /// </summary>
+        private static readonly Encoding DefaultContentEncoding = Encoding.UTF8;
+
         private const string ContentLengthHeaderNameText = "Content-Length";
         private const string ContentTypeHeaderNameText = "Content-Type";
         private static readonly byte[] ContentLengthHeaderName = HeaderEncoding.GetBytes(ContentLengthHeaderNameText);
@@ -53,7 +61,7 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
         private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
 
-        private Encoding encoding = Encoding.UTF8;
+        private Encoding encoding = DefaultContentEncoding;
 
         internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
         {
@@ -202,22 +210,7 @@ namespace StreamJsonRpc
                 string contentTypeAsText;
                 if (headers.TryGetValue(ContentTypeHeaderNameText, out contentTypeAsText))
                 {
-                    try
-                    {
-                        var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
-                        if (mediaType.CharSet != null)
-                        {
-                            contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
-                            if (contentEncoding == null)
-                            {
-                                throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
-                            }
-                        }
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new BadRpcHeaderException(ex.Message, ex);
-                    }
+                    contentEncoding = ParseEncodingFromContentTypeHeader(contentTypeAsText) ?? contentEncoding;
                 }
 
                 byte[] contentBuffer = contentLength <= this.receivingBuffer.Length
@@ -238,6 +231,36 @@ namespace StreamJsonRpc
                 }
 
                 return contentEncoding.GetString(contentBuffer, 0, contentLength);
+            }
+        }
+
+        /// <summary>
+        /// Extracts the content encoding from a Content-Type header.
+        /// </summary>
+        /// <param name="contentTypeAsText">The value of the Content-Type header.</param>
+        /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
+        [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
+        private static Encoding ParseEncodingFromContentTypeHeader(string contentTypeAsText)
+        {
+            try
+            {
+                var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
+                if (mediaType.CharSet != null)
+                {
+                    Encoding contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
+                    if (contentEncoding == null)
+                    {
+                        throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
+                    }
+
+                    return contentEncoding;
+                }
+
+                return null;
+            }
+            catch (FormatException ex)
+            {
+                throw new BadRpcHeaderException(ex.Message, ex);
             }
         }
 
@@ -270,12 +293,15 @@ namespace StreamJsonRpc
         {
             Verify.Operation(this.sendingStream != null, "No sending stream.");
 
+            // Capture Encoding as a local since it may change over the time of this method's execution.
+            Encoding contentEncoding = this.Encoding;
+
             using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
             {
                 var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
 
                 // Understand the content we need to send in terms of bytes and length.
-                byte[] contentBytes = this.Encoding.GetBytes(json);
+                byte[] contentBytes = contentEncoding.GetBytes(json);
                 string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
 
                 // Transmit the Content-Length header.
@@ -285,13 +311,18 @@ namespace StreamJsonRpc
                 sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
                 sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
 
-                // Transmit the Content-Type header.
-                sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
-                sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-                var contentTypeHeaderValue = $"application/{this.SubType}; charset={this.Encoding.WebName}";
-                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
-                sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+                // Transmit the Content-Type header, but only when using a non-default encoding.
+                // We suppress it when it is the default both for smaller messages and to avoid
+                // having to load System.Net.Http on the receiving end in order to parse it.
+                if (DefaultContentEncoding.WebName != contentEncoding.WebName)
+                {
+                    sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
+                    sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
+                    var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
+                    headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
+                    sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+                    sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+                }
 
                 // Terminate the headers.
                 sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
