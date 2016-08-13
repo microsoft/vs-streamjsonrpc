@@ -452,11 +452,11 @@ namespace StreamJsonRpc
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                    Task.Run(() =>
+                    Task.Run(async delegate
                     {
                         try
                         {
-                            this.HandleRpcAsync(json);
+                            await this.HandleRpcAsync(json).ConfigureAwait(false);
                         }
                         catch (Exception exception)
                         {
