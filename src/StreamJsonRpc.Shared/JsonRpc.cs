@@ -28,6 +28,7 @@ namespace StreamJsonRpc
             }
         }
 
+        private static readonly object[] EmptyObjectArray = new object[0];
         private readonly object callbackTarget;
         private readonly object dispatcherMapLock = new object();
         private readonly object disconnectedEventLock = new object();
@@ -255,11 +256,7 @@ namespace StreamJsonRpc
         /// <returns></returns>
         protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(string id, string targetName, params object[] arguments)
         {
-            // If somebody calls InvokeInternal<T>(id, "method", null), the null is not passed as an item in the array.
-            // Instead, the compiler thinks that the null is the array itself and it'll pass null directly.
-            // To account for this case, we check for null below.
-            arguments = arguments ?? new object[] { null };
-
+            arguments = arguments ?? EmptyObjectArray;
             JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments);
             if (id == null)
             {

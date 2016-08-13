@@ -125,11 +125,23 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanPassNull()
+    public async Task CanPassNull_NullElementInArgsArray()
     {
-        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null);
+        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object[] { null });
         Assert.Null(result);
         Assert.True(this.server.NullPassed);
+    }
+
+    [Fact]
+    public async Task NullAsArgumentLiteral()
+    {
+        // This first one throws because null args means no args, and the method we're invoking
+        // has one parameter.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null));
+
+        // This one succeeds because the method we're invoking takes no parameters.
+        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAcceptsNothingAndReturnsNull), null);
+        Assert.Null(result);
     }
 
     [Fact]
@@ -345,6 +357,11 @@ public class JsonRpcTests : TestBase
         public static int MethodWithDefaultParameter(int x, int y = 10)
         {
             return x + y;
+        }
+
+        public object MethodThatAcceptsNothingAndReturnsNull()
+        {
+            return null;
         }
 
         public object MethodThatAccceptsAndReturnsNull(object value)
