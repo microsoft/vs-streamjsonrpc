@@ -150,33 +150,18 @@ namespace StreamJsonRpc
             return result.ToArray();
         }
 
-        public string ToJson()
+        public string ToJson(Formatting formatting, JsonSerializerSettings settings)
         {
-            var settings = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-            };
-
-            return JsonConvert.SerializeObject(this, settings);
+            return JsonConvert.SerializeObject(this, formatting, settings);
         }
 
-        public static JsonRpcMessage FromJson(string json)
+        public static JsonRpcMessage FromJson(string json, JsonSerializerSettings settings)
         {
-            var settings = new JsonSerializerSettings
-            {
-                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-            };
-
             return JsonConvert.DeserializeObject<JsonRpcMessage>(json, settings);
         }
 
-        public static JsonRpcMessage FromJson(JsonReader reader)
+        public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
         {
-            var settings = new JsonSerializerSettings
-            {
-                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-            };
-
             JsonSerializer serializer = JsonSerializer.Create(settings);
 
             JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);

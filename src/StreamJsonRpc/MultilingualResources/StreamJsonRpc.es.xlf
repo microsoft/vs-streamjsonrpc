@@ -139,6 +139,14 @@
           <target state="needs-review-translation" state-qualifier="mt-suggestion">La corriente debe ser escribible.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
+        <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
+          <source>This operation is not allowed after listening for messages has started.</source>
+          <target state="new">This operation is not allowed after listening for messages has started.</target>
+        </trans-unit>
+        <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
+          <source>This operation is not allowed before listening for messages has started.</source>
+          <target state="new">This operation is not allowed before listening for messages has started.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

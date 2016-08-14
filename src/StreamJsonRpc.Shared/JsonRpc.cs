@@ -15,7 +15,7 @@ using Newtonsoft.Json.Linq;
 
 namespace StreamJsonRpc
 {
-    public class JsonRpc : IDisposable
+    public class JsonRpc : IDisposableObservable
     {
         private class OutstandingCallData
         {
@@ -37,11 +37,10 @@ namespace StreamJsonRpc
         private readonly Dictionary<int, OutstandingCallData> resultDispatcherMap = new Dictionary<int, OutstandingCallData>();
         private readonly Action<object> cancelPendingRequestAction;
 
-        private readonly Task readLinesTask;
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
-        private readonly HeaderDelimitedMessageHandler messageHandler;
-
+        private Task readLinesTask;
+        private DelimitedMessageHandler messageHandler;
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
@@ -53,10 +52,12 @@ namespace StreamJsonRpc
 
         public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
-            return new JsonRpc(sendingStream, receivingStream, target);
+            var rpc = new JsonRpc(sendingStream, receivingStream, target);
+            rpc.StartListening();
+            return rpc;
         }
 
-        protected JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
+        public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
         {
             Requires.NotNull(sendingStream, nameof(sendingStream));
             Requires.NotNull(receivingStream, nameof(receivingStream));
@@ -64,11 +65,12 @@ namespace StreamJsonRpc
             Requires.Argument(receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
 
             this.cancelPendingRequestAction = this.CancelPendingRequest;
-            this.messageHandler = new StreamJsonRpc.HeaderDelimitedMessageHandler(sendingStream, receivingStream);
-
+            this.MessageHandler = new HeaderDelimitedMessageHandler(sendingStream, receivingStream);
             this.callbackTarget = target;
-
-            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
+            this.JsonSerializerSettings = new JsonSerializerSettings
+            {
+                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+            };
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -106,8 +108,41 @@ namespace StreamJsonRpc
         /// </summary>
         public Encoding Encoding
         {
-            get { return this.messageHandler.Encoding; }
-            set { this.messageHandler.Encoding = value; }
+            get { return this.MessageHandler.Encoding; }
+            set { this.MessageHandler.Encoding = value; }
+        }
+
+        public DelimitedMessageHandler MessageHandler
+        {
+            get
+            {
+                return this.messageHandler;
+            }
+
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.messageHandler = value;
+            }
+        }
+
+        bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
+
+        public IList<JsonConverter> JsonConverters
+        {
+            get { return this.JsonSerializerSettings.Converters; }
+            set { this.JsonSerializerSettings.Converters = value; }
+        }
+
+        private JsonSerializerSettings JsonSerializerSettings { get; }
+
+        private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+
+        public void StartListening()
+        {
+            Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
+            Verify.NotDisposed(this);
+            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
         }
 
         /// <summary>
@@ -270,7 +305,7 @@ namespace StreamJsonRpc
                 // Dispose the stream and cancel pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
                 this.disposeCts.Cancel();
-                this.messageHandler.Dispose();
+                this.MessageHandler.Dispose();
                 this.CancelPendingRequests();
             }
         }
@@ -288,14 +323,6 @@ namespace StreamJsonRpc
             }
         }
 
-        protected void ThrowIfDisposed()
-        {
-            if (this.disposed)
-            {
-                throw new ObjectDisposedException(this.GetType().Name);
-            }
-        }
-
         /// <summary>
         /// Invokes the specified RPC method
         /// </summary>
@@ -310,7 +337,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
-            this.ThrowIfDisposed();
+            Verify.NotDisposed(this);
             cancellationToken.ThrowIfCancellationRequested();
 
             arguments = arguments ?? EmptyObjectArray;
@@ -319,10 +346,11 @@ namespace StreamJsonRpc
             {
                 if (id == null)
                 {
-                    await this.messageHandler.WriteAsync(request.ToJson(), cts.Token).ConfigureAwait(false);
+                    await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
                     return default(ReturnType);
                 }
 
+                Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
                 var tcs = new TaskCompletionSource<ReturnType>();
                 Action<JsonRpcMessage> dispatcher = (response) =>
                 {
@@ -358,7 +386,7 @@ namespace StreamJsonRpc
                     this.resultDispatcherMap.Add(id.Value, callData);
                 }
 
-                await this.messageHandler.WriteAsync(request.ToJson(), cts.Token).ConfigureAwait(false);
+                await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
 
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
                 using (cancellationToken.Register(this.cancelPendingRequestAction, callData, false))
@@ -487,7 +515,7 @@ namespace StreamJsonRpc
                     string json = null;
                     try
                     {
-                        json = await this.messageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
+                        json = await this.MessageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -554,7 +582,7 @@ namespace StreamJsonRpc
             JsonRpcMessage rpc;
             try
             {
-                rpc = JsonRpcMessage.FromJson(json);
+                rpc = JsonRpcMessage.FromJson(json, this.JsonSerializerSettings);
             }
             catch (JsonException exception)
             {
@@ -576,7 +604,7 @@ namespace StreamJsonRpc
                 {
                     try
                     {
-                        await this.messageHandler.WriteAsync(result.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
+                        await this.TransmitAsync(result, this.disposeCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -654,7 +682,7 @@ namespace StreamJsonRpc
                     if (!this.disposed)
                     {
                         var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(null, "$/cancelRequest", new { id = id });
-                        await this.messageHandler.WriteAsync(cancellationMessage.ToJson(), this.disposeCts.Token).ConfigureAwait(false);
+                        await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                     }
                 }
 #if DESKTOP
@@ -668,6 +696,12 @@ namespace StreamJsonRpc
                 }
 #endif
             });
+        }
+
+        private Task TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            string json = message.ToJson(this.JsonSerializerFormatting, this.JsonSerializerSettings);
+            return this.MessageHandler.WriteAsync(json, cancellationToken);
         }
     }
 }

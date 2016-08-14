@@ -143,6 +143,12 @@
   <data name="HeaderValueTooLarge" xml:space="preserve">
     <value>The size of the message header exceeds the maximum supported size.</value>
   </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>This operation is not allowed after listening for messages has started.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>This operation is not allowed before listening for messages has started.</value>
+  </data>
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON-RPC must not be null.</value>
   </data>

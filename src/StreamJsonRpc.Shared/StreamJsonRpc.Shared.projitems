@@ -12,6 +12,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcError.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcErrorCode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DelimitedMessageHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventArgs\DisconnectedReason.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventArgs\JsonRpcDisconnectedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\BadRpcHeaderException.cs" />
