@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc;
@@ -135,12 +136,13 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task NullAsArgumentLiteral()
     {
-        // This first one throws because null args means no args, and the method we're invoking
-        // has one parameter.
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null));
+        // This first one succeeds because null args is interpreted as 1 null argument.
+        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null);
+        Assert.Null(result);
+        Assert.True(this.server.NullPassed);
 
-        // This one succeeds because the method we're invoking takes no parameters.
-        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAcceptsNothingAndReturnsNull), null);
+        // This one fails because null literal is interpreted as a method that takes a parameter with a null argument.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAcceptsNothingAndReturnsNull), null));
         Assert.Null(result);
     }
 
@@ -289,6 +291,71 @@ public class JsonRpcTests : TestBase
     {
         Assert.Throws<ArgumentNullException>(() => this.clientRpc.Encoding = null);
         Assert.NotNull(this.clientRpc.Encoding);
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task CancelMessageSentWhileAwaitingResponse()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task CancelMessageNotSentAfterResponseIsReceived()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task CancelMayStillReturnResultFromServer()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task CancellationRequestSignalsServerMethod()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task ServerAcceptsNumberForMessageId()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task ServerAcceptsStringForMessageId()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task ServerAcceptsObjectForMessageId()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task ServerAcceptsEmptyObjectForMessageId()
+    {
+        await Task.Yield();
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public async Task LeakTesting()
+    {
+        await Task.Yield();
+    }
+
+    private static void SendObject(Stream receivingStream, object jsonObject)
+    {
+        Requires.NotNull(receivingStream, nameof(receivingStream));
+        Requires.NotNull(jsonObject, nameof(jsonObject));
+
+        string json = JsonConvert.SerializeObject(jsonObject);
+        string header = $"Content-Length: {json.Length}\r\n\r\n";
+        byte[] buffer = Encoding.ASCII.GetBytes(header + json);
+        receivingStream.Write(buffer, 0, buffer.Length);
     }
 
     public class BaseClass

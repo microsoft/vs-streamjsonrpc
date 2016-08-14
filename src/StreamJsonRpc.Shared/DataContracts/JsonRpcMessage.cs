@@ -15,11 +15,19 @@ namespace StreamJsonRpc
             this.JsonRpcVersion = "2.0";
         }
 
-        private JsonRpcMessage(string method, object[] parameters, string id = null, string jsonrpc = "2.0")
+        private JsonRpcMessage(string method, IReadOnlyList<object> parameters, object id = null, string jsonrpc = "2.0")
         {
-            this.Parameters = parameters?.Length == 0 ? null : JToken.FromObject(parameters);
+            this.Parameters = parameters?.Count == 0 ? null : JToken.FromObject(parameters);
             this.Method = method;
-            this.Id = id;
+            this.Id = id != null  ? JToken.FromObject(id) : null;
+            this.JsonRpcVersion = jsonrpc;
+        }
+
+        private JsonRpcMessage(string method, object namedParameters, object id = null, string jsonrpc = "2.0")
+        {
+            this.Parameters = namedParameters == null ? null : JToken.FromObject(namedParameters);
+            this.Method = method;
+            this.Id = id != null ? JToken.FromObject(id) : null;
             this.JsonRpcVersion = jsonrpc;
         }
 
@@ -30,7 +38,7 @@ namespace StreamJsonRpc
         public string Method { get; private set; }
 
         [JsonProperty("id")]
-        public string Id { get; private set; }
+        public JToken Id { get; private set; }
 
         [JsonProperty("error")]
         public JsonRpcError Error { get; private set; }
@@ -59,12 +67,17 @@ namespace StreamJsonRpc
 
         public int ParameterCount => this.Parameters != null ? this.Parameters.Children().Count() : 0;
 
-        public static JsonRpcMessage CreateRequest(string id, string @method, object[] parameters)
+        public static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters)
         {
             return new JsonRpcMessage(method, parameters, id);
         }
 
-        public static JsonRpcMessage CreateResult(string id, object result)
+        public static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters)
+        {
+            return new JsonRpcMessage(method, namedParameters, id);
+        }
+
+        public static JsonRpcMessage CreateResult(JToken id, object result)
         {
             return new JsonRpcMessage()
             {
@@ -73,22 +86,22 @@ namespace StreamJsonRpc
             };
         }
 
-        public static JsonRpcMessage CreateError(string id, JsonRpcErrorCode error, string message)
+        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message)
         {
             return CreateError(id, (int)error, message);
         }
 
-        public static JsonRpcMessage CreateError(string id, JsonRpcErrorCode error, string message, object data)
+        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message, object data)
         {
             return CreateError(id, (int)error, message, data);
         }
 
-        public static JsonRpcMessage CreateError(string id, int error, string message)
+        public static JsonRpcMessage CreateError(JToken id, int error, string message)
         {
             return CreateError(id, error, message, data: null);
         }
 
-        public static JsonRpcMessage CreateError(string id, int error, string message, object data)
+        public static JsonRpcMessage CreateError(JToken id, int error, string message, object data)
         {
             return new JsonRpcMessage()
             {
