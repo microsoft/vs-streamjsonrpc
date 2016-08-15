@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -22,6 +21,8 @@ namespace StreamJsonRpc
         protected DelimitedMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         {
             Requires.NotNull(encoding, nameof(encoding));
+            Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
+            Requires.Argument(receivingStream == null || receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
 
             this.SendingStream = sendingStream;
             this.ReceivingStream = receivingStream;
@@ -49,13 +50,18 @@ namespace StreamJsonRpc
 
         protected Stream ReceivingStream { get; }
 
+        protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
+
         public async Task<string> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
 
-            using (await this.receivingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                return await this.ReadCoreAsync(cancellationToken).ConfigureAwait(false);
+                using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                {
+                    return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                }
             }
         }
 
@@ -67,9 +73,12 @@ namespace StreamJsonRpc
             // Capture Encoding as a local since it may change over the time of this method's execution.
             Encoding contentEncoding = this.Encoding;
 
-            using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                await this.WriteCoreAsync(content, contentEncoding, cancellationToken).ConfigureAwait(false);
+                using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                {
+                    await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                }
             }
         }
 

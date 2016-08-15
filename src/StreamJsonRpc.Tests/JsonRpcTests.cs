@@ -318,30 +318,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact(Skip = "Not yet implemented")]
-    public async Task ServerAcceptsNumberForMessageId()
-    {
-        await Task.Yield();
-    }
-
-    [Fact(Skip = "Not yet implemented")]
-    public async Task ServerAcceptsStringForMessageId()
-    {
-        await Task.Yield();
-    }
-
-    [Fact(Skip = "Not yet implemented")]
-    public async Task ServerAcceptsObjectForMessageId()
-    {
-        await Task.Yield();
-    }
-
-    [Fact(Skip = "Not yet implemented")]
-    public async Task ServerAcceptsEmptyObjectForMessageId()
-    {
-        await Task.Yield();
-    }
-
-    [Fact(Skip = "Not yet implemented")]
     public async Task LeakTesting()
     {
         await Task.Yield();

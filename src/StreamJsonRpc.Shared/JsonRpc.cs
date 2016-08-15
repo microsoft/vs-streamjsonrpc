@@ -40,7 +40,6 @@ namespace StreamJsonRpc
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
         private Task readLinesTask;
-        private DelimitedMessageHandler messageHandler;
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
@@ -58,18 +57,29 @@ namespace StreamJsonRpc
         }
 
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
+            : this(
+                  new HeaderDelimitedMessageHandler(
+                      Requires.NotNull(sendingStream, nameof(sendingStream)),
+                      Requires.NotNull(receivingStream, nameof(receivingStream))),
+                  target)
         {
-            Requires.NotNull(sendingStream, nameof(sendingStream));
-            Requires.NotNull(receivingStream, nameof(receivingStream));
-            Requires.Argument(sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
-            Requires.Argument(receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
+        }
+
+        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
+        {
+            Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingRequestAction = this.CancelPendingRequest;
-            this.MessageHandler = new HeaderDelimitedMessageHandler(sendingStream, receivingStream);
+            this.MessageHandler = messageHandler;
             this.callbackTarget = target;
             this.JsonSerializerSettings = new JsonSerializerSettings
             {
+                NullValueHandling = NullValueHandling.Ignore,
+            };
+            this.JsonDeserializerSettings = new JsonSerializerSettings
+            {
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+                Converters = this.JsonSerializerSettings.Converters,
             };
         }
 
@@ -112,29 +122,24 @@ namespace StreamJsonRpc
             set { this.MessageHandler.Encoding = value; }
         }
 
-        public DelimitedMessageHandler MessageHandler
-        {
-            get
-            {
-                return this.messageHandler;
-            }
-
-            set
-            {
-                Requires.NotNull(value, nameof(value));
-                this.messageHandler = value;
-            }
-        }
+        public DelimitedMessageHandler MessageHandler { get; }
 
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
         public IList<JsonConverter> JsonConverters
         {
             get { return this.JsonSerializerSettings.Converters; }
-            set { this.JsonSerializerSettings.Converters = value; }
+
+            set
+            {
+                this.JsonSerializerSettings.Converters = value;
+                this.JsonDeserializerSettings.Converters = value;
+            }
         }
 
         private JsonSerializerSettings JsonSerializerSettings { get; }
+
+        private JsonSerializerSettings JsonDeserializerSettings { get; }
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
 
@@ -582,7 +587,7 @@ namespace StreamJsonRpc
             JsonRpcMessage rpc;
             try
             {
-                rpc = JsonRpcMessage.FromJson(json, this.JsonSerializerSettings);
+                rpc = JsonRpcMessage.FromJson(json, this.JsonDeserializerSettings);
             }
             catch (JsonException exception)
             {
