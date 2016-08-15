@@ -46,6 +46,7 @@
       <Link>ReadBufferingStream.cs</Link>
     </Compile>
     <Compile Include="DirectMessageHandler.cs" />
+    <Compile Include="InteropTestBase.cs" />
     <Compile Include="JsonRpcClientInteropTests.cs" />
     <Compile Include="JsonRpcRawStreamTests.cs" />
     <Compile Include="JsonRpcServerInteropTests.cs" />

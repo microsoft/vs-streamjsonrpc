@@ -12,25 +12,15 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcServerInteropTests : TestBase
+public class JsonRpcServerInteropTests : InteropTestBase
 {
     private readonly Server server;
-    private readonly Stream serverStream;
     private readonly JsonRpc serverRpc;
 
-    private readonly Stream clientStream;
-    private readonly DirectMessageHandler messageHandler;
-
     public JsonRpcServerInteropTests(ITestOutputHelper logger)
-        : base(logger)
+        : base(logger, serverTest: true)
     {
         this.server = new Server();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.messageHandler = new DirectMessageHandler(this.clientStream, this.serverStream, Encoding.UTF8);
         this.serverRpc = new JsonRpc(this.messageHandler, this.server);
         this.serverRpc.StartListening();
     }
@@ -93,26 +83,6 @@ public class JsonRpcServerInteropTests : TestBase
 
         Assert.Equal(5, (int)response["result"]);
         Assert.Equal(0, response["id"].Count());
-    }
-
-    private Task<JObject> RequestAsync(object request)
-    {
-        this.Send(request);
-        return this.ReceiveAsync();
-    }
-
-    private void Send(dynamic message)
-    {
-        Requires.NotNull(message, nameof(message));
-
-        var json = JsonConvert.SerializeObject(message);
-        this.messageHandler.OutboundMessages.Enqueue(json);
-    }
-
-    private async Task<JObject> ReceiveAsync()
-    {
-        string json = await this.messageHandler.IncomingMessages.DequeueAsync(this.TimeoutToken);
-        return JObject.Parse(json);
     }
 
     private class Server

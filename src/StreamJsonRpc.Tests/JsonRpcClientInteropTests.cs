@@ -3,34 +3,43 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcClientInteropTests : TestBase
+public class JsonRpcClientInteropTests : InteropTestBase
 {
-    private readonly Stream serverStream;
-
-    private readonly Stream clientStream;
     private readonly JsonRpc clientRpc;
-    private readonly DirectMessageHandler messageHandler;
 
     public JsonRpcClientInteropTests(ITestOutputHelper logger)
-        : base(logger)
+        : base(logger, serverTest: false)
     {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.messageHandler = new DirectMessageHandler(this.clientStream, this.serverStream, Encoding.UTF8);
         this.clientRpc = new JsonRpc(this.messageHandler);
         this.clientRpc.StartListening();
     }
 
-    [Fact(Skip = "Not yet implemented")]
+    [Fact]
     public async Task CancelMessageNotSentAfterResponseIsReceived()
     {
-        await Task.Yield();
+        using (var cts = new CancellationTokenSource())
+        {
+            Task invokeTask = this.clientRpc.InvokeWithCancellationAsync("test", cancellationToken: cts.Token);
+            dynamic request = await this.ReceiveAsync();
+            this.Send(new
+            {
+                jsonrpc = "2.0",
+                id = request.id,
+                result = new { },
+            });
+            await invokeTask;
+
+            // Now cancel the request that has already resolved.
+            cts.Cancel();
+
+            // Verify that no cancellation message is transmitted.
+            await Assert.ThrowsAsync<TaskCanceledException>(() => this.messageHandler.IncomingMessages.DequeueAsync(ExpectedTimeoutToken));
+        }
     }
 }
