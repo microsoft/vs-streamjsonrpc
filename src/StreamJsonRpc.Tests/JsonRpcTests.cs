@@ -293,28 +293,60 @@ public class JsonRpcTests : TestBase
         Assert.NotNull(this.clientRpc.Encoding);
     }
 
-    [Fact(Skip = "Not yet implemented")]
+    [Fact]
+    public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken()
+    {
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), "a");
+        Assert.Equal("a!", result);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CanCallUncancellableMethod()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
+            Assert.Equal("a!", result);
+        }
+    }
+
+    [Fact]
     public async Task CancelMessageSentWhileAwaitingResponse()
     {
-        await Task.Yield();
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            this.server.AllowServerMethodToReturn.Set();
+
+            // Ultimately, the server throws because it was canceled.
+            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask);
+        }
     }
 
-    [Fact(Skip = "Not yet implemented")]
-    public async Task CancelMessageNotSentAfterResponseIsReceived()
-    {
-        await Task.Yield();
-    }
-
-    [Fact(Skip = "Not yet implemented")]
+    [Fact]
     public async Task CancelMayStillReturnResultFromServer()
     {
-        await Task.Yield();
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            this.server.AllowServerMethodToReturn.Set();
+            string result = await invokeTask;
+            Assert.Equal("a!", result);
+        }
     }
 
-    [Fact(Skip = "Not yet implemented")]
-    public async Task CancellationRequestSignalsServerMethod()
+    [Fact]
+    public async Task InvokeWithPrecanceledToken()
     {
-        await Task.Yield();
+        using (var cts = new CancellationTokenSource())
+        {
+            cts.Cancel();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token));
+        }
     }
 
     [Fact(Skip = "Not yet implemented")]
@@ -348,6 +380,10 @@ public class JsonRpcTests : TestBase
         private readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
 
         public bool NullPassed { get; private set; }
+
+        public AsyncAutoResetEvent AllowServerMethodToReturn { get; } = new AsyncAutoResetEvent();
+
+        public AsyncAutoResetEvent ServerMethodReached { get; } = new AsyncAutoResetEvent();
 
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
@@ -421,6 +457,21 @@ public class JsonRpcTests : TestBase
         public async Task<string> AsyncMethod(string arg)
         {
             await Task.Yield();
+            return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
+            return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodIgnoresCancellation(string arg, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            await this.AllowServerMethodToReturn.WaitAsync();
+            Assert.True(cancellationToken.IsCancellationRequested);
             return arg + "!";
         }
 
