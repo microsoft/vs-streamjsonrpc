@@ -14,7 +14,7 @@
     },
     "Newtonsoft.Json": "6.0.6",
     "NuSpec.ReferenceGenerator": "1.4.2",
-    "Microsoft.VisualStudio.Threading": "14.1.114",
+    "Microsoft.VisualStudio.Threading": "15.0.58-pre",
     "ReadOnlySourceTree": {
       "version": "0.1.36-beta",
       "suppressParent": "none"
