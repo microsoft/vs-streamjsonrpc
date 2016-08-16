@@ -126,17 +126,6 @@ namespace StreamJsonRpc
 
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
-        public IList<JsonConverter> JsonConverters
-        {
-            get { return this.JsonSerializerSettings.Converters; }
-
-            set
-            {
-                this.JsonSerializerSettings.Converters = value;
-                this.JsonDeserializerSettings.Converters = value;
-            }
-        }
-
         private JsonSerializerSettings JsonSerializerSettings { get; }
 
         private JsonSerializerSettings JsonDeserializerSettings { get; }
