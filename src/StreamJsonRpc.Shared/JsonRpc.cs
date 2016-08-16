@@ -44,11 +44,24 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// </summary>
+        /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
         public static JsonRpc Attach(Stream stream, object target = null)
         {
             return Attach(stream, stream, target);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// </summary>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
         public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
             var rpc = new JsonRpc(sendingStream, receivingStream, target);
@@ -56,6 +69,16 @@ namespace StreamJsonRpc
             return rpc;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> for encoding/decoding messages.
+        /// </summary>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
             : this(
                   new HeaderDelimitedMessageHandler(
@@ -65,6 +88,14 @@ namespace StreamJsonRpc
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class.
+        /// </summary>
+        /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
         public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
@@ -85,6 +116,9 @@ namespace StreamJsonRpc
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
 
+        /// <summary>
+        /// Raised when the underlying stream is disconnected.
+        /// </summary>
         public event EventHandler<JsonRpcDisconnectedEventArgs> Disconnected
         {
             add
@@ -122,8 +156,12 @@ namespace StreamJsonRpc
             set { this.MessageHandler.Encoding = value; }
         }
 
+        /// <summary>
+        /// Gets the message handler used to send and receive messages.
+        /// </summary>
         public DelimitedMessageHandler MessageHandler { get; }
 
+        /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
         private JsonSerializerSettings JsonSerializerSettings { get; }
@@ -132,6 +170,9 @@ namespace StreamJsonRpc
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
 
+        /// <summary>
+        /// Starts listening to incoming messages.
+        /// </summary>
         public void StartListening()
         {
             Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
@@ -304,6 +345,10 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!this.disposed)
