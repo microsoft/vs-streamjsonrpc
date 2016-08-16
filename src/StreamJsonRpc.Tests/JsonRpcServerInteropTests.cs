@@ -85,8 +85,26 @@ public class JsonRpcServerInteropTests : InteropTestBase
         Assert.Equal(0, response["id"].Count());
     }
 
+    [Fact]
+    public async Task ServerAlwaysReturnsResultEvenIfNull()
+    {
+        var response = await this.RequestAsync(new
+        {
+            jsonrpc = "2.0",
+            method = "EchoString",
+            @params = new object[] { null },
+            id = 1,
+        });
+
+        // Assert that result is specified, but that its value is null.
+        Assert.NotNull(response["result"]);
+        Assert.Null(response.Value<string>("result"));
+    }
+
     private class Server
     {
         public int EchoInt(int value) => value;
+
+        public string EchoString(string value) => value;
     }
 }
