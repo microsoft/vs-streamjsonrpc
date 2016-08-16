@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Microsoft;
 
 namespace StreamJsonRpc
@@ -24,9 +25,11 @@ namespace StreamJsonRpc
 
         internal string Name => this.MethodInfo.Name;
 
-        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional);
+        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && !IsCancellationToken(pi));
 
-        internal int TotalParamCount => this.Parameters.Length;
+        internal int TotalParamCountExcludingCancellationToken => this.Parameters.Count(pi => !IsCancellationToken(pi));
+
+        internal bool HasCancellationTokenParameter => IsCancellationToken(this.Parameters.LastOrDefault());
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 
@@ -89,5 +92,7 @@ namespace StreamJsonRpc
         {
             return this.MethodInfo.ToString();
         }
+
+        private static bool IsCancellationToken(ParameterInfo parameter) => parameter?.ParameterType.Equals(typeof(CancellationToken)) ?? false;
     }
 }

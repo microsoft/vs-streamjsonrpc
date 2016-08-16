@@ -90,30 +90,32 @@ namespace StreamJsonRpc
                 return null;
             }
 
-            // The method name and the number of parameters must match
+            // The method name must match
             if (!string.Equals(method.Name, request.Method, StringComparison.Ordinal) && !string.Equals(method.Name, request.Method + ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodNameCaseIsDifferent, method, request.Method));
                 return null;
             }
 
+            // ref and out parameters aren't supported.
             if (method.HasOutOrRefParameters)
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
                 return null;
             }
 
+            // The number of parameters must fall within between required and total parameters.
             int paramCount = request.ParameterCount;
-            if (paramCount < method.RequiredParamCount || paramCount > method.TotalParamCount)
+            if (paramCount < method.RequiredParamCount || paramCount > method.TotalParamCountExcludingCancellationToken)
             {
                 string methodParameterCount;
-                if (method.RequiredParamCount == method.TotalParamCount)
+                if (method.RequiredParamCount == method.TotalParamCountExcludingCancellationToken)
                 {
                     methodParameterCount = method.RequiredParamCount.ToString(CultureInfo.CurrentCulture);
                 }
                 else
                 {
-                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCount);
+                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
                 }
 
                 errors.Add(string.Format(CultureInfo.CurrentCulture,
