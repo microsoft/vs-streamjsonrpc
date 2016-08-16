@@ -257,7 +257,7 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task InvokeWithCancellationAsync(string targetName, object[] arguments = null, CancellationToken cancellationToken = default(CancellationToken))
+        public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, cancellationToken);
         }
@@ -284,7 +284,7 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task<Result> InvokeWithCancellationAsync<Result>(string targetName, object[] arguments = null, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<Result> InvokeWithCancellationAsync<Result>(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             int id = Interlocked.Increment(ref this.nextId);
             return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken);
@@ -372,7 +372,7 @@ namespace StreamJsonRpc
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, object[] arguments, CancellationToken cancellationToken)
+        protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
