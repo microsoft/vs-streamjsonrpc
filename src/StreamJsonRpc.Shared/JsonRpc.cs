@@ -35,7 +35,7 @@ namespace StreamJsonRpc
         private readonly object dispatcherMapLock = new object();
         private readonly object disconnectedEventLock = new object();
         private readonly Dictionary<int, OutstandingCallData> resultDispatcherMap = new Dictionary<int, OutstandingCallData>();
-        private readonly Action<object> cancelPendingRequestAction;
+        private readonly Action<object> cancelPendingOutboundRequestAction;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -100,7 +100,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
-            this.cancelPendingRequestAction = this.CancelPendingRequest;
+            this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.MessageHandler = messageHandler;
             this.callbackTarget = target;
             this.JsonSerializerSettings = new JsonSerializerSettings
@@ -428,7 +428,7 @@ namespace StreamJsonRpc
                 await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
 
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                using (cancellationToken.Register(this.cancelPendingRequestAction, id.Value, false))
+                using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, false))
                 {
                     // This task will be completed when the Response object comes back from the other end of the pipe
                     return await tcs.Task.ConfigureAwait(false);
@@ -707,10 +707,10 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Cancels an individual pending request.
+        /// Cancels an individual outbound pending request.
         /// </summary>
         /// <param name="state">The ID associated with the request to be canceled.</param>
-        private void CancelPendingRequest(object state)
+        private void CancelPendingOutboundRequest(object state)
         {
             Task.Run(async delegate
             {
