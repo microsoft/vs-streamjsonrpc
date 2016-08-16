@@ -57,7 +57,12 @@ namespace StreamJsonRpc
 
         private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
 
-        internal HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
             : base(sendingStream, new ReadBufferingStream(receivingStream, MaxHeaderElementSize), DefaultContentEncoding)
         {
         }
@@ -75,10 +80,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the value to use as the subtype in the Content-Type header (e.g. "application/SUBTYPE").
         /// </summary>
+        /// <value>The default value is "jsonrpc".</value>
         public string SubType { get; set; } = "jsonrpc";
 
         private new ReadBufferingStream ReceivingStream => (ReadBufferingStream)base.ReceivingStream;
 
+        /// <inheritdoc />
         protected override async Task<string> ReadCoreAsync(CancellationToken cancellationToken)
         {
             var headers = new Dictionary<string, string>();
@@ -245,6 +252,7 @@ namespace StreamJsonRpc
                 && buffer[lastIndex - 1] == lf;
         }
 
+        /// <inheritdoc />
         protected override async Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
         {
             var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
