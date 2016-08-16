@@ -394,7 +394,7 @@ namespace StreamJsonRpc
                 await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
 
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                using (cancellationToken.Register(this.cancelPendingRequestAction, callData, false))
+                using (cancellationToken.Register(this.cancelPendingRequestAction, id.Value, false))
                 {
                     // This task will be completed when the Response object comes back from the other end of the pipe
                     return await tcs.Task.ConfigureAwait(false);
