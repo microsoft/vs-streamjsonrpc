@@ -21,7 +21,7 @@
       "suppressParent": "none"
     },
     "Newtonsoft.Json": "6.0.6",
-    "Microsoft.VisualStudio.Threading": "14.1.114"
+    "Microsoft.VisualStudio.Threading": "15.0.58-pre"
   },
   "frameworks": {
     "net45": { }
