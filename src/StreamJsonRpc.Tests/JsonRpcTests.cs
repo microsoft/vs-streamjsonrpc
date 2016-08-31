@@ -305,7 +305,9 @@ public class JsonRpcTests : TestBase
     {
         using (var cts = new CancellationTokenSource())
         {
-            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
+            Task<string> resultTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
+            cts.Cancel();
+            string result = await resultTask;
             Assert.Equal("a!", result);
         }
     }
@@ -349,6 +351,10 @@ public class JsonRpcTests : TestBase
         }
     }
 
+    /// <summary>
+    /// Verifies that sending requests with cancellation tokens, and receiving requests (both canceled and not),
+    /// that we don't leak memory (e.g. from CancellationTokenSource, their delegates, dictionaries of requests to CTS, etc.)
+    /// </summary>
     [Fact(Skip = "Not yet implemented")]
     public async Task LeakTesting()
     {

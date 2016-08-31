@@ -30,6 +30,7 @@ namespace StreamJsonRpc
             }
         }
 
+        private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly object[] EmptyObjectArray = new object[0];
         private readonly object callbackTarget;
         private readonly object dispatcherMapLock = new object();
@@ -65,8 +66,16 @@ namespace StreamJsonRpc
         public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
             var rpc = new JsonRpc(sendingStream, receivingStream, target);
-            rpc.StartListening();
-            return rpc;
+            try
+            {
+                rpc.StartListening();
+                return rpc;
+            }
+            catch
+            {
+                rpc.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -428,7 +437,7 @@ namespace StreamJsonRpc
                 await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
 
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, false))
+                using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
                 {
                     // This task will be completed when the Response object comes back from the other end of the pipe
                     return await tcs.Task.ConfigureAwait(false);
@@ -720,12 +729,12 @@ namespace StreamJsonRpc
                     object id = state;
                     if (!this.disposed)
                     {
-                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(null, "$/cancelRequest", new { id = id });
+                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = id });
                         await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                     }
                 }
 #if DESKTOP
-                catch (Exception ex)
+                catch (Exception ex) when (!(ex is OperationCanceledException) && !(ex is ObjectDisposedException))
                 {
                     Debug.Fail(ex.Message, ex.ToString());
                 }
