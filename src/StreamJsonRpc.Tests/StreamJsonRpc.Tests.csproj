@@ -45,6 +45,7 @@
     <Compile Include="..\StreamJsonRpc.Shared\ReadBufferingStream.cs">
       <Link>ReadBufferingStream.cs</Link>
     </Compile>
+    <Compile Include="DelimitedMessageHandlerTests.cs" />
     <Compile Include="DirectMessageHandler.cs" />
     <Compile Include="InteropTestBase.cs" />
     <Compile Include="JsonRpcClientInteropTests.cs" />

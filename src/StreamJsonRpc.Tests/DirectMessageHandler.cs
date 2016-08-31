@@ -14,18 +14,18 @@ public class DirectMessageHandler : DelimitedMessageHandler
     {
     }
 
-    internal AsyncQueue<string> OutboundMessages { get; } = new AsyncQueue<string>();
+    internal AsyncQueue<string> MessagesToRead { get; } = new AsyncQueue<string>();
 
-    internal AsyncQueue<string> IncomingMessages { get; } = new AsyncQueue<string>();
+    internal AsyncQueue<string> WrittenMessages { get; } = new AsyncQueue<string>();
 
     protected override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
     {
-        return this.OutboundMessages.DequeueAsync(cancellationToken);
+        return this.MessagesToRead.DequeueAsync(cancellationToken);
     }
 
     protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
     {
-        this.IncomingMessages.Enqueue(content);
+        this.WrittenMessages.Enqueue(content);
         return Task.CompletedTask;
     }
 }

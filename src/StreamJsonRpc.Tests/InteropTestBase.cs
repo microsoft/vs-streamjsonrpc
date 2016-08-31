@@ -47,12 +47,12 @@ public class InteropTestBase : TestBase
         Requires.NotNull(message, nameof(message));
 
         var json = JsonConvert.SerializeObject(message);
-        this.messageHandler.OutboundMessages.Enqueue(json);
+        this.messageHandler.MessagesToRead.Enqueue(json);
     }
 
     protected async Task<JObject> ReceiveAsync()
     {
-        string json = await this.messageHandler.IncomingMessages.DequeueAsync(this.TimeoutToken);
+        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
         return JObject.Parse(json);
     }
 }
