@@ -53,6 +53,8 @@ namespace StreamJsonRpc
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
         public static JsonRpc Attach(Stream stream, object target = null)
         {
+            Requires.NotNull(stream, nameof(stream));
+
             return Attach(stream, stream, target);
         }
 
@@ -65,10 +67,19 @@ namespace StreamJsonRpc
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
         public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
+            if (sendingStream == null && receivingStream == null)
+            {
+                throw new ArgumentException(Resources.BothReadableWritableAreNull);
+            }
+
             var rpc = new JsonRpc(sendingStream, receivingStream, target);
             try
             {
-                rpc.StartListening();
+                if (receivingStream != null)
+                {
+                    rpc.StartListening();
+                }
+
                 return rpc;
             }
             catch
@@ -89,11 +100,7 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
-            : this(
-                  new HeaderDelimitedMessageHandler(
-                      Requires.NotNull(sendingStream, nameof(sendingStream)),
-                      Requires.NotNull(receivingStream, nameof(receivingStream))),
-                  target)
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target)
         {
         }
 
@@ -184,6 +191,7 @@ namespace StreamJsonRpc
         /// </summary>
         public void StartListening()
         {
+            Verify.Operation(this.MessageHandler.CanRead, Resources.StreamMustBeReadable);
             Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
             Verify.NotDisposed(this);
             this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
@@ -646,6 +654,9 @@ namespace StreamJsonRpc
 
             if (rpc.IsRequest)
             {
+                // We can't accept a request that requires a response if we can't write.
+                Verify.Operation(rpc.IsNotification || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
+
                 JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
 
                 if (!rpc.IsNotification)

@@ -55,6 +55,70 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void Attach_Null_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => JsonRpc.Attach(stream: null));
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(sendingStream: null, receivingStream: null));
+    }
+
+    [Fact]
+    public async Task Attach_NullSendingStream_CanOnlyReceiveNotifications()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var receivingStream = streams.Item1;
+        var server = new Server();
+        var rpc = JsonRpc.Attach(sendingStream: null, receivingStream: receivingStream, target: server);
+        var disconnected = new AsyncManualResetEvent();
+        rpc.Disconnected += (s, e) => disconnected.Set();
+
+        var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
+        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
+        {
+            jsonrpc = "2.0",
+            method = nameof(Server.NotificationMethod),
+            @params = new[] { "hello" },
+        }), this.TimeoutToken);
+
+        Assert.Equal("hello", await server.NotificationReceived.WithCancellation(this.TimeoutToken));
+
+        // Any form of outbound transmission should be rejected.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.NotifyAsync("foo"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
+
+        Assert.False(disconnected.IsSet);
+
+        // Receiving a request should forcibly terminate the stream.
+        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            method = nameof(Server.MethodThatAccceptsAndReturnsNull),
+            @params = new object[] { null },
+        }), this.TimeoutToken);
+
+        // The connection should be closed because we can't send a response.
+        await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
+
+        // The method should not have been invoked.
+        Assert.False(server.NullPassed);
+    }
+
+    [Fact]
+    public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
+    {
+        var sendingStream = new MemoryStream();
+        long lastPosition = sendingStream.Position;
+        var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+
+        // Sending notifications is fine, as it's an outbound-only communication.
+        await rpc.NotifyAsync("foo");
+        Assert.NotEqual(lastPosition, sendingStream.Position);
+
+        // Sending requests should not be allowed, since it requires waiting for a response.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
+    }
+
+    [Fact]
     public async Task CanInvokeMethodOnServer()
     {
         string TestLine = "TestLine1" + new string('a', 1024 * 1024);

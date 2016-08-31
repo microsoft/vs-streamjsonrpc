@@ -23,9 +23,19 @@ public class DelimitedMessageHandlerTests : TestBase
     }
 
     [Fact]
+    public void CanReadAndWrite()
+    {
+        Assert.True(handler.CanRead);
+        Assert.True(handler.CanWrite);
+    }
+
+    [Fact]
     public async Task Ctor_AcceptsNullSendingStream()
     {
         var handler = new DirectMessageHandler(null, this.receivingStream, Encoding.UTF8);
+        Assert.True(handler.CanRead);
+        Assert.False(handler.CanWrite);
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.WriteAsync("hi", TimeoutToken));
         string expected = "bye";
         handler.MessagesToRead.Enqueue(expected);
@@ -37,6 +47,9 @@ public class DelimitedMessageHandlerTests : TestBase
     public async Task Ctor_AcceptsNullReceivingStream()
     {
         var handler = new DirectMessageHandler(this.sendingStream, null, Encoding.UTF8);
+        Assert.False(handler.CanRead);
+        Assert.True(handler.CanWrite);
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.ReadAsync(TimeoutToken));
         string expected = "bye";
         await handler.WriteAsync(expected, TimeoutToken);

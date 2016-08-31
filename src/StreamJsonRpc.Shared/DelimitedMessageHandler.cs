@@ -73,6 +73,16 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this message handler has a receiving stream.
+        /// </summary>
+        public bool CanRead => this.ReceivingStream != null;
+
+        /// <summary>
+        /// Gets a value indicating whether this message handler has a sending stream.
+        /// </summary>
+        public bool CanWrite => this.SendingStream != null;
+
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.DisposalToken.IsCancellationRequested;
 

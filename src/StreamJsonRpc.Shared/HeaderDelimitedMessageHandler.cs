@@ -63,7 +63,7 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
-            : base(sendingStream, new ReadBufferingStream(receivingStream, MaxHeaderElementSize), DefaultContentEncoding)
+            : base(sendingStream, receivingStream != null ? new ReadBufferingStream(receivingStream, MaxHeaderElementSize) : null, DefaultContentEncoding)
         {
         }
 
