@@ -17,7 +17,7 @@ namespace StreamJsonRpc
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class DelimitedMessageHandler : IDisposable
+    public abstract class DelimitedMessageHandler : IDisposableObservable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -73,6 +73,9 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <inheritdoc />
+        bool IDisposableObservable.IsDisposed => this.DisposalToken.IsCancellationRequested;
+
         /// <summary>
         /// Gets the stream used to transmit messages. May be null.
         /// </summary>
@@ -96,6 +99,7 @@ namespace StreamJsonRpc
         public async Task<string> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
+            Verify.NotDisposed(this);
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
@@ -116,6 +120,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.SendingStream != null, "No sending stream.");
+            Verify.NotDisposed(this);
 
             // Capture Encoding as a local since it may change over the time of this method's execution.
             Encoding contentEncoding = this.Encoding;
