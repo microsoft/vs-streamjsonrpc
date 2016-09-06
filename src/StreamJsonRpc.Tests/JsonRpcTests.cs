@@ -415,14 +415,73 @@ public class JsonRpcTests : TestBase
         }
     }
 
-    /// <summary>
-    /// Verifies that sending requests with cancellation tokens, and receiving requests (both canceled and not),
-    /// that we don't leak memory (e.g. from CancellationTokenSource, their delegates, dictionaries of requests to CTS, etc.)
-    /// </summary>
-    [Fact(Skip = "Not yet implemented")]
-    public async Task LeakTesting()
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
     {
-        await Task.Yield();
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }));
+            },
+            10000);
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
+    {
+        var cts = new CancellationTokenSource();
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }, cts.Token));
+            },
+            11000);
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
+    {
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                this.server.AllowServerMethodToReturn.Set();
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, CancellationToken.None));
+            },
+            10000);
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
+    {
+        var cts = new CancellationTokenSource();
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                this.server.AllowServerMethodToReturn.Set();
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token));
+            },
+            10000);
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
+    {
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                var cts = new CancellationTokenSource();
+                var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token);
+                cts.Cancel();
+                this.server.AllowServerMethodToReturn.Set();
+                await invokeTask.NoThrowAwaitable(); // may or may not throw due to cancellation (and its inherent race condition)
+            },
+            18000,
+            allowedAttempts: 10);
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)

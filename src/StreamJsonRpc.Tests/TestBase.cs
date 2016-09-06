@@ -10,6 +10,8 @@ using Xunit.Abstractions;
 
 public abstract class TestBase : IDisposable
 {
+    private const int GCAllocationAttempts = 5;
+
     private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
     private readonly CancellationTokenSource timeoutTokenSource;
 
@@ -41,5 +43,47 @@ public abstract class TestBase : IDisposable
         {
             this.timeoutTokenSource.Dispose();
         }
+    }
+
+    protected async Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated, int iterations = 100, int allowedAttempts = GCAllocationAttempts)
+    {
+        // prime the pump
+        for (int i = 0; i < 3; i++)
+        {
+            await scenario();
+        }
+
+        // This test is rather rough.  So we're willing to try it a few times in order to observe the desired value.
+        bool passingAttemptObserved = false;
+        for (int attempt = 1; attempt <= allowedAttempts; attempt++)
+        {
+            this.Logger?.WriteLine($"Attempt {attempt}");
+            long initialMemory = GC.GetTotalMemory(true);
+            for (int i = 0; i < iterations; i++)
+            {
+                await scenario();
+            }
+
+            long allocated = (GC.GetTotalMemory(false) - initialMemory) / iterations;
+            long leaked = (GC.GetTotalMemory(true) - initialMemory) / iterations;
+
+            this.Logger?.WriteLine($"{leaked} bytes leaked per iteration.", leaked);
+            this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({maxBytesAllocated} allowed).");
+
+            if (leaked <= 0 && allocated <= maxBytesAllocated)
+            {
+                passingAttemptObserved = true;
+                break;
+            }
+
+            if (!passingAttemptObserved)
+            {
+                // give the system a bit of cool down time to increase the odds we'll pass next time.
+                GC.Collect();
+                await Task.Delay(250);
+            }
+        }
+
+        Assert.True(passingAttemptObserved);
     }
 }
