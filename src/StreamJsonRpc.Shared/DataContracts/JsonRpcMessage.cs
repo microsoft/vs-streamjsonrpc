@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +20,7 @@ namespace StreamJsonRpc
         {
             this.Parameters = parameters?.Count == 0 ? null : JToken.FromObject(parameters);
             this.Method = method;
-            this.Id = id != null  ? JToken.FromObject(id) : null;
+            this.Id = id != null ? JToken.FromObject(id) : null;
             this.JsonRpcVersion = jsonrpc;
         }
 
@@ -44,7 +45,7 @@ namespace StreamJsonRpc
         public JsonRpcError Error { get; private set; }
 
         [JsonProperty("params")]
-        private JToken Parameters
+        public JToken Parameters
         {
             get;
             set;
@@ -142,9 +143,13 @@ namespace StreamJsonRpc
                 result.Add(value);
             }
 
-            for (;index < parameterInfos.Length; index++)
+            for (; index < parameterInfos.Length; index++)
             {
-                result.Add(parameterInfos[index].HasDefaultValue ? parameterInfos[index].DefaultValue : null);
+                object value =
+                    parameterInfos[index].HasDefaultValue ? parameterInfos[index].DefaultValue :
+                    parameterInfos[index].ParameterType == typeof(CancellationToken) ? (CancellationToken?)CancellationToken.None :
+                    null;
+                result.Add(value);
             }
 
             return result.ToArray();

@@ -33,9 +33,33 @@ namespace StreamJsonRpc
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly object[] EmptyObjectArray = new object[0];
         private readonly object callbackTarget;
+
+        /// <summary>
+        /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
+        /// </summary>
         private readonly object dispatcherMapLock = new object();
+
+        /// <summary>
+        /// The object to lock when accessing the <see cref="onDisconnected"/> member.
+        /// </summary>
         private readonly object disconnectedEventLock = new object();
+
+        /// <summary>
+        /// A map of outbound calls awaiting responses.
+        /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
+        /// </summary>
         private readonly Dictionary<int, OutstandingCallData> resultDispatcherMap = new Dictionary<int, OutstandingCallData>();
+
+        /// <summary>
+        /// A map of id's from inbound calls that have not yet completed and may be canceled,
+        /// to their <see cref="CancellationTokenSource"/> instances.
+        /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
+        /// </summary>
+        private readonly Dictionary<JToken, CancellationTokenSource> inboundCancellationSources = new Dictionary<JToken, CancellationTokenSource>(JToken.EqualityComparer);
+
+        /// <summary>
+        /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
+        /// </summary>
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
@@ -479,6 +503,7 @@ namespace StreamJsonRpc
                 return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.NoCallbackObject, message);
             }
 
+            bool ctsAdded = false;
             try
             {
                 var targetMethod = new TargetMethod(request, this.callbackTarget);
@@ -487,7 +512,19 @@ namespace StreamJsonRpc
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
                 }
 
-                object result = targetMethod.Invoke();
+                var cancellationToken = CancellationToken.None;
+                if (targetMethod.AcceptsCancellationToken && !request.IsNotification)
+                {
+                    var cts = new CancellationTokenSource();
+                    cancellationToken = cts.Token;
+                    ctsAdded = true;
+                    lock (this.dispatcherMapLock)
+                    {
+                        this.inboundCancellationSources.Add(request.Id, cts);
+                    }
+                }
+
+                object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task))
                 {
                     return JsonRpcMessage.CreateResult(request.Id, result);
@@ -498,6 +535,16 @@ namespace StreamJsonRpc
             catch (Exception ex)
             {
                 return CreateError(request.Id, ex);
+            }
+            finally
+            {
+                if (ctsAdded)
+                {
+                    lock (this.dispatcherMapLock)
+                    {
+                        this.inboundCancellationSources.Remove(request.Id);
+                    }
+                }
             }
         }
 
@@ -656,6 +703,19 @@ namespace StreamJsonRpc
             {
                 // We can't accept a request that requires a response if we can't write.
                 Verify.Operation(rpc.IsNotification || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
+
+                if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
+                {
+                    JToken id = rpc.Parameters.SelectToken("id");
+                    CancellationTokenSource cts;
+                    lock (this.dispatcherMapLock)
+                    {
+                        this.inboundCancellationSources.TryGetValue(id, out cts);
+                    }
+
+                    cts?.Cancel();
+                    return;
+                }
 
                 JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
 

@@ -357,10 +357,11 @@ public class JsonRpcTests : TestBase
         Assert.NotNull(this.clientRpc.Encoding);
     }
 
-    [Fact(Skip = "Not yet passing")]
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken()
     {
-        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), "a");
+        this.server.AllowServerMethodToReturn.Set();
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), "a").WithCancellation(this.TimeoutToken);
         Assert.Equal("a!", result);
     }
 
@@ -376,7 +377,7 @@ public class JsonRpcTests : TestBase
         }
     }
 
-    [Fact(Skip = "Not yet passing")]
+    [Fact]
     public async Task CancelMessageSentWhileAwaitingResponse()
     {
         using (var cts = new CancellationTokenSource())
@@ -384,14 +385,13 @@ public class JsonRpcTests : TestBase
             var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
             await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
             cts.Cancel();
-            this.server.AllowServerMethodToReturn.Set();
 
             // Ultimately, the server throws because it was canceled.
-            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask);
+            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
         }
     }
 
-    [Fact(Skip = "Not yet passing")]
+    [Fact]
     public async Task CancelMayStillReturnResultFromServer()
     {
         using (var cts = new CancellationTokenSource())
@@ -541,7 +541,15 @@ public class JsonRpcTests : TestBase
         {
             this.ServerMethodReached.Set();
             await this.AllowServerMethodToReturn.WaitAsync();
-            Assert.True(cancellationToken.IsCancellationRequested);
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                var cancellationSignal = new AsyncManualResetEvent();
+                using (cancellationToken.Register(() => cancellationSignal.Set()))
+                {
+                    await cancellationSignal;
+                }
+            }
+
             return arg + "!";
         }
 
