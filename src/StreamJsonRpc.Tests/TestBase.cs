@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 
 public abstract class TestBase : IDisposable
 {
-    private const int GCAllocationAttempts = 5;
+    private const int GCAllocationAttempts = 10;
 
     private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
     private readonly CancellationTokenSource timeoutTokenSource;
