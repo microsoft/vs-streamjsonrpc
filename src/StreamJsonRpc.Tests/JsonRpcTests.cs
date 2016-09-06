@@ -423,8 +423,7 @@ public class JsonRpcTests : TestBase
             async delegate
             {
                 Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }));
-            },
-            50000);
+            });
     }
 
     [Fact]
@@ -436,8 +435,7 @@ public class JsonRpcTests : TestBase
             async delegate
             {
                 Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }, cts.Token));
-            },
-            50000);
+            });
     }
 
     [Fact]
@@ -449,8 +447,7 @@ public class JsonRpcTests : TestBase
             {
                 this.server.AllowServerMethodToReturn.Set();
                 Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, CancellationToken.None));
-            },
-            40000);
+            });
     }
 
     [Fact]
@@ -463,8 +460,7 @@ public class JsonRpcTests : TestBase
             {
                 this.server.AllowServerMethodToReturn.Set();
                 Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token));
-            },
-            40000);
+            });
     }
 
     [Fact]
@@ -479,8 +475,7 @@ public class JsonRpcTests : TestBase
                 cts.Cancel();
                 this.server.AllowServerMethodToReturn.Set();
                 await invokeTask.NoThrowAwaitable(); // may or may not throw due to cancellation (and its inherent race condition)
-            },
-            18000);
+            });
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
