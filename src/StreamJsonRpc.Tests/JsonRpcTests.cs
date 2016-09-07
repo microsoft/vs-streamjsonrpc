@@ -416,6 +416,17 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeThenCancelToken()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            this.server.AllowServerMethodToReturn.Set();
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            cts.Cancel();
+        }
+    }
+
+    [Fact]
     [Trait("GC", "")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
     {
