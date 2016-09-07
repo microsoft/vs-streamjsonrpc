@@ -285,10 +285,12 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task that completes when the server method executes.</returns>
         /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the server indicates completion of the method.
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
         /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
@@ -312,10 +314,12 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
         /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
         /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
@@ -706,14 +710,7 @@ namespace StreamJsonRpc
 
                 if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
                 {
-                    JToken id = rpc.Parameters.SelectToken("id");
-                    CancellationTokenSource cts;
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.inboundCancellationSources.TryGetValue(id, out cts);
-                    }
-
-                    cts?.Cancel();
+                    this.HandleCancellationNotification(rpc);
                     return;
                 }
 
@@ -772,6 +769,20 @@ namespace StreamJsonRpc
                 json));
         }
 
+        private void HandleCancellationNotification(JsonRpcMessage rpc)
+        {
+            Requires.NotNull(rpc, nameof(rpc));
+
+            JToken id = rpc.Parameters.SelectToken("id");
+            CancellationTokenSource cts;
+            lock (this.dispatcherMapLock)
+            {
+                this.inboundCancellationSources.TryGetValue(id, out cts);
+            }
+
+            cts?.Cancel();
+        }
+
         private void CancelPendingRequests()
         {
             OutstandingCallData[] pendingRequests;
@@ -804,13 +815,15 @@ namespace StreamJsonRpc
                         await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                     }
                 }
+                catch (OperationCanceledException) { }
+                catch (ObjectDisposedException) { }
 #if DESKTOP
-                catch (Exception ex) when (!(ex is OperationCanceledException) && !(ex is ObjectDisposedException))
+                catch (Exception ex)
                 {
                     Debug.Fail(ex.Message, ex.ToString());
                 }
 #else
-                catch
+                catch (Exception)
                 {
                 }
 #endif
