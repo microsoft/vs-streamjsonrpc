@@ -165,7 +165,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0} parameter(s): {1}, but the request supplies {2}</value>
+    <value>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">

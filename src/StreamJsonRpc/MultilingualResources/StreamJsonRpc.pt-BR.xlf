@@ -45,8 +45,9 @@
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
-          <source>{0} parameter(s): {1}, but the request supplies {2}</source>
-          <target state="translated">Parâmetros {0}: {1}, mas a solicitação fornece {2}</target>
+          <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
+          <target state="needs-review-translation">Parâmetros {0}: {1}, mas a solicitação fornece {2}</target>
+          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">

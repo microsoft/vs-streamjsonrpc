@@ -178,7 +178,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} parameter(s): {1}, but the request supplies {2}.
+        ///   Looks up a localized string similar to {0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}.
         /// </summary>
         internal static string MethodParameterCountDoesNotMatch {
             get {
