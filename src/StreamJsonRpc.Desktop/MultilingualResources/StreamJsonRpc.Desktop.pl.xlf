@@ -46,8 +46,9 @@
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
-          <source>{0} parameter(s): {1}, but the request supplies {2}</source>
-          <target state="translated">Metoda {0} ma liczbę parametrów {1}, ale żądanie dostarcza {2}</target>
+          <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
+          <target state="needs-review-translation">Metoda {0} ma liczbę parametrów {1}, ale żądanie dostarcza {2}</target>
+          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
@@ -139,6 +140,14 @@
           <source>The stream must be writeable.</source>
           <target state="needs-review-translation" state-qualifier="mt-suggestion">Strumień musi być zapisywalny.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+        </trans-unit>
+        <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
+          <source>This operation is not allowed after listening for messages has started.</source>
+          <target state="new">This operation is not allowed after listening for messages has started.</target>
+        </trans-unit>
+        <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
+          <source>This operation is not allowed before listening for messages has started.</source>
+          <target state="new">This operation is not allowed before listening for messages has started.</target>
         </trans-unit>
       </group>
     </body>

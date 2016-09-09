@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc;
@@ -51,6 +52,70 @@ public class JsonRpcTests : TestBase
         }
 
         base.Dispose(disposing);
+    }
+
+    [Fact]
+    public void Attach_Null_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => JsonRpc.Attach(stream: null));
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(sendingStream: null, receivingStream: null));
+    }
+
+    [Fact]
+    public async Task Attach_NullSendingStream_CanOnlyReceiveNotifications()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var receivingStream = streams.Item1;
+        var server = new Server();
+        var rpc = JsonRpc.Attach(sendingStream: null, receivingStream: receivingStream, target: server);
+        var disconnected = new AsyncManualResetEvent();
+        rpc.Disconnected += (s, e) => disconnected.Set();
+
+        var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
+        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
+        {
+            jsonrpc = "2.0",
+            method = nameof(Server.NotificationMethod),
+            @params = new[] { "hello" },
+        }), this.TimeoutToken);
+
+        Assert.Equal("hello", await server.NotificationReceived.WithCancellation(this.TimeoutToken));
+
+        // Any form of outbound transmission should be rejected.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.NotifyAsync("foo"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
+
+        Assert.False(disconnected.IsSet);
+
+        // Receiving a request should forcibly terminate the stream.
+        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            method = nameof(Server.MethodThatAccceptsAndReturnsNull),
+            @params = new object[] { null },
+        }), this.TimeoutToken);
+
+        // The connection should be closed because we can't send a response.
+        await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
+
+        // The method should not have been invoked.
+        Assert.False(server.NullPassed);
+    }
+
+    [Fact]
+    public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
+    {
+        var sendingStream = new MemoryStream();
+        long lastPosition = sendingStream.Position;
+        var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+
+        // Sending notifications is fine, as it's an outbound-only communication.
+        await rpc.NotifyAsync("foo");
+        Assert.NotEqual(lastPosition, sendingStream.Position);
+
+        // Sending requests should not be allowed, since it requires waiting for a response.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
     }
 
     [Fact]
@@ -125,11 +190,24 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanPassNull()
+    public async Task CanPassNull_NullElementInArgsArray()
     {
+        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object[] { null });
+        Assert.Null(result);
+        Assert.True(this.server.NullPassed);
+    }
+
+    [Fact]
+    public async Task NullAsArgumentLiteral()
+    {
+        // This first one succeeds because null args is interpreted as 1 null argument.
         var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null);
         Assert.Null(result);
         Assert.True(this.server.NullPassed);
+
+        // This one fails because null literal is interpreted as a method that takes a parameter with a null argument.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAcceptsNothingAndReturnsNull), null));
+        Assert.Null(result);
     }
 
     [Fact]
@@ -279,6 +357,149 @@ public class JsonRpcTests : TestBase
         Assert.NotNull(this.clientRpc.Encoding);
     }
 
+    [Fact]
+    public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken()
+    {
+        this.server.AllowServerMethodToReturn.Set();
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), "a").WithCancellation(this.TimeoutToken);
+        Assert.Equal("a!", result);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CanCallUncancellableMethod()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            Task<string> resultTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
+            cts.Cancel();
+            string result = await resultTask;
+            Assert.Equal("a!", result);
+        }
+    }
+
+    [Fact]
+    public async Task CancelMessageSentWhileAwaitingResponse()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+
+            // Ultimately, the server throws because it was canceled.
+            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
+        }
+    }
+
+    [Fact]
+    public async Task CancelMayStillReturnResultFromServer()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            this.server.AllowServerMethodToReturn.Set();
+            string result = await invokeTask;
+            Assert.Equal("a!", result);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeWithPrecanceledToken()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            cts.Cancel();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token));
+        }
+    }
+
+    [Fact]
+    public async Task InvokeThenCancelToken()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            this.server.AllowServerMethodToReturn.Set();
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            cts.Cancel();
+        }
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
+    {
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }));
+            });
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
+    {
+        var cts = new CancellationTokenSource();
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }, cts.Token));
+            });
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
+    {
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                this.server.AllowServerMethodToReturn.Set();
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, CancellationToken.None));
+            });
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
+    {
+        var cts = new CancellationTokenSource();
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                this.server.AllowServerMethodToReturn.Set();
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token));
+            });
+    }
+
+    [Fact]
+    [Trait("GC", "")]
+    public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
+    {
+        await CheckGCPressureAsync(
+            async delegate
+            {
+                var cts = new CancellationTokenSource();
+                var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token);
+                cts.Cancel();
+                this.server.AllowServerMethodToReturn.Set();
+                await invokeTask.NoThrowAwaitable(); // may or may not throw due to cancellation (and its inherent race condition)
+            });
+    }
+
+    private static void SendObject(Stream receivingStream, object jsonObject)
+    {
+        Requires.NotNull(receivingStream, nameof(receivingStream));
+        Requires.NotNull(jsonObject, nameof(jsonObject));
+
+        string json = JsonConvert.SerializeObject(jsonObject);
+        string header = $"Content-Length: {json.Length}\r\n\r\n";
+        byte[] buffer = Encoding.ASCII.GetBytes(header + json);
+        receivingStream.Write(buffer, 0, buffer.Length);
+    }
+
     public class BaseClass
     {
         public string BaseMethod() => "base";
@@ -293,6 +514,10 @@ public class JsonRpcTests : TestBase
         private readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
 
         public bool NullPassed { get; private set; }
+
+        public AsyncAutoResetEvent AllowServerMethodToReturn { get; } = new AsyncAutoResetEvent();
+
+        public AsyncAutoResetEvent ServerMethodReached { get; } = new AsyncAutoResetEvent();
 
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
@@ -347,6 +572,11 @@ public class JsonRpcTests : TestBase
             return x + y;
         }
 
+        public object MethodThatAcceptsNothingAndReturnsNull()
+        {
+            return null;
+        }
+
         public object MethodThatAccceptsAndReturnsNull(object value)
         {
             this.NullPassed = value == null;
@@ -361,6 +591,29 @@ public class JsonRpcTests : TestBase
         public async Task<string> AsyncMethod(string arg)
         {
             await Task.Yield();
+            return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
+            return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodIgnoresCancellation(string arg, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            await this.AllowServerMethodToReturn.WaitAsync();
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                var cancellationSignal = new AsyncManualResetEvent();
+                using (cancellationToken.Register(() => cancellationSignal.Set()))
+                {
+                    await cancellationSignal;
+                }
+            }
+
             return arg + "!";
         }
 

@@ -13,7 +13,7 @@
       "suppressParent": "none"
     },
     "Nerdbank.GitVersioning": {
-      "version": "1.4.19",
+      "version": "1.5.46",
       "suppressParent": "none"
     },
     "Newtonsoft.Json": "6.0.6",

@@ -45,7 +45,12 @@
     <Compile Include="..\StreamJsonRpc.Shared\ReadBufferingStream.cs">
       <Link>ReadBufferingStream.cs</Link>
     </Compile>
+    <Compile Include="DelimitedMessageHandlerTests.cs" />
+    <Compile Include="DirectMessageHandler.cs" />
+    <Compile Include="InteropTestBase.cs" />
+    <Compile Include="JsonRpcClientInteropTests.cs" />
     <Compile Include="JsonRpcRawStreamTests.cs" />
+    <Compile Include="JsonRpcServerInteropTests.cs" />
     <Compile Include="JsonRpcTests.cs" />
     <Compile Include="MessageHeaderTests.cs" />
     <Compile Include="PerfTests.cs" />
@@ -67,6 +72,7 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>

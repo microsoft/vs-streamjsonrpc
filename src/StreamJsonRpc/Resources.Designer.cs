@@ -125,6 +125,24 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This operation is not allowed after listening for messages has started..
+        /// </summary>
+        internal static string InvalidAfterListenHasStarted {
+            get {
+                return ResourceManager.GetString("InvalidAfterListenHasStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This operation is not allowed before listening for messages has started..
+        /// </summary>
+        internal static string InvalidBeforeListenHasStarted {
+            get {
+                return ResourceManager.GetString("InvalidBeforeListenHasStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to JSON RPC must not be null..
         /// </summary>
         internal static string JsonRpcCannotBeNull {
@@ -161,7 +179,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} parameter(s): {1}, but the request supplies {2}.
+        ///   Looks up a localized string similar to {0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}.
         /// </summary>
         internal static string MethodParameterCountDoesNotMatch {
             get {

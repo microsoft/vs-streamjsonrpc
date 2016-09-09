@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Microsoft;
 
 namespace StreamJsonRpc
 {
     internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
+        private static readonly ParameterInfo[] EmptyParameterInfoArray = new ParameterInfo[0];
         private static readonly StringComparer typeNameComparer = StringComparer.Ordinal;
 
         internal MethodSignature(MethodInfo methodInfo)
         {
             Requires.NotNull(methodInfo, nameof(methodInfo));
             this.MethodInfo = methodInfo;
-            this.Parameters = methodInfo.GetParameters() ?? new ParameterInfo[0];
+            this.Parameters = methodInfo.GetParameters() ?? EmptyParameterInfoArray;
         }
 
         internal MethodInfo MethodInfo { get; }
@@ -24,9 +26,11 @@ namespace StreamJsonRpc
 
         internal string Name => this.MethodInfo.Name;
 
-        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional);
+        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && !IsCancellationToken(pi));
 
-        internal int TotalParamCount => this.Parameters.Length;
+        internal int TotalParamCountExcludingCancellationToken => this.Parameters.Count(pi => !IsCancellationToken(pi));
+
+        internal bool HasCancellationTokenParameter => this.Parameters.Any(IsCancellationToken);
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 
@@ -89,5 +93,7 @@ namespace StreamJsonRpc
         {
             return this.MethodInfo.ToString();
         }
+
+        private static bool IsCancellationToken(ParameterInfo parameter) => parameter?.ParameterType.Equals(typeof(CancellationToken)) ?? false;
     }
 }

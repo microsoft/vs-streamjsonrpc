@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Microsoft;
 
 namespace StreamJsonRpc
@@ -12,32 +13,32 @@ namespace StreamJsonRpc
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
         private readonly JsonRpcMessage request;
-        private readonly object callbackObject;
+        private readonly object target;
         private readonly MethodInfo method;
         private readonly object[] parameters;
 
-        internal TargetMethod(JsonRpcMessage request, object callbackObject)
+        internal TargetMethod(JsonRpcMessage request, object target)
         {
             Requires.NotNull(request, nameof(request));
-            Requires.NotNull(callbackObject, nameof(callbackObject));
+            Requires.NotNull(target, nameof(target));
 
             this.request = request;
-            this.callbackObject = callbackObject;
+            this.target = target;
 
             var targetMethods = new Dictionary<MethodSignature, object[]>();
-            for (TypeInfo t = callbackObject.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+            for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
             {
                 bool matchFound = false;
                 foreach (MethodInfo method in t.GetDeclaredMethods(request.Method))
                 {
-                    matchFound |= ConsiderMethodMatch(request, targetMethods, method);
+                    matchFound |= TryAddMethod(request, targetMethods, method);
                 }
 
                 if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
                 {
                     foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
                     {
-                        matchFound |= ConsiderMethodMatch(request, targetMethods, method);
+                        matchFound |= TryAddMethod(request, targetMethods, method);
                     }
                 }
             }
@@ -47,6 +48,7 @@ namespace StreamJsonRpc
                 KeyValuePair<MethodSignature, object[]> methodWithParameters = targetMethods.First();
                 this.method = methodWithParameters.Key.MethodInfo;
                 this.parameters = methodWithParameters.Value;
+                this.AcceptsCancellationToken = methodWithParameters.Key.HasCancellationTokenParameter;
             }
             else if (targetMethods.Count > 1)
             {
@@ -58,6 +60,8 @@ namespace StreamJsonRpc
 
         internal bool IsFound => this.method != null;
 
+        internal bool AcceptsCancellationToken { get; private set; }
+
         internal string LookupErrorMessage
         {
             get
@@ -67,19 +71,31 @@ namespace StreamJsonRpc
                     Resources.UnableToFindMethod,
                     this.request.Method,
                     this.request.ParameterCount,
-                    this.callbackObject.GetType().FullName,
+                    this.target.GetType().FullName,
                     string.Join("; ", this.errorMessages));
             }
         }
 
-        internal object Invoke()
+        internal object Invoke(CancellationToken cancellationToken)
         {
             if (this.method == null)
             {
                 throw new InvalidOperationException(this.LookupErrorMessage);
             }
 
-            return this.method.Invoke(!this.method.IsStatic ? this.callbackObject : null, this.parameters);
+            if (cancellationToken.CanBeCanceled && this.AcceptsCancellationToken)
+            {
+                for (int i = this.parameters.Length - 1; i >= 0; i--)
+                {
+                    if (this.parameters[i] is CancellationToken)
+                    {
+                        this.parameters[i] = cancellationToken;
+                        break;
+                    }
+                }
+            }
+
+            return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
         }
 
         private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors)
@@ -90,30 +106,32 @@ namespace StreamJsonRpc
                 return null;
             }
 
-            // The method name and the number of parameters must match
+            // The method name must match
             if (!string.Equals(method.Name, request.Method, StringComparison.Ordinal) && !string.Equals(method.Name, request.Method + ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodNameCaseIsDifferent, method, request.Method));
                 return null;
             }
 
+            // ref and out parameters aren't supported.
             if (method.HasOutOrRefParameters)
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
                 return null;
             }
 
+            // The number of parameters must fall within required and total parameters.
             int paramCount = request.ParameterCount;
-            if (paramCount < method.RequiredParamCount || paramCount > method.TotalParamCount)
+            if (paramCount < method.RequiredParamCount || paramCount > method.TotalParamCountExcludingCancellationToken)
             {
                 string methodParameterCount;
-                if (method.RequiredParamCount == method.TotalParamCount)
+                if (method.RequiredParamCount == method.TotalParamCountExcludingCancellationToken)
                 {
                     methodParameterCount = method.RequiredParamCount.ToString(CultureInfo.CurrentCulture);
                 }
                 else
                 {
-                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCount);
+                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
                 }
 
                 errors.Add(string.Format(CultureInfo.CurrentCulture,
@@ -137,12 +155,12 @@ namespace StreamJsonRpc
             }
         }
 
-        private bool ConsiderMethodMatch(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method)
+        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method)
         {
             var methodSignature = new MethodSignature(method);
             if (!targetMethods.ContainsKey(methodSignature))
             {
-                object[] parameters = TargetMethod.TryGetParameters(request, methodSignature, this.errorMessages);
+                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages);
                 if (parameters != null)
                 {
                     targetMethods.Add(methodSignature, parameters);
