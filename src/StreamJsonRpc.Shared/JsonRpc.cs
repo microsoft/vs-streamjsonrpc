@@ -32,6 +32,7 @@ namespace StreamJsonRpc
 
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly object[] EmptyObjectArray = new object[0];
+        private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
         private readonly object callbackTarget;
 
         /// <summary>
@@ -61,6 +62,11 @@ namespace StreamJsonRpc
         /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
         /// </summary>
         private readonly Action<object> cancelPendingOutboundRequestAction;
+
+        /// <summary>
+        /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
+        /// </summary>
+        private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -141,17 +147,20 @@ namespace StreamJsonRpc
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
+            this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult((JToken)id, t);
+
             this.MessageHandler = messageHandler;
             this.callbackTarget = target;
-            this.JsonSerializerSettings = new JsonSerializerSettings
+            this.MessageJsonSerializerSettings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
             };
-            this.JsonDeserializerSettings = new JsonSerializerSettings
+            this.MessageJsonDeserializerSettings = new JsonSerializerSettings
             {
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-                Converters = this.JsonSerializerSettings.Converters,
+                Converters = this.MessageJsonSerializerSettings.Converters,
             };
+            this.JsonSerializer = new JsonSerializer();
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -204,9 +213,14 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
-        private JsonSerializerSettings JsonSerializerSettings { get; }
+        /// <summary>
+        /// Gets the <see cref="JsonSerializer"/> used when serializing and deserializing method arguments and return values.
+        /// </summary>
+        public JsonSerializer JsonSerializer { get; }
 
-        private JsonSerializerSettings JsonDeserializerSettings { get; }
+        private JsonSerializerSettings MessageJsonSerializerSettings { get; }
+
+        private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
 
@@ -425,7 +439,7 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
 
             arguments = arguments ?? EmptyObjectArray;
-            JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments);
+            JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments, this.JsonSerializer);
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.disposeCts.Token))
             {
                 if (id == null)
@@ -455,7 +469,7 @@ namespace StreamJsonRpc
                         }
                         else
                         {
-                            tcs.TrySetResult(response.GetResult<ReturnType>());
+                            tcs.TrySetResult(response.GetResult<ReturnType>(this.JsonSerializer));
                         }
                     }
                     catch (Exception ex)
@@ -499,7 +513,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
+        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request, JsonSerializer jsonSerializer)
         {
             if (this.callbackTarget == null)
             {
@@ -510,7 +524,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
@@ -531,10 +545,10 @@ namespace StreamJsonRpc
                 object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task))
                 {
-                    return JsonRpcMessage.CreateResult(request.Id, result);
+                    return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
                 }
 
-                return await ((Task)result).ContinueWith((t, id) => HandleInvocationTaskResult((JToken)id, t), request.Id, TaskScheduler.Default).ConfigureAwait(false);
+                return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -552,7 +566,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private static JsonRpcMessage HandleInvocationTaskResult(JToken id, Task t)
+        private JsonRpcMessage HandleInvocationTaskResult(JToken id, Task t)
         {
             if (t == null)
             {
@@ -589,7 +603,7 @@ namespace StreamJsonRpc
                 taskResult = resultProperty?.GetValue(t);
             }
 
-            return JsonRpcMessage.CreateResult(id, taskResult);
+            return JsonRpcMessage.CreateResult(id, taskResult, this.JsonSerializer);
         }
 
         private static JsonRpcMessage CreateError(JToken id, Exception exception)
@@ -689,7 +703,7 @@ namespace StreamJsonRpc
             JsonRpcMessage rpc;
             try
             {
-                rpc = JsonRpcMessage.FromJson(json, this.JsonDeserializerSettings);
+                rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
             }
             catch (JsonException exception)
             {
@@ -714,7 +728,7 @@ namespace StreamJsonRpc
                     return;
                 }
 
-                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
+                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc, this.JsonSerializer).ConfigureAwait(false);
 
                 if (!rpc.IsNotification)
                 {
@@ -811,7 +825,7 @@ namespace StreamJsonRpc
                     object id = state;
                     if (!this.disposed)
                     {
-                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = id });
+                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = id }, parameterSerializer: DefaultJsonSerializer);
                         await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                     }
                 }
@@ -832,7 +846,7 @@ namespace StreamJsonRpc
 
         private Task TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
         {
-            string json = message.ToJson(this.JsonSerializerFormatting, this.JsonSerializerSettings);
+            string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
         }
     }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Microsoft;
+using Newtonsoft.Json;
 
 namespace StreamJsonRpc
 {
@@ -17,7 +18,7 @@ namespace StreamJsonRpc
         private readonly MethodInfo method;
         private readonly object[] parameters;
 
-        internal TargetMethod(JsonRpcMessage request, object target)
+        internal TargetMethod(JsonRpcMessage request, object target, JsonSerializer jsonSerializer)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(target, nameof(target));
@@ -31,14 +32,14 @@ namespace StreamJsonRpc
                 bool matchFound = false;
                 foreach (MethodInfo method in t.GetDeclaredMethods(request.Method))
                 {
-                    matchFound |= TryAddMethod(request, targetMethods, method);
+                    matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
                 }
 
                 if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
                 {
                     foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
                     {
-                        matchFound |= TryAddMethod(request, targetMethods, method);
+                        matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
                     }
                 }
             }
@@ -98,7 +99,7 @@ namespace StreamJsonRpc
             return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
         }
 
-        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors)
+        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer)
         {
             if (!method.IsPublic)
             {
@@ -146,7 +147,7 @@ namespace StreamJsonRpc
             // Parameters must be compatible
             try
             {
-                return request.GetParameters(method.Parameters);
+                return request.GetParameters(method.Parameters, jsonSerializer);
             }
             catch (Exception exception)
             {
@@ -155,12 +156,12 @@ namespace StreamJsonRpc
             }
         }
 
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method)
+        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer)
         {
             var methodSignature = new MethodSignature(method);
             if (!targetMethods.ContainsKey(methodSignature))
             {
-                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages);
+                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer);
                 if (parameters != null)
                 {
                     targetMethods.Add(methodSignature, parameters);
