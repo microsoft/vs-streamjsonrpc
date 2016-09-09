@@ -66,14 +66,14 @@ public abstract class TestBase : IDisposable
         for (int attempt = 1; attempt <= allowedAttempts; attempt++)
         {
             this.Logger?.WriteLine($"Attempt {attempt}");
-            long initialMemory = GC.GetTotalMemory(true);
+            long initialMemory = GC.GetTotalMemory(forceFullCollection: true);
             for (int i = 0; i < iterations; i++)
             {
                 await scenario();
             }
 
-            long allocated = (GC.GetTotalMemory(false) - initialMemory) / iterations;
-            long leaked = (GC.GetTotalMemory(true) - initialMemory) / iterations;
+            long allocated = (GC.GetTotalMemory(forceFullCollection: false) - initialMemory) / iterations;
+            long leaked = (GC.GetTotalMemory(forceFullCollection: true) - initialMemory) / iterations;
 
             this.Logger?.WriteLine($"{leaked} bytes leaked per iteration.", leaked);
             this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({maxBytesAllocated} allowed).");

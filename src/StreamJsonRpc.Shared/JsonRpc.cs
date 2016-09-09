@@ -521,10 +521,10 @@ namespace StreamJsonRpc
                 {
                     var cts = new CancellationTokenSource();
                     cancellationToken = cts.Token;
-                    ctsAdded = true;
                     lock (this.dispatcherMapLock)
                     {
                         this.inboundCancellationSources.Add(request.Id, cts);
+                        ctsAdded = true;
                     }
                 }
 
