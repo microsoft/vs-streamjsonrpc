@@ -143,14 +143,14 @@ namespace StreamJsonRpc
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.MessageHandler = messageHandler;
             this.callbackTarget = target;
-            this.JsonSerializerSettings = new JsonSerializerSettings
+            this.MessageJsonSerializerSettings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
             };
-            this.JsonDeserializerSettings = new JsonSerializerSettings
+            this.MessageJsonDeserializerSettings = new JsonSerializerSettings
             {
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-                Converters = this.JsonSerializerSettings.Converters,
+                Converters = this.MessageJsonSerializerSettings.Converters,
             };
         }
 
@@ -204,9 +204,9 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
-        private JsonSerializerSettings JsonSerializerSettings { get; }
+        private JsonSerializerSettings MessageJsonSerializerSettings { get; }
 
-        private JsonSerializerSettings JsonDeserializerSettings { get; }
+        private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
 
@@ -689,7 +689,7 @@ namespace StreamJsonRpc
             JsonRpcMessage rpc;
             try
             {
-                rpc = JsonRpcMessage.FromJson(json, this.JsonDeserializerSettings);
+                rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
             }
             catch (JsonException exception)
             {
@@ -832,7 +832,7 @@ namespace StreamJsonRpc
 
         private Task TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
         {
-            string json = message.ToJson(this.JsonSerializerFormatting, this.JsonSerializerSettings);
+            string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
         }
     }
