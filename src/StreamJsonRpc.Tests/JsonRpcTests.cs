@@ -427,6 +427,38 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task UnserializableTypeWorksWithConverter()
+    {
+        this.clientRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        this.serverRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(server.RepeatSpecialType), new UnserializableType { Value = "a" });
+        Assert.Equal("a!", result.Value);
+    }
+
+    [Fact]
+    public async Task CustomJsonConvertersAreNotAppliedToBaseMessage()
+    {
+        // This test works because it encodes any string value, such that if the json-rpc "method" property
+        // were serialized using the same serializer as parameters, the invocation would fail because the server-side
+        // doesn't find the method with the mangled name.
+
+        // Test with the converter only on the client side.
+        this.clientRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(server.ExpectEncodedA), "a");
+        Assert.Equal("a", result);
+
+        // Test with the converter on both sides.
+        this.serverRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
+        result = await this.clientRpc.InvokeAsync<string>(nameof(server.RepeatString), "a");
+        Assert.Equal("a", result);
+
+        // Test with the converter only on the server side.
+        this.clientRpc.JsonSerializer.Converters.Clear();
+        result = await this.clientRpc.InvokeAsync<string>(nameof(server.AsyncMethod), "YQ==");
+        Assert.Equal("YSE=", result); // a!
+    }
+
+    [Fact]
     [Trait("GC", "")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
     {
@@ -588,6 +620,19 @@ public class JsonRpcTests : TestBase
             this.notificationTcs.SetResult(arg);
         }
 
+        public UnserializableType RepeatSpecialType(UnserializableType value)
+        {
+            return new UnserializableType { Value = value.Value + "!" };
+        }
+
+        public string ExpectEncodedA(string arg)
+        {
+            Assert.Equal("YQ==", arg);
+            return arg;
+        }
+
+        public string RepeatString(string arg) => arg;
+
         public async Task<string> AsyncMethod(string arg)
         {
             await Task.Yield();
@@ -684,5 +729,46 @@ public class JsonRpcTests : TestBase
 
     internal class InternalClass
     {
+    }
+    public class UnserializableType
+    {
+        [JsonIgnore]
+        public string Value { get; set; }
+    }
+
+    public class UnserializableTypeConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(UnserializableType);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            return new UnserializableType
+            {
+                Value = (string)reader.Value,
+            };
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(((UnserializableType)value).Value);
+        }
+    }
+
+    private class StringBase64Converter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(string);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            string decoded = Encoding.UTF8.GetString(Convert.FromBase64String((string)reader.Value));
+            return decoded;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var stringValue = (string)value;
+            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue));
+            writer.WriteValue(encoded);
+        }
     }
 }

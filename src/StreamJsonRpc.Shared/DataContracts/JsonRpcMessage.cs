@@ -16,17 +16,9 @@ namespace StreamJsonRpc
             this.JsonRpcVersion = "2.0";
         }
 
-        private JsonRpcMessage(string method, IReadOnlyList<object> parameters, object id = null, string jsonrpc = "2.0")
+        private JsonRpcMessage(string method, JToken parameters, object id = null, string jsonrpc = "2.0")
         {
-            this.Parameters = parameters?.Count == 0 ? null : JToken.FromObject(parameters);
-            this.Method = method;
-            this.Id = id != null ? JToken.FromObject(id) : null;
-            this.JsonRpcVersion = jsonrpc;
-        }
-
-        private JsonRpcMessage(string method, object namedParameters, object id = null, string jsonrpc = "2.0")
-        {
-            this.Parameters = namedParameters == null ? null : JToken.FromObject(namedParameters);
+            this.Parameters = parameters;
             this.Method = method;
             this.Id = id != null ? JToken.FromObject(id) : null;
             this.JsonRpcVersion = jsonrpc;
@@ -68,22 +60,22 @@ namespace StreamJsonRpc
 
         public int ParameterCount => this.Parameters != null ? this.Parameters.Children().Count() : 0;
 
-        public static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters)
+        public static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters, JsonSerializer parametersSerializer)
         {
-            return new JsonRpcMessage(method, parameters, id);
+            return new JsonRpcMessage(method, JToken.FromObject(parameters, parametersSerializer), id);
         }
 
-        public static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters)
+        public static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters, JsonSerializer parameterSerializer)
         {
-            return new JsonRpcMessage(method, namedParameters, id);
+            return new JsonRpcMessage(method, JToken.FromObject(namedParameters, parameterSerializer), id);
         }
 
-        public static JsonRpcMessage CreateResult(JToken id, object result)
+        public static JsonRpcMessage CreateResult(JToken id, object result, JsonSerializer jsonSerializer)
         {
             return new JsonRpcMessage()
             {
                 Id = id,
-                Result = result != null ? JToken.FromObject(result) : JValue.CreateNull(),
+                Result = result != null ? JToken.FromObject(result, jsonSerializer) : JValue.CreateNull(),
             };
         }
 
@@ -111,12 +103,12 @@ namespace StreamJsonRpc
             };
         }
 
-        public T GetResult<T>()
+        public T GetResult<T>(JsonSerializer serializer)
         {
-            return this.Result == null ? default(T) : this.Result.ToObject<T>();
+            return this.Result == null ? default(T) : this.Result.ToObject<T>(serializer);
         }
 
-        public object[] GetParameters(ParameterInfo[] parameterInfos)
+        public object[] GetParameters(ParameterInfo[] parameterInfos, JsonSerializer jsonSerializer)
         {
             if (this.Parameters == null || !this.Parameters.Children().Any())
             {
@@ -139,7 +131,7 @@ namespace StreamJsonRpc
                     index++;
                 }
 
-                object value = parameter.ToObject(type);
+                object value = parameter.ToObject(type, jsonSerializer);
                 result.Add(value);
             }
 
