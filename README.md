@@ -6,6 +6,13 @@ StreamJsonRpc is a cross-platform, .NET portable library that implements the
 
 Its transport is a standard System.IO.Stream so you can use it with any transport.
 
+## Supported platforms
+
+* .NET 4.5
+* Windows 8
+* Windows Phone 8.1
+* .NET Portable (Profile111, or .NET Standard 1.1)
+
 ## Compatibility  
 
 This library has been tested with and is compatible with the following other
