@@ -47,7 +47,6 @@
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">{0} metodunun {1} parametresi var (İptal Belirteci’ni dışta tutarak), ancak istekte {2} parametre belirtildi</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">

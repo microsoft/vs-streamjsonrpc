@@ -48,7 +48,6 @@
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the request: {1}</source>
