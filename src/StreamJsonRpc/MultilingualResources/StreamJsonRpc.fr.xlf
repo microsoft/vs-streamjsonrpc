@@ -46,8 +46,7 @@
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
-          <target state="needs-review-translation">{0} paramètre(s) : {1}, mais la demande fournit {2}</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">{0} paramètre(s) (CancellationToken exclu) : {1}, mais la demande fournit {2}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
@@ -102,51 +101,51 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Échec de l’analyse en-tête Content-Length dans un entier positif.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Échec de l’analyse de l’en-tête Content-Length dans un entier positif.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">La taille de l’en-tête du message dépasse la taille maximale prise en charge.</target>
+          <target state="translated" state-qualifier="mt-suggestion">La taille de l’en-tête du message dépasse la taille maximale prise en charge.</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Jeton inattendu « {0} » lors de l’analyse d’en-tête.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Jeton inattendu '{0}' lors de l’analyse d’en-tête.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Il faut un nombre entier positif.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Un nombre entier positif est obligatoire.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Le tampon est vide. Appelez la méthode async pour le remplir tout d’abord.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Le tampon est vide. Appelez la méthode async pour commencer par le remplir.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Un entier non négatif est nécessaire.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Un entier non négatif est obligatoire.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Le {0] et paramètres {1} dépassent la longueur du tableau.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Les paramètres {0} et {1} dépassent la longueur du tableau.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Le flux doit être lisible.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Le flux doit être lisible.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Le flux doit être accessible en écriture.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Le flux doit être accessible en écriture.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed after listening for messages has started.</source>
-          <target state="new">This operation is not allowed after listening for messages has started.</target>
+          <target state="translated">Cette opération n’est pas autorisée une fois que l’écoute des messages a commencé.</target>
         </trans-unit>
         <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed before listening for messages has started.</source>
-          <target state="new">This operation is not allowed before listening for messages has started.</target>
+          <target state="translated">Cette opération n’est pas autorisée avant que l’écoute des messages ait commencé.</target>
         </trans-unit>
       </group>
     </body>

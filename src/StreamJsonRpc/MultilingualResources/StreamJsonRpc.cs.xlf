@@ -46,9 +46,8 @@
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
-          <target state="needs-review-translation">Parametry {0}: {1}, ale žádost poskytuje {2}.</target>
+          <target state="translated">Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the request: {1}</source>
@@ -102,51 +101,51 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Selhala analýzy záhlaví Content-Length do kladné celé číslo.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Velikost záhlaví zprávy překračuje maximální podporovanou velikost.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Velikost hlavičky zprávy překračuje maximální podporovanou velikost.</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Neočekávaný token {0} při analýze záhlaví.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Neočekávaný token {0} při parsování hlavičky</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Kladné celé číslo je požadováno.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Je vyžadováno kladné celé číslo.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Vyrovnávací paměť je prázdná. Zavolejte metodu asynchronní vyplnit první.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Vyrovnávací paměť je prázdná. Nejdříve ji naplňte, a to zavoláním asynchronní metody.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Je vyžadováno nezáporné celé číslo.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Je vyžadováno nezáporné celé číslo.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">{0] a {1} parametry přesahují délku pole.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Parametry {0] a {1} překračují délku pole.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Datový proud musí být čitelný.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Ze streamu musí být možné číst.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">Datový proud musí být zapisovatelný.</target>
+          <target state="translated" state-qualifier="mt-suggestion">Do streamu musí být možné zapisovat.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed after listening for messages has started.</source>
-          <target state="new">This operation is not allowed after listening for messages has started.</target>
+          <target state="translated">Po zahájení naslouchání zprávám není tato operace povolená.</target>
         </trans-unit>
         <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed before listening for messages has started.</source>
-          <target state="new">This operation is not allowed before listening for messages has started.</target>
+          <target state="translated">Před zahájením naslouchání zprávám není tato operace povolená.</target>
         </trans-unit>
       </group>
     </body>

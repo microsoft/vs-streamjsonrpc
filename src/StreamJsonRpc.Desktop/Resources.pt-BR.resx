@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>Parâmetros {0}: {1}, mas a solicitação fornece {2}</value>
+    <value>{0} parâmetro(s) (excluindo qualquer CancellationToken): {1}, mas a solicitação fornece {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,18 +87,18 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Falha análise cabeçalho Content-Length ("{0}") em um número inteiro positivo.</value>
+    <value>Falha análise do cabeçalho Content-Length ("{0}") em um inteiro positivo.</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>O tamanho do cabeçalho da mensagem excede o tamanho máximo suportado.</value>
+    <value>O tamanho do cabeçalho da mensagem excede o tamanho máximo com suporte.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Token inesperado '{0}' durante a análise de cabeçalho.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Um número inteiro positivo é necessário.</value>
+    <value>Um inteiro positivo é necessário.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
     <value>O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</value>
@@ -107,7 +107,7 @@
     <value>Um inteiro não negativo é necessário.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>O {0] e {1} parâmetros excederem o comprimento da matriz.</value>
+    <value>Os parâmetros {0] e {1} excedem o comprimento da matriz.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>O fluxo deve ser legível.</value>
@@ -116,5 +116,11 @@
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>O fluxo deve ser gravável.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Essa operação não é permitida após a escuta de mensagens começar.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Essa operação não é permitida antes da escuta de mensagens começar.</value>
   </data>
 </root>

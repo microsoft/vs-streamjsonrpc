@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>Число параметров в {0}: {1}; в запросе же указано {2}</value>
+    <value>Число параметров в {0} (исключая любые CancellationToken): {1}; в запросе же указано {2}.</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,27 +87,27 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Ошибка разбора заголовка Content-Length («{0}») в положительное целое число.</value>
+    <value>Ошибка при анализе заголовка Content-Length ("{0}") в положительное целое число.</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>Размер заголовка сообщения превышает максимальный размер, поддерживаемый.</value>
+    <value>Размер заголовка сообщения превышает предельный.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Непредвиденная лексема «{0}» при разборе заголовков.</value>
+    <value>Непредвиденная лексема "{0}" при анализе заголовка.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Положительное целое число не требуется.</value>
+    <value>Требуется положительное целое число.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Буфер не будет пустым. Вызовите метод async, чтобы заполнить его сначала.</value>
+    <value>Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>Неотрицательное целое число не требуется.</value>
+    <value>Требуется неотрицательное целое число.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] и {1} параметров превышает длину массива.</value>
+    <value>Параметры {0] и {1} превышают длину массива.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Поток должен быть читаемым.</value>
@@ -116,5 +116,11 @@
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>Поток должен быть доступным для записи.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Эта операция не разрешена после начала ожидания сообщений.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Эта операция не разрешена до начала ожидания сообщений.</value>
   </data>
 </root>

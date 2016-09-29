@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0} 个参数：{1}，但请求提供 {2}</value>
+    <value>{0} 参数（排除任何 CancellationToken）：{1}，但请求提供 {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,34 +87,40 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>无法解析的内容长度标头 ("{0}") 入一个正整数。</value>
+    <value>无法将内容长度标头（“{0}”）分析为一个正整数。</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>消息标题的大小超过了最大支持的大小。</value>
+    <value>邮件标头的大小超出了支持的最大大小。</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>意外的标记"{0}"分析标头时。</value>
+    <value>分析标头时出现意外标记“{0}”。</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>一个正整数是必需的。</value>
+    <value>必须提供一个正整数。</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>缓冲区为空。调用异步方法来第一次填满它。</value>
+    <value>缓冲区为空。请先调用异步方法进行填充。</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>一个非负整数是必需的。</value>
+    <value>必须提供一个非负整数。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 和 {1} 参数超过数组的长度。</value>
+    <value>{0] 和 {1} 参数超出了数组的长度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
-    <value>流必须清晰易读。</value>
+    <value>流必须可读。</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>流必须可写。</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>启动消息侦听后不允许此操作。</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>启动消息侦听前不允许此操作。</value>
   </data>
 </root>

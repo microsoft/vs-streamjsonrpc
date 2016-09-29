@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0} metodunun {1} parametresi var, ancak istekte {2} parametre belirtildi</value>
+    <value>{0} metodunun {1} parametresi var (İptal Belirteci’ni dışta tutarak), ancak istekte {2} parametre belirtildi</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,34 +87,40 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Pozitif bir tamsayı ayrıştırma Content-Length üstbilgisi ("{0}") başarısız oldu.</value>
+    <value>Content-Length üst bilgisini ("{0}") pozitif bir tamsayıya ayrıştırma başarısız oldu.</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>İleti üstbilgisi boyutunu desteklenen boyut üst sınırını aşıyor.</value>
+    <value>İleti üst bilgisinin boyutu, desteklenen boyut üst sınırını aşıyor.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Beklenmeyen belirteç '{0}' üstbilgisi ayrıştırılırken.</value>
+    <value>Üst bilgi ayrıştırılırken beklenmeyen '{0}' belirteci.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş olur. İlk doldurmak için zaman uyumsuz yöntemini çağırın.</value>
+    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] ve {1} parametreleri dizi uzunluğu.</value>
+    <value>{0] ve {1} parametreleri dizi uzunluğunu aşıyor.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Akış okunabilir olmalıdır.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="StreamMustBeWriteable" xml:space="preserve">
-    <value>Akış yazılabilir olması gerekir.</value>
+    <value>Akış yazılabilir olmalıdır.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>İletiler için dinleme işlemi başladıktan sonra bu işleme izin verilmez.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>İletiler için dinleme işlemi başlamadan önce bu işleme izin verilmez.</value>
   </data>
 </root>
