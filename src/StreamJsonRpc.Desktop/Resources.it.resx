@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>I parametri di {0} sono {1}, ma la richiesta ne fornisce {2}</value>
+    <value>I parametri di {0} (escluso eventuali elementi CancellationToken) sono {1}, ma la richiesta ne fornisce {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,27 +87,27 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Analisi intestazione Content-Length ("{0}") venuto a mancare in un numero intero positivo.</value>
+    <value>Non è stato possibile analizzare l'intestazione di Content-Length ("{0}") in un numero intero positivo.</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>La dimensione dell'intestazione del messaggio supera la dimensione massima supportata.</value>
+    <value>Le dimensioni dell'intestazione del messaggio superano quelle massime supportate.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Imprevisto token '{0}' durante l'analisi di intestazione.</value>
+    <value>Token '{0}' imprevisto durante l'analisi dell'intestazione.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Un numero intero positivo è necessario.</value>
+    <value>È richiesto un numero intero positivo.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Il buffer è vuoto. Chiamare il metodo async per riempirlo prima.</value>
+    <value>Il buffer è vuoto. Chiamare il metodo asincrono per compilarlo prima.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>Un intero non negativo è necessario.</value>
+    <value>È richiesto un numero intero non negativo.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>La {0] e {1} parametri superano la lunghezza della matrice.</value>
+    <value>I parametri {0] e {1} superano la lunghezza della matrice.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Il flusso deve essere leggibile.</value>
@@ -116,5 +116,11 @@
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>Il flusso deve essere scrivibile.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Questa operazione non è consentita dopo l'avvio dell'ascolto dei messaggi.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Questa operazione non è consentita prima dell'avvio dell'ascolto dei messaggi.</value>
   </data>
 </root>

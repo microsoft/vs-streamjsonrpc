@@ -43,7 +43,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>Parametry {0}: {1}, ale žádost poskytuje {2}.</value>
+    <value>Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -86,34 +86,40 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Selhala analýzy záhlaví Content-Length do kladné celé číslo.</value>
+    <value>Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>Velikost záhlaví zprávy překračuje maximální podporovanou velikost.</value>
+    <value>Velikost hlavičky zprávy překračuje maximální podporovanou velikost.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Neočekávaný token {0} při analýze záhlaví.</value>
+    <value>Neočekávaný token {0} při parsování hlavičky</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Kladné celé číslo je požadováno.</value>
+    <value>Je vyžadováno kladné celé číslo.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Vyrovnávací paměť je prázdná. Zavolejte metodu asynchronní vyplnit první.</value>
+    <value>Vyrovnávací paměť je prázdná. Nejdříve ji naplňte, a to zavoláním asynchronní metody.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Je vyžadováno nezáporné celé číslo.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] a {1} parametry přesahují délku pole.</value>
+    <value>Parametry {0] a {1} překračují délku pole.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
-    <value>Datový proud musí být čitelný.</value>
+    <value>Ze streamu musí být možné číst.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="StreamMustBeWriteable" xml:space="preserve">
-    <value>Datový proud musí být zapisovatelný.</value>
+    <value>Do streamu musí být možné zapisovat.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Po zahájení naslouchání zprávám není tato operace povolená.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Před zahájením naslouchání zprávám není tato operace povolená.</value>
   </data>
 </root>

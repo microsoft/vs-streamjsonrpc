@@ -43,7 +43,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0}-Parameter: {1}, die Anforderung stellt aber {2} bereit.</value>
+    <value>{0}-Parameter (ausschließlich CancellationToken): {1}, die Anforderung stellt aber {2} bereit.</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -86,34 +86,40 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Fehler beim Parsen Content-Length-Header in eine positive ganze Zahl.</value>
+    <value>Fehler beim Analysieren des Content-Length-Headers in einen positiven Integerwert.</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>Die Größe der Kopfzeile der Nachricht überschreitet die maximale unterstützte Größe.</value>
+    <value>Die Größe der Nachrichtenheaders überschreitet die maximal unterstützte Größe.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Unerwartetes Token "{0}" beim Header analysieren.</value>
+    <value>Unerwartetes Token "{0}" beim Analysieren des Headers.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Eine positive ganze Zahl ist erforderlich.</value>
+    <value>Ein positiver Integerwert ist erforderlich.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Der Puffer ist leer. Rufen Sie die asynchrone Methode um ihn zuerst zu füllen.</value>
+    <value>Der Puffer ist leer. Rufen Sie die asynchrone Methode auf, um ihn zuerst mit Daten aufzufüllen.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>Eine nichtnegative Ganzzahl ist erforderlich.</value>
+    <value>Ein nicht negativer Integerwert ist erforderlich.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Die {0] und {1} Parameter überschreitet die Länge des Arrays.</value>
+    <value>Die Parameter {0] und {1} überschreiten die Länge des Arrays.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
-    <value>Der Stream muss lesbar sein.</value>
+    <value>Der Datenstrom muss lesbar sein.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="StreamMustBeWriteable" xml:space="preserve">
-    <value>Der Stream muss beschreibbar sein.</value>
+    <value>In den Datenstrom muss geschrieben werden können.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Dieser Vorgang ist unzulässig, nachdem das Lauschen auf Nachrichten gestartet wurde.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Dieser Vorgang ist unzulässig, bevor das Lauschen auf Nachrichten gestartet wurde.</value>
   </data>
 </root>

@@ -43,7 +43,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0} paramètre(s) : {1}, mais la demande fournit {2}</value>
+    <value>{0} paramètre(s) (CancellationToken exclu) : {1}, mais la demande fournit {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -86,27 +86,27 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Échec de l’analyse en-tête Content-Length dans un entier positif.</value>
+    <value>Échec de l’analyse de l’en-tête Content-Length dans un entier positif.</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
     <value>La taille de l’en-tête du message dépasse la taille maximale prise en charge.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Jeton inattendu « {0} » lors de l’analyse d’en-tête.</value>
+    <value>Jeton inattendu '{0}' lors de l’analyse d’en-tête.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Il faut un nombre entier positif.</value>
+    <value>Un nombre entier positif est obligatoire.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Le tampon est vide. Appelez la méthode async pour le remplir tout d’abord.</value>
+    <value>Le tampon est vide. Appelez la méthode async pour commencer par le remplir.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>Un entier non négatif est nécessaire.</value>
+    <value>Un entier non négatif est obligatoire.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Le {0] et paramètres {1} dépassent la longueur du tableau.</value>
+    <value>Les paramètres {0} et {1} dépassent la longueur du tableau.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Le flux doit être lisible.</value>
@@ -115,5 +115,11 @@
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>Le flux doit être accessible en écriture.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Cette opération n’est pas autorisée une fois que l’écoute des messages a commencé.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Cette opération n’est pas autorisée avant que l’écoute des messages ait commencé.</value>
   </data>
 </root>

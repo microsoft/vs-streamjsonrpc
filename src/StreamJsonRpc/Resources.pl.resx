@@ -43,7 +43,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>Metoda {0} ma liczbę parametrów {1}, ale żądanie dostarcza {2}</value>
+    <value>Metoda {0} ma liczbę parametrów {1} (nie licząc wszelkich tokenów CancellationToken), ale żądanie dostarcza {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -74,7 +74,7 @@
     <value>Zadanie zostało anulowane.</value>
   </data>
   <data name="UnableToFindMethod" xml:space="preserve">
-    <value>Nie można odnaleźć metody „{0}/{1}” w klasie {2} z następujących powodów: {3}</value>
+    <value>Nie można odnaleźć metody „{0}/{1}” w klasie {2}. Przyczyny: {3}</value>
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
@@ -86,34 +86,40 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>Na dodatnią liczbą całkowitą, nie powiodło się podczas analizowania nagłówka Content-Length.</value>
+    <value>Nie powiodło się przekształcanie nagłówka Content-Length w dodatnią liczbę całkowitą.</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
-    <value>Rozmiar nagłówka wiadomości przekracza maksymalny rozmiar obsługiwany.</value>
+    <value>Rozmiar nagłówka komunikatu przekracza maksymalny obsługiwany rozmiar.</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>Nieoczekiwany token '{0}' podczas analizowania nagłówka.</value>
+    <value>Nieoczekiwany token „{0}” podczas analizowania nagłówka.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
-    <value>Wymagane jest dodatnią liczbą całkowitą.</value>
+    <value>Wymagana jest dodatnia liczba całkowita.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Bufor jest pusty. Wywołanie metody asynchronicznej, aby wypełnić go po raz pierwszy.</value>
+    <value>Bufor jest pusty. Wywołaj metodę asynchroniczną, aby najpierw go wypełnić.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
-    <value>Wymagane jest nieujemną liczbą całkowitą.</value>
+    <value>Wymagana jest nieujemna liczba całkowita.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] i {1} parametrów przekracza długość tablicy.</value>
+    <value>Parametry {0] i {1} przekraczają długość tablicy.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
-    <value>Strumień musi być czytelny.</value>
+    <value>Strumień musi być możliwy do odczytu.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="StreamMustBeWriteable" xml:space="preserve">
-    <value>Strumień musi być zapisywalny.</value>
+    <value>Strumień musi być możliwy do zapisu.</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>Ta operacja jest niedozwolona po rozpoczęciu nasłuchiwania komunikatów.</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>Ta operacja jest niedozwolona przed rozpoczęciem nasłuchiwania komunikatów.</value>
   </data>
 </root>

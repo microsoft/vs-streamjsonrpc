@@ -44,7 +44,7 @@
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
-    <value>{0} パラメーター: {1} ですが、要求は {2} を提供しています</value>
+    <value>{0} パラメーター (CancellationToken は除外します): {1}、しかし要求は {2} を提供します</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
@@ -87,14 +87,14 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>正の整数に解析コンテンツ長ヘッダー (「{0}」) に失敗しました。</value>
+    <value>Content-Length ヘッダー ("{0}") を正の整数に解析できませんでした。</value>
     <comment>{locked="Content-Length"}. {0} is the actual header.</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
     <value>メッセージ ヘッダーのサイズは、サポートされる最大サイズを超えています。</value>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
-    <value>予期しないトークン '{0}' ヘッダーを解析中。</value>
+    <value>ヘッダーを解析中の予期しないトークン '{0}'。</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
@@ -107,7 +107,7 @@
     <value>負でない整数が必要です。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] {1} パラメーターが配列の長さを超えると。</value>
+    <value>{0] と {1} パラメーターが配列の長さを超えました。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>ストリームは読み取り可能である必要があります。</value>
@@ -116,5 +116,11 @@
   <data name="StreamMustBeWriteable" xml:space="preserve">
     <value>ストリームは書き込み可能である必要があります。</value>
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
+  </data>
+  <data name="InvalidAfterListenHasStarted" xml:space="preserve">
+    <value>メッセージの聞き取りの開始後に、この操作は許可されていません。</value>
+  </data>
+  <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
+    <value>メッセージの聞き取りの開始前に、この操作は許可されていません。</value>
   </data>
 </root>
