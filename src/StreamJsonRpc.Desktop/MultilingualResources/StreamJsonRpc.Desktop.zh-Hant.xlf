@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="STREAMJSONRPC.DESKTOP/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -47,7 +47,7 @@
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
-          <target state="needs-review-translation">{0} 參數: {1}，但要求提供 {2}</target>
+          <target state="translated">{0} 個參數 (排除任何 CancellationToken): {1}，但要求提供 {2}</target>
           <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
@@ -103,51 +103,51 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">無法解析的內容長度標頭 ("{0}") 入一個正整數。</target>
+          <target state="translated" state-qualifier="mt-suggestion">無法將內容長度標頭 ("{0}") 解析為正整數。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}. {0} is the actual header.</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">消息標題的大小超過了最大支援的大小。</target>
+          <target state="translated" state-qualifier="mt-suggestion">訊息標頭的大小超過支援的大小上限。</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">意外的標記"{0}"分析標頭時。</target>
+          <target state="translated" state-qualifier="mt-suggestion">分析標頭時發生未預期的語彙基元 "{0}"。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">一個正整數是必需的。</target>
+          <target state="translated" state-qualifier="mt-suggestion">需要正整數。</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">緩衝區為空。調用非同步方法來第一次填滿它。</target>
+          <target state="translated" state-qualifier="mt-suggestion">緩衝區是空的。請先呼叫非同步方法加以填滿。</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">一個非負整數是必需的。</target>
+          <target state="translated" state-qualifier="mt-suggestion">需要非負整數。</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">{0] 和 {1} 參數超過陣列的長度。</target>
+          <target state="translated" state-qualifier="mt-suggestion">{0] 和 {1} 參數超過陣列的長度。</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">流必須清晰易讀。</target>
+          <target state="translated" state-qualifier="mt-suggestion">資料流必須可讀取。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="needs-review-translation" state-qualifier="mt-suggestion">流必須可寫。</target>
+          <target state="translated" state-qualifier="mt-suggestion">資料流必須可寫入。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed after listening for messages has started.</source>
-          <target state="new">This operation is not allowed after listening for messages has started.</target>
+          <target state="translated">開始接聽訊息後不允許此作業。</target>
         </trans-unit>
         <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed before listening for messages has started.</source>
-          <target state="new">This operation is not allowed before listening for messages has started.</target>
+          <target state="translated">開始接聽訊息前不允許此作業。</target>
         </trans-unit>
       </group>
     </body>
