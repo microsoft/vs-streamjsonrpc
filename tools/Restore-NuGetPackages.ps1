@@ -17,5 +17,5 @@ Param(
 $nugetPath = & "$PSScriptRoot\Get-NuGetTool.ps1"
 
 Write-Host "Restoring NuGet packages for $Path" -ForegroundColor Yellow
-& $nugetPath restore $Path -MSBuildVersion 14.0 -Verbosity $Verbosity
+& $nugetPath restore $Path -MSBuildVersion 14.0 -Verbosity $Verbosity -ConfigFile "$PSScriptRoot\..\src\nuget.config"
 if ($lastexitcode -ne 0) { throw }
