@@ -104,7 +104,7 @@ public class DelimitedMessageHandlerTests : TestBase
         // Unblock writer. It should not throw anything as it is to emulate not recognizing the
         // CancellationToken before completing its work.
         handler.WriteBlock.Set();
-        await Assert.ThrowsAsync<OperationCanceledException>(() => writeTask);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writeTask);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class DelimitedMessageHandlerTests : TestBase
         cts.Cancel();
         this.handler.Dispose();
 
-        await Assert.ThrowsAsync<TaskCanceledException>(() => readTask);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask);
     }
 
     private class DelayedWriter : DelimitedMessageHandler
