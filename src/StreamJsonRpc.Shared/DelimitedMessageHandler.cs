@@ -114,9 +114,18 @@ namespace StreamJsonRpc
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                try
                 {
-                    return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                    {
+                        return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // If already canceled, throw that instead of ObjectDisposedException.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
                 }
             }
         }
@@ -139,9 +148,18 @@ namespace StreamJsonRpc
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                try
                 {
-                    await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                    using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                    {
+                        await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // If already canceled, throw that instead of ObjectDisposedException.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
                 }
             }
         }

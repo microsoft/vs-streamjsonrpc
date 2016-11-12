@@ -85,6 +85,28 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync("content", PrecanceledToken).GetAwaiter().GetResult());
     }
 
+    /// <summary>
+    /// Verifies that <see cref="DelimitedMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
+    /// apply while reading (at least when cancellation occurs first).
+    /// </summary>
+    [Fact]
+    public async Task WriteAsync_PreferOperationCanceledException_MidExecution()
+    {
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, Encoding.UTF8);
+
+        var cts = new CancellationTokenSource();
+        var writeTask = handler.WriteAsync("content", cts.Token);
+
+        cts.Cancel();
+        handler.Dispose();
+
+        // Unblock writer. It should not throw anything as it is to emulate not recognizing the
+        // CancellationToken before completing its work.
+        handler.WriteBlock.Set();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => writeTask);
+    }
+
     [Fact]
     public void ReadAsync_ThrowsObjectDisposedException()
     {
@@ -103,5 +125,42 @@ public class DelimitedMessageHandlerTests : TestBase
     {
         this.handler.Dispose();
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="DelimitedMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
+    /// apply while reading (at least when cancellation occurs first).
+    /// </summary>
+    [Fact]
+    public async Task ReadAsync_PreferOperationCanceledException_MidExecution()
+    {
+        var cts = new CancellationTokenSource();
+        var readTask = this.handler.ReadAsync(cts.Token);
+
+        cts.Cancel();
+        this.handler.Dispose();
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() => readTask);
+    }
+
+    private class DelayedWriter : DelimitedMessageHandler
+    {
+        internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
+
+        public DelayedWriter(Stream sendingStream, Stream receivingStream, Encoding encoding)
+            : base(sendingStream, receivingStream, encoding)
+        {
+        }
+
+        protected override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+        {
+            return WriteBlock.WaitAsync();
+        }
     }
 }
