@@ -19,6 +19,8 @@ public abstract class TestBase : IDisposable
 
     protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
 
+    protected static readonly CancellationToken PrecanceledToken = new CancellationToken(canceled: true);
+
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
 
     protected TestBase(ITestOutputHelper logger)

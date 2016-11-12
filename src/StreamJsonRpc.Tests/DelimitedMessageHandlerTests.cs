@@ -74,11 +74,34 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
     }
 
+    /// <summary>
+    /// Verifies that when both <see cref="ObjectDisposedException"/> and <see cref="OperationCanceledException"/> are appropriate
+    /// when we first invoke the method, the <see cref="OperationCanceledException"/> is thrown.
+    /// </summary>
+    [Fact]
+    public void WriteAsync_PreferOperationCanceledException_AtEntry()
+    {
+        this.handler.Dispose();
+        Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync("content", PrecanceledToken).GetAwaiter().GetResult());
+    }
+
     [Fact]
     public void ReadAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
         Task result = this.handler.ReadAsync(TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
+        Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
+    }
+
+    /// <summary>
+    /// Verifies that when both <see cref="ObjectDisposedException"/> and <see cref="OperationCanceledException"/> are appropriate
+    /// when we first invoke the method, the <see cref="OperationCanceledException"/> is thrown.
+    /// </summary>
+    [Fact]
+    public void ReadAsync_PreferOperationCanceledException_AtEntry()
+    {
+        this.handler.Dispose();
+        Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
 }

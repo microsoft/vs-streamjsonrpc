@@ -109,6 +109,7 @@ namespace StreamJsonRpc
         public async Task<string> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
+            cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
@@ -130,6 +131,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.SendingStream != null, "No sending stream.");
+            cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
             // Capture Encoding as a local since it may change over the time of this method's execution.
