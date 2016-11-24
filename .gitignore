@@ -251,3 +251,7 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# MSBuild logs
+msbuild.err
+msbuild.wrn
