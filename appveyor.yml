@@ -1,0 +1,18 @@
+version: 1.0.{build}
+skip_tags: true
+image: Visual Studio 2015
+configuration: Release
+environment:
+  VisualStudioVersion: 14.0
+cache:
+- '%USERPROFILE%\.nuget\packages -> **\project.json'
+- 'obj\tools -> tools\**'
+before_build:
+- ps: .\init.ps1
+build:
+  project: src\StreamJsonRpc.sln
+  parallel: true
+  verbosity: minimal
+artifacts:
+- path: bin\**\*.nupkg
+  name: NuGet Package
