@@ -19,7 +19,7 @@
     "Newtonsoft.Json": "6.0.6",
     "NuSpec.ReferenceGenerator": "1.4.2",
     "Microsoft.VisualStudio.Threading": "15.0.203",
-    "PdbGit": "3.0.32",
+    "PdbGit": "3.0.41",
     "ReadOnlySourceTree": {
       "version": "0.1.36-beta",
       "suppressParent": "none"
