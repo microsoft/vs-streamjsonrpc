@@ -5,7 +5,7 @@
       "type": "build"
     },
     "MicroBuild.VisualStudio": {
-      "version": "2.0.33",
+      "version": "2.0.34",
       "suppressParent": "none"
     },
     "MicroBuild.Core": {
@@ -22,7 +22,7 @@
       "suppressParent": "none"
     },
     "Newtonsoft.Json": "6.0.6",
-    "Microsoft.VisualStudio.Threading": "15.0.203"
+    "Microsoft.VisualStudio.Threading": "15.0.208"
   },
   "frameworks": {
     "net45": { }

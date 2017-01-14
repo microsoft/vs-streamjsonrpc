@@ -14,8 +14,8 @@
       <group targetFramework="dotnet">
         <dependency id="System.Reflection.TypeExtensions" version="4.0.0" />
         <dependency id="Microsoft.CSharp" version="4.0.0" />
-        <dependency id="Microsoft.VisualStudio.Threading" version="15.0.203" />
-        <dependency id="Microsoft.VisualStudio.Validation" version="15.0.71" />
+        <dependency id="Microsoft.VisualStudio.Threading" version="15.0.208" />
+        <dependency id="Microsoft.VisualStudio.Validation" version="15.0.75" />
         <dependency id="Newtonsoft.Json" version="6.0.6" />
         <dependency id="System.Collections" version="4.0.0" />
         <dependency id="System.Diagnostics.Debug" version="4.0.0" />
@@ -34,7 +34,7 @@
         <dependency id="System.Threading.Tasks" version="4.0.0" />
       </group>
       <group targetFramework="net45">
-        <dependency id="Microsoft.VisualStudio.Threading" version="15.0.203" />
+        <dependency id="Microsoft.VisualStudio.Threading" version="15.0.208" />
         <dependency id="Newtonsoft.Json" version="6.0.6" />
       </group>
     </dependencies>
