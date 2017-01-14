@@ -1,6 +1,9 @@
 StreamJsonRpc
 ===============
 
+[![NuGet package](https://img.shields.io/nuget/v/StreamJsonRpc.svg)](https://nuget.org/packages/StreamJsonRpc)
+[![Build status](https://ci.appveyor.com/api/projects/status/3qckpo5perk9r83j/branch/master?svg=true)](https://ci.appveyor.com/project/AArnott/vs-streamjsonrpc/branch/master)
+
 StreamJsonRpc is a cross-platform, .NET portable library that implements the
 [JSON-RPC][JSONRPC] wire protocol.
 

@@ -23,13 +23,12 @@
     <Title>StreamJsonRpc</Title>
     <Authors>Microsoft</Authors>
     <Owners>Microsoft</Owners>
-    <Summary>StreamJsonRpc.NuGet</Summary>
-    <Description>StreamJsonRpc.NuGet</Description>
+    <Summary>The JSON-RPC protocol implemented as a portable .NET library that operates over a .NET Stream.</Summary>
+    <Description>The JSON-RPC protocol implemented as a portable .NET library that operates over a .NET Stream.</Description>
     <ReleaseNotes>
     </ReleaseNotes>
-    <ProjectUrl>
-    </ProjectUrl>
-    <LicenseUrl>https://go.microsoft.com/fwlink/?LinkID=746386</LicenseUrl>
+    <ProjectUrl>https://github.com/Microsoft/vs-streamjsonrpc</ProjectUrl>
+    <LicenseUrl>https://raw.githubusercontent.com/Microsoft/vs-streamjsonrpc/$GitCommitIdShort$/LICENSE</LicenseUrl>
     <Copyright>Copyright © Microsoft</Copyright>
     <Tags>ServiceHub</Tags>
   </PropertyGroup>

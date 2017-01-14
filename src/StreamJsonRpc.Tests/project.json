@@ -1,6 +1,6 @@
 ﻿{
   "dependencies": {
-    "MicroBuild.NonShipping": "1.0.131-rc",
+    "MicroBuild.NonShipping": "2.0.33",
     "Nerdbank.FullDuplexStream": "1.0.1",
     "System.Collections.Immutable": "1.2.0",
     "xunit": "2.1.0",
