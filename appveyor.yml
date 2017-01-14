@@ -8,7 +8,10 @@ cache:
 - '%USERPROFILE%\.nuget\packages -> **\project.json'
 - 'obj\tools -> tools\**'
 before_build:
-- ps: .\init.ps1
+- ps: >-
+    .\init.ps1
+
+    & "${env:ProgramFiles(x86)}\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Vr *,b03f5f7f11d50a3a
 build:
   project: src\StreamJsonRpc.sln
   parallel: true
