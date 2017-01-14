@@ -5,7 +5,7 @@
       "type": "build"
     },
     "MicroBuild.VisualStudio": {
-      "version": "1.0.131-rc",
+      "version": "2.0.33",
       "suppressParent": "none"
     },
     "MicroBuild.Core": {
@@ -18,7 +18,7 @@
     },
     "Newtonsoft.Json": "6.0.6",
     "NuSpec.ReferenceGenerator": "1.4.2",
-    "Microsoft.VisualStudio.Threading": "15.0.116-pre-g43c3d919cd",
+    "Microsoft.VisualStudio.Threading": "15.0.203",
     "PdbGit": "3.0.32",
     "ReadOnlySourceTree": {
       "version": "0.1.36-beta",
