@@ -109,13 +109,23 @@ namespace StreamJsonRpc
         public async Task<string> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
+            cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                try
                 {
-                    return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                    {
+                        return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // If already canceled, throw that instead of ObjectDisposedException.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
                 }
             }
         }
@@ -130,6 +140,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.SendingStream != null, "No sending stream.");
+            cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
             // Capture Encoding as a local since it may change over the time of this method's execution.
@@ -137,9 +148,18 @@ namespace StreamJsonRpc
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
-                using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                try
                 {
-                    await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                    using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
+                    {
+                        await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // If already canceled, throw that instead of ObjectDisposedException.
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
                 }
             }
         }
