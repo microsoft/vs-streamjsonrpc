@@ -508,6 +508,7 @@ public class JsonRpcTests : TestBase
 
     [Fact]
     [Trait("GC", "")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
     {
         await CheckGCPressureAsync(
