@@ -15,11 +15,6 @@ Push-Location $PSScriptRoot
 try {
     $toolsPath = "$PSScriptRoot\tools"
 
-    # First restore NuProj packages since the solution restore depends on NuProj evaluation succeeding.
-    gci "$PSScriptRoot\src\project.json" -rec |? { $_.FullName -imatch 'nuget' } |% {
-        & "$toolsPath\Restore-NuGetPackages.ps1" -Path $_
-    }
-
     & "$toolsPath\Restore-NuGetPackages.ps1" -Path "$PSScriptRoot\src"
 
     $MicroBuildPackageSource = 'https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
