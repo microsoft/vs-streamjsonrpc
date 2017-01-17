@@ -15,7 +15,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <NuSpecTemplate>StreamJsonRpc.nuspec</NuSpecTemplate>
-    <NuProjPath>$(UserProfile)\.nuget\packages\NuProj\0.10.48-beta-gea4a31bbc5\tools\</NuProjPath>
+    <NuProjPath>..\..\packages\NuProj.0.10.48-beta-gea4a31bbc5\tools\</NuProjPath>
   </PropertyGroup>
   <Import Project="$(NuProjPath)\NuProj.props" Condition="Exists('$(NuProjPath)\NuProj.props')" />
   <PropertyGroup Label="Configuration">
