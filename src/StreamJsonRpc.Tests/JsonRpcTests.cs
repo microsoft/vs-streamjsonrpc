@@ -460,6 +460,7 @@ public class JsonRpcTests : TestBase
 
     [Fact]
     [Trait("GC", "")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
     {
         await CheckGCPressureAsync(
@@ -471,6 +472,7 @@ public class JsonRpcTests : TestBase
 
     [Fact]
     [Trait("GC", "")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
     {
         var cts = new CancellationTokenSource();
@@ -483,6 +485,7 @@ public class JsonRpcTests : TestBase
 
     [Fact]
     [Trait("GC", "")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
     {
         await CheckGCPressureAsync(
@@ -495,6 +498,7 @@ public class JsonRpcTests : TestBase
 
     [Fact]
     [Trait("GC", "")]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
     {
         var cts = new CancellationTokenSource();
