@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="STREAMJSONRPC.DESKTOP/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -9,25 +9,21 @@
         <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
           <source>Both readable and writable are null.</source>
           <target state="translated">La lectura y escritura son NULL.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">'readable' and 'writable' are parameter names and should not be localized.</note>
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
           <target state="translated">Recibió una solicitud para ejecutar "{0}", pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON-RPC Result: {0}: {1}</source>
           <target state="translated">Error al escribir el resultado de JSON-RPC: {0}: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message. "JSON-RPC" is a protocol</note>
         </trans-unit>
         <trans-unit id="FailureDeserializingJsonRpc" translate="yes" xml:space="preserve">
           <source>Failure deserializing incoming JSON-RPC '{0}': {1}</source>
           <target state="translated">Error al deserializar '{0}' de JSON-RPC entrante: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON that could not be deserialized, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
@@ -37,37 +33,31 @@
         <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
           <source>{0} has ref or out parameter(s), which is not supported</source>
           <target state="translated">{0} tiene los parámetros out o ref no admitidos</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
           <source>{0} is not public</source>
           <target state="translated">{0} no es público</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
           <source>'{0}' method name has different case from requested '{1}'</source>
           <target state="translated">En el nombre de método '{0}' se usan las mayúsculas y minúsculas de manera diferente a como se solicita en '{1}'</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">{0} parámetro(s) (se excluirá cualquier CancellationToken): {1}, pero la solicitud suministra {2}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the request: {1}</source>
           <target state="translated">Los parámetros {0} no son compatibles con la solicitud: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
         </trans-unit>
         <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
           <source>More than one target method found: {0}.</source>
           <target state="translated">Se ha encontrado más de un método de destino: {0}.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -77,7 +67,6 @@
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON-RPC from the stream failed with {0}: {1}</source>
           <target state="translated">Error al leer JSON-RPC desde la secuencia con {0}: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
@@ -99,25 +88,21 @@
         <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
           <source>Unable to find method '{0}/{1}' on {2} for the following reason: {3}</source>
           <target state="translated">No se puede encontrar el método '{0}/{1}' en {2} por la siguiente razón: {3}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unexpected error processing JSON-RPC '{0}': {1}</source>
           <target state="translated">Error inesperado al procesar '{0}' de JSON-RPC: {1}</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unrecognized incoming JSON-RPC '{0}'</source>
           <target state="translated">No se reconoce '{0}' de JSON-RPC entrante</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>
           <target state="translated">No se pudo analizar el encabezado Content-Length ("{0}") en un número entero positivo.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}. {0} is the actual header.</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
@@ -127,7 +112,6 @@
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
           <target state="translated">Token inesperado (token) '{0}' al analizar el encabezado.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
@@ -149,13 +133,11 @@
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
           <target state="translated">La secuencia debe poderse leer.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
           <target state="translated">La secuencia debe poderse escribir.</target>
-          
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
