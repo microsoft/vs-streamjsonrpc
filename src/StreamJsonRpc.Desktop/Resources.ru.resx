@@ -17,7 +17,7 @@
     <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
+    <value>Получен запрос на выполнение "{0}", но нет объекта обратного вызова. Запрос удаляется.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -101,7 +101,7 @@
     <value>Требуется положительное целое число.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</value>
+    <value>Буфер пуст. Чтобы заполнить его, сначала вызовите метод async.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Требуется неотрицательное целое число.</value>

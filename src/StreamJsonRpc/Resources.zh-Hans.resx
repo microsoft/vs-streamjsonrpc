@@ -47,7 +47,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} 参数与请求 {1} 不兼容</value>
+    <value>{0} 个参数与请求 {1} 不兼容</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="MoreThanOneMethodFound" xml:space="preserve">
