@@ -101,42 +101,42 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Non è stato possibile analizzare l'intestazione di Content-Length in un numero intero positivo.</target>
+          <target state="translated">Non è stato possibile analizzare l'intestazione di Content-Length in un numero intero positivo.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Le dimensioni dell'intestazione del messaggio superano quelle massime supportate.</target>
+          <target state="translated">Le dimensioni dell'intestazione del messaggio superano quelle massime supportate.</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Token '{0}' imprevisto durante l'analisi dell'intestazione.</target>
+          <target state="translated">Token '{0}' imprevisto durante l'analisi dell'intestazione.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">È richiesto un numero intero positivo.</target>
+          <target state="translated">È richiesto un numero intero positivo.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Il buffer è vuoto. Chiamare il metodo asincrono per compilarlo prima.</target>
+          <target state="translated">Il buffer è vuoto. Chiamare il metodo asincrono per compilarlo prima.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">È richiesto un numero intero non negativo.</target>
+          <target state="translated">È richiesto un numero intero non negativo.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="translated" state-qualifier="mt-suggestion">I parametri {0] e {1} superano la lunghezza della matrice.</target>
+          <target state="translated">I parametri {0] e {1} superano la lunghezza della matrice.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Il flusso deve essere leggibile.</target>
+          <target state="translated">Il flusso deve essere leggibile.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Il flusso deve essere scrivibile.</target>
+          <target state="translated">Il flusso deve essere scrivibile.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">

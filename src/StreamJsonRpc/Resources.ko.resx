@@ -35,11 +35,11 @@
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0}이 public이 아닙니다.</value>
+    <value>{0}이(가) public이 아닙니다.</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>'{0}' 메서드 이름에 요청된 '{1}'와 다른 대/소문자가 있습니다.</value>
+    <value>'{0}' 메서드 이름에 요청된 '{1}'과(와) 다른 대/소문자가 있습니다.</value>
     <comment>{0} is the method signature, {1} is the requested method name.</comment>
   </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
@@ -47,11 +47,11 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} 매개 변수가 다음의 요청과 호환되지 않습니다: {1}</value>
+    <value>{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>둘 이상의 대상 메서드 발견:{0}.</value>
+    <value>둘 이상의 대상 메서드 발견: {0}.</value>
     <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">

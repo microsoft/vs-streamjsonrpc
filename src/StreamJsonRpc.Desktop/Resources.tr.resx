@@ -17,7 +17,7 @@
     <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
+    <value>'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -101,7 +101,7 @@
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
+    <value>Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>

@@ -17,7 +17,7 @@
     <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
+    <value>A reçu une demande pour exécuter '{0}', mais n’a aucun objet de rappel. Suppression de la demande.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
