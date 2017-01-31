@@ -159,7 +159,9 @@ namespace StreamJsonRpc
                 return this.underlyingStream.ReadAsync(buffer, offset, count, cancellationToken);
             }
 
+#pragma warning disable VSTHRD103
             return Task.FromResult(this.Read(buffer, offset, count));
+#pragma warning restore VSTHRD103
         }
 
         public override long Seek(long offset, SeekOrigin origin)

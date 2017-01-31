@@ -595,7 +595,11 @@ namespace StreamJsonRpc
             // If t is just a Task, there is no Result property on it.
             if (!taskType.Equals(typeof(Task)))
             {
+#pragma warning disable VSTHRD002 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
+#pragma warning disable VSTHRD102 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
                 const string ResultPropertyName = nameof(Task<int>.Result);
+#pragma warning restore VSTHRD002
+#pragma warning restore VSTHRD102
 
                 // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
                 // read the result at runtime.

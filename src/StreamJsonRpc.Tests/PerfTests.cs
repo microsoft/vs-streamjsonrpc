@@ -24,8 +24,8 @@ public class PerfTests
         var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, /*maxConnections*/ 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         var connectTask = serverPipe.WaitForConnectionAsync();
         var clientPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        clientPipe.Connect();
-        connectTask.GetAwaiter().GetResult(); // rethrow any exception
+        await clientPipe.ConnectAsync();
+        await connectTask; // rethrow any exception
         await ChattyPerfAsync(serverPipe, clientPipe);
     }
 
