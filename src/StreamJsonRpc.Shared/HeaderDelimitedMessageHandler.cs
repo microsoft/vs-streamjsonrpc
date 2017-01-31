@@ -262,6 +262,7 @@ namespace StreamJsonRpc
             string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
 
             // Transmit the Content-Length header.
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
             sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
             sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
             int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
@@ -283,6 +284,7 @@ namespace StreamJsonRpc
 
             // Terminate the headers.
             sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
 
             // Transmit the headers.
             sendingBufferStream.Position = 0;
