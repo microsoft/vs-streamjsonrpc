@@ -16,7 +16,7 @@
     <value>La lectura y escritura son NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Recibió una solicitud para ejecutar '{0}', pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
+    <value>Recibió una solicitud para ejecutar "{0}", pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">

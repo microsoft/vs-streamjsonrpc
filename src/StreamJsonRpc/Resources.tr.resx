@@ -13,10 +13,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="BothReadableWritableAreNull" xml:space="preserve">
-    <value>Okunabilir ve yazılabilir null.</value>
+    <value>Readable ve writable null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
+    <value>'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -35,7 +35,7 @@
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} ortak değil</value>
+    <value>{0} genel değil</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="MethodNameCaseIsDifferent" xml:space="preserve">
@@ -100,7 +100,7 @@
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
+    <value>Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>

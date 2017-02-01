@@ -100,7 +100,7 @@
     <value>Um inteiro positivo é necessário.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</value>
+    <value>O buffer está vazio. Chame o método async para preenchê-lo primeiro.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Um inteiro não negativo é necessário.</value>

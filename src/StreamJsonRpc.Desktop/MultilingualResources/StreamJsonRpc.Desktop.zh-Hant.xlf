@@ -13,7 +13,7 @@
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
-          <target state="translated">收到執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</target>
+          <target state="translated">收到了執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
@@ -102,42 +102,42 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>
-          <target state="translated" state-qualifier="mt-suggestion">無法將內容長度標頭 ("{0}") 解析為正整數。</target>
+          <target state="translated">無法將內容長度標頭 ("{0}") 解析為正整數。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}. {0} is the actual header.</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="translated" state-qualifier="mt-suggestion">訊息標頭的大小超過支援的大小上限。</target>
+          <target state="translated">訊息標頭的大小超過支援的大小上限。</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="translated" state-qualifier="mt-suggestion">分析標頭時發生未預期的語彙基元 "{0}"。</target>
+          <target state="translated">分析標頭時發生未預期的語彙基元 "{0}"。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">需要正整數。</target>
+          <target state="translated">需要正整數。</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated" state-qualifier="mt-suggestion">緩衝區是空的。請先呼叫非同步方法加以填滿。</target>
+          <target state="translated">緩衝區是空的。請先呼叫非同步方法加以填滿。</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">需要非負整數。</target>
+          <target state="translated">需要非負整數。</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="translated" state-qualifier="mt-suggestion">{0] 和 {1} 參數超過陣列的長度。</target>
+          <target state="translated">{0] 和 {1} 參數超過陣列的長度。</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">資料流必須可讀取。</target>
+          <target state="translated">資料流必須可讀取。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">資料流必須可寫入。</target>
+          <target state="translated">資料流必須可寫入。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">

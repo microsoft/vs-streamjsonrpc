@@ -13,7 +13,7 @@
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
-          <target state="translated">Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</target>
+          <target state="translated">Получен запрос на выполнение "{0}", но нет объекта обратного вызова. Запрос удаляется.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
@@ -102,42 +102,42 @@
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header ("{0}") into a positive integer.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Ошибка при анализе заголовка Content-Length ("{0}") в положительное целое число.</target>
+          <target state="translated">Ошибка при анализе заголовка Content-Length ("{0}") в положительное целое число.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}. {0} is the actual header.</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Размер заголовка сообщения превышает предельный.</target>
+          <target state="translated">Размер заголовка сообщения превышает предельный.</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Непредвиденная лексема "{0}" при анализе заголовка.</target>
+          <target state="translated">Непредвиденная лексема "{0}" при анализе заголовка.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Требуется положительное целое число.</target>
+          <target state="translated">Требуется положительное целое число.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</target>
+          <target state="translated">Буфер пуст. Чтобы заполнить его, сначала вызовите метод async.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Требуется неотрицательное целое число.</target>
+          <target state="translated">Требуется неотрицательное целое число.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Параметры {0] и {1} превышают длину массива.</target>
+          <target state="translated">Параметры {0] и {1} превышают длину массива.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Поток должен быть читаемым.</target>
+          <target state="translated">Поток должен быть читаемым.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-          <target state="translated" state-qualifier="mt-suggestion">Поток должен быть доступным для записи.</target>
+          <target state="translated">Поток должен быть доступным для записи.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
