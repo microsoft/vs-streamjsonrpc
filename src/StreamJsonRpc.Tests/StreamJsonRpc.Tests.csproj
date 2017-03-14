@@ -47,6 +47,7 @@
     </Compile>
     <Compile Include="DelimitedMessageHandlerTests.cs" />
     <Compile Include="DirectMessageHandler.cs" />
+    <Compile Include="HeaderDelimitedMessageHandlerTests.cs" />
     <Compile Include="InteropTestBase.cs" />
     <Compile Include="JsonRpcClientInteropTests.cs" />
     <Compile Include="JsonRpcRawStreamTests.cs" />
