@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using Microsoft;
+using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using StreamJsonRpc;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
-using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -526,6 +525,38 @@ public class JsonRpcTests : TestBase
             });
     }
 
+    [Fact]
+    public void InvokeAsync_ProcessParameterSentAsArray()
+    {
+        var sending = new MemoryStream();
+
+        var rpc = JsonRpc.Attach(sending, null);
+        rpc.NotifyAsync("test", new Foo() { Bar = "test" }).Wait();
+
+        sending.Position = 0;
+        var handler = new HeaderDelimitedMessageHandler(null, sending);
+        var json = handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+
+        var message = JsonRpcMessage.FromJson(json, new JsonSerializerSettings());
+        Assert.Equal(message.Parameters.Type, JTokenType.Array);
+    }
+
+    [Fact]
+    public void InvokeAsync_ProcessParameterSentAsObject()
+    {
+        var sending = new MemoryStream();
+
+        var rpc = JsonRpc.Attach(sending, null);
+        rpc.NotifyAsync("test", new FooAsObject() { Bar = "test" }).Wait();
+
+        sending.Position = 0;
+        var handler = new HeaderDelimitedMessageHandler(null, sending);
+        var json = handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+
+        var message = JsonRpcMessage.FromJson(json, new JsonSerializerSettings());
+        Assert.Equal(message.Parameters.Type, JTokenType.Object);
+    }
+
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
         Requires.NotNull(receivingStream, nameof(receivingStream));
@@ -719,6 +750,14 @@ public class JsonRpcTests : TestBase
     }
 
     public class Foo
+    {
+        [JsonProperty(Required = Required.Always)]
+        public string Bar { get; set; }
+        public int Bazz { get; set; }
+    }
+
+    [JsonRpcParameterObject]
+    public class FooAsObject
     {
         [JsonProperty(Required = Required.Always)]
         public string Bar { get; set; }

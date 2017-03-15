@@ -439,7 +439,17 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
 
             arguments = arguments ?? EmptyObjectArray;
-            JsonRpcMessage request = JsonRpcMessage.CreateRequest(id, targetName, arguments, this.JsonSerializer);
+
+            JsonRpcMessage request;
+            if (arguments.Count == 1 && arguments[0] != null && arguments[0].GetType().GetTypeInfo().GetCustomAttribute<JsonRpcParameterObjectAttribute>() != null)
+            {
+                request = JsonRpcMessage.CreateRequestWithNamedParameters(id, targetName, arguments[0], this.JsonSerializer);
+            }
+            else
+            {
+                request = JsonRpcMessage.CreateRequest(id, targetName, arguments, this.JsonSerializer);
+            }
+
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.disposeCts.Token))
             {
                 if (id == null)
