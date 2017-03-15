@@ -215,6 +215,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Parameter is not in the form of a single object.
+        /// </summary>
+        internal static string ParameterNotObject {
+            get {
+                return ResourceManager.GetString("ParameterNotObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A positive integer is required..
         /// </summary>
         internal static string PositiveIntegerRequired {

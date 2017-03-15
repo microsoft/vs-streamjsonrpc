@@ -64,6 +64,11 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
+        /// Value indicating if only a single parameter is allowed and that parameter should be passed as an object.
+        /// </summary>
+        private readonly bool passParameterAsObject = false;
+
+        /// <summary>
         /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
@@ -80,12 +85,13 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream stream, object target = null)
+        public static JsonRpc Attach(Stream stream, object target = null, bool passParameterAsObject = false)
         {
             Requires.NotNull(stream, nameof(stream));
 
-            return Attach(stream, stream, target);
+            return Attach(stream, stream, target, passParameterAsObject);
         }
 
         /// <summary>
@@ -94,15 +100,16 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
+        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null, bool passParameterAsObject = false)
         {
             if (sendingStream == null && receivingStream == null)
             {
                 throw new ArgumentException(Resources.BothReadableWritableAreNull);
             }
 
-            var rpc = new JsonRpc(sendingStream, receivingStream, target);
+            var rpc = new JsonRpc(sendingStream, receivingStream, target, passParameterAsObject);
             try
             {
                 if (receivingStream != null)
@@ -126,11 +133,12 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
-            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target)
+        public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null, bool passParameterAsObject = false)
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target, passParameterAsObject)
         {
         }
 
@@ -139,13 +147,15 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
+        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null, bool passParameterAsObject = false)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
+            this.passParameterAsObject = passParameterAsObject;
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult((JToken)id, t);
 
@@ -441,8 +451,13 @@ namespace StreamJsonRpc
             arguments = arguments ?? EmptyObjectArray;
 
             JsonRpcMessage request;
-            if (arguments.Count == 1 && arguments[0] != null && arguments[0].GetType().GetTypeInfo().GetCustomAttribute<JsonRpcParameterObjectAttribute>() != null)
+            if (passParameterAsObject)
             {
+                if (arguments.Count != 1 || arguments[0] == null || arguments[0].GetType().IsArray)
+                {
+                    throw new ArgumentException(Resources.ParameterNotObject);
+                }
+
                 request = JsonRpcMessage.CreateRequestWithNamedParameters(id, targetName, arguments[0], this.JsonSerializer);
             }
             else

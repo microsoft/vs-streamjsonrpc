@@ -9,7 +9,6 @@
     <Import_RootNamespace>StreamJsonRpc</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)Attributes\JsonRpcParameterObjectAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcError.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcErrorCode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DataContracts\JsonRpcMessage.cs" />

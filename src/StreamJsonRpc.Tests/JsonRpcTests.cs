@@ -530,7 +530,7 @@ public class JsonRpcTests : TestBase
     {
         var sending = new MemoryStream();
 
-        var rpc = JsonRpc.Attach(sending, null);
+        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: false);
         rpc.NotifyAsync("test", new Foo() { Bar = "test" }).Wait();
 
         sending.Position = 0;
@@ -546,8 +546,8 @@ public class JsonRpcTests : TestBase
     {
         var sending = new MemoryStream();
 
-        var rpc = JsonRpc.Attach(sending, null);
-        rpc.NotifyAsync("test", new FooAsObject() { Bar = "test" }).Wait();
+        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: true);
+        rpc.NotifyAsync("test", new Foo() { Bar = "test" }).Wait();
 
         sending.Position = 0;
         var handler = new HeaderDelimitedMessageHandler(null, sending);
@@ -555,6 +555,17 @@ public class JsonRpcTests : TestBase
 
         var message = JsonRpcMessage.FromJson(json, new JsonSerializerSettings());
         Assert.Equal(message.Parameters.Type, JTokenType.Object);
+    }
+
+    [Fact]
+    public void InvokeAsync_ProcessParameterSentAsObjectThrowsExceptions()
+    {
+        var sending = new MemoryStream();
+
+        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: true);
+        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", null));
+        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", "1", "2"));
+        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", new int[] { 1, 2 }));
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
@@ -750,14 +761,6 @@ public class JsonRpcTests : TestBase
     }
 
     public class Foo
-    {
-        [JsonProperty(Required = Required.Always)]
-        public string Bar { get; set; }
-        public int Bazz { get; set; }
-    }
-
-    [JsonRpcParameterObject]
-    public class FooAsObject
     {
         [JsonProperty(Required = Required.Always)]
         public string Bar { get; set; }

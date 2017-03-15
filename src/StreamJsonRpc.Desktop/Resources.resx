@@ -179,6 +179,9 @@
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Parameter is not in the form of a single object</value>
+  </data>
   <data name="PositiveIntegerRequired" xml:space="preserve">
     <value>A positive integer is required.</value>
   </data>
