@@ -37,9 +37,9 @@ CRLF +
         this.receivingStream.SetLength(0);
 
         content =
-@"Content-Length:5
-
-ABCDE";
+"Content-Length:5" + CRLF +
+CRLF +
+"ABCDE";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
