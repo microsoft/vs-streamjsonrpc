@@ -10,6 +10,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     private readonly MemoryStream sendingStream = new MemoryStream();
     private readonly MemoryStream receivingStream = new MemoryStream();
     private HeaderDelimitedMessageHandler handler;
+    private const string CRLF = "\r\n";
 
     public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger) : base(logger)
     {
@@ -20,10 +21,10 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     public void ReadCoreAsync_HandlesSpacingCorrectly()
     {
         string content =
-@"Content-Length:  10   
-Content-Type: application/vscode-jsonrpc;charset=utf-8
-
-0123456789";
+"Content-Length:  10   " + CRLF +
+"Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
+CRLF +
+"0123456789";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
