@@ -70,7 +70,6 @@ namespace StreamJsonRpc
         private enum HeaderParseState
         {
             Name,
-            NameValueDelimiter,
             Value,
             FieldDelimiter,
             EndOfHeader,
@@ -120,7 +119,7 @@ namespace StreamJsonRpc
                         if (lastCharRead == ':')
                         {
                             headerName = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
-                            state = HeaderParseState.NameValueDelimiter;
+                            state = HeaderParseState.Value;
                             headerBytesLength = 0;
                         }
                         else if (lastCharRead == '\r' && headerBytesLength == 1)
@@ -134,12 +133,12 @@ namespace StreamJsonRpc
                         }
 
                         break;
-                    case HeaderParseState.NameValueDelimiter:
-                        ThrowIfNotExpectedToken(lastCharRead, ' ');
-                        state = HeaderParseState.Value;
-                        headerBytesLength = 0;
-                        break;
                     case HeaderParseState.Value:
+                        if (lastCharRead == ' ')
+                        {
+                            --headerBytesLength;
+                        }
+
                         if (lastCharRead == '\r') // spec mandates \r always precedes \n
                         {
                             string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
