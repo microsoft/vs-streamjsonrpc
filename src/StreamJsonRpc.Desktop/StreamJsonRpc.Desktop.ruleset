@@ -74,4 +74,8 @@
     <Rule Id="UseAsyncSuffix" Action="Error" />
     <Rule Id="AvoidAsyncSuffix" Action="Error" />
   </Rules>
+  <Rules AnalyzerId="Roslyn.Diagnostics.Analyzers" RuleNamespace="Roslyn.Diagnostics.Analyzers">
+    <Rule Id="RS0017" Action="Error" />
+    <Rule Id="RS0026" Action="Info" />
+  </Rules>
 </RuleSet>
