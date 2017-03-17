@@ -1,15 +1,15 @@
-﻿using Microsoft;
-using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
+using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -526,46 +526,31 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public void InvokeAsync_ProcessParameterSentAsArray()
+    public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
-        var sending = new MemoryStream();
-
-        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: false);
-        rpc.NotifyAsync("test", new Foo() { Bar = "test" }).Wait();
-
-        sending.Position = 0;
-        var handler = new HeaderDelimitedMessageHandler(null, sending);
-        var json = handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-
-        var message = JsonRpcMessage.FromJson(json, new JsonSerializerSettings());
-        Assert.Equal(message.Parameters.Type, JTokenType.Array);
+        string result1 = await this.clientRpc.InvokeWithParameterPassedAsObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
+        Assert.Equal("object", result1);
     }
 
     [Fact]
-    public void InvokeAsync_ProcessParameterSentAsObject()
+    public async Task CanInvokeServerMethodWithParameterPassedAsArray()
     {
-        var sending = new MemoryStream();
-
-        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: true);
-        rpc.NotifyAsync("test", new Foo() { Bar = "test" }).Wait();
-
-        sending.Position = 0;
-        var handler = new HeaderDelimitedMessageHandler(null, sending);
-        var json = handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-
-        var message = JsonRpcMessage.FromJson(json, new JsonSerializerSettings());
-        Assert.Equal(message.Parameters.Type, JTokenType.Object);
+        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
+        Assert.Equal("array", result1);
     }
 
     [Fact]
-    public void InvokeAsync_ProcessParameterSentAsObjectThrowsExceptions()
+    public async Task CanInvokeServerMethodWithNoParameterPassedAsObject()
     {
-        var sending = new MemoryStream();
+        string result1 = await this.clientRpc.InvokeWithParameterPassedAsObjectAsync<string>(nameof(Server.TestParameter));
+        Assert.Equal("object or array", result1);
+    }
 
-        var rpc = JsonRpc.Attach(sendingStream: sending, receivingStream: null, target: null, passParameterAsObject: true);
-        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", null));
-        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", "1", "2"));
-        Assert.ThrowsAsync<ArgumentException>(() => rpc.NotifyAsync("test", new int[] { 1, 2 }));
+    [Fact]
+    public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
+    {
+        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
+        Assert.Equal("object or array", result1);
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
@@ -603,6 +588,21 @@ public class JsonRpcTests : TestBase
         public static string ServerMethod(string argument)
         {
             return argument + "!";
+        }
+
+        public static string TestParameter(JToken token)
+        {
+            return "object";
+        }
+
+        public static string TestParameter(string argument)
+        {
+            return "array";
+        }
+
+        public static string TestParameter()
+        {
+            return "object or array";
         }
 
         public override string VirtualBaseMethod() => "child";

@@ -64,11 +64,6 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// Value indicating if only a single parameter is allowed and that parameter should be passed as an object.
-        /// </summary>
-        private readonly bool passParameterAsObject = false;
-
-        /// <summary>
         /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
@@ -85,13 +80,12 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream stream, object target = null, bool passParameterAsObject = false)
+        public static JsonRpc Attach(Stream stream, object target = null)
         {
             Requires.NotNull(stream, nameof(stream));
 
-            return Attach(stream, stream, target, passParameterAsObject);
+            return Attach(stream, stream, target);
         }
 
         /// <summary>
@@ -100,16 +94,15 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null, bool passParameterAsObject = false)
+        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
         {
             if (sendingStream == null && receivingStream == null)
             {
                 throw new ArgumentException(Resources.BothReadableWritableAreNull);
             }
 
-            var rpc = new JsonRpc(sendingStream, receivingStream, target, passParameterAsObject);
+            var rpc = new JsonRpc(sendingStream, receivingStream, target);
             try
             {
                 if (receivingStream != null)
@@ -133,12 +126,11 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null, bool passParameterAsObject = false)
-            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target, passParameterAsObject)
+        public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target)
         {
         }
 
@@ -147,15 +139,13 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <param name="passParameterAsObject">Value which indicates whether there can be only one parameter and the parameter must be passed as an object</param>
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null, bool passParameterAsObject = false)
+        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
-
-            this.passParameterAsObject = passParameterAsObject;
+            
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult((JToken)id, t);
 
@@ -302,6 +292,32 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
+        /// </summary>
+        /// <typeparam name="Result">Type of the method result</typeparam>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <returns>A task that completes when the server method executes and returns the result.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
+        /// </exception>
+        /// <exception cref="RemoteTargetNotSetException">
+        /// Result task fails with this exception if the server has no target object.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        public Task<Result> InvokeWithParameterPassedAsObjectAsync<Result>(string targetName, object argument = null)
+        {
+            return this.InvokeWithParameterPassedAsObjectWithCancellationAsync<Result>(targetName, argument, CancellationToken.None);
+        }
+
+        /// <summary>
         /// Invoke a method on the server.
         /// </summary>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
@@ -330,6 +346,37 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
+        /// </summary>
+        /// <typeparam name="Result">Type of the method result</typeparam>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="argument">Method arguments, must be serializable to JSON.</param>
+        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <returns>A task that completes when the server method executes and returns the result.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
+        /// </exception>
+        /// <exception cref="RemoteTargetNotSetException">
+        /// Result task fails with this exception if the server has no target object.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        public Task<Result> InvokeWithParameterPassedAsObjectWithCancellationAsync<Result>(string targetName, object argument = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            // If argument is null, this indicates that the method does not take any parameters.
+            object[] argumentToPass = argument == null ? null : new object[] { argument };
+            return this.InvokeWithCancellationCoreAsync<Result>(targetName, argumentToPass, cancellationToken, true);
+        }
+
+        /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
         /// <typeparam name="Result">Type of the method result</typeparam>
@@ -355,8 +402,7 @@ namespace StreamJsonRpc
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
         public Task<Result> InvokeWithCancellationAsync<Result>(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            int id = Interlocked.Increment(ref this.nextId);
-            return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken);
+            return InvokeWithCancellationCoreAsync<Result>(targetName, arguments, cancellationToken, false);
         }
 
         /// <summary>
@@ -372,8 +418,34 @@ namespace StreamJsonRpc
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
         public Task NotifyAsync(string targetName, params object[] arguments)
         {
+            // If somebody calls InvokeInternal<T>(id, "method", null), the null is not passed as an item in the array.
+            // Instead, the compiler thinks that the null is the array itself and it'll pass null directly.
+            // To account for this case, we check for null below.
+            arguments = arguments ?? new object[] { null };
+
             int? id = null;
-            return this.InvokeCoreAsync<object>(id, targetName, arguments, CancellationToken.None);
+            return this.InvokeCoreAsync<object>(id, targetName, arguments, CancellationToken.None, false);
+        }
+
+        /// <summary>
+        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.  The parameter is passed as an object.
+        /// </summary>
+        /// <remarks>
+        /// Any error that happens on the server side is ignored.
+        /// </remarks>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        public Task NotifyWithParameterAsObjectAsync(string targetName, object argument = null)
+        {
+            // If argument is null, this indicates that the method does not take any parameters.
+            object[] argumentToPass = argument == null ? null : new object[] { argument };
+
+            int? id = null;
+            
+            return this.InvokeCoreAsync<object>(id, targetName, argumentToPass, CancellationToken.None, true);
         }
 
         #region IDisposable
@@ -432,6 +504,37 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Invoke a method on the server and get back the result.
+        /// </summary>
+        /// <typeparam name="Result">Type of the method result</typeparam>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="passParameterAsObject">Value indicating if parameter should be passed as an object.</param>
+        /// <returns>A task that completes when the server method executes and returns the result.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
+        /// </exception>
+        /// <exception cref="RemoteTargetNotSetException">
+        /// Result task fails with this exception if the server has no target object.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        private Task<Result> InvokeWithCancellationCoreAsync<Result>(string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool passParameterAsObject = false)
+        {
+            int id = Interlocked.Increment(ref this.nextId);
+            return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken, passParameterAsObject);
+        }
+
+        /// <summary>
         /// Invokes the specified RPC method
         /// </summary>
         /// <typeparam name="ReturnType">RPC method return type</typeparam>
@@ -440,28 +543,35 @@ namespace StreamJsonRpc
         /// <param name="targetName">Name of the method to invoke.</param>
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="isParameterPassedAsObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
+        protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterPassedAsObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
             Verify.NotDisposed(this);
             cancellationToken.ThrowIfCancellationRequested();
 
-            arguments = arguments ?? EmptyObjectArray;
-
             JsonRpcMessage request;
-            if (passParameterAsObject)
+            if (isParameterPassedAsObject)
             {
-                if (arguments.Count != 1 || arguments[0] == null || arguments[0].GetType().IsArray)
+                object argument = arguments;
+                if (argument != null)
                 {
-                    throw new ArgumentException(Resources.ParameterNotObject);
+                    if (arguments.Count != 1 || arguments[0] == null || arguments[0].GetType().IsArray)
+                    {
+                        throw new ArgumentException(Resources.ParameterNotObject);
+                    }
+
+                    argument = arguments[0];
                 }
 
-                request = JsonRpcMessage.CreateRequestWithNamedParameters(id, targetName, arguments[0], this.JsonSerializer);
+                request = JsonRpcMessage.CreateRequestWithNamedParameters(id, targetName, argument, this.JsonSerializer);
             }
             else
             {
+                arguments = arguments ?? EmptyObjectArray;
+
                 request = JsonRpcMessage.CreateRequest(id, targetName, arguments, this.JsonSerializer);
             }
 
