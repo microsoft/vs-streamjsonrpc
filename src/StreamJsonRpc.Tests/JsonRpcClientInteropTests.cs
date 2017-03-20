@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using StreamJsonRpc;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using StreamJsonRpc;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
-using Newtonsoft.Json.Linq;
 
 public class JsonRpcClientInteropTests : InteropTestBase
 {
@@ -49,32 +45,32 @@ public class JsonRpcClientInteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test", new  { Bar = "test" });
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Array, request["params"].Type);
-        Assert.Equal<string>("test", ((JArray)request["params"])[0]["Bar"].ToString());
+        Assert.Equal(JTokenType.Array, request["params"].Type);
+        Assert.Equal("test", ((JArray)request["params"])[0]["Bar"].ToString());
     }
 
     [Fact]
-    public async Task NotifyAsync_ParameterNullSentAsArray()
+    public async Task NotifyAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Array, request["params"].Type);
-        Assert.Equal<int>(0, ((JArray)request["params"]).Count);
+        Assert.Equal(JTokenType.Array, request["params"].Type);
+        Assert.Equal(0, ((JArray)request["params"]).Count);
     }
 
     [Fact]
     public async Task NotifyWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
-        Task notifyTask = this.clientRpc.NotifyWithParameterAsObjectAsync("test", new { Bar = "test" });
+        Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("test", new { Bar = "test" });
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Object, request["params"].Type);
-        Assert.Equal<string>("test", request["params"]["Bar"].ToString());
+        Assert.Equal(JTokenType.Object, request["params"].Type);
+        Assert.Equal("test", request["params"]["Bar"].ToString());
     }
 
     [Fact]
     public async Task NotifyWithParameterPassedAsObjectAsync_NoParameter()
     {
-        Task notifyTask = this.clientRpc.NotifyWithParameterAsObjectAsync("test");
+        Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("test");
         JObject request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
@@ -84,32 +80,32 @@ public class JsonRpcClientInteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test", new { Bar = "test" });
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Array, request["params"].Type);
-        Assert.Equal<string>("test", ((JArray)request["params"])[0]["Bar"].ToString());
+        Assert.Equal(JTokenType.Array, request["params"].Type);
+        Assert.Equal("test", ((JArray)request["params"])[0]["Bar"].ToString());
     }
 
     [Fact]
-    public async Task InvokeAsync_ParameterNullSentAsArray()
+    public async Task InvokeAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Array, request["params"].Type);
-        Assert.Equal<int>(0, ((JArray)request["params"]).Count);
+        Assert.Equal(JTokenType.Array, request["params"].Type);
+        Assert.Equal(0, ((JArray)request["params"]).Count);
     }
 
     [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
-        Task notifyTask = this.clientRpc.InvokeWithParameterPassedAsObjectAsync<object>("test", new { Bar = "test" });
+        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "test" });
         JObject request = await this.ReceiveAsync();
-        Assert.Equal<JTokenType>(JTokenType.Object, request["params"].Type);
-        Assert.Equal<string>("test", request["params"]["Bar"].ToString());
+        Assert.Equal(JTokenType.Object, request["params"].Type);
+        Assert.Equal("test", request["params"]["Bar"].ToString());
     }
 
     [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_NoParameter()
     {
-        Task notifyTask = this.clientRpc.InvokeWithParameterPassedAsObjectAsync<object>("test");
+        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
         JObject request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
@@ -117,7 +113,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     [Fact]
     public void NotifyWithParameterPassedAsObjectAsync_ThrowsExceptions()
     {
-        Assert.ThrowsAsync<ArgumentException>(() => this.clientRpc.NotifyWithParameterAsObjectAsync("test", new int[] { 1, 2 }));
+        Assert.ThrowsAsync<ArgumentException>(() => this.clientRpc.NotifyWithParameterObjectAsync("test", new int[] { 1, 2 }));
     }
 
     [Fact]

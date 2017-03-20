@@ -528,21 +528,21 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
-        string result1 = await this.clientRpc.InvokeWithParameterPassedAsObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
-        Assert.Equal("object", result1);
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
+        Assert.Equal("object {\r\n  \"test\": \"test\"\r\n}", result1);
     }
 
     [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
-        Assert.Equal("array", result1);
+        Assert.Equal("object test", result1);
     }
 
     [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsObject()
     {
-        string result1 = await this.clientRpc.InvokeWithParameterPassedAsObjectAsync<string>(nameof(Server.TestParameter));
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter));
         Assert.Equal("object or array", result1);
     }
 
@@ -551,6 +551,12 @@ public class JsonRpcTests : TestBase
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
         Assert.Equal("object or array", result1);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ExceptionThrownIfServerHasMutlipleMethodsMatched()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
@@ -592,17 +598,22 @@ public class JsonRpcTests : TestBase
 
         public static string TestParameter(JToken token)
         {
-            return "object";
-        }
-
-        public static string TestParameter(string argument)
-        {
-            return "array";
+            return "object " + token.ToString();
         }
 
         public static string TestParameter()
         {
             return "object or array";
+        }
+
+        public static string TestInvalidMethod(string test)
+        {
+            return "string";
+        }
+
+        public static string TestInvalidMethod(JToken test)
+        {
+            return "JToken";
         }
 
         public override string VirtualBaseMethod() => "child";
@@ -759,7 +770,7 @@ public class JsonRpcTests : TestBase
             i = i + 1;
         }
     }
-
+    
     public class Foo
     {
         [JsonProperty(Required = Required.Always)]

@@ -127,13 +127,6 @@ namespace StreamJsonRpc
                 return this.Parameters.ToObject<object[]>();
             }
 
-            if (parameterInfos.Length == 1 && parameterInfos[0].ParameterType == typeof(JToken))
-            {
-                // We want to ignore methods that only have one parameter and the parameter type is JToken.
-                // This is reserved to be called when the parameter is passed as an object.
-                return null;
-            }
-
             int index = 0;
             var result = new List<object>(parameterInfos.Length);
             foreach (var parameter in this.Parameters.Children())
