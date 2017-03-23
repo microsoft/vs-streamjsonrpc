@@ -624,9 +624,8 @@ namespace StreamJsonRpc
                 exception = exception.InnerException;
             }
 
-            string message = $"{exception.Message}{Environment.NewLine}{exception.StackTrace}";
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
-            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, message, data);
+            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, data);
         }
 
         private async Task ReadAndHandleRequestsAsync()
