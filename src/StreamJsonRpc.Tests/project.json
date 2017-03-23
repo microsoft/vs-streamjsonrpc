@@ -2,6 +2,7 @@
   "dependencies": {
     "OpenCover": "4.6.519",
     "MicroBuild.NonShipping": "2.0.34",
+    "Microsoft.VisualStudio.Threading.Analyzers": "15.0.240",
     "Nerdbank.FullDuplexStream": "1.0.1",
     "System.Collections.Immutable": "1.2.0",
     "xunit": "2.1.0",
