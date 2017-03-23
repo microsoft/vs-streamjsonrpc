@@ -370,7 +370,8 @@ namespace StreamJsonRpc
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object[] argumentToPass = argument == null ? null : new object[] { argument };
-            return this.InvokeWithCancellationCoreAsync<Result>(targetName, argumentToPass, cancellationToken, isParameterObject: true);
+            int id = Interlocked.Increment(ref this.nextId);
+            return InvokeCoreAsync<Result>(id, targetName, argumentToPass, cancellationToken, isParameterObject: true);
         }
 
         /// <summary>
@@ -427,7 +428,8 @@ namespace StreamJsonRpc
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
         public Task<Result> InvokeWithCancellationAsync<Result>(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return InvokeWithCancellationCoreAsync<Result>(targetName, arguments, cancellationToken, isParameterObject: false);
+            int id = Interlocked.Increment(ref this.nextId);
+            return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken);
         }
 
         /// <summary>
@@ -543,37 +545,6 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
-        /// <typeparam name="Result">Type of the method result</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <param name="isParameterObject">Value indicating if parameter should be passed as an object.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        private Task<Result> InvokeWithCancellationCoreAsync<Result>(string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject = false)
-        {
-            int id = Interlocked.Increment(ref this.nextId);
-            return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken, isParameterObject);
-        }
-
-        /// <summary>
         /// Invokes the specified RPC method
         /// </summary>
         /// <typeparam name="ReturnType">RPC method return type</typeparam>
@@ -583,9 +554,9 @@ namespace StreamJsonRpc
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
+        protected virtual Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
-            return await InvokeCoreAsync<ReturnType>(id, targetName, arguments, cancellationToken, isParameterObject: false).ConfigureAwait(false);
+            return InvokeCoreAsync<ReturnType>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
 
         /// <summary>
