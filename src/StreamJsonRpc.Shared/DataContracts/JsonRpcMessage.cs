@@ -67,7 +67,14 @@ namespace StreamJsonRpc
 
         public static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters, JsonSerializer parameterSerializer)
         {
-            return new JsonRpcMessage(method, JToken.FromObject(namedParameters, parameterSerializer), id);
+            if (namedParameters == null)
+            {
+                return new JsonRpcMessage(method, null, id);
+            }
+            else
+            {
+                return new JsonRpcMessage(method, JToken.FromObject(namedParameters, parameterSerializer), id);
+            }
         }
 
         public static JsonRpcMessage CreateResult(JToken id, object result, JsonSerializer jsonSerializer)

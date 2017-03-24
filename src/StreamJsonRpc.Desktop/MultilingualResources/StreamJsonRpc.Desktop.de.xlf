@@ -148,6 +148,10 @@
           <source>This operation is not allowed before listening for messages has started.</source>
           <target state="translated">Dieser Vorgang ist unzulässig, bevor das Lauschen auf Nachrichten gestartet wurde.</target>
         </trans-unit>
+        <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
+          <source>Parameter is not in the form of a single object</source>
+          <target state="new">Parameter is not in the form of a single object</target>
+        </trans-unit>
       </group>
     </body>
   </file>

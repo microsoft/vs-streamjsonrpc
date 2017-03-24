@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using Microsoft;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace StreamJsonRpc
 {
@@ -119,6 +120,22 @@ namespace StreamJsonRpc
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
                 return null;
+            }
+
+            if (request.Parameters != null && request.Parameters.Type == JTokenType.Object)
+            {
+                // If the parameter passed is an object, then we want to find the matching method with the same name and the method only takes a JToken as a parameter.
+                if (method.Parameters.Length != 1)
+                {
+                    return null;
+                }
+
+                if (method.Parameters[0].ParameterType != typeof(JToken))
+                {
+                    return null;
+                }
+
+                return new object[] { request.Parameters };
             }
 
             // The number of parameters must fall within required and total parameters.
