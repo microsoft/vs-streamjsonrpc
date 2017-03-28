@@ -70,6 +70,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The &apos;{0}&apos; method has multiple MethodNameAttribute defined with different values..
+        /// </summary>
+        internal static string ConflictingMethodNameAttribute {
+            get {
+                return ResourceManager.GetString("ConflictingMethodNameAttribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {

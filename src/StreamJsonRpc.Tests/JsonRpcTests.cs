@@ -559,6 +559,51 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
     }
 
+    [Fact]
+    public async Task InvokeAsync_InvokesMethodWithAttributeSet()
+    {
+        string correctCasingResult = await this.clientRpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
+        Assert.Equal("test method attribute", correctCasingResult);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("teST/InvokeTestmeTHod"));
+
+        string baseMethodResult = await this.clientRpc.InvokeAsync<string>("base/InvokeMethodWithAttribute");
+        Assert.Equal("base InvokeMethodWithAttribute", baseMethodResult);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("base/InvokeVirtualMethodOverride"));
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("child/InvokeVirtualMethodOverride"));
+
+        string baseNoOverrideResult = await this.clientRpc.InvokeAsync<string>("base/InvokeVirtualMethodNoOverride");
+        Assert.Equal("child InvokeVirtualMethodNoOverride", baseNoOverrideResult);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_InvokesMethodWithAttributeSet()
+    {
+        await this.clientRpc.NotifyAsync("test/NotifyTestMethod");
+        Assert.Equal("test method attribute", await this.server.NotificationReceived);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_MethodNameAttributeCasing()
+    {
+        await this.clientRpc.NotifyWithParameterObjectAsync("teST/NotifyTestmeTHod");
+        await this.clientRpc.NotifyAsync("base/NotifyMethodWithAttribute");
+
+        Assert.Equal("base NotifyMethodWithAttribute", await this.server.NotificationReceived);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_MethodNameAttributeConflict()
+    {
+        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodOverride");
+        await this.clientRpc.NotifyAsync("child/NotifyVirtualMethodOverride");
+        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodNoOverride");
+
+        Assert.Equal("child NotifyVirtualMethodNoOverride", await this.server.NotificationReceived);
+    }
+
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
         Requires.NotNull(receivingStream, nameof(receivingStream));
@@ -572,17 +617,44 @@ public class JsonRpcTests : TestBase
 
     public class BaseClass
     {
+        protected readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
+
         public string BaseMethod() => "base";
 
         public virtual string VirtualBaseMethod() => "base";
 
         public string RedeclaredBaseMethod() => "base";
+
+        [MethodName("base/InvokeMethodWithAttribute")]
+        public string InvokeMethodWithAttribute() => $"base {nameof(InvokeMethodWithAttribute)}";
+
+        [MethodName("base/InvokeVirtualMethodOverride")]
+        public virtual string InvokeVirtualMethodOverride() => $"base {nameof(InvokeVirtualMethodOverride)}";
+
+        [MethodName("base/InvokeVirtualMethodNoOverride")]
+        public virtual string InvokeVirtualMethodNoOverride() => $"base {nameof(InvokeVirtualMethodNoOverride)}";
+
+        [MethodName("base/NotifyMethodWithAttribute")]
+        public void NotifyMethodWithAttribute()
+        {
+            this.notificationTcs.SetResult($"base {nameof(NotifyMethodWithAttribute)}");
+        }
+
+        [MethodName("base/NotifyVirtualMethodOverride")]
+        public virtual void NotifyVirtualMethodOverride()
+        {
+            this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodOverride)}");
+        }
+
+        [MethodName("base/NotifyVirtualMethodNoOverride")]
+        public virtual void NotifyVirtualMethodNoOverride()
+        {
+            this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodNoOverride)}");
+        }
     }
 
     public class Server : BaseClass
     {
-        private readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
-
         public bool NullPassed { get; private set; }
 
         public AsyncAutoResetEvent AllowServerMethodToReturn { get; } = new AsyncAutoResetEvent();
@@ -619,6 +691,31 @@ public class JsonRpcTests : TestBase
         public override string VirtualBaseMethod() => "child";
 
         public new string RedeclaredBaseMethod() => "child";
+
+        [MethodName("child/InvokeVirtualMethodOverride")]
+        public override string InvokeVirtualMethodOverride() => $"child {nameof(InvokeVirtualMethodOverride)}";
+
+        [MethodName("test/InvokeTestMethod")]
+        public string InvokeTestMethodAttribute() => "test method attribute";
+
+        public override string InvokeVirtualMethodNoOverride() => $"child {nameof(InvokeVirtualMethodNoOverride)}";
+
+        [MethodName("child/NotifyVirtualMethodOverride")]
+        public override void NotifyVirtualMethodOverride()
+        {
+            this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodOverride)}");
+        }
+
+        [MethodName("test/NotifyTestMethod")]
+        public void NotifyTestMethodAttribute()
+        {
+            this.notificationTcs.SetResult($"test method attribute");
+        }
+
+        public override void NotifyVirtualMethodNoOverride()
+        {
+            this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodNoOverride)}");
+        }
 
         internal void InternalMethod()
         {

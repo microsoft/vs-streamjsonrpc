@@ -120,6 +120,10 @@
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
   </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>The '{0}' method has multiple MethodNameAttribute defined with different values.</value>
+    <comment>{0} is the method name.</comment>
+  </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
     <comment>{0} is the method name to execute.</comment>

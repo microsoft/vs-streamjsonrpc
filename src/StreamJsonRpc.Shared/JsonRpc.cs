@@ -67,6 +67,11 @@ namespace StreamJsonRpc
         /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
+        
+        /// <summary>
+        /// A map of the target object's method names to MethodNameAttribute value.
+        /// </summary>
+        private readonly Dictionary<string, List<string>> methodToAttributeMap;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -161,6 +166,8 @@ namespace StreamJsonRpc
                 Converters = this.MessageJsonSerializerSettings.Converters,
             };
             this.JsonSerializer = new JsonSerializer();
+
+            this.methodToAttributeMap = GetMethodToAttributeMap(this.callbackTarget);
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -654,6 +661,38 @@ namespace StreamJsonRpc
                 }
             }
         }
+        
+        private static Dictionary<string, List<string>> GetMethodToAttributeMap(object target)
+        {
+            var methodToAttributeMap = new Dictionary<string, List<string>>();
+            if (target != null)
+            {
+                for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+                {
+                    var anyMethodWithAttribute = t.DeclaredMethods.Any(m => m.GetCustomAttribute(typeof(MethodNameAttribute)) != null);
+                    if (anyMethodWithAttribute)
+                    {
+                        foreach (MethodInfo method in t.DeclaredMethods)
+                        {
+                            var attribute = method.GetCustomAttribute(typeof(MethodNameAttribute)) as MethodNameAttribute;
+                            if (attribute != null)
+                            {
+                                if (!methodToAttributeMap.ContainsKey(method.Name))
+                                {
+                                    methodToAttributeMap.Add(method.Name, new List<string>());
+                                }
+                                if (!methodToAttributeMap[method.Name].Contains(attribute.Name))
+                                {
+                                    methodToAttributeMap[method.Name].Add(attribute.Name);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return methodToAttributeMap;
+        }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
         {
@@ -684,7 +723,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.methodToAttributeMap);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
