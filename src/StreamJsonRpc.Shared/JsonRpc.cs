@@ -669,7 +669,7 @@ namespace StreamJsonRpc
         /// <returns></returns>
         private static Dictionary<string, List<string>> GetMethodToAttributeMap(object target)
         {
-            var methodToAttributeMap = new Dictionary<string, List<string>>();
+            var methodToAttributeMap = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             if (target != null)
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
