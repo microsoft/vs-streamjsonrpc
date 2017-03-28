@@ -23,7 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)HeaderDelimitedMessageHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonRpc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ReadBufferingStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Reflection\MethodNameAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Reflection\JsonRpcMethodAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Reflection\MethodSignature.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Reflection\TargetMethod.cs" />
   </ItemGroup>

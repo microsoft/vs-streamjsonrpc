@@ -67,11 +67,11 @@ namespace StreamJsonRpc
         /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
-        
+
         /// <summary>
-        /// A map of the target object's method names to MethodNameAttribute value.
+        /// A map of the target object's method names to JsonRpcMethodAttribute.Name value.
         /// </summary>
-        private readonly Dictionary<string, List<string>> methodToAttributeMap;
+        private readonly Dictionary<string, List<string>> clrMethodToMethodNameMap;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -167,7 +167,7 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.methodToAttributeMap = GetMethodToAttributeMap(this.callbackTarget);
+            this.clrMethodToMethodNameMap = GetMethodToAttributeMap(this.callbackTarget);
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -661,7 +661,12 @@ namespace StreamJsonRpc
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Creates a dictionary which maps a class method name to its JsonRpcMethodAttribute.Name values.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
         private static Dictionary<string, List<string>> GetMethodToAttributeMap(object target)
         {
             var methodToAttributeMap = new Dictionary<string, List<string>>();
@@ -669,22 +674,21 @@ namespace StreamJsonRpc
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
                 {
-                    var anyMethodWithAttribute = t.DeclaredMethods.Any(m => m.GetCustomAttribute(typeof(MethodNameAttribute)) != null);
-                    if (anyMethodWithAttribute)
+                    foreach (MethodInfo method in t.DeclaredMethods)
                     {
-                        foreach (MethodInfo method in t.DeclaredMethods)
+                        var attribute = (JsonRpcMethodAttribute) method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                        if (attribute != null)
                         {
-                            var attribute = method.GetCustomAttribute(typeof(MethodNameAttribute)) as MethodNameAttribute;
-                            if (attribute != null)
+                            List<string> names;
+                            if (!methodToAttributeMap.TryGetValue(method.Name, out names))
                             {
-                                if (!methodToAttributeMap.ContainsKey(method.Name))
-                                {
-                                    methodToAttributeMap.Add(method.Name, new List<string>());
-                                }
-                                if (!methodToAttributeMap[method.Name].Contains(attribute.Name))
-                                {
-                                    methodToAttributeMap[method.Name].Add(attribute.Name);
-                                }
+                                names = new List<string>();
+                                methodToAttributeMap.Add(method.Name, names);
+                            }
+
+                            if (!names.Contains(attribute.Name, StringComparer.Ordinal))
+                            {
+                                names.Add(attribute.Name);
                             }
                         }
                     }
@@ -723,7 +727,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.methodToAttributeMap);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.clrMethodToMethodNameMap);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);

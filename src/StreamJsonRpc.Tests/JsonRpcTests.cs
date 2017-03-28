@@ -570,12 +570,22 @@ public class JsonRpcTests : TestBase
         string baseMethodResult = await this.clientRpc.InvokeAsync<string>("base/InvokeMethodWithAttribute");
         Assert.Equal("base InvokeMethodWithAttribute", baseMethodResult);
 
+        // The following tests expect an exception because the same method should have the same MethodNameAttribute value.  
+        // If conflicts are found, we immediately throw error.
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("base/InvokeVirtualMethodOverride"));
-
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("child/InvokeVirtualMethodOverride"));
 
         string baseNoOverrideResult = await this.clientRpc.InvokeAsync<string>("base/InvokeVirtualMethodNoOverride");
         Assert.Equal("child InvokeVirtualMethodNoOverride", baseNoOverrideResult);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("test/string", "mystring"));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("test/int", "mystring", 1));
+
+        string stringOverloadResult = await this.clientRpc.InvokeAsync<string>("test/OverloadMethodAttribute", "mystring");
+        Assert.Equal("string: mystring", stringOverloadResult);
+
+        string intOverloadResult = await this.clientRpc.InvokeAsync<string>("test/OverloadMethodAttribute", "mystring", 1);
+        Assert.Equal("string: mystring int: 1", intOverloadResult);
     }
 
     [Fact]
@@ -595,7 +605,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task NotifyAsync_MethodNameAttributeConflict()
+    public async Task NotifyAsync_OverrideMethodNameAttributeConflict()
     {
         await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodOverride");
         await this.clientRpc.NotifyAsync("child/NotifyVirtualMethodOverride");
@@ -603,6 +613,25 @@ public class JsonRpcTests : TestBase
 
         Assert.Equal("child NotifyVirtualMethodNoOverride", await this.server.NotificationReceived);
     }
+
+    [Fact]
+    public async Task NotifyAsync_OverloadMethodNameAttributeConflict()
+    {
+        await this.clientRpc.NotifyAsync("notify/string", "mystring");
+        await this.clientRpc.NotifyAsync("notify/int", "mystring", 1);
+        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodNoOverride");
+
+        Assert.Equal("child NotifyVirtualMethodNoOverride", await this.server.NotificationReceived);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_OverloadMethodNameAttribute()
+    {
+        await this.clientRpc.NotifyAsync("notify/OverloadMethodAttribute", "mystring", 1);
+
+        Assert.Equal("string: mystring int: 1", await this.server.NotificationReceived);
+    }
+
 
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
@@ -625,28 +654,28 @@ public class JsonRpcTests : TestBase
 
         public string RedeclaredBaseMethod() => "base";
 
-        [MethodName("base/InvokeMethodWithAttribute")]
+        [JsonRpcMethod("base/InvokeMethodWithAttribute")]
         public string InvokeMethodWithAttribute() => $"base {nameof(InvokeMethodWithAttribute)}";
 
-        [MethodName("base/InvokeVirtualMethodOverride")]
+        [JsonRpcMethod("base/InvokeVirtualMethodOverride")]
         public virtual string InvokeVirtualMethodOverride() => $"base {nameof(InvokeVirtualMethodOverride)}";
 
-        [MethodName("base/InvokeVirtualMethodNoOverride")]
+        [JsonRpcMethod("base/InvokeVirtualMethodNoOverride")]
         public virtual string InvokeVirtualMethodNoOverride() => $"base {nameof(InvokeVirtualMethodNoOverride)}";
 
-        [MethodName("base/NotifyMethodWithAttribute")]
+        [JsonRpcMethod("base/NotifyMethodWithAttribute")]
         public void NotifyMethodWithAttribute()
         {
             this.notificationTcs.SetResult($"base {nameof(NotifyMethodWithAttribute)}");
         }
 
-        [MethodName("base/NotifyVirtualMethodOverride")]
+        [JsonRpcMethod("base/NotifyVirtualMethodOverride")]
         public virtual void NotifyVirtualMethodOverride()
         {
             this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodOverride)}");
         }
 
-        [MethodName("base/NotifyVirtualMethodNoOverride")]
+        [JsonRpcMethod("base/NotifyVirtualMethodNoOverride")]
         public virtual void NotifyVirtualMethodNoOverride()
         {
             this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodNoOverride)}");
@@ -692,21 +721,57 @@ public class JsonRpcTests : TestBase
 
         public new string RedeclaredBaseMethod() => "child";
 
-        [MethodName("child/InvokeVirtualMethodOverride")]
+        [JsonRpcMethod("child/InvokeVirtualMethodOverride")]
         public override string InvokeVirtualMethodOverride() => $"child {nameof(InvokeVirtualMethodOverride)}";
 
-        [MethodName("test/InvokeTestMethod")]
+        [JsonRpcMethod("test/InvokeTestMethod")]
         public string InvokeTestMethodAttribute() => "test method attribute";
 
         public override string InvokeVirtualMethodNoOverride() => $"child {nameof(InvokeVirtualMethodNoOverride)}";
 
-        [MethodName("child/NotifyVirtualMethodOverride")]
+        [JsonRpcMethod("test/string")]
+        public string InvokeOverloadConflictingMethodAttribute(string test) => $"conflicting string: {test}";
+
+        [JsonRpcMethod("test/int")]
+        public string InvokeOverloadConflictingMethodAttribute(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
+
+        [JsonRpcMethod("test/OverloadMethodAttribute")]
+        public string InvokeOverloadMethodAttribute(string test) => $"string: {test}";
+
+        [JsonRpcMethod("test/OverloadMethodAttribute")]
+        public string InvokeOverloadMethodAttribute(string arg1, int arg2) => $"string: {arg1} int: {arg2}";
+
+        [JsonRpcMethod("notify/string")]
+        public void NotifyOverloadConflictingMethodAttribute(string test)
+        {
+            this.notificationTcs.SetResult($"conflicting string: {test}");
+        }
+
+        [JsonRpcMethod("notify/int")]
+        public void NotifyOverloadConflictingMethodAttribute(string arg1, int arg2)
+        {
+            this.notificationTcs.SetResult($"conflicting string: {arg1} int: {arg2}");
+        }
+
+        [JsonRpcMethod("notify/OverloadMethodAttribute")]
+        public void NotifyOverloadMethodAttribute(string test)
+        {
+            this.notificationTcs.SetResult($"string: {test}");
+        }
+
+        [JsonRpcMethod("notify/OverloadMethodAttribute")]
+        public void NotifyOverloadMethodAttribute(string arg1, int arg2)
+        {
+            this.notificationTcs.SetResult($"string: {arg1} int: {arg2}");
+        }
+
+        [JsonRpcMethod("child/NotifyVirtualMethodOverride")]
         public override void NotifyVirtualMethodOverride()
         {
             this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodOverride)}");
         }
 
-        [MethodName("test/NotifyTestMethod")]
+        [JsonRpcMethod("test/NotifyTestMethod")]
         public void NotifyTestMethodAttribute()
         {
             this.notificationTcs.SetResult($"test method attribute");

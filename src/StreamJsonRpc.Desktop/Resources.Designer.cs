@@ -70,7 +70,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The &apos;{0}&apos; method has multiple MethodNameAttribute defined with different values..
+        ///   Looks up a localized string similar to The &apos;{0}&apos; method has multiple {1} defined with different values..
         /// </summary>
         internal static string ConflictingMethodNameAttribute {
             get {
