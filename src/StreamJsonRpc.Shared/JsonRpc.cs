@@ -663,48 +663,79 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Creates a dictionary which maps a request method name to its clr method name via JsonRpcMethodAttribute value.
+        /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
-        /// <param name="target"></param>
-        /// <returns></returns>
+        /// <param name="target">Object to reflect over and analyze its methods.</param>
+        /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
         private static Dictionary<string, string> GetRequestMethodToClrMethodMap(object target)
         {
-            // First we create a dictionary to map clr method names to JsonRpcmethodAttribute value, this simplifies the process of detecting attribute name conflicts.
-            var methodToAttributeMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            // Create a dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values, used to detect that same method shouldn't have multiple attribute values.
+            var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            // Create a dictionary to map <see cref="JsonRpcMethodAttribute" /> values to clr method names, used to detect that the same attribute value doesn't map to multiple methods.
+            var requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+
             if (target != null)
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
                 {
+                    HashSet<string> clrMethodsWithoutReplacementName = new HashSet<string>(StringComparer.Ordinal);
+
                     foreach (MethodInfo method in t.DeclaredMethods)
                     {
-                        var attribute = (JsonRpcMethodAttribute) method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-                        if (attribute != null)
+                        var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                        if (attribute == null)
                         {
-                            string value;
-                            if (methodToAttributeMap.TryGetValue(method.Name, out value))
+                            clrMethodsWithoutReplacementName.Add(method.Name);
+                            if (clrMethodToRequestMethodMap.ContainsKey(method.Name))
                             {
-                                if (!string.Equals(attribute.Name, value, StringComparison.Ordinal))
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.OverloadsMissingMethodAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
+                            }
+                        }
+                        else
+                        {
+                            if (clrMethodsWithoutReplacementName.Contains(method.Name))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.OverloadsMissingMethodAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
+                            }
+
+                            string attributeValue;
+                            if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out attributeValue))
+                            {
+                                if (!string.Equals(attribute.Name, attributeValue, StringComparison.Ordinal))
                                 {
-                                    throw new RemoteTargetException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
+                                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
                                 }
                             }
                             else
                             {
-                                methodToAttributeMap.Add(method.Name, attribute.Name);
-                            }                            
+                                clrMethodToRequestMethodMap.Add(method.Name, attribute.Name);
+                            }
+
+                            string methodValue;
+                            if (requestMethodToClrMethodMap.TryGetValue(attribute.Name, out methodValue))
+                            {
+                                if (!string.Equals(method.Name, methodValue, StringComparison.Ordinal))
+                                {
+                                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodAttributeValue, nameof(JsonRpcMethodAttribute), attribute.Name));
+                                }
+                            }
+                            else
+                            {
+                                requestMethodToClrMethodMap.Add(attribute.Name, method.Name);
+                            }
                         }
                     }
                 }
             }
 
-            // If not conflicts are find, then create another map which reverses the key/value mapping.
-            var attributeToMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var method in methodToAttributeMap)
+            // We shouldn't ever hit this unless there's a bug in the above code.  Put in so we can detect bugs easier.
+            if (clrMethodToRequestMethodMap.Count != requestMethodToClrMethodMap.Count)
             {
-                attributeToMethodMap.Add(method.Value, method.Key);
+                throw new InvalidOperationException("There was an error reflecting over the target object.");
             }
 
-            return attributeToMethodMap;
+            return requestMethodToClrMethodMap;
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)

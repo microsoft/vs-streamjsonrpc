@@ -121,6 +121,10 @@
     <value>Both readable and writable are null.</value>
     <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
   </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>The {0} Name value of {1} maps to multiple methods.</value>
+    <comment>{0} is the attribute name {1} is the attribute value.</comment>
+  </data>
   <data name="ConflictingMethodNameAttribute" xml:space="preserve">
     <value>The '{0}' method has multiple {1} defined with different values.</value>
     <comment>{0} is the method name, {1} is the attribute name.</comment>
@@ -182,6 +186,10 @@
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
+  </data>
+  <data name="OverloadsMissingMethodAttribute" xml:space="preserve">
+    <value>The {0} method has {1} defined, but not all of its overloads do.</value>
+    <comment>{0} is the method name, {1} is the attribute name</comment>
   </data>
   <data name="ParameterNotObject" xml:space="preserve">
     <value>Parameter is not in the form of a single object</value>

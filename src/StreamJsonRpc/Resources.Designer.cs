@@ -71,6 +71,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The {0} Name value of {1} maps to multiple methods..
+        /// </summary>
+        internal static string ConflictingMethodAttributeValue {
+            get {
+                return ResourceManager.GetString("ConflictingMethodAttributeValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The &apos;{0}&apos; method has multiple {1} defined with different values..
         /// </summary>
         internal static string ConflictingMethodNameAttribute {
@@ -220,6 +229,15 @@ namespace StreamJsonRpc {
         internal static string NonNegativeIntegerRequired {
             get {
                 return ResourceManager.GetString("NonNegativeIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The {0} method has {1} defined, but not all of its overloads do..
+        /// </summary>
+        internal static string OverloadsMissingMethodAttribute {
+            get {
+                return ResourceManager.GetString("OverloadsMissingMethodAttribute", resourceCulture);
             }
         }
         

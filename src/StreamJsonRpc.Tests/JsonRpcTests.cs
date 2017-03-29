@@ -586,13 +586,61 @@ public class JsonRpcTests : TestBase
     [Fact]
     public void JsonRpcMethodAttribute_ConflictOverloadMethodsThrowsException()
     {
-        var invalidServer = new InvalidOverloadServer();
+        var invalidServer = new ConflictingOverloadServer();
 
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var serverStream = streams.Item1;
         var clientStream = streams.Item2;
 
-        Assert.Throws<RemoteTargetException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodBeforeThrowsException()
+    {
+        var invalidServer = new MissingMethodAttributeOverloadBeforeServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodAfterThrowsException()
+    {
+        var invalidServer = new MissingMethodAttributeOverloadAfterServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentDerivedMethodsThrowsException()
+    {
+        var invalidServer = new SameAttributeUsedOnDifferentDerivedMethodsServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentMethodsThrowsException()
+    {
+        var invalidServer = new SameAttributeUsedOnDifferentMethodsServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
     }
 
     [Fact]
@@ -604,8 +652,8 @@ public class JsonRpcTests : TestBase
         var serverStream = streams.Item1;
         var clientStream = streams.Item2;
 
-        Assert.Throws<RemoteTargetException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
+    }    
 
     [Fact]
     public async Task NotifyAsync_InvokesMethodWithAttributeSet()
@@ -697,19 +745,70 @@ public class JsonRpcTests : TestBase
         }
     }
 
+    /// <summary>
+    /// This class is invalid because a derived method has a different <see cref="JsonRpcMethodAttribute" /> value.
+    /// </summary>
     public class InvalidOverrideServer : BaseClass
     {
         [JsonRpcMethod("child/InvokeVirtualMethodOverride")]
         public override string InvokeVirtualMethodOverride() => $"child {nameof(InvokeVirtualMethodOverride)}";
     }
 
-    public class InvalidOverloadServer : BaseClass
+    /// <summary>
+    /// This class is invalid because overloaded methods have different <see cref="JsonRpcMethodAttribute" /> values.
+    /// </summary>
+    public class ConflictingOverloadServer : BaseClass
     {
         [JsonRpcMethod("test/string")]
         public string InvokeOverloadConflictingMethodAttribute(string test) => $"conflicting string: {test}";
 
         [JsonRpcMethod("test/int")]
         public string InvokeOverloadConflictingMethodAttribute(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
+    }
+
+    /// <summary>
+    /// This class is invalid because an overloaded method is missing <see cref="JsonRpcMethodAttribute" /> value.
+    /// The method missing the attribute comes before the method with the attribute.
+    /// </summary>
+    public class MissingMethodAttributeOverloadBeforeServer : BaseClass
+    {
+        public string InvokeOverloadConflictingMethodAttribute(string test) => $"conflicting string: {test}";
+
+        [JsonRpcMethod("test/string")]
+        public string InvokeOverloadConflictingMethodAttribute(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
+    }
+
+    /// <summary>
+    /// This class is invalid because an overloaded method is missing <see cref="JsonRpcMethodAttribute" /> value.
+    /// The method missing the attribute comes after the method with the attribute.
+    /// </summary>
+    public class MissingMethodAttributeOverloadAfterServer : BaseClass
+    {
+        [JsonRpcMethod("test/string")]
+        public string InvokeOverloadConflictingMethodAttribute(string test) => $"conflicting string: {test}";
+
+        public string InvokeOverloadConflictingMethodAttribute(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
+    }
+
+    /// <summary>
+    /// This class is invalid because two different methods in the same class have the same <see cref="JsonRpcMethodAttribute" /> value.
+    /// </summary>
+    public class SameAttributeUsedOnDifferentMethodsServer : BaseClass
+    {
+        [JsonRpcMethod("test/string")]
+        public string First(string test) => $"conflicting string: {test}";
+
+        [JsonRpcMethod("test/string")]
+        public string Second(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
+    }
+
+    /// <summary>
+    /// This class is invalid because two different methods in the base and derived classes have the same <see cref="JsonRpcMethodAttribute" /> value.
+    /// </summary>
+    public class SameAttributeUsedOnDifferentDerivedMethodsServer : BaseClass
+    {
+        [JsonRpcMethod("base/InvokeMethodWithAttribute")]
+        public string First(string test) => $"conflicting string: {test}";        
     }
 
     public class Server : BaseClass

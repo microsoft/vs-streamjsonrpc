@@ -154,6 +154,16 @@
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
           <source>The '{0}' method has multiple {1} defined with different values.</source>
           <target state="new">The '{0}' method has multiple {1} defined with different values.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name</note>
+        </trans-unit>
+        <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
+          <source>The {0} Name value of {1} maps to multiple methods.</source>
+          <target state="new">The {0} Name value of {1} maps to multiple methods.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the attribute name {1} is the attribute value.</note>
+        </trans-unit>
+        <trans-unit id="OverloadsMissingMethodAttribute" translate="yes" xml:space="preserve">
+          <source>The {0} method has {1} defined, but not all of its overloads do.</source>
+          <target state="new">The {0} method has {1} defined, but not all of its overloads do.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name.</note>
         </trans-unit>
       </group>
