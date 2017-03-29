@@ -71,7 +71,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// A map of the target object's method names to JsonRpcMethodAttribute.Name value.
         /// </summary>
-        private readonly Dictionary<string, List<string>> clrMethodToMethodNameMap;
+        private readonly Dictionary<string, string> requestMethodToClrMethodMap;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -167,7 +167,7 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.clrMethodToMethodNameMap = GetMethodToAttributeMap(this.callbackTarget);
+            this.requestMethodToClrMethodMap = GetRequestMethodToClrMethodMap(this.callbackTarget);
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -663,13 +663,14 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Creates a dictionary which maps a class method name to its JsonRpcMethodAttribute.Name values.
+        /// Creates a dictionary which maps a request method name to its clr method name via JsonRpcMethodAttribute value.
         /// </summary>
         /// <param name="target"></param>
         /// <returns></returns>
-        private static Dictionary<string, List<string>> GetMethodToAttributeMap(object target)
+        private static Dictionary<string, string> GetRequestMethodToClrMethodMap(object target)
         {
-            var methodToAttributeMap = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            // First we create a dictionary to map clr method names to JsonRpcmethodAttribute value, this simplifies the process of detecting attribute name conflicts.
+            var methodToAttributeMap = new Dictionary<string, string>(StringComparer.Ordinal);
             if (target != null)
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
@@ -679,23 +680,31 @@ namespace StreamJsonRpc
                         var attribute = (JsonRpcMethodAttribute) method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
                         if (attribute != null)
                         {
-                            List<string> names;
-                            if (!methodToAttributeMap.TryGetValue(method.Name, out names))
+                            string value;
+                            if (methodToAttributeMap.TryGetValue(method.Name, out value))
                             {
-                                names = new List<string>();
-                                methodToAttributeMap.Add(method.Name, names);
+                                if (!string.Equals(attribute.Name, value, StringComparison.Ordinal))
+                                {
+                                    throw new RemoteTargetException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
+                                }
                             }
-
-                            if (!names.Contains(attribute.Name, StringComparer.Ordinal))
+                            else
                             {
-                                names.Add(attribute.Name);
-                            }
+                                methodToAttributeMap.Add(method.Name, attribute.Name);
+                            }                            
                         }
                     }
                 }
             }
 
-            return methodToAttributeMap;
+            // If not conflicts are find, then create another map which reverses the key/value mapping.
+            var attributeToMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var method in methodToAttributeMap)
+            {
+                attributeToMethodMap.Add(method.Value, method.Key);
+            }
+
+            return attributeToMethodMap;
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
@@ -727,7 +736,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.clrMethodToMethodNameMap);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.requestMethodToClrMethodMap);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);

@@ -7,3 +7,5 @@ virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<ReturnType>(int? id, string target
 StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name) -> void
 StreamJsonRpc.JsonRpcMethodAttribute.Name.get -> string
+StreamJsonRpc.RemoteTargetException
+StreamJsonRpc.RemoteTargetException.RemoteTargetException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void

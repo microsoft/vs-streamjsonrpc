@@ -23,50 +23,32 @@ namespace StreamJsonRpc
             JsonRpcMessage request, 
             object target, 
             JsonSerializer jsonSerializer, 
-            Dictionary<string, List<string>> methodToAttributeMap)
+            Dictionary<string, string> requestMethodToClrMethodMap)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(target, nameof(target));
-            Requires.NotNull(methodToAttributeMap, nameof(methodToAttributeMap));
+            Requires.NotNull(requestMethodToClrMethodMap, nameof(requestMethodToClrMethodMap));
 
             this.request = request;
             this.target = target;
 
             var targetMethods = new Dictionary<MethodSignature, object[]>();
-            bool errorFound = false;
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
             {
                 var matchFound = false;
-                var methodName = request.Method;
+                string requestMethodName = null;
                 var clrMethodName = request.Method;
 
-                foreach (var methodMap in methodToAttributeMap)
+                string value;
+                if (requestMethodToClrMethodMap.TryGetValue(request.Method, out value))
                 {
-                    if (methodMap.Value.Any(a => string.Equals(a, request.Method, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        if (methodMap.Value.Count != 1)
-                        {
-                            errorFound = true;
-                            this.errorMessages.Add(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodNameAttribute, methodMap.Key, nameof(JsonRpcMethodAttribute)));
-                        }
-                        else
-                        {
-                            methodName = methodMap.Key;
-                            clrMethodName = methodToAttributeMap[methodMap.Key].First();
-                        }
-
-                        break;
-                    }
+                    clrMethodName = value;
+                    requestMethodName = request.Method;
                 }
 
-                if (errorFound)
+                foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
                 {
-                    break;
-                }
-
-                foreach (MethodInfo method in t.GetDeclaredMethods(methodName))
-                {
-                    matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer, clrMethodName);
+                    matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer, requestMethodName);
                 }
 
                 if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
@@ -133,7 +115,7 @@ namespace StreamJsonRpc
             return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
         }
 
-        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer, string clrMethodName)
+        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer, string requestMethodName)
         {
             if (!method.IsPublic)
             {
@@ -142,7 +124,7 @@ namespace StreamJsonRpc
             }
 
             // The method name must match
-            string methodName = string.IsNullOrWhiteSpace(clrMethodName) ? method.Name : clrMethodName;
+            string methodName = string.IsNullOrWhiteSpace(requestMethodName) ? method.Name : requestMethodName;
             if (!string.Equals(methodName, request.Method, StringComparison.Ordinal) && !string.Equals(methodName, request.Method + ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodNameCaseIsDifferent, methodName, request.Method));
@@ -207,12 +189,12 @@ namespace StreamJsonRpc
             }
         }
 
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer, string clrMethodName = null)
+        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer, string requestMethodName = null)
         {
             var methodSignature = new MethodSignature(method);
             if (!targetMethods.ContainsKey(methodSignature))
             {
-                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer, clrMethodName);
+                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer, requestMethodName);
                 if (parameters != null)
                 {
                     targetMethods.Add(methodSignature, parameters);

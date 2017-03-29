@@ -19,6 +19,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteInvocationException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteMethodNotFoundException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteRpcException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteTargetException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\RemoteTargetNotSetException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HeaderDelimitedMessageHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonRpc.cs" />
