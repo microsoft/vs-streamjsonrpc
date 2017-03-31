@@ -153,19 +153,19 @@
           <target state="new">Parameter is not in the form of a single object</target>
         </trans-unit>
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
-          <source>The '{0}' method has multiple {1} defined with different values.</source>
-          <target state="new">The '{0}' method has multiple {1} defined with different values.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name.</note>
+          <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
+          <target state="new">All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
         </trans-unit>
         <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
-          <source>The {0} Name value of {1} maps to multiple methods.</source>
-          <target state="new">The {0} Name value of {1} maps to multiple methods.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the attribute name {1} is the attribute value.</note>
+          <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
+          <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
-        <trans-unit id="OverloadsMissingMethodAttribute" translate="yes" xml:space="preserve">
-          <source>The {0} method has {1} defined, but not all of its overloads do.</source>
-          <target state="new">The {0} method has {1} defined, but not all of its overloads do.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name</note>
+        <trans-unit id="MethodAttributeIsAnotherMethod" translate="yes" xml:space="preserve">
+          <source>Request method name '{0}' conflicts with an existing .NET method.</source>
+          <target state="new">Request method name '{0}' conflicts with an existing .NET method.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the request and method name.</note>
         </trans-unit>
       </group>
     </body>

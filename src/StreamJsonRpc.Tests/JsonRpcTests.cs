@@ -581,79 +581,28 @@ public class JsonRpcTests : TestBase
 
         string intOverloadResult = await this.clientRpc.InvokeAsync<string>("test/OverloadMethodAttribute", "mystring", 1);
         Assert.Equal("string: mystring int: 1", intOverloadResult);
+
+        string replacementCasingNotMatchResult = await this.clientRpc.InvokeAsync<string>("fiRst", "test");
+        Assert.Equal("first", replacementCasingNotMatchResult);
+
+        string replacementCasingMatchResult = await this.clientRpc.InvokeAsync<string>("Second", "test");
+        Assert.Equal("second", replacementCasingMatchResult);
+
+        string replacementDoesNotMatchResult = await this.clientRpc.InvokeAsync<string>("second", "test");
+        Assert.Equal("third", replacementDoesNotMatchResult);
+
+        string asyncResult = await this.clientRpc.InvokeAsync<string>("async/GetString", "one");
+        Assert.Equal("async one", asyncResult);
+
+        asyncResult = await this.clientRpc.InvokeAsync<string>("GetString", "two");
+        Assert.Equal("async two", asyncResult);
+
+        asyncResult = await this.clientRpc.InvokeAsync<string>("GetStringAsync", "three");
+        Assert.Equal("async three", asyncResult);
+
+        asyncResult = await this.clientRpc.InvokeAsync<string>("InvokeVirtualMethod", "four");
+        Assert.Equal("base four", asyncResult);
     }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_ConflictOverloadMethodsThrowsException()
-    {
-        var invalidServer = new ConflictingOverloadServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodBeforeThrowsException()
-    {
-        var invalidServer = new MissingMethodAttributeOverloadBeforeServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodAfterThrowsException()
-    {
-        var invalidServer = new MissingMethodAttributeOverloadAfterServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentDerivedMethodsThrowsException()
-    {
-        var invalidServer = new SameAttributeUsedOnDifferentDerivedMethodsServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentMethodsThrowsException()
-    {
-        var invalidServer = new SameAttributeUsedOnDifferentMethodsServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }
-
-    [Fact]
-    public void JsonRpcMethodAttribute_ConflictOverrideMethodsThrowsException()
-    {
-        var invalidServer = new InvalidOverrideServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(this.serverStream, invalidServer));
-    }    
 
     [Fact]
     public async Task NotifyAsync_InvokesMethodWithAttributeSet()
@@ -695,6 +644,148 @@ public class JsonRpcTests : TestBase
         Assert.Equal("string: mystring int: 1", await this.server.NotificationReceived);
     }
 
+    [Fact]
+    public void JsonRpcMethodAttribute_ConflictOverloadMethodsThrowsException()
+    {
+        var invalidServer = new ConflictingOverloadServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodBeforeThrowsException()
+    {
+        var invalidServer = new MissingMethodAttributeOverloadBeforeServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodAfterThrowsException()
+    {
+        var invalidServer = new MissingMethodAttributeOverloadAfterServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentDerivedMethodsThrowsException()
+    {
+        var invalidServer = new SameAttributeUsedOnDifferentDerivedMethodsServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentMethodsThrowsException()
+    {
+        var invalidServer = new SameAttributeUsedOnDifferentMethodsServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_ConflictOverrideMethodsThrowsException()
+    {
+        var invalidServer = new InvalidOverrideServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_ReplacementNameIsAnotherBaseMethodNameServerThrowsException()
+    {
+        var invalidServer = new ReplacementNameIsAnotherBaseMethodNameServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_ReplacementNameIsAnotherMethodNameThrowsException()
+    {
+        var invalidServer = new ReplacementNameIsAnotherMethodNameServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_InvalidAsyncMethodWithAsyncAddedInAttributeThrowsException()
+    {
+        var invalidServer = new InvalidAsyncMethodWithAsyncAddedInAttributeServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_InvalidAsyncMethodWithAsyncRemovedInAttributeThrowsException()
+    {
+        var invalidServer = new InvalidAsyncMethodWithAsyncRemovedInAttributeServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
+
+    [Fact]
+    public void JsonRpcMethodAttribute_InvalidAsyncMethodServerThrowsException()
+    {
+        var invalidServer = new InvalidAsyncMethodServer();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var serverStream = streams.Item1;
+        var clientStream = streams.Item2;
+
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
+        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+    }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
@@ -742,6 +833,13 @@ public class JsonRpcTests : TestBase
         public virtual void NotifyVirtualMethodNoOverride()
         {
             this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodNoOverride)}");
+        }
+
+        [JsonRpcMethod("InvokeVirtualMethod")]
+        public async virtual Task<string> InvokeVirtualMethodAsync(string arg)
+        {
+            await Task.Yield();
+            return $"base {arg}";
         }
     }
 
@@ -808,7 +906,80 @@ public class JsonRpcTests : TestBase
     public class SameAttributeUsedOnDifferentDerivedMethodsServer : BaseClass
     {
         [JsonRpcMethod("base/InvokeMethodWithAttribute")]
-        public string First(string test) => $"conflicting string: {test}";        
+        public string First(string test) => $"conflicting string: {test}";
+    }
+
+    public class Base
+    {
+        [JsonRpcMethod("base/first")]
+        public virtual string First(string test) => "first";
+
+        public string Second() => "Second";
+    }
+
+    public class ReplacementNameIsAnotherBaseMethodNameServer : Base
+    {
+        public override string First(string test) => "first";
+
+        [JsonRpcMethod("Second")]
+        public string Third(string test) => "third";
+    }
+
+    public class ReplacementNameIsAnotherMethodNameServer
+    {
+        [JsonRpcMethod("Second")]
+        public string First(string test) => "first";
+
+        public string Second(string test) => "second";
+    }
+
+    public class InvalidAsyncMethodWithAsyncRemovedInAttributeServer
+    {
+        [JsonRpcMethod("First")]
+        public async virtual Task<string> FirstAsync(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
+
+        public async virtual Task<string> First(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
+    }
+
+    public class InvalidAsyncMethodWithAsyncAddedInAttributeServer
+    {
+        public async virtual Task<string> FirstAsync(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
+
+        [JsonRpcMethod("FirstAsync")]
+        public async virtual Task<string> First(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
+    }
+
+    public class InvalidAsyncMethodServer
+    {
+        [JsonRpcMethod("First")]
+        public async virtual Task<string> FirstAsync(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
+
+        [JsonRpcMethod("FirstAsync")]
+        public async virtual Task<string> First(string arg)
+        {
+            await Task.Yield();
+            return $"first {arg}";
+        }
     }
 
     public class Server : BaseClass
@@ -888,9 +1059,26 @@ public class JsonRpcTests : TestBase
             this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodOverride)}");
         }
 
+        [JsonRpcMethod("fiRst")]
+        public string First(string test) => "first";
+
+        [JsonRpcMethod("Second")]
+        public string Second(string test) => "second";
+
+        [JsonRpcMethod("second")]
+        public string Third(string test) => "third";
+
         public override void NotifyVirtualMethodNoOverride()
         {
             this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodNoOverride)}");
+        }
+
+        [JsonRpcMethod("async/GetString")]
+        public async Task<string> GetStringAsync(string arg)
+        {
+            await Task.Yield();
+
+            return "async " + arg;
         }
 
         internal void InternalMethod()
@@ -1043,7 +1231,7 @@ public class JsonRpcTests : TestBase
             i = i + 1;
         }
     }
-    
+
     public class Foo
     {
         [JsonProperty(Required = Required.Always)]

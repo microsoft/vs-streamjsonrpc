@@ -71,7 +71,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The {0} Name value of {1} maps to multiple methods..
+        ///   Looks up a localized string similar to .NET methods &apos;{0}&apos; and &apos;{1}&apos; cannot both map to the same request method name: &apos;{2}&apos;..
         /// </summary>
         internal static string ConflictingMethodAttributeValue {
             get {
@@ -80,7 +80,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The &apos;{0}&apos; method has multiple {1} defined with different values..
+        ///   Looks up a localized string similar to All overloads and overrides of the &apos;{0}&apos; method must share a common value for {1}.{2}..
         /// </summary>
         internal static string ConflictingMethodNameAttribute {
             get {
@@ -170,6 +170,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Request method name &apos;{0}&apos; conflicts with an existing .NET method..
+        /// </summary>
+        internal static string MethodAttributeIsAnotherMethod {
+            get {
+                return ResourceManager.GetString("MethodAttributeIsAnotherMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} has ref or out parameter(s), which is not supported.
         /// </summary>
         internal static string MethodHasRefOrOutParameters {
@@ -229,15 +238,6 @@ namespace StreamJsonRpc {
         internal static string NonNegativeIntegerRequired {
             get {
                 return ResourceManager.GetString("NonNegativeIntegerRequired", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The {0} method has {1} defined, but not all of its overloads do..
-        /// </summary>
-        internal static string OverloadsMissingMethodAttribute {
-            get {
-                return ResourceManager.GetString("OverloadsMissingMethodAttribute", resourceCulture);
             }
         }
         

@@ -121,12 +121,12 @@
     <value>Both readable and writable are null.</value>
   </data>
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
-    <value>The {0} Name value of {1} maps to multiple methods.</value>
-    <comment>{0} is the attribute name {1} is the attribute value.</comment>
+    <value>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
   <data name="ConflictingMethodNameAttribute" xml:space="preserve">
-    <value>The '{0}' method has multiple {1} defined with different values.</value>
-    <comment>{0} is the method name, {1} is the attribute name</comment>
+    <value>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
@@ -159,6 +159,10 @@
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON RPC must not be null.</value>
   </data>
+  <data name="MethodAttributeIsAnotherMethod" xml:space="preserve">
+    <value>Request method name '{0}' conflicts with an existing .NET method.</value>
+    <comment>{0} is the request and method name.</comment>
+  </data>
   <data name="MethodHasRefOrOutParameters" xml:space="preserve">
     <value>{0} has ref or out parameter(s), which is not supported</value>
     <comment>{0} is the method signature.</comment>
@@ -185,10 +189,6 @@
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
-  </data>
-  <data name="OverloadsMissingMethodAttribute" xml:space="preserve">
-    <value>The {0} method has {1} defined, but not all of its overloads do.</value>
-    <comment>{0} is the method name, {1} is the attribute name.</comment>
   </data>
   <data name="ParameterNotObject" xml:space="preserve">
     <value>Parameter is not in the form of a single object</value>

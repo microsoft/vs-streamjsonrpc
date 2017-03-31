@@ -679,45 +679,32 @@ namespace StreamJsonRpc
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
                 {
-                    HashSet<string> clrMethodsWithoutReplacementName = new HashSet<string>(StringComparer.Ordinal);
-
                     foreach (MethodInfo method in t.DeclaredMethods)
                     {
                         var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-                        if (attribute == null)
+                        var attributeValue = attribute == null ? null : attribute.Name;
+
+                        string requestMethodValue;
+                        if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out requestMethodValue))
                         {
-                            clrMethodsWithoutReplacementName.Add(method.Name);
-                            if (clrMethodToRequestMethodMap.ContainsKey(method.Name))
+                            if (!string.Equals(requestMethodValue, attributeValue, StringComparison.Ordinal))
                             {
-                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.OverloadsMissingMethodAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
+                                Requires.Fail(Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute), nameof(JsonRpcMethodAttribute.Name));
                             }
                         }
                         else
                         {
-                            if (clrMethodsWithoutReplacementName.Contains(method.Name))
-                            {
-                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.OverloadsMissingMethodAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
-                            }
+                            clrMethodToRequestMethodMap.Add(method.Name, attributeValue);
+                        }
 
-                            string attributeValue;
-                            if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out attributeValue))
-                            {
-                                if (!string.Equals(attribute.Name, attributeValue, StringComparison.Ordinal))
-                                {
-                                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute)));
-                                }
-                            }
-                            else
-                            {
-                                clrMethodToRequestMethodMap.Add(method.Name, attribute.Name);
-                            }
-
+                        if (attributeValue != null)
+                        {
                             string methodValue;
                             if (requestMethodToClrMethodMap.TryGetValue(attribute.Name, out methodValue))
                             {
                                 if (!string.Equals(method.Name, methodValue, StringComparison.Ordinal))
                                 {
-                                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.ConflictingMethodAttributeValue, nameof(JsonRpcMethodAttribute), attribute.Name));
+                                    Requires.Fail(Resources.ConflictingMethodAttributeValue, method.Name, methodValue, attribute.Name);
                                 }
                             }
                             else
@@ -729,11 +716,19 @@ namespace StreamJsonRpc
                 }
             }
 
-            // We shouldn't ever hit this unless there's a bug in the above code.  Put in so we can detect bugs easier.
-            if (clrMethodToRequestMethodMap.Count != requestMethodToClrMethodMap.Count)
+            foreach (var attributeToClr in requestMethodToClrMethodMap)
             {
-                throw new InvalidOperationException("There was an error reflecting over the target object.");
+                if (!string.Equals(attributeToClr.Key, attributeToClr.Value, StringComparison.OrdinalIgnoreCase) &&
+                    clrMethodToRequestMethodMap.ContainsKey(attributeToClr.Key))
+                {
+                    Requires.Fail(Resources.MethodAttributeIsAnotherMethod, attributeToClr.Key);
+                }
             }
+
+            // We shouldn't ever hit this unless there's a bug in the above code.  Put in so we can detect bugs easier.
+            Assumes.Equals(
+                clrMethodToRequestMethodMap.Where(entry => entry.Value != null).Count() == requestMethodToClrMethodMap.Count,
+                "There was an error reflecting over the target object.");
 
             return requestMethodToClrMethodMap;
         }
