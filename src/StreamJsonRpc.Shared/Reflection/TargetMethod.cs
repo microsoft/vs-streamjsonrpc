@@ -23,39 +23,56 @@ namespace StreamJsonRpc
             JsonRpcMessage request, 
             object target, 
             JsonSerializer jsonSerializer, 
+            Dictionary<string, string> clrMethodToRequestMethodMap,
             Dictionary<string, string> requestMethodToClrMethodMap)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(target, nameof(target));
+            Requires.NotNull(clrMethodToRequestMethodMap, nameof(clrMethodToRequestMethodMap));
             Requires.NotNull(requestMethodToClrMethodMap, nameof(requestMethodToClrMethodMap));
 
             this.request = request;
             this.target = target;
 
+            string requestMethodName = null;
+            string clrMethodName = null;
+
+            string value;
+            if (requestMethodToClrMethodMap.TryGetValue(request.Method, out value))
+            {
+                clrMethodName = value;
+                requestMethodName = request.Method;
+            }
+            else 
+            {
+                string rpcAttributeMethod;
+                if (clrMethodToRequestMethodMap.TryGetValue(request.Method, out rpcAttributeMethod) || clrMethodToRequestMethodMap.TryGetValue(request.Method + ImpliedMethodNameAsyncSuffix, out rpcAttributeMethod))
+                {
+                    if (rpcAttributeMethod == null)
+                    {
+                        clrMethodName = request.Method;
+                    }
+                }
+            }
+
             var targetMethods = new Dictionary<MethodSignature, object[]>();
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
             {
                 var matchFound = false;
-                string requestMethodName = null;
-                var clrMethodName = request.Method;
-
-                string value;
-                if (requestMethodToClrMethodMap.TryGetValue(request.Method, out value))
+                
+                if (clrMethodName != null)
                 {
-                    clrMethodName = value;
-                    requestMethodName = request.Method;
-                }
-
-                foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
-                {
-                    matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer, requestMethodName);
-                }
-
-                if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
-                {
-                    foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
+                    foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
                     {
-                        matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
+                        matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer, requestMethodName);
+                    }
+
+                    if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
+                    {
+                        foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
+                        {
+                            matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
+                        }
                     }
                 }
             }

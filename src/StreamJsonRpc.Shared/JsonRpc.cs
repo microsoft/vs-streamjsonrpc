@@ -69,9 +69,14 @@ namespace StreamJsonRpc
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         /// <summary>
-        /// A map of the target object's method names to JsonRpcMethodAttribute.Name value.
+        /// A dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values, used to detect that same method shouldn't have multiple attribute values.
         /// </summary>
-        private readonly Dictionary<string, string> requestMethodToClrMethodMap;
+        private Dictionary<string, string> requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// A dictionary to map <see cref="JsonRpcMethodAttribute" /> values to clr method names, used to detect that the same attribute value doesn't map to multiple methods.
+        /// </summary>
+        private Dictionary<string, string> clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -167,7 +172,7 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.requestMethodToClrMethodMap = GetRequestMethodToClrMethodMap(this.callbackTarget);
+            GetRequestMethodToClrMethodMap(this.callbackTarget);
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -667,14 +672,8 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static Dictionary<string, string> GetRequestMethodToClrMethodMap(object target)
+        private void GetRequestMethodToClrMethodMap(object target)
         {
-            // Create a dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values, used to detect that same method shouldn't have multiple attribute values.
-            var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            // Create a dictionary to map <see cref="JsonRpcMethodAttribute" /> values to clr method names, used to detect that the same attribute value doesn't map to multiple methods.
-            var requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-
             if (target != null)
             {
                 for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
@@ -729,8 +728,6 @@ namespace StreamJsonRpc
             Assumes.Equals(
                 clrMethodToRequestMethodMap.Where(entry => entry.Value != null).Count() == requestMethodToClrMethodMap.Count,
                 "There was an error reflecting over the target object.");
-
-            return requestMethodToClrMethodMap;
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
@@ -762,7 +759,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.requestMethodToClrMethodMap);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.clrMethodToRequestMethodMap, this.requestMethodToClrMethodMap);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
