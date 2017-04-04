@@ -4,7 +4,8 @@ using Microsoft;
 namespace StreamJsonRpc
 {
     /// <summary>
-    /// Attribute which allows a method to have a different name.  If applied on a method, the method's CLR name can no longer be used for remote invocation.
+    /// Attribute which changes the name by which this method can be invoked over JSON-RPC.
+    /// If applied on a method, the method's CLR name can no longer be used for remote invocation.
     /// </summary>
     /// <remarks>
     /// This attribute should be used when rpc message method names can be different from the actual CLR method names.
