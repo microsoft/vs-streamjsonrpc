@@ -3,13 +3,23 @@
     <TargetFramework>net46</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CodeAnalysisRuleSet>StreamJsonRpc.Tests.ruleset</CodeAnalysisRuleSet>
+    <RootNamespace />
   </PropertyGroup>
   <ItemGroup>
-    <!-- A reference to the entire .NET Framework is automatically included -->
-    <ProjectReference Include="..\StreamJsonRpc\StreamJsonRpc.csproj">
-      <Project>{dfbd1bca-eae0-4454-9e97-fa9bd9a0f03a}</Project>
-      <Name>StreamJsonRpc</Name>
-    </ProjectReference>
+    <EmbeddedResource Update="Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="OpenCover" Version="4.6.519" />
