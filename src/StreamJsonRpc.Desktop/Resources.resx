@@ -160,10 +160,6 @@
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON-RPC must not be null.</value>
   </data>
-  <data name="MethodAttributeIsAnotherMethod" xml:space="preserve">
-    <value>Request method name '{0}' conflicts with an existing .NET method.</value>
-    <comment>{0} is the request and method name.</comment>
-  </data>
   <data name="MethodHasRefOrOutParameters" xml:space="preserve">
     <value>{0} has ref or out parameter(s), which is not supported</value>
     <comment>{0} is the method signature.</comment>

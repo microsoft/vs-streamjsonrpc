@@ -170,15 +170,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Request method name &apos;{0}&apos; conflicts with an existing .NET method..
-        /// </summary>
-        internal static string MethodAttributeIsAnotherMethod {
-            get {
-                return ResourceManager.GetString("MethodAttributeIsAnotherMethod", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} has ref or out parameter(s), which is not supported.
         /// </summary>
         internal static string MethodHasRefOrOutParameters {

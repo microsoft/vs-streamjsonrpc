@@ -161,11 +161,6 @@
           <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
-        <trans-unit id="MethodAttributeIsAnotherMethod" translate="yes" xml:space="preserve">
-          <source>Request method name '{0}' conflicts with an existing .NET method.</source>
-          <target state="new">Request method name '{0}' conflicts with an existing .NET method.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the request and method name.</note>
-        </trans-unit>
       </group>
     </body>
   </file>

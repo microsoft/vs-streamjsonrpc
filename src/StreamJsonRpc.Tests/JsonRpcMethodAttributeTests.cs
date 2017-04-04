@@ -273,16 +273,21 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_InvalidAsyncMethodServerThrowsException()
+    public async Task JsonRpcMethodAttribute_SwappingAsyncMethodServerThrowsException()
     {
-        var invalidServer = new InvalidAsyncMethodServer();
+        var invalidServer = new SwappingAsyncMethodServer();
 
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var serverStream = streams.Item1;
         var clientStream = streams.Item2;
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        var rpc = JsonRpc.Attach(serverStream, clientStream, invalidServer);
+
+        string result = await rpc.InvokeAsync<string>("FirstAsync", "hi");
+        Assert.Equal("First hi", result);
+
+        result = await rpc.InvokeAsync<string>("First", "bye");
+        Assert.Equal("FirstAsync bye", result);
     }
 
     public class BaseClass
@@ -446,20 +451,20 @@ public class JsonRpcMethodAttributeTests : TestBase
         }
     }
 
-    public class InvalidAsyncMethodServer
+    public class SwappingAsyncMethodServer
     {
         [JsonRpcMethod("First")]
         public async virtual Task<string> FirstAsync(string arg)
         {
             await Task.Yield();
-            return $"first {arg}";
+            return $"FirstAsync {arg}";
         }
 
         [JsonRpcMethod("FirstAsync")]
         public async virtual Task<string> First(string arg)
         {
             await Task.Yield();
-            return $"first {arg}";
+            return $"First {arg}";
         }
     }
 

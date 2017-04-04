@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -30,7 +31,9 @@ namespace StreamJsonRpc
             }
         }
 
+        private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
+        private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
         private readonly object callbackTarget;
@@ -69,14 +72,9 @@ namespace StreamJsonRpc
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         /// <summary>
-        /// A dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values, used to detect that same method shouldn't have multiple attribute values.
+        /// A dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values.
         /// </summary>
-        private Dictionary<string, string> requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        /// <summary>
-        /// A dictionary to map <see cref="JsonRpcMethodAttribute" /> values to clr method names, used to detect that the same attribute value doesn't map to multiple methods.
-        /// </summary>
-        private Dictionary<string, string> clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly ReadOnlyDictionary<string, string> requestMethodToClrMethodMap;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -172,7 +170,9 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            GetRequestMethodToClrMethodMap(this.callbackTarget);
+            this.requestMethodToClrMethodMap = this.callbackTarget != null
+                ? new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(this.callbackTarget))
+                : EmptyDictionary;
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
@@ -672,62 +672,71 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private void GetRequestMethodToClrMethodMap(object target)
+        private static IDictionary<string, string> GetRequestMethodToClrMethodMap(object target)
         {
-            if (target != null)
+            Requires.NotNull(target, nameof(target));
+
+            var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
             {
-                for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+                foreach (MethodInfo method in t.DeclaredMethods)
                 {
-                    foreach (MethodInfo method in t.DeclaredMethods)
+                    var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                    var requestName = attribute?.Name ?? method.Name;
+
+                    // Verify that all overloads of this CLR method also claim the same request method name.
+                    if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out string previousRequestNameUse))
                     {
-                        var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-                        var attributeValue = attribute == null ? null : attribute.Name;
-
-                        string requestMethodValue;
-                        if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out requestMethodValue))
+                        if (!string.Equals(previousRequestNameUse, requestName, StringComparison.Ordinal))
                         {
-                            if (!string.Equals(requestMethodValue, attributeValue, StringComparison.Ordinal))
-                            {
-                                Requires.Fail(Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute), nameof(JsonRpcMethodAttribute.Name));
-                            }
+                            Requires.Fail(Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute), nameof(JsonRpcMethodAttribute.Name));
                         }
-                        else
-                        {
-                            clrMethodToRequestMethodMap.Add(method.Name, attributeValue);
-                        }
+                    }
+                    else
+                    {
+                        clrMethodToRequestMethodMap.Add(method.Name, requestName);
+                    }
 
-                        if (attributeValue != null)
+                    // Verify that all CLR methods that want to use this request method name are overloads of each other.
+                    if (requestMethodToClrMethodMap.TryGetValue(requestName, out string previousClrNameUse))
+                    {
+                        if (!string.Equals(method.Name, previousClrNameUse, StringComparison.Ordinal))
                         {
-                            string methodValue;
-                            if (requestMethodToClrMethodMap.TryGetValue(attribute.Name, out methodValue))
-                            {
-                                if (!string.Equals(method.Name, methodValue, StringComparison.Ordinal))
-                                {
-                                    Requires.Fail(Resources.ConflictingMethodAttributeValue, method.Name, methodValue, attribute.Name);
-                                }
-                            }
-                            else
-                            {
-                                requestMethodToClrMethodMap.Add(attribute.Name, method.Name);
-                            }
+                            Requires.Fail(Resources.ConflictingMethodAttributeValue, method.Name, previousClrNameUse, requestName);
+                        }
+                    }
+                    else
+                    {
+                        requestMethodToClrMethodMap.Add(requestName, method.Name);
+                    }
+
+                    // If no explicit attribute has been applied, and the method ends with Async,
+                    // register a request method name that does not include Async as well.
+                    if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
+                    {
+                        string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
+                        if (!candidateAliases.ContainsKey(nonAsyncMethodName))
+                        {
+                            candidateAliases.Add(nonAsyncMethodName, method.Name);
                         }
                     }
                 }
             }
 
-            foreach (var attributeToClr in requestMethodToClrMethodMap)
+            // Now that all methods have been discovered, add the candidate aliases
+            // if it would not introduce any collisions.
+            foreach (var candidateAlias in candidateAliases)
             {
-                if (!string.Equals(attributeToClr.Key, attributeToClr.Value, StringComparison.OrdinalIgnoreCase) &&
-                    clrMethodToRequestMethodMap.ContainsKey(attributeToClr.Key))
+                if (!requestMethodToClrMethodMap.ContainsKey(candidateAlias.Key))
                 {
-                    Requires.Fail(Resources.MethodAttributeIsAnotherMethod, attributeToClr.Key);
+                    requestMethodToClrMethodMap.Add(candidateAlias.Key, candidateAlias.Value);
                 }
             }
 
-            // We shouldn't ever hit this unless there's a bug in the above code.  Put in so we can detect bugs easier.
-            Assumes.Equals(
-                clrMethodToRequestMethodMap.Where(entry => entry.Value != null).Count() == requestMethodToClrMethodMap.Count,
-                "There was an error reflecting over the target object.");
+            return requestMethodToClrMethodMap;
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
@@ -750,6 +759,9 @@ namespace StreamJsonRpc
 
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request, JsonSerializer jsonSerializer)
         {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
+
             if (this.callbackTarget == null)
             {
                 string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
@@ -759,7 +771,7 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.clrMethodToRequestMethodMap, this.requestMethodToClrMethodMap);
+                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.requestMethodToClrMethodMap);
                 if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
