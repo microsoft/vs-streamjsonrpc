@@ -994,7 +994,7 @@ namespace StreamJsonRpc
                 }
                 catch (OperationCanceledException) { }
                 catch (ObjectDisposedException) { }
-#if DESKTOP
+#if NET45
                 catch (Exception ex)
                 {
                     Debug.Fail(ex.Message, ex.ToString());

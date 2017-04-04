@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc", "StreamJson
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc.Tests", "StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj", "{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}"
 EndProject
-Project("{FF286327-C783-4F7A-AB73-9BCBAD0D4460}") = "StreamJsonRpc.NuGet", "StreamJsonRpc.NuGet\StreamJsonRpc.NuGet.nuproj", "{927450A5-18BF-4378-8421-7A7C6864B6EA}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68DDB820-140B-4178-B030-3E47C460376B}"
 	ProjectSection(SolutionItems) = preProject
 		nuget.config = nuget.config
@@ -29,10 +27,6 @@ Global
 		{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{927450A5-18BF-4378-8421-7A7C6864B6EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{927450A5-18BF-4378-8421-7A7C6864B6EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{927450A5-18BF-4378-8421-7A7C6864B6EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{927450A5-18BF-4378-8421-7A7C6864B6EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

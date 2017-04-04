@@ -4,9 +4,6 @@
     <OutputPath>$(MSBuildThisFileDirectory)..\bin\$(MSBuildProjectName)\$(Configuration)\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-
-  </ItemGroup>
-  <ItemGroup>
-    
+  	<PackageReference Include="Nerdbank.GitVersioning" Version="1.6.25" PrivateAssets="all" />
   </ItemGroup>
 </Project>
