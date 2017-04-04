@@ -5,7 +5,7 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcmethodAttributeTests : TestBase
+public class JsonRpcMethodAttributeTests : TestBase
 {
     private const int CustomTaskResult = 100;
     private const string HubName = "TestHub";
@@ -17,7 +17,7 @@ public class JsonRpcmethodAttributeTests : TestBase
     private readonly Stream clientStream;
     private readonly JsonRpc clientRpc;
 
-    public JsonRpcmethodAttributeTests(ITestOutputHelper logger)
+    public JsonRpcMethodAttributeTests(ITestOutputHelper logger)
         : base(logger)
     {
         TaskCompletionSource<JsonRpc> serverRpcTcs = new TaskCompletionSource<JsonRpc>();
