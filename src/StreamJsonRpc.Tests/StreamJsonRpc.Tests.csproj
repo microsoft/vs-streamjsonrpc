@@ -4,6 +4,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CodeAnalysisRuleSet>StreamJsonRpc.Tests.ruleset</CodeAnalysisRuleSet>
     <RootNamespace />
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx">
