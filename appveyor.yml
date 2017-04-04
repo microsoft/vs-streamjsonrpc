@@ -7,12 +7,11 @@ branches:
 skip_tags: true
 nuget:
   disable_publish_on_pr: true
-image: Visual Studio 2015
+image: Visual Studio 2017
 configuration: Release
 environment:
-  VisualStudioVersion: 14.0
+  VisualStudioVersion: 15.0
 cache:
-#- '%USERPROFILE%\.nuget\packages -> **\project.json'
 - 'obj\tools -> tools\**'
 before_build:
 - ps:  .\init.ps1
@@ -22,7 +21,7 @@ build:
   verbosity: minimal
 test_script:
 - cmd: >-
-    "%userprofile%\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe" 
+    "%userprofile%\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe"
     -register:user
     -target:"%xunit20%\xunit.console.x86.exe"
     -targetargs:"bin\Release\StreamJsonRpc.Tests\StreamJsonRpc.Tests.dll -noshadow -html bin\release\testresults.html -xml bin\release\testresults.xml -appveyor -notrait TestCategory=FailsInCloudTest -nologo"
