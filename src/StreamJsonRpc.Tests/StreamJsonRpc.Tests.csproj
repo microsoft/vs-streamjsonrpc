@@ -50,6 +50,7 @@
     <Compile Include="HeaderDelimitedMessageHandlerTests.cs" />
     <Compile Include="InteropTestBase.cs" />
     <Compile Include="JsonRpcClientInteropTests.cs" />
+    <Compile Include="JsonRpcMethodAttributeTests.cs" />
     <Compile Include="JsonRpcRawStreamTests.cs" />
     <Compile Include="JsonRpcServerInteropTests.cs" />
     <Compile Include="JsonRpcTests.cs" />

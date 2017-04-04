@@ -70,6 +70,24 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to .NET methods &apos;{0}&apos; and &apos;{1}&apos; cannot both map to the same request method name: &apos;{2}&apos;..
+        /// </summary>
+        internal static string ConflictingMethodAttributeValue {
+            get {
+                return ResourceManager.GetString("ConflictingMethodAttributeValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All overloads and overrides of the &apos;{0}&apos; method must share a common value for {1}.{2}..
+        /// </summary>
+        internal static string ConflictingMethodNameAttribute {
+            get {
+                return ResourceManager.GetString("ConflictingMethodNameAttribute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {

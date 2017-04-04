@@ -336,6 +336,13 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task CanCallMethodWithoutOmittingAsyncSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>("MethodThatEndsInAsync");
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
     public async Task CanCallMethodWithAsyncSuffixInPresenceOfOneMissingSuffix()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndInAsync));
@@ -572,6 +579,8 @@ public class JsonRpcTests : TestBase
 
     public class BaseClass
     {
+        protected readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
+
         public string BaseMethod() => "base";
 
         public virtual string VirtualBaseMethod() => "base";
@@ -581,8 +590,6 @@ public class JsonRpcTests : TestBase
 
     public class Server : BaseClass
     {
-        private readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
-
         public bool NullPassed { get; private set; }
 
         public AsyncAutoResetEvent AllowServerMethodToReturn { get; } = new AsyncAutoResetEvent();
@@ -770,7 +777,7 @@ public class JsonRpcTests : TestBase
             i = i + 1;
         }
     }
-    
+
     public class Foo
     {
         [JsonProperty(Required = Required.Always)]

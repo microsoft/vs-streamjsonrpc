@@ -121,6 +121,14 @@
     <value>Both readable and writable are null.</value>
     <comment>'readable' and 'writable' are parameter names and should not be localized.</comment>
   </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
     <comment>{0} is the method name to execute.</comment>
