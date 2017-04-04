@@ -12,51 +12,50 @@ namespace StreamJsonRpc
 {
     internal sealed class TargetMethod
     {
-        private const string ImpliedMethodNameAsyncSuffix = "Async";
         private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
         private readonly JsonRpcMessage request;
         private readonly object target;
         private readonly MethodInfo method;
         private readonly object[] parameters;
 
-        internal TargetMethod(JsonRpcMessage request, object target, JsonSerializer jsonSerializer)
+        internal TargetMethod(
+            JsonRpcMessage request,
+            object target,
+            JsonSerializer jsonSerializer,
+            IReadOnlyDictionary<string, string> requestMethodToClrMethodMap)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(target, nameof(target));
+            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
+            Requires.NotNull(requestMethodToClrMethodMap, nameof(requestMethodToClrMethodMap));
 
             this.request = request;
             this.target = target;
 
-            var targetMethods = new Dictionary<MethodSignature, object[]>();
-            for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+            if (requestMethodToClrMethodMap.TryGetValue(request.Method, out string clrMethodName))
             {
-                bool matchFound = false;
-                foreach (MethodInfo method in t.GetDeclaredMethods(request.Method))
+                var targetMethods = new Dictionary<MethodSignature, object[]>();
+                for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
                 {
-                    matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
-                }
-
-                if (!matchFound && !request.Method.EndsWith(ImpliedMethodNameAsyncSuffix))
-                {
-                    foreach (MethodInfo method in t.GetDeclaredMethods(request.Method + ImpliedMethodNameAsyncSuffix))
+                    foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
                     {
-                        matchFound |= TryAddMethod(request, targetMethods, method, jsonSerializer);
+                        TryAddMethod(request, targetMethods, method, jsonSerializer, request.Method);
                     }
                 }
-            }
 
-            if (targetMethods.Count == 1)
-            {
-                KeyValuePair<MethodSignature, object[]> methodWithParameters = targetMethods.First();
-                this.method = methodWithParameters.Key.MethodInfo;
-                this.parameters = methodWithParameters.Value;
-                this.AcceptsCancellationToken = methodWithParameters.Key.HasCancellationTokenParameter;
-            }
-            else if (targetMethods.Count > 1)
-            {
-                this.method = null;
-                this.parameters = null;
-                this.errorMessages.Add(string.Format(CultureInfo.CurrentCulture, Resources.MoreThanOneMethodFound, string.Join("; ", targetMethods.Keys)));
+                if (targetMethods.Count == 1)
+                {
+                    KeyValuePair<MethodSignature, object[]> methodWithParameters = targetMethods.First();
+                    this.method = methodWithParameters.Key.MethodInfo;
+                    this.parameters = methodWithParameters.Value;
+                    this.AcceptsCancellationToken = methodWithParameters.Key.HasCancellationTokenParameter;
+                }
+                else if (targetMethods.Count > 1)
+                {
+                    this.method = null;
+                    this.parameters = null;
+                    this.errorMessages.Add(string.Format(CultureInfo.CurrentCulture, Resources.MoreThanOneMethodFound, string.Join("; ", targetMethods.Keys)));
+                }
             }
         }
 
@@ -100,18 +99,17 @@ namespace StreamJsonRpc
             return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
         }
 
-        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer)
+        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer, string requestMethodName)
         {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(method, nameof(method));
+            Requires.NotNull(errors, nameof(errors));
+            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
+            Requires.NotNullOrEmpty(requestMethodName, nameof(requestMethodName));
+
             if (!method.IsPublic)
             {
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodIsNotPublic, method));
-                return null;
-            }
-
-            // The method name must match
-            if (!string.Equals(method.Name, request.Method, StringComparison.Ordinal) && !string.Equals(method.Name, request.Method + ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
-            {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodNameCaseIsDifferent, method, request.Method));
                 return null;
             }
 
@@ -173,12 +171,18 @@ namespace StreamJsonRpc
             }
         }
 
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer)
+        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer, string requestMethodName)
         {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(targetMethods, nameof(targetMethods));
+            Requires.NotNull(method, nameof(method));
+            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
+            Requires.NotNullOrEmpty(requestMethodName, nameof(requestMethodName));
+
             var methodSignature = new MethodSignature(method);
             if (!targetMethods.ContainsKey(methodSignature))
             {
-                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer);
+                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer, requestMethodName);
                 if (parameters != null)
                 {
                     targetMethods.Add(methodSignature, parameters);
