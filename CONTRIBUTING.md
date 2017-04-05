@@ -15,7 +15,16 @@ We hope to soon.
 
 ## Building
 
-To build this project, first run the `init.ps1` or `init.cmd` scripts in the root of the repo.
+Visual Studio automatically downloads all the dependencies required and you can build using `msbuild` in `src/` or directly in Visual Studio. 
+
+If there are any issues, save all untracked changes, close Visual Studio, and run the following commands from the VS 2017 Dev Console:
+```
+git clean -fdx :/
+```
+```
+msbuild /t:restore
+```
+
 
 ### Running tests
 
