@@ -11,7 +11,7 @@ namespace StreamJsonRpc
     /// there was a method with the matching name, but it was not public, had ref or out params, or
     /// its arguments were incompatible with the arguments supplied by the client.
     /// </remarks>
-#if DESKTOP
+#if NET45
     [System.Serializable]
 #endif
     public class RemoteMethodNotFoundException : RemoteRpcException
@@ -27,7 +27,7 @@ namespace StreamJsonRpc
             this.TargetMethod = targetMethod;
         }
 
-#if DESKTOP
+#if NET45
         protected RemoteMethodNotFoundException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)

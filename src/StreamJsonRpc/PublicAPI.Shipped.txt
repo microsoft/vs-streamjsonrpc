@@ -1,4 +1,4 @@
-﻿StreamJsonRpc.BadRpcHeaderException
+StreamJsonRpc.BadRpcHeaderException
 StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.DelimitedMessageHandler
 StreamJsonRpc.DelimitedMessageHandler.CanRead.get -> bool

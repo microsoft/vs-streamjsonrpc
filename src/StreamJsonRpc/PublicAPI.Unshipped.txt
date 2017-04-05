@@ -1,4 +1,4 @@
-﻿StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<Result>(string targetName, object argument) -> System.Threading.Tasks.Task<Result>
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<Result>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Result>

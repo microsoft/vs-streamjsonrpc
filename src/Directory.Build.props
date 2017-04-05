@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <OutputPath>$(MSBuildThisFileDirectory)..\bin\$(MSBuildProjectName)\$(Configuration)\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+  	<PackageReference Include="Nerdbank.GitVersioning" Version="1.6.25" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

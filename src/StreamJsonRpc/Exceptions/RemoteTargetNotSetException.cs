@@ -5,7 +5,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Remote RPC exception that indicates that the server has no target object.
     /// </summary>
-#if DESKTOP
+#if NET45
     [System.Serializable]
 #endif
     public class RemoteTargetNotSetException : RemoteRpcException
@@ -14,7 +14,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if DESKTOP
+#if NET45
         protected RemoteTargetNotSetException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)

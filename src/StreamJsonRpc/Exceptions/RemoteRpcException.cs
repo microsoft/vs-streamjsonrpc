@@ -5,7 +5,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Base exception class for any exception that happens while receiving an JSON RPC communication.
     /// </summary>
-#if DESKTOP
+#if NET45
     [System.Serializable]
 #endif
     public abstract class RemoteRpcException : Exception
@@ -18,7 +18,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if DESKTOP
+#if NET45
         protected RemoteRpcException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
