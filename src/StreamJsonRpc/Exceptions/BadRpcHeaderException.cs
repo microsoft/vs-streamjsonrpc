@@ -2,7 +2,7 @@
 
 namespace StreamJsonRpc
 {
-#if DESKTOP
+#if NET45
     [Serializable]
 #endif
     public class BadRpcHeaderException : RemoteRpcException
@@ -15,7 +15,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if DESKTOP
+#if NET45
         protected BadRpcHeaderException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
