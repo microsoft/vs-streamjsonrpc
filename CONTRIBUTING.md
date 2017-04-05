@@ -20,8 +20,6 @@ Visual Studio automatically downloads all the dependencies required and you can 
 If there are any issues, save all untracked changes, close Visual Studio, and run the following commands from the VS 2017 Dev Console:
 ```
 git clean -fdx :/
-```
-```
 msbuild /t:restore
 ```
 
