@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en-US" target-language="ru" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
+  <file datatype="xml" source-language="en" target-language="ru" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
       <tool tool-id="MultilingualAppToolkit" tool-name="Multilingual App Toolkit" tool-version="4.0.1605.0" tool-company="Microsoft" />
     </header>
@@ -150,6 +150,16 @@
         <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
           <source>Parameter is not in the form of a single object</source>
           <target state="new">Parameter is not in the form of a single object</target>
+        </trans-unit>
+        <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
+          <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
+          <target state="new">All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
+        </trans-unit>
+        <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
+          <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
+          <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
       </group>
     </body>
