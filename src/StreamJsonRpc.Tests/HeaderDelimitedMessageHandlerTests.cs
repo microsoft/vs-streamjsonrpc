@@ -52,6 +52,7 @@ CRLF +
     [Fact]
     public void ReadCoreAsync_HandlesUtf8CharsetCorrectly()
     {
+        // Using 'utf8'
         string content =
 "Content-Length: 10" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf8" + CRLF +
@@ -68,6 +69,7 @@ CRLF +
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
 
+        // Using 'utf-8'
         content =
 "Content-Length: 10" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
