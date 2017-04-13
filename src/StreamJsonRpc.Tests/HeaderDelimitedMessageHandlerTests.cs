@@ -48,4 +48,37 @@ CRLF +
         readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
         Assert.Equal<string>("ABCDE", readContent);
     }
+
+    [Fact]
+    public void ReadCoreAsync_HandlesUtf8CharsetCorrectly()
+    {
+        string content =
+"Content-Length: 10" + CRLF +
+"Content-Type: application/vscode-jsonrpc;charset=utf8" + CRLF +
+CRLF +
+"0123456789";
+        byte[] bytes = Encoding.UTF8.GetBytes(content);
+        this.receivingStream.Write(bytes, 0, bytes.Length);
+        this.receivingStream.Flush();
+        this.receivingStream.Position = 0;
+
+        string readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+        Assert.Equal<string>("0123456789", readContent);
+
+        this.receivingStream.Position = 0;
+        this.receivingStream.SetLength(0);
+
+        content =
+"Content-Length: 10" + CRLF +
+"Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
+CRLF +
+"ABCDEFGHIJ";
+        bytes = Encoding.UTF8.GetBytes(content);
+        this.receivingStream.Write(bytes, 0, bytes.Length);
+        this.receivingStream.Flush();
+        this.receivingStream.Position = 0;
+
+        readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+        Assert.Equal<string>("ABCDEFGHIJ", readContent);
+    }
 }
