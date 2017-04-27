@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" >
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net46;netcoreapp1.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -26,7 +26,7 @@
   <ItemGroup>
     <PackageReference Include="System.IO.Pipes" Version="4.0.0" />
     <PackageReference Include="OpenCover" Version="4.6.519" />
-    <PackageReference Include="MicroBuild.NonShipping" Version="2.0.40" PrivateAssets="all"/>
+    <PackageReference Include="MicroBuild.NonShipping" Version="2.0.40" PrivateAssets="all" />
     <PackageReference Include="Nerdbank.FullDuplexStream" Version="1.0.9" />
     <PackageReference Include="System.Collections.Immutable" Version="1.2.0" />
     <PackageReference Include="xunit" Version="2.2.0" />
@@ -40,5 +40,8 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
 </Project>
