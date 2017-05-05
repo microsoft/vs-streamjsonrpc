@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.1;portable-net45+win8+wpa81;net45</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CodeAnalysisRuleSet>StreamJsonRpc.ruleset</CodeAnalysisRuleSet>
     <DebugType>full</DebugType>
@@ -36,8 +36,9 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.3.20" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="15.3.20" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="6.0.6" Condition=" '$(TargetFramework)' == 'net45' " />
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" Condition=" '$(TargetFramework)' == 'netstandard1.1' " />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" Condition=" '$(TargetFramework)' != 'net45' " />
     <PackageReference Include="PdbGit" Version="3.0.41" PrivateAssets="all" />
+    <PackageReference Include="MSBuild.SDK.Extras" Version="1.0.0-rc4.23" PrivateAssets="all" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="1.2.0-beta2" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
@@ -55,6 +56,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
   </ItemGroup>
+  <Import Project="$(MSBuildSDKExtrasTargets)" Condition="Exists('$(MSBuildSDKExtrasTargets)')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets" Label="MultilingualAppToolkit" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets')" />
   <Target Name="MATPrerequisite" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets')" Label="MultilingualAppToolkit">
     <Warning Text="$(MSBuildProjectFile) is Multilingual build enabled, but the Multilingual App Toolkit is unavailable during the build. If building with Visual Studio, please check to ensure that toolkit is properly installed." />
