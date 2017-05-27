@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,18 +13,15 @@ using Xunit.Abstractions;
 
 public abstract class TestBase : IDisposable
 {
-    private const int GCAllocationAttempts = 10;
-
-    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
-    private readonly CancellationTokenSource timeoutTokenSource;
-
     protected static readonly TimeSpan ExpectedTimeout = TimeSpan.FromMilliseconds(200);
 
     protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
 
     protected static readonly CancellationToken PrecanceledToken = new CancellationToken(canceled: true);
 
-    protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
+    private const int GCAllocationAttempts = 10;
+
+    private readonly CancellationTokenSource timeoutTokenSource;
 
     protected TestBase(ITestOutputHelper logger)
     {
@@ -29,9 +29,13 @@ public abstract class TestBase : IDisposable
         this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
     }
 
+    protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
+
     protected ITestOutputHelper Logger { get; }
 
     protected CancellationToken TimeoutToken => this.timeoutTokenSource.Token;
+
+    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
 
     public void Dispose()
     {

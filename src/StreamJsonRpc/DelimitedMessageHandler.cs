@@ -1,13 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.IO;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft;
+    using Microsoft.VisualStudio.Threading;
+
     /// <summary>
     /// An abstract base class for for sending and receiving distinct string messages
     /// over a channel that provides no natural boundaries and no built-in character encoding.
@@ -92,7 +95,7 @@ namespace StreamJsonRpc
         protected Stream SendingStream { get; }
 
         /// <summary>
-        /// The stream used to receive messages. May be null.
+        /// Gets the stream used to receive messages. May be null.
         /// </summary>
         protected Stream ReceivingStream { get; }
 

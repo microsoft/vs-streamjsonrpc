@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using StreamJsonRpc;
@@ -30,19 +33,6 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
         this.clientRpc = JsonRpc.Attach(this.clientStream);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            this.serverRpc.Dispose();
-            this.clientRpc.Dispose();
-            this.serverStream.Dispose();
-            this.clientStream.Dispose();
-        }
-
-        base.Dispose(disposing);
     }
 
     [Fact]
@@ -290,35 +280,48 @@ public class JsonRpcMethodAttributeTests : TestBase
         Assert.Equal("FirstAsync bye", result);
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            this.serverRpc.Dispose();
+            this.clientRpc.Dispose();
+            this.serverStream.Dispose();
+            this.clientStream.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
     public class BaseClass
     {
         protected readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
 
         [JsonRpcMethod("base/InvokeMethodWithAttribute")]
-        public string InvokeMethodWithAttribute() => $"base {nameof(InvokeMethodWithAttribute)}";
+        public string InvokeMethodWithAttribute() => $"base {nameof(this.InvokeMethodWithAttribute)}";
 
         [JsonRpcMethod("base/InvokeVirtualMethodOverride")]
-        public virtual string InvokeVirtualMethodOverride() => $"base {nameof(InvokeVirtualMethodOverride)}";
+        public virtual string InvokeVirtualMethodOverride() => $"base {nameof(this.InvokeVirtualMethodOverride)}";
 
         [JsonRpcMethod("base/InvokeVirtualMethodNoOverride")]
-        public virtual string InvokeVirtualMethodNoOverride() => $"base {nameof(InvokeVirtualMethodNoOverride)}";
+        public virtual string InvokeVirtualMethodNoOverride() => $"base {nameof(this.InvokeVirtualMethodNoOverride)}";
 
         [JsonRpcMethod("base/NotifyMethodWithAttribute")]
         public void NotifyMethodWithAttribute()
         {
-            this.notificationTcs.SetResult($"base {nameof(NotifyMethodWithAttribute)}");
+            this.notificationTcs.SetResult($"base {nameof(this.NotifyMethodWithAttribute)}");
         }
 
         [JsonRpcMethod("base/NotifyVirtualMethodOverride")]
         public virtual void NotifyVirtualMethodOverride()
         {
-            this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodOverride)}");
+            this.notificationTcs.SetResult($"base {nameof(this.NotifyVirtualMethodOverride)}");
         }
 
         [JsonRpcMethod("base/NotifyVirtualMethodNoOverride")]
         public virtual void NotifyVirtualMethodNoOverride()
         {
-            this.notificationTcs.SetResult($"base {nameof(NotifyVirtualMethodNoOverride)}");
+            this.notificationTcs.SetResult($"base {nameof(this.NotifyVirtualMethodNoOverride)}");
         }
 
         [JsonRpcMethod("InvokeVirtualMethod")]
@@ -335,7 +338,7 @@ public class JsonRpcMethodAttributeTests : TestBase
     public class InvalidOverrideServer : BaseClass
     {
         [JsonRpcMethod("child/InvokeVirtualMethodOverride")]
-        public override string InvokeVirtualMethodOverride() => $"child {nameof(InvokeVirtualMethodOverride)}";
+        public override string InvokeVirtualMethodOverride() => $"child {nameof(this.InvokeVirtualMethodOverride)}";
     }
 
     /// <summary>
@@ -470,16 +473,15 @@ public class JsonRpcMethodAttributeTests : TestBase
 
     public class Server : BaseClass
     {
-
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
         [JsonRpcMethod("test/InvokeTestMethod")]
         public string InvokeTestMethodAttribute() => "test method attribute";
 
         [JsonRpcMethod("base/InvokeVirtualMethodOverride")]
-        public override string InvokeVirtualMethodOverride() => $"child {nameof(InvokeVirtualMethodOverride)}";
+        public override string InvokeVirtualMethodOverride() => $"child {nameof(this.InvokeVirtualMethodOverride)}";
 
-        public override string InvokeVirtualMethodNoOverride() => $"child {nameof(InvokeVirtualMethodNoOverride)}";
+        public override string InvokeVirtualMethodNoOverride() => $"child {nameof(this.InvokeVirtualMethodNoOverride)}";
 
         [JsonRpcMethod("test/OverloadMethodAttribute")]
         public string InvokeOverloadMethodAttribute(string test) => $"string: {test}";
@@ -508,7 +510,7 @@ public class JsonRpcMethodAttributeTests : TestBase
         [JsonRpcMethod("base/NotifyVirtualMethodOverride")]
         public override void NotifyVirtualMethodOverride()
         {
-            this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodOverride)}");
+            this.notificationTcs.SetResult($"child {nameof(this.NotifyVirtualMethodOverride)}");
         }
 
         [JsonRpcMethod("fiRst")]
@@ -522,7 +524,7 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         public override void NotifyVirtualMethodNoOverride()
         {
-            this.notificationTcs.SetResult($"child {nameof(NotifyVirtualMethodNoOverride)}");
+            this.notificationTcs.SetResult($"child {nameof(this.NotifyVirtualMethodNoOverride)}");
         }
 
         [JsonRpcMethod("async/GetString")]

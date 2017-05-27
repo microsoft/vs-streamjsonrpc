@@ -1,18 +1,22 @@
-﻿using StreamJsonRpc;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
 using System.IO;
 using System.Text;
 using System.Threading;
+using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
 public class HeaderDelimitedMessageHandlerTests : TestBase
 {
+    private const string CRLF = "\r\n";
     private readonly MemoryStream sendingStream = new MemoryStream();
     private readonly MemoryStream receivingStream = new MemoryStream();
     private HeaderDelimitedMessageHandler handler;
-    private const string CRLF = "\r\n";
 
-    public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger) : base(logger)
+    public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger)
+        : base(logger)
     {
         this.handler = new HeaderDelimitedMessageHandler(this.sendingStream, this.receivingStream);
     }
@@ -32,7 +36,7 @@ CRLF +
 
         string readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
         Assert.Equal<string>("0123456789", readContent);
-        
+
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
 

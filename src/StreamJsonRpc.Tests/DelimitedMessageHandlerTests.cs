@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +20,8 @@ public class DelimitedMessageHandlerTests : TestBase
     private readonly MemoryStream receivingStream = new MemoryStream();
     private DirectMessageHandler handler;
 
-    public DelimitedMessageHandlerTests(ITestOutputHelper logger) : base(logger)
+    public DelimitedMessageHandlerTests(ITestOutputHelper logger)
+        : base(logger)
     {
         this.handler = new DirectMessageHandler(this.sendingStream, this.receivingStream, Encoding.UTF8);
     }
@@ -25,8 +29,8 @@ public class DelimitedMessageHandlerTests : TestBase
     [Fact]
     public void CanReadAndWrite()
     {
-        Assert.True(handler.CanRead);
-        Assert.True(handler.CanWrite);
+        Assert.True(this.handler.CanRead);
+        Assert.True(this.handler.CanWrite);
     }
 
     [Fact]
@@ -36,10 +40,10 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.True(handler.CanRead);
         Assert.False(handler.CanWrite);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.WriteAsync("hi", TimeoutToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.WriteAsync("hi", this.TimeoutToken));
         string expected = "bye";
         handler.MessagesToRead.Enqueue(expected);
-        string actual = await handler.ReadAsync(TimeoutToken);
+        string actual = await handler.ReadAsync(this.TimeoutToken);
         Assert.Equal(expected, actual);
     }
 
@@ -50,10 +54,10 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.False(handler.CanRead);
         Assert.True(handler.CanWrite);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.ReadAsync(TimeoutToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.ReadAsync(this.TimeoutToken));
         string expected = "bye";
-        await handler.WriteAsync(expected, TimeoutToken);
-        string actual = await handler.WrittenMessages.DequeueAsync(TimeoutToken);
+        await handler.WriteAsync(expected, this.TimeoutToken);
+        string actual = await handler.WrittenMessages.DequeueAsync(this.TimeoutToken);
         Assert.Equal(expected, actual);
     }
 
@@ -70,7 +74,7 @@ public class DelimitedMessageHandlerTests : TestBase
     public void WriteAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
-        Task result = this.handler.WriteAsync("content", TimeoutToken);
+        Task result = this.handler.WriteAsync("content", this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
     }
 
@@ -111,7 +115,7 @@ public class DelimitedMessageHandlerTests : TestBase
     public void ReadAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
-        Task result = this.handler.ReadAsync(TimeoutToken);
+        Task result = this.handler.ReadAsync(this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
@@ -160,7 +164,7 @@ public class DelimitedMessageHandlerTests : TestBase
 
         protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
         {
-            return WriteBlock.WaitAsync();
+            return this.WriteBlock.WaitAsync();
         }
     }
 }

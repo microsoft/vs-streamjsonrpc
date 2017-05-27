@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -22,6 +25,12 @@ public class MessageHeaderTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
     }
+
+    public static IEnumerable<object[]> TestedEncodings => new[]
+    {
+        new[] { "utf-8" },
+        new[] { "utf-16" },
+    };
 
     [Fact]
     public async Task HeaderEmitted()
@@ -119,11 +128,6 @@ public class MessageHeaderTests : TestBase
         string json = reader.ReadToEnd();
         Assert.Equal('{', json[0]);
     }
-
-    public static IEnumerable<object[]> TestedEncodings => new[] {
-        new [] { "utf-8" },
-        new [] { "utf-16" },
-    };
 
     private class Server
     {

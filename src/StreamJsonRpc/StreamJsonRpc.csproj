@@ -31,6 +31,9 @@
     <XliffResource Include="MultilingualResources\*.xlf" />
   </ItemGroup>
   <ItemGroup>
+    <AdditionalFiles Include="..\stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="AsyncUsageAnalyzers" Version="1.0.0-alpha003" PrivateAssets="all" />
     <PackageReference Include="MicroBuild.VisualStudio" Version="2.0.40" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.3.20" />

@@ -1,13 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+
     [JsonObject(MemberSerialization.OptIn)]
     internal sealed class JsonRpcMessage
     {
@@ -43,13 +46,6 @@ namespace StreamJsonRpc
             set;
         }
 
-        [JsonProperty("result")]
-        private JToken Result
-        {
-            get;
-            set;
-        }
-
         public bool IsRequest => !string.IsNullOrEmpty(this.Method);
 
         public bool IsResponse => this.IsError || this.Result != null;
@@ -59,6 +55,13 @@ namespace StreamJsonRpc
         public bool IsNotification => this.Id == null;
 
         public int ParameterCount => this.Parameters != null ? this.Parameters.Children().Count() : 0;
+
+        [JsonProperty("result")]
+        private JToken Result
+        {
+            get;
+            set;
+        }
 
         public static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters, JsonSerializer parametersSerializer)
         {
@@ -110,6 +113,24 @@ namespace StreamJsonRpc
             };
         }
 
+        public static JsonRpcMessage FromJson(string json, JsonSerializerSettings settings)
+        {
+            return JsonConvert.DeserializeObject<JsonRpcMessage>(json, settings);
+        }
+
+        public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
+        {
+            JsonSerializer serializer = JsonSerializer.Create(settings);
+
+            JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);
+            if (result == null)
+            {
+                throw new JsonException(Resources.JsonRpcCannotBeNull);
+            }
+
+            return result;
+        }
+
         public T GetResult<T>(JsonSerializer serializer)
         {
             return this.Result == null ? default(T) : this.Result.ToObject<T>(serializer);
@@ -157,24 +178,6 @@ namespace StreamJsonRpc
         public string ToJson(Formatting formatting, JsonSerializerSettings settings)
         {
             return JsonConvert.SerializeObject(this, formatting, settings);
-        }
-
-        public static JsonRpcMessage FromJson(string json, JsonSerializerSettings settings)
-        {
-            return JsonConvert.DeserializeObject<JsonRpcMessage>(json, settings);
-        }
-
-        public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
-        {
-            JsonSerializer serializer = JsonSerializer.Create(settings);
-
-            JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);
-            if (result == null)
-            {
-                throw new JsonException(Resources.JsonRpcCannotBeNull);
-            }
-
-            return result;
         }
     }
 }

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -13,8 +16,8 @@ using Xunit.Abstractions;
 public class ReadBufferingStreamTests
 {
     private const int DefaultCapacity = 10;
-    private const int defaultUnderlyingStreamLength = DefaultCapacity * 10;
-    private static readonly ImmutableArray<byte> underlyingStreamBuffer = Enumerable.Range(1, defaultUnderlyingStreamLength).Select(n => (byte)n).ToImmutableArray();
+    private const int DefaultUnderlyingStreamLength = DefaultCapacity * 10;
+    private static readonly ImmutableArray<byte> UnderlyingStreamBuffer = Enumerable.Range(1, DefaultUnderlyingStreamLength).Select(n => (byte)n).ToImmutableArray();
     private readonly ITestOutputHelper logger;
     private readonly MemoryStream underlyingStream;
     private ReadBufferingStream bufferingStream;
@@ -22,8 +25,8 @@ public class ReadBufferingStreamTests
     public ReadBufferingStreamTests(ITestOutputHelper logger)
     {
         this.logger = logger;
-        this.underlyingStream = new MemoryStream(underlyingStreamBuffer.ToArray(), writable: false);
-        Assert.True(DefaultCapacity < underlyingStreamBuffer.Length);
+        this.underlyingStream = new MemoryStream(UnderlyingStreamBuffer.ToArray(), writable: false);
+        Assert.True(UnderlyingStreamBuffer.Length > DefaultCapacity);
         this.bufferingStream = new ReadBufferingStream(this.underlyingStream, DefaultCapacity);
     }
 
@@ -68,7 +71,7 @@ public class ReadBufferingStreamTests
         for (int i = 0; i < this.bufferingStream.BufferCapacity; i++)
         {
             int b = this.bufferingStream.ReadByte();
-            Assert.Equal(underlyingStreamBuffer[i], (byte)b);
+            Assert.Equal(UnderlyingStreamBuffer[i], (byte)b);
         }
 
         Assert.Throws<InvalidOperationException>(() => this.bufferingStream.ReadByte());
@@ -80,7 +83,7 @@ public class ReadBufferingStreamTests
     [InlineData(3)]
     public async Task ReadByte_MoreThanCapacitySize(int interval)
     {
-        for (int i = 0; i < underlyingStreamBuffer.Length; i++)
+        for (int i = 0; i < UnderlyingStreamBuffer.Length; i++)
         {
             if (this.bufferingStream.IsBufferEmpty || (interval != 0 && (i % interval) == 0))
             {
@@ -89,7 +92,7 @@ public class ReadBufferingStreamTests
 
             int b = this.bufferingStream.ReadByte();
             Assert.NotEqual(-1, b);
-            Assert.Equal(underlyingStreamBuffer[i], (byte)b);
+            Assert.Equal(UnderlyingStreamBuffer[i], (byte)b);
         }
 
         await this.bufferingStream.FillBufferAsync();
@@ -133,7 +136,7 @@ public class ReadBufferingStreamTests
         await this.bufferingStream.FillBufferAsync();
         var buffer = new byte[DefaultCapacity];
         Assert.Equal(buffer.Length, this.bufferingStream.Read(buffer, 0, buffer.Length));
-        Assert.Equal(underlyingStreamBuffer.Take(buffer.Length), buffer);
+        Assert.Equal(UnderlyingStreamBuffer.Take(buffer.Length), buffer);
     }
 
     [Fact]
@@ -147,7 +150,7 @@ public class ReadBufferingStreamTests
         // Otherwise it means the buffering strea had us waiting longer than necessary to get anything
         // since it effectively started waiting on I/O.
         Assert.Equal(DefaultCapacity, readBytes);
-        Assert.Equal(underlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
+        Assert.Equal(UnderlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
     }
 
     [Fact]
@@ -159,13 +162,13 @@ public class ReadBufferingStreamTests
         // Read half the buffered data
         int readBytes = this.bufferingStream.Read(buffer, 0, buffer.Length / 2);
         Assert.Equal(buffer.Length / 2, readBytes);
-        Assert.Equal(underlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
+        Assert.Equal(UnderlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
 
         // Now try to read a full buffer capacity's worth.
         // We should only get what remains in the buffer.
         int readBytes2 = this.bufferingStream.Read(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length - readBytes, readBytes2);
-        Assert.Equal(underlyingStreamBuffer.Skip(readBytes).Take(readBytes2), buffer.Take(readBytes2));
+        Assert.Equal(UnderlyingStreamBuffer.Skip(readBytes).Take(readBytes2), buffer.Take(readBytes2));
     }
 
     [Fact]
@@ -177,7 +180,7 @@ public class ReadBufferingStreamTests
         // Read half the buffered data
         int readBytes = this.bufferingStream.Read(buffer, 0, buffer.Length / 2);
         Assert.Equal(buffer.Length / 2, readBytes);
-        Assert.Equal(underlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
+        Assert.Equal(UnderlyingStreamBuffer.Take(readBytes), buffer.Take(readBytes));
 
         await this.bufferingStream.FillBufferAsync();
 
@@ -185,7 +188,7 @@ public class ReadBufferingStreamTests
         // We should get a full buffer since we refilled it.
         int readBytes2 = this.bufferingStream.Read(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length, readBytes2);
-        Assert.Equal(underlyingStreamBuffer.Skip(readBytes).Take(readBytes2), buffer.Take(readBytes2));
+        Assert.Equal(UnderlyingStreamBuffer.Skip(readBytes).Take(readBytes2), buffer.Take(readBytes2));
     }
 
     [Fact]
@@ -275,14 +278,14 @@ public class ReadBufferingStreamTests
         await this.bufferingStream.FillBufferAsync();
         int bytesRead2 = this.bufferingStream.Read(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length, bytesRead2);
-        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
+        Assert.Equal(UnderlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
 
         // Now fill the buffer again. Since the buffer is empty, it *should* fully refill
         // so we can get a full buffer back again.
         await this.bufferingStream.FillBufferAsync();
         int bytesRead3 = this.bufferingStream.Read(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length, bytesRead3);
-        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead + bytesRead2).Take(bytesRead3), buffer.Take(bytesRead3));
+        Assert.Equal(UnderlyingStreamBuffer.Skip(bytesRead + bytesRead2).Take(bytesRead3), buffer.Take(bytesRead3));
     }
 
     [Fact]
@@ -292,7 +295,7 @@ public class ReadBufferingStreamTests
         int bytesRead = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length, bytesRead);
 
-        Assert.Equal(underlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
+        Assert.Equal(UnderlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
     }
 
     [Fact]
@@ -304,12 +307,12 @@ public class ReadBufferingStreamTests
         // The first time we read, it should just give us what's in the internal buffer.
         int bytesRead = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
         Assert.Equal(this.bufferingStream.BufferCapacity, bytesRead);
-        Assert.Equal(underlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
+        Assert.Equal(UnderlyingStreamBuffer.Take(bytesRead), buffer.Take(bytesRead));
 
         // The second time we read, it should give us everything we ask for because
         // it can skip the internal buffer.
         int bytesRead2 = await this.bufferingStream.ReadAsync(buffer, 0, buffer.Length);
         Assert.Equal(buffer.Length, bytesRead2);
-        Assert.Equal(underlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
+        Assert.Equal(UnderlyingStreamBuffer.Skip(bytesRead).Take(bytesRead2), buffer.Take(bytesRead2));
     }
 }

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -43,7 +46,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     [Fact]
     public async Task NotifyAsync_ParameterObjectSentAsArray()
     {
-        Task notifyTask = this.clientRpc.NotifyAsync("test", new  { Bar = "value" });
+        Task notifyTask = this.clientRpc.NotifyAsync("test", new { Bar = "value" });
         JObject request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());

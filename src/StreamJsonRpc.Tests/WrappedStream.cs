@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,11 +20,26 @@ internal class WrappedStream : Stream
         this.stream = stream;
     }
 
+    public event EventHandler Disconnected
+    {
+        add
+        {
+            if (value != null)
+            {
+                this.disconnectedListeners += value;
+                this.UpdateConnectedState();
+            }
+        }
+
+        remove
+        {
+            this.disconnectedListeners -= value;
+        }
+    }
+
     public bool Disposed => this.disposed;
 
     public bool IsEndReached => this.isEndReached;
-
-    #region overridden Stream members
 
     public override bool CanRead => this.stream.CanRead;
 
@@ -46,7 +64,7 @@ internal class WrappedStream : Stream
         }
     }
 
-    public override int ReadTimeout => stream.ReadTimeout;
+    public override int ReadTimeout => this.stream.ReadTimeout;
 
     public override int WriteTimeout => this.stream.WriteTimeout;
 
@@ -58,11 +76,6 @@ internal class WrappedStream : Stream
             this.SetConnected(result);
             return result;
         }
-    }
-
-    protected virtual bool GetConnected()
-    {
-        return !this.isEndReached && !this.disposed;
     }
 
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
@@ -163,24 +176,11 @@ internal class WrappedStream : Stream
 
         base.Dispose(disposing);
     }
-    #endregion
 
-    public event EventHandler Disconnected
+    protected virtual bool GetConnected()
     {
-        add
-        {
-            if (value != null)
-            {
-                this.disconnectedListeners += value;
-                this.UpdateConnectedState();
-            }
-        }
-        remove
-        {
-            this.disconnectedListeners -= value;
-        }
+        return !this.isEndReached && !this.disposed;
     }
-
 
     protected void UpdateConnectedState()
     {
@@ -208,4 +208,3 @@ internal class WrappedStream : Stream
         }
     }
 }
-

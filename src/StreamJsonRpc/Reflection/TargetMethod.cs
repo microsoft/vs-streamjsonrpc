@@ -1,15 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using Microsoft;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using Microsoft;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+
     internal sealed class TargetMethod
     {
         private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
@@ -39,7 +42,7 @@ namespace StreamJsonRpc
                 {
                     foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
                     {
-                        TryAddMethod(request, targetMethods, method, jsonSerializer, request.Method);
+                        this.TryAddMethod(request, targetMethods, method, jsonSerializer, request.Method);
                     }
                 }
 
@@ -150,7 +153,8 @@ namespace StreamJsonRpc
                     methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
                 }
 
-                errors.Add(string.Format(CultureInfo.CurrentCulture,
+                errors.Add(string.Format(
+                    CultureInfo.CurrentCulture,
                     Resources.MethodParameterCountDoesNotMatch,
                     method,
                     methodParameterCount,
