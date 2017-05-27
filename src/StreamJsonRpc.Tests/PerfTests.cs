@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
@@ -26,14 +29,14 @@ public class PerfTests
         var clientPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await clientPipe.ConnectAsync();
         await connectTask; // rethrow any exception
-        await ChattyPerfAsync(serverPipe, clientPipe);
+        await this.ChattyPerfAsync(serverPipe, clientPipe);
     }
 
     [Fact]
     public async Task ChattyPerf_OverFullDuplexStream()
     {
         var streams = FullDuplexStream.CreateStreams();
-        await ChattyPerfAsync(streams.Item1, streams.Item2);
+        await this.ChattyPerfAsync(streams.Item1, streams.Item2);
     }
 
     private async Task ChattyPerfAsync(Stream serverStream, Stream clientStream)
@@ -67,6 +70,8 @@ public class PerfTests
 
     public class Server
     {
-        public void NoOp() { }
+        public void NoOp()
+        {
+        }
     }
 }

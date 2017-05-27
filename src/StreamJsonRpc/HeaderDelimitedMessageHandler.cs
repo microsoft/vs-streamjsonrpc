@@ -1,17 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Net.Http.Headers;
+    using System.Runtime.CompilerServices;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft;
+    using Microsoft.VisualStudio.Threading;
+
     /// <summary>
     /// Adds headers before each text message transmitted over a stream.
     /// </summary>
@@ -22,16 +25,18 @@ namespace StreamJsonRpc
     public class HeaderDelimitedMessageHandler : DelimitedMessageHandler
     {
         /// <summary>
+        /// The maximum supported size of a single element in the header.
+        /// </summary>
+        private const int MaxHeaderElementSize = 1024;
+        private const string ContentLengthHeaderNameText = "Content-Length";
+        private const string ContentTypeHeaderNameText = "Content-Type";
+
+        /// <summary>
         /// The default encoding to use when writing content,
         /// and to assume as the encoding when reading content
         /// that doesn't have a header identifying its encoding.
         /// </summary>
         private static readonly Encoding DefaultContentEncoding = Encoding.UTF8;
-
-        /// <summary>
-        /// The maximum supported size of a single element in the header.
-        /// </summary>
-        private const int MaxHeaderElementSize = 1024;
 
         /// <summary>
         /// The encoding to use when writing/reading headers.
@@ -46,8 +51,6 @@ namespace StreamJsonRpc
         /// </remarks>
         private static readonly Encoding HeaderEncoding = Encoding.UTF8;
 
-        private const string ContentLengthHeaderNameText = "Content-Length";
-        private const string ContentTypeHeaderNameText = "Content-Type";
         private static readonly byte[] ContentLengthHeaderName = HeaderEncoding.GetBytes(ContentLengthHeaderNameText);
         private static readonly byte[] HeaderKeyValueDelimiter = HeaderEncoding.GetBytes(": ");
         private static readonly byte[] ContentTypeHeaderName = HeaderEncoding.GetBytes(ContentTypeHeaderNameText);
@@ -139,7 +142,8 @@ namespace StreamJsonRpc
                             --headerBytesLength;
                         }
 
-                        if (lastCharRead == '\r') // spec mandates \r always precedes \n
+                        // spec mandates \r always precedes \n
+                        if (lastCharRead == '\r')
                         {
                             string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
                             headers[headerName] = value;
@@ -160,7 +164,8 @@ namespace StreamJsonRpc
                         headerBytesLength = 0;
                         break;
                 }
-            } while (state != HeaderParseState.Terminate);
+            }
+            while (state != HeaderParseState.Terminate);
 
             int contentLength;
             string contentLengthAsText = headers[ContentLengthHeaderNameText];
@@ -196,6 +201,49 @@ namespace StreamJsonRpc
             return contentEncoding.GetString(contentBuffer, 0, contentLength);
         }
 
+        /// <inheritdoc />
+        protected override async Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+        {
+            var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
+
+            // Understand the content we need to send in terms of bytes and length.
+            byte[] contentBytes = contentEncoding.GetBytes(content);
+            string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
+
+            // Transmit the Content-Length header.
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
+            sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
+            sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
+            int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
+            sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+            sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+
+            // Transmit the Content-Type header, but only when using a non-default encoding.
+            // We suppress it when it is the default both for smaller messages and to avoid
+            // having to load System.Net.Http on the receiving end in order to parse it.
+            if (DefaultContentEncoding.WebName != contentEncoding.WebName)
+            {
+                sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
+                sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
+                var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
+                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
+                sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+            }
+
+            // Terminate the headers.
+            sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
+
+            // Transmit the headers.
+            sendingBufferStream.Position = 0;
+            await sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize, cancellationToken).ConfigureAwait(false);
+
+            // Transmit the content itself.
+            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
+            await this.SendingStream.FlushAsync().ConfigureAwait(false);
+        }
+
         /// <summary>
         /// Extracts the content encoding from a Content-Type header.
         /// </summary>
@@ -209,7 +257,7 @@ namespace StreamJsonRpc
                 var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
                 if (mediaType.CharSet != null)
                 {
-                    // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be 
+                    // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
                     // accepted here so StreamJsonRpc can be used to support remote language servers following common language protocol.
                     if (mediaType.CharSet.Equals("utf8", StringComparison.OrdinalIgnoreCase))
                     {
@@ -256,49 +304,6 @@ namespace StreamJsonRpc
                 && buffer[lastIndex - 3] == lf
                 && buffer[lastIndex - 2] == cr
                 && buffer[lastIndex - 1] == lf;
-        }
-
-        /// <inheritdoc />
-        protected override async Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
-        {
-            var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
-
-            // Understand the content we need to send in terms of bytes and length.
-            byte[] contentBytes = contentEncoding.GetBytes(content);
-            string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
-
-            // Transmit the Content-Length header.
-#pragma warning disable VSTHRD103 // Call async methods when in an async method
-            sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
-            sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-            int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
-            sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-            sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-
-            // Transmit the Content-Type header, but only when using a non-default encoding.
-            // We suppress it when it is the default both for smaller messages and to avoid
-            // having to load System.Net.Http on the receiving end in order to parse it.
-            if (DefaultContentEncoding.WebName != contentEncoding.WebName)
-            {
-                sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
-                sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-                var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
-                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
-                sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-                sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-            }
-
-            // Terminate the headers.
-            sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-#pragma warning restore VSTHRD103 // Call async methods when in an async method
-
-            // Transmit the headers.
-            sendingBufferStream.Position = 0;
-            await sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize, cancellationToken).ConfigureAwait(false);
-
-            // Transmit the content itself.
-            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
-            await this.SendingStream.FlushAsync().ConfigureAwait(false);
         }
     }
 }

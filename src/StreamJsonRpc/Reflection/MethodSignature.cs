@@ -1,15 +1,18 @@
-﻿using System;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using Microsoft;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using Microsoft;
+
     internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
         private static readonly ParameterInfo[] EmptyParameterInfoArray = new ParameterInfo[0];
-        private static readonly StringComparer typeNameComparer = StringComparer.Ordinal;
+        private static readonly StringComparer TypeNameComparer = StringComparer.Ordinal;
 
         internal MethodSignature(MethodInfo methodInfo)
         {
@@ -36,12 +39,12 @@ namespace StreamJsonRpc
 
         bool IEquatable<MethodSignature>.Equals(MethodSignature other)
         {
-            if (Object.ReferenceEquals(other, null))
+            if (object.ReferenceEquals(other, null))
             {
                 return false;
             }
 
-            if (Object.ReferenceEquals(other, this) || Object.ReferenceEquals(this.Parameters, other.Parameters))
+            if (object.ReferenceEquals(other, this) || object.ReferenceEquals(this.Parameters, other.Parameters))
             {
                 return true;
             }
@@ -53,7 +56,7 @@ namespace StreamJsonRpc
 
             for (int index = 0; index < this.Parameters.Length; index++)
             {
-                if (!MethodSignature.typeNameComparer.Equals(
+                if (!MethodSignature.TypeNameComparer.Equals(
                         this.Parameters[index].ParameterType.AssemblyQualifiedName,
                         other.Parameters[index].ParameterType.AssemblyQualifiedName))
                 {
@@ -77,13 +80,13 @@ namespace StreamJsonRpc
 
             foreach (ParameterInfo parameter in this.MethodInfo.GetParameters())
             {
-                // Shifting result 1 bit per each parameter so that the hash is different for 
+                // Shifting result 1 bit per each parameter so that the hash is different for
                 // methods with the same parameter types at different location, e.g.
                 // foo(int, string) and foo(string, int)
                 // This will work fine for up to 32 (64 on x64) parameters,
                 // which should be more than enough for the most applications.
                 result = result << shift | result >> (bitCount - shift);
-                result ^= (uint)MethodSignature.typeNameComparer.GetHashCode(parameter.ParameterType.AssemblyQualifiedName);
+                result ^= (uint)MethodSignature.TypeNameComparer.GetHashCode(parameter.ParameterType.AssemblyQualifiedName);
             }
 
             return (int)result;

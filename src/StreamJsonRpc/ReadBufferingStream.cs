@@ -1,13 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft;
+
     internal class ReadBufferingStream : Stream
     {
         private readonly Stream underlyingStream;
@@ -30,7 +33,7 @@ namespace StreamJsonRpc
 
         public bool IsBufferEmpty => this.length == 0;
 
-        public int BufferCapacity => buffer.Length;
+        public int BufferCapacity => this.buffer.Length;
 
         public override bool CanRead => true;
 

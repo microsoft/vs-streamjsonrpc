@@ -1,8 +1,11 @@
-﻿using System;
-using Microsoft;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using Microsoft;
+
     /// <summary>
     /// Describes the reason behind a disconnection with the remote party.
     /// </summary>
@@ -16,7 +19,7 @@ namespace StreamJsonRpc
         /// <param name="reason">The reason for disconnection.</param>
         public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason)
             : this(description, reason, lastMessage: null, exception: null)
-        {   
+        {
         }
 
         /// <summary>

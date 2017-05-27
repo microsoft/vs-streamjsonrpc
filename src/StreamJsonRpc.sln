@@ -1,15 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+VisualStudioVersion = 15.0.26515.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc", "StreamJsonRpc\StreamJsonRpc.csproj", "{DFBD1BCA-EAE0-4454-9E97-FA9BD9A0F03A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StreamJsonRpc", "StreamJsonRpc\StreamJsonRpc.csproj", "{DFBD1BCA-EAE0-4454-9E97-FA9BD9A0F03A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc.Tests", "StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj", "{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StreamJsonRpc.Tests", "StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj", "{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68DDB820-140B-4178-B030-3E47C460376B}"
 	ProjectSection(SolutionItems) = preProject
 		nuget.config = nuget.config
+		stylecop.json = stylecop.json
 		version.json = version.json
 	EndProjectSection
 EndProject
