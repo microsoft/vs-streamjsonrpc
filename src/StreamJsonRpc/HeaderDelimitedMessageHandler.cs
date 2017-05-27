@@ -167,16 +167,14 @@ namespace StreamJsonRpc
             }
             while (state != HeaderParseState.Terminate);
 
-            int contentLength;
             string contentLengthAsText = headers[ContentLengthHeaderNameText];
-            if (!int.TryParse(contentLengthAsText, out contentLength))
+            if (!int.TryParse(contentLengthAsText, out int contentLength))
             {
                 throw new BadRpcHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
             }
 
             Encoding contentEncoding = this.Encoding;
-            string contentTypeAsText;
-            if (headers.TryGetValue(ContentTypeHeaderNameText, out contentTypeAsText))
+            if (headers.TryGetValue(ContentTypeHeaderNameText, out string contentTypeAsText))
             {
                 contentEncoding = ParseEncodingFromContentTypeHeader(contentTypeAsText) ?? contentEncoding;
             }

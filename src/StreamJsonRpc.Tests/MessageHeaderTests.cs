@@ -53,8 +53,7 @@ public class MessageHeaderTests : TestBase
         }
 
         Assert.True(headers.ContainsKey("Content-Length"));
-        int length;
-        Assert.True(int.TryParse(headers["Content-Length"], out length));
+        Assert.True(int.TryParse(headers["Content-Length"], out int length));
         Assert.NotEqual(0, length);
         byte[] messageBuffer = new byte[length];
         int bytesRead = 0;
