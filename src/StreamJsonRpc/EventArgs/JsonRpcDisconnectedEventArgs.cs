@@ -3,23 +3,51 @@ using Microsoft;
 
 namespace StreamJsonRpc
 {
+    /// <summary>
+    /// Describes the reason behind a disconnection with the remote party.
+    /// </summary>
+    /// <seealso cref="System.EventArgs" />
     public class JsonRpcDisconnectedEventArgs : EventArgs
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcDisconnectedEventArgs"/> class.
+        /// </summary>
+        /// <param name="description">The description.</param>
+        /// <param name="reason">The reason for disconnection.</param>
         public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason)
             : this(description, reason, lastMessage: null, exception: null)
         {   
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcDisconnectedEventArgs"/> class.
+        /// </summary>
+        /// <param name="description">The description.</param>
+        /// <param name="reason">The reason for disconnection.</param>
+        /// <param name="exception">The exception.</param>
         public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, Exception exception)
             : this(description, reason, lastMessage: null, exception: exception)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcDisconnectedEventArgs"/> class.
+        /// </summary>
+        /// <param name="description">The description.</param>
+        /// <param name="reason">The reason for disconnection.</param>
+        /// <param name="lastMessage">The last message.</param>
         public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, string lastMessage)
             : this(description, reason, lastMessage: lastMessage, exception: null)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcDisconnectedEventArgs"/> class.
+        /// </summary>
+        /// <param name="description">The description.</param>
+        /// <param name="reason">The reason for disconnection.</param>
+        /// <param name="lastMessage">The last message.</param>
+        /// <param name="exception">The exception.</param>
         public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, string lastMessage, Exception exception)
         {
             Requires.NotNullOrWhiteSpace(description, nameof(description));
@@ -30,12 +58,24 @@ namespace StreamJsonRpc
             this.Exception = exception;
         }
 
+        /// <summary>
+        /// Gets the description.
+        /// </summary>
         public string Description { get; }
 
+        /// <summary>
+        /// Gets the reason.
+        /// </summary>
         public DisconnectedReason Reason { get; }
 
+        /// <summary>
+        /// Gets the last message.
+        /// </summary>
         public string LastMessage { get; }
-        
+
+        /// <summary>
+        /// Gets the exception.
+        /// </summary>
         public Exception Exception { get; }
     }
 }
