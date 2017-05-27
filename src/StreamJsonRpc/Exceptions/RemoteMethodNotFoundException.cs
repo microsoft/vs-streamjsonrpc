@@ -28,9 +28,14 @@ namespace StreamJsonRpc
         }
 
 #if NET45
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RemoteMethodNotFoundException"/> class.
+        /// </summary>
+        /// <param name="info">Serialization info.</param>
+        /// <param name="context">Streaming context.</param>
         protected RemoteMethodNotFoundException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context)
+             System.Runtime.Serialization.SerializationInfo info,
+             System.Runtime.Serialization.StreamingContext context) : base(info, context)
         { }
 #endif
 

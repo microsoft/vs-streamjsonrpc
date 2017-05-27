@@ -16,6 +16,9 @@ using Newtonsoft.Json.Linq;
 
 namespace StreamJsonRpc
 {
+    /// <summary>
+    /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
+    /// </summary>
     public class JsonRpc : IDisposableObservable
     {
         private class OutstandingCallData
@@ -503,6 +506,9 @@ namespace StreamJsonRpc
 
         #region IDisposable
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             this.Dispose(true);
