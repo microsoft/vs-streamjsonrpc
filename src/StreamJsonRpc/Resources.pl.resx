@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Ta operacja jest niedozwolona przed rozpoczęciem nasłuchiwania komunikatów.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Parametr nie ma postaci pojedynczego obiektu</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Wszystkie przeciążenia i przesłonięcia metody „{0}” muszą udostępniać wspólną wartość dla elementu {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Metody programu .NET „{0}” i „{1}” nie mogą mieć jednocześnie mapowania na tę samą nazwę metody żądania: „{2}”.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>

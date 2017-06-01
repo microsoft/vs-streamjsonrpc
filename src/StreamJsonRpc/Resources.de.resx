@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Dieser Vorgang ist unzulässig, bevor das Lauschen auf Nachrichten gestartet wurde.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Der Parameter liegt nicht im Format eines einzelnen Objekts vor.</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Alle Überladungen und Überschreibungen der Methode "{0}" müssen einen gemeinsamen Wert für {1} aufweisen.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Die .NET-Methoden "{0}" und "{1}" können nicht beide dem gleichen Anforderungsmethodennamen zugeordnet werden: "{2}".</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>

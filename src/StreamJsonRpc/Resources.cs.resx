@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Před zahájením naslouchání zprávám není tato operace povolená.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Parametr není ve formě jednoho objektu</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Všechna přetížení a přepisy metody {0} musí mít společnou hodnotu pro {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Metody .NET {0} i {1} se nemůžou současně mapovat ke stejnému názvu metody žádosti: {2}.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>
