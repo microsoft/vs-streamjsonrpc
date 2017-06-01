@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>启动消息侦听前不允许此操作。</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>参数不是单对象的形式</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>“{0}”方法的所有重载和重写必须共享 {1}.{2} 的常见值。</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>.NET 方法“{0}”和“{1}”不能映射到同一请求方法名“{2}”。</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>

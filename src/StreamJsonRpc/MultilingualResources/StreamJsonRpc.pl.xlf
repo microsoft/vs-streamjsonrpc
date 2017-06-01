@@ -149,16 +149,16 @@
         </trans-unit>
         <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
           <source>Parameter is not in the form of a single object</source>
-          <target state="new">Parameter is not in the form of a single object</target>
+          <target state="translated">Parametr nie ma postaci pojedynczego obiektu</target>
         </trans-unit>
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
           <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
-          <target state="new">All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</target>
+          <target state="translated">Wszystkie przeciążenia i przesłonięcia metody „{0}” muszą udostępniać wspólną wartość dla elementu {1}.{2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
         </trans-unit>
         <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
-          <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
+          <target state="translated">Metody programu .NET „{0}” i „{1}” nie mogą mieć jednocześnie mapowania na tę samą nazwę metody żądania: „{2}”.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
       </group>

@@ -119,7 +119,7 @@
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated">O buffer está vazio. Chame o método async para preenchê-lo primeiro.</target>
+          <target state="translated">O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
@@ -149,16 +149,16 @@
         </trans-unit>
         <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
           <source>Parameter is not in the form of a single object</source>
-          <target state="new">Parameter is not in the form of a single object</target>
+          <target state="translated">O parâmetro não está no formato de um objeto único</target>
         </trans-unit>
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
           <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
-          <target state="new">All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</target>
+          <target state="translated">Todas as sobrecargas e substituições do método '{0}' devem compartilhar um valor comum para {1}.{2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
         </trans-unit>
         <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
-          <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
+          <target state="translated">Os métodos .NET '{0}' e '{1}' não podem ser mapeados para o mesmo nome do método de solicitação: '{2}'.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
       </group>

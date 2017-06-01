@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>메시지 수신이 시작되기 전에는 이 작업이 허용되지 않습니다.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>매개 변수가 단일 개체 형식이 아닙니다.</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>'{0}' 메서드의 모든 오버로드 및 재정의는 {1}에 대한 공통 값을 공유해야 합니다.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>.NET 메서드 '{0}' 및 '{1}'이(가) 둘 다 동일한 요청 메서드 이름에 매핑될 수 없습니다. '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>

@@ -16,7 +16,7 @@
     <value>И элементы, которые можно считать, и элементы, которые доступны для записи, имеют значение NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Получен запрос на выполнение "{0}", но нет объекта обратного вызова. Запрос удаляется.</value>
+    <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -100,7 +100,7 @@
     <value>Требуется положительное целое число.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Буфер пуст. Чтобы заполнить его, сначала вызовите метод async.</value>
+    <value>Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Требуется неотрицательное целое число.</value>
@@ -121,5 +121,16 @@
   </data>
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Эта операция не разрешена до начала ожидания сообщений.</value>
+  </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Параметр не имеет форму одиночного объекта</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Все перегрузки и переопределения метода "{0}" должны использовать общее значение {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Методы .NET "{0}" и "{1}" не могут одновременно быть сопоставлены с одним и тем же именем метода запроса: "{2}".</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
 </root>
