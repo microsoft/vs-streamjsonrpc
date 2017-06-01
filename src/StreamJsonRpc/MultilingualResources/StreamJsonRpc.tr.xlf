@@ -12,7 +12,7 @@
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
-          <target state="translated">'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</target>
+          <target state="translated">'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
@@ -119,7 +119,7 @@
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated">Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</target>
+          <target state="translated">Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
@@ -149,16 +149,16 @@
         </trans-unit>
         <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
           <source>Parameter is not in the form of a single object</source>
-          <target state="new">Parameter is not in the form of a single object</target>
+          <target state="translated">Parametre, tek nesne biçiminde değil</target>
         </trans-unit>
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
           <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
-          <target state="new">All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</target>
+          <target state="translated">'{0}' metodunun tüm aşırı yükleme ve geçersiz kılmaları {1} için ortak bir değere sahip olmalıdır.{2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
         </trans-unit>
         <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
-          <target state="new">.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</target>
+          <target state="translated">'{0}' ve '{1}' .NET metotlarının her ikisi de aynı istek metodu adıyla eşlenemez: '{2}'.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
       </group>
