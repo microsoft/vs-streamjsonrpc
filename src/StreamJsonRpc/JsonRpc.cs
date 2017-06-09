@@ -1,36 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Diagnostics;
+    using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft;
+    using Microsoft.VisualStudio.Threading;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+
+    /// <summary>
+    /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
+    /// </summary>
     public class JsonRpc : IDisposableObservable
     {
-        private class OutstandingCallData
-        {
-            internal object TaskCompletionSource { get; }
-
-            internal Action<JsonRpcMessage> CompletionHandler { get; }
-
-            internal OutstandingCallData(object taskCompletionSource, Action<JsonRpcMessage> completionHandler)
-            {
-                this.TaskCompletionSource = taskCompletionSource;
-                this.CompletionHandler = completionHandler;
-            }
-        }
-
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
@@ -44,7 +37,7 @@ namespace StreamJsonRpc
         private readonly object dispatcherMapLock = new object();
 
         /// <summary>
-        /// The object to lock when accessing the <see cref="onDisconnected"/> member.
+        /// The object to lock when accessing the <see cref="DisconnectedPrivate"/> member.
         /// </summary>
         private readonly object disconnectedEventLock = new object();
 
@@ -82,50 +75,6 @@ namespace StreamJsonRpc
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
-        /// </summary>
-        /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
-        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream stream, object target = null)
-        {
-            Requires.NotNull(stream, nameof(stream));
-
-            return Attach(stream, stream, target);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
-        /// </summary>
-        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
-        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
-        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
-        {
-            if (sendingStream == null && receivingStream == null)
-            {
-                throw new ArgumentException(Resources.BothReadableWritableAreNull);
-            }
-
-            var rpc = new JsonRpc(sendingStream, receivingStream, target);
-            try
-            {
-                if (receivingStream != null)
-                {
-                    rpc.StartListening();
-                }
-
-                return rpc;
-            }
-            catch
-            {
-                rpc.Dispose();
-                throw;
-            }
-        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -175,8 +124,6 @@ namespace StreamJsonRpc
                 : EmptyDictionary;
         }
 
-        private event EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected;
-
         /// <summary>
         /// Raised when the underlying stream is disconnected.
         /// </summary>
@@ -190,7 +137,7 @@ namespace StreamJsonRpc
                 {
                     if (!this.hasDisconnectedEventBeenRaised)
                     {
-                        this.onDisconnected += value;
+                        this.DisconnectedPrivate += value;
                         handlerAdded = true;
                     }
                 }
@@ -204,9 +151,11 @@ namespace StreamJsonRpc
             remove
             {
                 Requires.NotNull(value, nameof(value));
-                this.onDisconnected -= value;
+                this.DisconnectedPrivate -= value;
             }
         }
+
+        private event EventHandler<JsonRpcDisconnectedEventArgs> DisconnectedPrivate;
 
         /// <summary>
         /// Gets or sets the encoding to use for transmitted JSON messages.
@@ -235,6 +184,50 @@ namespace StreamJsonRpc
         private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// </summary>
+        /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+        public static JsonRpc Attach(Stream stream, object target = null)
+        {
+            Requires.NotNull(stream, nameof(stream));
+
+            return Attach(stream, stream, target);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// </summary>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+        /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+        public static JsonRpc Attach(Stream sendingStream, Stream receivingStream, object target = null)
+        {
+            if (sendingStream == null && receivingStream == null)
+            {
+                throw new ArgumentException(Resources.BothReadableWritableAreNull);
+            }
+
+            var rpc = new JsonRpc(sendingStream, receivingStream, target);
+            try
+            {
+                if (receivingStream != null)
+                {
+                    rpc.StartListening();
+                }
+
+                return rpc;
+            }
+            catch
+            {
+                rpc.Dispose();
+                throw;
+            }
+        }
 
         /// <summary>
         /// Starts listening to incoming messages.
@@ -383,7 +376,7 @@ namespace StreamJsonRpc
             // If argument is null, this indicates that the method does not take any parameters.
             object[] argumentToPass = argument == null ? null : new object[] { argument };
             int id = Interlocked.Increment(ref this.nextId);
-            return InvokeCoreAsync<Result>(id, targetName, argumentToPass, cancellationToken, isParameterObject: true);
+            return this.InvokeCoreAsync<Result>(id, targetName, argumentToPass, cancellationToken, isParameterObject: true);
         }
 
         /// <summary>
@@ -441,7 +434,7 @@ namespace StreamJsonRpc
         public Task<Result> InvokeWithCancellationAsync<Result>(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             int id = Interlocked.Increment(ref this.nextId);
-            return InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken);
+            return this.InvokeCoreAsync<Result>(id, targetName, arguments, cancellationToken);
         }
 
         /// <summary>
@@ -501,42 +494,13 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<object>(id, targetName, argumentToPass, CancellationToken.None, isParameterObject: true);
         }
 
-        #region IDisposable
-
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
-        }
-
-        #endregion
-
-        private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
-        {
-            EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
-            lock (this.disconnectedEventLock)
-            {
-                if (!this.hasDisconnectedEventBeenRaised)
-                {
-                    this.hasDisconnectedEventBeenRaised = true;
-                    handlersToInvoke = this.onDisconnected;
-                    this.onDisconnected = null;
-                }
-            }
-
-            try
-            {
-                // Fire the event first so that subscribers can interact with a non-disposed stream
-                handlersToInvoke?.Invoke(this, eventArgs);
-            }
-            finally
-            {
-                // Dispose the stream and cancel pending requests in the finally block
-                // So this is executed even if Disconnected event handler throws.
-                this.disposeCts.Cancel();
-                this.MessageHandler.Dispose();
-                this.CancelPendingRequests();
-            }
         }
 
         /// <summary>
@@ -568,7 +532,7 @@ namespace StreamJsonRpc
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
         protected virtual Task<ReturnType> InvokeCoreAsync<ReturnType>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
-            return InvokeCoreAsync<ReturnType>(id, targetName, arguments, cancellationToken, isParameterObject: false);
+            return this.InvokeCoreAsync<ReturnType>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
 
         /// <summary>
@@ -757,6 +721,24 @@ namespace StreamJsonRpc
             }
         }
 
+        private static JsonRpcMessage CreateError(JToken id, Exception exception)
+        {
+            if (exception == null)
+            {
+                throw new ArgumentNullException(nameof(exception));
+            }
+
+            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
+            {
+                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                // the fact we are using reflection.
+                exception = exception.InnerException;
+            }
+
+            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
+            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, data);
+        }
+
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request, JsonSerializer jsonSerializer)
         {
             Requires.NotNull(request, nameof(request));
@@ -857,22 +839,32 @@ namespace StreamJsonRpc
             return JsonRpcMessage.CreateResult(id, taskResult, this.JsonSerializer);
         }
 
-        private static JsonRpcMessage CreateError(JToken id, Exception exception)
+        private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
         {
-            if (exception == null)
+            EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
+            lock (this.disconnectedEventLock)
             {
-                throw new ArgumentNullException(nameof(exception));
+                if (!this.hasDisconnectedEventBeenRaised)
+                {
+                    this.hasDisconnectedEventBeenRaised = true;
+                    handlersToInvoke = this.DisconnectedPrivate;
+                    this.DisconnectedPrivate = null;
+                }
             }
 
-            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
+            try
             {
-                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
-                // the fact we are using reflection.
-                exception = exception.InnerException;
+                // Fire the event first so that subscribers can interact with a non-disposed stream
+                handlersToInvoke?.Invoke(this, eventArgs);
             }
-
-            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
-            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, data);
+            finally
+            {
+                // Dispose the stream and cancel pending requests in the finally block
+                // So this is executed even if Disconnected event handler throws.
+                this.disposeCts.Cancel();
+                this.MessageHandler.Dispose();
+                this.CancelPendingRequests();
+            }
         }
 
         private async Task ReadAndHandleRequestsAsync()
@@ -896,7 +888,8 @@ namespace StreamJsonRpc
                     }
                     catch (Exception exception)
                     {
-                        var e = new JsonRpcDisconnectedEventArgs(string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
+                        var e = new JsonRpcDisconnectedEventArgs(
+                            string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
                                                                  DisconnectedReason.StreamError,
                                                                  exception);
 
@@ -914,7 +907,8 @@ namespace StreamJsonRpc
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                    Task.Run(async delegate
+                    Task.Run(
+                        async delegate
                     {
                         try
                         {
@@ -930,7 +924,6 @@ namespace StreamJsonRpc
 
                             // Fatal error. Raise disconnected event.
                             this.OnJsonRpcDisconnected(eventArgs);
-
                         }
                     }, this.disposeCts.Token);
 
@@ -957,10 +950,11 @@ namespace StreamJsonRpc
             }
             catch (JsonException exception)
             {
-                var e = new JsonRpcDisconnectedEventArgs(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingJsonRpc, json, exception.Message),
-                                                            DisconnectedReason.ParseError,
-                                                            json,
-                                                            exception);
+                var e = new JsonRpcDisconnectedEventArgs(
+                    string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingJsonRpc, json, exception.Message),
+                    DisconnectedReason.ParseError,
+                    json,
+                    exception);
 
                 // Fatal error. Raise disconnected event.
                 this.OnJsonRpcDisconnected(e);
@@ -994,7 +988,8 @@ namespace StreamJsonRpc
                     }
                     catch (Exception exception)
                     {
-                        var e = new JsonRpcDisconnectedEventArgs(string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
+                        var e = new JsonRpcDisconnectedEventArgs(
+                            string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
                                                                     DisconnectedReason.StreamError,
                                                                     exception);
 
@@ -1079,8 +1074,12 @@ namespace StreamJsonRpc
                         await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                     }
                 }
-                catch (OperationCanceledException) { }
-                catch (ObjectDisposedException) { }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (ObjectDisposedException)
+                {
+                }
 #if NET45
                 catch (Exception ex)
                 {
@@ -1098,6 +1097,19 @@ namespace StreamJsonRpc
         {
             string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
+        }
+
+        private class OutstandingCallData
+        {
+            internal OutstandingCallData(object taskCompletionSource, Action<JsonRpcMessage> completionHandler)
+            {
+                this.TaskCompletionSource = taskCompletionSource;
+                this.CompletionHandler = completionHandler;
+            }
+
+            internal object TaskCompletionSource { get; }
+
+            internal Action<JsonRpcMessage> CompletionHandler { get; }
         }
     }
 }

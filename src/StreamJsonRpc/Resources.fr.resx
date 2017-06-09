@@ -16,7 +16,7 @@
     <value>readable et writable sont tous les deux Null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>A reçu une demande pour exécuter '{0}', mais n’a aucun objet de rappel. Suppression de la demande.</value>
+    <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -121,5 +121,16 @@
   </data>
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Cette opération n’est pas autorisée avant que l’écoute des messages ait commencé.</value>
+  </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Le paramètre n'est pas sous la forme d'un seul objet</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Toutes les surcharges et les substitutions de la méthode '{0}' doivent partager une valeur commune pour {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Les méthodes .NET '{0}' et '{1}' ne peuvent pas mapper au même nom de méthode de demande : '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
 </root>

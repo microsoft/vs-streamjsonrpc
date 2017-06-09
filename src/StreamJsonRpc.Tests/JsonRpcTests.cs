@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -40,19 +43,6 @@ public class JsonRpcTests : TestBase
         this.clientRpc = JsonRpc.Attach(this.clientStream);
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            this.serverRpc.Dispose();
-            this.clientRpc.Dispose();
-            this.serverStream.Dispose();
-            this.clientStream.Dispose();
-        }
-
-        base.Dispose(disposing);
-    }
-
     [Fact]
     public void Attach_Null_Throws()
     {
@@ -71,12 +61,13 @@ public class JsonRpcTests : TestBase
         rpc.Disconnected += (s, e) => disconnected.Set();
 
         var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
-        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
-        {
-            jsonrpc = "2.0",
-            method = nameof(Server.NotificationMethod),
-            @params = new[] { "hello" },
-        }), this.TimeoutToken);
+        await helperHandler.WriteAsync(
+            JsonConvert.SerializeObject(new
+            {
+                jsonrpc = "2.0",
+                method = nameof(Server.NotificationMethod),
+                @params = new[] { "hello" },
+            }), this.TimeoutToken);
 
         Assert.Equal("hello", await server.NotificationReceived.WithCancellation(this.TimeoutToken));
 
@@ -87,13 +78,14 @@ public class JsonRpcTests : TestBase
         Assert.False(disconnected.IsSet);
 
         // Receiving a request should forcibly terminate the stream.
-        await helperHandler.WriteAsync(JsonConvert.SerializeObject(new
-        {
-            jsonrpc = "2.0",
-            id = 1,
-            method = nameof(Server.MethodThatAccceptsAndReturnsNull),
-            @params = new object[] { null },
-        }), this.TimeoutToken);
+        await helperHandler.WriteAsync(
+            JsonConvert.SerializeObject(new
+            {
+                jsonrpc = "2.0",
+                id = 1,
+                method = nameof(Server.MethodThatAccceptsAndReturnsNull),
+                @params = new object[] { null },
+            }), this.TimeoutToken);
 
         // The connection should be closed because we can't send a response.
         await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
@@ -120,9 +112,9 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeMethodOnServer()
     {
-        string TestLine = "TestLine1" + new string('a', 1024 * 1024);
-        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.ServerMethod), TestLine);
-        Assert.Equal(TestLine + "!", result1);
+        string testLine = "TestLine1" + new string('a', 1024 * 1024);
+        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.ServerMethod), testLine);
+        Assert.Equal(testLine + "!", result1);
     }
 
     [Fact]
@@ -262,7 +254,7 @@ public class JsonRpcTests : TestBase
 
         // Subscribe to disconnected event
         object disconnectedEventSender = null;
-        this.serverRpc.Disconnected += delegate (object sender, JsonRpcDisconnectedEventArgs e)
+        this.serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
         {
             disconnectedEventSender = sender;
             disconnectedEventFired.SetResult(e);
@@ -285,7 +277,7 @@ public class JsonRpcTests : TestBase
 
         // Confirm that an event handler added after disconnection also gets raised.
         disconnectedEventFired = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
-        this.serverRpc.Disconnected += delegate (object sender, JsonRpcDisconnectedEventArgs e)
+        this.serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
         {
             disconnectedEventSender = sender;
             disconnectedEventFired.SetResult(e);
@@ -417,7 +409,7 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token));
         }
     }
 
@@ -427,7 +419,7 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             this.server.AllowServerMethodToReturn.Set();
-            await this.clientRpc.InvokeWithCancellationAsync(nameof(server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
             cts.Cancel();
         }
     }
@@ -437,7 +429,7 @@ public class JsonRpcTests : TestBase
     {
         this.clientRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
         this.serverRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
-        var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(server.RepeatSpecialType), new UnserializableType { Value = "a" });
+        var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(this.server.RepeatSpecialType), new UnserializableType { Value = "a" });
         Assert.Equal("a!", result.Value);
     }
 
@@ -450,17 +442,17 @@ public class JsonRpcTests : TestBase
 
         // Test with the converter only on the client side.
         this.clientRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
-        string result = await this.clientRpc.InvokeAsync<string>(nameof(server.ExpectEncodedA), "a");
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.ExpectEncodedA), "a");
         Assert.Equal("a", result);
 
         // Test with the converter on both sides.
         this.serverRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
-        result = await this.clientRpc.InvokeAsync<string>(nameof(server.RepeatString), "a");
+        result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.RepeatString), "a");
         Assert.Equal("a", result);
 
         // Test with the converter only on the server side.
         this.clientRpc.JsonSerializer.Converters.Clear();
-        result = await this.clientRpc.InvokeAsync<string>(nameof(server.AsyncMethod), "YQ==");
+        result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.AsyncMethod), "YQ==");
         Assert.Equal("YSE=", result); // a!
     }
 
@@ -469,10 +461,10 @@ public class JsonRpcTests : TestBase
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
     {
-        await CheckGCPressureAsync(
+        await this.CheckGCPressureAsync(
             async delegate
             {
-                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }));
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new object[] { "a" }));
             });
     }
 
@@ -482,10 +474,10 @@ public class JsonRpcTests : TestBase
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
     {
         var cts = new CancellationTokenSource();
-        await CheckGCPressureAsync(
+        await this.CheckGCPressureAsync(
             async delegate
             {
-                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethod), new object[] { "a" }, cts.Token));
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new object[] { "a" }, cts.Token));
             });
     }
 
@@ -494,11 +486,11 @@ public class JsonRpcTests : TestBase
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
     {
-        await CheckGCPressureAsync(
+        await this.CheckGCPressureAsync(
             async delegate
             {
                 this.server.AllowServerMethodToReturn.Set();
-                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, CancellationToken.None));
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethodWithCancellation), new object[] { "a" }, CancellationToken.None));
             });
     }
 
@@ -508,11 +500,11 @@ public class JsonRpcTests : TestBase
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
     {
         var cts = new CancellationTokenSource();
-        await CheckGCPressureAsync(
+        await this.CheckGCPressureAsync(
             async delegate
             {
                 this.server.AllowServerMethodToReturn.Set();
-                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token));
+                Assert.Equal("a!", await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token));
             });
     }
 
@@ -521,11 +513,11 @@ public class JsonRpcTests : TestBase
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
     {
-        await CheckGCPressureAsync(
+        await this.CheckGCPressureAsync(
             async delegate
             {
                 var cts = new CancellationTokenSource();
-                var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token);
+                var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethodWithCancellation), new object[] { "a" }, cts.Token);
                 cts.Cancel();
                 this.server.AllowServerMethodToReturn.Set();
                 await invokeTask.NoThrowAwaitable(); // may or may not throw due to cancellation (and its inherent race condition)
@@ -564,6 +556,19 @@ public class JsonRpcTests : TestBase
     public async Task InvokeAsync_ExceptionThrownIfServerHasMutlipleMethodsMatched()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            this.serverRpc.Dispose();
+            this.clientRpc.Dispose();
+            this.serverStream.Dispose();
+            this.clientStream.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
@@ -623,13 +628,14 @@ public class JsonRpcTests : TestBase
             return "JToken";
         }
 
+        public static int MethodWithDefaultParameter(int x, int y = 10)
+        {
+            return x + y;
+        }
+
         public override string VirtualBaseMethod() => "child";
 
         public new string RedeclaredBaseMethod() => "child";
-
-        internal void InternalMethod()
-        {
-        }
 
         public Task ServerMethodThatReturnsCustomTask()
         {
@@ -662,11 +668,6 @@ public class JsonRpcTests : TestBase
                 Bar = foo.Bar + "!",
                 Bazz = foo.Bazz + 1,
             };
-        }
-
-        public static int MethodWithDefaultParameter(int x, int y = 10)
-        {
-            return x + y;
         }
 
         public object MethodThatAcceptsNothingAndReturnsNull()
@@ -776,25 +777,20 @@ public class JsonRpcTests : TestBase
         {
             i = i + 1;
         }
+
+        internal void InternalMethod()
+        {
+        }
     }
 
     public class Foo
     {
         [JsonProperty(Required = Required.Always)]
         public string Bar { get; set; }
+
         public int Bazz { get; set; }
     }
 
-    private class CustomTask : Task<int>
-    {
-        public CustomTask() : base(() => 0) { }
-
-        public new int Result { get { return CustomTaskResult; } }
-    }
-
-    internal class InternalClass
-    {
-    }
     public class UnserializableType
     {
         [JsonIgnore]
@@ -816,6 +812,23 @@ public class JsonRpcTests : TestBase
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             writer.WriteValue(((UnserializableType)value).Value);
+        }
+    }
+
+    internal class InternalClass
+    {
+    }
+
+    private class CustomTask : Task<int>
+    {
+        public CustomTask()
+            : base(() => 0)
+        {
+        }
+
+        public new int Result
+        {
+            get { return CustomTaskResult; }
         }
     }
 

@@ -15,7 +15,8 @@ We hope to soon.
 
 ## Building
 
-Visual Studio automatically downloads all the dependencies required and you can build using `msbuild` in `src/` or directly in Visual Studio. 
+Visual Studio automatically downloads all the dependencies required and you can build using `msbuild` in `src/` or directly in Visual Studio.
+You also require the Multilingual App Toolkit extension which you can install via the Extensions and Updates window in VS.
 
 If there are any issues, save all untracked changes, close Visual Studio, and run the following commands from the VS 2017 Dev Console:
 ```

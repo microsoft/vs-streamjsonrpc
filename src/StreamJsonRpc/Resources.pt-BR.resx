@@ -100,7 +100,7 @@
     <value>Um inteiro positivo é necessário.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>O buffer está vazio. Chame o método async para preenchê-lo primeiro.</value>
+    <value>O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Um inteiro não negativo é necessário.</value>
@@ -121,5 +121,16 @@
   </data>
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Essa operação não é permitida antes da escuta de mensagens começar.</value>
+  </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>O parâmetro não está no formato de um objeto único</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Todas as sobrecargas e substituições do método '{0}' devem compartilhar um valor comum para {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Os métodos .NET '{0}' e '{1}' não podem ser mapeados para o mesmo nome do método de solicitação: '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
 </root>

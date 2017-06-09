@@ -1,17 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamJsonRpc
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Net.Http.Headers;
+    using System.Runtime.CompilerServices;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft;
+    using Microsoft.VisualStudio.Threading;
+
     /// <summary>
     /// Adds headers before each text message transmitted over a stream.
     /// </summary>
@@ -22,16 +25,18 @@ namespace StreamJsonRpc
     public class HeaderDelimitedMessageHandler : DelimitedMessageHandler
     {
         /// <summary>
+        /// The maximum supported size of a single element in the header.
+        /// </summary>
+        private const int MaxHeaderElementSize = 1024;
+        private const string ContentLengthHeaderNameText = "Content-Length";
+        private const string ContentTypeHeaderNameText = "Content-Type";
+
+        /// <summary>
         /// The default encoding to use when writing content,
         /// and to assume as the encoding when reading content
         /// that doesn't have a header identifying its encoding.
         /// </summary>
         private static readonly Encoding DefaultContentEncoding = Encoding.UTF8;
-
-        /// <summary>
-        /// The maximum supported size of a single element in the header.
-        /// </summary>
-        private const int MaxHeaderElementSize = 1024;
 
         /// <summary>
         /// The encoding to use when writing/reading headers.
@@ -46,8 +51,6 @@ namespace StreamJsonRpc
         /// </remarks>
         private static readonly Encoding HeaderEncoding = Encoding.UTF8;
 
-        private const string ContentLengthHeaderNameText = "Content-Length";
-        private const string ContentTypeHeaderNameText = "Content-Type";
         private static readonly byte[] ContentLengthHeaderName = HeaderEncoding.GetBytes(ContentLengthHeaderNameText);
         private static readonly byte[] HeaderKeyValueDelimiter = HeaderEncoding.GetBytes(": ");
         private static readonly byte[] ContentTypeHeaderName = HeaderEncoding.GetBytes(ContentTypeHeaderNameText);
@@ -139,7 +142,8 @@ namespace StreamJsonRpc
                             --headerBytesLength;
                         }
 
-                        if (lastCharRead == '\r') // spec mandates \r always precedes \n
+                        // spec mandates \r always precedes \n
+                        if (lastCharRead == '\r')
                         {
                             string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
                             headers[headerName] = value;
@@ -160,18 +164,17 @@ namespace StreamJsonRpc
                         headerBytesLength = 0;
                         break;
                 }
-            } while (state != HeaderParseState.Terminate);
+            }
+            while (state != HeaderParseState.Terminate);
 
-            int contentLength;
             string contentLengthAsText = headers[ContentLengthHeaderNameText];
-            if (!int.TryParse(contentLengthAsText, out contentLength))
+            if (!int.TryParse(contentLengthAsText, out int contentLength))
             {
                 throw new BadRpcHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
             }
 
             Encoding contentEncoding = this.Encoding;
-            string contentTypeAsText;
-            if (headers.TryGetValue(ContentTypeHeaderNameText, out contentTypeAsText))
+            if (headers.TryGetValue(ContentTypeHeaderNameText, out string contentTypeAsText))
             {
                 contentEncoding = ParseEncodingFromContentTypeHeader(contentTypeAsText) ?? contentEncoding;
             }
@@ -194,61 +197,6 @@ namespace StreamJsonRpc
             }
 
             return contentEncoding.GetString(contentBuffer, 0, contentLength);
-        }
-
-        /// <summary>
-        /// Extracts the content encoding from a Content-Type header.
-        /// </summary>
-        /// <param name="contentTypeAsText">The value of the Content-Type header.</param>
-        /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
-        [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
-        private static Encoding ParseEncodingFromContentTypeHeader(string contentTypeAsText)
-        {
-            try
-            {
-                var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
-                if (mediaType.CharSet != null)
-                {
-                    Encoding contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
-                    if (contentEncoding == null)
-                    {
-                        throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
-                    }
-
-                    return contentEncoding;
-                }
-
-                return null;
-            }
-            catch (FormatException ex)
-            {
-                throw new BadRpcHeaderException(ex.Message, ex);
-            }
-        }
-
-        private static void ThrowIfNotExpectedToken(char actual, char expected)
-        {
-            if (actual != expected)
-            {
-                ThrowUnexpectedToken(actual, expected);
-            }
-        }
-
-        private static Exception ThrowUnexpectedToken(char actual, char? expected = null)
-        {
-            throw new BadRpcHeaderException(
-                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedTokenReadingHeader, actual));
-        }
-
-        private static bool IsLastFourBytesCrlfCrlf(byte[] buffer, int lastIndex)
-        {
-            const byte cr = (byte)'\r';
-            const byte lf = (byte)'\n';
-            return lastIndex >= 4
-                && buffer[lastIndex - 4] == cr
-                && buffer[lastIndex - 3] == lf
-                && buffer[lastIndex - 2] == cr
-                && buffer[lastIndex - 1] == lf;
         }
 
         /// <inheritdoc />
@@ -292,6 +240,68 @@ namespace StreamJsonRpc
             // Transmit the content itself.
             await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
             await this.SendingStream.FlushAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Extracts the content encoding from a Content-Type header.
+        /// </summary>
+        /// <param name="contentTypeAsText">The value of the Content-Type header.</param>
+        /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
+        [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
+        private static Encoding ParseEncodingFromContentTypeHeader(string contentTypeAsText)
+        {
+            try
+            {
+                var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
+                if (mediaType.CharSet != null)
+                {
+                    // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
+                    // accepted here so StreamJsonRpc can be used to support remote language servers following common language protocol.
+                    if (mediaType.CharSet.Equals("utf8", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Encoding.UTF8;
+                    }
+
+                    Encoding contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
+                    if (contentEncoding == null)
+                    {
+                        throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
+                    }
+
+                    return contentEncoding;
+                }
+
+                return null;
+            }
+            catch (FormatException ex)
+            {
+                throw new BadRpcHeaderException(ex.Message, ex);
+            }
+        }
+
+        private static void ThrowIfNotExpectedToken(char actual, char expected)
+        {
+            if (actual != expected)
+            {
+                ThrowUnexpectedToken(actual, expected);
+            }
+        }
+
+        private static Exception ThrowUnexpectedToken(char actual, char? expected = null)
+        {
+            throw new BadRpcHeaderException(
+                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedTokenReadingHeader, actual));
+        }
+
+        private static bool IsLastFourBytesCrlfCrlf(byte[] buffer, int lastIndex)
+        {
+            const byte cr = (byte)'\r';
+            const byte lf = (byte)'\n';
+            return lastIndex >= 4
+                && buffer[lastIndex - 4] == cr
+                && buffer[lastIndex - 3] == lf
+                && buffer[lastIndex - 2] == cr
+                && buffer[lastIndex - 1] == lf;
         }
     }
 }

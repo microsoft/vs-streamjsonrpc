@@ -122,4 +122,15 @@
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>Questa operazione non è consentita prima dell'avvio dell'ascolto dei messaggi.</value>
   </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Il parametro non è disponibile sotto forma di singolo oggetto</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>Tutti gli overload e gli override del metodo '{0}' devono condividere un valore comune per {1}.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>Non è possibile eseguire il mapping dei metodi .NET '{0}' e '{1}' allo stesso nome di metodo di richiesta: '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
 </root>

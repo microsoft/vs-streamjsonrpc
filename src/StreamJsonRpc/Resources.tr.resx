@@ -16,7 +16,7 @@
     <value>Readable ve writable null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</value>
+    <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -100,7 +100,7 @@
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</value>
+    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>
@@ -121,5 +121,16 @@
   </data>
   <data name="InvalidBeforeListenHasStarted" xml:space="preserve">
     <value>İletiler için dinleme işlemi başlamadan önce bu işleme izin verilmez.</value>
+  </data>
+  <data name="ParameterNotObject" xml:space="preserve">
+    <value>Parametre, tek nesne biçiminde değil</value>
+  </data>
+  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
+    <value>'{0}' metodunun tüm aşırı yükleme ve geçersiz kılmaları {1} için ortak bir değere sahip olmalıdır.{2}.</value>
+    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
+    <value>'{0}' ve '{1}' .NET metotlarının her ikisi de aynı istek metodu adıyla eşlenemez: '{2}'.</value>
+    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
 </root>
