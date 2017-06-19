@@ -116,10 +116,7 @@ namespace StreamJsonRpc
             this.JsonSerializer = new JsonSerializer();
 
             this.targetRequestMethodToClrMethodMap = new Dictionary<object, ReadOnlyDictionary<string, string>>();
-            if (target != null)
-            {
-                this.targetRequestMethodToClrMethodMap.Add(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target)));
-            }
+            this.AddLocalRpcTarget(target);
         }
 
         /// <summary>
@@ -227,16 +224,21 @@ namespace StreamJsonRpc
             }
         }
 
-        public void AttachAdditionalTargets(params object[] additionalTargets)
+        /// <summary>
+        /// Adds the specified targets as possible objects to invoke when incoming messages are received.
+        /// </summary>
+        /// <param name="targets">Targets to invoke when incoming messages are received.</param>
+        /// <remarks>This method must be called before JsonRpc starts listening for messages.</remarks>
+        public void AddLocalRpcTarget(params object[] targets)
         {
-            Requires.NotNull(additionalTargets, nameof(additionalTargets));
+            Requires.NotNull(targets, nameof(targets));
 
             if (this.startedListening)
             {
                 throw new InvalidOperationException("Cannot attach additional targets once JsonRpc has started listening for messages.");
             }
 
-            foreach (var target in additionalTargets)
+            foreach (var target in targets)
             {
                 if (target != null)
                 {

@@ -558,6 +558,44 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
     }
 
+    [Fact]
+    public void AddLocalRpcTarget_ExceptionThrownWhenRpcHasStartedListening()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.AddLocalRpcTarget(new AdditionalServerTargetOne()));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_AdditionalTargetMethodFound()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), new AdditionalServerTargetOne(), new AdditionalServerTargetTwo());
+        rpc.StartListening();
+
+        var serverMethodResult = await rpc.InvokeAsync<string>(nameof(Server.ServerMethod), "test");
+        Assert.Equal("test!", serverMethodResult);
+
+        var plusOneResultInt = await rpc.InvokeAsync<int>(nameof(AdditionalServerTargetOne.PlusOne), 1);
+        Assert.Equal(2, plusOneResultInt);
+
+        var plusOneResultString = await rpc.InvokeAsync<string>(nameof(AdditionalServerTargetTwo.PlusOne), "one");
+        Assert.Equal("one plus one!", plusOneResultString);
+
+        var plusTwoResult = await rpc.InvokeAsync<int>(nameof(AdditionalServerTargetTwo.PlusTwo), 1);
+        Assert.Equal(3, plusTwoResult);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), new AdditionalServerTargetOne(), new AdditionalServerTargetTwo());
+        rpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -780,6 +818,32 @@ public class JsonRpcTests : TestBase
 
         internal void InternalMethod()
         {
+        }
+    }
+
+    public class AdditionalServerTargetOne
+    {
+        public int PlusOne(int arg)
+        {
+            return arg + 1;
+        }
+    }
+
+    public class AdditionalServerTargetTwo
+    {
+        public int PlusOne(int arg)
+        {
+            return arg + 3;
+        }
+
+        public string PlusOne(string arg)
+        {
+            return arg + " plus one!";
+        }
+
+        public int PlusTwo(int arg)
+        {
+            return arg + 2;
         }
     }
 
