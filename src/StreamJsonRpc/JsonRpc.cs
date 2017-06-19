@@ -63,7 +63,7 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
-        private readonly Dictionary<object, ReadOnlyDictionary<string, string>> targetRequestMethodToClrMethodMap;
+        private readonly List<Tuple<object, ReadOnlyDictionary<string, string>>> targetRequestMethodToClrMethodMap;
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -115,7 +115,7 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.targetRequestMethodToClrMethodMap = new Dictionary<object, ReadOnlyDictionary<string, string>>();
+            this.targetRequestMethodToClrMethodMap = new List<Tuple<object, ReadOnlyDictionary<string, string>>>();
             this.AddLocalRpcTarget(target);
         }
 
@@ -242,7 +242,9 @@ namespace StreamJsonRpc
             {
                 if (target != null)
                 {
-                    this.targetRequestMethodToClrMethodMap.Add(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target)));
+                    this.targetRequestMethodToClrMethodMap.Add(new Tuple<object, ReadOnlyDictionary<string, string>>(
+                        target,
+                        new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
                 }
             }
         }
@@ -776,7 +778,7 @@ namespace StreamJsonRpc
                 TargetMethod targetMethod = null;
                 foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
                 {
-                    targetMethod = new TargetMethod(request, targetMap.Key, jsonSerializer, targetMap.Value);
+                    targetMethod = new TargetMethod(request, targetMap.Item1, jsonSerializer, targetMap.Item2);
                     if (targetMethod.IsFound)
                     {
                         break;
