@@ -1,1 +1,1 @@
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget(params object[] targets) -> void
+StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void

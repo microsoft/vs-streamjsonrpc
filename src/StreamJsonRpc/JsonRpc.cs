@@ -63,7 +63,10 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
-        private readonly List<Tuple<object, ReadOnlyDictionary<string, string>>> targetRequestMethodToClrMethodMap;
+        /// <summary>
+        /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
+        /// </summary>
+        private readonly List<Tuple<object, ReadOnlyDictionary<string, string>>> targetRequestMethodToClrMethodMap = new List<Tuple<object, ReadOnlyDictionary<string, string>>>();
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -71,7 +74,7 @@ namespace StreamJsonRpc
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
-        private bool startedListening = false;
+        private bool startedListening;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -115,8 +118,10 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.targetRequestMethodToClrMethodMap = new List<Tuple<object, ReadOnlyDictionary<string, string>>>();
-            this.AddLocalRpcTarget(target);
+            if (target != null)
+            {
+                this.AddLocalRpcTarget(target);
+            }
         }
 
         /// <summary>
@@ -225,28 +230,17 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Adds the specified targets as possible objects to invoke when incoming messages are received.
+        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
+        /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
-        /// <param name="targets">Targets to invoke when incoming messages are received.</param>
+        /// <param name="target">Target to invoke when incoming messages are received.</param>
         /// <remarks>This method must be called before JsonRpc starts listening for messages.</remarks>
-        public void AddLocalRpcTarget(params object[] targets)
+        public void AddLocalRpcTarget(object target)
         {
-            Requires.NotNull(targets, nameof(targets));
+            Requires.NotNull(target, nameof(target));
+            Verify.Operation(!this.startedListening, Resources.BothReadableWritableAreNull);
 
-            if (this.startedListening)
-            {
-                throw new InvalidOperationException("Cannot attach additional targets once JsonRpc has started listening for messages.");
-            }
-
-            foreach (var target in targets)
-            {
-                if (target != null)
-                {
-                    this.targetRequestMethodToClrMethodMap.Add(new Tuple<object, ReadOnlyDictionary<string, string>>(
-                        target,
-                        new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
-                }
-            }
+            this.targetRequestMethodToClrMethodMap.Add(Tuple.Create(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
         }
 
         /// <summary>

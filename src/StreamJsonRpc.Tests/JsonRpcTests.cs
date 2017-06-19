@@ -565,11 +565,21 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void AddLocalRpcTarget_ExceptionThrownWhenTargetIsNull()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        Assert.Throws<ArgumentNullException>(() => rpc.AddLocalRpcTarget(null));
+    }
+
+    [Fact]
     public async Task AddLocalRpcTarget_AdditionalTargetMethodFound()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server(), new AdditionalServerTargetOne(), new AdditionalServerTargetTwo());
+        rpc.AddLocalRpcTarget(new Server());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
         rpc.StartListening();
 
         var serverMethodResult = await rpc.InvokeAsync<string>(nameof(Server.ServerMethod), "test");
@@ -590,7 +600,9 @@ public class JsonRpcTests : TestBase
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server(), new AdditionalServerTargetOne(), new AdditionalServerTargetTwo());
+        rpc.AddLocalRpcTarget(new Server());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
         rpc.StartListening();
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
