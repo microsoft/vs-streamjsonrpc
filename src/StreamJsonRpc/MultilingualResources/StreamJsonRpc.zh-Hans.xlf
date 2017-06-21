@@ -161,6 +161,10 @@
           <target state="translated">.NET 方法“{0}”和“{1}”不能映射到同一请求方法名“{2}”。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
+        <trans-unit id="AttachTargetAfterStartListeningError" translate="yes" xml:space="preserve">
+          <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>
+          <target state="new">Cannot attach additional target once JsonRpc has started listening for messages.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

@@ -29,7 +29,6 @@ namespace StreamJsonRpc
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
-        private readonly object callbackTarget;
 
         /// <summary>
         /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
@@ -65,9 +64,9 @@ namespace StreamJsonRpc
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         /// <summary>
-        /// A dictionary to map clr method names to <see cref="JsonRpcMethodAttribute" /> values.
+        /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
         /// </summary>
-        private readonly ReadOnlyDictionary<string, string> requestMethodToClrMethodMap;
+        private readonly List<Tuple<object, ReadOnlyDictionary<string, string>>> targetRequestMethodToClrMethodMap = new List<Tuple<object, ReadOnlyDictionary<string, string>>>();
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -75,6 +74,7 @@ namespace StreamJsonRpc
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
+        private bool startedListening;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -107,7 +107,6 @@ namespace StreamJsonRpc
             this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult((JToken)id, t);
 
             this.MessageHandler = messageHandler;
-            this.callbackTarget = target;
             this.MessageJsonSerializerSettings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
@@ -119,9 +118,10 @@ namespace StreamJsonRpc
             };
             this.JsonSerializer = new JsonSerializer();
 
-            this.requestMethodToClrMethodMap = this.callbackTarget != null
-                ? new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(this.callbackTarget))
-                : EmptyDictionary;
+            if (target != null)
+            {
+                this.AddLocalRpcTarget(target);
+            }
         }
 
         /// <summary>
@@ -230,10 +230,26 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
+        /// should not inherit from each other and are invoked in the order which they are added.
+        /// </summary>
+        /// <param name="target">Target to invoke when incoming messages are received.</param>
+        /// <remarks>This method must be called before JsonRpc starts listening for messages.</remarks>
+        public void AddLocalRpcTarget(object target)
+        {
+            Requires.NotNull(target, nameof(target));
+            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+
+            this.targetRequestMethodToClrMethodMap.Add(Tuple.Create(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
+        }
+
+        /// <summary>
         /// Starts listening to incoming messages.
         /// </summary>
         public void StartListening()
         {
+            this.startedListening = true;
+
             Verify.Operation(this.MessageHandler.CanRead, Resources.StreamMustBeReadable);
             Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
             Verify.NotDisposed(this);
@@ -744,7 +760,7 @@ namespace StreamJsonRpc
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
 
-            if (this.callbackTarget == null)
+            if (this.targetRequestMethodToClrMethodMap.Count == 0)
             {
                 string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
                 return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.NoCallbackObject, message);
@@ -753,8 +769,17 @@ namespace StreamJsonRpc
             bool ctsAdded = false;
             try
             {
-                var targetMethod = new TargetMethod(request, this.callbackTarget, jsonSerializer, this.requestMethodToClrMethodMap);
-                if (!targetMethod.IsFound)
+                TargetMethod targetMethod = null;
+                foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
+                {
+                    targetMethod = new TargetMethod(request, targetMap.Item1, jsonSerializer, targetMap.Item2);
+                    if (targetMethod.IsFound)
+                    {
+                        break;
+                    }
+                }
+
+                if (targetMethod == null || !targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
                 }
