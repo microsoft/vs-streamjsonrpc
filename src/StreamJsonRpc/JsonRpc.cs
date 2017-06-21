@@ -773,7 +773,7 @@ namespace StreamJsonRpc
                 foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
                 {
                     targetMethod = new TargetMethod(request, targetMap.Item1, jsonSerializer, targetMap.Item2);
-                    if (targetMethod != null && targetMethod.IsFound)
+                    if (targetMethod.IsFound)
                     {
                         break;
                     }

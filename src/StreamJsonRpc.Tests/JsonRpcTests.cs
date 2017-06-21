@@ -559,6 +559,14 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeAsync_NullRefExceptionNotThrownIfNoTargetObjectIsAttached()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = JsonRpc.Attach(streams.Item1, streams.Item2);
+        await Assert.ThrowsAnyAsync<RemoteTargetNotSetException>(() => rpc.InvokeAsync<string>(nameof(Server.ServerMethod), "test"));
+    }
+
+    [Fact]
     public void AddLocalRpcTarget_ExceptionThrownWhenRpcHasStartedListening()
     {
         Assert.Throws<InvalidOperationException>(() => this.clientRpc.AddLocalRpcTarget(new AdditionalServerTargetOne()));
