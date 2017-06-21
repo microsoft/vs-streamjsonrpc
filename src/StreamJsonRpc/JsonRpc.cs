@@ -773,13 +773,13 @@ namespace StreamJsonRpc
                 foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
                 {
                     targetMethod = new TargetMethod(request, targetMap.Item1, jsonSerializer, targetMap.Item2);
-                    if (targetMethod.IsFound)
+                    if (targetMethod != null && targetMethod.IsFound)
                     {
                         break;
                     }
                 }
 
-                if (!targetMethod.IsFound)
+                if (targetMethod == null || !targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
                 }
