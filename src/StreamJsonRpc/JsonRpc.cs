@@ -238,7 +238,7 @@ namespace StreamJsonRpc
         public void AddLocalRpcTarget(object target)
         {
             Requires.NotNull(target, nameof(target));
-            Verify.Operation(!this.startedListening, Resources.BothReadableWritableAreNull);
+            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
 
             this.targetRequestMethodToClrMethodMap.Add(Tuple.Create(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
         }
