@@ -22,9 +22,9 @@ namespace StreamJsonRpc
             this.Data = data;
         }
 
-        public string ErrorStack => this.Data?.Value<string>("stack");
+        public string ErrorStack => this.Data?["stack"]?.Type == JTokenType.String ? this.Data.Value<string>("stack") : null;
 
-        public string ErrorCode => this.Data?.Value<string>("code");
+        public string ErrorCode => this.Data?["code"]?.Type == JTokenType.String || this.Data?["code"]?.Type == JTokenType.Integer ? this.Data.Value<string>("code") : null;
 
         [JsonProperty("code", Required = Required.Always)]
         internal int Code { get; private set; }
