@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     [JsonObject(MemberSerialization.OptIn)]
     internal sealed class JsonRpcError
@@ -14,16 +15,16 @@ namespace StreamJsonRpc
         }
 
         [JsonConstructor]
-        internal JsonRpcError(int code, string message, dynamic data)
+        internal JsonRpcError(int code, string message, JObject data)
         {
             this.Code = code;
             this.Message = message;
             this.Data = data;
         }
 
-        public string ErrorStack => this.Data?.stack;
+        public string ErrorStack => this.Data?.Value<string>("stack");
 
-        public string ErrorCode => this.Data?.code;
+        public string ErrorCode => this.Data?.Value<string>("code");
 
         [JsonProperty("code", Required = Required.Always)]
         internal int Code { get; private set; }
@@ -32,6 +33,6 @@ namespace StreamJsonRpc
         internal string Message { get; private set; }
 
         [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)]
-        internal dynamic Data { get; private set; }
+        internal JObject Data { get; private set; }
     }
 }

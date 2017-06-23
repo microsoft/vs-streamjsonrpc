@@ -94,7 +94,7 @@ namespace StreamJsonRpc
             return CreateError(id, (int)error, message);
         }
 
-        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message, object data)
+        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message, JObject data)
         {
             return CreateError(id, (int)error, message, data);
         }
@@ -104,7 +104,7 @@ namespace StreamJsonRpc
             return CreateError(id, error, message, data: null);
         }
 
-        public static JsonRpcMessage CreateError(JToken id, int error, string message, object data)
+        public static JsonRpcMessage CreateError(JToken id, int error, string message, JObject data)
         {
             return new JsonRpcMessage()
             {
