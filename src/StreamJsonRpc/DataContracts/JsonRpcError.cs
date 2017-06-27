@@ -9,6 +9,16 @@ namespace StreamJsonRpc
     [JsonObject(MemberSerialization.OptIn)]
     internal sealed class JsonRpcError
     {
+        /// <summary>
+        /// The name of the error object's "data.stack" field within the data object.
+        /// </summary>
+        private const string DataStackFieldName = "stack";
+
+        /// <summary>
+        /// The name of the error object's "data.code" field within the data object.
+        /// </summary>
+        private const string DataCodeFieldName = "code";
+
         internal JsonRpcError(int code, string message)
             : this(code, message, data: null)
         {
@@ -22,9 +32,9 @@ namespace StreamJsonRpc
             this.Data = data;
         }
 
-        public string ErrorStack => this.Data?["stack"]?.Type == JTokenType.String ? this.Data.Value<string>("stack") : null;
+        public string ErrorStack => this.Data?[DataStackFieldName]?.Type == JTokenType.String ? this.Data.Value<string>(DataStackFieldName) : null;
 
-        public string ErrorCode => this.Data?["code"]?.Type == JTokenType.String || this.Data?["code"]?.Type == JTokenType.Integer ? this.Data.Value<string>("code") : null;
+        public string ErrorCode => this.Data?[DataCodeFieldName]?.Type == JTokenType.String || this.Data?[DataCodeFieldName]?.Type == JTokenType.Integer ? this.Data.Value<string>(DataCodeFieldName) : null;
 
         [JsonProperty("code", Required = Required.Always)]
         internal int Code { get; private set; }
