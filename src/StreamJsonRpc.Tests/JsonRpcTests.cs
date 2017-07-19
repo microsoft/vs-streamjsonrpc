@@ -465,7 +465,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Trait("Category", "SkipWhenLiveUnitTesting")]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
@@ -478,7 +478,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Trait("Category", "SkipWhenLiveUnitTesting")]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
@@ -492,7 +492,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Trait("Category", "SkipWhenLiveUnitTesting")]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
@@ -506,7 +506,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Trait("Category", "SkipWhenLiveUnitTesting")]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
@@ -521,7 +521,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Trait("Category", "SkipWhenLiveUnitTesting")]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // slow, and flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
