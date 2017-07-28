@@ -11,6 +11,7 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
+[Trait("Category", "SkipWhenLiveUnitTesting")] // very slow test
 public class PerfTests
 {
     private readonly ITestOutputHelper logger;

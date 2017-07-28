@@ -752,7 +752,7 @@ namespace StreamJsonRpc
             }
 
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
-            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, data);
+            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
         }
 
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request, JsonSerializer jsonSerializer)
