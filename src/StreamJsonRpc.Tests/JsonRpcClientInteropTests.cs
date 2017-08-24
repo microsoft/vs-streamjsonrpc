@@ -165,9 +165,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
                 data = new
                 {
                     stack = "   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.GetProjectScope()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsCoreAsync>d__20.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsAsync>d__19.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.SymbolFinder.<FindReferencesAsync>d__13.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetTagsForReferencedSymbolAsync>d__4.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsInCurrentProcessAsync>d__2.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsAsync>d__0.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.Remote.CodeAnalysisService.<GetDocumentHighlightsAsync>d__5.MoveNext()",
-                    code = "-2147467261"
-                }
-            }
+                    code = "-2147467261",
+                },
+            },
         };
         this.Send(errorObject);
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
@@ -190,9 +190,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
                 data = new
                 {
                     stack = "   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.GetProjectScope()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsCoreAsync>d__20.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsAsync>d__19.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.SymbolFinder.<FindReferencesAsync>d__13.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetTagsForReferencedSymbolAsync>d__4.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsInCurrentProcessAsync>d__2.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsAsync>d__0.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.Remote.CodeAnalysisService.<GetDocumentHighlightsAsync>d__5.MoveNext()",
-                    code = -2147467261
-                }
-            }
+                    code = -2147467261,
+                },
+            },
         };
         this.Send(errorObject);
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
@@ -217,8 +217,8 @@ public class JsonRpcClientInteropTests : InteropTestBase
                 {
                     stack = new { foo = 3 },
                     code = new { bar = "-2147467261" },
-                }
-            }
+                },
+            },
         };
         this.Send(errorObject);
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
@@ -241,8 +241,8 @@ public class JsonRpcClientInteropTests : InteropTestBase
                 message = "Object reference not set to an instance of an object.",
                 data = new
                 {
-                }
-            }
+                },
+            },
         });
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
     }
@@ -260,7 +260,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
             {
                 code = -32000,
                 message = "Object reference not set to an instance of an object.",
-            }
+            },
         });
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
     }
