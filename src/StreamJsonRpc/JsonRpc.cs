@@ -660,7 +660,7 @@ namespace StreamJsonRpc
             var requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+            for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
                 foreach (MethodInfo method in t.DeclaredMethods)
                 {
