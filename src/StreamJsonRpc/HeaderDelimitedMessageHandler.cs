@@ -233,12 +233,18 @@ namespace StreamJsonRpc
             sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
 #pragma warning restore VSTHRD103 // Call async methods when in an async method
 
+            // Either write both the header and the message, or don't write anything.
+            // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/55.
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Transmit the headers.
+            // Ignore the cancellation token.
             sendingBufferStream.Position = 0;
-            await sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize, cancellationToken).ConfigureAwait(false);
+            await sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize).ConfigureAwait(false);
 
             // Transmit the content itself.
-            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length, cancellationToken).ConfigureAwait(false);
+            // Ignore the cancellation token.
+            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length).ConfigureAwait(false);
             await this.SendingStream.FlushAsync().ConfigureAwait(false);
         }
 
