@@ -387,7 +387,7 @@ public class JsonRpcTests : TestBase
     }
 
     // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
-    // Covers bug with a workaround https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/56
     [Fact]
     public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
     {
@@ -396,22 +396,12 @@ public class JsonRpcTests : TestBase
         {
             using (var cts = new CancellationTokenSource())
             {
-                int writeCount = 0;
                 this.clientStream.BeforeWrite = (stream, buffer, offset, count) =>
                 {
                     // Cancel on the first write, when the header is being written but the content is not yet.
                     if (!cts.IsCancellationRequested)
                     {
                         cts.Cancel();
-                    }
-
-                    // Workaround for https://github.com/Microsoft/vs-streamjsonrpc/issues/56.
-                    // 3rd write is the cancellation request (1st write is the first request header, 2nd - the first request message).
-                    // Wait for the server method to start running before letting the cancelation through to ensure it finds the method to cancel.
-                    writeCount++;
-                    if (writeCount == 3)
-                    {
-                        this.server.ServerMethodReached.WaitAsync(this.TimeoutToken).GetAwaiter().GetResult();
                     }
                 };
 
