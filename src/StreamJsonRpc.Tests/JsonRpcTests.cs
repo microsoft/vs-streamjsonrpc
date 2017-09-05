@@ -376,9 +376,9 @@ public class JsonRpcTests : TestBase
         }
     }
 
+    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
+    // Covers bug with a workaround https://github.com/Microsoft/vs-streamjsonrpc/issues/56
     [Fact]
-    [Trait("Bug", @"https://github.com/Microsoft/vs-streamjsonrpc/issues/55")]
-    [Trait("Bug-Workaround", @"https://github.com/Microsoft/vs-streamjsonrpc/issues/56")]
     public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
     {
         // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
