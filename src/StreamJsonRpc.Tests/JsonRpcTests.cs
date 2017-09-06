@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
@@ -22,10 +23,10 @@ public class JsonRpcTests : TestBase
     private const string HubName = "TestHub";
 
     private readonly Server server;
-    private readonly Stream serverStream;
+    private readonly FullDuplexStream serverStream;
     private readonly JsonRpc serverRpc;
 
-    private readonly Stream clientStream;
+    private readonly FullDuplexStream clientStream;
     private readonly JsonRpc clientRpc;
 
     public JsonRpcTests(ITestOutputHelper logger)
@@ -35,7 +36,7 @@ public class JsonRpcTests : TestBase
 
         this.server = new Server();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
@@ -381,6 +382,47 @@ public class JsonRpcTests : TestBase
             Task<string> resultTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
             cts.Cancel();
             string result = await resultTask;
+            Assert.Equal("a!", result);
+        }
+    }
+
+    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
+    // Covers bug with a workaround https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
+    {
+        // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
+        for (int iteration = 0; iteration < 10; iteration++)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                int writeCount = 0;
+                this.clientStream.BeforeWrite = (stream, buffer, offset, count) =>
+                {
+                    // Cancel on the first write, when the header is being written but the content is not yet.
+                    if (!cts.IsCancellationRequested)
+                    {
+                        cts.Cancel();
+                    }
+
+                    // Workaround for https://github.com/Microsoft/vs-streamjsonrpc/issues/56.
+                    // 3rd write is the cancellation request (1st write is the first request header, 2nd - the first request message).
+                    // Wait for the server method to start running before letting the cancelation through to ensure it finds the method to cancel.
+                    writeCount++;
+                    if (writeCount == 3)
+                    {
+                        this.server.ServerMethodReached.WaitAsync(this.TimeoutToken).GetAwaiter().GetResult();
+                    }
+                };
+
+                await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
+                this.clientStream.BeforeWrite = null;
+            }
+
+            // Verify that json rpc is still operational after cancellation.
+            // If the cancellation breaks the json rpc, like in https://github.com/Microsoft/vs-streamjsonrpc/issues/55, it will close the stream
+            // and cancel the request, resulting in unexpected OperationCancelledException thrown from the next InvokeAsync
+            string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "a");
             Assert.Equal("a!", result);
         }
     }
