@@ -150,7 +150,9 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanPassExceptionFromServer()
     {
+#pragma warning disable SA1139 // Use literal suffix notation instead of casting
         const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
+#pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.NotNull(exception.RemoteStackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS.ToString(CultureInfo.InvariantCulture), exception.RemoteErrorCode);
@@ -300,6 +302,14 @@ public class JsonRpcTests : TestBase
 
         result = await this.clientRpc.InvokeAsync<string>(nameof(Server.RedeclaredBaseMethod));
         Assert.Equal("child", result);
+    }
+
+    [Fact]
+    public async Task CannotCallMethodsOnSystemObject()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.ToString)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetHashCode)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
     }
 
     [Fact]
