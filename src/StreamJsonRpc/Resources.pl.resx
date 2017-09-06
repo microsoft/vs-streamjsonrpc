@@ -34,14 +34,6 @@
     <value>Metoda {0} ma parametry ref lub out, co nie jest obsługiwane</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>Metoda {0} nie jest publiczna</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>Nazwa metody „{0}” ma inną wielkość liter niż żądana nazwa „{1}”</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>Metoda {0} ma liczbę parametrów {1} (nie licząc wszelkich tokenów CancellationToken), ale żądanie dostarcza {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
@@ -49,10 +41,6 @@
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>Parametry metody {0} nie są zgodne z żądaniem: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>Znaleziono więcej niż jedną metodę docelową: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Osiągnięto koniec strumienia.</value>

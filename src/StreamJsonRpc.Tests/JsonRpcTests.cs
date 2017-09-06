@@ -22,11 +22,11 @@ public class JsonRpcTests : TestBase
     private const string HubName = "TestHub";
 
     private readonly Server server;
-    private readonly Stream serverStream;
-    private readonly JsonRpc serverRpc;
+    private Stream serverStream;
+    private JsonRpc serverRpc;
 
-    private readonly Stream clientStream;
-    private readonly JsonRpc clientRpc;
+    private Stream clientStream;
+    private JsonRpc clientRpc;
 
     public JsonRpcTests(ITestOutputHelper logger)
         : base(logger)
@@ -623,6 +623,153 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
     }
 
+    [Fact]
+    public async Task AddLocalRpcMethod_ActionWith0Args()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        bool invoked = false;
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Action(() => invoked = true));
+        this.StartListening();
+
+        await this.clientRpc.InvokeAsync("biz.bar");
+        Assert.True(invoked);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_ActionWith1Args()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        int expectedArg = 3;
+        int actualArg = 0;
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Action<int>(arg => actualArg = arg));
+        this.StartListening();
+
+        await this.clientRpc.InvokeAsync("biz.bar", expectedArg);
+        Assert.Equal(expectedArg, actualArg);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_ActionWithMultipleOverloads()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        const int expectedArg1 = 3;
+        int actualArg1 = 0;
+        const string expectedArg2 = "hi";
+        string actualArg2 = null;
+
+        void Callback2(int n, string s)
+        {
+            actualArg1 = n;
+            actualArg2 = s;
+        }
+
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Action<int>(arg => actualArg1 = arg));
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Action<int, string>(Callback2));
+        this.StartListening();
+
+        await this.clientRpc.InvokeAsync("biz.bar", expectedArg1, expectedArg2);
+        Assert.Equal(expectedArg1, actualArg1);
+        Assert.Equal(expectedArg2, actualArg2);
+
+        actualArg1 = 0;
+        actualArg2 = null;
+        await this.clientRpc.InvokeAsync("biz.bar", expectedArg1);
+        Assert.Equal(expectedArg1, actualArg1);
+        Assert.Null(actualArg2);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_FuncWith0Args()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        bool invoked = false;
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<bool>(() => invoked = true));
+        this.StartListening();
+
+        Assert.True(await this.clientRpc.InvokeAsync<bool>("biz.bar"));
+        Assert.True(invoked);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_AsyncFuncWith0Args()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        bool invoked = false;
+        async Task<bool> Callback()
+        {
+            await Task.Yield();
+            invoked = true;
+            return true;
+        }
+
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<Task<bool>>(Callback));
+        this.StartListening();
+
+        Assert.True(await this.clientRpc.InvokeAsync<bool>("biz.bar"));
+        Assert.True(invoked);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_FuncWith1Args()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        int expectedArg = 3;
+        int actualArg = 0;
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<int, int>(arg => actualArg = arg));
+        this.StartListening();
+
+        Assert.Equal(expectedArg, await this.clientRpc.InvokeAsync<int>("biz.bar", expectedArg));
+        Assert.Equal(expectedArg, actualArg);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_FuncWithMultipleOverloads()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        const int expectedArg1 = 3;
+        int actualArg1 = 0;
+        const string expectedArg2 = "hi";
+        string actualArg2 = null;
+        const double expectedResult = 0.2;
+
+        double Callback2(int n, string s)
+        {
+            actualArg1 = n;
+            actualArg2 = s;
+            return expectedResult;
+        }
+
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<int, int>(arg => actualArg1 = arg));
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<int, string, double>(Callback2));
+        this.StartListening();
+
+        Assert.Equal(expectedResult, await this.clientRpc.InvokeAsync<double>("biz.bar", expectedArg1, expectedArg2));
+        Assert.Equal(expectedArg1, actualArg1);
+        Assert.Equal(expectedArg2, actualArg2);
+
+        actualArg1 = 0;
+        actualArg2 = null;
+        Assert.Equal(expectedArg1, await this.clientRpc.InvokeAsync<int>("biz.bar", expectedArg1));
+        Assert.Equal(expectedArg1, actualArg1);
+        Assert.Null(actualArg2);
+    }
+
+    [Fact]
+    public void AddLocalRpcMethod_FuncsThatDifferByReturnTypeOnly()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<int>(() => 1));
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<string>(() => "a")));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -645,6 +792,22 @@ public class JsonRpcTests : TestBase
         string header = $"Content-Length: {json.Length}\r\n\r\n";
         byte[] buffer = Encoding.ASCII.GetBytes(header + json);
         receivingStream.Write(buffer, 0, buffer.Length);
+    }
+
+    private void ReinitializeRpcWithoutListening()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream, this.server);
+        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+    }
+
+    private void StartListening()
+    {
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
     }
 
     public class BaseClass

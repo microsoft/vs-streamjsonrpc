@@ -34,14 +34,6 @@
     <value>{0} は ref または out パラメーターを含んでいますが、サポートされていません</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} はパブリックではありません</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>'{0}' メソッド名は要求された '{1}' とは大文字と小文字が異なります</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0} パラメーター (CancellationToken は除外します): {1}、しかし要求は {2} を提供します</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
@@ -49,10 +41,6 @@
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} パラメーターは、要求と互換性がありません: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>複数のターゲット メソッドが見つかりました: {0}。</value>
-    <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>ストリームの終わりに達しました。</value>
