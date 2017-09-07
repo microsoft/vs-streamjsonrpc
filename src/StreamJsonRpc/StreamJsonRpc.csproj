@@ -35,7 +35,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AsyncUsageAnalyzers" Version="1.0.0-alpha003" PrivateAssets="all" />
-    <PackageReference Include="MicroBuild.VisualStudio" Version="2.0.43" PrivateAssets="all" />
+    <PackageReference Include="MicroBuild.VisualStudio" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.3.20" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="15.3.20" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="6.0.6" Condition=" '$(TargetFramework)' == 'net45' " />
