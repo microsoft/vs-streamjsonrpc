@@ -37,7 +37,7 @@
   <ItemGroup>
     <PackageReference Include="System.IO.Pipes" Version="4.0.0" />
     <PackageReference Include="OpenCover" Version="4.6.519" />
-    <PackageReference Include="MicroBuild.NonShipping" Version="2.0.40" PrivateAssets="all" />
+    <PackageReference Include="MicroBuild.NonShipping" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
     <!-- PackageReference Include="Nerdbank.FullDuplexStream" Version="1.0.9" /-->
     <PackageReference Include="System.Collections.Immutable" Version="1.2.0" />
     <PackageReference Include="xunit" Version="2.2.0" />
