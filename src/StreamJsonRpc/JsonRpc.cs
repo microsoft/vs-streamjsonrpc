@@ -799,7 +799,7 @@ namespace StreamJsonRpc
                 }
 
                 // Yield now so method invocation is async and we can proceed to handle other requests meanwhile
-                await Task.Yield();
+                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
 
                 object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task))
@@ -1040,7 +1040,7 @@ namespace StreamJsonRpc
                 if (data != null)
                 {
                     // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
-                    await Task.Yield();
+                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                     data.CompletionHandler(rpc);
                 }
 
@@ -1070,7 +1070,7 @@ namespace StreamJsonRpc
                 // This cancellation token is the one that is passed to the server method.
                 // It may have callbacks registered on cancellation.
                 // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
-                await Task.Yield();
+                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                 cts.Cancel();
             }
         }

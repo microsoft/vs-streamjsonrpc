@@ -391,6 +391,9 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
     {
+        // TODO: remove the next line when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+        this.server.DelayAsyncMethodWithCancellation = true;
+
         // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
         for (int iteration = 0; iteration < 10; iteration++)
         {
@@ -700,6 +703,8 @@ public class JsonRpcTests : TestBase
 
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
+        public bool DelayAsyncMethodWithCancellation { get; set; }
+
         public static string ServerMethod(string argument)
         {
             return argument + "!";
@@ -805,6 +810,13 @@ public class JsonRpcTests : TestBase
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
+
+            // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+            if (this.DelayAsyncMethodWithCancellation)
+            {
+                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+            }
+
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
             return arg + "!";
         }
