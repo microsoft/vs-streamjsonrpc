@@ -755,10 +755,9 @@ namespace StreamJsonRpc
             return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request, JsonSerializer jsonSerializer)
+        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
         {
             Requires.NotNull(request, nameof(request));
-            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
 
             if (this.targetRequestMethodToClrMethodMap.Count == 0)
             {
@@ -772,7 +771,7 @@ namespace StreamJsonRpc
                 TargetMethod targetMethod = null;
                 foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
                 {
-                    targetMethod = new TargetMethod(request, targetMap.Item1, jsonSerializer, targetMap.Item2);
+                    targetMethod = new TargetMethod(request, targetMap.Item1, this.JsonSerializer, targetMap.Item2);
                     if (targetMethod.IsFound)
                     {
                         break;
@@ -784,6 +783,9 @@ namespace StreamJsonRpc
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
                 }
 
+                // Add cancelation to inboundCancellationSources before yielding to ensure that
+                // it cannot be preempted by the cancellation request that would try to set it
+                // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
                 var cancellationToken = CancellationToken.None;
                 if (targetMethod.AcceptsCancellationToken && !request.IsNotification)
                 {
@@ -795,6 +797,9 @@ namespace StreamJsonRpc
                         ctsAdded = true;
                     }
                 }
+
+                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile
+                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
 
                 object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task))
@@ -930,29 +935,23 @@ namespace StreamJsonRpc
                         break;
                     }
 
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-
-                    Task.Run(
-                        async delegate
-                    {
-                        try
+                    this.HandleRpcAsync(json).ContinueWith(
+                        (task, state) =>
                         {
-                            await this.HandleRpcAsync(json).ConfigureAwait(false);
-                        }
-                        catch (Exception exception)
-                        {
+                            var faultyJson = (string)state;
                             var eventArgs = new JsonRpcDisconnectedEventArgs(
-                                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, json, exception.Message),
+                                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, faultyJson, task.Exception.Message),
                                 DisconnectedReason.ParseError,
-                                json,
-                                exception);
+                                faultyJson,
+                                task.Exception);
 
                             // Fatal error. Raise disconnected event.
                             this.OnJsonRpcDisconnected(eventArgs);
-                        }
-                    }, this.disposeCts.Token);
-
-#pragma warning restore CS4014
+                        },
+                        json,
+                        this.disposeCts.Token,
+                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default).Forget();
                 }
             }
             finally
@@ -993,11 +992,11 @@ namespace StreamJsonRpc
 
                 if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
                 {
-                    this.HandleCancellationNotification(rpc);
+                    await this.HandleCancellationNotificationAsync(rpc).ConfigureAwait(false);
                     return;
                 }
 
-                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc, this.JsonSerializer).ConfigureAwait(false);
+                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
 
                 if (!rpc.IsNotification)
                 {
@@ -1040,6 +1039,8 @@ namespace StreamJsonRpc
 
                 if (data != null)
                 {
+                    // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
+                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                     data.CompletionHandler(rpc);
                 }
 
@@ -1053,7 +1054,7 @@ namespace StreamJsonRpc
                 json));
         }
 
-        private void HandleCancellationNotification(JsonRpcMessage rpc)
+        private async Task HandleCancellationNotificationAsync(JsonRpcMessage rpc)
         {
             Requires.NotNull(rpc, nameof(rpc));
 
@@ -1064,7 +1065,14 @@ namespace StreamJsonRpc
                 this.inboundCancellationSources.TryGetValue(id, out cts);
             }
 
-            cts?.Cancel();
+            if (cts != null)
+            {
+                // This cancellation token is the one that is passed to the server method.
+                // It may have callbacks registered on cancellation.
+                // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
+                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
+                cts.Cancel();
+            }
         }
 
         private void CancelPendingRequests()

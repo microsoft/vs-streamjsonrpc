@@ -387,31 +387,24 @@ public class JsonRpcTests : TestBase
     }
 
     // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
-    // Covers bug with a workaround https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/56
     [Fact]
     public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
     {
+        // TODO: remove the next line when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+        this.server.DelayAsyncMethodWithCancellation = true;
+
         // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
         for (int iteration = 0; iteration < 10; iteration++)
         {
             using (var cts = new CancellationTokenSource())
             {
-                int writeCount = 0;
                 this.clientStream.BeforeWrite = (stream, buffer, offset, count) =>
                 {
                     // Cancel on the first write, when the header is being written but the content is not yet.
                     if (!cts.IsCancellationRequested)
                     {
                         cts.Cancel();
-                    }
-
-                    // Workaround for https://github.com/Microsoft/vs-streamjsonrpc/issues/56.
-                    // 3rd write is the cancellation request (1st write is the first request header, 2nd - the first request message).
-                    // Wait for the server method to start running before letting the cancelation through to ensure it finds the method to cancel.
-                    writeCount++;
-                    if (writeCount == 3)
-                    {
-                        this.server.ServerMethodReached.WaitAsync(this.TimeoutToken).GetAwaiter().GetResult();
                     }
                 };
 
@@ -710,6 +703,8 @@ public class JsonRpcTests : TestBase
 
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
+        public bool DelayAsyncMethodWithCancellation { get; set; }
+
         public static string ServerMethod(string argument)
         {
             return argument + "!";
@@ -815,6 +810,13 @@ public class JsonRpcTests : TestBase
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
+
+            // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+            if (this.DelayAsyncMethodWithCancellation)
+            {
+                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+            }
+
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
             return arg + "!";
         }
