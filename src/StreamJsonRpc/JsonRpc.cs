@@ -22,7 +22,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public class JsonRpc : IDisposableObservable
+    public partial class JsonRpc : IDisposableObservable
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
@@ -68,7 +68,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
         /// </summary>
-        private readonly Dictionary<string, List<MethodTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodTarget>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -298,7 +298,7 @@ namespace StreamJsonRpc
             Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
             lock (this.syncObject)
             {
-                var methodTarget = new MethodTarget(handler, target);
+                var methodTarget = new MethodSignatureAndTarget(handler, target);
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                 {
                     if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
@@ -310,7 +310,7 @@ namespace StreamJsonRpc
                 }
                 else
                 {
-                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodTarget> { methodTarget });
+                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
                 }
             }
         }
@@ -724,13 +724,13 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static Dictionary<string, List<MethodTarget>> GetRequestMethodToClrMethodMap(object target)
+        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target)
         {
             Requires.NotNull(target, nameof(target));
 
             var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
             var requestMethodToClrMethodNameMap = new Dictionary<string, string>(StringComparer.Ordinal);
-            var requestMethodToDelegateMap = new Dictionary<string, List<MethodTarget>>(StringComparer.Ordinal);
+            var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
@@ -742,7 +742,7 @@ namespace StreamJsonRpc
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
                     {
-                        methodTargetList = new List<MethodTarget>();
+                        methodTargetList = new List<MethodSignatureAndTarget>();
                         requestMethodToDelegateMap.Add(requestName, methodTargetList);
                     }
 
@@ -773,7 +773,7 @@ namespace StreamJsonRpc
                     }
 
                     // Skip this method if its signature matches one from a derived type we have already scanned.
-                    MethodTarget methodTarget = new MethodTarget(method, target);
+                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target);
                     if (methodTargetList.Contains(methodTarget))
                     {
                         continue;
@@ -1214,38 +1214,6 @@ namespace StreamJsonRpc
         {
             string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
-        }
-
-        internal struct MethodTarget : IEquatable<MethodTarget>
-        {
-            public MethodTarget(MethodInfo method, object target)
-            {
-                Requires.NotNull(method, nameof(method));
-
-                this.Signature = new MethodSignature(method);
-                this.Target = target;
-            }
-
-            public MethodSignature Signature { get; }
-
-            public object Target { get; }
-
-            public override bool Equals(object obj)
-            {
-                return obj is MethodTarget other
-                    && this.Equals(other);
-            }
-
-            public bool Equals(MethodTarget other)
-            {
-                return this.Signature.Equals(other.Signature)
-                    && object.Equals(this.Target, other.Target);
-            }
-
-            public override int GetHashCode()
-            {
-                return this.Signature.GetHashCode() + (this.Target?.GetHashCode() ?? 0);
-            }
         }
 
         private class OutstandingCallData

@@ -24,7 +24,7 @@ namespace StreamJsonRpc
         internal TargetMethod(
             JsonRpcMessage request,
             JsonSerializer jsonSerializer,
-            IEnumerable<JsonRpc.MethodTarget> candidateMethodTargets)
+            IEnumerable<MethodSignatureAndTarget> candidateMethodTargets)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
@@ -32,13 +32,13 @@ namespace StreamJsonRpc
 
             this.request = request;
 
-            var targetMethods = new Dictionary<JsonRpc.MethodTarget, object[]>();
+            var targetMethods = new Dictionary<MethodSignatureAndTarget, object[]>();
             foreach (var method in candidateMethodTargets)
             {
                 this.TryAddMethod(request, targetMethods, method, jsonSerializer);
             }
 
-            KeyValuePair<JsonRpc.MethodTarget, object[]> methodWithParameters = targetMethods.FirstOrDefault();
+            KeyValuePair<MethodSignatureAndTarget, object[]> methodWithParameters = targetMethods.FirstOrDefault();
             if (methodWithParameters.Key.Signature != null)
             {
                 this.target = methodWithParameters.Key.Target;
@@ -155,7 +155,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<JsonRpc.MethodTarget, object[]> targetMethods, JsonRpc.MethodTarget method, JsonSerializer jsonSerializer)
+        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignatureAndTarget, object[]> targetMethods, MethodSignatureAndTarget method, JsonSerializer jsonSerializer)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(targetMethods, nameof(targetMethods));
