@@ -421,6 +421,33 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeAsync_CanCallCancellableMethodWithNoArgs()
+    {
+        Assert.Equal(5, await this.clientRpc.InvokeAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CanCallCancellableMethodWithNoArgs()
+    {
+        Assert.Equal(5, await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
+
+        using (var cts = new CancellationTokenSource())
+        {
+            Task<int> resultTask = this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs), cancellationToken: cts.Token);
+            cts.Cancel();
+            try
+            {
+                int result = await resultTask;
+                Assert.Equal(5, result);
+            }
+            catch (OperationCanceledException)
+            {
+                // this is also an acceptable result.
+            }
+        }
+    }
+
+    [Fact]
     public async Task CancelMessageSentWhileAwaitingResponse()
     {
         using (var cts = new CancellationTokenSource())
@@ -805,6 +832,12 @@ public class JsonRpcTests : TestBase
         {
             await Task.Yield();
             return arg + "!";
+        }
+
+        public async Task<int> AsyncMethodWithCancellationAndNoArgs(CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            return 5;
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)

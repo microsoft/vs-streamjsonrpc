@@ -8,6 +8,7 @@ namespace StreamJsonRpc
     using System.Linq;
     using System.Reflection;
     using System.Threading;
+    using Microsoft;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -138,19 +139,12 @@ namespace StreamJsonRpc
 
         public object[] GetParameters(ParameterInfo[] parameterInfos, JsonSerializer jsonSerializer)
         {
-            if (this.Parameters == null || !this.Parameters.Children().Any())
-            {
-                return new object[0];
-            }
-
-            if (parameterInfos == null || parameterInfos.Length == 0)
-            {
-                return this.Parameters.ToObject<object[]>();
-            }
+            Requires.NotNull(parameterInfos, nameof(parameterInfos));
+            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
 
             int index = 0;
             var result = new List<object>(parameterInfos.Length);
-            foreach (var parameter in this.Parameters.Children())
+            foreach (var parameter in this.Parameters?.Children() ?? Enumerable.Empty<JToken>())
             {
                 Type type = typeof(object);
                 if (index < parameterInfos.Length)
