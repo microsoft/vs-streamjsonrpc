@@ -295,6 +295,10 @@ namespace StreamJsonRpc
         /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
         public void AddLocalRpcMethod(string rpcMethodName, MethodInfo handler, object target)
         {
+            Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
+            Requires.NotNull(handler, nameof(handler));
+            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
+
             Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
             lock (this.syncObject)
             {

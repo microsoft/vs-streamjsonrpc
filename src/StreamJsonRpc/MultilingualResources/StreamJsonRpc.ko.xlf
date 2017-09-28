@@ -158,6 +158,11 @@
           <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>
           <target state="new">Cannot attach additional target once JsonRpc has started listening for messages.</target>
         </trans-unit>
+        <trans-unit id="TargetObjectAndMethodStaticFlagMismatch" translate="yes" xml:space="preserve">
+          <source>A target object should be supplied if and only if the method is not static.</source>
+          <target state="new">A target object should be supplied if and only if the method is not static.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">"static" is a C# keyword and should not be translated.</note>
+        </trans-unit>
       </group>
     </body>
   </file>
