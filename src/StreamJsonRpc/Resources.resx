@@ -131,6 +131,9 @@
     <value>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</value>
     <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
   </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>A method with the same name and equivalent parameters has already been registered.</value>
+  </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
     <comment>{0} is the method name to execute.</comment>
@@ -166,14 +169,6 @@
     <value>{0} has ref or out parameter(s), which is not supported</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} is not public</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>'{0}' method name has different case from requested '{1}'</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
@@ -181,10 +176,6 @@
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} parameters are not compatible with the request: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>More than one target method found: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
@@ -204,6 +195,9 @@
   </data>
   <data name="ResponseIsNotError" xml:space="preserve">
     <value>Response is not error.</value>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>No method by the name '{0}' is found.</value>
   </data>
   <data name="StreamDisposed" xml:space="preserve">
     <value>Stream has been disposed</value>

@@ -34,16 +34,6 @@
           <target state="translated">{0}에 ref 또는 지원되지 않는 출력 매개 변수가 있습니다.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
-        <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
-          <source>{0} is not public</source>
-          <target state="translated">{0}이(가) public이 아닙니다.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
-        </trans-unit>
-        <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
-          <source>'{0}' method name has different case from requested '{1}'</source>
-          <target state="translated">'{0}' 메서드 이름에 요청된 '{1}'과(와) 다른 대/소문자가 있습니다.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
-        </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">{0} 매개 변수(CancellationToken 제외)는 {1}이지만 요청에서는 {2}이(가) 제공됩니다.</target>
@@ -53,11 +43,6 @@
           <source>{0} parameters are not compatible with the request: {1}</source>
           <target state="translated">{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
-        </trans-unit>
-        <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
-          <source>More than one target method found: {0}.</source>
-          <target state="translated">둘 이상의 대상 메서드 발견: {0}.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
@@ -160,6 +145,14 @@
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
           <target state="translated">.NET 메서드 '{0}' 및 '{1}'이(가) 둘 다 동일한 요청 메서드 이름에 매핑될 수 없습니다. '{2}'.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
+        </trans-unit>
+        <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
+          <source>No method by the name '{0}' is found.</source>
+          <target state="new">No method by the name '{0}' is found.</target>
+        </trans-unit>
+        <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
+          <source>A method with the same name and equivalent parameters has already been registered.</source>
+          <target state="new">A method with the same name and equivalent parameters has already been registered.</target>
         </trans-unit>
         <trans-unit id="AttachTargetAfterStartListeningError" translate="yes" xml:space="preserve">
           <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>

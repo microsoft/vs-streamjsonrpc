@@ -34,16 +34,6 @@
           <target state="translated">{0} 有不支援的 ref 或 out 參數</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
-        <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
-          <source>{0} is not public</source>
-          <target state="translated">{0} 不是公用的</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
-        </trans-unit>
-        <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
-          <source>'{0}' method name has different case from requested '{1}'</source>
-          <target state="translated">'{0}' 方法名稱，其大小寫與所要求的 '{1}' 不同</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
-        </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">{0} 個參數 (排除任何 CancellationToken): {1}，但要求提供 {2}</target>
@@ -53,11 +43,6 @@
           <source>{0} parameters are not compatible with the request: {1}</source>
           <target state="translated">{0} 參數與下列要求不相容: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
-        </trans-unit>
-        <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
-          <source>More than one target method found: {0}.</source>
-          <target state="translated">找到多個目標方法: {0}。</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
@@ -160,6 +145,14 @@
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
           <target state="translated">.NET 方法 '{0}' 與 '{1}' 不得同時對應到同一個要求方法名稱: '{2}'。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
+        </trans-unit>
+        <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
+          <source>No method by the name '{0}' is found.</source>
+          <target state="new">No method by the name '{0}' is found.</target>
+        </trans-unit>
+        <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
+          <source>A method with the same name and equivalent parameters has already been registered.</source>
+          <target state="new">A method with the same name and equivalent parameters has already been registered.</target>
         </trans-unit>
         <trans-unit id="AttachTargetAfterStartListeningError" translate="yes" xml:space="preserve">
           <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>

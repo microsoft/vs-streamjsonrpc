@@ -64,6 +64,8 @@ namespace StreamJsonRpc
                 }
             }
 
+            // We intentionally omit equating the MethodInfo itself because we want to consider
+            // overrides to be equal across types in the type hierarchy.
             return true;
         }
 

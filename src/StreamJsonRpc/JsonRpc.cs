@@ -22,13 +22,15 @@ namespace StreamJsonRpc
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public class JsonRpc : IDisposableObservable
+    public partial class JsonRpc : IDisposableObservable
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
+
+        private readonly object syncObject = new object();
 
         /// <summary>
         /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
@@ -66,7 +68,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
         /// </summary>
-        private readonly List<Tuple<object, ReadOnlyDictionary<string, string>>> targetRequestMethodToClrMethodMap = new List<Tuple<object, ReadOnlyDictionary<string, string>>>();
+        private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
@@ -234,13 +236,83 @@ namespace StreamJsonRpc
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
-        /// <remarks>This method must be called before JsonRpc starts listening for messages.</remarks>
         public void AddLocalRpcTarget(object target)
         {
             Requires.NotNull(target, nameof(target));
             Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
 
-            this.targetRequestMethodToClrMethodMap.Add(Tuple.Create(target, new ReadOnlyDictionary<string, string>(GetRequestMethodToClrMethodMap(target))));
+            var mapping = GetRequestMethodToClrMethodMap(target);
+            lock (this.syncObject)
+            {
+                foreach (var item in mapping)
+                {
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(item.Key, out var existingList))
+                    {
+                        // Only add methods that do not have equivalent signatures to what we already have.
+                        foreach (var newMethod in item.Value)
+                        {
+                            if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
+                            {
+                                existingList.Add(newMethod);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        this.targetRequestMethodToClrMethodMap.Add(item.Key, item.Value);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a handler for an RPC method with a given name.
+        /// </summary>
+        /// <param name="rpcMethodName">
+        /// The name of the method as it is identified by the incoming JSON-RPC message.
+        /// It need not match the name of the CLR method/delegate given here.
+        /// </param>
+        /// <param name="handler">
+        /// The method or delegate to invoke when a matching RPC message arrives.
+        /// This method may accept parameters from the incoming JSON-RPC message.
+        /// </param>
+        public void AddLocalRpcMethod(string rpcMethodName, Delegate handler)
+        {
+            this.AddLocalRpcMethod(rpcMethodName, handler.GetMethodInfo(), handler.Target);
+        }
+
+        /// <summary>
+        /// Adds a handler for an RPC method with a given name.
+        /// </summary>
+        /// <param name="rpcMethodName">
+        /// The name of the method as it is identified by the incoming JSON-RPC message.
+        /// It need not match the name of the CLR method/delegate given here.
+        /// </param>
+        /// <param name="handler">
+        /// The method or delegate to invoke when a matching RPC message arrives.
+        /// This method may accept parameters from the incoming JSON-RPC message.
+        /// </param>
+        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        public void AddLocalRpcMethod(string rpcMethodName, MethodInfo handler, object target)
+        {
+            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+            lock (this.syncObject)
+            {
+                var methodTarget = new MethodSignatureAndTarget(handler, target);
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
+                {
+                    if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
+                    {
+                        throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
+                    }
+
+                    existingList.Add(methodTarget);
+                }
+                else
+                {
+                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
+                }
+            }
         }
 
         /// <summary>
@@ -652,12 +724,13 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static IDictionary<string, string> GetRequestMethodToClrMethodMap(object target)
+        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target)
         {
             Requires.NotNull(target, nameof(target));
 
             var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-            var requestMethodToClrMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var requestMethodToClrMethodNameMap = new Dictionary<string, string>(StringComparer.Ordinal);
+            var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
@@ -666,6 +739,12 @@ namespace StreamJsonRpc
                 {
                     var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
                     var requestName = attribute?.Name ?? method.Name;
+
+                    if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
+                    {
+                        methodTargetList = new List<MethodSignatureAndTarget>();
+                        requestMethodToDelegateMap.Add(requestName, methodTargetList);
+                    }
 
                     // Verify that all overloads of this CLR method also claim the same request method name.
                     if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out string previousRequestNameUse))
@@ -681,7 +760,7 @@ namespace StreamJsonRpc
                     }
 
                     // Verify that all CLR methods that want to use this request method name are overloads of each other.
-                    if (requestMethodToClrMethodMap.TryGetValue(requestName, out string previousClrNameUse))
+                    if (requestMethodToClrMethodNameMap.TryGetValue(requestName, out string previousClrNameUse))
                     {
                         if (!string.Equals(method.Name, previousClrNameUse, StringComparison.Ordinal))
                         {
@@ -690,8 +769,17 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        requestMethodToClrMethodMap.Add(requestName, method.Name);
+                        requestMethodToClrMethodNameMap.Add(requestName, method.Name);
                     }
+
+                    // Skip this method if its signature matches one from a derived type we have already scanned.
+                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target);
+                    if (methodTargetList.Contains(methodTarget))
+                    {
+                        continue;
+                    }
+
+                    methodTargetList.Add(methodTarget);
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
@@ -710,13 +798,14 @@ namespace StreamJsonRpc
             // if it would not introduce any collisions.
             foreach (var candidateAlias in candidateAliases)
             {
-                if (!requestMethodToClrMethodMap.ContainsKey(candidateAlias.Key))
+                if (!requestMethodToClrMethodNameMap.ContainsKey(candidateAlias.Key))
                 {
-                    requestMethodToClrMethodMap.Add(candidateAlias.Key, candidateAlias.Value);
+                    requestMethodToClrMethodNameMap.Add(candidateAlias.Key, candidateAlias.Value);
+                    requestMethodToDelegateMap[candidateAlias.Key] = requestMethodToDelegateMap[candidateAlias.Value].ToList();
                 }
             }
 
-            return requestMethodToClrMethodMap;
+            return requestMethodToDelegateMap;
         }
 
         private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
@@ -759,26 +848,29 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            if (this.targetRequestMethodToClrMethodMap.Count == 0)
-            {
-                string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
-                return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.NoCallbackObject, message);
-            }
-
             bool ctsAdded = false;
             try
             {
                 TargetMethod targetMethod = null;
-                foreach (var targetMap in this.targetRequestMethodToClrMethodMap)
+                lock (this.syncObject)
                 {
-                    targetMethod = new TargetMethod(request, targetMap.Item1, this.JsonSerializer, targetMap.Item2);
-                    if (targetMethod.IsFound)
+                    if (this.targetRequestMethodToClrMethodMap.Count == 0)
                     {
-                        break;
+                        string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
+                        return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.NoCallbackObject, message);
+                    }
+
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
+                    {
+                        targetMethod = new TargetMethod(request, this.JsonSerializer, candidateTargets);
                     }
                 }
 
-                if (targetMethod == null || !targetMethod.IsFound)
+                if (targetMethod == null)
+                {
+                    return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method));
+                }
+                else if (!targetMethod.IsFound)
                 {
                     return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
                 }

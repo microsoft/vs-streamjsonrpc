@@ -34,14 +34,6 @@
     <value>{0} 有不支援的 ref 或 out 參數</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} 不是公用的</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>'{0}' 方法名稱，其大小寫與所要求的 '{1}' 不同</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0} 個參數 (排除任何 CancellationToken): {1}，但要求提供 {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
@@ -49,10 +41,6 @@
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} 參數與下列要求不相容: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>找到多個目標方法: {0}。</value>
-    <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>已到達資料流結尾。</value>

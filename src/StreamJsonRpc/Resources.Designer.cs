@@ -98,6 +98,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A method with the same name and equivalent parameters has already been registered..
+        /// </summary>
+        internal static string ConflictMethodSignatureAlreadyRegistered {
+            get {
+                return ResourceManager.GetString("ConflictMethodSignatureAlreadyRegistered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {
@@ -188,24 +197,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} is not public.
-        /// </summary>
-        internal static string MethodIsNotPublic {
-            get {
-                return ResourceManager.GetString("MethodIsNotPublic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to &apos;{0}&apos; method name has different case from requested &apos;{1}&apos;.
-        /// </summary>
-        internal static string MethodNameCaseIsDifferent {
-            get {
-                return ResourceManager.GetString("MethodNameCaseIsDifferent", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}.
         /// </summary>
         internal static string MethodParameterCountDoesNotMatch {
@@ -220,15 +211,6 @@ namespace StreamJsonRpc {
         internal static string MethodParametersNotCompatible {
             get {
                 return ResourceManager.GetString("MethodParametersNotCompatible", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to More than one target method found: {0}..
-        /// </summary>
-        internal static string MoreThanOneMethodFound {
-            get {
-                return ResourceManager.GetString("MoreThanOneMethodFound", resourceCulture);
             }
         }
         
@@ -283,6 +265,15 @@ namespace StreamJsonRpc {
         internal static string ResponseIsNotError {
             get {
                 return ResourceManager.GetString("ResponseIsNotError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No method by the name &apos;{0}&apos; is found..
+        /// </summary>
+        internal static string RpcMethodNameNotFound {
+            get {
+                return ResourceManager.GetString("RpcMethodNameNotFound", resourceCulture);
             }
         }
         

@@ -34,16 +34,6 @@
           <target state="translated">Metoda {0} ma parametry ref lub out, co nie jest obsługiwane</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
-        <trans-unit id="MethodIsNotPublic" translate="yes" xml:space="preserve">
-          <source>{0} is not public</source>
-          <target state="translated">Metoda {0} nie jest publiczna</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
-        </trans-unit>
-        <trans-unit id="MethodNameCaseIsDifferent" translate="yes" xml:space="preserve">
-          <source>'{0}' method name has different case from requested '{1}'</source>
-          <target state="translated">Nazwa metody „{0}” ma inną wielkość liter niż żądana nazwa „{1}”</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the requested method name.</note>
-        </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
           <target state="translated">Metoda {0} ma liczbę parametrów {1} (nie licząc wszelkich tokenów CancellationToken), ale żądanie dostarcza {2}</target>
@@ -53,11 +43,6 @@
           <source>{0} parameters are not compatible with the request: {1}</source>
           <target state="translated">Parametry metody {0} nie są zgodne z żądaniem: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
-        </trans-unit>
-        <trans-unit id="MoreThanOneMethodFound" translate="yes" xml:space="preserve">
-          <source>More than one target method found: {0}.</source>
-          <target state="translated">Znaleziono więcej niż jedną metodę docelową: {0}.</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the list of method signatures.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
@@ -160,6 +145,14 @@
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
           <target state="translated">Metody programu .NET „{0}” i „{1}” nie mogą mieć jednocześnie mapowania na tę samą nazwę metody żądania: „{2}”.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
+        </trans-unit>
+        <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
+          <source>No method by the name '{0}' is found.</source>
+          <target state="new">No method by the name '{0}' is found.</target>
+        </trans-unit>
+        <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
+          <source>A method with the same name and equivalent parameters has already been registered.</source>
+          <target state="new">A method with the same name and equivalent parameters has already been registered.</target>
         </trans-unit>
         <trans-unit id="AttachTargetAfterStartListeningError" translate="yes" xml:space="preserve">
           <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>

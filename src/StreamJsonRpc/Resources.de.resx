@@ -34,14 +34,6 @@
     <value>"{0}" weist ref- oder out-Parameter auf. Dies wird nicht unterstützt</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>"{0}" ist nicht öffentlich.</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>Der Methodenname "{0}" weist eine andere Groß-/Kleinschreibung als das angeforderte Objekt "{1}" auf.</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0}-Parameter (ausschließlich CancellationToken): {1}, die Anforderung stellt aber {2} bereit.</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
@@ -49,10 +41,6 @@
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} Parameter sind nicht kompatibel mit der Anforderung: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>Es wurden mehrere Zielmethoden gefunden: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Das Ende des Datenstroms wurde erreicht.</value>
