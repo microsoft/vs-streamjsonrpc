@@ -5,6 +5,7 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Reflection;
+    using System.Runtime.CompilerServices;
     using Microsoft;
 
     internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
@@ -30,12 +31,12 @@ namespace StreamJsonRpc
         public bool Equals(MethodSignatureAndTarget other)
         {
             return this.Signature.Equals(other.Signature)
-                && object.Equals(this.Target, other.Target);
+                && object.ReferenceEquals(this.Target, other.Target);
         }
 
         public override int GetHashCode()
         {
-            return this.Signature.GetHashCode() + (this.Target?.GetHashCode() ?? 0);
+            return this.Signature.GetHashCode() + RuntimeHelpers.GetHashCode(this.Target);
         }
     }
 }
