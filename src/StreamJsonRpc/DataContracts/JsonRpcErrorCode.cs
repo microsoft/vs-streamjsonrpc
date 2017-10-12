@@ -38,6 +38,6 @@ namespace StreamJsonRpc
         /// <summary>
         /// Internal JSON-RPC error.
         /// </summary>
-        InternalError = -32603
+        InternalError = -32603,
     }
 }

@@ -26,6 +26,6 @@ namespace StreamJsonRpc
         /// <summary>
         /// The stream was disposed.
         /// </summary>
-        Disposed
+        Disposed,
     }
 }

@@ -35,13 +35,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AsyncUsageAnalyzers" Version="1.0.0-alpha003" PrivateAssets="all" />
-    <PackageReference Include="MicroBuild.VisualStudio" Version="2.0.40" PrivateAssets="all" />
+    <PackageReference Include="MicroBuild.VisualStudio" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.3.20" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="15.3.20" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="6.0.6" Condition=" '$(TargetFramework)' == 'net45' " />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" Condition=" '$(TargetFramework)' != 'net45' " />
     <PackageReference Include="PdbGit" Version="3.0.41" PrivateAssets="all" />
-    <PackageReference Include="MSBuild.SDK.Extras" Version="1.0.0-rc4.23" PrivateAssets="all" />
+    <PackageReference Include="MSBuild.SDK.Extras" Version="1.0.6" PrivateAssets="all" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="1.2.0-beta2" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
@@ -50,7 +50,6 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Net.Http" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources.Designer.cs">

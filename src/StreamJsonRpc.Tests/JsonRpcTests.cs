@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
@@ -22,10 +23,10 @@ public class JsonRpcTests : TestBase
     private const string HubName = "TestHub";
 
     private readonly Server server;
-    private readonly Stream serverStream;
+    private readonly FullDuplexStream serverStream;
     private readonly JsonRpc serverRpc;
 
-    private readonly Stream clientStream;
+    private readonly FullDuplexStream clientStream;
     private readonly JsonRpc clientRpc;
 
     public JsonRpcTests(ITestOutputHelper logger)
@@ -35,7 +36,7 @@ public class JsonRpcTests : TestBase
 
         this.server = new Server();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
@@ -150,7 +151,9 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanPassExceptionFromServer()
     {
+#pragma warning disable SA1139 // Use literal suffix notation instead of casting
         const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
+#pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.NotNull(exception.RemoteStackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS.ToString(CultureInfo.InvariantCulture), exception.RemoteErrorCode);
@@ -303,6 +306,14 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task CannotCallMethodsOnSystemObject()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.ToString)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetHashCode)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
+    }
+
+    [Fact]
     public async Task CannotCallPrivateMethod()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod), 10));
@@ -371,6 +382,47 @@ public class JsonRpcTests : TestBase
             Task<string> resultTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
             cts.Cancel();
             string result = await resultTask;
+            Assert.Equal("a!", result);
+        }
+    }
+
+    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
+    // Covers bug with a workaround https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream()
+    {
+        // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
+        for (int iteration = 0; iteration < 10; iteration++)
+        {
+            using (var cts = new CancellationTokenSource())
+            {
+                int writeCount = 0;
+                this.clientStream.BeforeWrite = (stream, buffer, offset, count) =>
+                {
+                    // Cancel on the first write, when the header is being written but the content is not yet.
+                    if (!cts.IsCancellationRequested)
+                    {
+                        cts.Cancel();
+                    }
+
+                    // Workaround for https://github.com/Microsoft/vs-streamjsonrpc/issues/56.
+                    // 3rd write is the cancellation request (1st write is the first request header, 2nd - the first request message).
+                    // Wait for the server method to start running before letting the cancelation through to ensure it finds the method to cancel.
+                    writeCount++;
+                    if (writeCount == 3)
+                    {
+                        this.server.ServerMethodReached.WaitAsync(this.TimeoutToken).GetAwaiter().GetResult();
+                    }
+                };
+
+                await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
+                this.clientStream.BeforeWrite = null;
+            }
+
+            // Verify that json rpc is still operational after cancellation.
+            // If the cancellation breaks the json rpc, like in https://github.com/Microsoft/vs-streamjsonrpc/issues/55, it will close the stream
+            // and cancel the request, resulting in unexpected OperationCancelledException thrown from the next InvokeAsync
+            string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "a");
             Assert.Equal("a!", result);
         }
     }
@@ -457,6 +509,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithoutCancellationToken()
@@ -469,6 +522,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_UncancellableMethodWithCancellationToken()
@@ -482,6 +536,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithoutCancellationToken()
@@ -495,6 +550,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken()
@@ -509,6 +565,7 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("Category", "SkipWhenLiveUnitTesting")] // slow, and flaky test
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithCancellationAsync_CancellableMethodWithCancellationToken_Canceled()
@@ -556,6 +613,56 @@ public class JsonRpcTests : TestBase
     public async Task InvokeAsync_ExceptionThrownIfServerHasMutlipleMethodsMatched()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
+    }
+
+    [Fact]
+    public void AddLocalRpcTarget_ExceptionThrownWhenRpcHasStartedListening()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.AddLocalRpcTarget(new AdditionalServerTargetOne()));
+    }
+
+    [Fact]
+    public void AddLocalRpcTarget_ExceptionThrownWhenTargetIsNull()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        Assert.Throws<ArgumentNullException>(() => rpc.AddLocalRpcTarget(null));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_AdditionalTargetMethodFound()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
+        rpc.StartListening();
+
+        var serverMethodResult = await rpc.InvokeAsync<string>(nameof(Server.ServerMethod), "test");
+        Assert.Equal("test!", serverMethodResult);
+
+        var plusOneResultInt = await rpc.InvokeAsync<int>(nameof(AdditionalServerTargetOne.PlusOne), 1);
+        Assert.Equal(2, plusOneResultInt);
+
+        var plusOneResultString = await rpc.InvokeAsync<string>(nameof(AdditionalServerTargetTwo.PlusOne), "one");
+        Assert.Equal("one plus one!", plusOneResultString);
+
+        var plusTwoResult = await rpc.InvokeAsync<int>(nameof(AdditionalServerTargetTwo.PlusTwo), 1);
+        Assert.Equal(3, plusTwoResult);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
+        rpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
     }
 
     protected override void Dispose(bool disposing)
@@ -780,6 +887,32 @@ public class JsonRpcTests : TestBase
 
         internal void InternalMethod()
         {
+        }
+    }
+
+    public class AdditionalServerTargetOne
+    {
+        public int PlusOne(int arg)
+        {
+            return arg + 1;
+        }
+    }
+
+    public class AdditionalServerTargetTwo
+    {
+        public int PlusOne(int arg)
+        {
+            return arg + 3;
+        }
+
+        public string PlusOne(string arg)
+        {
+            return arg + " plus one!";
+        }
+
+        public int PlusTwo(int arg)
+        {
+            return arg + 2;
         }
     }
 

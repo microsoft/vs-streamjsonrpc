@@ -27,9 +27,9 @@ StreamJsonRpc.JsonRpc.Dispose() -> void
 StreamJsonRpc.JsonRpc.Encoding.get -> System.Text.Encoding
 StreamJsonRpc.JsonRpc.Encoding.set -> void
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, params object[] arguments) -> System.Threading.Tasks.Task
-StreamJsonRpc.JsonRpc.InvokeAsync<Result>(string targetName, params object[] arguments) -> System.Threading.Tasks.Task<Result>
+StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, params object[] arguments) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
-StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<Result>(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Result>
+StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.DelimitedMessageHandler messageHandler, object target = null) -> void
 StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> void
 StreamJsonRpc.JsonRpc.JsonSerializer.get -> Newtonsoft.Json.JsonSerializer
@@ -67,13 +67,13 @@ static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream sendingStream, System.IO.St
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = null) -> StreamJsonRpc.JsonRpc
 virtual StreamJsonRpc.DelimitedMessageHandler.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<ReturnType>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<ReturnType>
+virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
-StreamJsonRpc.JsonRpc.InvokeAsync<Result>(string targetName, object argument) -> System.Threading.Tasks.Task<Result>
-StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<Result>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Result>
+StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string targetName, object argument = null) -> System.Threading.Tasks.Task
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<ReturnType>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<ReturnType>
+virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name) -> void
 StreamJsonRpc.JsonRpcMethodAttribute.Name.get -> string

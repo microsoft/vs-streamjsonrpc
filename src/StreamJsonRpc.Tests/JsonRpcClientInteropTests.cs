@@ -148,4 +148,120 @@ public class JsonRpcClientInteropTests : InteropTestBase
             Assert.Equal("testSucceeded", stringResult);
         }
     }
+
+    [Fact]
+    public async Task ErrorResponseIncludesCallstack()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        var errorObject = new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+                data = new
+                {
+                    stack = "   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.GetProjectScope()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsCoreAsync>d__20.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsAsync>d__19.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.SymbolFinder.<FindReferencesAsync>d__13.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetTagsForReferencedSymbolAsync>d__4.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsInCurrentProcessAsync>d__2.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsAsync>d__0.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.Remote.CodeAnalysisService.<GetDocumentHighlightsAsync>d__5.MoveNext()",
+                    code = "-2147467261",
+                },
+            },
+        };
+        this.Send(errorObject);
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
+    }
+
+    [Fact]
+    public async Task ErrorResponseIncludesCallstackAndNumericErrorCode()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        var errorObject = new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+                data = new
+                {
+                    stack = "   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.GetProjectScope()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsCoreAsync>d__20.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<DetermineAllSymbolsAsync>d__19.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n   at Microsoft.CodeAnalysis.FindSymbols.FindReferencesSearchEngine.<FindReferencesAsync>d__10.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.FindSymbols.SymbolFinder.<FindReferencesAsync>d__13.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetTagsForReferencedSymbolAsync>d__4.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsInCurrentProcessAsync>d__2.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.DocumentHighlighting.AbstractDocumentHighlightsService.<GetDocumentHighlightsAsync>d__0.MoveNext()\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at Microsoft.CodeAnalysis.Remote.CodeAnalysisService.<GetDocumentHighlightsAsync>d__5.MoveNext()",
+                    code = -2147467261,
+                },
+            },
+        };
+        this.Send(errorObject);
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
+        Assert.Equal("-2147467261", ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteErrorCode);
+    }
+
+    [Fact]
+    public async Task ErrorResponseUsesUnexpectedDataTypes()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        var errorObject = new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+                data = new
+                {
+                    stack = new { foo = 3 },
+                    code = new { bar = "-2147467261" },
+                },
+            },
+        };
+        this.Send(errorObject);
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Null(((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
+        Assert.Null(((RemoteInvocationException)requestTask.Exception.InnerException).RemoteErrorCode);
+    }
+
+    [Fact]
+    public async Task ErrorResponseOmitsFieldsInDataObject()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+                data = new
+                {
+                },
+            },
+        });
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+    }
+
+    [Fact]
+    public async Task ErrorResponseOmitsDataObject()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+            },
+        });
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+    }
 }
