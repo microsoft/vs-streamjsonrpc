@@ -235,4 +235,8 @@
     <value>Unrecognized incoming JSON RPC '{0}'</value>
     <comment>{0} is the json.</comment>
   </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>A target object should be supplied if and only if the method is not static.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
 </root>

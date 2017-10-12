@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -832,6 +833,69 @@ public class JsonRpcTests : TestBase
         Assert.Throws<InvalidOperationException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<string>(() => "a")));
     }
 
+    [Fact]
+    public void AddLocalRpcMethod_ExceptionThrownWhenRpcHasStartedListening()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", new Func<int>(() => 1)));
+    }
+
+    [Fact]
+    public void AddLocalRpcMethod_String_Delegate_ThrowsOnInvalidInputs()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null));
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod(null, new Func<int>(() => 1)));
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod(string.Empty, new Func<int>(() => 1)));
+    }
+
+    [Fact]
+    public void AddLocalRpcMethod_String_MethodInfo_Object_ThrowsOnInvalidInputs()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.First();
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null, this.server));
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod(null, methodInfo, this.server));
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod(string.Empty, methodInfo, this.server));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_String_MethodInfo_Object_NullTargetForStaticMethod()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
+        Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
+        this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null);
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeAsync<string>("biz.bar", "foo");
+        Assert.Equal("foo!", result);
+    }
+
+    [Fact]
+    public void AddLocalRpcMethod_String_MethodInfo_Object_NonNullTargetForStaticMethod()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
+        Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, this.server));
+    }
+
+    [Fact]
+    public void AddLocalRpcMethod_String_MethodInfo_Object_NullTargetForInstanceMethod()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethodInstance));
+        Assumes.True(!methodInfo.IsStatic); // we picked this method because it's static.
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -924,6 +988,8 @@ public class JsonRpcTests : TestBase
         {
             return x + y;
         }
+
+        public string ServerMethodInstance(string argument) => argument + "!";
 
         public override string VirtualBaseMethod() => "child";
 

@@ -314,6 +314,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A target object should be supplied if and only if the method is not static..
+        /// </summary>
+        internal static string TargetObjectAndMethodStaticFlagMismatch {
+            get {
+                return ResourceManager.GetString("TargetObjectAndMethodStaticFlagMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The task is not completed..
         /// </summary>
         internal static string TaskNotCompleted {
