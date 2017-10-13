@@ -11,9 +11,9 @@ public void ConstructRpc()
     var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
 }
 ```
-The JsonRpc object returned by Attach method would be used to invoke remote methods via JSON-RPC.
+The `JsonRpc` object returned by `Attach` method would be used to invoke remote methods via JSON-RPC.
 
-2. Construct a JsonRpc object directly:
+2. Construct a `JsonRpc` object directly:
 ```csharp
 public void ConstructRpc()
 {
@@ -35,7 +35,7 @@ public async Task NotifyRemote()
     await rpc.NotifyAsync("foo", "param1");
 }
 ```
-The parameters will be passed remotely as an array of objects.
+The parameter will be passed remotely as an array of one object.
 
 To invoke a remote method named "bar" which takes one `string` parameter (but the parameter should be passed as an object instead of an array of one object):
 ```csharp
