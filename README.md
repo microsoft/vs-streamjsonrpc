@@ -26,7 +26,7 @@ JSON-RPC libraries:
 * [json-rpc-peer][json-rpc-peer] (npm)
 
 ## Documentation
-[Documentation] (doc\index.md)
+[Documentation](doc\index.md)
 
 ## Testability/mockability
 
