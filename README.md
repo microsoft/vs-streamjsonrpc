@@ -25,6 +25,9 @@ JSON-RPC libraries:
 
 * [json-rpc-peer][json-rpc-peer] (npm)
 
+## Documentation
+[Documentation](doc/index.md)
+
 ## Testability/mockability
 
 Testing this library or users of this library can be done without any transport
