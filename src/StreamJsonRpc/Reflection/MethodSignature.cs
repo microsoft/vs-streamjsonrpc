@@ -17,16 +17,20 @@ namespace StreamJsonRpc
         private static readonly ParameterInfo[] EmptyParameterInfoArray = new ParameterInfo[0];
         private static readonly StringComparer TypeNameComparer = StringComparer.Ordinal;
 
+        /// <summary>
+        /// Backing field for the lazily initialized <see cref="Parameters"/> property.
+        /// </summary>
+        private ParameterInfo[] parameters;
+
         internal MethodSignature(MethodInfo methodInfo)
         {
             Requires.NotNull(methodInfo, nameof(methodInfo));
             this.MethodInfo = methodInfo;
-            this.Parameters = methodInfo.GetParameters() ?? EmptyParameterInfoArray;
         }
 
         internal MethodInfo MethodInfo { get; }
 
-        internal ParameterInfo[] Parameters { get; }
+        internal ParameterInfo[] Parameters => this.parameters ?? (this.parameters = this.MethodInfo.GetParameters() ?? EmptyParameterInfoArray);
 
         internal bool IsPublic => this.MethodInfo.IsPublic;
 
