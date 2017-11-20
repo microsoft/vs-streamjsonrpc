@@ -4,10 +4,13 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
     using System.Runtime.CompilerServices;
     using Microsoft;
 
+    [DebuggerDisplay("{DebuggerDisplay}")]
     internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     {
         public MethodSignatureAndTarget(MethodInfo method, object target)
@@ -21,6 +24,9 @@ namespace StreamJsonRpc
         public MethodSignature Signature { get; }
 
         public object Target { get; }
+
+        [ExcludeFromCodeCoverage]
+        private string DebuggerDisplay => $"{this.Signature} ({this.Target})";
 
         public override bool Equals(object obj)
         {

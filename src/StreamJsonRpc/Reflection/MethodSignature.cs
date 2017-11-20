@@ -4,11 +4,14 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
     using Microsoft;
 
+    [DebuggerDisplay("{DebuggerDisplay}")]
     internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
         private static readonly ParameterInfo[] EmptyParameterInfoArray = new ParameterInfo[0];
@@ -36,6 +39,9 @@ namespace StreamJsonRpc
         internal bool HasCancellationTokenParameter => this.Parameters.Any(IsCancellationToken);
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
+
+        [ExcludeFromCodeCoverage]
+        private string DebuggerDisplay => $"{this.MethodInfo.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
 
         bool IEquatable<MethodSignature>.Equals(MethodSignature other)
         {
@@ -96,7 +102,7 @@ namespace StreamJsonRpc
 
         public override string ToString()
         {
-            return this.MethodInfo.ToString();
+            return this.DebuggerDisplay;
         }
 
         private static bool IsCancellationToken(ParameterInfo parameter) => parameter?.ParameterType.Equals(typeof(CancellationToken)) ?? false;
