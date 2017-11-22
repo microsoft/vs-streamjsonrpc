@@ -26,9 +26,17 @@ public class PerfTests
     {
         string pipeName = Guid.NewGuid().ToString();
         var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, /*maxConnections*/ 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+#if NET452
+        var connectTask = Task.Run(() => serverPipe.WaitForConnection());
+#else
         var connectTask = serverPipe.WaitForConnectionAsync();
+#endif
         var clientPipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+#if NET452
+        clientPipe.Connect();
+#else
         await clientPipe.ConnectAsync();
+#endif
         await connectTask; // rethrow any exception
         await this.ChattyPerfAsync(serverPipe, clientPipe);
     }

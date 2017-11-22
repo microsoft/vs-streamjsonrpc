@@ -9,7 +9,7 @@ namespace StreamJsonRpc
     /// Remote RPC exception that indicates that the server has no target object.
     /// </summary>
     /// <seealso cref="RemoteRpcException" />
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
 #endif
     public class RemoteTargetNotSetException : RemoteRpcException
@@ -23,7 +23,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteTargetNotSetException"/> class.
         /// </summary>
