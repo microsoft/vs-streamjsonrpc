@@ -135,7 +135,16 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeMethodThatReturnsCancelledTask()
     {
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
+        Assert.Equal(CancellationToken.None, ex.CancellationToken);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_ServerMethodSelfCancelsDoesNotReportWithOurToken()
+    {
+        var cts = new CancellationTokenSource();
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ServerMethodThatReturnsCancelledTask), cancellationToken: cts.Token));
+        Assert.Equal(CancellationToken.None, ex.CancellationToken);
     }
 
     [Fact]

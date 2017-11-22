@@ -696,7 +696,7 @@ namespace StreamJsonRpc
                             if (response.Error?.Code == (int)JsonRpcErrorCode.RequestCanceled)
                             {
 #if TRYSETCANCELED_CT
-                                tcs.TrySetCanceled(cancellationToken);
+                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
 #else
                                 tcs.TrySetCanceled();
 #endif
