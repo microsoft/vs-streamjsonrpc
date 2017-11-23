@@ -8,6 +8,7 @@
     <WarningLevel>4</WarningLevel>
     <DefineConstants Condition=" '$(TargetFramework)' == 'net45' or '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);SERIALIZABLE_EXCEPTIONS</DefineConstants>
     <DefineConstants Condition=" '$(TargetFramework)' == 'net45' or '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);EXCLUDEFROMCODECOVERAGEATTRIBUTE</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFramework)' == 'netstandard1.3' or '$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'net46' ">$(DefineConstants);TRYSETCANCELED_CT</DefineConstants>
 
     <Description>A cross-platform .NET portable library that implements the JSON-RPC wire protocol. Its transport is a standard System.IO.Stream so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc</PackageTags>

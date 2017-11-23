@@ -39,5 +39,10 @@ namespace StreamJsonRpc
         /// Internal JSON-RPC error.
         /// </summary>
         InternalError = -32603,
+
+        /// <summary>
+        /// Execution of the server method was aborted due to a cancellation request from the client.
+        /// </summary>
+        RequestCanceled = -32800,
     }
 }
