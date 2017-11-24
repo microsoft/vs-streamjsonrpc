@@ -111,6 +111,33 @@ public class DelimitedMessageHandlerTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writeTask);
     }
 
+    /// <summary>
+    /// Tests that by default, WriteCoreAsync calls cannot be called again till
+    /// the Task returned from the prior call has completed.
+    /// </summary>
+    /// <param name="optimized">A value indicating whether we simulate a derived type that expresses readiness for a perf optimization.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WriteAsync_SemaphoreIncludesWriteCoreAsync_Task(bool optimized)
+    {
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, Encoding.UTF8);
+        handler.WriteCoreAsyncCallsWriteBeforeReturningPublic = optimized;
+        var writeTask = handler.WriteAsync("content", CancellationToken.None);
+        var write2Task = handler.WriteAsync("content", CancellationToken.None);
+
+        if (!optimized)
+        {
+            // Give the library extra time to do the wrong thing asynchronously.
+            await Task.Delay(ExpectedTimeout);
+        }
+
+        Assert.Equal(optimized ? 2 : 1, handler.WriteCoreCallCount);
+        handler.WriteBlock.Set();
+        await Task.WhenAll(writeTask, write2Task).WithTimeout(UnexpectedTimeout);
+        Assert.Equal(2, handler.WriteCoreCallCount);
+    }
+
     [Fact]
     public void ReadAsync_ThrowsObjectDisposedException()
     {
@@ -152,10 +179,16 @@ public class DelimitedMessageHandlerTests : TestBase
     {
         internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
 
+        internal int WriteCoreCallCount;
+
         public DelayedWriter(Stream sendingStream, Stream receivingStream, Encoding encoding)
             : base(sendingStream, receivingStream, encoding)
         {
         }
+
+        internal bool WriteCoreAsyncCallsWriteBeforeReturningPublic { get; set; }
+
+        protected override bool WriteCoreAsyncCallsWriteBeforeReturning => this.WriteCoreAsyncCallsWriteBeforeReturningPublic;
 
         protected override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
         {
@@ -164,6 +197,7 @@ public class DelimitedMessageHandlerTests : TestBase
 
         protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
         {
+            Interlocked.Increment(ref this.WriteCoreCallCount);
             return this.WriteBlock.WaitAsync();
         }
     }
