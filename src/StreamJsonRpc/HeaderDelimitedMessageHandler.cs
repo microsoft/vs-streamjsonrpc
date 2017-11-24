@@ -246,7 +246,6 @@ namespace StreamJsonRpc
             // Transmit the content itself.
             // Ignore the cancellation token so we don't write the header without the content.
             await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length).ConfigureAwait(false);
-            await this.SendingStream.FlushAsync().ConfigureAwait(false);
         }
 
         /// <summary>
