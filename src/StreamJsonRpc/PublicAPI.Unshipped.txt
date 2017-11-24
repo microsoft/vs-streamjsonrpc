@@ -1,3 +1,5 @@
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
+override StreamJsonRpc.HeaderDelimitedMessageHandler.WriteCoreAsyncCallsWriteBeforeReturning.get -> bool
+virtual StreamJsonRpc.DelimitedMessageHandler.WriteCoreAsyncCallsWriteBeforeReturning.get -> bool

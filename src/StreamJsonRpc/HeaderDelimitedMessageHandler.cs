@@ -85,6 +85,9 @@ namespace StreamJsonRpc
         /// <value>The default value is "jsonrpc".</value>
         public string SubType { get; set; } = "jsonrpc";
 
+        /// <inheritdoc />
+        protected override bool WriteCoreAsyncCallsWriteBeforeReturning => true;
+
         private new ReadBufferingStream ReceivingStream => (ReadBufferingStream)base.ReceivingStream;
 
         /// <inheritdoc />

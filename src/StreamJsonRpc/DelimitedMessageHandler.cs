@@ -105,6 +105,17 @@ namespace StreamJsonRpc
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
 
         /// <summary>
+        /// Gets a value indicating whether the derived type's <see cref="WriteCoreAsync"/> method
+        /// makes all <see cref="Stream.WriteAsync(byte[], int, int)" /> calls synchronously before
+        /// returning.
+        /// </summary>
+        /// <remarks>
+        /// See the remarks section of the <see cref="WriteCoreAsync(string, Encoding, CancellationToken)"/> method
+        /// for more information.
+        /// </remarks>
+        protected virtual bool WriteCoreAsyncCallsWriteBeforeReturning => false;
+
+        /// <summary>
         /// Reads a distinct and complete message from the stream, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>
@@ -153,11 +164,17 @@ namespace StreamJsonRpc
             {
                 try
                 {
+                    Task writeTask;
                     using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
-                        await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                        writeTask = this.WriteCoreAsync(content, contentEncoding, cts.Token);
+                        if (!this.WriteCoreAsyncCallsWriteBeforeReturning)
+                        {
+                            await writeTask.ConfigureAwait(false);
+                        }
                     }
 
+                    await writeTask.ConfigureAwait(false);
                     await this.SendingStream.FlushAsync().ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
@@ -210,6 +227,20 @@ namespace StreamJsonRpc
         /// <param name="contentEncoding">The encoding to use for <paramref name="content"/>.</param>
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
+        /// <remarks>
+        /// Implementations of this method should perform all writes to <see cref="SendingStream"/>
+        /// before returning or yielding back to the caller since only the synchronous portion of the call
+        /// to this method is protected by the sending semaphore.
+        /// Note that the writes to <see cref="SendingStream"/> themselves can and should be asynchronous,
+        /// and tracked by the returned <see cref="Task"/>. The implementation can simply directly return the
+        /// <see cref="Task"/> returned from the write to <see cref="SendingStream"/>.
+        /// If multiple calls are required, call <see cref="Stream.WriteAsync(byte[], int, int)"/> multiple times
+        /// and store a collection of the returned <see cref="Task"/> objects, then finally return a single
+        /// <see cref="Task"/> that tracks them all using <see cref="Task.WhenAll(System.Collections.Generic.IEnumerable{Task})"/>.
+        /// If these guidelines are met, the derived class should override and return true from the
+        /// <see cref="WriteCoreAsyncCallsWriteBeforeReturning"/> property to enable the base class to optimize
+        /// for it.
+        /// </remarks>
         protected abstract Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken);
     }
 }
