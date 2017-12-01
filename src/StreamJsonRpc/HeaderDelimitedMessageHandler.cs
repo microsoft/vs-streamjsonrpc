@@ -200,7 +200,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc />
-        protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+        protected override async Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
         {
             var sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
 
@@ -241,13 +241,11 @@ namespace StreamJsonRpc
             // Transmit the headers.
             // Ignore the cancellation token so we don't write the header without the content.
             sendingBufferStream.Position = 0;
-            Task headersTask = sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize);
+            await sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize).ConfigureAwait(false);
 
             // Transmit the content itself.
             // Ignore the cancellation token so we don't write the header without the content.
-            Task contentTask = this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length);
-
-            return Task.WhenAll(headersTask, contentTask);
+            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length).ConfigureAwait(false);
         }
 
         /// <summary>
