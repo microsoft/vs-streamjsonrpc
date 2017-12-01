@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -11,8 +15,8 @@ using Xunit.Abstractions;
 public class HeaderDelimitedMessageHandlerTests : TestBase
 {
     private const string CRLF = "\r\n";
-    private readonly MemoryStream sendingStream = new MemoryStream();
-    private readonly MemoryStream receivingStream = new MemoryStream();
+    private Stream sendingStream = new MemoryStream();
+    private MemoryStream receivingStream = new MemoryStream();
     private HeaderDelimitedMessageHandler handler;
 
     public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger)
@@ -86,5 +90,76 @@ CRLF +
 
         readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
         Assert.Equal<string>("ABCDEFGHIJ", readContent);
+    }
+
+    /// <summary>
+    /// Confirms that sending several messages with headers that exceed the built-in buffer size
+    /// will not cause corruption.
+    /// </summary>
+    [Fact]
+    public async Task LargeHeader()
+    {
+        this.sendingStream = new SlowWriteStream();
+        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream, this.receivingStream);
+
+        this.handler.SubType = new string('a', 980);
+        this.handler.Encoding = Encoding.ASCII;
+
+        var writeTasks = new List<Task>(3);
+        for (int i = 0; i < writeTasks.Capacity; i++)
+        {
+            writeTasks.Add(this.handler.WriteAsync("my content " + i, this.TimeoutToken));
+        }
+
+        await Task.WhenAll(writeTasks);
+        this.sendingStream.Position = 0;
+        var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
+        this.Logger.WriteLine(sr.ReadToEnd());
+        this.sendingStream.Position = 0;
+        await this.sendingStream.CopyToAsync(this.receivingStream, 500, this.TimeoutToken);
+        this.receivingStream.Position = 0;
+
+        for (int i = 0; i < writeTasks.Capacity; i++)
+        {
+            string content = await this.handler.ReadAsync(this.TimeoutToken);
+            Assert.Equal("my content " + i, content);
+        }
+    }
+
+    private class SlowWriteStream : Stream
+    {
+        private readonly AsyncSemaphore semaphore = new AsyncSemaphore(1);
+        private readonly MemoryStream inner = new MemoryStream();
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => true;
+
+        public override long Length => this.inner.Length;
+
+        public override long Position { get => this.inner.Position; set => this.inner.Position = value; }
+
+        public override void Flush() => this.inner.Flush();
+
+        public override int Read(byte[] buffer, int offset, int count) => this.inner.Read(buffer, offset, count);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.inner.ReadAsync(buffer, offset, count, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => this.inner.Seek(offset, origin);
+
+        public override void SetLength(long value) => this.inner.SetLength(value);
+
+        public override void Write(byte[] buffer, int offset, int count) => this.inner.Write(buffer, offset, count);
+
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            using (await this.semaphore.EnterAsync(cancellationToken))
+            {
+                await Task.Delay(10);
+                await this.inner.WriteAsync(buffer, offset, count, cancellationToken);
+            }
+        }
     }
 }

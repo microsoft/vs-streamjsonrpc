@@ -106,6 +106,41 @@ public class PerfTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(PipeTypes))]
+    public async Task BurstInvokeMessages(Stream serverStream, Stream clientStream)
+    {
+        var server = new Server();
+        using (JsonRpc.Attach(serverStream, server))
+        using (var client = JsonRpc.Attach(clientStream))
+        {
+            // warmup
+            await client.InvokeAsync("NoOp");
+
+            const int maxIterations = 10000;
+            var invokeTasks = new List<Task>(maxIterations);
+            var timer = Stopwatch.StartNew();
+            int i;
+            for (i = 0; i < maxIterations; i++)
+            {
+                invokeTasks.Add(client.InvokeAsync("NoOp"));
+
+                if (timer.ElapsedMilliseconds > 2000 && i > 0)
+                {
+                    // It's taking too long to reach maxIterations. Break out.
+                    break;
+                }
+            }
+
+            await Task.WhenAll(invokeTasks);
+
+            timer.Stop();
+            this.logger.WriteLine($"{i} iterations completed in {timer.ElapsedMilliseconds} ms.");
+            this.logger.WriteLine($"Rate: {i / timer.Elapsed.TotalSeconds} invocations per second.");
+            this.logger.WriteLine($"Overhead: {(double)timer.ElapsedMilliseconds / i} ms per invocation.");
+        }
+    }
+
     private static (Stream, Stream) GetNamedPipes()
     {
         string pipeName = Guid.NewGuid().ToString();
