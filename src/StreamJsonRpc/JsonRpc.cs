@@ -43,6 +43,11 @@ namespace StreamJsonRpc
         private readonly object disconnectedEventLock = new object();
 
         /// <summary>
+        /// The object to lock when accessing the <see cref="exception"/> member.
+        /// </summary>
+        private readonly object exceptionLock = new object();
+
+        /// <summary>
         /// A map of outbound calls awaiting responses.
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
@@ -77,6 +82,8 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
         private bool startedListening;
+        private bool closeStreamOnException = false;
+        private Exception exception = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -613,6 +620,12 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Indicates whether the connection should be closed if the server throws an exception.
+        /// </summary>
+        /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
+        protected virtual bool ShouldCloseStreamOnException() => this.closeStreamOnException;
+
+        /// <summary>
         /// Invokes the specified RPC method
         /// </summary>
         /// <typeparam name="TResult">RPC method return type</typeparam>
@@ -687,17 +700,33 @@ namespace StreamJsonRpc
 
                     try
                     {
-                        if (response == null)
+                        lock (this.exceptionLock)
                         {
-                            tcs.TrySetCanceled();
-                        }
-                        else if (response.IsError)
-                        {
-                            tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
-                        }
-                        else
-                        {
-                            tcs.TrySetResult(response.GetResult<TResult>(this.JsonSerializer));
+                            if (response == null && this.exception == null)
+                            {
+                                tcs.TrySetCanceled();
+                            }
+                            else if (response == null && this.exception != null)
+                            {
+                                if (this.exception is TargetInvocationException || (this.exception is AggregateException && this.exception.InnerException != null))
+                                {
+                                    // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                                    // the fact we are using reflection.
+                                    tcs.TrySetException(this.exception.InnerException);
+                                }
+                                else
+                                {
+                                    tcs.TrySetException(this.exception);
+                                }
+                            }
+                            else if (response.IsError)
+                            {
+                                tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
+                            }
+                            else
+                            {
+                                tcs.TrySetResult(response.GetResult<TResult>(this.JsonSerializer));
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -712,7 +741,13 @@ namespace StreamJsonRpc
                     this.resultDispatcherMap.Add(id.Value, callData);
                 }
 
-                await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                try
+                {
+                    await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (this.exception != null)
+                {
+                }
 
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
                 using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
@@ -905,7 +940,16 @@ namespace StreamJsonRpc
 
                 return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (this.ShouldCloseStreamOnException())
+            {
+                lock (this.exceptionLock)
+                {
+                    this.exception = ex;
+                }
+
+                throw ex;
+            }
+            catch (Exception ex) when (!this.ShouldCloseStreamOnException())
             {
                 return CreateError(request.Id, ex);
             }
@@ -933,9 +977,21 @@ namespace StreamJsonRpc
                 throw new ArgumentException(Resources.TaskNotCompleted, nameof(t));
             }
 
-            if (t.IsFaulted)
+            if (t.IsFaulted && !this.ShouldCloseStreamOnException())
             {
                 return CreateError(id, t.Exception);
+            }
+
+            if (t.IsFaulted && this.ShouldCloseStreamOnException())
+            {
+                if (t.Exception is AggregateException && t.Exception.InnerException != null)
+                {
+                    // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                    // the fact we are using reflection.
+                    throw t.Exception.InnerException;
+                }
+
+                throw t.Exception;
             }
 
             if (t.IsCanceled)
@@ -987,8 +1043,8 @@ namespace StreamJsonRpc
             {
                 // Dispose the stream and cancel pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
-                this.disposeCts.Cancel();
                 this.MessageHandler.Dispose();
+                this.disposeCts.Cancel();
                 this.CancelPendingRequests();
             }
         }
@@ -1052,12 +1108,18 @@ namespace StreamJsonRpc
             }
             finally
             {
-                if (disconnectedEventArgs == null)
+                lock (this.exceptionLock)
                 {
-                    disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
-                }
+                    if (this.exception == null)
+                    {
+                        if (disconnectedEventArgs == null)
+                        {
+                            disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
+                        }
 
-                this.OnJsonRpcDisconnected(disconnectedEventArgs);
+                        this.OnJsonRpcDisconnected(disconnectedEventArgs);
+                    }
+                }
             }
         }
 
