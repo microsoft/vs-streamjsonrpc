@@ -1006,8 +1006,8 @@ namespace StreamJsonRpc
             {
                 // Dispose the stream and cancel pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
-                this.MessageHandler.Dispose();
                 this.disposeCts.Cancel();
+                this.MessageHandler.Dispose();
                 this.CancelPendingRequests();
             }
         }
