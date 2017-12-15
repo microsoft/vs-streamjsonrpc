@@ -230,7 +230,7 @@ public class JsonRpcTests : TestBase
         var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
         overloadRpc.StartListening();
 
-        UnauthorizedAccessException exception = await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() => overloadRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
+        OperationCanceledException exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => overloadRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.NotNull(exception.StackTrace);
 
         await Assert.ThrowsAsync<ObjectDisposedException>(() => overloadRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 }));
