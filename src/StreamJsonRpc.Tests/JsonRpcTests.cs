@@ -168,9 +168,8 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeMethodThatReturnsCancelledTask()
     {
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
-        Assert.Null(exception.RemoteErrorCode);
-        Assert.Null(exception.RemoteStackTrace);
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
+        Assert.Equal(CancellationToken.None, ex.CancellationToken);
     }
 
     [Fact]
@@ -183,6 +182,14 @@ public class JsonRpcTests : TestBase
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => overloadRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
         Assert.Null(exception.RemoteErrorCode);
         Assert.Null(exception.RemoteStackTrace);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_ServerMethodSelfCancelsDoesNotReportWithOurToken()
+    {
+        var cts = new CancellationTokenSource();
+        var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ServerMethodThatReturnsCancelledTask), cancellationToken: cts.Token));
+        Assert.Equal(CancellationToken.None, ex.CancellationToken);
     }
 
     [Fact]
@@ -741,7 +748,10 @@ public class JsonRpcTests : TestBase
                     }
                 };
 
-                await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
+                var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
+#if !NET452
+                Assert.Equal(cts.Token, ex.CancellationToken);
+#endif
                 this.clientStream.BeforeWrite = null;
             }
 
@@ -854,7 +864,10 @@ public class JsonRpcTests : TestBase
             cts.Cancel();
 
             // Ultimately, the server throws because it was canceled.
-            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
+            var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
+#if !NET452
+            Assert.Equal(cts.Token, ex.CancellationToken);
+#endif
         }
     }
 
@@ -873,7 +886,8 @@ public class JsonRpcTests : TestBase
             cts.Cancel();
 
             // Ultimately, the server throws because it was canceled.
-            await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
         }
     }
 
@@ -907,6 +921,46 @@ public class JsonRpcTests : TestBase
             server.AllowServerMethodToReturn.Set();
             string result = await invokeTask;
             Assert.Equal("a!", result);
+        }
+    }
+
+    [Fact]
+    public async Task CancelMayStillReturnErrorFromServer()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            this.server.AllowServerMethodToReturn.Set();
+            try
+            {
+                await invokeTask;
+                Assert.False(true, "Expected exception not thrown.");
+            }
+            catch (RemoteInvocationException ex)
+            {
+                Assert.Equal(Server.ThrowAfterCancellationMessage, ex.Message);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task CancelMayStillReturnErrorFromServer_Overload()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
+        overloadRpc.StartListening();
+
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
+            await server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            server.AllowServerMethodToReturn.Set();
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask);
         }
     }
 
@@ -1490,6 +1544,8 @@ public class JsonRpcTests : TestBase
 
     public class Server : BaseClass
     {
+        internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
+
         public bool NullPassed { get; private set; }
 
         public AsyncAutoResetEvent AllowServerMethodToReturn { get; } = new AsyncAutoResetEvent();
@@ -1638,6 +1694,22 @@ public class JsonRpcTests : TestBase
             }
 
             return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodFaultsAfterCancellation(string arg, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            await this.AllowServerMethodToReturn.WaitAsync();
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                var cancellationSignal = new AsyncManualResetEvent();
+                using (cancellationToken.Register(() => cancellationSignal.Set()))
+                {
+                    await cancellationSignal;
+                }
+            }
+
+            throw new InvalidOperationException(ThrowAfterCancellationMessage);
         }
 
         public async Task AsyncMethodThatThrows()

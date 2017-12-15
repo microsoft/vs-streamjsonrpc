@@ -11,7 +11,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// The details of the target method exception can be found on <see cref="RemoteStackTrace"/> and <see cref="RemoteErrorCode"/>.
     /// </remarks>
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
 #endif
     public class RemoteInvocationException : RemoteRpcException
@@ -38,7 +38,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>

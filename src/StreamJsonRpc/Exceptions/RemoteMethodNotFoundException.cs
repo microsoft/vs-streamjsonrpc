@@ -14,7 +14,7 @@ namespace StreamJsonRpc
     /// there was a method with the matching name, but it was not public, had ref or out params, or
     /// its arguments were incompatible with the arguments supplied by the client.
     /// </remarks>
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
 #endif
     public class RemoteMethodNotFoundException : RemoteRpcException
@@ -32,7 +32,7 @@ namespace StreamJsonRpc
             this.TargetMethod = targetMethod;
         }
 
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteMethodNotFoundException"/> class.
         /// </summary>

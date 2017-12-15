@@ -37,7 +37,7 @@ test_script:
 
     codecov -f "bin\StreamJsonRpc.Tests\Release\net46\code_coverage.xml"
 
-    dotnet test .\src\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -f netcoreapp1.0
+    dotnet test .\src\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build
 artifacts:
 - path: bin\**\*.nupkg
   name: NuGet Package
