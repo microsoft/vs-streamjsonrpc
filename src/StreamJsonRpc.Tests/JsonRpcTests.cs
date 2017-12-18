@@ -120,31 +120,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeMethodOnServer_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string testLine = "TestLine1" + new string('a', 1024 * 1024);
-        string result1 = await overloadRpc.InvokeAsync<string>(nameof(Server.ServerMethod), testLine);
-        Assert.Equal(testLine + "!", result1);
-    }
-
-    [Fact]
     public async Task CanInvokeTaskMethodOnServer()
     {
         await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsTask));
-    }
-
-    [Fact]
-    public async Task CanInvokeTaskMethodOnServer_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await overloadRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsTask));
     }
 
     [Fact]
@@ -155,33 +133,10 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeMethodThatReturnsCustomTask_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>(nameof(Server.ServerMethodThatReturnsCustomTask));
-        Assert.StrictEqual(CustomTaskResult, result);
-    }
-
-    [Fact]
     public async Task CanInvokeMethodThatReturnsCancelledTask()
     {
         var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
         Assert.Equal(CancellationToken.None, ex.CancellationToken);
-    }
-
-    [Fact]
-    public async Task CanInvokeMethodThatReturnsCancelledTask_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => overloadRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
-        Assert.Null(exception.RemoteErrorCode);
-        Assert.Null(exception.RemoteStackTrace);
     }
 
     [Fact]
@@ -202,19 +157,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeMethodThatReturnsTaskOfInternalClass_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        // JSON RPC cannot invoke non-public members. A public member cannot have Task<NonPublicType> result.
-        // Though it can have result of just Task type, and return a Task<NonPublicType>, and dev hub supports that.
-        InternalClass result = await overloadRpc.InvokeAsync<InternalClass>(nameof(Server.MethodThatReturnsTaskOfInternalClass));
-        Assert.NotNull(result);
-    }
-
-    [Fact]
     public async Task CanPassExceptionFromServer()
     {
 #pragma warning disable SA1139 // Use literal suffix notation instead of casting
@@ -228,19 +170,6 @@ public class JsonRpcTests : TestBase
         Assert.NotNull(result);
         Assert.Equal("bar!", result.Bar);
         Assert.Equal(1001, result.Bazz);
-    }
-
-    [Fact]
-    public async Task CannotPassExceptionFromServer()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        OperationCanceledException exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => overloadRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
-        Assert.NotNull(exception.StackTrace);
-
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => overloadRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 }));
     }
 
     [Fact]
@@ -258,24 +187,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanPassAndCallPrivateMethodsObjects_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        var result = await overloadRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
-
-        result = await overloadRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
-    }
-
-    [Fact]
     public async Task CanCallMethodWithDefaultParameters()
     {
         var result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithDefaultParameter), 10);
@@ -286,38 +197,11 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallMethodWithDefaultParameters_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        var result = await overloadRpc.InvokeAsync<int>(nameof(Server.MethodWithDefaultParameter), 10);
-        Assert.Equal(20, result);
-
-        result = await overloadRpc.InvokeAsync<int>(nameof(Server.MethodWithDefaultParameter), 10, 20);
-        Assert.Equal(30, result);
-    }
-
-    [Fact]
     public async Task CanPassNull_NullElementInArgsArray()
     {
         var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object[] { null });
         Assert.Null(result);
         Assert.True(this.server.NullPassed);
-    }
-
-    [Fact]
-    public async Task CanPassNull_NullElementInArgsArray_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        var result = await overloadRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object[] { null });
-        Assert.Null(result);
-        Assert.True(server.NullPassed);
     }
 
     [Fact]
@@ -334,40 +218,10 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task NullAsArgumentLiteral_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        // This first one succeeds because null args is interpreted as 1 null argument.
-        var result = await overloadRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), null);
-        Assert.Null(result);
-        Assert.True(server.NullPassed);
-
-        // This one fails because null literal is interpreted as a method that takes a parameter with a null argument.
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync<object>(nameof(Server.MethodThatAcceptsNothingAndReturnsNull), null));
-        Assert.Null(result);
-    }
-
-    [Fact]
     public async Task CanSendNotification()
     {
         await this.clientRpc.NotifyAsync(nameof(Server.NotificationMethod), "foo");
         Assert.Equal("foo", await this.server.NotificationReceived);
-    }
-
-    [Fact]
-    public async Task CanSendNotification_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        await overloadRpc.NotifyAsync(nameof(Server.NotificationMethod), "foo");
-        Assert.Equal("foo", await server.NotificationReceived);
     }
 
     [Fact]
@@ -378,34 +232,10 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallAsyncMethod_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result = await overloadRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "test");
-        Assert.Equal("test!", result);
-    }
-
-    [Fact]
     public async Task CanCallAsyncMethodThatThrows()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
         Assert.NotNull(exception.RemoteStackTrace);
-    }
-
-    [Fact]
-    public async Task CanCallAsyncMethodThatThrows_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        Exception exception = await Assert.ThrowsAnyAsync<Exception>(() => overloadRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        Assert.NotNull(exception.StackTrace);
-
-        await Assert.ThrowsAnyAsync<ObjectDisposedException>(() => overloadRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
     }
 
     [Fact]
@@ -419,35 +249,10 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallOverloadedMethod_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>(nameof(Server.OverloadedMethod), new Foo { Bar = "bar-bar", Bazz = -100 });
-        Assert.Equal(1, result);
-
-        result = await overloadRpc.InvokeAsync<int>(nameof(Server.OverloadedMethod), 40);
-        Assert.Equal(40, result);
-    }
-
-    [Fact]
     public async Task ThrowsIfCannotFindMethod()
     {
         await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync("missingMethod", 50));
         await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new { X = 100 }));
-    }
-
-    [Fact]
-    public async Task ThrowsIfCannotFindMethod_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => overloadRpc.InvokeAsync("missingMethod", 50));
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => overloadRpc.InvokeAsync(nameof(Server.OverloadedMethod), new { X = 100 }));
     }
 
     [Fact]
@@ -514,40 +319,11 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallMethodOnBaseClass_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result = await overloadRpc.InvokeAsync<string>(nameof(Server.BaseMethod));
-        Assert.Equal("base", result);
-
-        result = await overloadRpc.InvokeAsync<string>(nameof(Server.VirtualBaseMethod));
-        Assert.Equal("child", result);
-
-        result = await overloadRpc.InvokeAsync<string>(nameof(Server.RedeclaredBaseMethod));
-        Assert.Equal("child", result);
-    }
-
-    [Fact]
     public async Task CannotCallMethodsOnSystemObject()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.ToString)));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetHashCode)));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
-    }
-
-    [Fact]
-    public async Task CannotCallMethodsOnSystemObject_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(object.ToString)));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(object.GetHashCode)));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(object.GetType)));
     }
 
     [Fact]
@@ -557,29 +333,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CannotCallPrivateMethod_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(Server.InternalMethod), 10));
-    }
-
-    [Fact]
     public async Task CannotCallMethodWithOutParameter()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodWithOutParameter), 20));
-    }
-
-    [Fact]
-    public async Task CannotCallMethodWithOutParameter_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(Server.MethodWithOutParameter), 20));
     }
 
     [Fact]
@@ -589,30 +345,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CannotCallMethodWithRefParameter_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync(nameof(Server.MethodWithRefParameter), 20));
-    }
-
-    [Fact]
     public async Task CanCallMethodOmittingAsyncSuffix()
     {
         int result = await this.clientRpc.InvokeAsync<int>("MethodThatEndsIn");
-        Assert.Equal(3, result);
-    }
-
-    [Fact]
-    public async Task CanCallMethodOmittingAsyncSuffix_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>("MethodThatEndsIn");
         Assert.Equal(3, result);
     }
 
@@ -624,17 +359,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallMethodWithoutOmittingAsyncSuffix_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>("MethodThatEndsInAsync");
-        Assert.Equal(3, result);
-    }
-
-    [Fact]
     public async Task CanCallMethodWithAsyncSuffixInPresenceOfOneMissingSuffix()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndInAsync));
@@ -642,31 +366,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanCallMethodWithAsyncSuffixInPresenceOfOneMissingSuffix_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndInAsync));
-        Assert.Equal(4, result);
-    }
-
-    [Fact]
     public async Task CanCallMethodOmittingAsyncSuffixInPresenceOfOneWithSuffix()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndIn));
-        Assert.Equal(5, result);
-    }
-
-    [Fact]
-    public async Task CanCallMethodOmittingAsyncSuffixInPresenceOfOneWithSuffix_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        int result = await overloadRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndIn));
         Assert.Equal(5, result);
     }
 
@@ -686,40 +388,11 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        server.AllowServerMethodToReturn.Set();
-        string result = await overloadRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), "a").WithCancellation(this.TimeoutToken);
-        Assert.Equal("a!", result);
-    }
-
-    [Fact]
     public async Task InvokeWithCancellationAsync_CanCallUncancellableMethod()
     {
         using (var cts = new CancellationTokenSource())
         {
             Task<string> resultTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
-            cts.Cancel();
-            string result = await resultTask;
-            Assert.Equal("a!", result);
-        }
-    }
-
-    [Fact]
-    public async Task InvokeWithCancellationAsync_CanCallUncancellableMethod_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            Task<string> resultTask = overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethod), new[] { "a" }, cts.Token);
             cts.Cancel();
             string result = await resultTask;
             Assert.Equal("a!", result);
@@ -763,45 +436,6 @@ public class JsonRpcTests : TestBase
         }
     }
 
-    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/55
-    // Covers bug https://github.com/Microsoft/vs-streamjsonrpc/issues/56
-    [Fact]
-    public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        // TODO: remove the next line when https://github.com/Microsoft/vs-threading/issues/185 is fixed
-        server.DelayAsyncMethodWithCancellation = true;
-
-        // Repeat 10 times because https://github.com/Microsoft/vs-streamjsonrpc/issues/56 is a timing issue and we may miss it on the first attempt.
-        for (int iteration = 0; iteration < 10; iteration++)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                streams.Item1.BeforeWrite = (stream, buffer, offset, count) =>
-                {
-                    // Cancel on the first write, when the header is being written but the content is not yet.
-                    if (!cts.IsCancellationRequested)
-                    {
-                        cts.Cancel();
-                    }
-                };
-
-                await Assert.ThrowsAsync<RemoteInvocationException>(() => overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
-                streams.Item1.BeforeWrite = null;
-            }
-
-            // Verify that json rpc is still operational after cancellation.
-            // If the cancellation breaks the json rpc, like in https://github.com/Microsoft/vs-streamjsonrpc/issues/55, it will close the stream
-            // and cancel the request, resulting in unexpected OperationCancelledException thrown from the next InvokeAsync
-            string result = await overloadRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "a");
-            Assert.Equal("a!", result);
-        }
-    }
-
     [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithNoArgs()
     {
@@ -816,31 +450,6 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             Task<int> resultTask = this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs), cancellationToken: cts.Token);
-            cts.Cancel();
-            try
-            {
-                int result = await resultTask;
-                Assert.Equal(5, result);
-            }
-            catch (OperationCanceledException)
-            {
-                // this is also an acceptable result.
-            }
-        }
-    }
-
-    [Fact]
-    public async Task InvokeWithCancellationAsync_CanCallCancellableMethodWithNoArgs_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        Assert.Equal(5, await overloadRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
-
-        using (var cts = new CancellationTokenSource())
-        {
-            Task<int> resultTask = overloadRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs), cancellationToken: cts.Token);
             cts.Cancel();
             try
             {
@@ -872,26 +481,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CancelMessageSentWhileAwaitingResponse_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
-            await server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-            cts.Cancel();
-
-            // Ultimately, the server throws because it was canceled.
-            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
-            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
-        }
-    }
-
-    [Fact]
     public async Task CancelMayStillReturnResultFromServer()
     {
         using (var cts = new CancellationTokenSource())
@@ -900,25 +489,6 @@ public class JsonRpcTests : TestBase
             await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
-            string result = await invokeTask;
-            Assert.Equal("a!", result);
-        }
-    }
-
-    [Fact]
-    public async Task CancelMayStillReturnResultFromServer_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token);
-            await server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-            cts.Cancel();
-            server.AllowServerMethodToReturn.Set();
             string result = await invokeTask;
             Assert.Equal("a!", result);
         }
@@ -946,25 +516,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CancelMayStillReturnErrorFromServer_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = overloadRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
-            await server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-            cts.Cancel();
-            server.AllowServerMethodToReturn.Set();
-
-            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask);
-        }
-    }
-
-    [Fact]
     public async Task InvokeWithPrecanceledToken()
     {
         using (var cts = new CancellationTokenSource())
@@ -975,42 +526,12 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task InvokeWithPrecanceledToken_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => overloadRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodIgnoresCancellation), new[] { "a" }, cts.Token));
-        }
-    }
-
-    [Fact]
     public async Task InvokeThenCancelToken()
     {
         using (var cts = new CancellationTokenSource())
         {
             this.server.AllowServerMethodToReturn.Set();
             await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
-            cts.Cancel();
-        }
-    }
-
-    [Fact]
-    public async Task InvokeThenCancelToken_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var server = new Server();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, server);
-        overloadRpc.StartListening();
-
-        using (var cts = new CancellationTokenSource())
-        {
-            server.AllowServerMethodToReturn.Set();
-            await overloadRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
             cts.Cancel();
         }
     }
@@ -1128,31 +649,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeServerMethodWithParameterPassedAsObject_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result1 = await overloadRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
-        Assert.Equal("object {\r\n  \"test\": \"test\"\r\n}", result1);
-    }
-
-    [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
-        Assert.Equal("object test", result1);
-    }
-
-    [Fact]
-    public async Task CanInvokeServerMethodWithParameterPassedAsArray_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result1 = await overloadRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
         Assert.Equal("object test", result1);
     }
 
@@ -1164,31 +663,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeServerMethodWithNoParameterPassedAsObject_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result1 = await overloadRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter));
-        Assert.Equal("object or array", result1);
-    }
-
-    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
-        Assert.Equal("object or array", result1);
-    }
-
-    [Fact]
-    public async Task CanInvokeServerMethodWithNoParameterPassedAsArray_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        string result1 = await overloadRpc.InvokeAsync<string>(nameof(Server.TestParameter));
         Assert.Equal("object or array", result1);
     }
 
@@ -1199,29 +676,9 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task InvokeAsync_ExceptionThrownIfServerHasMutlipleMethodsMatched_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => overloadRpc.InvokeAsync<string>(nameof(Server.TestInvalidMethod)));
-    }
-
-    [Fact]
     public void AddLocalRpcTarget_ExceptionThrownWhenRpcHasStartedListening()
     {
         Assert.Throws<InvalidOperationException>(() => this.clientRpc.AddLocalRpcTarget(new AdditionalServerTargetOne()));
-    }
-
-    [Fact]
-    public void AddLocalRpcTarget_ExceptionThrownWhenRpcHasStartedListening_Overload()
-    {
-        var streams = FullDuplexStream.CreateStreams();
-        var overloadRpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2, new Server());
-        overloadRpc.StartListening();
-
-        Assert.Throws<InvalidOperationException>(() => overloadRpc.AddLocalRpcTarget(new AdditionalServerTargetOne()));
     }
 
     [Fact]
@@ -1260,19 +717,6 @@ public class JsonRpcTests : TestBase
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
-        rpc.StartListening();
-
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
-    }
-
-    [Fact]
-    public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod_Overload()
-    {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2);
         rpc.AddLocalRpcTarget(new Server());
         rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
         rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
@@ -1823,16 +1267,6 @@ public class JsonRpcTests : TestBase
         {
             writer.WriteValue(((UnserializableType)value).Value);
         }
-    }
-
-    internal class JsonRpcCrashesOnException : JsonRpc
-    {
-        public JsonRpcCrashesOnException(Stream sendingStream, Stream receivingStream, object target = null)
-            : base(sendingStream, receivingStream, target)
-        {
-        }
-
-        protected override bool ShouldCloseStreamOnException() => true;
     }
 
     internal class InternalClass
