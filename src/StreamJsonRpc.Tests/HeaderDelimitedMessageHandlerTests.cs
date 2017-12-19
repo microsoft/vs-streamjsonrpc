@@ -22,6 +22,17 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     }
 
     [Fact]
+    public async Task SubType_ForcesHeader()
+    {
+        this.handler.SubType = "nonstandard";
+        await this.handler.WriteAsync("hello", this.TimeoutToken);
+        this.sendingStream.Position = 0;
+        var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
+        string writtenContent = sr.ReadToEnd();
+        Assert.Contains(this.handler.SubType, writtenContent);
+    }
+
+    [Fact]
     public void ReadCoreAsync_HandlesSpacingCorrectly()
     {
         string content =
@@ -86,16 +97,5 @@ CRLF +
 
         readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
         Assert.Equal<string>("ABCDEFGHIJ", readContent);
-    }
-
-    [Fact]
-    public async Task SubType_ForcesHeader()
-    {
-        this.handler.SubType = "nonstandard";
-        await this.handler.WriteAsync("hello", this.TimeoutToken);
-        this.sendingStream.Position = 0;
-        var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
-        string writtenContent = sr.ReadToEnd();
-        Assert.Contains(this.handler.SubType, writtenContent);
     }
 }
