@@ -616,6 +616,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Indicates whether the connection should be closed if the server throws an exception.
         /// </summary>
+        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
         protected virtual bool IsFatalException(Exception ex) => false;
 
