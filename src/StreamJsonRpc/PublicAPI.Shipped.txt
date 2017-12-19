@@ -68,7 +68,7 @@ static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = nul
 virtual StreamJsonRpc.DelimitedMessageHandler.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
-virtual StreamJsonRpc.JsonRpc.ShouldCloseStreamOnException() -> bool
+virtual StreamJsonRpc.JsonRpc.IsFatalException(Exception ex) -> bool
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -> System.Threading.Tasks.Task<TResult>

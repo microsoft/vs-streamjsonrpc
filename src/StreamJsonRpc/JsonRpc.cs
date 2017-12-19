@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -77,7 +78,6 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
         private bool startedListening;
-        private bool closeStreamOnException = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -617,7 +617,7 @@ namespace StreamJsonRpc
         /// Indicates whether the connection should be closed if the server throws an exception.
         /// </summary>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
-        protected virtual bool ShouldCloseStreamOnException() => this.closeStreamOnException;
+        protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
         /// Invokes the specified RPC method
@@ -923,7 +923,7 @@ namespace StreamJsonRpc
 
                 return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex) when (!this.ShouldCloseStreamOnException())
+            catch (Exception ex) when (!this.IsFatalException(ex))
             {
                 return CreateError(request.Id, ex);
             }
@@ -951,21 +951,9 @@ namespace StreamJsonRpc
                 throw new ArgumentException(Resources.TaskNotCompleted, nameof(t));
             }
 
-            if (t.IsFaulted && !this.ShouldCloseStreamOnException())
+            if (t.IsFaulted && !this.IsFatalException(t.Exception))
             {
                 return CreateError(id, t.Exception);
-            }
-
-            if (t.IsFaulted && this.ShouldCloseStreamOnException())
-            {
-                if (t.Exception is AggregateException && t.Exception.InnerException != null)
-                {
-                    // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
-                    // the fact we are using reflection.
-                    throw t.Exception.InnerException;
-                }
-
-                throw t.Exception;
             }
 
             if (t.IsCanceled)
