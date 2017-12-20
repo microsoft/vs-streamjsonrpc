@@ -165,11 +165,6 @@ public class JsonRpcTests : TestBase
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.NotNull(exception.RemoteStackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS.ToString(CultureInfo.InvariantCulture), exception.RemoteErrorCode);
-
-        var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
     }
 
     [Fact]

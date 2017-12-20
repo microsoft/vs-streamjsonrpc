@@ -614,10 +614,16 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Indicates whether the connection should be closed if the server throws an exception.
+        /// Indicates whether the connection should be closed when the server throws an exception.
         /// </summary>
         /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
+        /// <remarks>
+        /// This method is invoked within the context of an exception filter and simply returns false by default.
+        /// Certain exceptions (such as <see cref="OperationCanceledException"/>) are not fatal in most cases, therefore
+        /// care should be taken to return false and keep the connection open. If the process should crash on an exception,
+        /// calling Environment.FailFast will produce such behavior.
+        /// </remarks>
         protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
@@ -955,6 +961,14 @@ namespace StreamJsonRpc
             if (t.IsFaulted && !this.IsFatalException(t.Exception))
             {
                 return CreateError(id, t.Exception);
+            }
+
+            if (t.IsFaulted && this.IsFatalException(t.Exception))
+            {
+                if (t.Exception.InnerException != null)
+                {
+                    ExceptionDispatchInfo.Capture(t.Exception).Throw();
+                }
             }
 
             if (t.IsCanceled)
