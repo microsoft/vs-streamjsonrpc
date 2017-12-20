@@ -1,9 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using StreamJsonRpc;
@@ -58,7 +56,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamsOnSynchronousMethodException";
         OperationCanceledException exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(FaultException.InnerException.Message, exceptionMessage);
+        Assert.Equal(FaultException.Message, exceptionMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
@@ -73,7 +71,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamOnAsyncYieldAndThrowException";
         Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(FaultException.InnerException.Message, exceptionMessage);
+        Assert.Equal(FaultException.Message, exceptionMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
@@ -88,7 +86,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamOnAsyncThrowExceptionAndYield";
         Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(FaultException.InnerException.Message, exceptionMessage);
+        Assert.Equal(FaultException.Message, exceptionMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
@@ -102,7 +100,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncMethodException";
         await Assert.ThrowsAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsAsync), exceptionMessage));
-        Assert.Equal(FaultException.InnerException.Message, exceptionMessage);
+        Assert.Equal(FaultException.Message, exceptionMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsAsync), exceptionMessage));
@@ -116,7 +114,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncTMethodException";
         await Assert.ThrowsAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
-        Assert.Equal(FaultException.InnerException.Message, exceptionMessage);
+        Assert.Equal(FaultException.Message, exceptionMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
@@ -171,7 +169,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask);
         }
 
-        Assert.Equal(FaultException.InnerException.Message, Server.ThrowAfterCancellationMessage);
+        Assert.Equal(FaultException.Message, Server.ThrowAfterCancellationMessage);
 
         // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
         await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethod), "testing"));

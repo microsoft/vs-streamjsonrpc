@@ -6,7 +6,6 @@ namespace StreamJsonRpc
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Diagnostics;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -930,7 +929,7 @@ namespace StreamJsonRpc
 
                 return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex) when (!this.IsFatalException(ex))
+            catch (Exception ex) when (!this.IsFatalException(ex.InnerException ?? ex))
             {
                 return CreateError(request.Id, ex);
             }
@@ -958,17 +957,21 @@ namespace StreamJsonRpc
                 throw new ArgumentException(Resources.TaskNotCompleted, nameof(t));
             }
 
-            if (t.IsFaulted && !this.IsFatalException(t.Exception))
+            if (t.IsFaulted)
             {
-                return CreateError(id, t.Exception);
-            }
-
-            if (t.IsFaulted && this.IsFatalException(t.Exception))
-            {
-                if (t.Exception.InnerException != null)
+                if (t.Exception != null)
                 {
-                    ExceptionDispatchInfo.Capture(t.Exception).Throw();
+                    if (t.Exception.InnerException != null && this.IsFatalException(t.Exception.InnerException))
+                    {
+                        ExceptionDispatchInfo.Capture(t.Exception.InnerException).Throw();
+                    }
+                    else if (this.IsFatalException(t.Exception))
+                    {
+                        ExceptionDispatchInfo.Capture(t.Exception).Throw();
+                    }
                 }
+
+                return CreateError(id, t.Exception);
             }
 
             if (t.IsCanceled)
