@@ -116,7 +116,7 @@ public class Connection
 ```
 
 ## Crashing the process on exception
-In some cases, you may want to immediately crash the server and client processes if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. `IsFatalException` provides an exception filter through which you can access and respond to exceptions as they are caught.
+In some cases, you may want to immediately crash the server process if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. `IsFatalException` provides an exception filter through which you can access and respond to exceptions as they are caught.
 ```csharp
 public class Server : BaseClass
 {
@@ -131,9 +131,9 @@ public class JsonRpcCrashesOnException : JsonRpc
 
     protected override bool IsFatalException(Exception ex)
     {
-        if (ex.GetType() != typeof(OperationCanceledException))
+        if !(ex is OperationCanceledException)
         {
-            Environment.FailFast(ex.message);
+            Environment.FailFast(ex.message, ex);
         }
 
         return false;
@@ -145,7 +145,9 @@ public class Connection
     public async Task NotifyRemote()
     {
         var target = new Server();
-        var rpc = new JsonRpcCrashesOnException(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+        var streams = Nerdbank.FullDuplexStreams.CreateStreams();
+        var rpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(target);
         rpc.StartListening();
         await rpc.InvokeAsync(nameof(Server.ThrowsException));
     }
