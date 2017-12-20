@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using StreamJsonRpc;
@@ -11,8 +12,6 @@ using Xunit.Abstractions;
 public class JsonRpcWithFatalExceptionsTests : TestBase
 {
     private readonly Server server;
-    private readonly DisposingDuplexStream serverStream;
-    private readonly DisposingDuplexStream clientStream;
     private readonly DelimitedMessageHandler messageHandler;
     private readonly JsonRpcWithFatalExceptions clientRpc;
     private readonly JsonRpcWithFatalExceptions serverRpc;
@@ -21,13 +20,11 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         : base(logger)
     {
         this.server = new Server();
-        var streams = DisposingDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
+        var streams = FullDuplexStream.CreateStreams();
 
-        this.messageHandler = new DisposingMessageHandler(this.clientStream);
+        this.messageHandler = new DisposingMessageHandler(streams.Item1);
         this.clientRpc = new JsonRpcWithFatalExceptions(this.messageHandler);
-        this.serverRpc = new JsonRpcWithFatalExceptions(new DisposingMessageHandler(this.serverStream), this.server);
+        this.serverRpc = new JsonRpcWithFatalExceptions(new DisposingMessageHandler(streams.Item2), this.server);
         this.clientRpc.StartListening();
         this.serverRpc.StartListening();
     }
@@ -49,12 +46,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal("The operation was canceled.", this.serverRpc.FaultException.Message);
         Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert MessageHandler and Stream objects are not disposed
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
-        Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((DisposingMessageHandler)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -66,12 +61,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -83,12 +76,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -100,12 +91,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -116,12 +105,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsAsync), exceptionMessage));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.MethodThatThrowsAsync), exceptionMessage));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -132,12 +119,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -145,10 +130,8 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     {
         await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync("missingMethod", 50));
 
-        // Assert MessageHandler and Stream objects are not disposed
+        // Assert MessageHandler object is not disposed
         Assert.False(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.False(this.serverStream.IsDisposed);
-        Assert.False(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -165,12 +148,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
         }
 
-        // Assert MessageHandler and Stream objects are not disposed
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     [Fact]
@@ -188,12 +169,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
         }
 
-        // Assert that the JsonRpc, MessageHandler, and Stream objects are disposed after exception
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethod), "testing"));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.serverRpc.InvokeAsync(nameof(Server.ServerMethod), "testing"));
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-        Assert.True(this.serverStream.IsDisposed);
-        Assert.True(this.clientStream.IsDisposed);
     }
 
     public class Server
@@ -293,30 +272,6 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             if (!this.IsDisposed && disposing)
             {
                 this.IsDisposed = disposing;
-            }
-
-            base.Dispose(disposing);
-        }
-    }
-
-    public class DisposingDuplexStream : FullDuplexStream
-    {
-        public bool IsDisposed = false;
-
-        internal static new Tuple<DisposingDuplexStream, DisposingDuplexStream> CreateStreams()
-        {
-            var stream1 = new DisposingDuplexStream();
-            var stream2 = new DisposingDuplexStream();
-            stream1.SetOtherStream(stream2);
-            stream2.SetOtherStream(stream1);
-            return Tuple.Create(stream1, stream2);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!this.IsDisposed && disposing)
-            {
-                this.IsDisposed = true;
             }
 
             base.Dispose(disposing);

@@ -40,6 +40,11 @@
         /// </summary>
         private TaskCompletionSource<object> enqueuedSource = new TaskCompletionSource<object>(EnqueuedSourceOptions);
 
+        /// <summary>
+        /// Gets a value indicating whether the stream is disposed
+        /// </summary>
+        public bool IsDisposed { get; set; }
+
         /// <inheritdoc />
         public override bool CanRead => true;
 
@@ -230,6 +235,11 @@
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
+            if (disposing)
+            {
+                this.IsDisposed = true;
+            }
+
             // Sending an empty buffer is the traditional way to signal
             // that the transmitting stream has closed.
             this.other.PostMessage(new Message(EmptyByteArray));
