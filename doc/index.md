@@ -8,7 +8,9 @@ There are two ways to establish connection and start invoking methods remotely:
 public void ConstructRpc()
 {
     var target = new LanguageServerTarget();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var streams = Nerdbank.FullDuplexStream.CreateStreams();
+    var clientRpc = JsonRpc.Attach(streams.Item1);
+    var serverRpc = JsonRpc.Attach(streams.Item2, target);
 }
 ```
 The `JsonRpc` object returned by `Attach` method would be used to invoke remote methods via JSON-RPC.
@@ -18,10 +20,12 @@ The `JsonRpc` object returned by `Attach` method would be used to invoke remote 
 public void ConstructRpc()
 {
     var streams = Nerdbank.FullDuplexStream.CreateStreams();
-    var rpc = new JsonRpc(streams.Item1, streams.Item2);
+    var clientRpc = new JsonRpc(streams.Item1);
+    var serverRpc = new JsonRpc(streams.Item2);
     var target = new Server();
-    rpc.AddLocalRpcTarget(target);
-    rpc.StartListening();
+    serverRpc.AddLocalRpcTarget(target);
+    clientRpc.StartListening();
+    serverRpc.StartListening();
 }
 ```
 
@@ -31,8 +35,10 @@ To invoke a remote method named "foo" which takes one `string` parameter and doe
 public async Task NotifyRemote() 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-    await rpc.NotifyAsync("foo", "param1");
+    var streams = Nerdbank.FullDuplexStream.CreateStreams();
+    var clientRpc = JsonRpc.Attach(streams.Item1);
+    var serverRpc = JsonRpc.Attach(streams.Item2, target);
+    await clientRpc.NotifyAsync("foo", "param1");
 }
 ```
 The parameter will be passed remotely as an array of one object.
@@ -42,8 +48,10 @@ To invoke a remote method named "bar" which takes one `string` parameter (but th
 public async Task NotifyRemote() 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-    await rpc.NotifyWithParameterObjectAsync("bar", "param1");
+    var streams = Nerdbank.FullDuplexStream.CreateStreams();
+    var clientRpc = JsonRpc.Attach(streams.Item1);
+    var serverRpc = JsonRpc.Attach(streams.Item2, target);
+    await clientRpc.NotifyWithParameterObjectAsync("bar", "param1");
 }
 ```
 ## Invoking a request
@@ -52,8 +60,10 @@ To invoke a remote method named "foo" which takes two `string` parameters and re
 public async Task NotifyRemote() 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-    var myResult = await rpc.InvokeAsync<int>("foo", "param1", "param2");
+    var streams = Nerdbank.FullDuplexStream.CreateStreams();
+    var clientRpc = JsonRpc.Attach(streams.Item1);
+    var serverRpc = JsonRpc.Attach(streams.Item2, target);
+    var myResult = await clientRpc.InvokeAsync<int>("foo", "param1", "param2");
 }
 ```
 The parameters will be passed remotely as an array of objects.
@@ -63,8 +73,10 @@ To invoke a remote method named "baz" which takes one `string` parameter (but th
 public async Task NotifyRemote() 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-    var myResult = await rpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
+    var streams = Nerdbank.FullDuplexStream.CreateStreams();
+    var clientRpc = JsonRpc.Attach(streams.Item1);
+    var serverRpc = JsonRpc.Attach(streams.Item2, target);
+    var myResult = await clientRpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
 }
 ```
 
@@ -89,8 +101,10 @@ public class Connection
     public async Task NotifyRemote() 
     {
         var target = new Server();
-        var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-        var myResult = await rpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var serverRpc = JsonRpc.Attach(streams.Item2, target);
+        var myResult = await clientRpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
     }
 }
 ```
@@ -109,14 +123,16 @@ public class Connection
     public async Task NotifyRemote() 
     {
         var target = new Server();
-        var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-        var myResult = await rpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var serverRpc = JsonRpc.Attach(streams.Item2, target);
+        var myResult = await clientRpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
     }
 }
 ```
 
 ## Crashing the process on exception
-In some cases, you may want to immediately crash the server process if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. `IsFatalException` provides an exception filter through which you can access and respond to exceptions as they are caught.
+In some cases, you may want to immediately crash the server process if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. Through `IsFatalException` you can access and respond to exceptions as they are observed.
 ```csharp
 public class Server : BaseClass
 {
@@ -146,10 +162,11 @@ public class Connection
     {
         var target = new Server();
         var streams = Nerdbank.FullDuplexStreams.CreateStreams();
-        var rpc = new JsonRpcCrashesOnException(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(target);
-        rpc.StartListening();
-        await rpc.InvokeAsync(nameof(Server.ThrowsException));
+        var clientRpc = new JsonRpcCrashesOnException(streams.Item1);
+        var serverRpc = new JsonRpcCrashesOnException(streams.Item2, target);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+        await clientRpc.InvokeAsync(nameof(Server.ThrowsException));
     }
 }
 ```
