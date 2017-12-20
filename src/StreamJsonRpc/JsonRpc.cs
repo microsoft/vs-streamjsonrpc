@@ -618,10 +618,10 @@ namespace StreamJsonRpc
         /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
         /// <remarks>
-        /// This method is invoked within the context of an exception filter and simply returns false by default.
+        /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
         /// Certain exceptions (such as <see cref="OperationCanceledException"/>) are not fatal in most cases, therefore
         /// care should be taken to return false and keep the connection open. If the process should crash on an exception,
-        /// calling Environment.FailFast will produce such behavior.
+        /// calling <see cref="Environment.FailFast(string, Exception)"/> will produce such behavior.
         /// </remarks>
         protected virtual bool IsFatalException(Exception ex) => false;
 
@@ -961,13 +961,19 @@ namespace StreamJsonRpc
             {
                 if (t.Exception != null)
                 {
-                    if (t.Exception.InnerException != null && this.IsFatalException(t.Exception.InnerException))
+                    if (t.Exception.InnerException != null)
                     {
-                        ExceptionDispatchInfo.Capture(t.Exception.InnerException).Throw();
+                        if (this.IsFatalException(t.Exception.InnerException))
+                        {
+                            ExceptionDispatchInfo.Capture(t.Exception.InnerException).Throw();
+                        }
                     }
-                    else if (this.IsFatalException(t.Exception))
+                    else
                     {
-                        ExceptionDispatchInfo.Capture(t.Exception).Throw();
+                        if (this.IsFatalException(t.Exception))
+                        {
+                            ExceptionDispatchInfo.Capture(t.Exception).Throw();
+                        }
                     }
                 }
 
@@ -976,6 +982,11 @@ namespace StreamJsonRpc
 
             if (t.IsCanceled)
             {
+                if (this.IsFatalException(new OperationCanceledException()))
+                {
+                    ExceptionDispatchInfo.Capture(new AggregateException(new OperationCanceledException())).Throw();
+                }
+
                 return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
             }
 
