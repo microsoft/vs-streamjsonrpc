@@ -114,3 +114,40 @@ public class Connection
     }
 }
 ```
+
+## Crashing the process on exception
+In some cases, you may want to immediately crash the server and client processes if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. `IsFatalException` provides an exception filter through which you can access and respond to exceptions as they are caught.
+```csharp
+public class Server : BaseClass
+{
+    public void ThrowsException() => throw new Exception("Throwing an exception");
+}
+
+public class JsonRpcCrashesOnException : JsonRpc
+{
+    public JsonRpcCrashesOnException(Stream clientStream, Stream serverStream, object target = null) : base(clientSteam, serverStream, target)
+    {
+    }
+
+    protected override bool IsFatalException(Exception ex)
+    {
+        if (ex.GetType() != typeof(OperationCanceledException))
+        {
+            Environment.FailFast(ex.message);
+        }
+
+        return false;
+    }
+}
+
+public class Connection
+{
+    public async Task NotifyRemote()
+    {
+        var target = new Server();
+        var rpc = new JsonRpcCrashesOnException(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+        rpc.StartListening();
+        await rpc.InvokeAsync(nameof(Server.ThrowsException));
+    }
+}
+```
