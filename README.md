@@ -34,6 +34,6 @@ Testing this library or users of this library can be done without any transport
 by using the [Nerdbank.FullDuplexStream][FullDuplexStream] library in your tests
 to produce the Stream object.
 
-[JSONRPC]: http://json-rpc.org/
+[JSONRPC]: http://jsonrpc.org/
 [json-rpc-peer]: https://www.npmjs.com/package/json-rpc-peer
 [FullDuplexStream]: https://www.nuget.org/packages/nerdbank.fullduplexstream
