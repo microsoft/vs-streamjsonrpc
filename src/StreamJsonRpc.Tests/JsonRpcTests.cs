@@ -930,6 +930,45 @@ public class JsonRpcTests : TestBase
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
     }
 
+    [Fact]
+    public void Completion_ThrowsBeforeListening()
+    {
+        var rpc = new JsonRpc(Stream.Null, Stream.Null);
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            var foo = rpc.Completion;
+        });
+    }
+
+    [Fact]
+    public async Task Completion_CompletesOnRemoteStreamClose()
+    {
+        Task completion = this.serverRpc.Completion;
+        this.clientRpc.Dispose();
+        await completion.WithTimeout(UnexpectedTimeout);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
+    [Fact]
+    public async Task Completion_CompletesOnLocalDisposal()
+    {
+        Task completion = this.serverRpc.Completion;
+        this.serverRpc.Dispose();
+        await completion.WithTimeout(UnexpectedTimeout);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
+    [Fact]
+    public async Task Completion_FaultsOnFatalError()
+    {
+        Task completion = this.serverRpc.Completion;
+        byte[] invalidMessage = Encoding.UTF8.GetBytes("A\n\n");
+        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length);
+        await this.clientStream.FlushAsync();
+        await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
