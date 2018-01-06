@@ -9,7 +9,7 @@ namespace StreamJsonRpc
     /// An exception thrown when a deserialized message has a bad header.
     /// </summary>
     /// <seealso cref="RemoteRpcException" />
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
     [Serializable]
 #endif
     public class BadRpcHeaderException : RemoteRpcException
@@ -33,7 +33,7 @@ namespace StreamJsonRpc
         {
         }
 
-#if NET45
+#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
         /// </summary>

@@ -157,6 +157,8 @@ namespace StreamJsonRpc
                     {
                         await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
                     }
+
+                    await this.SendingStream.FlushAsync().ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
                 {

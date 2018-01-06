@@ -693,7 +693,18 @@ namespace StreamJsonRpc
                         }
                         else if (response.IsError)
                         {
-                            tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
+                            if (response.Error?.Code == (int)JsonRpcErrorCode.RequestCanceled)
+                            {
+#if TRYSETCANCELED_CT
+                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+#else
+                                tcs.TrySetCanceled();
+#endif
+                            }
+                            else
+                            {
+                                tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
+                            }
                         }
                         else
                         {
@@ -940,7 +951,7 @@ namespace StreamJsonRpc
 
             if (t.IsCanceled)
             {
-                return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, Resources.TaskWasCancelled);
+                return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
             }
 
             object taskResult = null;

@@ -30,6 +30,7 @@ namespace StreamJsonRpc
         private const int MaxHeaderElementSize = 1024;
         private const string ContentLengthHeaderNameText = "Content-Length";
         private const string ContentTypeHeaderNameText = "Content-Type";
+        private const string DefaultSubType = "jsonrpc";
 
         /// <summary>
         /// The default encoding to use when writing content,
@@ -83,7 +84,7 @@ namespace StreamJsonRpc
         /// Gets or sets the value to use as the subtype in the Content-Type header (e.g. "application/SUBTYPE").
         /// </summary>
         /// <value>The default value is "jsonrpc".</value>
-        public string SubType { get; set; } = "jsonrpc";
+        public string SubType { get; set; } = DefaultSubType;
 
         private new ReadBufferingStream ReceivingStream => (ReadBufferingStream)base.ReceivingStream;
 
@@ -219,7 +220,7 @@ namespace StreamJsonRpc
             // Transmit the Content-Type header, but only when using a non-default encoding.
             // We suppress it when it is the default both for smaller messages and to avoid
             // having to load System.Net.Http on the receiving end in order to parse it.
-            if (DefaultContentEncoding.WebName != contentEncoding.WebName)
+            if (DefaultContentEncoding.WebName != contentEncoding.WebName || this.SubType != DefaultSubType)
             {
                 sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
                 sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
@@ -246,7 +247,6 @@ namespace StreamJsonRpc
             // Transmit the content itself.
             // Ignore the cancellation token so we don't write the header without the content.
             await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length).ConfigureAwait(false);
-            await this.SendingStream.FlushAsync().ConfigureAwait(false);
         }
 
         /// <summary>
