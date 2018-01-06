@@ -481,7 +481,7 @@ public class JsonRpcTests : TestBase
     {
         using (var cts = new CancellationTokenSource())
         {
-            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
             await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
             cts.Cancel();
             await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask);
@@ -493,10 +493,10 @@ public class JsonRpcTests : TestBase
     {
         using (var cts = new CancellationTokenSource())
         {
-            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
             this.server.AllowServerMethodToReturn.Set();
             string result = await invokeTask;
-            Assert.Equal("a!", result);
+            Assert.Equal(@"{""b"":""a""}!", result);
         }
     }
 
@@ -520,7 +520,7 @@ public class JsonRpcTests : TestBase
             var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
             this.server.AllowServerMethodToReturn.Set();
             string result = await invokeTask;
-            Assert.Equal("a!", result);
+            Assert.Equal(@"""a""!", result);
         }
     }
 
@@ -1158,7 +1158,7 @@ public class JsonRpcTests : TestBase
             }
 
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
-            return paramObject.ToString() + "!";
+            return paramObject.ToString(Formatting.None) + "!";
         }
 
         public async Task AsyncMethodThatThrows()
