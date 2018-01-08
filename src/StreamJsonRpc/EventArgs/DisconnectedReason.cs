@@ -27,5 +27,10 @@ namespace StreamJsonRpc
         /// The stream was disposed.
         /// </summary>
         Disposed,
+
+        /// <summary>
+        /// A fatal exception was thrown from the server method.
+        /// </summary>
+        FatalException,
     }
 }

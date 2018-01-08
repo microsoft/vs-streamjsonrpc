@@ -14,6 +14,7 @@ StreamJsonRpc.DelimitedMessageHandler.SendingStream.get -> System.IO.Stream
 StreamJsonRpc.DelimitedMessageHandler.WriteAsync(string content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.Disposed = 3 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.FatalException = 4 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.ParseError = 2 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.StreamError = 1 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.Unknown = 0 -> StreamJsonRpc.DisconnectedReason

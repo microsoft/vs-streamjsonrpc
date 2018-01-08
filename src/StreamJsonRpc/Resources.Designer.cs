@@ -134,6 +134,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A fatal exception was thrown from the server method {0}: {1}.
+        /// </summary>
+        internal static string FatalExceptionWasThrown {
+            get {
+                return ResourceManager.GetString("FatalExceptionWasThrown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The buffer is empty. Call the async method to fill it first..
         /// </summary>
         internal static string FillBufferFirst {
@@ -305,7 +314,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The {0] and {1} parameters exceed length of array..
+        ///   Looks up a localized string similar to The {0 and {1} parameters exceed length of array..
         /// </summary>
         internal static string SumOfTwoParametersExceedsArrayLength {
             get {

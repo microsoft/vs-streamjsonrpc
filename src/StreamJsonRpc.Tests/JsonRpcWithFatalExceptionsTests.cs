@@ -38,18 +38,17 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     }
 
     [Fact]
-    public async Task CloseStreamsIfCancelledTaskReturned()
+    public async Task StreamsStayOpenIfCancelledTaskReturned()
     {
         var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
         Assert.Equal(CancellationToken.None, ex.CancellationToken);
         Assert.NotNull(ex.StackTrace);
-        Assert.Equal("The operation was canceled.", this.serverRpc.FaultException.Message);
-        Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+        Assert.Equal(0, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((DisposingMessageHandler)this.messageHandler).IsDisposed);
+        // Assert that the JsonRpc and MessageHandler objects are not disposed
+        Assert.False(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.False(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.False(((DisposingMessageHandler)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -74,7 +73,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
-        Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+        Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
@@ -89,21 +88,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
-        Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
-
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
-    }
-
-    [Fact]
-    public async Task CloseStreamOnAsyncMethodException()
-    {
-        var exceptionMessage = "Exception from CloseStreamOnAsyncMethodException";
-        await Assert.ThrowsAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsAsync), exceptionMessage));
-        Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
-        Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+        Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
@@ -117,7 +102,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamOnAsyncTMethodException";
         await Assert.ThrowsAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
-        Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+        Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
@@ -135,7 +120,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     }
 
     [Fact]
-    public async Task CloseStreamsOnOperationCanceled()
+    public async Task StreamsStayOpenOnOperationCanceled()
     {
         using (var cts = new CancellationTokenSource())
         {
@@ -145,13 +130,13 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
             // Ultimately, the server throws because it was canceled.
             var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
-            Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+            Assert.Equal(0, this.serverRpc.IsFatalExceptionCount);
         }
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
+        // Assert that the JsonRpc and MessageHandler objects are not disposed
+        Assert.False(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.False(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.False(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
     }
 
     [Fact]
@@ -166,7 +151,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
             await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask);
             Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException.Message);
-            Assert.Equal(2, this.serverRpc.IsFatalExceptionCount);
+            Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
 
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
@@ -219,7 +204,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         {
             await Task.Run(() => throw new Exception(message));
 
-            return "never will return";
+            return await Task.FromResult("never will return");
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
@@ -251,11 +236,6 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
             throw new InvalidOperationException(ThrowAfterCancellationMessage);
         }
-
-        public async Task MethodThatThrowsAsync(string message)
-        {
-            await Task.Run(() => throw new Exception(message));
-        }
     }
 
     public class DisposingMessageHandler : HeaderDelimitedMessageHandler
@@ -282,9 +262,6 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     {
         internal Exception FaultException;
 
-        // If the exception arises from a task faulting or canceling, this method will be called twice:
-        // once in the handling of the task and once when dispatching the request
-        // If the exception arises from a synchronous method call, this method will be called once when dispatching the request
         internal int IsFatalExceptionCount;
 
         public JsonRpcWithFatalExceptions(DelimitedMessageHandler messageHandler, object target = null)

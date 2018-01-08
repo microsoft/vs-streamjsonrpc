@@ -862,15 +862,22 @@ namespace StreamJsonRpc
                 throw new ArgumentNullException(nameof(exception));
             }
 
-            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
-            {
-                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
-                // the fact we are using reflection.
-                exception = exception.InnerException;
-            }
+            exception = StripExceptionToInnerException(exception);
 
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
             return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
+        }
+
+        private static Exception StripExceptionToInnerException(Exception exception)
+        {
+            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
+            {
+                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                // the fact that we are using reflection.
+                return exception.InnerException;
+            }
+
+            return exception;
         }
 
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
@@ -930,7 +937,7 @@ namespace StreamJsonRpc
 
                 return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex) when (!this.IsFatalException(ex.InnerException ?? ex))
+            catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
                 return CreateError(request.Id, ex);
             }
@@ -960,22 +967,15 @@ namespace StreamJsonRpc
 
             if (t.IsFaulted)
             {
-                if (t.Exception != null)
+                if (this.IsFatalException(StripExceptionToInnerException(t.Exception)))
                 {
-                    if (t.Exception.InnerException != null)
-                    {
-                        if (this.IsFatalException(t.Exception.InnerException))
-                        {
-                            ExceptionDispatchInfo.Capture(t.Exception.InnerException).Throw();
-                        }
-                    }
-                    else
-                    {
-                        if (this.IsFatalException(t.Exception))
-                        {
-                            ExceptionDispatchInfo.Capture(t.Exception).Throw();
-                        }
-                    }
+                    var exception = StripExceptionToInnerException(t.Exception);
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.FatalExceptionWasThrown, exception.GetType(), exception.Message),
+                        DisconnectedReason.Unknown,
+                        exception);
+
+                    this.OnJsonRpcDisconnected(e);
                 }
 
                 return CreateError(id, t.Exception);
@@ -983,11 +983,6 @@ namespace StreamJsonRpc
 
             if (t.IsCanceled)
             {
-                if (this.IsFatalException(new OperationCanceledException()))
-                {
-                    ExceptionDispatchInfo.Capture(new AggregateException(new OperationCanceledException())).Throw();
-                }
-
                 return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
             }
 
