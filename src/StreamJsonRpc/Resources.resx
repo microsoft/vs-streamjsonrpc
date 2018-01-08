@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AttachTargetAfterStartListeningError" xml:space="preserve">
-    <value>Cannot attach additional target once JsonRpc has started listening for messages.</value>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Listening must be started first.</value>
   </data>
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
@@ -238,5 +238,8 @@
   <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
     <value>A target object should be supplied if and only if the method is not static.</value>
     <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>This cannot be done after listening has started.</value>
   </data>
 </root>

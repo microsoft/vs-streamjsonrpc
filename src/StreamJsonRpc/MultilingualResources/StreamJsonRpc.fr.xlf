@@ -154,14 +154,18 @@
           <source>A method with the same name and equivalent parameters has already been registered.</source>
           <target state="new">A method with the same name and equivalent parameters has already been registered.</target>
         </trans-unit>
-        <trans-unit id="AttachTargetAfterStartListeningError" translate="yes" xml:space="preserve">
-          <source>Cannot attach additional target once JsonRpc has started listening for messages.</source>
-          <target state="new">Cannot attach additional target once JsonRpc has started listening for messages.</target>
-        </trans-unit>
         <trans-unit id="TargetObjectAndMethodStaticFlagMismatch" translate="yes" xml:space="preserve">
           <source>A target object should be supplied if and only if the method is not static.</source>
           <target state="new">A target object should be supplied if and only if the method is not static.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">"static" is a C# keyword and should not be translated.</note>
+        </trans-unit>
+        <trans-unit id="MustBeListening" translate="yes" xml:space="preserve">
+          <source>Listening must be started first.</source>
+          <target state="new">Listening must be started first.</target>
+        </trans-unit>
+        <trans-unit id="MustNotBeListening" translate="yes" xml:space="preserve">
+          <source>This cannot be done after listening has started.</source>
+          <target state="new">This cannot be done after listening has started.</target>
         </trans-unit>
       </group>
     </body>

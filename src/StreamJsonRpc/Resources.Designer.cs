@@ -62,15 +62,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot attach additional target once JsonRpc has started listening for messages..
-        /// </summary>
-        internal static string AttachTargetAfterStartListeningError {
-            get {
-                return ResourceManager.GetString("AttachTargetAfterStartListeningError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Both readable and writable are null..
         /// </summary>
         internal static string BothReadableWritableAreNull {
@@ -211,6 +202,24 @@ namespace StreamJsonRpc {
         internal static string MethodParametersNotCompatible {
             get {
                 return ResourceManager.GetString("MethodParametersNotCompatible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Listening must be started first..
+        /// </summary>
+        internal static string MustBeListening {
+            get {
+                return ResourceManager.GetString("MustBeListening", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This cannot be done after listening has started..
+        /// </summary>
+        internal static string MustNotBeListening {
+            get {
+                return ResourceManager.GetString("MustNotBeListening", resourceCulture);
             }
         }
         
