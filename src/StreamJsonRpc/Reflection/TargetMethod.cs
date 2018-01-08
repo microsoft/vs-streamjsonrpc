@@ -105,18 +105,28 @@ namespace StreamJsonRpc
 
             if (request.Parameters != null && request.Parameters.Type == JTokenType.Object)
             {
-                // If the parameter passed is an object, then we want to find the matching method with the same name and the method only takes a JToken as a parameter.
-                if (method.Parameters.Length != 1)
+                // If the parameter passed is an object, then we want to find the matching method with the same name and the method only takes a JToken as a parameter,
+                // and possibly a CancellationToken
+                if (method.Parameters.Length < 1 || method.Parameters[0].ParameterType != typeof(JToken))
                 {
                     return null;
                 }
 
-                if (method.Parameters[0].ParameterType != typeof(JToken))
+                var args = new List<object>(2);
+                args.Add(request.Parameters);
+
+                if (method.Parameters.Length > 1 && method.Parameters[1].ParameterType == typeof(CancellationToken))
                 {
+                    args.Add(CancellationToken.None);
+                }
+
+                if (method.Parameters.Length > 2)
+                {
+                    // We don't support methods with more than two parameters.
                     return null;
                 }
 
-                return new object[] { request.Parameters };
+                return args.ToArray();
             }
 
             // The number of parameters must fall within required and total parameters.
