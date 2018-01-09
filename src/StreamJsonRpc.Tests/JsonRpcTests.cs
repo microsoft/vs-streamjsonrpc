@@ -511,6 +511,54 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithParameterObjectAsync_AndCancel()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObjectAsync_AndComplete()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
+            this.server.AllowServerMethodToReturn.Set();
+            string result = await invokeTask;
+            Assert.Equal(@"{""b"":""a""}!", result);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_AndCancel()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_AndComplete()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            this.server.AllowServerMethodToReturn.Set();
+            string result = await invokeTask;
+            Assert.Equal(@"""a""!", result);
+        }
+    }
+
+    [Fact]
     public async Task InvokeWithPrecanceledToken()
     {
         using (var cts = new CancellationTokenSource())
@@ -930,6 +978,45 @@ public class JsonRpcTests : TestBase
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
     }
 
+    [Fact]
+    public void Completion_ThrowsBeforeListening()
+    {
+        var rpc = new JsonRpc(Stream.Null, Stream.Null);
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            var foo = rpc.Completion;
+        });
+    }
+
+    [Fact]
+    public async Task Completion_CompletesOnRemoteStreamClose()
+    {
+        Task completion = this.serverRpc.Completion;
+        this.clientRpc.Dispose();
+        await completion.WithTimeout(UnexpectedTimeout);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
+    [Fact]
+    public async Task Completion_CompletesOnLocalDisposal()
+    {
+        Task completion = this.serverRpc.Completion;
+        this.serverRpc.Dispose();
+        await completion.WithTimeout(UnexpectedTimeout);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
+    [Fact]
+    public async Task Completion_FaultsOnFatalError()
+    {
+        Task completion = this.serverRpc.Completion;
+        byte[] invalidMessage = Encoding.UTF8.GetBytes("A\n\n");
+        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length);
+        await this.clientStream.FlushAsync();
+        await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion);
+        Assert.Same(completion, this.serverRpc.Completion);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1133,6 +1220,20 @@ public class JsonRpcTests : TestBase
             }
 
             return arg + "!";
+        }
+
+        public async Task<string> AsyncMethodWithJTokenAndCancellation(JToken paramObject, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+
+            // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+            if (this.DelayAsyncMethodWithCancellation)
+            {
+                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+            }
+
+            await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
+            return paramObject.ToString(Formatting.None) + "!";
         }
 
         public async Task<string> AsyncMethodFaultsAfterCancellation(string arg, CancellationToken cancellationToken)

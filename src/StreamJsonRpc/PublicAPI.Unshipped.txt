@@ -2,3 +2,4 @@ StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate ha
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
 virtual StreamJsonRpc.DelimitedMessageHandler.FlushCoreAsync() -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
