@@ -52,11 +52,10 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public void Dispose_DisposesSocket()
+    public void Dispose_DoesNotDisposeSocket()
     {
-        Assert.Equal(0, this.socket.DisposalCount);
         this.handler.Dispose();
-        Assert.Equal(1, this.socket.DisposalCount);
+        Assert.Equal(0, this.socket.DisposalCount);
     }
 
     [Fact]

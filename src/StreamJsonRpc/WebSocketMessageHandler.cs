@@ -26,7 +26,10 @@ namespace StreamJsonRpc
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketMessageHandler"/> class.
         /// </summary>
-        /// <param name="webSocket">The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.</param>
+        /// <param name="webSocket">
+        /// The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
+        /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
+        /// </param>
         /// <param name="bufferSize">
         /// The size of the buffer to use for reading JSON-RPC messages.
         /// Messages which exceed this size will be handled properly but may require multiple I/O operations.
@@ -119,17 +122,6 @@ namespace StreamJsonRpc
                     await this.WebSocket.SendAsync(bufferSegment, WebSocketMessageType.Text, completed, cancellationToken).ConfigureAwait(false);
                 }
             }
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.WebSocket.Dispose();
-            }
-
-            base.Dispose(disposing);
         }
     }
 }
