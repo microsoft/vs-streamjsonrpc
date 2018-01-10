@@ -966,9 +966,9 @@ namespace StreamJsonRpc
 
             if (t.IsFaulted)
             {
-                if (this.IsFatalException(StripExceptionToInnerException(t.Exception)))
+                var exception = StripExceptionToInnerException(t.Exception);
+                if (this.IsFatalException(exception))
                 {
-                    var exception = StripExceptionToInnerException(t.Exception);
                     var e = new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.FatalExceptionWasThrown, exception.GetType(), exception.Message),
                         DisconnectedReason.Unknown,

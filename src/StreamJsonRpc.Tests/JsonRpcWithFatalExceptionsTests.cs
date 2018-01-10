@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -160,6 +161,34 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.True(((DisposingMessageHandler)this.clientRpc.MessageHandler).IsDisposed);
     }
 
+    [Fact]
+    public async Task AggregateExceptionIsNotRemovedFromAsyncMethod()
+    {
+        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner)));
+
+        // The async server method itself strips the second of the InnerExceptions, so we can't recover it here.
+        // Since we only get one, we expect the inner exception (of the AggregateException)
+        Assert.IsType<InvalidOperationException>(this.serverRpc.FaultException);
+    }
+
+    [Fact]
+    public async Task AggregateExceptionIsNotRemovedFromTaskReturningSyncMethod()
+    {
+        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.SyncMethodReturnsFaultedTaskWithAggregateExceptionWithTwoInner)));
+
+        // The async server method itself strips the second of the InnerExceptions, so we can't recover it here.
+        // Since we only get one, we expect the inner exception (of the AggregateException)
+        Assert.IsType<InvalidOperationException>(this.serverRpc.FaultException);
+    }
+
+    [Fact]
+    public async Task AggregateExceptionIsNotRemovedFromSyncMethod()
+    {
+        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.SyncMethodThrowsAggregateException)));
+        var filterException = (AggregateException)this.serverRpc.FaultException;
+        Assert.Equal(2, filterException.InnerExceptions.Count);
+    }
+
     public class Server
     {
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
@@ -235,6 +264,48 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             }
 
             throw new InvalidOperationException(ThrowAfterCancellationMessage);
+        }
+
+        public void SyncMethodThrowsAggregateException()
+        {
+            var failures = new List<Exception>();
+            for (int i = 1; i <= 2; i++)
+            {
+                try
+                {
+                    FailingMethod(i);
+                }
+                catch (Exception ex)
+                {
+                    failures.Add(ex);
+                }
+            }
+
+            if (failures.Count > 0)
+            {
+                throw new AggregateException(failures);
+            }
+        }
+
+        public async Task AsyncMethodThrowsAggregateExceptionWithTwoInner()
+        {
+            // This will throw an AggregateException with two inner exceptions.
+            await Task.WhenAll(
+                Task.Run(() => FailingMethod(1)),
+                Task.Run(() => FailingMethod(2)));
+        }
+
+        public Task SyncMethodReturnsFaultedTaskWithAggregateExceptionWithTwoInner()
+        {
+            // This will return a Task with an AggregateException and two inner exceptions.
+            return Task.WhenAll(
+                Task.Run(() => FailingMethod(1)),
+                Task.Run(() => FailingMethod(2)));
+        }
+
+        private static void FailingMethod(int number)
+        {
+            throw new InvalidOperationException($"Failure {number}");
         }
     }
 
