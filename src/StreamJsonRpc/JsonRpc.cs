@@ -620,8 +620,7 @@ namespace StreamJsonRpc
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
         /// <remarks>
         /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
-        /// Certain exceptions (such as <see cref="OperationCanceledException"/>) are not fatal in most cases, therefore
-        /// care should be taken to return false and keep the connection open. If the process should crash on an exception,
+        /// If the process should crash on an exception,
         /// calling <see cref="Environment.FailFast(string, Exception)"/> will produce such behavior.
         /// </remarks>
         protected virtual bool IsFatalException(Exception ex) => false;
