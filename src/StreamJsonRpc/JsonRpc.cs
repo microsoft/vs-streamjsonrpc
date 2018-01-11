@@ -73,6 +73,11 @@ namespace StreamJsonRpc
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
+        /// <summary>
+        /// The completion source behind <see cref="Completion"/>.
+        /// </summary>
+        private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+
         private Task readLinesTask;
         private int nextId = 1;
         private bool disposed;
@@ -174,6 +179,24 @@ namespace StreamJsonRpc
         /// </summary>
         public DelimitedMessageHandler MessageHandler { get; }
 
+        /// <summary>
+        /// Gets a <see cref="Task"/> that completes when listening has stopped,
+        /// whether by error, disposal or the stream closing.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="StartListening"/> has not yet been called.</exception>
+        /// <remarks>
+        /// The returned <see cref="Task"/> may transition to a faulted state
+        /// for exceptions fatal to the protocol or this instance.
+        /// </remarks>
+        public Task Completion
+        {
+            get
+            {
+                Verify.Operation(this.startedListening, Resources.MustBeListening);
+                return this.completionSource.Task;
+            }
+        }
+
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
@@ -240,7 +263,7 @@ namespace StreamJsonRpc
         public void AddLocalRpcTarget(object target)
         {
             Requires.NotNull(target, nameof(target));
-            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+            Verify.Operation(!this.startedListening, Resources.MustNotBeListening);
 
             var mapping = GetRequestMethodToClrMethodMap(target);
             lock (this.syncObject)
@@ -300,7 +323,7 @@ namespace StreamJsonRpc
             Requires.NotNull(handler, nameof(handler));
             Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
 
-            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+            Verify.Operation(!this.startedListening, Resources.MustNotBeListening);
             lock (this.syncObject)
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
@@ -1032,6 +1055,16 @@ namespace StreamJsonRpc
                 this.disposeCts.Cancel();
                 this.MessageHandler.Dispose();
                 this.CancelPendingRequests();
+
+                // Ensure the Task we may have returned from Completion is completed.
+                if (eventArgs.Exception != null)
+                {
+                    this.completionSource.TrySetException(eventArgs.Exception);
+                }
+                else
+                {
+                    this.completionSource.TrySetResult(true);
+                }
             }
         }
 
@@ -1094,6 +1127,7 @@ namespace StreamJsonRpc
             }
             finally
             {
+                this.completionSource.TrySetResult(true);
                 if (disconnectedEventArgs == null)
                 {
                     disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);

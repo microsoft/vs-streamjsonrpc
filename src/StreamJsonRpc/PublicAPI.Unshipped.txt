@@ -1,3 +1,10 @@
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
+StreamJsonRpc.WebSocketMessageHandler
+StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
+StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void
+override StreamJsonRpc.WebSocketMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
+override StreamJsonRpc.WebSocketMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
+virtual StreamJsonRpc.DelimitedMessageHandler.FlushCoreAsync() -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task

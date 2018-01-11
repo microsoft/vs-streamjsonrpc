@@ -158,7 +158,7 @@ namespace StreamJsonRpc
                         await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
                     }
 
-                    await this.SendingStream.FlushAsync().ConfigureAwait(false);
+                    await this.FlushCoreAsync().ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -211,5 +211,12 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
         protected abstract Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,
+        /// or equivalent sending stream if using an alternate transport.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
+        protected virtual Task FlushCoreAsync() => this.SendingStream.FlushAsync();
     }
 }

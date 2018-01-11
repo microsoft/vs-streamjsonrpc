@@ -33,9 +33,9 @@ public abstract class TestBase : IDisposable
 
     protected ITestOutputHelper Logger { get; }
 
-    protected CancellationToken TimeoutToken => this.timeoutTokenSource.Token;
+    protected CancellationToken TimeoutToken => Debugger.IsAttached ? CancellationToken.None : this.timeoutTokenSource.Token;
 
-    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
+    private static TimeSpan TestTimeout => UnexpectedTimeout;
 
     public void Dispose()
     {

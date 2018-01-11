@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AttachTargetAfterStartListeningError" xml:space="preserve">
-    <value>Cannot attach additional target once JsonRpc has started listening for messages.</value>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Listening must be started first.</value>
   </data>
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
@@ -242,5 +242,7 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>A fatal exception was thrown from the server method {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>This cannot be done after listening has started.</value>
   </data>
 </root>
