@@ -233,7 +233,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         {
             await Task.Run(() => throw new Exception(message));
 
-            return await Task.FromResult("never will return");
+            return "never will return";
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)

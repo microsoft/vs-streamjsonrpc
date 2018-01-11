@@ -314,7 +314,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The {0 and {1} parameters exceed length of array..
+        ///   Looks up a localized string similar to The {0} and {1} parameters exceed length of array..
         /// </summary>
         internal static string SumOfTwoParametersExceedsArrayLength {
             get {

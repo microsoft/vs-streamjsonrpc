@@ -971,7 +971,7 @@ namespace StreamJsonRpc
                 {
                     var e = new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.FatalExceptionWasThrown, exception.GetType(), exception.Message),
-                        DisconnectedReason.Unknown,
+                        DisconnectedReason.FatalException,
                         exception);
 
                     this.OnJsonRpcDisconnected(e);

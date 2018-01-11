@@ -29,7 +29,7 @@ namespace StreamJsonRpc
         Disposed,
 
         /// <summary>
-        /// A fatal exception was thrown from the server method.
+        /// A fatal exception was thrown in a local method that was requested by the remote party.
         /// </summary>
         FatalException,
     }

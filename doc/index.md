@@ -102,13 +102,14 @@ public class Server : BaseClass
     [JsonRpcMethod("test/InvokeTestMethod")]
     public string InvokeTestMethodAttribute() => "test method attribute";
 }
-
+```
+With this attribute on the server method, the client can now invoke that method with a special name.
+```csharp
 public class Connection 
 {
     public async Task InvokeRemote(Stream stream) 
     {
-        var target = new Server();
-        var rpc = JsonRpc.Attach(stream, target);
+        var rpc = JsonRpc.Attach(stream);
         var myResult = await rpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
     }
 }
