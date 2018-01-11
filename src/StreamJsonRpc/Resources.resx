@@ -242,6 +242,7 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>A fatal exception was thrown from the server method {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>This cannot be done after listening has started.</value>
   </data>

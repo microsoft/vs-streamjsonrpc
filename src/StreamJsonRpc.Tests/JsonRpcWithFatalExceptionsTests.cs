@@ -231,9 +231,12 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
         public async Task<string> AsyncMethodThatReturnsStringAndThrows(string message)
         {
-            await Task.Run(() => throw new Exception(message));
+            await Task.Yield();
+            throw new Exception(message);
 
+#pragma warning disable CS0162 // Unreachable code detected
             return "never will return";
+#pragma warning restore CS0162
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
