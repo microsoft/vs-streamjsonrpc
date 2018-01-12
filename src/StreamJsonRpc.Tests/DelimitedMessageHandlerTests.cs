@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -68,6 +69,18 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.False(observable.IsDisposed);
         this.handler.Dispose();
         Assert.True(observable.IsDisposed);
+    }
+
+    [Fact]
+    public void Dispose_StreamsAreDisposed()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var handler = new DirectMessageHandler(streams.Item1, streams.Item2, Encoding.UTF8);
+        Assert.False(streams.Item1.IsDisposed);
+        Assert.False(streams.Item2.IsDisposed);
+        handler.Dispose();
+        Assert.True(streams.Item1.IsDisposed);
+        Assert.True(streams.Item2.IsDisposed);
     }
 
     [Fact]

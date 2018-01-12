@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -636,6 +637,18 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Indicates whether the connection should be closed when the server throws an exception.
+        /// </summary>
+        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
+        /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
+        /// <remarks>
+        /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
+        /// If the process should crash on an exception,
+        /// calling <see cref="Environment.FailFast(string, Exception)"/> will produce such behavior.
+        /// </remarks>
+        protected virtual bool IsFatalException(Exception ex) => false;
+
+        /// <summary>
         /// Invokes the specified RPC method
         /// </summary>
         /// <typeparam name="TResult">RPC method return type</typeparam>
@@ -871,15 +884,22 @@ namespace StreamJsonRpc
                 throw new ArgumentNullException(nameof(exception));
             }
 
-            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
-            {
-                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
-                // the fact we are using reflection.
-                exception = exception.InnerException;
-            }
+            exception = StripExceptionToInnerException(exception);
 
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
             return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
+        }
+
+        private static Exception StripExceptionToInnerException(Exception exception)
+        {
+            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
+            {
+                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                // the fact that we are using reflection.
+                return exception.InnerException;
+            }
+
+            return exception;
         }
 
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
@@ -939,7 +959,7 @@ namespace StreamJsonRpc
 
                 return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
                 return CreateError(request.Id, ex);
             }
@@ -969,6 +989,17 @@ namespace StreamJsonRpc
 
             if (t.IsFaulted)
             {
+                var exception = StripExceptionToInnerException(t.Exception);
+                if (this.IsFatalException(exception))
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.FatalExceptionWasThrown, exception.GetType(), exception.Message),
+                        DisconnectedReason.FatalException,
+                        exception);
+
+                    this.OnJsonRpcDisconnected(e);
+                }
+
                 return CreateError(id, t.Exception);
             }
 

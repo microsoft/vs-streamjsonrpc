@@ -5,20 +5,19 @@ There are two ways to establish connection and start invoking methods remotely:
 
 1. Use the static `Attach` method in `JsonRpc` class:
 ```csharp
-public void ConstructRpc()
+public void ConstructRpc(Stream stream)
 {
     var target = new LanguageServerTarget();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var rpc = JsonRpc.Attach(stream, target);
 }
 ```
 The `JsonRpc` object returned by `Attach` method would be used to invoke remote methods via JSON-RPC.
 
 2. Construct a `JsonRpc` object directly:
 ```csharp
-public void ConstructRpc()
+public void ConstructRpc(Stream clientStream, Stream serverStream)
 {
-    var streams = Nerdbank.FullDuplexStream.CreateStreams();
-    var rpc = new JsonRpc(streams.Item1, streams.Item2);
+    var clientRpc = new JsonRpc(clientStream, serverStream);
     var target = new Server();
     rpc.AddLocalRpcTarget(target);
     rpc.StartListening();
@@ -28,10 +27,10 @@ public void ConstructRpc()
 ## Invoking a notification
 To invoke a remote method named "foo" which takes one `string` parameter and does not return anything (i.e. send a notification remotely):
 ```csharp
-public async Task NotifyRemote() 
+public async Task NotifyRemote(Stream stream) 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var rpc = JsonRpc.Attach(stream, target);
     await rpc.NotifyAsync("foo", "param1");
 }
 ```
@@ -39,20 +38,20 @@ The parameter will be passed remotely as an array of one object.
 
 To invoke a remote method named "bar" which takes one `string` parameter (but the parameter should be passed as an object instead of an array of one object):
 ```csharp
-public async Task NotifyRemote() 
+public async Task NotifyRemote(Stream stream) 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var rpc = JsonRpc.Attach(stream, target);
     await rpc.NotifyWithParameterObjectAsync("bar", "param1");
 }
 ```
 ## Invoking a request
 To invoke a remote method named "foo" which takes two `string` parameters and returns an int:
 ```csharp
-public async Task NotifyRemote() 
+public async Task InvokeRemote(Stream stream) 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var rpc = JsonRpc.Attach(stream, target);
     var myResult = await rpc.InvokeAsync<int>("foo", "param1", "param2");
 }
 ```
@@ -60,10 +59,10 @@ The parameters will be passed remotely as an array of objects.
 
 To invoke a remote method named "baz" which takes one `string` parameter (but the parameter should be passed as an object instead of an array of one object) and returns a string:
 ```csharp
-public async Task NotifyRemote() 
+public async Task InvokeRemote(Stream stream) 
 {
     var target = new Server();
-    var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+    var rpc = JsonRpc.Attach(stream, target);
     var myResult = await rpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
 }
 ```
@@ -86,10 +85,10 @@ public class Server
 
 public class Connection 
 {
-    public async Task NotifyRemote() 
+    public async Task InvokeRemote(Stream stream) 
     {
         var target = new Server();
-        var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
+        var rpc = JsonRpc.Attach(stream, target);
         var myResult = await rpc.InvokeWithParameterObjectAsync<string>("baz", "param1");
     }
 }
@@ -103,14 +102,47 @@ public class Server : BaseClass
     [JsonRpcMethod("test/InvokeTestMethod")]
     public string InvokeTestMethodAttribute() => "test method attribute";
 }
-
+```
+With this attribute on the server method, the client can now invoke that method with a special name.
+```csharp
 public class Connection 
 {
-    public async Task NotifyRemote() 
+    public async Task InvokeRemote(Stream stream) 
+    {
+        var rpc = JsonRpc.Attach(stream);
+        var myResult = await rpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
+    }
+}
+```
+
+## Close stream on fatal errors
+In some cases, you may want to immediately close the streams if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. Through `IsFatalException` you can access and respond to exceptions as they are observed.
+```csharp
+public class Server : BaseClass
+{
+    public void ThrowsException() => throw new Exception("Throwing an exception");
+}
+
+public class JsonRpcClosesStreamOnException : JsonRpc
+{
+    public JsonRpcClosesStreamOnException(Stream clientStream, Stream serverStream, object target = null) : base(clientStream, serverStream, target)
+    {
+    }
+
+    protected override bool IsFatalException(Exception ex)
+    {
+        return true;
+    }
+}
+
+public class Connection
+{
+    public async Task InvokeRemote(Stream clientStream, Stream serverStream)
     {
         var target = new Server();
-        var rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput(), target);
-        var myResult = await rpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
+        var rpc = new JsonRpcClosesStreamOnException(clientStream, serverStream, target);
+        rpc.StartListening();
+        await rpc.InvokeAsync(nameof(Server.ThrowsException));
     }
 }
 ```

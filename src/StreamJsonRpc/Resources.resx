@@ -211,7 +211,7 @@
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>The {0] and {1} parameters exceed length of array.</value>
+    <value>The {0} and {1} parameters exceed length of array.</value>
   </data>
   <data name="TaskNotCompleted" xml:space="preserve">
     <value>The task is not completed.</value>
@@ -238,6 +238,10 @@
   <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
     <value>A target object should be supplied if and only if the method is not static.</value>
     <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>A fatal exception was thrown from the server method {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>This cannot be done after listening has started.</value>

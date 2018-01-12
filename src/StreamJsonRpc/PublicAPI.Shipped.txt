@@ -14,6 +14,7 @@ StreamJsonRpc.DelimitedMessageHandler.SendingStream.get -> System.IO.Stream
 StreamJsonRpc.DelimitedMessageHandler.WriteAsync(string content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.Disposed = 3 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.FatalException = 4 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.ParseError = 2 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.StreamError = 1 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.Unknown = 0 -> StreamJsonRpc.DisconnectedReason
@@ -68,6 +69,7 @@ static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = nul
 virtual StreamJsonRpc.DelimitedMessageHandler.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
+virtual StreamJsonRpc.JsonRpc.IsFatalException(System.Exception ex) -> bool
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -> System.Threading.Tasks.Task<TResult>
