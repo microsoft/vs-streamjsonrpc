@@ -1,5 +1,7 @@
 # StreamJsonRpc Documentation
 
+See also [Visual Studio specific concerns](vs.md)
+
 ## Establishing Connection
 There are two ways to establish connection and start invoking methods remotely:
 

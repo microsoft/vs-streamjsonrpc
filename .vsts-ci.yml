@@ -1,4 +1,6 @@
-queue: VSEng-MicroBuildVS2017
+queue: 
+  name: VSEng-MicroBuildVS2017
+  timeoutInMinutes: 240
 
 steps:
 - task: CmdLine@2
