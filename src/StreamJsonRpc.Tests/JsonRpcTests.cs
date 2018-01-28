@@ -1017,6 +1017,18 @@ public class JsonRpcTests : TestBase
         Assert.Same(completion, this.serverRpc.Completion);
     }
 
+    [Fact]
+    public async Task MultipleSyncMethodsExecuteConcurrentlyOnServer()
+    {
+        var invocation1 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
+        await this.server.ServerMethodReached.WaitAsync(UnexpectedTimeoutToken);
+        var invocation2 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
+        await this.server.ServerMethodReached.WaitAsync(UnexpectedTimeoutToken);
+        this.server.AllowServerMethodToReturn.Set();
+        this.server.AllowServerMethodToReturn.Set();
+        await Task.WhenAll(invocation1, invocation2);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1190,6 +1202,12 @@ public class JsonRpcTests : TestBase
         {
             await Task.Yield();
             return 5;
+        }
+
+        public void SyncMethodWaitsToReturn()
+        {
+            this.ServerMethodReached.Set();
+            this.AllowServerMethodToReturn.WaitAsync().Wait();
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)

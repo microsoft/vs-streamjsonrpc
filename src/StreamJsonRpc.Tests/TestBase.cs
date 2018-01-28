@@ -31,6 +31,8 @@ public abstract class TestBase : IDisposable
 
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
 
+    protected static CancellationToken UnexpectedTimeoutToken => new CancellationTokenSource(UnexpectedTimeout).Token;
+
     protected ITestOutputHelper Logger { get; }
 
     protected CancellationToken TimeoutToken => Debugger.IsAttached ? CancellationToken.None : this.timeoutTokenSource.Token;
