@@ -111,8 +111,9 @@
           <target state="translated">需要非負整數。</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
-          <source>The {0] and {1} parameters exceed length of array.</source>
-          <target state="translated">{0] 和 {1} 參數超過陣列的長度。</target>
+          <source>The {0} and {1} parameters exceed length of array.</source>
+          <target state="needs-review-translation">{0] 和 {1} 參數超過陣列的長度。</target>
+          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
@@ -148,24 +149,29 @@
         </trans-unit>
         <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
           <source>No method by the name '{0}' is found.</source>
-          <target state="new">No method by the name '{0}' is found.</target>
+          <target state="translated">找不到名稱為 '{0}' 的方法。</target>
         </trans-unit>
         <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
           <source>A method with the same name and equivalent parameters has already been registered.</source>
-          <target state="new">A method with the same name and equivalent parameters has already been registered.</target>
+          <target state="translated">具有相同名稱和對等參數的方法已經註冊。</target>
         </trans-unit>
         <trans-unit id="TargetObjectAndMethodStaticFlagMismatch" translate="yes" xml:space="preserve">
           <source>A target object should be supplied if and only if the method is not static.</source>
-          <target state="new">A target object should be supplied if and only if the method is not static.</target>
+          <target state="translated">在方法不是靜態的情況下，應提供目標物件，而且只應在這種情況下提供。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">"static" is a C# keyword and should not be translated.</note>
         </trans-unit>
         <trans-unit id="MustBeListening" translate="yes" xml:space="preserve">
           <source>Listening must be started first.</source>
-          <target state="new">Listening must be started first.</target>
+          <target state="translated">必須先開始接聽。</target>
         </trans-unit>
         <trans-unit id="MustNotBeListening" translate="yes" xml:space="preserve">
           <source>This cannot be done after listening has started.</source>
-          <target state="new">This cannot be done after listening has started.</target>
+          <target state="translated">開始接聽後，才能完成此作業。</target>
+        </trans-unit>
+        <trans-unit id="FatalExceptionWasThrown" translate="yes" xml:space="preserve">
+          <source>A fatal exception was thrown from the server method {0}: {1}</source>
+          <target state="new">A fatal exception was thrown from the server method {0}: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
         </trans-unit>
       </group>
     </body>

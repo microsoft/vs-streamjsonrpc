@@ -121,4 +121,20 @@
     <value>Metody .NET {0} i {1} se nemůžou současně mapovat ke stejnému názvu metody žádosti: {2}.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Nenašla se žádná metoda s názvem {0}.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Metoda se stejným názvem a rovnocennými parametry už je registrovaná.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Cílový objekt by se měl zadat jen a pouze tehdy, pokud metoda není statická.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Nejdříve je potřeba spustit naslouchání.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Tuto akci nejde provést po spuštění naslouchání.</value>
+  </data>
 </root>

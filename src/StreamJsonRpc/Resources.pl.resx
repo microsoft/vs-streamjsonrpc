@@ -121,4 +121,20 @@
     <value>Metody programu .NET „{0}” i „{1}” nie mogą mieć jednocześnie mapowania na tę samą nazwę metody żądania: „{2}”.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Nie znaleziono metody o nazwie „{0}”.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Metoda o tej samej nazwie i odpowiadających jej parametrach została już zarejestrowana.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Należy podać obiekt docelowy tylko wtedy, gdy metoda nie jest statyczna.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Najpierw należy uruchomić nasłuchiwanie.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Tego nie można zrobić po uruchomieniu nasłuchiwania.</value>
+  </data>
 </root>
