@@ -121,4 +121,20 @@
     <value>Die .NET-Methoden "{0}" und "{1}" können nicht beide dem gleichen Anforderungsmethodennamen zugeordnet werden: "{2}".</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Keine Methode mit dem Namen "{0}" gefunden.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Es wurde bereits eine Methode mit diesem Namen und identischen Parametern registriert.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Ein Zielobjekt darf nur angegeben werden, wenn die Methode nicht statisch ist.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Zunächst muss das Lauschen gestartet werden.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Dieser Vorgang kann nicht ausgeführt werden, nachdem das Lauschen gestartet wurde.</value>
+  </data>
 </root>

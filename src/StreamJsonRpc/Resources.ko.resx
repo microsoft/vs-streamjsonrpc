@@ -121,4 +121,20 @@
     <value>.NET 메서드 '{0}' 및 '{1}'이(가) 둘 다 동일한 요청 메서드 이름에 매핑될 수 없습니다. '{2}'.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>이름이 '{0}'인 메서드를 찾지 못했습니다.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>동일한 이름 및 동일한 매개 변수가 있는 메서드가 이미 등록되어 있습니다.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>메서드가 정적이지 않은 경우에만 대상 개체를 제공해야 합니다.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>수신이 먼저 시작되어야 합니다.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>수신이 시작된 후 이 작업은 완료할 수 없습니다.</value>
+  </data>
 </root>

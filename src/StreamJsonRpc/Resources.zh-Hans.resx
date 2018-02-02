@@ -121,4 +121,20 @@
     <value>.NET 方法“{0}”和“{1}”不能映射到同一请求方法名“{2}”。</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>找不到名为“{0}”的方法。</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>已注册了具有相同名称和等效参数的方法。</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>当且仅当方法不是静态时，才提供目标对象。</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>必须先开始侦听。</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>侦听开始后，无法完成此操作。</value>
+  </data>
 </root>

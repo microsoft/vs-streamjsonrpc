@@ -121,4 +121,20 @@
     <value>'{0}' ve '{1}' .NET metotlarının her ikisi de aynı istek metodu adıyla eşlenemez: '{2}'.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>'{0}' adlı metot bulunamadı.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Aynı ada ve eşdeğer parametrelere sahip bir metot zaten kaydedildi.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Bir hedef nesne, yalnızca metot statik olmadığında sağlanmalıdır.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Önce dinleme başlatılmalıdır.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Bu işlem dinleme başlatıldıktan sonra gerçekleştirilemez.</value>
+  </data>
 </root>

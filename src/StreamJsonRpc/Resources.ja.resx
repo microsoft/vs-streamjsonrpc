@@ -121,4 +121,20 @@
     <value>.NET メソッド '{0}' と '{1}' を両方とも同じ要求メソッド名 '{2}' にマッピングすることはできません。</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>名前 '{0}' によるメソッドは見つかりませんでした。</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>同じ名前を持つメソッドと同等のパラメーターは既に登録されています。</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>メソッドが静的でない場合のみ、ターゲット オブジェクトを指定する必要があります。</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>最初にリッスンを開始する必要があります。</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>リッスンを開始した後でこれを行うことはできません。</value>
+  </data>
 </root>

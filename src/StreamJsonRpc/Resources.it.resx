@@ -121,4 +121,20 @@
     <value>Non è possibile eseguire il mapping dei metodi .NET '{0}' e '{1}' allo stesso nome di metodo di richiesta: '{2}'.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Non è stato trovato alcun metodo denominato '{0}'.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>È già stato registrato un metodo con lo stesso nome e parametri equivalenti.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>È necessario specificare un oggetto di destinazione solo se il metodo non è static.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>È necessario avviare prima l'ascolto.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Non è possibile eseguire questa operazione dopo l'avvio dell'ascolto.</value>
+  </data>
 </root>
