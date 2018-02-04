@@ -957,7 +957,12 @@ namespace StreamJsonRpc
                     return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
                 }
 
-                return await resultingTask.ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
+                return await resultingTask.ContinueWith(
+                    this.handleInvocationTaskResultDelegate,
+                    request.Id,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
