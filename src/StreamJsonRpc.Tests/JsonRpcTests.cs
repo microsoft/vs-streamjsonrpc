@@ -985,6 +985,13 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void StartListening_ThrowsWhenAlreadyListening_WhileAllowModifications()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.StartListening());
+    }
+
+    [Fact]
     public async Task AddLocalRpcMethod_AllowedAfterListeningIfOptIn()
     {
         this.serverRpc.AllowModificationWhileListening = true;
