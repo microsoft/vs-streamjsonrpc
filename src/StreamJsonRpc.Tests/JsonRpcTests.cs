@@ -979,6 +979,35 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void AllowModificationWhileListening_DefaultsToFalse()
+    {
+        Assert.False(this.serverRpc.AllowModificationWhileListening);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_AllowedAfterListeningIfOptIn()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        bool invoked = false;
+        this.serverRpc.AddLocalRpcMethod("myNewMethod", new Action(() => invoked = true));
+        await this.clientRpc.InvokeAsync("myNewMethod");
+        Assert.True(invoked);
+        this.serverRpc.AllowModificationWhileListening = false;
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.AddLocalRpcMethod("anotherMethodAbc", new Action(() => { })));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_AllowedAfterListeningIfOptIn()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        int result = await this.clientRpc.InvokeAsync<int>(nameof(AdditionalServerTargetOne.PlusOne), 3);
+        Assert.Equal(4, result);
+        this.serverRpc.AllowModificationWhileListening = false;
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo()));
+    }
+
+    [Fact]
     public void Completion_ThrowsBeforeListening()
     {
         var rpc = new JsonRpc(Stream.Null, Stream.Null);

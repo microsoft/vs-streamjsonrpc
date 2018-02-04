@@ -197,6 +197,22 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether configuration of this instance
+        /// can be changed after <see cref="StartListening"/> or <see cref="Attach(Stream, object)"/>
+        /// has been called.
+        /// </summary>
+        /// <value>The default is <c>false</c>.</value>
+        /// <remarks>
+        /// By default, all configuration such as target objects and target methods must be set
+        /// before listening starts to avoid a race condition whereby we receive a method invocation
+        /// message before we have wired up a handler for it and must reject the call.
+        /// But in some advanced scenarios, it may be necessary to add target methods after listening
+        /// has started (e.g. in response to an invocation that enables additional functionality),
+        /// in which case setting this property to <c>true</c> is appropriate.
+        /// </remarks>
+        public bool AllowModificationWhileListening { get; set; }
+
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
@@ -263,7 +279,7 @@ namespace StreamJsonRpc
         public void AddLocalRpcTarget(object target)
         {
             Requires.NotNull(target, nameof(target));
-            Verify.Operation(!this.startedListening, Resources.MustNotBeListening);
+            this.ThrowIfConfigurationLocked();
 
             var mapping = GetRequestMethodToClrMethodMap(target);
             lock (this.syncObject)
@@ -323,7 +339,7 @@ namespace StreamJsonRpc
             Requires.NotNull(handler, nameof(handler));
             Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
 
-            Verify.Operation(!this.startedListening, Resources.MustNotBeListening);
+            this.ThrowIfConfigurationLocked();
             lock (this.syncObject)
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
@@ -1302,6 +1318,15 @@ namespace StreamJsonRpc
         {
             string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
+        }
+
+        /// <summary>
+        /// Throws an exception if we have already started listening,
+        /// unless <see cref="AllowModificationWhileListening"/> is <c>true</c>.
+        /// </summary>
+        private void ThrowIfConfigurationLocked()
+        {
+            Verify.Operation(!this.startedListening || this.AllowModificationWhileListening, Resources.MustNotBeListening);
         }
 
         private class OutstandingCallData
