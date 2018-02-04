@@ -952,12 +952,12 @@ namespace StreamJsonRpc
                 await TaskScheduler.Default.SwitchTo(alwaysYield: true);
 
                 object result = targetMethod.Invoke(cancellationToken);
-                if (!(result is Task))
+                if (!(result is Task resultingTask))
                 {
                     return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
                 }
 
-                return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
+                return await resultingTask.ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
