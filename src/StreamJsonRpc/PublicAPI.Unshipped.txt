@@ -4,6 +4,8 @@ StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.get -> bool
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.SynchronizationContext
+StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void
 StreamJsonRpc.WebSocketMessageHandler
 StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void

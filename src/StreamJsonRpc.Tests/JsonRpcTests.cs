@@ -375,6 +375,55 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void SynchronizationContext_DefaultIsNull()
+    {
+        Assert.Null(this.serverRpc.SynchronizationContext);
+    }
+
+    [Fact]
+    public void SynchronizationContext_SetterThrowsOnFixedConfiguration()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.SynchronizationContext = new SynchronizationContext());
+    }
+
+    [Fact]
+    public void SynchronizationContext_CanChangeWhileListening()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        SynchronizationContext syncContext = new SynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        Assert.Same(syncContext, this.serverRpc.SynchronizationContext);
+        this.serverRpc.SynchronizationContext = null;
+        Assert.Null(this.serverRpc.SynchronizationContext);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ServerMethodsAreInvokedOnSynchronizationContext()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        var syncContext = new ServerSynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        const string serverMethodName = "SyncContextMethod";
+        this.serverRpc.AddLocalRpcMethod(serverMethodName, new Func<bool>(() => syncContext.RunningInContext));
+        bool inContext = await this.clientRpc.InvokeAsync<bool>(serverMethodName);
+        Assert.True(inContext);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_ServerMethodsAreInvokedOnSynchronizationContext()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        var syncContext = new ServerSynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        const string serverMethodName = "SyncContextMethod";
+        var notifyResult = new TaskCompletionSource<bool>();
+        this.serverRpc.AddLocalRpcMethod(serverMethodName, new Action(() => notifyResult.SetResult(syncContext.RunningInContext)));
+        await this.clientRpc.NotifyAsync(serverMethodName);
+        bool inContext = await notifyResult.Task;
+        Assert.True(inContext);
+    }
+
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken()
     {
         this.server.AllowServerMethodToReturn.Set();
@@ -1444,6 +1493,38 @@ public class JsonRpcTests : TestBase
             var stringValue = (string)value;
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue));
             writer.WriteValue(encoded);
+        }
+    }
+
+    private class ServerSynchronizationContext : SynchronizationContext
+    {
+        private ThreadLocal<int> runningInContext = new ThreadLocal<int>();
+
+        /// <summary>
+        /// Gets a value indicating whether the caller is running on top of this instance
+        /// somewhere lower on the callstack.
+        /// </summary>
+        internal bool RunningInContext => this.runningInContext.Value > 0;
+
+        public override void Send(SendOrPostCallback d, object state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Post(SendOrPostCallback d, object state)
+        {
+            Task.Run(() =>
+            {
+                this.runningInContext.Value++;
+                try
+                {
+                    d(state);
+                }
+                finally
+                {
+                    this.runningInContext.Value--;
+                }
+            });
         }
     }
 }

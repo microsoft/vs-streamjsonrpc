@@ -31,6 +31,11 @@ namespace StreamJsonRpc
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
 
+        /// <summary>
+        /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
+        /// </summary>
+        private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
+
         private readonly object syncObject = new object();
 
         /// <summary>
@@ -83,6 +88,11 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
         private bool startedListening;
+
+        /// <summary>
+        /// Backing field for the <see cref="SynchronizationContext"/> property.
+        /// </summary>
+        private SynchronizationContext synchronizationContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -180,6 +190,24 @@ namespace StreamJsonRpc
         public DelimitedMessageHandler MessageHandler { get; }
 
         /// <summary>
+        /// Gets or sets the <see cref="System.Threading.SynchronizationContext"/> to use when invoking methods requested by the remote party.
+        /// </summary>
+        /// <value>Defaults to null.</value>
+        /// <remarks>
+        /// When not specified, methods are invoked on the threadpool.
+        /// </remarks>
+        public SynchronizationContext SynchronizationContext
+        {
+            get => this.synchronizationContext;
+
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.synchronizationContext = value;
+            }
+        }
+
+        /// <summary>
         /// Gets a <see cref="Task"/> that completes when listening has stopped,
         /// whether by error, disposal or the stream closing.
         /// </summary>
@@ -226,6 +254,11 @@ namespace StreamJsonRpc
         private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
 
         private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+
+        /// <summary>
+        /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
+        /// </summary>
+        private SynchronizationContext SynchronizationContextOrDefault => this.SynchronizationContext ?? DefaultSynchronizationContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
@@ -964,9 +997,12 @@ namespace StreamJsonRpc
                     }
                 }
 
-                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile
-                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-
+                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
+                // IMPORTANT: This should be the first await in this async method,
+                //            and no other await should be between this one and actually invoking the target method.
+                //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                //            when a single-threaded SynchronizationContext is applied.
+                await this.SynchronizationContextOrDefault;
                 object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task))
                 {
