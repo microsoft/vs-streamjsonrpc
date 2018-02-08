@@ -375,6 +375,81 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void SynchronizationContext_DefaultIsNull()
+    {
+        Assert.Null(this.serverRpc.SynchronizationContext);
+    }
+
+    [Fact]
+    public void SynchronizationContext_SetterThrowsOnFixedConfiguration()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.SynchronizationContext = new SynchronizationContext());
+    }
+
+    [Fact]
+    public void SynchronizationContext_CanChangeWhileListening()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        SynchronizationContext syncContext = new SynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        Assert.Same(syncContext, this.serverRpc.SynchronizationContext);
+        this.serverRpc.SynchronizationContext = null;
+        Assert.Null(this.serverRpc.SynchronizationContext);
+    }
+
+    [Fact]
+    public async Task SynchronizationContext_InvocationOrderPreserved()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        var syncContext = new BlockingPostSynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        var invoke1 = this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "arg1");
+        var invoke2 = this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "arg1");
+
+        // Assert that the second Post call on the server will not happen while the first Post hasn't returned.
+        // This is the way we verify that processing incoming requests never becomes concurrent before the
+        // invocation is sent to the SynchronizationContext.
+        await syncContext.PostInvoked.WaitAsync().WithCancellation(UnexpectedTimeoutToken);
+        await Task.Delay(ExpectedTimeout);
+        Assert.Equal(1, syncContext.PostCalls);
+
+        // Allow both calls to proceed.
+        syncContext.AllowPostToReturn.Set();
+
+        // Wait for them both to complete.
+        await Task.WhenAll(invoke1, invoke2);
+
+        // Just a sanity check that a second Post call bumps the number to validate our earlier assertions.
+        Assert.Equal(2, syncContext.PostCalls);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ServerMethodsAreInvokedOnSynchronizationContext()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        var syncContext = new ServerSynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        const string serverMethodName = "SyncContextMethod";
+        this.serverRpc.AddLocalRpcMethod(serverMethodName, new Func<bool>(() => syncContext.RunningInContext));
+        bool inContext = await this.clientRpc.InvokeAsync<bool>(serverMethodName);
+        Assert.True(inContext);
+    }
+
+    [Fact]
+    public async Task NotifyAsync_ServerMethodsAreInvokedOnSynchronizationContext()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        var syncContext = new ServerSynchronizationContext();
+        this.serverRpc.SynchronizationContext = syncContext;
+        const string serverMethodName = "SyncContextMethod";
+        var notifyResult = new TaskCompletionSource<bool>();
+        this.serverRpc.AddLocalRpcMethod(serverMethodName, new Action(() => notifyResult.SetResult(syncContext.RunningInContext)));
+        await this.clientRpc.NotifyAsync(serverMethodName);
+        bool inContext = await notifyResult.Task;
+        Assert.True(inContext);
+    }
+
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithoutCancellationToken()
     {
         this.server.AllowServerMethodToReturn.Set();
@@ -1451,6 +1526,57 @@ public class JsonRpcTests : TestBase
             var stringValue = (string)value;
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue));
             writer.WriteValue(encoded);
+        }
+    }
+
+    private class ServerSynchronizationContext : SynchronizationContext
+    {
+        private ThreadLocal<int> runningInContext = new ThreadLocal<int>();
+
+        /// <summary>
+        /// Gets a value indicating whether the caller is running on top of this instance
+        /// somewhere lower on the callstack.
+        /// </summary>
+        internal bool RunningInContext => this.runningInContext.Value > 0;
+
+        public override void Send(SendOrPostCallback d, object state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Post(SendOrPostCallback d, object state)
+        {
+            Task.Run(() =>
+            {
+                this.runningInContext.Value++;
+                try
+                {
+                    d(state);
+                }
+                finally
+                {
+                    this.runningInContext.Value--;
+                }
+            });
+        }
+    }
+
+    private class BlockingPostSynchronizationContext : SynchronizationContext
+    {
+        private long postCalls;
+
+        internal ManualResetEventSlim AllowPostToReturn { get; } = new ManualResetEventSlim(false);
+
+        internal AsyncManualResetEvent PostInvoked { get; } = new AsyncManualResetEvent();
+
+        internal long PostCalls => Interlocked.Read(ref this.postCalls);
+
+        public override void Post(SendOrPostCallback d, object state)
+        {
+            Interlocked.Increment(ref this.postCalls);
+            this.PostInvoked.Set();
+            this.AllowPostToReturn.Wait();
+            base.Post(d, state);
         }
     }
 }
