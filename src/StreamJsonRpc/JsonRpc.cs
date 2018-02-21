@@ -1004,12 +1004,17 @@ namespace StreamJsonRpc
                 //            when a single-threaded SynchronizationContext is applied.
                 await this.SynchronizationContextOrDefault;
                 object result = targetMethod.Invoke(cancellationToken);
-                if (!(result is Task))
+                if (!(result is Task resultingTask))
                 {
                     return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
                 }
 
-                return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
+                return await resultingTask.ContinueWith(
+                    this.handleInvocationTaskResultDelegate,
+                    request.Id,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
