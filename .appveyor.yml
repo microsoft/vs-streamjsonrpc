@@ -19,9 +19,7 @@ environment:
   TreatWarningsAsErrors: true
   codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
 before_build:
-- |- # Restore TWICE. See https://github.com/AArnott/Nerdbank.GitVersioning/issues/113#issuecomment-285903085
   msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
-  msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore > nul
 build_script:
 - msbuild src\StreamJsonRpc.sln /nologo /m /fl /v:minimal /t:build,pack
 test_script:
