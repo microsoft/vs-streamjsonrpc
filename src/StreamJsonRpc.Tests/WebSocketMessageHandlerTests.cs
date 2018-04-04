@@ -65,12 +65,22 @@ public class WebSocketMessageHandlerTests : TestBase
         this.handler.Dispose();
     }
 
+    [Fact]
+    public async Task ReturnNullOnRemoteClose()
+    {
+        // Enqueuing an empty buffer has special meaning to our mock socket
+        // that tells it to send a close message.
+        this.socket.EnqueueRead(new byte[0]);
+        string result = await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Null(result);
+    }
+
     [Theory]
     [MemberData(nameof(EncodingTheoryData))]
     public async Task ReadMessage_UnderBufferSize(Encoding encoding)
     {
         this.handler.Encoding = encoding;
-        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding) - 1);
+        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding, BufferSize - 1));
         byte[] buffer = encoding.GetBytes(msg);
         this.socket.EnqueueRead(buffer);
         string result = await this.handler.ReadAsync(this.TimeoutToken);
@@ -145,7 +155,7 @@ public class WebSocketMessageHandlerTests : TestBase
         await Assert.ThrowsAsync<ArgumentException>(() => this.handler.WriteAsync("a", this.TimeoutToken));
     }
 
-    private static int GetMaxCharsThatFitInBuffer(Encoding encoding) => BufferSize / encoding.GetMaxByteCount(1);
+    private static int GetMaxCharsThatFitInBuffer(Encoding encoding, int bufferSize = BufferSize) => bufferSize / encoding.GetMaxByteCount(1);
 
     private byte[] GetRandomBuffer(int count)
     {
@@ -182,7 +192,7 @@ public class WebSocketMessageHandlerTests : TestBase
 
         public override void Abort() => throw new NotImplementedException();
 
-        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => TplExtensions.CompletedTask;
 
         public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => throw new NotImplementedException();
 
@@ -203,7 +213,13 @@ public class WebSocketMessageHandlerTests : TestBase
                 input.Buffer = new ArraySegment<byte>(input.Buffer.Array, input.Buffer.Offset + bytesToCopy, input.Buffer.Count - bytesToCopy);
             }
 
-            return Task.FromResult(new WebSocketReceiveResult(bytesToCopy, WebSocketMessageType.Text, finishedMessage));
+            var result = new WebSocketReceiveResult(
+                bytesToCopy,
+                WebSocketMessageType.Text,
+                finishedMessage,
+                bytesToCopy == 0 ? (WebSocketCloseStatus?)WebSocketCloseStatus.Empty : null,
+                bytesToCopy == 0 ? "empty" : null);
+            return Task.FromResult(result);
         }
 
         public override Task SendAsync(ArraySegment<byte> input, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)

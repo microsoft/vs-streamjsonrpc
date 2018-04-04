@@ -54,6 +54,12 @@ namespace StreamJsonRpc
         protected async override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
         {
             WebSocketReceiveResult result = await this.WebSocket.ReceiveAsync(this.readBuffer, cancellationToken).ConfigureAwait(false);
+            if (result.CloseStatus.HasValue)
+            {
+                await this.WebSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None).ConfigureAwait(false);
+                return null;
+            }
+
             if (result.EndOfMessage)
             {
                 // fast path: the entire message fit within the buffer.
