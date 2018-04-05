@@ -140,6 +140,13 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
 
+    [Fact]
+    public async Task ReadCoreAsync_ReturnsEmptyString()
+    {
+        this.handler.MessagesToRead.Enqueue(string.Empty);
+        await Assert.ThrowsAnyAsync<Exception>(() => this.handler.ReadAsync(CancellationToken.None));
+    }
+
     /// <summary>
     /// Verifies that when both <see cref="ObjectDisposedException"/> and <see cref="OperationCanceledException"/> are appropriate
     /// when we first invoke the method, the <see cref="OperationCanceledException"/> is thrown.
