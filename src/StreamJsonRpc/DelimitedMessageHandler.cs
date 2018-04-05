@@ -121,7 +121,9 @@ namespace StreamJsonRpc
                 {
                     using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
-                        return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                        string result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                        Assumes.True(result != string.Empty); // null is allowed, but an empty string is not.
+                        return result;
                     }
                 }
                 catch (ObjectDisposedException)
@@ -200,7 +202,11 @@ namespace StreamJsonRpc
         /// Reads a distinct and complete message from the stream, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>
-        /// <returns>A task whose result is the received messages.</returns>
+        /// <returns>
+        /// A task whose result is the received message.
+        /// A null string indicates the stream has ended.
+        /// An empty string should never be returned.
+        /// </returns>
         protected abstract Task<string> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
