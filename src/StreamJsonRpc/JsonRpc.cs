@@ -1078,6 +1078,7 @@ namespace StreamJsonRpc
             try
             {
                 rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
+                Assumes.NotNull(rpc);
             }
             catch (JsonException exception)
             {
