@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP2_0 || NET452 || NET46
+﻿#if NETCOREAPP2_0 || NET452 || NET461
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,14 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+#if ASPNETCORE
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+#endif
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
@@ -155,7 +163,48 @@ public class WebSocketMessageHandlerTests : TestBase
         await Assert.ThrowsAsync<ArgumentException>(() => this.handler.WriteAsync("a", this.TimeoutToken));
     }
 
+#if ASPNETCORE
+    [Fact]
+    public async Task AspNetCoreWebSocket_ServerHangUp()
+    {
+        var (jsonRpc, webSocket) = await this.EstablishWebSocket();
+        using (webSocket)
+        using (jsonRpc)
+        {
+            await jsonRpc.NotifyAsync(nameof(EchoServer.Hangup));
+            await jsonRpc.Completion.WithCancellation(this.TimeoutToken);
+        }
+    }
+
+    [Fact]
+    public async Task AspNetCoreWebSocket_ClientHangUp()
+    {
+        var (jsonRpc, webSocket) = await this.EstablishWebSocket();
+        using (webSocket)
+        using (jsonRpc)
+        {
+            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
+            await jsonRpc.Completion.WithCancellation(this.TimeoutToken);
+        }
+    }
+#endif
+
     private static int GetMaxCharsThatFitInBuffer(Encoding encoding, int bufferSize = BufferSize) => bufferSize / encoding.GetMaxByteCount(1);
+
+#if ASPNETCORE
+    private async Task<(JsonRpc, WebSocket)> EstablishWebSocket()
+    {
+        IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(Array.Empty<string>())
+            .UseStartup<AspNetStartup>();
+        var testServer = new TestServer(webHostBuilder);
+        var testClient = testServer.CreateWebSocketClient();
+        var webSocket = await testClient.ConnectAsync(testServer.BaseAddress, this.TimeoutToken);
+
+        var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket));
+        rpc.StartListening();
+        return (rpc, webSocket);
+    }
+#endif
 
     private byte[] GetRandomBuffer(int count)
     {
@@ -252,6 +301,57 @@ public class WebSocketMessageHandlerTests : TestBase
             this.ReadQueue.Enqueue(new Message { Buffer = new ArraySegment<byte>(buffer) });
         }
     }
+
+#if ASPNETCORE
+    private class AspNetStartup
+    {
+        public AspNetStartup(IConfiguration configuration)
+        {
+            this.Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
+        public void ConfigureServices(IServiceCollection services)
+        {
+        }
+
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (context.WebSockets.IsWebSocketRequest)
+                {
+                    var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                    using (var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket), new EchoServer(webSocket)))
+                    {
+                        rpc.StartListening();
+                        await rpc.Completion;
+                    }
+                }
+                await next();
+            });
+        }
+    }
+
+    private class EchoServer
+    {
+        private readonly WebSocket webSocket;
+
+        internal EchoServer(WebSocket webSocket)
+        {
+            this.webSocket = webSocket ?? throw new ArgumentNullException(nameof(webSocket));
+        }
+
+        public string Echo(string message) => message;
+
+        public async Task Hangup()
+        {
+            await this.webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "client requested server hang up", CancellationToken.None);
+        }
+    }
+
+#endif
 }
 
 #endif
