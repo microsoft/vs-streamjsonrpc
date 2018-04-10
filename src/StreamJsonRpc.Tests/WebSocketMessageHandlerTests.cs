@@ -177,15 +177,24 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public async Task AspNetCoreWebSocket_ClientHangUp()
+    public async Task AspNetCoreWebSocket_DisposeRpcThenCloseSocket()
     {
         var (jsonRpc, webSocket) = await this.EstablishWebSocket();
-        using (webSocket)
-        using (jsonRpc)
-        {
-            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
-            await jsonRpc.Completion.WithCancellation(this.TimeoutToken);
-        }
+        Assert.Equal("message1", await jsonRpc.InvokeAsync<string>("Echo", "message1"));
+        jsonRpc.Dispose();
+        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
+    }
+
+    [Fact(Skip = "This test demonstrates what NOT to do.")]
+    public async Task AspNetCoreWebSocket_CloseSocketThenDisposeRpc()
+    {
+        var (jsonRpc, webSocket) = await this.EstablishWebSocket();
+        Assert.Equal("message1", await jsonRpc.InvokeAsync<string>("Echo", "message1"));
+
+        // Disposing the socket locally, while StreamJsonRpc is receiving it, leads to an ObjectDisposedException being thrown internally to the WebSocket.
+        // Don't do it this way. Instead, dispose of the JsonRpc instance first, then close the socket.
+        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
+        jsonRpc.Dispose();
     }
 #endif
 
