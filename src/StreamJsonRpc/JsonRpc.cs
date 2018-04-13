@@ -1092,7 +1092,12 @@ namespace StreamJsonRpc
             EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
             lock (this.disconnectedEventLock)
             {
-                if (!this.hasDisconnectedEventBeenRaised)
+                if (this.hasDisconnectedEventBeenRaised)
+                {
+                    // Someone else has done all this work.
+                    return;
+                }
+                else
                 {
                     this.hasDisconnectedEventBeenRaised = true;
                     handlersToInvoke = this.DisconnectedPrivate;
