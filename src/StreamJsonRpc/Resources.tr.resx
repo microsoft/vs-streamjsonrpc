@@ -16,7 +16,7 @@
     <value>Readable ve writable null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
+    <value>'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -88,13 +88,13 @@
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
+    <value>Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] ve {1} parametreleri dizi uzunluğunu aşıyor.</value>
+    <value>{0} ve {1} parametreleri dizi uzunluğunu aşıyor.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Akış okunabilir olmalıdır.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Bu işlem dinleme başlatıldıktan sonra gerçekleştirilemez.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>{0}: {1} sunucu metodundan önemli bir özel durum oluşturuldu.</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

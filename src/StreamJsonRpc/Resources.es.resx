@@ -16,7 +16,7 @@
     <value>La lectura y escritura son NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Recibió una solicitud para ejecutar '{0}', pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
+    <value>Recibió una solicitud para ejecutar "{0}", pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -94,7 +94,7 @@
     <value>Se requiere un número entero no negativo.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Los parámetros {0] y {1} superan la longitud de la matriz.</value>
+    <value>Los parámetros {0} y {1} superan la longitud de la matriz.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>La secuencia debe poderse leer.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Esto no se puede hacer una vez que haya iniciado la escucha.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Se lanzó una excepción fatal desde el método del servidor {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

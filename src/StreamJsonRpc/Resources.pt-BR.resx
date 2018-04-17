@@ -88,13 +88,13 @@
     <value>Um inteiro positivo é necessário.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</value>
+    <value>O buffer está vazio. Chame o método async para preenchê-lo primeiro.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Um inteiro não negativo é necessário.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Os parâmetros {0] e {1} excedem o comprimento da matriz.</value>
+    <value>Os parâmetros {0} e {1} excedem o comprimento da matriz.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>O fluxo deve ser legível.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Isso não pode ser feito após o início da escuta.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Uma exceção fatal foi gerada pelo método do servidor {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

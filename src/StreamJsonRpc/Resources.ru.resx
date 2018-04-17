@@ -16,7 +16,7 @@
     <value>И элементы, которые можно считать, и элементы, которые доступны для записи, имеют значение NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
+    <value>Получен запрос на выполнение "{0}", но нет объекта обратного вызова. Запрос удаляется.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -88,13 +88,13 @@
     <value>Требуется положительное целое число.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</value>
+    <value>Буфер пуст. Чтобы заполнить его, сначала вызовите метод async.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Требуется неотрицательное целое число.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Параметры {0] и {1} превышают длину массива.</value>
+    <value>Параметры {0} и {1} превышают длину массива.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Поток должен быть читаемым.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>После запуска прослушивания сделать это невозможно.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Метод сервера {0} вызвал неустранимое исключение: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

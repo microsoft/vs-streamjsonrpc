@@ -94,7 +94,7 @@
     <value>必须提供一个非负整数。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 和 {1} 参数超出了数组的长度。</value>
+    <value>{0} 和 {1} 参数超出了数组的长度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>流必须可读。</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>侦听开始后，无法完成此操作。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>服务器方法 {0} 引发了严重的异常: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

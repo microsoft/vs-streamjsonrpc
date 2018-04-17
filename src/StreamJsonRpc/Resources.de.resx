@@ -94,7 +94,7 @@
     <value>Ein nicht negativer Integerwert ist erforderlich.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Die Parameter {0] und {1} überschreiten die Länge des Arrays.</value>
+    <value>Die Parameter "{0}" und "{1}" überschreiten die Länge des Arrays.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Der Datenstrom muss lesbar sein.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Dieser Vorgang kann nicht ausgeführt werden, nachdem das Lauschen gestartet wurde.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Eine schwerwiegende Ausnahme wurde von der Servermethode "{0}" ausgelöst: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

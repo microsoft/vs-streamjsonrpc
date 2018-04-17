@@ -94,7 +94,7 @@
     <value>Wymagana jest nieujemna liczba całkowita.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Parametry {0] i {1} przekraczają długość tablicy.</value>
+    <value>Parametry {0} i {1} przekraczają długość tablicy.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Strumień musi być możliwy do odczytu.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Tego nie można zrobić po uruchomieniu nasłuchiwania.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Metoda serwera {0}: {1} zgłosiła wyjątek krytyczny</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>
