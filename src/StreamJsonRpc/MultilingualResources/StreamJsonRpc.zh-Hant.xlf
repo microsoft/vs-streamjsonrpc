@@ -12,7 +12,7 @@
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
-          <target state="translated">取得執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</target>
+          <target state="translated">收到了執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
@@ -112,8 +112,7 @@
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0} and {1} parameters exceed length of array.</source>
-          <target state="needs-review-translation">{0] 和 {1} 參數超過陣列的長度。</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">{0 與 {1} 參數超過陣列的長度。</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
@@ -170,7 +169,7 @@
         </trans-unit>
         <trans-unit id="FatalExceptionWasThrown" translate="yes" xml:space="preserve">
           <source>A fatal exception was thrown from the server method {0}: {1}</source>
-          <target state="new">A fatal exception was thrown from the server method {0}: {1}</target>
+          <target state="translated">伺服器方法 {0} 擲出了嚴重例外狀況: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
         </trans-unit>
       </group>
