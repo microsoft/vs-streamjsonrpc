@@ -21,8 +21,8 @@ public void ConstructRpc(Stream clientStream, Stream serverStream)
 {
     var clientRpc = new JsonRpc(clientStream, serverStream);
     var target = new Server();
-    rpc.AddLocalRpcTarget(target);
-    rpc.StartListening();
+    clientRpc.AddLocalRpcTarget(target);
+    clientRpc.StartListening();
 }
 ```
 
