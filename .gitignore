@@ -255,3 +255,4 @@ paket-files/
 # MSBuild logs
 msbuild.err
 msbuild.wrn
+*.binlog
