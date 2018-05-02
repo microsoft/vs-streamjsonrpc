@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en-US" target-language="pt-BR" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -104,7 +104,7 @@
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-          <target state="translated">O buffer está vazio. Chame o método de async para preenchê-lo primeiro.</target>
+          <target state="translated">O buffer está vazio. Chame o método async para preenchê-lo primeiro.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
@@ -112,8 +112,7 @@
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0} and {1} parameters exceed length of array.</source>
-          <target state="needs-review-translation">Os parâmetros {0] e {1} excedem o comprimento da matriz.</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">Os parâmetros {0} e {1} excedem o comprimento da matriz.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
@@ -170,7 +169,7 @@
         </trans-unit>
         <trans-unit id="FatalExceptionWasThrown" translate="yes" xml:space="preserve">
           <source>A fatal exception was thrown from the server method {0}: {1}</source>
-          <target state="new">A fatal exception was thrown from the server method {0}: {1}</target>
+          <target state="translated">Uma exceção fatal foi gerada pelo método do servidor {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
         </trans-unit>
       </group>

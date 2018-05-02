@@ -16,7 +16,7 @@
     <value>Readable 和 Writable 都是 Null。</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>取得執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</value>
+    <value>收到了執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -94,7 +94,7 @@
     <value>需要非負整數。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 和 {1} 參數超過陣列的長度。</value>
+    <value>{0 與 {1} 參數超過陣列的長度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>資料流必須可讀取。</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>開始接聽後，才能完成此作業。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>伺服器方法 {0} 擲出了嚴重例外狀況: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

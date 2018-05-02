@@ -16,7 +16,7 @@
     <value>readable et writable sont tous les deux Null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
+    <value>A reçu une demande pour exécuter '{0}', mais n’a aucun objet de rappel. Suppression de la demande.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>Cette opération ne peut pas être effectuée après le démarrage de l'écoute.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Une exception irrécupérable a été levée depuis la méthode de serveur {0} : {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

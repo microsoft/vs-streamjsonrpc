@@ -16,7 +16,7 @@
     <value>읽고 쓸 수 있는 개체는 null입니다.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
+    <value>'{0}'을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -94,7 +94,7 @@
     <value>음수가 아닌 정수가 필요합니다.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 및 {1} 매개 변수가 배열 길이를 초과합니다.</value>
+    <value>{0} 및 {1} 매개 변수가 배열 길이를 초과합니다.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>스트림은 읽을 수 있는 상태여야 합니다.</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>수신이 시작된 후 이 작업은 완료할 수 없습니다.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>서버 메서드에서 치명적인 예외가 throw되었습니다. {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>

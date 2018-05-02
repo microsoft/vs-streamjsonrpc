@@ -94,7 +94,7 @@
     <value>負でない整数が必要です。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] と {1} パラメーターが配列の長さを超えました。</value>
+    <value>{0} と {1} パラメーターが配列の長さを超えました。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>ストリームは読み取り可能である必要があります。</value>
@@ -136,5 +136,9 @@
   </data>
   <data name="MustNotBeListening" xml:space="preserve">
     <value>リッスンを開始した後でこれを行うことはできません。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>致命的な例外がサーバー メソッド {0} からスローされました: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
 </root>
