@@ -25,6 +25,11 @@ steps:
       del /s /q "%AppData%\tsd-cache"
   displayName: Purge package caches
   condition: and(succeeded(), ne(variables['Hosted'], 'true'))
+  
+- task: NuGetToolInstaller@0
+  inputs:
+    versionSpec: 4.6.2
+  displayName: Pin nuget.exe version
 
 - task: MicroBuildIBCMergePlugin@0
   inputs:
