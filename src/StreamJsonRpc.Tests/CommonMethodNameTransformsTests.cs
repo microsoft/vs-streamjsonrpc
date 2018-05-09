@@ -7,7 +7,6 @@ using Xunit;
 
 public class CommonMethodNameTransformsTests
 {
-#if !NET452
     [Fact]
     public void CamelCase()
     {
@@ -18,7 +17,6 @@ public class CommonMethodNameTransformsTests
         Assert.Throws<ArgumentNullException>(() => CommonMethodNameTransforms.CamelCase(null));
         Assert.Equal(string.Empty, CommonMethodNameTransforms.CamelCase(string.Empty));
     }
-#endif
 
     [Fact]
     public void Prefix()

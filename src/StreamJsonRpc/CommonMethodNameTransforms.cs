@@ -12,7 +12,6 @@ namespace StreamJsonRpc
     /// </summary>
     public static class CommonMethodNameTransforms
     {
-#if !NET45
         /// <summary>
         /// The Newtonsoft.Json camel casing converter.
         /// </summary>
@@ -41,7 +40,6 @@ namespace StreamJsonRpc
                 };
             }
         }
-#endif
 
         /// <summary>
         /// Gets a function that prepends a particular string in front of any RPC method name.
