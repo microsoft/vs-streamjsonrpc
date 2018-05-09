@@ -860,6 +860,7 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => localRpc.InvokeAsync<int>("PlusTwo", 5));
     }
 
+#if !NET452
     [Fact]
     public async Task AddLocalRpcTarget_CamelCaseTransform()
     {
@@ -875,6 +876,7 @@ public class JsonRpcTests : TestBase
         Assert.Equal("hi!", await rpc.InvokeAsync<string>("serverMethod", "hi"));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<string>("ServerMethod", "hi"));
     }
+#endif
 
     [Fact]
     public async Task AddLocalRpcMethod_ActionWith0Args()
