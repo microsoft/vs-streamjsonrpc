@@ -309,7 +309,18 @@ namespace StreamJsonRpc
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
-        public void AddLocalRpcTarget(object target)
+        public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
+
+        /// <summary>
+        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
+        /// should not inherit from each other and are invoked in the order which they are added.
+        /// </summary>
+        /// <param name="target">Target to invoke when incoming messages are received.</param>
+        /// <param name="methodNameTransform">
+        /// A function that takes the CLR method name and returns the RPC method name.
+        /// This method is useful for adding prefixes to all methods, or making them camelCased.
+        /// </param>
+        public void AddLocalRpcTarget(object target, Func<string, string> methodNameTransform)
         {
             Requires.NotNull(target, nameof(target));
             this.ThrowIfConfigurationLocked();
@@ -319,7 +330,9 @@ namespace StreamJsonRpc
             {
                 foreach (var item in mapping)
                 {
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(item.Key, out var existingList))
+                    string rpcMethodName = methodNameTransform != null ? methodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(methodNameTransform), "Delegate returned a value that is not a legal RPC method name.");
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                     {
                         // Only add methods that do not have equivalent signatures to what we already have.
                         foreach (var newMethod in item.Value)
@@ -332,7 +345,7 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        this.targetRequestMethodToClrMethodMap.Add(item.Key, item.Value);
+                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
                     }
                 }
             }

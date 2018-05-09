@@ -1,6 +1,8 @@
+StreamJsonRpc.CommonMethodNameTransforms
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
+StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target, System.Func<string, string> methodNameTransform) -> void
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.get -> bool
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
@@ -11,4 +13,6 @@ StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.Web
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void
 override StreamJsonRpc.WebSocketMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
 override StreamJsonRpc.WebSocketMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
+static StreamJsonRpc.CommonMethodNameTransforms.CamelCase.get -> System.Func<string, string>
+static StreamJsonRpc.CommonMethodNameTransforms.Prepend(string prefix) -> System.Func<string, string>
 virtual StreamJsonRpc.DelimitedMessageHandler.FlushCoreAsync() -> System.Threading.Tasks.Task

@@ -117,6 +117,24 @@ public class Connection
 }
 ```
 
+If all your RPC method names follow a consistent transform from their C# method name equivalents,
+you can use the `AddLocalTargetObject` method to transform the method names and avoid decorating
+each one with an attribute. For example, given the same `Server` class above, but without the
+`JsonRpcMethod` attribute, you can add a `test/` prefix to the method name with:
+
+```csharp
+var serverRpc = new JsonRpc(sendingStream, receivingStream);
+serverRpc.AddLocalRpcTarget(new Server(), name => "test/" + name);
+serverRpc.StartListening();
+```
+
+Some common method name transformations are available on the `CommonMethodNameTransforms` class.
+For example:
+
+```csharp
+serverRpc.AddLocalRpcTarget(new Server(), CommonMethodNameTransforms.CamelCase);
+```
+
 ## Close stream on fatal errors
 In some cases, you may want to immediately close the streams if certain exceptions are thrown. In this case, overriding the `IsFatalException` method will give you the desired functionality. Through `IsFatalException` you can access and respond to exceptions as they are observed.
 ```csharp
