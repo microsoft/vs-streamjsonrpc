@@ -36,24 +36,24 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Gets a function that prepends a particular namespace and a period in front of any RPC method name.
+        /// Gets a function that prepends a particular string in front of any RPC method name.
         /// </summary>
-        /// <param name="ns">
-        /// The namespace to prefix to a method name, not including the trailing period.
+        /// <param name="prefix">
+        /// The prefix to prepend to any method name.
         /// This value must not be null.
         /// When this value is the empty string, no transformation is performed by the returned function.
         /// </param>
         /// <returns>The transform function.</returns>
-        public static Func<string, string> AddNamespacePrefix(string ns)
+        public static Func<string, string> Prepend(string prefix)
         {
-            Requires.NotNull(ns, nameof(ns));
+            Requires.NotNull(prefix, nameof(prefix));
 
-            if (ns.Length == 0)
+            if (prefix.Length == 0)
             {
                 return name => name;
             }
 
-            return name => ns + "." + name;
+            return name => prefix + name;
         }
     }
 }

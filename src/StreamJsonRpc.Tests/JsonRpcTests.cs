@@ -851,7 +851,7 @@ public class JsonRpcTests : TestBase
         var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
         serverRpc.AddLocalRpcTarget(new Server());
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne(), n => "one." + n);
-        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), CommonMethodNameTransforms.AddNamespacePrefix("two"));
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), CommonMethodNameTransforms.Prepend("two."));
         serverRpc.StartListening();
 
         Assert.Equal("hi!", await localRpc.InvokeAsync<string>("ServerMethod", "hi"));

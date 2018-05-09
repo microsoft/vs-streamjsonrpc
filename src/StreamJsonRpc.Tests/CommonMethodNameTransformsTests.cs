@@ -19,10 +19,11 @@ public class CommonMethodNameTransformsTests
     [Fact]
     public void Prefix()
     {
-        Assert.Equal("Foo.Do", CommonMethodNameTransforms.AddNamespacePrefix("Foo")("Do"));
-        Assert.Equal("Foo.Bar.Do", CommonMethodNameTransforms.AddNamespacePrefix("Foo.Bar")("Do"));
-        Assert.Equal("Foo.Bar..Do", CommonMethodNameTransforms.AddNamespacePrefix("Foo.Bar.")("Do"));
-        Assert.Throws<ArgumentNullException>(() => CommonMethodNameTransforms.AddNamespacePrefix(null));
-        Assert.Equal("Do", CommonMethodNameTransforms.AddNamespacePrefix(string.Empty)("Do"));
+        Assert.Equal("FooDo", CommonMethodNameTransforms.Prepend("Foo")("Do"));
+        Assert.Equal("Foo.Do", CommonMethodNameTransforms.Prepend("Foo.")("Do"));
+        Assert.Equal("Foo.Bar/Do", CommonMethodNameTransforms.Prepend("Foo.Bar/")("Do"));
+        Assert.Equal("Foo.Bar.Do", CommonMethodNameTransforms.Prepend("Foo.Bar.")("Do"));
+        Assert.Throws<ArgumentNullException>(() => CommonMethodNameTransforms.Prepend(null));
+        Assert.Equal("Do", CommonMethodNameTransforms.Prepend(string.Empty)("Do"));
     }
 }
