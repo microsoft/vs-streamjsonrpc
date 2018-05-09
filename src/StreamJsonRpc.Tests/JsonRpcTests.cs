@@ -851,7 +851,7 @@ public class JsonRpcTests : TestBase
         var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
         serverRpc.AddLocalRpcTarget(new Server());
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne(), n => "one." + n);
-        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), n => "two." + n);
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), CommonMethodNameTransforms.AddNamespacePrefix("two"));
         serverRpc.StartListening();
 
         Assert.Equal("hi!", await localRpc.InvokeAsync<string>("ServerMethod", "hi"));
@@ -869,7 +869,7 @@ public class JsonRpcTests : TestBase
         // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
         var streams = FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server(), n => n.Substring(0, 1).ToLowerInvariant() + n.Substring(1));
+        rpc.AddLocalRpcTarget(new Server(), CommonMethodNameTransforms.CamelCase);
         rpc.StartListening();
 
         Assert.Equal("hi!", await rpc.InvokeAsync<string>("serverMethod", "hi"));
