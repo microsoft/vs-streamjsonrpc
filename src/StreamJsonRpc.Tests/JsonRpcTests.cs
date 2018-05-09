@@ -844,6 +844,39 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task AddLocalRpcTarget_WithNamespace()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var localRpc = JsonRpc.Attach(streams.Item2);
+        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        serverRpc.AddLocalRpcTarget(new Server());
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne(), n => "one." + n);
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), n => "two." + n);
+        serverRpc.StartListening();
+
+        Assert.Equal("hi!", await localRpc.InvokeAsync<string>("ServerMethod", "hi"));
+        Assert.Equal(6, await localRpc.InvokeAsync<int>("one.PlusOne", 5));
+        Assert.Equal(7, await localRpc.InvokeAsync<int>("two.PlusTwo", 5));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => localRpc.InvokeAsync<int>("PlusTwo", 5));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_CamelCaseTransform()
+    {
+        // Verify that camel case doesn't work in the default case.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("serverMethod", "hi"));
+
+        // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), n => n.Substring(0, 1).ToLowerInvariant() + n.Substring(1));
+        rpc.StartListening();
+
+        Assert.Equal("hi!", await rpc.InvokeAsync<string>("serverMethod", "hi"));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<string>("ServerMethod", "hi"));
+    }
+
+    [Fact]
     public async Task AddLocalRpcMethod_ActionWith0Args()
     {
         this.ReinitializeRpcWithoutListening();
