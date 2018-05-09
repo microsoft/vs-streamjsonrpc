@@ -1,6 +1,9 @@
 # StreamJsonRpc Documentation
 
-See also [Visual Studio specific concerns](vs.md)
+See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes
+on the same machine utilizing this library for RPC, using either named pipes or web sockets.
+
+See also [Visual Studio specific concerns](vs.md).
 
 ## Establishing Connection
 There are two ways to establish connection and start invoking methods remotely:
