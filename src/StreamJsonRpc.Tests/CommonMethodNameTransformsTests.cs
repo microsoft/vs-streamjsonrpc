@@ -12,6 +12,8 @@ public class CommonMethodNameTransformsTests
     {
         Assert.Equal("fireOne", CommonMethodNameTransforms.CamelCase("FireOne"));
         Assert.Equal("fireOne", CommonMethodNameTransforms.CamelCase("fireOne"));
+        Assert.Equal("fireOneAndTwo", CommonMethodNameTransforms.CamelCase("FIREOneAndTwo"));
+        Assert.Equal("fire", CommonMethodNameTransforms.CamelCase("FIRE"));
         Assert.Throws<ArgumentNullException>(() => CommonMethodNameTransforms.CamelCase(null));
         Assert.Equal(string.Empty, CommonMethodNameTransforms.CamelCase(string.Empty));
     }
