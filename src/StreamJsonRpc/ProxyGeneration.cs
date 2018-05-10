@@ -21,6 +21,7 @@ namespace StreamJsonRpc
         private static readonly ModuleBuilder ProxyModuleBuilder;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
+        private static readonly Dictionary<TypeInfo, TypeInfo> DisposableGeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
 
         static ProxyGeneration()
         {
@@ -28,16 +29,17 @@ namespace StreamJsonRpc
             ProxyModuleBuilder = AssemblyBuilder.DefineDynamicModule("rpcProxies");
         }
 
-        internal static TypeInfo Get(TypeInfo serviceInterface)
+        internal static TypeInfo Get(TypeInfo serviceInterface, bool disposable)
         {
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
             Requires.Argument(serviceInterface.IsInterface, nameof(serviceInterface), "Generic type argument must be an interface.");
 
             TypeInfo generatedType;
 
-            lock (GeneratedProxiesByInterface)
+            var proxyCache = disposable ? DisposableGeneratedProxiesByInterface : GeneratedProxiesByInterface;
+            lock (proxyCache)
             {
-                if (GeneratedProxiesByInterface.TryGetValue(serviceInterface, out generatedType))
+                if (proxyCache.TryGetValue(serviceInterface, out generatedType))
                 {
                     return generatedType;
                 }
@@ -45,17 +47,21 @@ namespace StreamJsonRpc
 
             lock (ProxyModuleBuilder)
             {
-                var interfaces = new Type[]
+                var interfaces = new List<Type>
                 {
-                    typeof(IDisposable),
                     serviceInterface.AsType(),
                 };
+
+                if (disposable)
+                {
+                    interfaces.Add(typeof(IDisposable));
+                }
 
                 var proxyTypeBuilder = ProxyModuleBuilder.DefineType(
                     string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
                     TypeAttributes.Public,
                     typeof(object),
-                    interfaces);
+                    interfaces.ToArray());
 
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), FieldAttributes.Private | FieldAttributes.InitOnly);
 
@@ -77,6 +83,7 @@ namespace StreamJsonRpc
                 }
 
                 // IDisposable.Dispose()
+                if (disposable)
                 {
                     var disposeMethod = proxyTypeBuilder.DefineMethod(nameof(IDisposable.Dispose), MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual);
                     var il = disposeMethod.GetILGenerator();
@@ -170,11 +177,11 @@ namespace StreamJsonRpc
                 generatedType = proxyTypeBuilder.CreateTypeInfo();
             }
 
-            lock (GeneratedProxiesByInterface)
+            lock (proxyCache)
             {
-                if (!GeneratedProxiesByInterface.TryGetValue(serviceInterface, out var raceGeneratedType))
+                if (!proxyCache.TryGetValue(serviceInterface, out var raceGeneratedType))
                 {
-                    GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
+                    proxyCache.Add(serviceInterface, generatedType);
                 }
                 else
                 {

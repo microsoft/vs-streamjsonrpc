@@ -311,7 +311,11 @@ namespace StreamJsonRpc
         /// </summary>
         /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
         /// <param name="stream">The bidirectional stream used to send and receive JSON-RPC messages.</param>
-        /// <returns>An instance of the generated proxy.</returns>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
         public static T Attach<T>(Stream stream)
             where T : class
         {
@@ -324,13 +328,46 @@ namespace StreamJsonRpc
         /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
-        /// <returns>An instance of the generated proxy.</returns>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
         public static T Attach<T>(Stream sendingStream, Stream receivingStream)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
             var rpc = Attach(sendingStream, receivingStream);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc);
+
+            return proxy;
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>()
+            where T : class
+        {
+            return this.Attach<T>((Func<string, string>)null);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="methodNameTransform">
+        /// A function that takes the CLR method name and returns the RPC method name.
+        /// This method is useful for adding prefixes to all methods, or making them camelCased.
+        /// </param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>(Func<string, string> methodNameTransform)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this);
 
             return proxy;
         }

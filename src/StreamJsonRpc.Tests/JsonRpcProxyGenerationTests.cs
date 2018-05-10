@@ -50,6 +50,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken);
     }
 
+    public interface IServer2
+    {
+        Task<int> MultiplyAsync(int a, int b);
+    }
+
     public interface IServerWithNonTaskReturnTypes
     {
         int Add(int a, int b);
@@ -143,6 +148,33 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task AttachSecondProxy()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var client1 = clientRpc.Attach<IServer>();
+        var client2 = clientRpc.Attach<IServer2>();
+
+        Assert.Equal(3, await client1.AddAsync(1, 2));
+        Assert.Equal(6, await client2.MultiplyAsync(2, 3));
+    }
+
+    [Fact]
+    public void InstanceProxiesDoNotImplementIDisposable()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var client1 = clientRpc.Attach<IServer>();
+        Assert.IsNotType(typeof(IDisposable), client1);
+    }
+
+    [Fact]
     public void InternalInterface()
     {
         // When implementing internal interfaces work, fill out this test to actually invoke it.
@@ -154,7 +186,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     // * RPC method names that vary from the CLR method names
     // * events
 
-    internal class Server : IServer
+    internal class Server : IServer, IServer2
     {
         public int Counter { get; set; }
 
@@ -188,5 +220,7 @@ public class JsonRpcProxyGenerationTests : TestBase
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(param1);
         }
+
+        public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
     }
 }
