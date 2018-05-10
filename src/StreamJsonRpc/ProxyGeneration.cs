@@ -9,6 +9,7 @@ namespace StreamJsonRpc
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
 
@@ -94,6 +95,10 @@ namespace StreamJsonRpc
                 var invokeAsyncOfTaskMethodInfo = invokeAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeAsyncOfTaskOfTMethodInfo = invokeAsyncMethodInfos.Single(m => m.IsGenericMethod);
 
+                var invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
+                var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
+                var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
+
                 foreach (var method in serviceInterface.DeclaredMethods)
                 {
                     Requires.Argument(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), nameof(serviceInterface), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method.Name, method.ReturnType.FullName);
@@ -114,11 +119,19 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldstr, method.Name);
 
                     // The second argument is an array of arguments for the RPC method.
-                    il.Emit(OpCodes.Ldc_I4, methodParameters.Length);
+                    il.Emit(OpCodes.Ldc_I4, methodParameters.Count(p => p.ParameterType != typeof(CancellationToken)));
                     il.Emit(OpCodes.Newarr, typeof(object));
+
+                    ParameterInfo cancellationTokenParameter = null;
 
                     for (int i = 0; i < methodParameters.Length; i++)
                     {
+                        if (methodParameters[i].ParameterType == typeof(CancellationToken))
+                        {
+                            cancellationTokenParameter = methodParameters[i];
+                            continue;
+                        }
+
                         il.Emit(OpCodes.Dup); // duplicate the array on the stack
                         il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
                         il.Emit(OpCodes.Ldarg, i + 1); // push the associated argument
@@ -130,11 +143,25 @@ namespace StreamJsonRpc
                         il.Emit(OpCodes.Stelem_Ref); // set the array element.
                     }
 
+                    bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
+                    MethodInfo invokingMethod;
+                    if (cancellationTokenParameter != null)
+                    {
+                        il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
+                        invokingMethod = hasReturnValue ? invokeWithCancellationAsyncOfTaskOfTMethodInfo : invokeWithCancellationAsyncOfTaskMethodInfo;
+                    }
+                    else
+                    {
+                        invokingMethod = hasReturnValue ? invokeAsyncOfTaskOfTMethodInfo : invokeAsyncOfTaskMethodInfo;
+                    }
+
                     // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                    MethodInfo invokeAsyncMethod = method.ReturnType.GetTypeInfo().IsGenericType
-                        ? invokeAsyncOfTaskOfTMethodInfo.MakeGenericMethod(method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
-                        : invokeAsyncOfTaskMethodInfo;
-                    il.EmitCall(OpCodes.Callvirt, invokeAsyncMethod, null);
+                    if (hasReturnValue)
+                    {
+                        invokingMethod = invokingMethod.MakeGenericMethod(method.ReturnType.GetTypeInfo().GenericTypeArguments[0]);
+                    }
+
+                    il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
                     il.Emit(OpCodes.Ret);
 
                     proxyTypeBuilder.DefineMethodOverride(methodBuilder, method);

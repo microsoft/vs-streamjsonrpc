@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
@@ -43,6 +44,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task IncrementAsync();
 
         Task Dispose();
+
+        Task HeavyWorkAsync(CancellationToken cancellationToken);
+
+        Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken);
     }
 
     public interface IServerWithNonTaskReturnTypes
@@ -108,9 +113,23 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.Throws<ArgumentException>(() => JsonRpc.Attach<IServerWithNonTaskReturnTypes>(streams.Item1));
     }
 
+    [Fact]
+    public async Task CallMethod_CancellationToken_int()
+    {
+        await this.clientRpc.HeavyWorkAsync(CancellationToken.None);
+        Assert.Equal(1, this.server.Counter);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(new CancellationToken(canceled: true)));
+    }
+
+    [Fact]
+    public async Task CallMethod_intCancellationToken_int()
+    {
+        Assert.Equal(123, await this.clientRpc.HeavyWorkAsync(123, CancellationToken.None));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(456, new CancellationToken(canceled: true)));
+    }
+
     // TODO:
     // * RPC method names that vary from the CLR method names
-    // * CancellationToken
     // * events
     // * Internal interface
 
@@ -134,6 +153,19 @@ public class JsonRpcProxyGenerationTests : TestBase
         {
             this.Counter--;
             return TplExtensions.CompletedTask;
+        }
+
+        public Task HeavyWorkAsync(CancellationToken cancellationToken)
+        {
+            this.Counter++;
+            cancellationToken.ThrowIfCancellationRequested();
+            return TplExtensions.CompletedTask;
+        }
+
+        public Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(param1);
         }
     }
 }
