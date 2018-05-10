@@ -15,4 +15,6 @@ override StreamJsonRpc.WebSocketMessageHandler.ReadCoreAsync(System.Threading.Ca
 override StreamJsonRpc.WebSocketMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 static StreamJsonRpc.CommonMethodNameTransforms.CamelCase.get -> System.Func<string, string>
 static StreamJsonRpc.CommonMethodNameTransforms.Prepend(string prefix) -> System.Func<string, string>
+static StreamJsonRpc.JsonRpc.Attach<T>(System.IO.Stream sendingStream, System.IO.Stream receivingStream) -> T
+static StreamJsonRpc.JsonRpc.Attach<T>(System.IO.Stream stream) -> T
 virtual StreamJsonRpc.DelimitedMessageHandler.FlushCoreAsync() -> System.Threading.Tasks.Task

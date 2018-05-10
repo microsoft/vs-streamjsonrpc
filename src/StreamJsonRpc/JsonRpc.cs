@@ -305,6 +305,35 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="stream">The bidirectional stream used to send and receive JSON-RPC messages.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public static T Attach<T>(Stream stream)
+            where T : class
+        {
+            return Attach<T>(stream, stream);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public static T Attach<T>(Stream sendingStream, Stream receivingStream)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            var rpc = Attach(sendingStream, receivingStream);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc);
+
+            return proxy;
+        }
+
+        /// <summary>
         /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
