@@ -266,7 +266,9 @@ namespace StreamJsonRpc
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public static JsonRpc Attach(Stream stream, object target = null)
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         {
             Requires.NotNull(stream, nameof(stream));
 
