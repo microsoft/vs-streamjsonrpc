@@ -55,6 +55,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
+    internal interface IServerInternal
+    {
+        Task AddAsync(int a, int b);
+    }
+
     [Fact]
     public void ProxyTypeIsReused()
     {
@@ -128,10 +133,17 @@ public class JsonRpcProxyGenerationTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(456, new CancellationToken(canceled: true)));
     }
 
+    [Fact]
+    public void InternalInterface()
+    {
+        // When implementing internal interfaces work, fill out this test to actually invoke it.
+        var streams = FullDuplexStream.CreateStreams();
+        Assert.Throws<TypeLoadException>(() => JsonRpc.Attach<IServerInternal>(streams.Item1));
+    }
+
     // TODO:
     // * RPC method names that vary from the CLR method names
     // * events
-    // * Internal interface
 
     internal class Server : IServer
     {
