@@ -133,6 +133,15 @@ public class JsonRpcProxyGenerationTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(456, new CancellationToken(canceled: true)));
     }
 
+    /// <summary>
+    /// Verifies that object.ToString() does not get relayed to the service.
+    /// </summary>
+    [Fact]
+    public void CallBaseMethods()
+    {
+        Assert.Contains("proxy", this.clientRpc.ToString());
+    }
+
     [Fact]
     public void InternalInterface()
     {
