@@ -41,6 +41,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> AddAsync(int a, int b);
 
         Task IncrementAsync();
+
+        Task Dispose();
+    }
+
+    public interface IServerWithNonTaskReturnTypes
+    {
+        int Add(int a, int b);
     }
 
     [Fact]
@@ -84,14 +91,28 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.True(this.clientStream.IsDisposed);
     }
 
+    [Fact]
+    public async Task DisposeCollision()
+    {
+        // We're calling IServer.Dispose -- NOT IDisposable.Dispose here.
+        // Verify that it invokes the server method rather than disposing of the client proxy.
+        await this.clientRpc.Dispose();
+        Assert.Equal(-1, this.server.Counter);
+        Assert.False(this.clientStream.IsDisposed);
+    }
+
+    [Fact]
+    public void NonTaskReturningMethod()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        Assert.Throws<ArgumentException>(() => JsonRpc.Attach<IServerWithNonTaskReturnTypes>(streams.Item1));
+    }
+
     // TODO:
-    // * interfaces that contain non-Task returning methods
-    // * Task returning methods (not Task<T>)
     // * RPC method names that vary from the CLR method names
-    // * no arguments
-    // * 1 argument
+    // * CancellationToken
     // * events
-    // * Dispose method on server interface
+    // * Internal interface
 
     internal class Server : IServer
     {
@@ -106,6 +127,12 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task IncrementAsync()
         {
             this.Counter++;
+            return TplExtensions.CompletedTask;
+        }
+
+        public Task Dispose()
+        {
+            this.Counter--;
             return TplExtensions.CompletedTask;
         }
     }

@@ -9,6 +9,7 @@ namespace StreamJsonRpc
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
+    using System.Threading.Tasks;
     using Microsoft;
 
     internal static class ProxyGeneration
@@ -95,6 +96,8 @@ namespace StreamJsonRpc
 
                 foreach (var method in serviceInterface.DeclaredMethods)
                 {
+                    Requires.Argument(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), nameof(serviceInterface), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method.Name, method.ReturnType.FullName);
+
                     ParameterInfo[] methodParameters = method.GetParameters();
                     var methodBuilder = proxyTypeBuilder.DefineMethod(
                         method.Name,
