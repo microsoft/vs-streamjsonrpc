@@ -724,14 +724,15 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
     {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
-        rpc.StartListening();
+        var streams = FullDuplexStream.CreateStreams();
+        var localRpc = JsonRpc.Attach(streams.Item2);
+        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        serverRpc.AddLocalRpcTarget(new Server());
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
+        serverRpc.StartListening();
 
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => localRpc.InvokeAsync("PlusThree", 1));
     }
 
     [Fact]
