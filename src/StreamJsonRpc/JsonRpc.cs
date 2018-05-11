@@ -846,12 +846,13 @@ namespace StreamJsonRpc
             var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
+            var mapping = new MethodNameMap(target.GetType().GetTypeInfo());
+
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
                 foreach (MethodInfo method in t.DeclaredMethods)
                 {
-                    var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-                    var requestName = attribute?.Name ?? method.Name;
+                    var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
                     {
@@ -896,6 +897,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
+                    var attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
@@ -1387,6 +1389,58 @@ namespace StreamJsonRpc
         private void ThrowIfConfigurationLocked()
         {
             Verify.Operation(!this.startedListening || this.AllowModificationWhileListening, Resources.MustNotBeListening);
+        }
+
+        internal class MethodNameMap
+        {
+            private readonly List<InterfaceMapping> interfaceMaps;
+
+            internal MethodNameMap(TypeInfo typeInfo)
+            {
+                Requires.NotNull(typeInfo, nameof(typeInfo));
+#if NET45 || NET46 || NETSTANDARD2_0
+                this.interfaceMaps = typeInfo.ImplementedInterfaces.Select(i => typeInfo.GetInterfaceMap(i)).ToList();
+#else
+                this.interfaceMaps = new List<InterfaceMapping>();
+#endif
+            }
+
+            internal string GetRpcMethodName(MethodInfo method)
+            {
+                Requires.NotNull(method, nameof(method));
+
+                return this.FindAttribute(method)?.Name ?? method.Name;
+            }
+
+            internal JsonRpcMethodAttribute FindAttribute(MethodInfo method)
+            {
+                Requires.NotNull(method, nameof(method));
+
+                // Get the custom attribute, which may appear on the method itself or the interface definition of the method where applicable.
+                var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                if (attribute == null)
+                {
+                    attribute = (JsonRpcMethodAttribute)this.FindMethodOnInterface(method)?.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                }
+
+                return attribute;
+            }
+
+            private MethodInfo FindMethodOnInterface(MethodInfo methodImpl)
+            {
+                Requires.NotNull(methodImpl, nameof(methodImpl));
+
+                foreach (var map in this.interfaceMaps)
+                {
+                    int methodIndex = Array.IndexOf(map.TargetMethods, methodImpl);
+                    if (methodIndex >= 0)
+                    {
+                        return map.InterfaceMethods[methodIndex];
+                    }
+                }
+
+                return null;
+            }
         }
 
         private class OutstandingCallData

@@ -45,6 +45,15 @@ public class JsonRpcTests : TestBase
         this.clientRpc = JsonRpc.Attach(this.clientStream);
     }
 
+    private interface IServer
+    {
+        [JsonRpcMethod("AnotherName")]
+        string ARoseBy(string name);
+
+        [JsonRpcMethod("IFaceNameForMethod")]
+        int AddWithNameSubstitution(int a, int b);
+    }
+
     [Fact]
     public void Attach_Null_Throws()
     {
@@ -1173,6 +1182,23 @@ public class JsonRpcTests : TestBase
         await Task.WhenAll(invocation1, invocation2);
     }
 
+#if NET452 || NET461 || NETCOREAPP2_0
+    [Fact]
+    public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
+    {
+        Assert.Equal("ANDREW", await this.clientRpc.InvokeAsync<string>("AnotherName", "andrew"));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.ARoseBy), "andrew"));
+    }
+#endif
+
+    [Fact]
+    public async Task ClassDefinedNameOverridesInterfaceDefinedName()
+    {
+        Assert.Equal(3, await this.clientRpc.InvokeAsync<int>("ClassNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("IFaceNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.AddWithNameSubstitution), "andrew"));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1224,7 +1250,7 @@ public class JsonRpcTests : TestBase
         public string RedeclaredBaseMethod() => "base";
     }
 
-    public class Server : BaseClass
+    public class Server : BaseClass, IServer
     {
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
 
@@ -1463,6 +1489,11 @@ public class JsonRpcTests : TestBase
         {
             i = i + 1;
         }
+
+        public string ARoseBy(string name) => name.ToUpperInvariant();
+
+        [JsonRpcMethod("ClassNameForMethod")]
+        public int AddWithNameSubstitution(int a, int b) => a + b;
 
         internal void InternalMethod()
         {
