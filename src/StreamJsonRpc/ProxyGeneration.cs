@@ -45,6 +45,8 @@ namespace StreamJsonRpc
                 }
             }
 
+            var methodNameMap = new JsonRpc.MethodNameMap(serviceInterface);
+
             lock (ProxyModuleBuilder)
             {
                 var interfaces = new List<Type>
@@ -123,7 +125,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldfld, jsonRpcField);
 
                     // First argument to InvokeAsync is the method name.
-                    il.Emit(OpCodes.Ldstr, method.Name);
+                    il.Emit(OpCodes.Ldstr, methodNameMap.GetRpcMethodName(method));
 
                     // The second argument is an array of arguments for the RPC method.
                     il.Emit(OpCodes.Ldc_I4, methodParameters.Count(p => p.ParameterType != typeof(CancellationToken)));
