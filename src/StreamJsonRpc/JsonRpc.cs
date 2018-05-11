@@ -852,7 +852,6 @@ namespace StreamJsonRpc
             {
                 foreach (MethodInfo method in t.DeclaredMethods)
                 {
-                    var attribute = mapping.FindAttribute(method);
                     var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
@@ -898,6 +897,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
+                    var attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);

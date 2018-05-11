@@ -48,7 +48,7 @@ public class JsonRpcTests : TestBase
     private interface IServer
     {
         [JsonRpcMethod("AnotherName")]
-        string AManBy(string name);
+        string ARoseBy(string name);
 
         [JsonRpcMethod("IFaceNameForMethod")]
         int AddWithNameSubstitution(int a, int b);
@@ -1187,7 +1187,7 @@ public class JsonRpcTests : TestBase
     public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
     {
         Assert.Equal("ANDREW", await this.clientRpc.InvokeAsync<string>("AnotherName", "andrew"));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.AManBy), "andrew"));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.ARoseBy), "andrew"));
     }
 #endif
 
@@ -1490,7 +1490,7 @@ public class JsonRpcTests : TestBase
             i = i + 1;
         }
 
-        public string AManBy(string name) => name.ToUpperInvariant();
+        public string ARoseBy(string name) => name.ToUpperInvariant();
 
         [JsonRpcMethod("ClassNameForMethod")]
         public int AddWithNameSubstitution(int a, int b) => a + b;
