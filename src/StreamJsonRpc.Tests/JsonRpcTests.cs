@@ -772,7 +772,7 @@ public class JsonRpcTests : TestBase
     public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
         string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
-        Assert.Equal("object {\r\n  \"test\": \"test\"\r\n}", result1);
+        Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
     }
 
     [Fact]
