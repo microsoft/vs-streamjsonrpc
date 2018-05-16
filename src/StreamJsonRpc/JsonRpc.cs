@@ -83,6 +83,11 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
+        /// <summary>
+        /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
+        /// </summary>
+        private List<EventReceiver> eventReceivers;
+
         private Task readLinesTask;
         private int nextId = 1;
         private bool disposed;
@@ -347,6 +352,16 @@ namespace StreamJsonRpc
                     {
                         this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
                     }
+                }
+
+                foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
+                {
+                    if (this.eventReceivers == null)
+                    {
+                        this.eventReceivers = new List<EventReceiver>();
+                    }
+
+                    this.eventReceivers.Add(new EventReceiver(this, target, evt));
                 }
             }
         }
@@ -692,6 +707,16 @@ namespace StreamJsonRpc
                 this.disposed = true;
                 if (disposing)
                 {
+                    if (this.eventReceivers != null)
+                    {
+                        foreach (var receiver in this.eventReceivers)
+                        {
+                            receiver.Dispose();
+                        }
+
+                        this.eventReceivers.Clear();
+                    }
+
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
@@ -1454,6 +1479,39 @@ namespace StreamJsonRpc
             internal object TaskCompletionSource { get; }
 
             internal Action<JsonRpcMessage> CompletionHandler { get; }
+        }
+
+        private class EventReceiver : IDisposable
+        {
+            private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
+            private readonly JsonRpc jsonRpc;
+            private readonly object server;
+            private readonly EventInfo eventInfo;
+            private readonly Delegate registeredHandler;
+
+            internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo)
+            {
+                Requires.NotNull(jsonRpc, nameof(jsonRpc));
+                Requires.NotNull(server, nameof(server));
+                Requires.NotNull(eventInfo, nameof(eventInfo));
+
+                this.jsonRpc = jsonRpc;
+                this.server = server;
+                this.eventInfo = eventInfo;
+                this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+
+                eventInfo.AddEventHandler(server, this.registeredHandler);
+            }
+
+            public void Dispose()
+            {
+                this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
+            }
+
+            private void OnEventRaised(object sender, EventArgs args)
+            {
+                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { null, args });
+            }
         }
     }
 }
