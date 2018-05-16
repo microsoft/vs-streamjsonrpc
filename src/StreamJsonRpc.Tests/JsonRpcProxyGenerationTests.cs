@@ -35,6 +35,10 @@ public class JsonRpcProxyGenerationTests : TestBase
 
     public interface IServer
     {
+        event EventHandler ItHappened;
+
+        event EventHandler<CustomEventArgs> TreeGrown;
+
         Task<string> SayHiAsync();
 
         Task<string> SayHiAsync(string name);
@@ -191,11 +195,38 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.Equal("ANDREW", await this.clientRpc.AManByAsync("andrew"));
     }
 
-    // TODO:
-    // * events
+    [Fact]
+    public async Task GenericEventRaisedOnClient()
+    {
+        var tcs = new TaskCompletionSource<CustomEventArgs>();
+        this.clientRpc.TreeGrown += (sender, args) => tcs.SetResult(args);
+        var expectedArgs = new CustomEventArgs { Seeds = 5 };
+        this.server.OnTreeGrown(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs.Seeds, actualArgs.Seeds);
+    }
+
+    [Fact]
+    public async Task NonGenericEventRaisedOnClient()
+    {
+        var tcs = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.ItHappened += (sender, args) => tcs.SetResult(args);
+        this.server.OnItHappened(EventArgs.Empty);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.NotNull(actualArgs);
+    }
+
+    public class CustomEventArgs : EventArgs
+    {
+        public int Seeds { get; set; }
+    }
 
     internal class Server : IServer, IServer2
     {
+        public event EventHandler ItHappened;
+
+        public event EventHandler<CustomEventArgs> TreeGrown;
+
         public int Counter { get; set; }
 
         public Task<string> SayHiAsync() => Task.FromResult("Hi!");
@@ -232,5 +263,9 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
 
         public Task<string> AManByAsync(string name) => Task.FromResult(name.ToUpperInvariant());
+
+        internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
+
+        internal void OnTreeGrown(CustomEventArgs args) => this.TreeGrown?.Invoke(this, args);
     }
 }
