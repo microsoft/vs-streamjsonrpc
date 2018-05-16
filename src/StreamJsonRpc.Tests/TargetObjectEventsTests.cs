@@ -77,6 +77,13 @@ public class TargetObjectEventsTests : TestBase
         Assert.Null(this.server.ServerEventWithCustomArgsAccessor);
     }
 
+    [Fact]
+    public void IncompatibleEventHandlerType()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        Assert.Throws<NotSupportedException>(() => JsonRpc.Attach(streams.Item1, new ServerWithIncompatibleEvents()));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -122,6 +129,15 @@ public class TargetObjectEventsTests : TestBase
         protected virtual void OnServerEvent(EventArgs args) => this.ServerEvent?.Invoke(this, args);
 
         protected virtual void OnServerEventWithCustomArgs(CustomEventArgs args) => this.ServerEventWithCustomArgs?.Invoke(this, args);
+    }
+
+    private class ServerWithIncompatibleEvents
+    {
+        public delegate int MyDelegate(double d);
+
+#pragma warning disable CS0067 // Unused member (It's here for reflection to discover)
+        public event MyDelegate MyEvent;
+#pragma warning restore CS0067
     }
 
     private class CustomEventArgs : EventArgs

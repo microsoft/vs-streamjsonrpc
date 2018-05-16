@@ -1498,7 +1498,18 @@ namespace StreamJsonRpc
                 this.jsonRpc = jsonRpc;
                 this.server = server;
                 this.eventInfo = eventInfo;
-                this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                try
+                {
+                    // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
+                    // It will work for EventHandler and EventHandler<T>, at least.
+                    // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
+                    // with the right signature.
+                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new NotSupportedException("Unsupported event handler type for: " + eventInfo.Name, ex);
+                }
 
                 eventInfo.AddEventHandler(server, this.registeredHandler);
             }
@@ -1510,6 +1521,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
+                // We use null for the sender because we don't want to try to serialize the target object to the remote party.
                 this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { null, args });
             }
         }
