@@ -2,7 +2,7 @@ StreamJsonRpc.CommonMethodNameTransforms
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target, System.Func<string, string> methodNameTransform) -> void
+StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target, StreamJsonRpc.JsonRpcTargetOptions options) -> void
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.get -> bool
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Attach<T>() -> T
@@ -10,6 +10,12 @@ StreamJsonRpc.JsonRpc.Attach<T>(System.Func<string, string> methodNameTransform)
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.SynchronizationContext
 StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void
+StreamJsonRpc.JsonRpcTargetOptions
+StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions() -> void
+StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.get -> System.Func<string, string>
+StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.set -> void
+StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.set -> void
 StreamJsonRpc.WebSocketMessageHandler
 StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void

@@ -8,7 +8,8 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Serialization;
 
     /// <summary>
-    /// Common RPC method transform functions that may be supplied to <see cref="JsonRpc.AddLocalRpcTarget(object, System.Func{string, string})"/>.
+    /// Common RPC method transform functions that may be supplied to <see cref="JsonRpc.AddLocalRpcTarget(object, JsonRpcTargetOptions)"/>
+    /// by way of <see cref="JsonRpcTargetOptions.MethodNameTransform"/>.
     /// </summary>
     public static class CommonMethodNameTransforms
     {
