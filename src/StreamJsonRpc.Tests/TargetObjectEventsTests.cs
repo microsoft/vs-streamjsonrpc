@@ -34,6 +34,28 @@ public class TargetObjectEventsTests : TestBase
         this.clientRpc = JsonRpc.Attach(this.clientStream, this.client);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ServerEventRespondsToOptions(bool registerOn)
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item1);
+        var options = new JsonRpcTargetOptions { NotifyClientOfEvents = registerOn };
+        var server = new Server();
+        rpc.AddLocalRpcTarget(server, options);
+        if (registerOn)
+        {
+            Assert.NotNull(server.ServerEventAccessor);
+            Assert.NotNull(server.ServerEventWithCustomArgsAccessor);
+        }
+        else
+        {
+            Assert.Null(server.ServerEventAccessor);
+            Assert.Null(server.ServerEventWithCustomArgsAccessor);
+        }
+    }
+
     [Fact]
     public async Task ServerEventRaisesCallback()
     {

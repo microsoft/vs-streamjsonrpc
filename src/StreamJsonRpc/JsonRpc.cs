@@ -321,13 +321,11 @@ namespace StreamJsonRpc
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
-        /// <param name="methodNameTransform">
-        /// A function that takes the CLR method name and returns the RPC method name.
-        /// This method is useful for adding prefixes to all methods, or making them camelCased.
-        /// </param>
-        public void AddLocalRpcTarget(object target, Func<string, string> methodNameTransform)
+        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
+            options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
             var mapping = GetRequestMethodToClrMethodMap(target);
@@ -335,8 +333,8 @@ namespace StreamJsonRpc
             {
                 foreach (var item in mapping)
                 {
-                    string rpcMethodName = methodNameTransform != null ? methodNameTransform(item.Key) : item.Key;
-                    Requires.Argument(rpcMethodName != null, nameof(methodNameTransform), "Delegate returned a value that is not a legal RPC method name.");
+                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                     {
                         // Only add methods that do not have equivalent signatures to what we already have.
@@ -354,14 +352,17 @@ namespace StreamJsonRpc
                     }
                 }
 
-                foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
+                if (options.NotifyClientOfEvents)
                 {
-                    if (this.eventReceivers == null)
+                    foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
                     {
-                        this.eventReceivers = new List<EventReceiver>();
-                    }
+                        if (this.eventReceivers == null)
+                        {
+                            this.eventReceivers = new List<EventReceiver>();
+                        }
 
-                    this.eventReceivers.Add(new EventReceiver(this, target, evt));
+                        this.eventReceivers.Add(new EventReceiver(this, target, evt));
+                    }
                 }
             }
         }
