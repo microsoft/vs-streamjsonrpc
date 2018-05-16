@@ -83,6 +83,11 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
+        /// <summary>
+        /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
+        /// </summary>
+        private List<EventReceiver> eventReceivers;
+
         private Task readLinesTask;
         private int nextId = 1;
         private bool disposed;
@@ -316,13 +321,11 @@ namespace StreamJsonRpc
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
-        /// <param name="methodNameTransform">
-        /// A function that takes the CLR method name and returns the RPC method name.
-        /// This method is useful for adding prefixes to all methods, or making them camelCased.
-        /// </param>
-        public void AddLocalRpcTarget(object target, Func<string, string> methodNameTransform)
+        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
+            options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
             var mapping = GetRequestMethodToClrMethodMap(target);
@@ -330,8 +333,8 @@ namespace StreamJsonRpc
             {
                 foreach (var item in mapping)
                 {
-                    string rpcMethodName = methodNameTransform != null ? methodNameTransform(item.Key) : item.Key;
-                    Requires.Argument(rpcMethodName != null, nameof(methodNameTransform), "Delegate returned a value that is not a legal RPC method name.");
+                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                     {
                         // Only add methods that do not have equivalent signatures to what we already have.
@@ -346,6 +349,19 @@ namespace StreamJsonRpc
                     else
                     {
                         this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
+                    }
+                }
+
+                if (options.NotifyClientOfEvents)
+                {
+                    foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
+                    {
+                        if (this.eventReceivers == null)
+                        {
+                            this.eventReceivers = new List<EventReceiver>();
+                        }
+
+                        this.eventReceivers.Add(new EventReceiver(this, target, evt));
                     }
                 }
             }
@@ -692,6 +708,16 @@ namespace StreamJsonRpc
                 this.disposed = true;
                 if (disposing)
                 {
+                    if (this.eventReceivers != null)
+                    {
+                        foreach (var receiver in this.eventReceivers)
+                        {
+                            receiver.Dispose();
+                        }
+
+                        this.eventReceivers.Clear();
+                    }
+
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
@@ -1454,6 +1480,51 @@ namespace StreamJsonRpc
             internal object TaskCompletionSource { get; }
 
             internal Action<JsonRpcMessage> CompletionHandler { get; }
+        }
+
+        private class EventReceiver : IDisposable
+        {
+            private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
+            private readonly JsonRpc jsonRpc;
+            private readonly object server;
+            private readonly EventInfo eventInfo;
+            private readonly Delegate registeredHandler;
+
+            internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo)
+            {
+                Requires.NotNull(jsonRpc, nameof(jsonRpc));
+                Requires.NotNull(server, nameof(server));
+                Requires.NotNull(eventInfo, nameof(eventInfo));
+
+                this.jsonRpc = jsonRpc;
+                this.server = server;
+                this.eventInfo = eventInfo;
+                try
+                {
+                    // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
+                    // It will work for EventHandler and EventHandler<T>, at least.
+                    // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
+                    // with the right signature.
+                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new NotSupportedException("Unsupported event handler type for: " + eventInfo.Name, ex);
+                }
+
+                eventInfo.AddEventHandler(server, this.registeredHandler);
+            }
+
+            public void Dispose()
+            {
+                this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
+            }
+
+            private void OnEventRaised(object sender, EventArgs args)
+            {
+                // We use null for the sender because we don't want to try to serialize the target object to the remote party.
+                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { null, args });
+            }
         }
     }
 }
