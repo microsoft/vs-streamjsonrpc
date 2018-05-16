@@ -60,7 +60,7 @@ public class TargetObjectEventsTests : TestBase
     public async Task ServerEventRaisesCallback()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
-        this.client.ServerEventRaised = (sender, args) => tcs.SetResult(args);
+        this.client.ServerEventRaised = args => tcs.SetResult(args);
         this.server.TriggerEvent(EventArgs.Empty);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.NotNull(actualArgs);
@@ -71,7 +71,7 @@ public class TargetObjectEventsTests : TestBase
     {
         var tcs = new TaskCompletionSource<CustomEventArgs>();
         var expectedArgs = new CustomEventArgs { Seeds = 5 };
-        this.client.GenericServerEventRaised = (sender, args) => tcs.SetResult(args);
+        this.client.GenericServerEventRaised = args => tcs.SetResult(args);
         this.server.TriggerGenericEvent(expectedArgs);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.Equal(expectedArgs.Seeds, actualArgs.Seeds);
@@ -119,13 +119,13 @@ public class TargetObjectEventsTests : TestBase
 
     private class Client
     {
-        internal Action<object, EventArgs> ServerEventRaised { get; set; }
+        internal Action<EventArgs> ServerEventRaised { get; set; }
 
-        internal Action<object, CustomEventArgs> GenericServerEventRaised { get; set; }
+        internal Action<CustomEventArgs> GenericServerEventRaised { get; set; }
 
-        public void ServerEvent(object sender, EventArgs args) => this.ServerEventRaised?.Invoke(sender, args);
+        public void ServerEvent(EventArgs args) => this.ServerEventRaised?.Invoke(args);
 
-        public void ServerEventWithCustomArgs(object sender, CustomEventArgs args) => this.GenericServerEventRaised?.Invoke(sender, args);
+        public void ServerEventWithCustomArgs(CustomEventArgs args) => this.GenericServerEventRaised?.Invoke(args);
     }
 
     private class Server

@@ -1523,7 +1523,7 @@ namespace StreamJsonRpc
             private void OnEventRaised(object sender, EventArgs args)
             {
                 // We use null for the sender because we don't want to try to serialize the target object to the remote party.
-                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { null, args });
+                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { args });
             }
         }
     }
