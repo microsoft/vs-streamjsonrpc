@@ -17,11 +17,18 @@ namespace StreamJsonRpc
     {
         private static readonly Type[] EmptyTypes = new Type[0];
         private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
+        private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) });
+        private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) });
         private static readonly AssemblyBuilder AssemblyBuilder;
         private static readonly ModuleBuilder ProxyModuleBuilder;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly Dictionary<TypeInfo, TypeInfo> DisposableGeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
+        private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
+                                                                    where method.Name == nameof(Interlocked.CompareExchange)
+                                                                    let parameters = method.GetParameters()
+                                                                    where parameters.Length == 3 && parameters.All(p => p.ParameterType.IsGenericParameter || p.ParameterType.GetTypeInfo().ContainsGenericParameters)
+                                                                    select method).Single();
 
         static ProxyGeneration()
         {
@@ -67,6 +74,52 @@ namespace StreamJsonRpc
 
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), FieldAttributes.Private | FieldAttributes.InitOnly);
 
+                // Implement events
+                var ctorActions = new List<Action<ILGenerator>>();
+                foreach (var evt in serviceInterface.DeclaredEvents)
+                {
+                    // public event EventHandler EventName;
+                    var evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
+
+                    // private EventHandler eventName;
+                    var evtField = proxyTypeBuilder.DefineField(evt.Name, evt.EventHandlerType, FieldAttributes.Private);
+
+                    // add_EventName
+                    var addRemoveHandlerParams = new Type[] { evt.EventHandlerType };
+                    const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+                    var addMethod = proxyTypeBuilder.DefineMethod($"add_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                    ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
+                    evtBuilder.SetAddOnMethod(addMethod);
+
+                    // remove_EventName
+                    var removeMethod = proxyTypeBuilder.DefineMethod($"remove_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                    ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
+                    evtBuilder.SetRemoveOnMethod(removeMethod);
+
+                    // void OnEventName(EventArgs args)
+                    var eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke)).GetParameters()[1].ParameterType;
+                    var raiseEventMethod = proxyTypeBuilder.DefineMethod(
+                        $"On{evt.Name}",
+                        MethodAttributes.HideBySig | MethodAttributes.Private,
+                        null,
+                        new Type[] { eventArgsType });
+                    ImplementRaiseEventMethod(raiseEventMethod.GetILGenerator(), evtField, jsonRpcField);
+
+                    ctorActions.Add(new Action<ILGenerator>(il =>
+                    {
+                        var addLocalRpcMethod = typeof(JsonRpc).GetRuntimeMethod(nameof(JsonRpc.AddLocalRpcMethod), new Type[] { typeof(string), typeof(Delegate) });
+                        var delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
+
+                        // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
+                        il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
+                        il.Emit(OpCodes.Ldstr, evt.Name);
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldftn, raiseEventMethod);
+                        il.Emit(OpCodes.Newobj, delegateCtor);
+                        il.Emit(OpCodes.Callvirt, addLocalRpcMethod);
+                    }));
+                }
+
                 // .ctor(JsonRpc)
                 {
                     var ctor = proxyTypeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(JsonRpc) });
@@ -80,6 +133,12 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg_1);
                     il.Emit(OpCodes.Stfld, jsonRpcField);
+
+                    // Emit IL that supports events.
+                    foreach (var action in ctorActions)
+                    {
+                        action(il);
+                    }
 
                     il.Emit(OpCodes.Ret);
                 }
@@ -108,7 +167,7 @@ namespace StreamJsonRpc
                 var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
 
-                foreach (var method in serviceInterface.DeclaredMethods)
+                foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
                     Requires.Argument(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), nameof(serviceInterface), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method.Name, method.ReturnType.FullName);
 
@@ -193,6 +252,81 @@ namespace StreamJsonRpc
             }
 
             return generatedType;
+        }
+
+        private static void ImplementRaiseEventMethod(ILGenerator il, FieldBuilder evtField, FieldBuilder jsonRpcField)
+        {
+            var retLabel = il.DefineLabel();
+            var invokeLabel = il.DefineLabel();
+
+            // var eventName = this.EventName;
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, evtField);
+
+            // if (eventName != null) goto Invoke;
+            il.Emit(OpCodes.Dup);
+            il.Emit(OpCodes.Brtrue_S, invokeLabel);
+
+            // Condition was false, so clear the stack and return.
+            il.Emit(OpCodes.Pop);
+            il.Emit(OpCodes.Br_S, retLabel);
+
+            // Invoke:
+            il.MarkLabel(invokeLabel);
+
+            // eventName.Invoke(this.rpc, args);
+            // we already have eventName as a pseudo-local on our stack.
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, jsonRpcField);
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Callvirt, evtField.FieldType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke)));
+
+            il.MarkLabel(retLabel);
+            il.Emit(OpCodes.Ret);
+        }
+
+        private static void ImplementEventAccessor(ILGenerator il, FieldInfo evtField, MethodInfo combineOrRemoveMethod)
+        {
+            var loopStart = il.DefineLabel();
+
+            il.DeclareLocal(evtField.FieldType); // loc_0
+            il.DeclareLocal(evtField.FieldType); // loc_1
+            il.DeclareLocal(evtField.FieldType); // loc_2
+
+            // EventHandler eventHandler = this.EventName;
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, evtField);
+            il.Emit(OpCodes.Stloc_0);
+
+            il.MarkLabel(loopStart);
+            {
+                // var eventHandler2 = eventHandler;
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Stloc_1);
+
+                // EventHandler value2 = (EventHandler)Delegate.CombineOrRemove(eventHandler2, value);
+                il.Emit(OpCodes.Ldloc_1);
+                il.Emit(OpCodes.Ldarg_1);
+                il.EmitCall(OpCodes.Call, combineOrRemoveMethod, EmptyTypes);
+                il.Emit(OpCodes.Castclass, evtField.FieldType);
+                il.Emit(OpCodes.Stloc_2);
+
+                // eventHandler = Interlocked.CompareExchange<EventHandler>(ref this.SomethingChanged, value2, eventHandler2);
+                var compareExchangeClosedGeneric = CompareExchangeMethod.MakeGenericMethod(evtField.FieldType);
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldflda, evtField);
+                il.Emit(OpCodes.Ldloc_2);
+                il.Emit(OpCodes.Ldloc_1);
+                il.EmitCall(OpCodes.Call, compareExchangeClosedGeneric, EmptyTypes);
+                il.Emit(OpCodes.Stloc_0);
+
+                // while ((object)eventHandler != eventHandler2);
+                il.Emit(OpCodes.Ldloc_0);
+                il.Emit(OpCodes.Ldloc_1);
+                il.Emit(OpCodes.Bne_Un_S, loopStart);
+            }
+
+            il.Emit(OpCodes.Ret);
         }
     }
 }

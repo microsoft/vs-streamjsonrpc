@@ -161,9 +161,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
         var client2 = clientRpc.Attach<IServer2>();
+        clientRpc.StartListening();
 
         Assert.Equal(3, await client1.AddAsync(1, 2));
         Assert.Equal(6, await client2.MultiplyAsync(2, 3));
@@ -176,7 +177,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = JsonRpc.Attach(streams.Item1);
+        var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
         Assert.IsNotType(typeof(IDisposable), client1);
     }
@@ -199,21 +200,37 @@ public class JsonRpcProxyGenerationTests : TestBase
     public async Task GenericEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<CustomEventArgs>();
-        this.clientRpc.TreeGrown += (sender, args) => tcs.SetResult(args);
+        EventHandler<CustomEventArgs> handler = (sender, args) => tcs.SetResult(args);
+        this.clientRpc.TreeGrown += handler;
         var expectedArgs = new CustomEventArgs { Seeds = 5 };
         this.server.OnTreeGrown(expectedArgs);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.Equal(expectedArgs.Seeds, actualArgs.Seeds);
+
+        // Now unregister and confirm we don't get notified.
+        this.clientRpc.TreeGrown -= handler;
+        tcs = new TaskCompletionSource<CustomEventArgs>();
+        this.server.OnTreeGrown(expectedArgs);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
     }
 
     [Fact]
     public async Task NonGenericEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
-        this.clientRpc.ItHappened += (sender, args) => tcs.SetResult(args);
+        EventHandler handler = (sender, args) => tcs.SetResult(args);
+        this.clientRpc.ItHappened += handler;
         this.server.OnItHappened(EventArgs.Empty);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.NotNull(actualArgs);
+
+        // Now unregister and confirm we don't get notified.
+        this.clientRpc.ItHappened -= handler;
+        tcs = new TaskCompletionSource<EventArgs>();
+        this.server.OnItHappened(EventArgs.Empty);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
     }
 
     public class CustomEventArgs : EventArgs

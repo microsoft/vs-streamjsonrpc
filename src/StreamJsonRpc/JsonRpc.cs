@@ -342,9 +342,9 @@ namespace StreamJsonRpc
             where T : class
         {
             var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
-            var rpc = Attach(sendingStream, receivingStream);
+            var rpc = new JsonRpc(sendingStream, receivingStream);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc);
-
+            rpc.StartListening();
             return proxy;
         }
 
