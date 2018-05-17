@@ -239,11 +239,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.Throws<TypeLoadException>(() => JsonRpc.Attach<IServerInternal>(streams.Item1));
     }
 
+#if NET452 || NET461 || NETCOREAPP2_0
     [Fact]
     public async Task RPCMethodNameSubstitution()
     {
         Assert.Equal("ANDREW", await this.clientRpc.ARoseByAsync("andrew"));
     }
+#endif
 
     [Fact]
     public async Task GenericEventRaisedOnClient()
