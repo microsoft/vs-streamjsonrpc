@@ -74,10 +74,14 @@ namespace StreamJsonRpc
 
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), FieldAttributes.Private | FieldAttributes.InitOnly);
 
+                VerifySupported(!serviceInterface.DeclaredProperties.Any(), "Properties are not supported for service interfaces.", serviceInterface);
+
                 // Implement events
                 var ctorActions = new List<Action<ILGenerator>>();
                 foreach (var evt in serviceInterface.DeclaredEvents)
                 {
+                    VerifySupported(evt.EventHandlerType.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), "Unsupported event handler type on \"{0}\". Only EventHandler and EventHandler<T> are supported.", evt);
+
                     // public event EventHandler EventName;
                     var evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
 
@@ -169,7 +173,8 @@ namespace StreamJsonRpc
 
                 foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
-                    Requires.Argument(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), nameof(serviceInterface), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method.Name, method.ReturnType.FullName);
+                    VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method, method.ReturnType.FullName);
+                    VerifySupported(!method.IsGenericMethod, "Generic methods are not supported", method);
 
                     ParameterInfo[] methodParameters = method.GetParameters();
                     var methodBuilder = proxyTypeBuilder.DefineMethod(
@@ -327,6 +332,21 @@ namespace StreamJsonRpc
             }
 
             il.Emit(OpCodes.Ret);
+        }
+
+        private static void VerifySupported(bool condition, string messageFormat, MemberInfo problematicMember, params object[] otherArgs)
+        {
+            if (!condition)
+            {
+                object[] formattingArgs = new object[1 + otherArgs?.Length ?? 0];
+                formattingArgs[0] = problematicMember.DeclaringType.FullName + "." + problematicMember.Name;
+                if (otherArgs?.Length > 0)
+                {
+                    Array.Copy(otherArgs, 0, formattingArgs, 1, otherArgs.Length);
+                }
+
+                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, messageFormat, formattingArgs));
+            }
         }
     }
 }

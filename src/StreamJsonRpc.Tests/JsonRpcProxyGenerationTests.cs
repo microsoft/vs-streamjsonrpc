@@ -67,6 +67,21 @@ public class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
+    public interface IServerWithUnsupportedEventTypes
+    {
+        event Action MyActionEvent;
+    }
+
+    public interface IServerWithProperties
+    {
+        int Foo { get; set; }
+    }
+
+    public interface IServerWithGenericMethod
+    {
+        Task AddAsync<T>(T a, T b);
+    }
+
     internal interface IServerInternal
     {
         Task AddAsync(int a, int b);
@@ -124,10 +139,36 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    [Trait("NegativeTest", "")]
     public void NonTaskReturningMethod()
     {
         var streams = FullDuplexStream.CreateStreams();
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach<IServerWithNonTaskReturnTypes>(streams.Item1));
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithNonTaskReturnTypes>(streams.Item1));
+        this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void UnsupportedDelegateTypeOnEvent()
+    {
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithUnsupportedEventTypes>(this.clientStream));
+        this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void PropertyOnInterface()
+    {
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithProperties>(this.clientStream));
+        this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void GenericMethodOnInterface()
+    {
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithGenericMethod>(this.clientStream));
+        this.Logger.WriteLine(exception.Message);
     }
 
     [Fact]
