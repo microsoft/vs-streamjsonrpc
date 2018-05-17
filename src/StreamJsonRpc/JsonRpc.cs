@@ -876,7 +876,8 @@ namespace StreamJsonRpc
 
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
-                foreach (MethodInfo method in t.DeclaredMethods)
+                // As we enumerate methods, skip accessor methods
+                foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
                     var requestName = mapping.GetRpcMethodName(method);
 
