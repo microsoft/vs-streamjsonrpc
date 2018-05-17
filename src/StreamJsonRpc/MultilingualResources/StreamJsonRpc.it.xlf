@@ -189,6 +189,10 @@
           <source>Properties are not supported for service interfaces.</source>
           <target state="new">Properties are not supported for service interfaces.</target>
         </trans-unit>
+        <trans-unit id="ClientProxyTypeArgumentMustBeAnInterface" translate="yes" xml:space="preserve">
+          <source>"{0}" is not an interface.</source>
+          <target state="new">"{0}" is not an interface.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

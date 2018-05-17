@@ -40,7 +40,7 @@ namespace StreamJsonRpc
         internal static TypeInfo Get(TypeInfo serviceInterface, bool disposable)
         {
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
-            Requires.Argument(serviceInterface.IsInterface, nameof(serviceInterface), "Generic type argument must be an interface.");
+            VerifySupported(serviceInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, serviceInterface);
 
             TypeInfo generatedType;
 

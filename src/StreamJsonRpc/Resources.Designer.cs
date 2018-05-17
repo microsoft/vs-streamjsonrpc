@@ -71,6 +71,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &quot;{0}&quot; is not an interface..
+        /// </summary>
+        internal static string ClientProxyTypeArgumentMustBeAnInterface {
+            get {
+                return ResourceManager.GetString("ClientProxyTypeArgumentMustBeAnInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .NET methods &apos;{0}&apos; and &apos;{1}&apos; cannot both map to the same request method name: &apos;{2}&apos;..
         /// </summary>
         internal static string ConflictingMethodAttributeValue {

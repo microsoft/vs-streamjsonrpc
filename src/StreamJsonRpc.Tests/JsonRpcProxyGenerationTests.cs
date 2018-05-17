@@ -172,6 +172,14 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    [Trait("NegativeTest", "")]
+    public void GenerateProxyFromClassNotSuppported()
+    {
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<EmptyClass>(this.clientStream));
+        this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
     public async Task CallMethod_CancellationToken_int()
     {
         await this.clientRpc.HeavyWorkAsync(CancellationToken.None);
@@ -272,6 +280,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.server.OnItHappened(EventArgs.Empty);
         await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
         Assert.False(tcs.Task.IsCompleted);
+    }
+
+    public class EmptyClass
+    {
     }
 
     public class CustomEventArgs : EventArgs
