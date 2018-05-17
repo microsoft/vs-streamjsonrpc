@@ -54,7 +54,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken);
 
         [JsonRpcMethod("AnotherName")]
-        Task<string> AManByAsync(string name);
+        Task<string> ARoseByAsync(string name);
     }
 
     public interface IServer2
@@ -242,7 +242,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     [Fact]
     public async Task RPCMethodNameSubstitution()
     {
-        Assert.Equal("ANDREW", await this.clientRpc.AManByAsync("andrew"));
+        Assert.Equal("ANDREW", await this.clientRpc.ARoseByAsync("andrew"));
     }
 
     [Fact]
@@ -332,7 +332,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
 
-        public Task<string> AManByAsync(string name) => Task.FromResult(name.ToUpperInvariant());
+        public Task<string> ARoseByAsync(string name) => Task.FromResult(name.ToUpperInvariant());
 
         internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
 
