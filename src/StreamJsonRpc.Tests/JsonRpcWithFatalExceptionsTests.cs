@@ -86,7 +86,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     public async Task CloseStreamOnAsyncThrowExceptionandYield()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncThrowExceptionAndYield";
-        Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
+        Exception exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);

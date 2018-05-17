@@ -48,7 +48,7 @@ public class JsonRpcTests : TestBase
     private interface IServer
     {
         [JsonRpcMethod("AnotherName")]
-        string AManBy(string name);
+        string ARoseBy(string name);
 
         [JsonRpcMethod("IFaceNameForMethod")]
         int AddWithNameSubstitution(int a, int b);
@@ -772,7 +772,7 @@ public class JsonRpcTests : TestBase
     public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
         string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
-        Assert.Equal("object {\r\n  \"test\": \"test\"\r\n}", result1);
+        Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
     }
 
     [Fact]
@@ -842,14 +842,15 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
     {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        rpc.AddLocalRpcTarget(new Server());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
-        rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
-        rpc.StartListening();
+        var streams = FullDuplexStream.CreateStreams();
+        var localRpc = JsonRpc.Attach(streams.Item2);
+        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        serverRpc.AddLocalRpcTarget(new Server());
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
+        serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
+        serverRpc.StartListening();
 
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync("PlusThree", 1));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => localRpc.InvokeAsync("PlusThree", 1));
     }
 
     [Fact]
@@ -1187,7 +1188,7 @@ public class JsonRpcTests : TestBase
     public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
     {
         Assert.Equal("ANDREW", await this.clientRpc.InvokeAsync<string>("AnotherName", "andrew"));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.AManBy), "andrew"));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.ARoseBy), "andrew"));
     }
 #endif
 
@@ -1490,7 +1491,7 @@ public class JsonRpcTests : TestBase
             i = i + 1;
         }
 
-        public string AManBy(string name) => name.ToUpperInvariant();
+        public string ARoseBy(string name) => name.ToUpperInvariant();
 
         [JsonRpcMethod("ClassNameForMethod")]
         public int AddWithNameSubstitution(int a, int b) => a + b;

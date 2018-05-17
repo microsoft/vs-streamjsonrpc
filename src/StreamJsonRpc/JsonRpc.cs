@@ -783,7 +783,7 @@ namespace StreamJsonRpc
                             receiver.Dispose();
                         }
 
-                        this.eventReceivers.Clear();
+                        this.eventReceivers = null;
                     }
 
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
@@ -946,7 +946,6 @@ namespace StreamJsonRpc
             {
                 foreach (MethodInfo method in t.DeclaredMethods)
                 {
-                    var attribute = mapping.FindAttribute(method);
                     var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
@@ -992,6 +991,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
+                    var attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
@@ -1590,8 +1590,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
-                // We use null for the sender because we don't want to try to serialize the target object to the remote party.
-                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { null, args });
+                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { args });
             }
         }
     }

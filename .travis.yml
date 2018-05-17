@@ -1,0 +1,26 @@
+language: csharp
+mono: none
+dotnet: 2.1.4
+mono: 5.10.0
+
+branches:
+  only:
+  - master
+  - /^v\d+(?:\.\d+)?$/
+  - /[\b_]validate\b/
+
+os:
+  - linux
+  - osx
+
+git:
+  depth: false
+
+install:
+- nuget install xunit.runner.console -Version 2.2.0 -OutputDirectory testrunner
+- msbuild src/StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
+
+script:
+- msbuild src/StreamJsonRpc.sln /nologo /m /v:minimal /t:build
+- dotnet test -f netcoreapp2.0 --no-build --no-restore src/StreamJsonRpc.Tests
+
