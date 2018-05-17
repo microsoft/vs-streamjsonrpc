@@ -393,5 +393,41 @@ namespace StreamJsonRpc {
                 return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported event handler type on &quot;{0}&quot;. Only EventHandler and EventHandler&lt;T&gt; are supported..
+        /// </summary>
+        internal static string UnsupportedEventHandlerTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedEventHandlerTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generic methods are not supported..
+        /// </summary>
+        internal static string UnsupportedGenericMethodsOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Method &quot;{0}&quot; has unsupported return type &quot;{1}&quot;. Only Task-returning methods are supported..
+        /// </summary>
+        internal static string UnsupportedMethodReturnTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedMethodReturnTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Properties are not supported for service interfaces..
+        /// </summary>
+        internal static string UnsupportedPropertiesOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
+            }
+        }
     }
 }

@@ -246,4 +246,17 @@
   <data name="MustNotBeListening" xml:space="preserve">
     <value>This cannot be done after listening has started.</value>
   </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Unsupported event handler type on "{0}". Only EventHandler and EventHandler&lt;T&gt; are supported.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Generic methods are not supported.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Properties are not supported for service interfaces.</value>
+  </data>
 </root>

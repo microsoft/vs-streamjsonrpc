@@ -172,6 +172,23 @@
           <target state="translated">伺服器方法 {0} 擲出了嚴重例外狀況: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
         </trans-unit>
+        <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
+          <target state="new">Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
+        </trans-unit>
+        <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Generic methods are not supported.</source>
+          <target state="new">Generic methods are not supported.</target>
+        </trans-unit>
+        <trans-unit id="UnsupportedMethodReturnTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</source>
+          <target state="new">Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</target>
+        </trans-unit>
+        <trans-unit id="UnsupportedPropertiesOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Properties are not supported for service interfaces.</source>
+          <target state="new">Properties are not supported for service interfaces.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

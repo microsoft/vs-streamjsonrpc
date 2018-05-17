@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en-US" target-language="fr" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -171,6 +171,23 @@
           <source>A fatal exception was thrown from the server method {0}: {1}</source>
           <target state="translated">Une exception irrécupérable a été levée depuis la méthode de serveur {0} : {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
+        </trans-unit>
+        <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
+          <target state="new">Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
+        </trans-unit>
+        <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Generic methods are not supported.</source>
+          <target state="new">Generic methods are not supported.</target>
+        </trans-unit>
+        <trans-unit id="UnsupportedMethodReturnTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</source>
+          <target state="new">Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</target>
+        </trans-unit>
+        <trans-unit id="UnsupportedPropertiesOnClientProxyInterface" translate="yes" xml:space="preserve">
+          <source>Properties are not supported for service interfaces.</source>
+          <target state="new">Properties are not supported for service interfaces.</target>
         </trans-unit>
       </group>
     </body>

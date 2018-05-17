@@ -5,6 +5,7 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
@@ -74,13 +75,13 @@ namespace StreamJsonRpc
 
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-                VerifySupported(!serviceInterface.DeclaredProperties.Any(), "Properties are not supported for service interfaces.", serviceInterface);
+                VerifySupported(!serviceInterface.DeclaredProperties.Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
                 // Implement events
                 var ctorActions = new List<Action<ILGenerator>>();
                 foreach (var evt in serviceInterface.DeclaredEvents)
                 {
-                    VerifySupported(evt.EventHandlerType.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), "Unsupported event handler type on \"{0}\". Only EventHandler and EventHandler<T> are supported.", evt);
+                    VerifySupported(evt.EventHandlerType.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
 
                     // public event EventHandler EventName;
                     var evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
@@ -173,8 +174,8 @@ namespace StreamJsonRpc
 
                 foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
-                    VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), "Method \"{0}\" has unsupported return type \"{1}\". Only Task-returning methods are supported.", method, method.ReturnType.FullName);
-                    VerifySupported(!method.IsGenericMethod, "Generic methods are not supported", method);
+                    VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
+                    VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
 
                     ParameterInfo[] methodParameters = method.GetParameters();
                     var methodBuilder = proxyTypeBuilder.DefineMethod(
