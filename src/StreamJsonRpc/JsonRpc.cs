@@ -715,7 +715,7 @@ namespace StreamJsonRpc
                             receiver.Dispose();
                         }
 
-                        this.eventReceivers.Clear();
+                        this.eventReceivers = null;
                     }
 
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
