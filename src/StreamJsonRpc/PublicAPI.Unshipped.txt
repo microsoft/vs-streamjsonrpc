@@ -6,7 +6,7 @@ StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target, StreamJsonRpc.JsonRpcTarg
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.get -> bool
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Attach<T>() -> T
-StreamJsonRpc.JsonRpc.Attach<T>(System.Func<string, string> methodNameTransform) -> T
+StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.JsonRpcTargetOptions options) -> T
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.SynchronizationContext
 StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void

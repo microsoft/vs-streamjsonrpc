@@ -356,19 +356,16 @@ namespace StreamJsonRpc
         public T Attach<T>()
             where T : class
         {
-            return this.Attach<T>((Func<string, string>)null);
+            return this.Attach<T>((JsonRpcTargetOptions)null);
         }
 
         /// <summary>
         /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
         /// </summary>
         /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
-        /// <param name="methodNameTransform">
-        /// A function that takes the CLR method name and returns the RPC method name.
-        /// This method is useful for adding prefixes to all methods, or making them camelCased.
-        /// </param>
+        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
         /// <returns>An instance of the generated proxy.</returns>
-        public T Attach<T>(Func<string, string> methodNameTransform)
+        public T Attach<T>(JsonRpcTargetOptions options)
             where T : class
         {
             var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
