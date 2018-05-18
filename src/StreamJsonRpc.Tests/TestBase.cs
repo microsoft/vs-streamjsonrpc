@@ -84,7 +84,7 @@ public abstract class TestBase : IDisposable
             long leaked = (GC.GetTotalMemory(forceFullCollection: true) - initialMemory) / iterations;
 
             this.Logger?.WriteLine($"{leaked} bytes leaked per iteration.", leaked);
-            this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({maxBytesAllocated} allowed).");
+            this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({(maxBytesAllocated >= 0 ? (object)maxBytesAllocated : "unlimited")} allowed).");
 
             if (leaked <= 0 && (allocated <= maxBytesAllocated || maxBytesAllocated < 0))
             {

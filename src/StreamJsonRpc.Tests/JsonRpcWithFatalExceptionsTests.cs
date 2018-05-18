@@ -71,7 +71,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     public async Task CloseStreamOnAsyncYieldAndThrowException()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncYieldAndThrowException";
-        Exception exception = await Assert.ThrowsAnyAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
+        Exception exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
@@ -101,7 +101,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     public async Task CloseStreamOnAsyncTMethodException()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncTMethodException";
-        await Assert.ThrowsAsync<TaskCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
@@ -150,7 +150,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => invokeTask);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
             Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException.Message);
             Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
