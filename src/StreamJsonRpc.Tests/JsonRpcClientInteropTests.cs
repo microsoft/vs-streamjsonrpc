@@ -39,7 +39,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
             cts.Cancel();
 
             // Verify that no cancellation message is transmitted.
-            await Assert.ThrowsAsync<TaskCanceledException>(() => this.messageHandler.WrittenMessages.DequeueAsync(ExpectedTimeoutToken));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.messageHandler.WrittenMessages.DequeueAsync(ExpectedTimeoutToken));
         }
     }
 
