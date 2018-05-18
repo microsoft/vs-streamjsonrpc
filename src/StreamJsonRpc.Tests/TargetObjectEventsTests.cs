@@ -106,6 +106,20 @@ public class TargetObjectEventsTests : TestBase
         Assert.Throws<NotSupportedException>(() => JsonRpc.Attach(streams.Item1, new ServerWithIncompatibleEvents()));
     }
 
+    [Fact]
+    public void EventsAreNotOfferedAsTargetMethods()
+    {
+        Func<string, string> methodNameTransform = clrMethodName =>
+        {
+            Assert.NotEqual($"add_{nameof(Server.ServerEvent)}", clrMethodName);
+            Assert.DoesNotContain($"get_{nameof(Server.ServerEventAccessor)}", clrMethodName);
+            return clrMethodName;
+        };
+
+        var serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
