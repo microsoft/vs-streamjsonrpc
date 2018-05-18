@@ -71,6 +71,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &quot;{0}&quot; is not an interface..
+        /// </summary>
+        internal static string ClientProxyTypeArgumentMustBeAnInterface {
+            get {
+                return ResourceManager.GetString("ClientProxyTypeArgumentMustBeAnInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .NET methods &apos;{0}&apos; and &apos;{1}&apos; cannot both map to the same request method name: &apos;{2}&apos;..
         /// </summary>
         internal static string ConflictingMethodAttributeValue {
@@ -391,6 +400,42 @@ namespace StreamJsonRpc {
         internal static string UnrecognizedIncomingJsonRpc {
             get {
                 return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported event handler type on &quot;{0}&quot;. Only EventHandler and EventHandler&lt;T&gt; are supported..
+        /// </summary>
+        internal static string UnsupportedEventHandlerTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedEventHandlerTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generic methods are not supported..
+        /// </summary>
+        internal static string UnsupportedGenericMethodsOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Method &quot;{0}&quot; has unsupported return type &quot;{1}&quot;. Only Task-returning methods are supported..
+        /// </summary>
+        internal static string UnsupportedMethodReturnTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedMethodReturnTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Properties are not supported for service interfaces..
+        /// </summary>
+        internal static string UnsupportedPropertiesOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
             }
         }
     }

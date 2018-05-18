@@ -271,7 +271,9 @@ namespace StreamJsonRpc
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public static JsonRpc Attach(Stream stream, object target = null)
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         {
             Requires.NotNull(stream, nameof(stream));
 
@@ -307,6 +309,69 @@ namespace StreamJsonRpc
                 rpc.Dispose();
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="stream">The bidirectional stream used to send and receive JSON-RPC messages.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(Stream stream)
+            where T : class
+        {
+            return Attach<T>(stream, stream);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(Stream sendingStream, Stream receivingStream)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
+            var rpc = new JsonRpc(sendingStream, receivingStream);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc);
+            rpc.StartListening();
+            return proxy;
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>()
+            where T : class
+        {
+            return this.Attach<T>((JsonRpcTargetOptions)null);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>(JsonRpcTargetOptions options)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this);
+
+            return proxy;
         }
 
         /// <summary>
