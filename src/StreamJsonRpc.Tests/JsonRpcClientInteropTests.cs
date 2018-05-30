@@ -97,6 +97,27 @@ public class JsonRpcClientInteropTests : InteropTestBase
     }
 
     [Fact]
+    public async Task SerializeWithNoWhitespace()
+    {
+        this.clientRpc.JsonSerializerFormatting = Newtonsoft.Json.Formatting.None;
+        Task notifyTask = this.clientRpc.NotifyAsync("test");
+        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        this.Logger.WriteLine(json);
+        Assert.Equal(@"{""jsonrpc"":""2.0"",""method"":""test"",""params"":[]}", json);
+    }
+
+    [Fact]
+    public async Task SerializeWithPrettyFormatting()
+    {
+        Task notifyTask = this.clientRpc.NotifyAsync("test");
+        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        this.Logger.WriteLine(json);
+        string expected = "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"test\",\n  \"params\": []\n}"
+            .Replace("\n", Environment.NewLine);
+        Assert.Equal(expected, json);
+    }
+
+    [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" });

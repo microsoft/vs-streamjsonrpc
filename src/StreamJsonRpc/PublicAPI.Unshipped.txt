@@ -8,6 +8,8 @@ StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Attach<T>() -> T
 StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.JsonRpcTargetOptions options) -> T
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.JsonSerializerFormatting.get -> Newtonsoft.Json.Formatting
+StreamJsonRpc.JsonRpc.JsonSerializerFormatting.set -> void
 StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.SynchronizationContext
 StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void
 StreamJsonRpc.JsonRpcTargetOptions
