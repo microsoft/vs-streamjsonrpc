@@ -1,6 +1,6 @@
 language: csharp
-dotnet: 2.1.4
-mono: 5.10.0
+dotnet: none #2.1.300
+mono: none #5.10.0
 
 branches:
   only:
@@ -8,18 +8,33 @@ branches:
   - /^v\d+(?:\.\d+)?$/
   - /[\b_]validate\b/
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+  - os: linux
+    env: DOTNETPATH=/home/travis/.dotnet LINUX=1
+  - os: osx
+    env: DOTNETPATH=/Users/travis/.dotnet
 
 git:
   depth: false
 
+# It is important that we actually install the .NET Core runtime for each that we intend to test.
+# Otherwise, the test will run on 2.1 (or whatever is installed on the machine).
+# Some failures can be unique to specific versions of the runtime that we claim to support, so we need to test on each.
 install:
-- nuget install xunit.runner.console -Version 2.2.0 -OutputDirectory testrunner
-- msbuild src/StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
+- export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
+- if [ "$LINUX" ]; then sudo apt install libunwind8; fi
+- wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+- chmod +x /tmp/dotnet-install.sh
+- /tmp/dotnet-install.sh -v 2.1.300
+- /tmp/dotnet-install.sh -v 2.0.7 --shared-runtime
+- /tmp/dotnet-install.sh -v 1.1.8 --shared-runtime
+- /tmp/dotnet-install.sh -v 1.0.11 --shared-runtime
+- export PATH=$DOTNETPATH:$PATH
+- dotnet --info
 
 script:
-- msbuild src/StreamJsonRpc.sln /nologo /m /v:minimal /t:build
-- dotnet test -f netcoreapp2.0 --no-build --no-restore src/StreamJsonRpc.Tests
-
+- DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=1.0.11 dotnet test -f netcoreapp1.0 src/StreamJsonRpc.Tests
+- DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=1.1.8  dotnet test -f netcoreapp1.0 src/StreamJsonRpc.Tests --no-build --no-restore
+- DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=2.0.7  dotnet test -f netcoreapp2.0 src/StreamJsonRpc.Tests
+- DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=2.1.0  dotnet test -f netcoreapp2.1 src/StreamJsonRpc.Tests
