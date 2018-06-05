@@ -1303,7 +1303,7 @@ public class JsonRpcTests : TestBase
 
         public Task ServerMethodThatReturnsCustomTask()
         {
-            var result = new CustomTask();
+            var result = new CustomTask<int>(CustomTaskResult);
             result.Start();
             return result;
         }
@@ -1563,16 +1563,14 @@ public class JsonRpcTests : TestBase
     {
     }
 
-    private class CustomTask : Task<int>
+    /// <summary>
+    /// This emulates what .NET Core 2.1 does where async <see cref="Task{T}"/> methods actually return an instance of a private derived type.
+    /// </summary>
+    private class CustomTask<T> : Task<T>
     {
-        public CustomTask()
-            : base(() => 0)
+        public CustomTask(T result)
+            : base(() => result)
         {
-        }
-
-        public new int Result
-        {
-            get { return CustomTaskResult; }
         }
     }
 

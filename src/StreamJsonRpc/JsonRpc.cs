@@ -1062,6 +1062,33 @@ namespace StreamJsonRpc
             return exception;
         }
 
+        /// <summary>
+        /// Extracts the literal <see cref="Task{T}"/> type from the type hierarchy of a given type.
+        /// </summary>
+        /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
+        /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
+        /// <returns><c>true</c> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <c>false</c>.</returns>
+        private static bool TryGetTaskOfTType(TypeInfo taskTypeInfo, out TypeInfo taskOfTTypeInfo)
+        {
+            Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
+
+            while (taskTypeInfo != null)
+            {
+                if (IsTaskOfT(taskTypeInfo))
+                {
+                    taskOfTTypeInfo = taskTypeInfo;
+                    return true;
+                }
+
+                taskTypeInfo = taskTypeInfo.BaseType.GetTypeInfo();
+            }
+
+            taskOfTTypeInfo = null;
+            return false;
+
+            bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
+        }
+
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
         {
             Requires.NotNull(request, nameof(request));
@@ -1176,12 +1203,13 @@ namespace StreamJsonRpc
                 return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
             }
 
-            object taskResult = null;
-            Type taskType = t.GetType();
-
             // If t is a Task<SomeType>, it will have Result property.
             // If t is just a Task, there is no Result property on it.
-            if (!taskType.Equals(typeof(Task)))
+            // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
+            // read the result at runtime.
+            // Make sure we're prepared for Task<T>-derived types, by walking back up to the actual type in order to find the Result property.
+            object taskResult = null;
+            if (TryGetTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo))
             {
 #pragma warning disable VSTHRD002 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
 #pragma warning disable VSTHRD102 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
@@ -1189,10 +1217,9 @@ namespace StreamJsonRpc
 #pragma warning restore VSTHRD002
 #pragma warning restore VSTHRD102
 
-                // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
-                // read the result at runtime.
-                PropertyInfo resultProperty = taskType.GetTypeInfo().GetDeclaredProperty(ResultPropertyName);
-                taskResult = resultProperty?.GetValue(t);
+                PropertyInfo resultProperty = taskOfTTypeInfo.GetDeclaredProperty(ResultPropertyName);
+                Assumes.NotNull(resultProperty);
+                taskResult = resultProperty.GetValue(t);
             }
 
             return JsonRpcMessage.CreateResult(id, taskResult, this.JsonSerializer);
