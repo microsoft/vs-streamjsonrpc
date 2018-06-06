@@ -10,6 +10,7 @@ skip_commits:
   - doc/*
   - README.md
   - .vsts-ci.yml
+  - .travis.yml
 nuget:
   disable_publish_on_pr: true
 image: Visual Studio 2017
@@ -19,7 +20,8 @@ environment:
   TreatWarningsAsErrors: true
   codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
 before_build:
-  msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
+- dotnet --info
+- msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
 build_script:
 - msbuild src\StreamJsonRpc.sln /nologo /m /fl /v:minimal /t:build,pack
 test_script:
@@ -42,6 +44,7 @@ test_script:
     codecov -f "bin\StreamJsonRpc.Tests\Release\net461\code_coverage.xml"
 
     dotnet test .\src\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build
+
 artifacts:
 - path: bin\**\*.nupkg
   name: NuGet Package
