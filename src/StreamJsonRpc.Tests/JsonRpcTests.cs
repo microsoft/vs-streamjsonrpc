@@ -886,6 +886,28 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<string>("ServerMethod", "hi"));
     }
 
+    /// <summary>
+    /// Verify that the method name transform runs with the attribute-determined method name as an input.
+    /// </summary>
+    [Fact]
+    public async Task AddLocalRpcTarget_MethodNameTransformAndRpcMethodAttribute()
+    {
+        // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
+        rpc.StartListening();
+
+        Assert.Equal(3, await rpc.InvokeAsync<int>("classNameForMethod", 1, 2));
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("ClassNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("IFaceNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("AddWithNameSubstitution", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("iFaceNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("ifaceNameForMethod", 1, 2));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeAsync<int>("addWithNameSubstitution", 1, 2));
+    }
+
     [Fact]
     public async Task AddLocalRpcMethod_ActionWith0Args()
     {
