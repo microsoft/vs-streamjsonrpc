@@ -277,9 +277,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverRpc.StartListening();
 
         Assert.Equal("Hi!", await clientRpcWithCamelCase.SayHiAsync()); // "sayHiAsync"
-        Assert.Equal("ANDREW", await clientRpcWithCamelCase.ARoseByAsync("andrew")); // "anotherName"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
+#if NET452 || NET461 || NETCOREAPP2_0 // skip attribute-based renames where not supported
+        Assert.Equal("ANDREW", await clientRpcWithCamelCase.ARoseByAsync("andrew")); // "anotherName"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
+#endif
 
         // Prepare the server to *ALSO* accept method names with a prefix.
         this.serverRpc.AllowModificationWhileListening = true;
@@ -287,7 +289,9 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Retry with our second client proxy to send messages which the server should now accept.
         Assert.Equal("Hi!", await clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
+#if NET452 || NET461 || NETCOREAPP2_0 // skip attribute-based renames where not supported
         Assert.Equal("ANDREW", await clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
+#endif
     }
 
     [Fact]
