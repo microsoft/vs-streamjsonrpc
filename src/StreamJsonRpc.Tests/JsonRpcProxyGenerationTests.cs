@@ -262,8 +262,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        var camelCaseOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-        var prefixOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
+        var camelCaseOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+        var prefixOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
 
         // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
         var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
@@ -273,7 +273,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Construct the server to only respond to one set of method names for now to confirm that the client is sending the right one.
         this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
-        this.serverRpc.AddLocalRpcTarget(this.server, camelCaseOptions);
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = camelCaseOptions.MethodNameTransform });
         this.serverRpc.StartListening();
 
         Assert.Equal("Hi!", await clientRpcWithCamelCase.SayHiAsync()); // "sayHiAsync"
@@ -283,7 +283,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Prepare the server to *ALSO* accept method names with a prefix.
         this.serverRpc.AllowModificationWhileListening = true;
-        this.serverRpc.AddLocalRpcTarget(this.server, prefixOptions);
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = prefixOptions.MethodNameTransform });
 
         // Retry with our second client proxy to send messages which the server should now accept.
         Assert.Equal("Hi!", await clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
