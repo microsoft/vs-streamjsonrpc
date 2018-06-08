@@ -347,7 +347,7 @@ namespace StreamJsonRpc
         {
             var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
             var rpc = new JsonRpc(sendingStream, receivingStream);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default);
             rpc.StartListening();
             return proxy;
         }
@@ -360,20 +360,20 @@ namespace StreamJsonRpc
         public T Attach<T>()
             where T : class
         {
-            return this.Attach<T>((JsonRpcTargetOptions)null);
+            return this.Attach<T>((JsonRpcProxyOptions)null);
         }
 
         /// <summary>
         /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
         /// </summary>
         /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
-        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+        /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
         /// <returns>An instance of the generated proxy.</returns>
-        public T Attach<T>(JsonRpcTargetOptions options)
+        public T Attach<T>(JsonRpcProxyOptions options)
             where T : class
         {
             var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
 
             return proxy;
         }

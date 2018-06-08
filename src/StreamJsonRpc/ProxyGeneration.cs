@@ -73,7 +73,9 @@ namespace StreamJsonRpc
                     typeof(object),
                     interfaces.ToArray());
 
-                var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), FieldAttributes.Private | FieldAttributes.InitOnly);
+                const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
+                var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
+                var optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
 
                 VerifySupported(!serviceInterface.DeclaredProperties.Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
@@ -125,9 +127,12 @@ namespace StreamJsonRpc
                     }));
                 }
 
-                // .ctor(JsonRpc)
+                // .ctor(JsonRpc, JsonRpcProxyOptions)
                 {
-                    var ctor = proxyTypeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, new Type[] { typeof(JsonRpc) });
+                    var ctor = proxyTypeBuilder.DefineConstructor(
+                        MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
+                        CallingConventions.Standard,
+                        new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions) });
                     var il = ctor.GetILGenerator();
 
                     // : base()
@@ -138,6 +143,11 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg_1);
                     il.Emit(OpCodes.Stfld, jsonRpcField);
+
+                    // this.options = options;
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldarg_2);
+                    il.Emit(OpCodes.Stfld, optionsField);
 
                     // Emit IL that supports events.
                     foreach (var action in ctorActions)
@@ -172,6 +182,9 @@ namespace StreamJsonRpc
                 var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
 
+                var methodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
+                var funcOfStringStringInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
+
                 foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
                     VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
@@ -190,7 +203,13 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldfld, jsonRpcField);
 
                     // First argument to InvokeAsync is the method name.
+                    // Run it through the method name transform.
+                    // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, optionsField);
+                    il.EmitCall(OpCodes.Callvirt, methodNameTransformPropertyGetter, null);
                     il.Emit(OpCodes.Ldstr, methodNameMap.GetRpcMethodName(method));
+                    il.EmitCall(OpCodes.Callvirt, funcOfStringStringInvoke, null);
 
                     // The second argument is an array of arguments for the RPC method.
                     il.Emit(OpCodes.Ldc_I4, methodParameters.Count(p => p.ParameterType != typeof(CancellationToken)));
