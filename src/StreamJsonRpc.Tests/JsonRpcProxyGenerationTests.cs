@@ -57,6 +57,14 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
+    public interface IServer3
+    {
+        Task<string> SayHiAsync();
+
+        [JsonRpcMethod("AnotherName")]
+        Task<string> ARoseByAsync(string name);
+    }
+
     public interface IServer2
     {
         Task<int> MultiplyAsync(int a, int b);
@@ -248,6 +256,41 @@ public class JsonRpcProxyGenerationTests : TestBase
 #endif
 
     [Fact]
+    public async Task RPCMethodNameSubstitutionByOptions()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        var camelCaseOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+        var prefixOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
+
+        // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
+        var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        var clientRpcWithCamelCase = clientRpc.Attach<IServer3>(camelCaseOptions);
+        var clientRpcWithPrefix = clientRpc.Attach<IServer3>(prefixOptions);
+        clientRpc.StartListening();
+
+        // Construct the server to only respond to one set of method names for now to confirm that the client is sending the right one.
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.serverRpc.AddLocalRpcTarget(this.server, camelCaseOptions);
+        this.serverRpc.StartListening();
+
+        Assert.Equal("Hi!", await clientRpcWithCamelCase.SayHiAsync()); // "sayHiAsync"
+        Assert.Equal("ANDREW", await clientRpcWithCamelCase.ARoseByAsync("andrew")); // "anotherName"
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
+
+        // Prepare the server to *ALSO* accept method names with a prefix.
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(this.server, prefixOptions);
+
+        // Retry with our second client proxy to send messages which the server should now accept.
+        Assert.Equal("Hi!", await clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
+        Assert.Equal("ANDREW", await clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
+    }
+
+    [Fact]
     public async Task GenericEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<CustomEventArgs>();
@@ -293,7 +336,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public int Seeds { get; set; }
     }
 
-    internal class Server : IServer, IServer2
+    internal class Server : IServer, IServer2, IServer3
     {
         public event EventHandler ItHappened;
 
