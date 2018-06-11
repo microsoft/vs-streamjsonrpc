@@ -66,6 +66,7 @@ steps:
 
 - task: MicroBuildCleanup@1
   condition: succeededOrFailed()
+  displayName: MicroBuild Cleanup
 
 - task: CopyFiles@1
   inputs:
