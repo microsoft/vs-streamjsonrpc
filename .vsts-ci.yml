@@ -39,7 +39,7 @@ steps:
 
 - task: NuGetToolInstaller@0
   inputs:
-    versionSpec: 4.6.2
+    versionSpec: 4.5.1
   displayName: Pin nuget.exe version
 
 - task: MicroBuildIBCMergePlugin@0
@@ -72,6 +72,7 @@ steps:
 
 - task: MicroBuildCleanup@1
   condition: succeededOrFailed()
+  displayName: MicroBuild Cleanup
 
 - task: CopyFiles@1
   inputs:
