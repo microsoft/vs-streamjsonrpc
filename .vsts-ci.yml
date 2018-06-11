@@ -25,7 +25,12 @@ steps:
       del /s /q "%AppData%\tsd-cache"
   displayName: Purge package caches
   condition: and(succeeded(), ne(variables['Hosted'], 'true'))
-  
+
+- task: DotNetCoreInstaller@0
+  displayName: Install dotnet CLI
+  inputs:
+    version: 2.1.300
+
 - task: NuGetToolInstaller@0
   inputs:
     versionSpec: 4.6.2
