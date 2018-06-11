@@ -65,6 +65,22 @@ steps:
 - task: MicroBuildCleanup@1
   condition: succeededOrFailed()
 
+- task: CopyFiles@1
+  inputs:
+    Contents: |
+      obj/**/project.assets.json
+    TargetFolder: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+  displayName: Collecting project.assets.json artifacts
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+    ArtifactName: projectAssetsJson
+    ArtifactType: Container
+  displayName: Publish projectAssetsJson artifacts
+  condition: succeededOrFailed()
+
 ## The rest of these steps are for deployment and skipped for PR builds
 
 #- task: PublishBuildArtifacts@1
