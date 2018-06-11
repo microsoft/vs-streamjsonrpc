@@ -141,4 +141,20 @@
     <value>Il metodo del server {0} ha generato un'eccezione irreversibile: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Il tipo di gestore eventi non è supportato su "{0}". Sono supportati solo EventHandler ed EventHandler&lt;T&gt;.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>I metodi generici non sono supportati.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Il metodo "{0}" contiene il tipo restituito "{1}" che non è supportato. Sono supportati solo i metodi che restituiscono Task.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Le proprietà non sono supportate per le interfacce di servizio.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" non è un'interfaccia.</value>
+  </data>
 </root>

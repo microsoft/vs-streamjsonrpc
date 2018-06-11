@@ -16,7 +16,7 @@
     <value>readable et writable sont tous les deux Null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>A reçu une demande pour exécuter '{0}', mais n’a aucun objet de rappel. Suppression de la demande.</value>
+    <value>A reçu une demande pour exécuter '{0}' mais n’a aucun objet de rappel. Suppression de la demande.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>Une exception irrécupérable a été levée depuis la méthode de serveur {0} : {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Type de gestionnaire d'événements non pris en charge sur "{0}". Seuls EventHandler et EventHandler&lt;T&gt; sont pris en charge.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Les méthodes génériques ne sont pas prises en charge.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>La méthode "{0}" a un type de retour non pris en charge "{1}". Seules les méthodes qui retournent des tâches sont prises en charge.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Les propriétés ne sont pas prises en charge pour les interfaces de service.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" n'est pas une interface.</value>
   </data>
 </root>

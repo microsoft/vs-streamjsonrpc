@@ -16,7 +16,7 @@
     <value>읽고 쓸 수 있는 개체는 null입니다.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}'을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
+    <value>‘{0}’을(를) 실행하도록 요청을 받았지만 이 요청에 콜백 개체가 없습니다. 요청을 삭제합니다.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>서버 메서드에서 치명적인 예외가 throw되었습니다. {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}"의 지원되지 않는 이벤트 처리기 형식입니다. EventHandler 및 EventHandler&lt;T&gt;만 지원됩니다.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>제네릭 메서드는 지원되지 않습니다.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" 메서드에 지원되지 않는 "{1}" 반환 형식이 있습니다. 태스크 반환 메서드만 지원됩니다.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>속성은 서비스 인터페이스에 지원되지 않습니다.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}"은(는) 인터페이스가 아닙니다.</value>
   </data>
 </root>

@@ -16,7 +16,7 @@
     <value>Readable ve writable null.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>'{0}' öğesini çalıştırma isteği alındı ancak geri arama nesnesi yok. İstek bırakılıyor.</value>
+    <value>'{0}' metodunu yürütme isteği alındı ancak geri çağırma nesnesi yok. İstek bırakılıyor.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -88,7 +88,7 @@
     <value>Pozitif bir tamsayı gereklidir.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Arabellek boş. Öncelikle arabelleği doldurmak için async metodunu çağırın.</value>
+    <value>Arabellek boş. İlk olarak, arabelleği doldurmak için zaman uyumsuz yöntemini çağırın.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Negatif olmayan tamsayı gereklidir.</value>
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>{0}: {1} sunucu metodundan önemli bir özel durum oluşturuldu.</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" üzerindeki olay işleyici türü desteklenmiyor. Yalnızca EventHandler ve EventHandler&lt;T&gt; desteklenir.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Genel metotlar desteklenmiyor.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" metodunun "{1}" dönüş türü desteklenmiyor. Yalnızca Task döndüren metotlar desteklenir.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Özellikler hizmet arabirimleri için desteklenmiyor.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" bir arabirim değil.</value>
   </data>
 </root>

@@ -16,7 +16,7 @@
     <value>Readable 和 Writable 都是 Null。</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>收到了執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</value>
+    <value>取得執行 '{0}' 的要求，但沒有回呼物件。正在卸除要求。</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -94,7 +94,7 @@
     <value>需要非負整數。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0 與 {1} 參數超過陣列的長度。</value>
+    <value>{0} 和 {1} 參數超過陣列的長度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>資料流必須可讀取。</value>
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>伺服器方法 {0} 擲出了嚴重例外狀況: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" 上不支援的事件處理常式類型。只支援 EventHandler 與 EventHandler&lt;T&gt;。</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>不支援泛型方法。</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>方法 "{0}" 具有不支援的返回類型 "{1}"。只支援 Task-returning 方法。</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>服務介面不支援屬性。</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" 不是介面。</value>
   </data>
 </root>
