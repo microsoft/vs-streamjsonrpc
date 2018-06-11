@@ -40,12 +40,14 @@ steps:
   inputs:
     branch: svc/d15svc
   condition: and(succeeded(), ne(variables['Hosted'], 'true'))
+  displayName: Install MicroBuild IBCMerge Plugin
 
 - task: MicroBuildSigningPlugin@1
   inputs:
     signType: $(SignType)
     esrpSigning: true
     zipSources: false
+  displayName: Install MicroBuild Signing Plugin
 
 - task: NuGetCommand@2
   inputs:
@@ -63,6 +65,22 @@ steps:
   displayName: Build Visual Studio solution
 
 - task: MicroBuildCleanup@1
+  condition: succeededOrFailed()
+
+- task: CopyFiles@1
+  inputs:
+    Contents: |
+      obj/**/project.assets.json
+    TargetFolder: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+  displayName: Collecting project.assets.json artifacts
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+    ArtifactName: projectAssetsJson
+    ArtifactType: Container
+  displayName: Publish projectAssetsJson artifacts
   condition: succeededOrFailed()
 
 ## The rest of these steps are for deployment and skipped for PR builds
@@ -88,6 +106,7 @@ steps:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/symbols
     ArtifactName: symbols
     ArtifactType: Container
+  displayName: Publish symbols as VSTS artifacts
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: CopyFiles@1
@@ -104,6 +123,7 @@ steps:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
     ArtifactName: deployables
     ArtifactType: Container
+  displayName: Publish deployables artifacts
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: PublishSymbols@2
@@ -112,6 +132,7 @@ steps:
     SearchPattern: '**/*.pdb'
     IndexSources: false
     SymbolServerType: TeamServices
+  displayName: Publish symbols to symbol server
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: NuGetCommand@2
@@ -120,4 +141,5 @@ steps:
     searchPatternPush: '$(Build.SourcesDirectory)\bin\**\$(BuildConfiguration)\**\*.nupkg;!**\*.symbols.nupkg;!**/VS.*.nupkg'
     publishVstsFeed: $(feedGuid)
     allowPackageConflicts: true
+  displayName: Push packages to VSTS feed
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
