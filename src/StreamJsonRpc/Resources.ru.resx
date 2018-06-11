@@ -16,7 +16,7 @@
     <value>И элементы, которые можно считать, и элементы, которые доступны для записи, имеют значение NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Получен запрос на выполнение "{0}", но нет объекта обратного вызова. Запрос удаляется.</value>
+    <value>Получен запрос на выполнение "{0}", но отсутствует объект обратного вызова. Удаление запроса.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -88,7 +88,7 @@
     <value>Требуется положительное целое число.</value>
   </data>
   <data name="FillBufferFirst" xml:space="preserve">
-    <value>Буфер пуст. Чтобы заполнить его, сначала вызовите метод async.</value>
+    <value>Буфер пуст. Сначала вызовите метод async, чтобы заполнить его.</value>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>Требуется неотрицательное целое число.</value>
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>Метод сервера {0} вызвал неустранимое исключение: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Тип обработчика событий в "{0}" не поддерживается. Поддерживаются только EventHandler и EventHandler&lt;T&gt;.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Универсальные методы не поддерживаются.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Тип возвращаемого значения метода "{0}" ("{1}") не поддерживается. Поддерживаются только методы, возвращающие задачи.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Свойства интерфейсов служб не поддерживаются.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" не является интерфейсом.</value>
   </data>
 </root>

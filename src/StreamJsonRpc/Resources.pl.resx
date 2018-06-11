@@ -141,4 +141,20 @@
     <value>Metoda serwera {0}: {1} zgłosiła wyjątek krytyczny</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Nieobsługiwany typ procedury obsługi zdarzeń dla elementu „{0}”. Obsługiwane są wyłącznie procedury obsługi EventHandler i EventHandler&lt;T&gt;.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Metody ogólne nie są obsługiwane.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Metoda „{0}” ma nieobsługiwany zwracany typ „{1}”. Obsługiwane są tylko metody zwracające zadania.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Właściwości nie są obsługiwane dla interfejsów usług.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>Element „{0}” nie jest interfejsem.</value>
+  </data>
 </root>

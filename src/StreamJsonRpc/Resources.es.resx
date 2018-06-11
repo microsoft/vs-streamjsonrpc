@@ -16,7 +16,7 @@
     <value>La lectura y escritura son NULL.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
-    <value>Recibió una solicitud para ejecutar "{0}", pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
+    <value>Recibió una solicitud para ejecutar '{0}', pero no hay ningún objeto de devolución de llamada. Anulando la solicitud.</value>
     <comment>{0} is the method name to execute.</comment>
   </data>
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
@@ -140,5 +140,21 @@
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>Se lanzó una excepción fatal desde el método del servidor {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Tipo de controlador de eventos no admitido en "{0}". Solo EventHandler y EventHandler&lt;T&gt; son compatibles.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Los métodos genéricos no son compatibles.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>El método "{0}" tiene el tipo de devolución no admitido "{1}". Solo se admiten los métodos de devolución de tareas.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>No se admiten las propiedades para las interfaces de servicio.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" no es una interfaz.</value>
   </data>
 </root>
