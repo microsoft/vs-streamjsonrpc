@@ -248,6 +248,25 @@ public class JsonRpcClientInteropTests : InteropTestBase
     }
 
     [Fact]
+    public async Task ErrorResponseDataFieldIsPrimitive()
+    {
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = -32000,
+                message = "Object reference not set to an instance of an object.",
+                data = "An error occurred.",
+            },
+        });
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+    }
+
+    [Fact]
     public async Task ErrorResponseOmitsDataObject()
     {
         var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
