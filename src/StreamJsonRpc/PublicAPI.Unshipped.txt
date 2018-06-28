@@ -22,6 +22,8 @@ StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.get -> System.Func<string
 StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.set -> void
+StreamJsonRpc.RemoteInvocationException.ErrorData.get -> Newtonsoft.Json.Linq.JToken
+StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, string remoteStack, string remoteCode, Newtonsoft.Json.Linq.JToken errorData) -> void
 StreamJsonRpc.WebSocketMessageHandler
 StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void
