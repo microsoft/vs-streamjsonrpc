@@ -1033,7 +1033,7 @@ namespace StreamJsonRpc
                     return new RemoteTargetNotSetException(response.Error.Message);
 
                 default:
-                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode);
+                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode, response.Error.Data);
             }
         }
 

@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Remote RPC exception that indicates that the server target method threw an exception.
@@ -23,19 +24,23 @@ namespace StreamJsonRpc
         /// <param name="remoteStack">The remote stack.</param>
         /// <param name="remoteCode">The remote code.</param>
         public RemoteInvocationException(string message, string remoteStack, string remoteCode)
-            : this(message)
+            : this(message, remoteStack, remoteCode, null)
         {
-            this.RemoteStackTrace = remoteStack;
-            this.RemoteErrorCode = remoteCode;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
         /// <param name="message">The message.</param>
-        internal RemoteInvocationException(string message)
+        /// <param name="remoteStack">The remote stack.</param>
+        /// <param name="remoteCode">The remote code.</param>
+        /// <param name="errorData">The value of the error.data field in the response.</param>
+        public RemoteInvocationException(string message, string remoteStack, string remoteCode, JToken errorData)
             : base(message)
         {
+            this.RemoteStackTrace = remoteStack;
+            this.RemoteErrorCode = remoteCode;
+            this.ErrorData = errorData;
         }
 
 #if SERIALIZABLE_EXCEPTIONS
@@ -53,13 +58,18 @@ namespace StreamJsonRpc
 #endif
 
         /// <summary>
-        /// Gets the stack trace for the remote exception.
+        /// Gets the value of the <c>error.data.stack</c> field in the response, if that value is a string.
         /// </summary>
         public string RemoteStackTrace { get; }
 
         /// <summary>
-        /// Gets the remote error code.
+        /// Gets the value of the <c>error.data.code</c> field in the response, if that value is a string or integer.
         /// </summary>
         public string RemoteErrorCode { get; }
+
+        /// <summary>
+        /// Gets the <c>error.data</c> value in the error response, if one was provided.
+        /// </summary>
+        public JToken ErrorData { get; }
     }
 }
