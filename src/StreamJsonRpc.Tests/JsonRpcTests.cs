@@ -651,6 +651,12 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ServerReturnsCompletedTask()
+    {
+        await this.clientRpc.InvokeAsync(nameof(Server.ReturnPlainTask));
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
         string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
@@ -1061,6 +1067,17 @@ public class JsonRpcTests : TestBase
             var tcs = new TaskCompletionSource<object>();
             tcs.SetCanceled();
             return tcs.Task;
+        }
+
+        public Task ReturnPlainTask()
+        {
+#if NET452
+            var task = new Task(() => { });
+            task.RunSynchronously(TaskScheduler.Default);
+            return task;
+#else
+            return Task.CompletedTask;
+#endif
         }
 
         public void MethodThatThrowsUnauthorizedAccessException()
