@@ -10,6 +10,7 @@ skip_commits:
   - doc/*
   - README.md
   - .vsts-ci.yml
+  - .travis.yml
 nuget:
   disable_publish_on_pr: true
 image: Visual Studio 2017
@@ -19,7 +20,8 @@ environment:
   TreatWarningsAsErrors: true
   codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
 before_build:
-  msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
+- dotnet --info
+- msbuild src\StreamJsonRpc.sln /nologo /m /v:quiet /t:restore
 build_script:
 - msbuild src\StreamJsonRpc.sln /nologo /m /fl /v:minimal /t:build,pack
 test_script:
@@ -27,21 +29,22 @@ test_script:
     "%userprofile%\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe"
     -register:user
     -target:"%xunit20%\xunit.console.x86.exe"
-    -targetargs:"bin\StreamJsonRpc.Tests\Release\net46\StreamJsonRpc.Tests.dll -noshadow -html bin\StreamJsonRpc.Tests\Release\net46\testresults.html -xml bin\StreamJsonRpc.Tests\Release\net46\testresults.xml -appveyor -notrait TestCategory=FailsInCloudTest -nologo"
+    -targetargs:"bin\StreamJsonRpc.Tests\Release\net461\StreamJsonRpc.Tests.dll -noshadow -html bin\StreamJsonRpc.Tests\Release\net461\testresults.html -xml bin\StreamJsonRpc.Tests\Release\net461\testresults.xml -appveyor -notrait TestCategory=FailsInCloudTest -nologo"
     -returntargetcode
     -excludebyattribute:*.ExcludeFromCodeCoverage*
     -excludebyfile:*\*Designer.cs
     -filter:"+[StreamJsonRpc]*"
     -hideskipped:All
-    -output:bin\StreamJsonRpc.Tests\Release\net46\code_coverage.xml
+    -output:bin\StreamJsonRpc.Tests\Release\net461\code_coverage.xml
 
     SET PATH=C:\Python34;C:\Python34\Scripts;%PATH%
 
     pip install codecov
 
-    codecov -f "bin\StreamJsonRpc.Tests\Release\net46\code_coverage.xml"
+    codecov -f "bin\StreamJsonRpc.Tests\Release\net461\code_coverage.xml"
 
-    dotnet test .\src\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -f netcoreapp1.0
+    dotnet test .\src\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build
+
 artifacts:
 - path: bin\**\*.nupkg
   name: NuGet Package

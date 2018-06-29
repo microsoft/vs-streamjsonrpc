@@ -121,7 +121,9 @@ namespace StreamJsonRpc
                 {
                     using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
-                        return await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                        string result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                        Assumes.True(result != string.Empty); // null is allowed, but an empty string is not.
+                        return result;
                     }
                 }
                 catch (ObjectDisposedException)
@@ -157,6 +159,8 @@ namespace StreamJsonRpc
                     {
                         await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
                     }
+
+                    await this.FlushCoreAsync().ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -198,7 +202,11 @@ namespace StreamJsonRpc
         /// Reads a distinct and complete message from the stream, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>
-        /// <returns>A task whose result is the received messages.</returns>
+        /// <returns>
+        /// A task whose result is the received message.
+        /// A null string indicates the stream has ended.
+        /// An empty string should never be returned.
+        /// </returns>
         protected abstract Task<string> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
@@ -209,5 +217,12 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
         protected abstract Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,
+        /// or equivalent sending stream if using an alternate transport.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
+        protected virtual Task FlushCoreAsync() => this.SendingStream.FlushAsync();
     }
 }

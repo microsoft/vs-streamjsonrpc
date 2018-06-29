@@ -39,7 +39,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
             cts.Cancel();
 
             // Verify that no cancellation message is transmitted.
-            await Assert.ThrowsAsync<TaskCanceledException>(() => this.messageHandler.WrittenMessages.DequeueAsync(ExpectedTimeoutToken));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.messageHandler.WrittenMessages.DequeueAsync(ExpectedTimeoutToken));
         }
     }
 
@@ -94,6 +94,27 @@ public class JsonRpcClientInteropTests : InteropTestBase
         JObject request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal(0, ((JArray)request["params"]).Count);
+    }
+
+    [Fact]
+    public async Task SerializeWithNoWhitespace()
+    {
+        this.clientRpc.JsonSerializerFormatting = Newtonsoft.Json.Formatting.None;
+        Task notifyTask = this.clientRpc.NotifyAsync("test");
+        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        this.Logger.WriteLine(json);
+        Assert.Equal(@"{""jsonrpc"":""2.0"",""method"":""test"",""params"":[]}", json);
+    }
+
+    [Fact]
+    public async Task SerializeWithPrettyFormatting()
+    {
+        Task notifyTask = this.clientRpc.NotifyAsync("test");
+        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        this.Logger.WriteLine(json);
+        string expected = "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"test\",\n  \"params\": []\n}"
+            .Replace("\n", Environment.NewLine);
+        Assert.Equal(expected, json);
     }
 
     [Fact]
@@ -203,6 +224,11 @@ public class JsonRpcClientInteropTests : InteropTestBase
     [Fact]
     public async Task ErrorResponseUsesUnexpectedDataTypes()
     {
+        var errorData = new
+        {
+            stack = new { foo = 3 },
+            code = new { bar = "-2147467261" },
+        };
         var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
         var remoteReceivedMessage = await this.ReceiveAsync();
         var errorObject = new
@@ -213,22 +239,47 @@ public class JsonRpcClientInteropTests : InteropTestBase
             {
                 code = -32000,
                 message = "Object reference not set to an instance of an object.",
-                data = new
-                {
-                    stack = new { foo = 3 },
-                    code = new { bar = "-2147467261" },
-                },
+                data = errorData,
             },
         };
         this.Send(errorObject);
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Null(((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
-        Assert.Null(((RemoteInvocationException)requestTask.Exception.InnerException).RemoteErrorCode);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Null(ex.RemoteStackTrace);
+        Assert.Null(ex.RemoteErrorCode);
+        Assert.Equal(errorData.stack.foo, ex.ErrorData["stack"].Value<int>("foo"));
     }
 
     [Fact]
     public async Task ErrorResponseOmitsFieldsInDataObject()
     {
+        const int expectedCode = -32000;
+        const string expectedMessage = "Object reference not set to an instance of an object.";
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = expectedCode,
+                message = expectedMessage,
+                data = new
+                {
+                },
+            },
+        });
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Equal(expectedMessage, ex.Message);
+        var errorData = Assert.IsType<JObject>(ex.ErrorData);
+        Assert.Empty(errorData.Properties());
+    }
+
+    [Fact]
+    public async Task ErrorResponseDataFieldIsPrimitive()
+    {
+        string expectedMessage = "Object reference not set to an instance of an object.";
+        string expectedData = "An error occurred.";
         var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
         var remoteReceivedMessage = await this.ReceiveAsync();
         this.Send(new
@@ -238,13 +289,13 @@ public class JsonRpcClientInteropTests : InteropTestBase
             error = new
             {
                 code = -32000,
-                message = "Object reference not set to an instance of an object.",
-                data = new
-                {
-                },
+                message = expectedMessage,
+                data = expectedData,
             },
         });
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.Equal(expectedMessage, ex.Message);
+        Assert.Equal(expectedData, ex.ErrorData?.Value<string>());
     }
 
     [Fact]

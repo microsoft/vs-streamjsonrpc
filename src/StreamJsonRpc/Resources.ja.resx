@@ -94,7 +94,7 @@
     <value>負でない整数が必要です。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] と {1} パラメーターが配列の長さを超えました。</value>
+    <value>{0} と {1} パラメーターが配列の長さを超えました。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>ストリームは読み取り可能である必要があります。</value>
@@ -120,5 +120,41 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>.NET メソッド '{0}' と '{1}' を両方とも同じ要求メソッド名 '{2}' にマッピングすることはできません。</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>名前 '{0}' によるメソッドは見つかりませんでした。</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>同じ名前を持つメソッドと同等のパラメーターは既に登録されています。</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>メソッドが静的でない場合のみ、ターゲット オブジェクトを指定する必要があります。</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>最初にリッスンを開始する必要があります。</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>リッスンを開始した後でこれを行うことはできません。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>致命的な例外がサーバー メソッド {0} からスローされました: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" でサポートされていないイベント ハンドラーの型です。EventHandler および EventHandler&lt;T&gt; のみがサポートされています。</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>ジェネリック メソッドはサポートされていません。</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>メソッド "{0}" にはサポートされていない戻り値の型 "{1}" が含まれています。タスクを返すメソッドのみがサポートされています。</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>プロパティは、サービス インターフェイスではサポートされていません。</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" はインターフェイスではありません。</value>
   </data>
 </root>

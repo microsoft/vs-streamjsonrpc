@@ -94,7 +94,7 @@
     <value>必须提供一个非负整数。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 和 {1} 参数超出了数组的长度。</value>
+    <value>{0} 和 {1} 参数超出了数组的长度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>流必须可读。</value>
@@ -120,5 +120,41 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>.NET 方法“{0}”和“{1}”不能映射到同一请求方法名“{2}”。</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>找不到名为“{0}”的方法。</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>已注册了具有相同名称和等效参数的方法。</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>当且仅当方法不是静态时，才提供目标对象。</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>必须先开始侦听。</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>侦听开始后，无法完成此操作。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>服务器方法 {0} 引发了严重的异常: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>“{0}”上不支持的事件处理程序类型。仅支持 EventHandler 和 EventHandler&lt;T&gt;。</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>不支持泛型方法。</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>方法“{0}”具有不支持的返回类型“{1}”。只支持返回任务的方法。</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>服务接口不支持属性。</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>“{0}”不是接口。</value>
   </data>
 </root>

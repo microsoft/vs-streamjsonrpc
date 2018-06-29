@@ -62,20 +62,20 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot attach additional target once JsonRpc has started listening for messages..
-        /// </summary>
-        internal static string AttachTargetAfterStartListeningError {
-            get {
-                return ResourceManager.GetString("AttachTargetAfterStartListeningError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Both readable and writable are null..
         /// </summary>
         internal static string BothReadableWritableAreNull {
             get {
                 return ResourceManager.GetString("BothReadableWritableAreNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &quot;{0}&quot; is not an interface..
+        /// </summary>
+        internal static string ClientProxyTypeArgumentMustBeAnInterface {
+            get {
+                return ResourceManager.GetString("ClientProxyTypeArgumentMustBeAnInterface", resourceCulture);
             }
         }
         
@@ -130,6 +130,15 @@ namespace StreamJsonRpc {
         internal static string FailureDeserializingJsonRpc {
             get {
                 return ResourceManager.GetString("FailureDeserializingJsonRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A fatal exception was thrown from the server method {0}: {1}.
+        /// </summary>
+        internal static string FatalExceptionWasThrown {
+            get {
+                return ResourceManager.GetString("FatalExceptionWasThrown", resourceCulture);
             }
         }
         
@@ -211,6 +220,24 @@ namespace StreamJsonRpc {
         internal static string MethodParametersNotCompatible {
             get {
                 return ResourceManager.GetString("MethodParametersNotCompatible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Listening must be started first..
+        /// </summary>
+        internal static string MustBeListening {
+            get {
+                return ResourceManager.GetString("MustBeListening", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This cannot be done after listening has started..
+        /// </summary>
+        internal static string MustNotBeListening {
+            get {
+                return ResourceManager.GetString("MustNotBeListening", resourceCulture);
             }
         }
         
@@ -305,7 +332,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The {0] and {1} parameters exceed length of array..
+        ///   Looks up a localized string similar to The {0} and {1} parameters exceed length of array..
         /// </summary>
         internal static string SumOfTwoParametersExceedsArrayLength {
             get {
@@ -373,6 +400,42 @@ namespace StreamJsonRpc {
         internal static string UnrecognizedIncomingJsonRpc {
             get {
                 return ResourceManager.GetString("UnrecognizedIncomingJsonRpc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported event handler type on &quot;{0}&quot;. Only EventHandler and EventHandler&lt;T&gt; are supported..
+        /// </summary>
+        internal static string UnsupportedEventHandlerTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedEventHandlerTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generic methods are not supported..
+        /// </summary>
+        internal static string UnsupportedGenericMethodsOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Method &quot;{0}&quot; has unsupported return type &quot;{1}&quot;. Only Task-returning methods are supported..
+        /// </summary>
+        internal static string UnsupportedMethodReturnTypeOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedMethodReturnTypeOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Properties are not supported for service interfaces..
+        /// </summary>
+        internal static string UnsupportedPropertiesOnClientProxyInterface {
+            get {
+                return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
             }
         }
     }

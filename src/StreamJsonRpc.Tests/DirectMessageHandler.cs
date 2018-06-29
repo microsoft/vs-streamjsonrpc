@@ -30,6 +30,6 @@ public class DirectMessageHandler : DelimitedMessageHandler
     protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
     {
         this.WrittenMessages.Enqueue(content);
-        return Task.CompletedTask;
+        return TplExtensions.CompletedTask;
     }
 }

@@ -31,11 +31,13 @@ public abstract class TestBase : IDisposable
 
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
 
+    protected static CancellationToken UnexpectedTimeoutToken => new CancellationTokenSource(UnexpectedTimeout).Token;
+
     protected ITestOutputHelper Logger { get; }
 
-    protected CancellationToken TimeoutToken => this.timeoutTokenSource.Token;
+    protected CancellationToken TimeoutToken => Debugger.IsAttached ? CancellationToken.None : this.timeoutTokenSource.Token;
 
-    private static TimeSpan TestTimeout => Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
+    private static TimeSpan TestTimeout => UnexpectedTimeout;
 
     public void Dispose()
     {
@@ -82,7 +84,7 @@ public abstract class TestBase : IDisposable
             long leaked = (GC.GetTotalMemory(forceFullCollection: true) - initialMemory) / iterations;
 
             this.Logger?.WriteLine($"{leaked} bytes leaked per iteration.", leaked);
-            this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({maxBytesAllocated} allowed).");
+            this.Logger?.WriteLine($"{allocated} bytes allocated per iteration ({(maxBytesAllocated >= 0 ? (object)maxBytesAllocated : "unlimited")} allowed).");
 
             if (leaked <= 0 && (allocated <= maxBytesAllocated || maxBytesAllocated < 0))
             {

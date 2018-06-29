@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -29,6 +30,11 @@ namespace StreamJsonRpc
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
+
+        /// <summary>
+        /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
+        /// </summary>
+        private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
 
         private readonly object syncObject = new object();
 
@@ -72,11 +78,26 @@ namespace StreamJsonRpc
 
         private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
 
+        /// <summary>
+        /// The completion source behind <see cref="Completion"/>.
+        /// </summary>
+        private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
+
+        /// <summary>
+        /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
+        /// </summary>
+        private List<EventReceiver> eventReceivers;
+
         private Task readLinesTask;
         private int nextId = 1;
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
         private bool startedListening;
+
+        /// <summary>
+        /// Backing field for the <see cref="SynchronizationContext"/> property.
+        /// </summary>
+        private SynchronizationContext synchronizationContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -173,6 +194,58 @@ namespace StreamJsonRpc
         /// </summary>
         public DelimitedMessageHandler MessageHandler { get; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="System.Threading.SynchronizationContext"/> to use when invoking methods requested by the remote party.
+        /// </summary>
+        /// <value>Defaults to null.</value>
+        /// <remarks>
+        /// When not specified, methods are invoked on the threadpool.
+        /// </remarks>
+        public SynchronizationContext SynchronizationContext
+        {
+            get => this.synchronizationContext;
+
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.synchronizationContext = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Task"/> that completes when listening has stopped,
+        /// whether by error, disposal or the stream closing.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="StartListening"/> has not yet been called.</exception>
+        /// <remarks>
+        /// The returned <see cref="Task"/> may transition to a faulted state
+        /// for exceptions fatal to the protocol or this instance.
+        /// </remarks>
+        public Task Completion
+        {
+            get
+            {
+                Verify.Operation(this.startedListening, Resources.MustBeListening);
+                return this.completionSource.Task;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether configuration of this instance
+        /// can be changed after <see cref="StartListening"/> or <see cref="Attach(Stream, object)"/>
+        /// has been called.
+        /// </summary>
+        /// <value>The default is <c>false</c>.</value>
+        /// <remarks>
+        /// By default, all configuration such as target objects and target methods must be set
+        /// before listening starts to avoid a race condition whereby we receive a method invocation
+        /// message before we have wired up a handler for it and must reject the call.
+        /// But in some advanced scenarios, it may be necessary to add target methods after listening
+        /// has started (e.g. in response to an invocation that enables additional functionality),
+        /// in which case setting this property to <c>true</c> is appropriate.
+        /// </remarks>
+        public bool AllowModificationWhileListening { get; set; }
+
         /// <inheritdoc />
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
@@ -181,11 +254,20 @@ namespace StreamJsonRpc
         /// </summary>
         public JsonSerializer JsonSerializer { get; }
 
+        /// <summary>
+        /// Gets or sets the formatting to use when serializing JSON-RPC messages.
+        /// </summary>
+        /// <value>The default value is <see cref="Formatting.Indented"/>.</value>
+        public Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+
         private JsonSerializerSettings MessageJsonSerializerSettings { get; }
 
         private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
 
-        private Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+        /// <summary>
+        /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
+        /// </summary>
+        private SynchronizationContext SynchronizationContextOrDefault => this.SynchronizationContext ?? DefaultSynchronizationContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
@@ -193,7 +275,9 @@ namespace StreamJsonRpc
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
         /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public static JsonRpc Attach(Stream stream, object target = null)
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         {
             Requires.NotNull(stream, nameof(stream));
 
@@ -232,21 +316,95 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="stream">The bidirectional stream used to send and receive JSON-RPC messages.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(Stream stream)
+            where T : class
+        {
+            return Attach<T>(stream, stream);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
+        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(Stream sendingStream, Stream receivingStream)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
+            var rpc = new JsonRpc(sendingStream, receivingStream);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default);
+            rpc.StartListening();
+            return proxy;
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>()
+            where T : class
+        {
+            return this.Attach<T>((JsonRpcProxyOptions)null);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public T Attach<T>(JsonRpcProxyOptions options)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
+
+            return proxy;
+        }
+
+        /// <summary>
         /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
-        public void AddLocalRpcTarget(object target)
+        public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
+
+        /// <summary>
+        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
+        /// should not inherit from each other and are invoked in the order which they are added.
+        /// </summary>
+        /// <param name="target">Target to invoke when incoming messages are received.</param>
+        /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
-            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+            options = options ?? JsonRpcTargetOptions.Default;
+            this.ThrowIfConfigurationLocked();
 
             var mapping = GetRequestMethodToClrMethodMap(target);
             lock (this.syncObject)
             {
                 foreach (var item in mapping)
                 {
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(item.Key, out var existingList))
+                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                     {
                         // Only add methods that do not have equivalent signatures to what we already have.
                         foreach (var newMethod in item.Value)
@@ -259,7 +417,20 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        this.targetRequestMethodToClrMethodMap.Add(item.Key, item.Value);
+                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
+                    }
+                }
+
+                if (options.NotifyClientOfEvents)
+                {
+                    foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
+                    {
+                        if (this.eventReceivers == null)
+                        {
+                            this.eventReceivers = new List<EventReceiver>();
+                        }
+
+                        this.eventReceivers.Add(new EventReceiver(this, target, evt));
                     }
                 }
             }
@@ -299,7 +470,7 @@ namespace StreamJsonRpc
             Requires.NotNull(handler, nameof(handler));
             Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
 
-            Verify.Operation(!this.startedListening, Resources.AttachTargetAfterStartListeningError);
+            this.ThrowIfConfigurationLocked();
             lock (this.syncObject)
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
@@ -606,11 +777,33 @@ namespace StreamJsonRpc
                 this.disposed = true;
                 if (disposing)
                 {
+                    if (this.eventReceivers != null)
+                    {
+                        foreach (var receiver in this.eventReceivers)
+                        {
+                            receiver.Dispose();
+                        }
+
+                        this.eventReceivers = null;
+                    }
+
                     var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
             }
         }
+
+        /// <summary>
+        /// Indicates whether the connection should be closed when the server throws an exception.
+        /// </summary>
+        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
+        /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
+        /// <remarks>
+        /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
+        /// If the process should crash on an exception,
+        /// calling <see cref="Environment.FailFast(string, Exception)"/> will produce such behavior.
+        /// </remarks>
+        protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
         /// Invokes the specified RPC method
@@ -693,7 +886,18 @@ namespace StreamJsonRpc
                         }
                         else if (response.IsError)
                         {
-                            tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
+                            if (response.Error?.Code == (int)JsonRpcErrorCode.RequestCanceled)
+                            {
+#if TRYSETCANCELED_CT
+                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+#else
+                                tcs.TrySetCanceled();
+#endif
+                            }
+                            else
+                            {
+                                tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
+                            }
                         }
                         else
                         {
@@ -737,12 +941,14 @@ namespace StreamJsonRpc
             var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
+            var mapping = new MethodNameMap(target.GetType().GetTypeInfo());
+
             for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
-                foreach (MethodInfo method in t.DeclaredMethods)
+                // As we enumerate methods, skip accessor methods
+                foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
-                    var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-                    var requestName = attribute?.Name ?? method.Name;
+                    var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
                     {
@@ -787,6 +993,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
+                    var attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
@@ -826,7 +1033,7 @@ namespace StreamJsonRpc
                     return new RemoteTargetNotSetException(response.Error.Message);
 
                 default:
-                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode);
+                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode, response.Error.Data);
             }
         }
 
@@ -837,15 +1044,49 @@ namespace StreamJsonRpc
                 throw new ArgumentNullException(nameof(exception));
             }
 
-            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
-            {
-                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
-                // the fact we are using reflection.
-                exception = exception.InnerException;
-            }
+            exception = StripExceptionToInnerException(exception);
 
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
             return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
+        }
+
+        private static Exception StripExceptionToInnerException(Exception exception)
+        {
+            if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
+            {
+                // Never let the outer (TargetInvocationException) escape because the inner is the interesting one to the caller, the outer is due to
+                // the fact that we are using reflection.
+                return exception.InnerException;
+            }
+
+            return exception;
+        }
+
+        /// <summary>
+        /// Extracts the literal <see cref="Task{T}"/> type from the type hierarchy of a given type.
+        /// </summary>
+        /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
+        /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
+        /// <returns><c>true</c> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <c>false</c>.</returns>
+        private static bool TryGetTaskOfTType(TypeInfo taskTypeInfo, out TypeInfo taskOfTTypeInfo)
+        {
+            Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
+
+            while (taskTypeInfo != null)
+            {
+                if (IsTaskOfT(taskTypeInfo))
+                {
+                    taskOfTTypeInfo = taskTypeInfo;
+                    return true;
+                }
+
+                taskTypeInfo = taskTypeInfo.BaseType.GetTypeInfo();
+            }
+
+            taskOfTTypeInfo = null;
+            return false;
+
+            bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
         }
 
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
@@ -894,18 +1135,26 @@ namespace StreamJsonRpc
                     }
                 }
 
-                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile
-                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-
+                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
+                // IMPORTANT: This should be the first await in this async method,
+                //            and no other await should be between this one and actually invoking the target method.
+                //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                //            when a single-threaded SynchronizationContext is applied.
+                await this.SynchronizationContextOrDefault;
                 object result = targetMethod.Invoke(cancellationToken);
-                if (!(result is Task))
+                if (!(result is Task resultingTask))
                 {
                     return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
                 }
 
-                return await ((Task)result).ContinueWith(this.handleInvocationTaskResultDelegate, request.Id, TaskScheduler.Default).ConfigureAwait(false);
+                return await resultingTask.ContinueWith(
+                    this.handleInvocationTaskResultDelegate,
+                    request.Id,
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
                 return CreateError(request.Id, ex);
             }
@@ -935,20 +1184,32 @@ namespace StreamJsonRpc
 
             if (t.IsFaulted)
             {
+                var exception = StripExceptionToInnerException(t.Exception);
+                if (this.IsFatalException(exception))
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.FatalExceptionWasThrown, exception.GetType(), exception.Message),
+                        DisconnectedReason.FatalException,
+                        exception);
+
+                    this.OnJsonRpcDisconnected(e);
+                }
+
                 return CreateError(id, t.Exception);
             }
 
             if (t.IsCanceled)
             {
-                return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, Resources.TaskWasCancelled);
+                return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
             }
-
-            object taskResult = null;
-            Type taskType = t.GetType();
 
             // If t is a Task<SomeType>, it will have Result property.
             // If t is just a Task, there is no Result property on it.
-            if (!taskType.Equals(typeof(Task)))
+            // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
+            // read the result at runtime.
+            // Make sure we're prepared for Task<T>-derived types, by walking back up to the actual type in order to find the Result property.
+            object taskResult = null;
+            if (TryGetTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo))
             {
 #pragma warning disable VSTHRD002 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
 #pragma warning disable VSTHRD102 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
@@ -956,10 +1217,9 @@ namespace StreamJsonRpc
 #pragma warning restore VSTHRD002
 #pragma warning restore VSTHRD102
 
-                // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
-                // read the result at runtime.
-                PropertyInfo resultProperty = taskType.GetTypeInfo().GetDeclaredProperty(ResultPropertyName);
-                taskResult = resultProperty?.GetValue(t);
+                PropertyInfo resultProperty = taskOfTTypeInfo.GetDeclaredProperty(ResultPropertyName);
+                Assumes.NotNull(resultProperty);
+                taskResult = resultProperty.GetValue(t);
             }
 
             return JsonRpcMessage.CreateResult(id, taskResult, this.JsonSerializer);
@@ -970,7 +1230,12 @@ namespace StreamJsonRpc
             EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
             lock (this.disconnectedEventLock)
             {
-                if (!this.hasDisconnectedEventBeenRaised)
+                if (this.hasDisconnectedEventBeenRaised)
+                {
+                    // Someone else has done all this work.
+                    return;
+                }
+                else
                 {
                     this.hasDisconnectedEventBeenRaised = true;
                     handlersToInvoke = this.DisconnectedPrivate;
@@ -990,6 +1255,16 @@ namespace StreamJsonRpc
                 this.disposeCts.Cancel();
                 this.MessageHandler.Dispose();
                 this.CancelPendingRequests();
+
+                // Ensure the Task we may have returned from Completion is completed.
+                if (eventArgs.Exception != null)
+                {
+                    this.completionSource.TrySetException(eventArgs.Exception);
+                }
+                else
+                {
+                    this.completionSource.TrySetResult(true);
+                }
             }
         }
 
@@ -1052,6 +1327,7 @@ namespace StreamJsonRpc
             }
             finally
             {
+                this.completionSource.TrySetResult(true);
                 if (disconnectedEventArgs == null)
                 {
                     disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
@@ -1067,6 +1343,7 @@ namespace StreamJsonRpc
             try
             {
                 rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
+                Assumes.NotNull(rpc);
             }
             catch (JsonException exception)
             {
@@ -1228,6 +1505,67 @@ namespace StreamJsonRpc
             return this.MessageHandler.WriteAsync(json, cancellationToken);
         }
 
+        /// <summary>
+        /// Throws an exception if we have already started listening,
+        /// unless <see cref="AllowModificationWhileListening"/> is <c>true</c>.
+        /// </summary>
+        private void ThrowIfConfigurationLocked()
+        {
+            Verify.Operation(!this.startedListening || this.AllowModificationWhileListening, Resources.MustNotBeListening);
+        }
+
+        internal class MethodNameMap
+        {
+            private readonly List<InterfaceMapping> interfaceMaps;
+
+            internal MethodNameMap(TypeInfo typeInfo)
+            {
+                Requires.NotNull(typeInfo, nameof(typeInfo));
+#if NET45 || NET46 || NETSTANDARD2_0
+                this.interfaceMaps = typeInfo.ImplementedInterfaces.Select(i => typeInfo.GetInterfaceMap(i)).ToList();
+#else
+                this.interfaceMaps = new List<InterfaceMapping>();
+#endif
+            }
+
+            internal string GetRpcMethodName(MethodInfo method)
+            {
+                Requires.NotNull(method, nameof(method));
+
+                return this.FindAttribute(method)?.Name ?? method.Name;
+            }
+
+            internal JsonRpcMethodAttribute FindAttribute(MethodInfo method)
+            {
+                Requires.NotNull(method, nameof(method));
+
+                // Get the custom attribute, which may appear on the method itself or the interface definition of the method where applicable.
+                var attribute = (JsonRpcMethodAttribute)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                if (attribute == null)
+                {
+                    attribute = (JsonRpcMethodAttribute)this.FindMethodOnInterface(method)?.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
+                }
+
+                return attribute;
+            }
+
+            private MethodInfo FindMethodOnInterface(MethodInfo methodImpl)
+            {
+                Requires.NotNull(methodImpl, nameof(methodImpl));
+
+                foreach (var map in this.interfaceMaps)
+                {
+                    int methodIndex = Array.IndexOf(map.TargetMethods, methodImpl);
+                    if (methodIndex >= 0)
+                    {
+                        return map.InterfaceMethods[methodIndex];
+                    }
+                }
+
+                return null;
+            }
+        }
+
         private class OutstandingCallData
         {
             internal OutstandingCallData(object taskCompletionSource, Action<JsonRpcMessage> completionHandler)
@@ -1239,6 +1577,50 @@ namespace StreamJsonRpc
             internal object TaskCompletionSource { get; }
 
             internal Action<JsonRpcMessage> CompletionHandler { get; }
+        }
+
+        private class EventReceiver : IDisposable
+        {
+            private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
+            private readonly JsonRpc jsonRpc;
+            private readonly object server;
+            private readonly EventInfo eventInfo;
+            private readonly Delegate registeredHandler;
+
+            internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo)
+            {
+                Requires.NotNull(jsonRpc, nameof(jsonRpc));
+                Requires.NotNull(server, nameof(server));
+                Requires.NotNull(eventInfo, nameof(eventInfo));
+
+                this.jsonRpc = jsonRpc;
+                this.server = server;
+                this.eventInfo = eventInfo;
+                try
+                {
+                    // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
+                    // It will work for EventHandler and EventHandler<T>, at least.
+                    // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
+                    // with the right signature.
+                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new NotSupportedException("Unsupported event handler type for: " + eventInfo.Name, ex);
+                }
+
+                eventInfo.AddEventHandler(server, this.registeredHandler);
+            }
+
+            public void Dispose()
+            {
+                this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
+            }
+
+            private void OnEventRaised(object sender, EventArgs args)
+            {
+                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { args });
+            }
         }
     }
 }

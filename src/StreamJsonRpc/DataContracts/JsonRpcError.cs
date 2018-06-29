@@ -25,16 +25,16 @@ namespace StreamJsonRpc
         }
 
         [JsonConstructor]
-        internal JsonRpcError(int code, string message, JObject data)
+        internal JsonRpcError(int code, string message, JToken data)
         {
             this.Code = code;
             this.Message = message;
             this.Data = data;
         }
 
-        public string ErrorStack => this.Data?[DataStackFieldName]?.Type == JTokenType.String ? this.Data.Value<string>(DataStackFieldName) : null;
+        public string ErrorStack => this.Data is JObject && this.Data?[DataStackFieldName]?.Type == JTokenType.String ? this.Data.Value<string>(DataStackFieldName) : null;
 
-        public string ErrorCode => this.Data?[DataCodeFieldName]?.Type == JTokenType.String || this.Data?[DataCodeFieldName]?.Type == JTokenType.Integer ? this.Data.Value<string>(DataCodeFieldName) : null;
+        public string ErrorCode => this.Data is JObject && (this.Data?[DataCodeFieldName]?.Type == JTokenType.String || this.Data?[DataCodeFieldName]?.Type == JTokenType.Integer) ? this.Data.Value<string>(DataCodeFieldName) : null;
 
         [JsonProperty("code", Required = Required.Always)]
         internal int Code { get; private set; }
@@ -43,6 +43,6 @@ namespace StreamJsonRpc
         internal string Message { get; private set; }
 
         [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)]
-        internal JObject Data { get; private set; }
+        internal JToken Data { get; private set; }
     }
 }

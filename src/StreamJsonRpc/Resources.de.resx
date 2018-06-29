@@ -94,7 +94,7 @@
     <value>Ein nicht negativer Integerwert ist erforderlich.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Die Parameter {0] und {1} überschreiten die Länge des Arrays.</value>
+    <value>Die Parameter {0} und {1} überschreiten die Länge des Arrays.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Der Datenstrom muss lesbar sein.</value>
@@ -120,5 +120,41 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>Die .NET-Methoden "{0}" und "{1}" können nicht beide dem gleichen Anforderungsmethodennamen zugeordnet werden: "{2}".</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Keine Methode mit dem Namen "{0}" gefunden.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Es wurde bereits eine Methode mit diesem Namen und identischen Parametern registriert.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Ein Zielobjekt darf nur angegeben werden, wenn die Methode nicht statisch ist.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Zunächst muss das Lauschen gestartet werden.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Dieser Vorgang kann nicht ausgeführt werden, nachdem das Lauschen gestartet wurde.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Eine schwerwiegende Ausnahme wurde von der Servermethode "{0}" ausgelöst: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Nicht unterstützter Ereignishandlertyp auf "{0}". Nur EventHandler und EventHandler&lt;T&gt; werden unterstützt.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Generische Methoden werden nicht unterstützt.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Die Methode "{0}" weist einen nicht unterstützten Rückgabetyp "{1}" auf. Es werden nur Methoden unterstützt, die Tasks zurückgeben.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Eigenschaften werden für Dienstschnittstellen nicht unterstützt.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" ist keine Schnittstelle.</value>
   </data>
 </root>

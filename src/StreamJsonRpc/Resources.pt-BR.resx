@@ -94,7 +94,7 @@
     <value>Um inteiro não negativo é necessário.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Os parâmetros {0] e {1} excedem o comprimento da matriz.</value>
+    <value>Os parâmetros {0} e {1} excedem o comprimento da matriz.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>O fluxo deve ser legível.</value>
@@ -120,5 +120,41 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>Os métodos .NET '{0}' e '{1}' não podem ser mapeados para o mesmo nome do método de solicitação: '{2}'.</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Nenhum método com o nome '{0}' foi encontrado.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Um método com o mesmo nome e parâmetros equivalentes já foi registrado.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Um objeto de destino deve ser fornecido se e somente se o método não é estático.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>A escuta precisa ser iniciada primeiro.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Isso não pode ser feito após o início da escuta.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Uma exceção fatal foi gerada pelo método do servidor {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Tipo de manipulador de eventos não compatível em "{0}". Apenas EventHandler e EventHandler&lt;T&gt; são compatíveis.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Métodos genéricos não são compatíveis.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>O método "{0}" tem o tipo de retorno não compatível "{1}". Somente os métodos de retorno de tarefa são compatíveis.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Propriedades não são compatíveis com interfaces de serviço.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" não é uma interface.</value>
   </data>
 </root>

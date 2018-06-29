@@ -94,7 +94,7 @@
     <value>需要非負整數。</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>{0] 和 {1} 參數超過陣列的長度。</value>
+    <value>{0} 和 {1} 參數超過陣列的長度。</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>資料流必須可讀取。</value>
@@ -120,5 +120,41 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>.NET 方法 '{0}' 與 '{1}' 不得同時對應到同一個要求方法名稱: '{2}'。</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>找不到名稱為 '{0}' 的方法。</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>具有相同名稱和對等參數的方法已經註冊。</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>在方法不是靜態的情況下，應提供目標物件，而且只應在這種情況下提供。</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>必須先開始接聽。</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>開始接聽後，才能完成此作業。</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>伺服器方法 {0} 擲出了嚴重例外狀況: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>"{0}" 上不支援的事件處理常式類型。只支援 EventHandler 與 EventHandler&lt;T&gt;。</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>不支援泛型方法。</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>方法 "{0}" 具有不支援的返回類型 "{1}"。只支援 Task-returning 方法。</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>服務介面不支援屬性。</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" 不是介面。</value>
   </data>
 </root>
