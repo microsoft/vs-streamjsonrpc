@@ -1080,7 +1080,7 @@ namespace StreamJsonRpc
                     return true;
                 }
 
-                taskTypeInfo = taskTypeInfo.BaseType.GetTypeInfo();
+                taskTypeInfo = taskTypeInfo.BaseType?.GetTypeInfo();
             }
 
             taskOfTTypeInfo = null;
