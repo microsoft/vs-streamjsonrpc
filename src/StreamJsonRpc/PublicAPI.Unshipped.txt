@@ -1,7 +1,4 @@
 StreamJsonRpc.CommonMethodNameTransforms
-StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
-StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(object target, StreamJsonRpc.JsonRpcTargetOptions options) -> void
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.get -> bool
 StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
