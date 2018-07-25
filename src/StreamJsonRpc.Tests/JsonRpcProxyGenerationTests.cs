@@ -331,6 +331,42 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.False(tcs.Task.IsCompleted);
     }
 
+    [Fact]
+    public async Task NamingTransformsAreAppliedToEvents()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        var camelCaseOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+        var prefixOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
+
+        // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
+        var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        var clientRpcWithCamelCase = clientRpc.Attach<IServer>(camelCaseOptions);
+        var clientRpcWithPrefix = clientRpc.Attach<IServer>(prefixOptions);
+        clientRpc.StartListening();
+
+        // Construct the server to only respond to one set of method names for now to confirm that the client is sending the right one.
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = camelCaseOptions.MethodNameTransform });
+        this.serverRpc.StartListening();
+
+        var tcs = new TaskCompletionSource<EventArgs>();
+        EventHandler handler = (sender, args) => tcs.SetResult(args);
+        clientRpcWithCamelCase.ItHappened += handler;
+        this.server.OnItHappened(EventArgs.Empty);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.NotNull(actualArgs);
+
+        clientRpcWithCamelCase.ItHappened -= handler;
+        clientRpcWithPrefix.ItHappened += handler;
+        tcs = new TaskCompletionSource<EventArgs>();
+        this.server.OnItHappened(EventArgs.Empty);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
+    }
+
     public class EmptyClass
     {
     }

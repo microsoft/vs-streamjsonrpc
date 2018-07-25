@@ -120,6 +120,26 @@ public class TargetObjectEventsTests : TestBase
         serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
     }
 
+    [Fact]
+    public void NameTransformIsUsedWhenRaisingEvent()
+    {
+        bool eventNameTransformSeen = false;
+        Func<string, string> methodNameTransform = name =>
+        {
+            if (name == nameof(Server.ServerEvent))
+            {
+                eventNameTransformSeen = true;
+            }
+
+            return name;
+        };
+
+        var serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
+        this.server.TriggerEvent(EventArgs.Empty);
+        Assert.True(eventNameTransformSeen);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)

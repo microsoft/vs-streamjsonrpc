@@ -79,6 +79,9 @@ namespace StreamJsonRpc
 
                 VerifySupported(!serviceInterface.DeclaredProperties.Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
+                var methodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
+                var funcOfStringStringInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
+
                 // Implement events
                 var ctorActions = new List<Action<ILGenerator>>();
                 foreach (var evt in serviceInterface.DeclaredEvents)
@@ -119,7 +122,16 @@ namespace StreamJsonRpc
 
                         // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
                         il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
+
+                        // First argument to AddLocalRpcMethod is the method name.
+                        // Run it through the method name transform.
+                        // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldfld, optionsField);
+                        il.EmitCall(OpCodes.Callvirt, methodNameTransformPropertyGetter, null);
                         il.Emit(OpCodes.Ldstr, evt.Name);
+                        il.EmitCall(OpCodes.Callvirt, funcOfStringStringInvoke, null);
+
                         il.Emit(OpCodes.Ldarg_0);
                         il.Emit(OpCodes.Ldftn, raiseEventMethod);
                         il.Emit(OpCodes.Newobj, delegateCtor);
@@ -181,9 +193,6 @@ namespace StreamJsonRpc
                 var invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
                 var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
-
-                var methodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
-                var funcOfStringStringInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
 
                 foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
