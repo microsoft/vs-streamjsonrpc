@@ -365,6 +365,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.server.OnItHappened(EventArgs.Empty);
         await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
         Assert.False(tcs.Task.IsCompleted);
+
+        clientRpcWithPrefix.ItHappened -= handler;
     }
 
     public class EmptyClass
