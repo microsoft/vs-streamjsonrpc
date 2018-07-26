@@ -338,8 +338,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        var camelCaseOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-        var prefixOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
+        var camelCaseOptions = new JsonRpcProxyOptions { EventNameTransform = CommonMethodNameTransforms.CamelCase };
+        var prefixOptions = new JsonRpcProxyOptions { EventNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
 
         // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
         var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
@@ -349,7 +349,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Construct the server to only respond to one set of method names for now to confirm that the client is sending the right one.
         this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
-        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = camelCaseOptions.MethodNameTransform });
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { EventNameTransform = camelCaseOptions.EventNameTransform });
         this.serverRpc.StartListening();
 
         var tcs = new TaskCompletionSource<EventArgs>();

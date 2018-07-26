@@ -121,22 +121,48 @@ public class TargetObjectEventsTests : TestBase
     }
 
     [Fact]
-    public void NameTransformIsUsedWhenRaisingEvent()
+    public async Task NameTransformIsUsedWhenRaisingEvent()
     {
         bool eventNameTransformSeen = false;
-        Func<string, string> methodNameTransform = name =>
+        Func<string, string> eventNameTransform = name =>
         {
             if (name == nameof(Server.ServerEvent))
             {
                 eventNameTransformSeen = true;
             }
 
-            return name;
+            return "ns." + name;
         };
 
-        var serverRpc = new JsonRpc(this.serverStream, this.serverStream);
-        serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
-        this.server.TriggerEvent(EventArgs.Empty);
+        // Create new streams since we are going to use our own client/server
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+        var serverWithTransform = new Server();
+        var clientWithoutTransform = new Client();
+        var clientWithTransform = new Client();
+
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+
+        this.serverRpc.AddLocalRpcTarget(serverWithTransform, new JsonRpcTargetOptions { EventNameTransform = eventNameTransform });
+
+        // We have to use MethodNameTransform here as Client uses methods to listen for events on server
+        this.clientRpc.AddLocalRpcTarget(clientWithoutTransform);
+        this.clientRpc.AddLocalRpcTarget(clientWithTransform, new JsonRpcTargetOptions { MethodNameTransform = eventNameTransform });
+        this.clientRpc.StartListening();
+
+        var tcsWithoutTransform = new TaskCompletionSource<EventArgs>();
+        clientWithoutTransform.ServerEventRaised = args => tcsWithoutTransform.SetResult(args);
+
+        var tcsWithTransform = new TaskCompletionSource<EventArgs>();
+        clientWithTransform.ServerEventRaised = args => tcsWithTransform.SetResult(args);
+
+        serverWithTransform.TriggerEvent(EventArgs.Empty);
+
+        var actualArgs = await tcsWithTransform.Task.WithCancellation(this.TimeoutToken);
+        Assert.NotNull(actualArgs);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcsWithoutTransform.Task.WithTimeout(ExpectedTimeout));
         Assert.True(eventNameTransformSeen);
     }
 

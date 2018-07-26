@@ -1600,7 +1600,7 @@ namespace StreamJsonRpc
                 this.server = server;
                 this.eventInfo = eventInfo;
 
-                this.rpcEventName = options.MethodNameTransform != null ? options.MethodNameTransform(eventInfo.Name) : eventInfo.Name;
+                this.rpcEventName = options.EventNameTransform != null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
 
                 try
                 {
