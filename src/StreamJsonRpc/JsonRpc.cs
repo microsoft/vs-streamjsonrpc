@@ -430,7 +430,7 @@ namespace StreamJsonRpc
                             this.eventReceivers = new List<EventReceiver>();
                         }
 
-                        this.eventReceivers.Add(new EventReceiver(this, target, evt));
+                        this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
                     }
                 }
             }
@@ -1586,16 +1586,22 @@ namespace StreamJsonRpc
             private readonly object server;
             private readonly EventInfo eventInfo;
             private readonly Delegate registeredHandler;
+            private readonly string rpcEventName;
 
-            internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo)
+            internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
             {
                 Requires.NotNull(jsonRpc, nameof(jsonRpc));
                 Requires.NotNull(server, nameof(server));
                 Requires.NotNull(eventInfo, nameof(eventInfo));
 
+                options = options ?? JsonRpcTargetOptions.Default;
+
                 this.jsonRpc = jsonRpc;
                 this.server = server;
                 this.eventInfo = eventInfo;
+
+                this.rpcEventName = options.EventNameTransform != null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
+
                 try
                 {
                     // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
@@ -1619,7 +1625,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
-                this.jsonRpc.NotifyAsync(this.eventInfo.Name, new object[] { args });
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
             }
         }
     }

@@ -31,6 +31,11 @@ namespace StreamJsonRpc
                                                                     where parameters.Length == 3 && parameters.All(p => p.ParameterType.IsGenericParameter || p.ParameterType.GetTypeInfo().ContainsGenericParameters)
                                                                     select method).Single();
 
+        private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
+        private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
+        private static readonly MethodInfo EventNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.EventNameTransform)).GetMethod;
+        private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) });
+
         static ProxyGeneration()
         {
             AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"rpcProxies_{Guid.NewGuid()}"), AssemblyBuilderAccess.RunAndCollect);
@@ -119,7 +124,16 @@ namespace StreamJsonRpc
 
                         // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
                         il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
+
+                        // First argument to AddLocalRpcMethod is the method name.
+                        // Run it through the method name transform.
+                        // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldfld, optionsField);
+                        il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
                         il.Emit(OpCodes.Ldstr, evt.Name);
+                        il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
+
                         il.Emit(OpCodes.Ldarg_0);
                         il.Emit(OpCodes.Ldftn, raiseEventMethod);
                         il.Emit(OpCodes.Newobj, delegateCtor);
@@ -182,9 +196,6 @@ namespace StreamJsonRpc
                 var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
 
-                var methodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
-                var funcOfStringStringInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
-
                 foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
                     VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
@@ -207,9 +218,9 @@ namespace StreamJsonRpc
                     // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, optionsField);
-                    il.EmitCall(OpCodes.Callvirt, methodNameTransformPropertyGetter, null);
+                    il.EmitCall(OpCodes.Callvirt, MethodNameTransformPropertyGetter, null);
                     il.Emit(OpCodes.Ldstr, methodNameMap.GetRpcMethodName(method));
-                    il.EmitCall(OpCodes.Callvirt, funcOfStringStringInvoke, null);
+                    il.EmitCall(OpCodes.Callvirt, MethodNameTransformInvoke, null);
 
                     // The second argument is an array of arguments for the RPC method.
                     il.Emit(OpCodes.Ldc_I4, methodParameters.Count(p => p.ParameterType != typeof(CancellationToken)));

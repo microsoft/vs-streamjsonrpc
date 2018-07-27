@@ -17,6 +17,11 @@ namespace StreamJsonRpc
         private Func<string, string> methodNameTransform = n => n;
 
         /// <summary>
+        /// Backing field for the <see cref="EventNameTransform"/> property.
+        /// </summary>
+        private Func<string, string> eventNameTransform = n => n;
+
+        /// <summary>
         /// Gets or sets a function that takes the CLR method name and returns the RPC method name.
         /// This method is useful for adding prefixes to all methods, or making them camelCased.
         /// </summary>
@@ -26,6 +31,18 @@ namespace StreamJsonRpc
         {
             get => this.methodNameTransform;
             set => this.methodNameTransform = Requires.NotNull(value, nameof(value));
+        }
+
+        /// <summary>
+        /// Gets or sets a function that takes the CLR event name and returns the RPC event name used in notifications.
+        /// This method is useful for adding prefixes to all events, or making them camelCased.
+        /// </summary>
+        /// <value>A function, defaulting to a straight pass-through. Never null.</value>
+        /// <exception cref="ArgumentNullException">Thrown if set to a null value.</exception>
+        public Func<string, string> EventNameTransform
+        {
+            get => this.eventNameTransform;
+            set => this.eventNameTransform = Requires.NotNull(value, nameof(value));
         }
 
         /// <summary>
