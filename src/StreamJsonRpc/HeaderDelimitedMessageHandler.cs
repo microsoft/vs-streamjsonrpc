@@ -61,6 +61,8 @@ namespace StreamJsonRpc
 
         private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
 
+        private readonly Dictionary<string, string> receivingHeaders = new Dictionary<string, string>(4);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
         /// </summary>
@@ -91,8 +93,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async Task<string> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            var headers = new Dictionary<string, string>();
-
+            this.receivingHeaders.Clear();
             int headerBytesLength = 0;
             var state = HeaderParseState.Name;
             string headerName = null;
@@ -147,7 +148,7 @@ namespace StreamJsonRpc
                         if (lastCharRead == '\r')
                         {
                             string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
-                            headers[headerName] = value;
+                            this.receivingHeaders[headerName] = value;
                             headerName = null;
                             state = HeaderParseState.FieldDelimiter;
                             headerBytesLength = 0;
@@ -168,14 +169,14 @@ namespace StreamJsonRpc
             }
             while (state != HeaderParseState.Terminate);
 
-            string contentLengthAsText = headers[ContentLengthHeaderNameText];
+            string contentLengthAsText = this.receivingHeaders[ContentLengthHeaderNameText];
             if (!int.TryParse(contentLengthAsText, out int contentLength))
             {
                 throw new BadRpcHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
             }
 
             Encoding contentEncoding = this.Encoding;
-            if (headers.TryGetValue(ContentTypeHeaderNameText, out string contentTypeAsText))
+            if (this.receivingHeaders.TryGetValue(ContentTypeHeaderNameText, out string contentTypeAsText))
             {
                 contentEncoding = ParseEncodingFromContentTypeHeader(contentTypeAsText) ?? contentEncoding;
             }
