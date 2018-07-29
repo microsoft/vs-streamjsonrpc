@@ -90,7 +90,7 @@ namespace StreamJsonRpc
             int bitCount = sizeof(uint) * 8;
             const int shift = 1;
 
-            foreach (ParameterInfo parameter in this.MethodInfo.GetParameters())
+            foreach (ParameterInfo parameter in this.Parameters)
             {
                 // Shifting result 1 bit per each parameter so that the hash is different for
                 // methods with the same parameter types at different location, e.g.
