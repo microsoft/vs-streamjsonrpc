@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -12,7 +13,6 @@ namespace StreamJsonRpc
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft;
     using Microsoft.VisualStudio.Threading;
 
     /// <summary>
@@ -208,48 +208,56 @@ namespace StreamJsonRpc
         {
             this.sendingBufferStream.SetLength(0);
 
-            // Understand the content we need to send in terms of bytes and length.
-            byte[] contentBytes = contentEncoding.GetBytes(content);
-            string contentBytesLength = contentBytes.Length.ToString(CultureInfo.InvariantCulture);
-
-            // Transmit the Content-Length header.
-#pragma warning disable VSTHRD103 // Call async methods when in an async method
-            this.sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
-            this.sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-            int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLength, 0, contentBytesLength.Length, this.sendingHeaderBuffer, 0);
-            this.sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-            this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-
-            // Transmit the Content-Type header, but only when using a non-default encoding.
-            // We suppress it when it is the default both for smaller messages and to avoid
-            // having to load System.Net.Http on the receiving end in order to parse it.
-            if (DefaultContentEncoding.WebName != contentEncoding.WebName || this.SubType != DefaultSubType)
+            byte[] contentBytes = ArrayPool<byte>.Shared.Rent(contentEncoding.GetMaxByteCount(content.Length));
+            try
             {
-                this.sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
+                // Understand the content we need to send in terms of bytes and length.
+                int contentBytesLength = contentEncoding.GetBytes(content, 0, content.Length, contentBytes, 0);
+                string contentBytesLengthString = contentBytesLength.ToString(CultureInfo.InvariantCulture);
+
+                // Transmit the Content-Length header.
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
+                this.sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
                 this.sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-                var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
-                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
+                int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLengthString, 0, contentBytesLengthString.Length, this.sendingHeaderBuffer, 0);
                 this.sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
                 this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-            }
 
-            // Terminate the headers.
-            this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+                // Transmit the Content-Type header, but only when using a non-default encoding.
+                // We suppress it when it is the default both for smaller messages and to avoid
+                // having to load System.Net.Http on the receiving end in order to parse it.
+                if (DefaultContentEncoding.WebName != contentEncoding.WebName || this.SubType != DefaultSubType)
+                {
+                    this.sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
+                    this.sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
+                    var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
+                    headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
+                    this.sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
+                    this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+                }
+
+                // Terminate the headers.
+                this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
 #pragma warning restore VSTHRD103 // Call async methods when in an async method
 
-            // Either write both the header and the content, or don't write anything.
-            // If we write only the header when the cancellation comes, that would confuse the recieving side
-            // and corrupt the data data it reads.
-            cancellationToken.ThrowIfCancellationRequested();
+                // Either write both the header and the content, or don't write anything.
+                // If we write only the header when the cancellation comes, that would confuse the recieving side
+                // and corrupt the data data it reads.
+                cancellationToken.ThrowIfCancellationRequested();
 
-            // Transmit the headers.
-            // Ignore the cancellation token so we don't write the header without the content.
-            this.sendingBufferStream.Position = 0;
-            await this.sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize).ConfigureAwait(false);
+                // Transmit the headers.
+                // Ignore the cancellation token so we don't write the header without the content.
+                this.sendingBufferStream.Position = 0;
+                await this.sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize).ConfigureAwait(false);
 
-            // Transmit the content itself.
-            // Ignore the cancellation token so we don't write the header without the content.
-            await this.SendingStream.WriteAsync(contentBytes, 0, contentBytes.Length).ConfigureAwait(false);
+                // Transmit the content itself.
+                // Ignore the cancellation token so we don't write the header without the content.
+                await this.SendingStream.WriteAsync(contentBytes, 0, contentBytesLength).ConfigureAwait(false);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(contentBytes);
+            }
         }
 
         /// <summary>
