@@ -15,11 +15,15 @@ namespace StreamJsonRpc
 
     internal sealed class TargetMethod
     {
-        private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
         private readonly JsonRpcMessage request;
         private readonly object target;
         private readonly MethodInfo method;
         private readonly object[] parameters;
+
+        /// <summary>
+        /// A collection of error messages. May be null until the first message is added.
+        /// </summary>
+        private HashSet<string> errorMessages;
 
         internal TargetMethod(
             JsonRpcMessage request,
@@ -34,7 +38,7 @@ namespace StreamJsonRpc
 
             foreach (var method in candidateMethodTargets)
             {
-                object[] args = TryGetParameters(request, method.Signature, this.errorMessages, jsonSerializer, request.Method);
+                object[] args = this.TryGetParameters(request, method.Signature, jsonSerializer, request.Method);
                 if (this.method == null && args != null)
                 {
                     this.target = method.Target;
@@ -59,7 +63,7 @@ namespace StreamJsonRpc
                     this.request.Method,
                     this.request.ParameterCount,
                     this.target?.GetType().FullName ?? "{no object}",
-                    string.Join("; ", this.errorMessages));
+                    string.Join("; ", this.errorMessages ?? Enumerable.Empty<string>()));
             }
         }
 
@@ -85,18 +89,27 @@ namespace StreamJsonRpc
             return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
         }
 
-        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer, string requestMethodName)
+        private void AddErrorMessage(string message)
+        {
+            if (this.errorMessages == null)
+            {
+                this.errorMessages = new HashSet<string>(StringComparer.Ordinal);
+            }
+
+            this.errorMessages.Add(message);
+        }
+
+        private object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, JsonSerializer jsonSerializer, string requestMethodName)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(method, nameof(method));
-            Requires.NotNull(errors, nameof(errors));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
             Requires.NotNullOrEmpty(requestMethodName, nameof(requestMethodName));
 
             // ref and out parameters aren't supported.
             if (method.HasOutOrRefParameters)
             {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
+                this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
                 return null;
             }
 
@@ -141,7 +154,7 @@ namespace StreamJsonRpc
                     methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
                 }
 
-                errors.Add(string.Format(
+                this.AddErrorMessage(string.Format(
                     CultureInfo.CurrentCulture,
                     Resources.MethodParameterCountDoesNotMatch,
                     method,
@@ -158,7 +171,7 @@ namespace StreamJsonRpc
             }
             catch (Exception exception)
             {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method, exception.Message));
+                this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method, exception.Message));
                 return null;
             }
         }
