@@ -45,6 +45,7 @@ namespace StreamJsonRpc
                     this.method = method.Signature.MethodInfo;
                     this.parameters = args;
                     this.AcceptsCancellationToken = method.Signature.HasCancellationTokenParameter;
+                    break;
                 }
             }
         }
