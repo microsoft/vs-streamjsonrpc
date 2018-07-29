@@ -32,19 +32,16 @@ namespace StreamJsonRpc
 
             this.request = request;
 
-            var targetMethods = new Dictionary<MethodSignatureAndTarget, object[]>();
             foreach (var method in candidateMethodTargets)
             {
-                this.TryAddMethod(request, targetMethods, method, jsonSerializer);
-            }
-
-            KeyValuePair<MethodSignatureAndTarget, object[]> methodWithParameters = targetMethods.FirstOrDefault();
-            if (methodWithParameters.Key.Signature != null)
-            {
-                this.target = methodWithParameters.Key.Target;
-                this.method = methodWithParameters.Key.Signature.MethodInfo;
-                this.parameters = methodWithParameters.Value;
-                this.AcceptsCancellationToken = methodWithParameters.Key.Signature.HasCancellationTokenParameter;
+                object[] args = TryGetParameters(request, method.Signature, this.errorMessages, jsonSerializer, request.Method);
+                if (this.method == null && args != null)
+                {
+                    this.target = method.Target;
+                    this.method = method.Signature.MethodInfo;
+                    this.parameters = args;
+                    this.AcceptsCancellationToken = method.Signature.HasCancellationTokenParameter;
+                }
             }
         }
 
@@ -164,22 +161,6 @@ namespace StreamJsonRpc
                 errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method, exception.Message));
                 return null;
             }
-        }
-
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignatureAndTarget, object[]> targetMethods, MethodSignatureAndTarget method, JsonSerializer jsonSerializer)
-        {
-            Requires.NotNull(request, nameof(request));
-            Requires.NotNull(targetMethods, nameof(targetMethods));
-            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
-
-            object[] parameters = TryGetParameters(request, method.Signature, this.errorMessages, jsonSerializer, request.Method);
-            if (parameters != null)
-            {
-                targetMethods.Add(method, parameters);
-                return true;
-            }
-
-            return false;
         }
     }
 }
