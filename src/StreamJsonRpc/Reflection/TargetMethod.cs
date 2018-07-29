@@ -24,7 +24,7 @@ namespace StreamJsonRpc
         internal TargetMethod(
             JsonRpcMessage request,
             JsonSerializer jsonSerializer,
-            IEnumerable<MethodSignatureAndTarget> candidateMethodTargets)
+            List<MethodSignatureAndTarget> candidateMethodTargets)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
