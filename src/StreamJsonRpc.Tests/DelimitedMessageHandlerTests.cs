@@ -188,6 +188,13 @@ public class DelimitedMessageHandlerTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask);
     }
 
+    [Fact]
+    public void SetEncodingToNullThrows()
+    {
+        Assert.Throws<ArgumentNullException>(() => this.handler.Encoding = null);
+        Assert.NotNull(this.handler.Encoding);
+    }
+
     private class DelayedWriter : DelimitedMessageHandler
     {
         internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
