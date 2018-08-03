@@ -39,7 +39,7 @@ public class InteropTestBase : TestBase
         }
     }
 
-    protected Task<JObject> RequestAsync(object request)
+    protected ValueTask<JToken> RequestAsync(object request)
     {
         this.Send(request);
         return this.ReceiveAsync();
@@ -49,13 +49,13 @@ public class InteropTestBase : TestBase
     {
         Requires.NotNull(message, nameof(message));
 
-        var json = JsonConvert.SerializeObject(message);
+        var json = JToken.FromObject(message);
         this.messageHandler.MessagesToRead.Enqueue(json);
     }
 
-    protected async Task<JObject> ReceiveAsync()
+    protected async ValueTask<JToken> ReceiveAsync()
     {
-        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
-        return JObject.Parse(json);
+        JToken json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        return json;
     }
 }

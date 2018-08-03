@@ -122,7 +122,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
+        public JsonRpc(IMessageHandler messageHandler, object target = null)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
@@ -183,7 +183,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the message handler used to send and receive messages.
         /// </summary>
-        public DelimitedMessageHandler MessageHandler { get; }
+        public IMessageHandler MessageHandler { get; }
 
         /// <summary>
         /// Gets or sets the <see cref="System.Threading.SynchronizationContext"/> to use when invoking methods requested by the remote party.
@@ -351,7 +351,7 @@ namespace StreamJsonRpc
         public T Attach<T>()
             where T : class
         {
-            return this.Attach<T>((JsonRpcProxyOptions)null);
+            return this.Attach<T>(null);
         }
 
         /// <summary>
@@ -1244,7 +1244,7 @@ namespace StreamJsonRpc
                 // Dispose the stream and cancel pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
                 this.disposeCts.Cancel();
-                this.MessageHandler.Dispose();
+                (this.MessageHandler as IDisposable)?.Dispose();
                 this.CancelPendingRequests();
 
                 // Ensure the Task we may have returned from Completion is completed.
@@ -1267,7 +1267,7 @@ namespace StreamJsonRpc
             {
                 while (!this.disposed)
                 {
-                    string json = null;
+                    JToken json = null;
                     try
                     {
                         json = await this.MessageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
@@ -1282,7 +1282,7 @@ namespace StreamJsonRpc
                     {
                         var e = new JsonRpcDisconnectedEventArgs(
                             string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
-                            DisconnectedReason.StreamError,
+                            exception is JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
                             exception);
 
                         // Fatal error. Raise disconnected event.
@@ -1312,7 +1312,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task HandleRpcAsync(string json)
+        private async Task HandleRpcAsync(JToken json)
         {
             try
             {
@@ -1488,9 +1488,12 @@ namespace StreamJsonRpc
             });
         }
 
-        private Task TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
+        private ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
         {
-            string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
+            JsonSerializer serializer = JsonSerializer.Create(this.MessageJsonSerializerSettings);
+            JObject json = (JObject)JToken.FromObject(message, serializer);
             return this.MessageHandler.WriteAsync(json, cancellationToken);
         }
 

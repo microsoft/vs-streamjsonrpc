@@ -12,6 +12,8 @@ namespace StreamJsonRpc
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// A message handler for the <see cref="JsonRpc"/> class
@@ -20,8 +22,8 @@ namespace StreamJsonRpc
     public class WebSocketMessageHandler : DelimitedMessageHandler
     {
         private readonly ArraySegment<byte> readBuffer;
-        private readonly byte[] writeBuffer;
-        private Decoder readDecoder;
+        private MemoryStream readBufferStream;
+        private StreamReader readBufferReader;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketMessageHandler"/> class.
@@ -35,14 +37,13 @@ namespace StreamJsonRpc
         /// Messages which exceed this size will be handled properly but may require multiple I/O operations.
         /// </param>
         public WebSocketMessageHandler(WebSocket webSocket, int bufferSize = 4096)
-            : base(Stream.Null, Stream.Null, Encoding.UTF8)
+            : base(Stream.Null, Stream.Null, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
         {
             Requires.NotNull(webSocket, nameof(webSocket));
             Requires.Range(bufferSize > 0, nameof(bufferSize));
 
             this.WebSocket = webSocket;
             this.readBuffer = new ArraySegment<byte>(new byte[bufferSize]);
-            this.writeBuffer = new byte[bufferSize];
         }
 
         /// <summary>
@@ -51,83 +52,56 @@ namespace StreamJsonRpc
         public WebSocket WebSocket { get; }
 
         /// <inheritdoc />
-        protected async override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            WebSocketReceiveResult result = await this.WebSocket.ReceiveAsync(this.readBuffer, cancellationToken).ConfigureAwait(false);
-            if (result.CloseStatus.HasValue)
+            if (this.readBufferStream == null)
             {
-                await this.WebSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None).ConfigureAwait(false);
-                return null;
-            }
-
-            if (result.EndOfMessage)
-            {
-                // fast path: the entire message fit within the buffer.
-                return this.Encoding.GetString(this.readBuffer.Array, 0, result.Count);
+                this.readBufferStream = new MemoryStream(this.readBuffer.Array.Length);
             }
             else
             {
-                // The message exceeds the size of our buffer.
-                if (this.readDecoder == null)
-                {
-                    this.readDecoder = this.Encoding.GetDecoder();
-                }
-
-                var jsonBuilder = new StringBuilder();
-                char[] decodedChars = new char[this.readBuffer.Array.Length];
-                void DecodeInput()
-                {
-                    int decodedCharsCount = this.readDecoder.GetChars(this.readBuffer.Array, 0, result.Count, decodedChars, 0, result.EndOfMessage);
-                    jsonBuilder.Append(decodedChars, 0, decodedCharsCount);
-                }
-
-                DecodeInput();
-                while (!result.EndOfMessage)
-                {
-                    result = await this.WebSocket.ReceiveAsync(this.readBuffer, cancellationToken).ConfigureAwait(false);
-                    DecodeInput();
-                }
-
-                return jsonBuilder.ToString();
+                this.readBufferStream.SetLength(0);
             }
+
+            if (this.readBufferReader == null || this.readBufferReader.CurrentEncoding != this.Encoding)
+            {
+                this.readBufferReader = new StreamReader(this.readBufferStream, this.Encoding);
+            }
+            else
+            {
+                this.readBufferReader.DiscardBufferedData();
+            }
+
+            WebSocketReceiveResult result;
+            do
+            {
+                result = await this.WebSocket.ReceiveAsync(this.readBuffer, cancellationToken).ConfigureAwait(false);
+                if (result.CloseStatus.HasValue)
+                {
+                    await this.WebSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None).ConfigureAwait(false);
+                    return null;
+                }
+
+                this.readBufferStream.Write(this.readBuffer.Array, this.readBuffer.Offset, this.readBuffer.Count);
+            }
+            while (!result.EndOfMessage);
+
+            this.readBufferStream.Position = 0;
+            var readBufferJsonReader = new JsonTextReader(this.readBufferReader);
+            return JToken.ReadFrom(readBufferJsonReader);
         }
 
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc />
-        protected async override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+        protected override ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
         {
             Requires.NotNull(content, nameof(content));
             Requires.NotNull(contentEncoding, nameof(contentEncoding));
 
-            if (contentEncoding.GetByteCount(content) <= this.writeBuffer.Length)
-            {
-                // Fast path: send the whole message as a single chunk.
-                int bytesWritten = contentEncoding.GetBytes(content, 0, content.Length, this.writeBuffer, 0);
-                var bufferSegment = new ArraySegment<byte>(this.writeBuffer, 0, bytesWritten);
-                await this.WebSocket.SendAsync(bufferSegment, WebSocketMessageType.Text, true, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                var encoder = contentEncoding.GetEncoder();
-                bool completed;
-                int bytesUsed;
-                int charsLeftToConvert = content.Length;
-                while (charsLeftToConvert > 0)
-                {
-                    unsafe
-                    {
-                        fixed (byte* writeBuffer = this.writeBuffer)
-                        fixed (char* pContent = content)
-                        {
-                            char* pStart = pContent + content.Length - charsLeftToConvert;
-                            encoder.Convert(pStart, charsLeftToConvert, writeBuffer, this.writeBuffer.Length, false, out int charsUsed, out bytesUsed, out completed);
-                            charsLeftToConvert -= charsUsed;
-                        }
-                    }
-
-                    var bufferSegment = new ArraySegment<byte>(this.writeBuffer, 0, bytesUsed);
-                    await this.WebSocket.SendAsync(bufferSegment, WebSocketMessageType.Text, completed, cancellationToken).ConfigureAwait(false);
-                }
-            }
+            MemoryStream sendingContentBufferStream = this.Serialize(content, contentEncoding);
+            var bufferSegment = new ArraySegment<byte>(sendingContentBufferStream.GetBuffer(), 0, (int)sendingContentBufferStream.Length);
+            return new ValueTask(this.WebSocket.SendAsync(bufferSegment, WebSocketMessageType.Text, true, cancellationToken));
         }
     }
 }

@@ -73,7 +73,7 @@ public class JsonRpcTests : TestBase
 
         var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
         await helperHandler.WriteAsync(
-            JsonConvert.SerializeObject(new
+            JToken.FromObject(new
             {
                 jsonrpc = "2.0",
                 method = nameof(Server.NotificationMethod),
