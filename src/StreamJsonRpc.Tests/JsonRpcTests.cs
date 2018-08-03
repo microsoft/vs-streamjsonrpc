@@ -377,13 +377,6 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public void SetEncodingToNullThrows()
-    {
-        Assert.Throws<ArgumentNullException>(() => this.clientRpc.Encoding = null);
-        Assert.NotNull(this.clientRpc.Encoding);
-    }
-
-    [Fact]
     public void SynchronizationContext_DefaultIsNull()
     {
         Assert.Null(this.serverRpc.SynchronizationContext);

@@ -181,15 +181,6 @@ namespace StreamJsonRpc
         private event EventHandler<JsonRpcDisconnectedEventArgs> DisconnectedPrivate;
 
         /// <summary>
-        /// Gets or sets the encoding to use for transmitted JSON messages.
-        /// </summary>
-        public Encoding Encoding
-        {
-            get { return this.MessageHandler.Encoding; }
-            set { this.MessageHandler.Encoding = value; }
-        }
-
-        /// <summary>
         /// Gets the message handler used to send and receive messages.
         /// </summary>
         public DelimitedMessageHandler MessageHandler { get; }
