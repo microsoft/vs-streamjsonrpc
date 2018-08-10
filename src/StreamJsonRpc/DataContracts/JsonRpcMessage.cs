@@ -22,7 +22,7 @@ namespace StreamJsonRpc
 
         private JsonRpcMessage(string method, JToken parameters, object id = null, string jsonrpc = "2.0")
         {
-            this.Parameters = parameters;
+            this.Parameters = (JContainer)parameters; // must be an array, an object, or null.
             this.Method = method;
             this.Id = id != null ? JToken.FromObject(id) : null;
             this.JsonRpcVersion = jsonrpc;
@@ -41,7 +41,7 @@ namespace StreamJsonRpc
         public JsonRpcError Error { get; private set; }
 
         [JsonProperty("params")]
-        public JToken Parameters
+        public JContainer Parameters
         {
             get;
             set;
@@ -55,7 +55,7 @@ namespace StreamJsonRpc
 
         public bool IsNotification => this.Id == null;
 
-        public int ParameterCount => this.Parameters != null ? this.Parameters.Children().Count() : 0;
+        public int ParameterCount => this.Parameters?.Count ?? 0;
 
         [JsonProperty("result")]
         private JToken Result

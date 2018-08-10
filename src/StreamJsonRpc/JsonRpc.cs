@@ -1306,23 +1306,7 @@ namespace StreamJsonRpc
                         break;
                     }
 
-                    this.HandleRpcAsync(json).ContinueWith(
-                        (task, state) =>
-                        {
-                            var faultyJson = (string)state;
-                            var eventArgs = new JsonRpcDisconnectedEventArgs(
-                                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, faultyJson, task.Exception.Message),
-                                DisconnectedReason.ParseError,
-                                faultyJson,
-                                task.Exception);
-
-                            // Fatal error. Raise disconnected event.
-                            this.OnJsonRpcDisconnected(eventArgs);
-                        },
-                        json,
-                        this.disposeCts.Token,
-                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default).Forget();
+                    this.HandleRpcAsync(json).Forget(); // all exceptions are handled internally
                 }
             }
             finally
@@ -1339,92 +1323,106 @@ namespace StreamJsonRpc
 
         private async Task HandleRpcAsync(string json)
         {
-            JsonRpcMessage rpc;
             try
             {
-                rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
-                Assumes.NotNull(rpc);
-            }
-            catch (JsonException exception)
-            {
-                var e = new JsonRpcDisconnectedEventArgs(
-                    string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingJsonRpc, json, exception.Message),
-                    DisconnectedReason.ParseError,
-                    json,
-                    exception);
-
-                // Fatal error. Raise disconnected event.
-                this.OnJsonRpcDisconnected(e);
-                return;
-            }
-
-            if (rpc.IsRequest)
-            {
-                // We can't accept a request that requires a response if we can't write.
-                Verify.Operation(rpc.IsNotification || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
-
-                if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
+                JsonRpcMessage rpc;
+                try
                 {
-                    await this.HandleCancellationNotificationAsync(rpc).ConfigureAwait(false);
+                    rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
+                    Assumes.NotNull(rpc);
+                }
+                catch (JsonException exception)
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingJsonRpc, json, exception.Message),
+                        DisconnectedReason.ParseError,
+                        json,
+                        exception);
+
+                    // Fatal error. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(e);
                     return;
                 }
 
-                JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
-
-                if (!rpc.IsNotification)
+                if (rpc.IsRequest)
                 {
-                    try
-                    {
-                        await this.TransmitAsync(result, this.disposeCts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                    }
-                    catch (Exception exception)
-                    {
-                        var e = new JsonRpcDisconnectedEventArgs(
-                            string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
-                            DisconnectedReason.StreamError,
-                            exception);
+                    // We can't accept a request that requires a response if we can't write.
+                    Verify.Operation(rpc.IsNotification || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
 
-                        // Fatal error. Raise disconnected event.
-                        this.OnJsonRpcDisconnected(e);
+                    if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
+                    {
+                        await this.HandleCancellationNotificationAsync(rpc).ConfigureAwait(false);
+                        return;
                     }
+
+                    JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
+
+                    if (!rpc.IsNotification)
+                    {
+                        try
+                        {
+                            await this.TransmitAsync(result, this.disposeCts.Token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                        }
+                        catch (Exception exception)
+                        {
+                            var e = new JsonRpcDisconnectedEventArgs(
+                                string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
+                                DisconnectedReason.StreamError,
+                                exception);
+
+                            // Fatal error. Raise disconnected event.
+                            this.OnJsonRpcDisconnected(e);
+                        }
+                    }
+
+                    return;
                 }
 
-                return;
-            }
+                if (rpc.IsResponse)
+                {
+                    OutstandingCallData data = null;
+                    lock (this.dispatcherMapLock)
+                    {
+                        int id = (int)rpc.Id;
+                        if (this.resultDispatcherMap.TryGetValue(id, out data))
+                        {
+                            this.resultDispatcherMap.Remove(id);
+                        }
+                    }
 
-            if (rpc.IsResponse)
+                    if (data != null)
+                    {
+                        // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
+                        await TaskScheduler.Default.SwitchTo(alwaysYield: true);
+                        data.CompletionHandler(rpc);
+                    }
+
+                    return;
+                }
+
+                // Not a request or return. Raise disconnected event.
+                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
+                    string.Format(CultureInfo.CurrentCulture, Resources.UnrecognizedIncomingJsonRpc, json),
+                    DisconnectedReason.ParseError,
+                    json));
+            }
+            catch (Exception ex)
             {
-                OutstandingCallData data = null;
-                lock (this.dispatcherMapLock)
-                {
-                    int id = (int)rpc.Id;
-                    if (this.resultDispatcherMap.TryGetValue(id, out data))
-                    {
-                        this.resultDispatcherMap.Remove(id);
-                    }
-                }
+                var eventArgs = new JsonRpcDisconnectedEventArgs(
+                    string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, json, ex.Message),
+                    DisconnectedReason.ParseError,
+                    json,
+                    ex);
 
-                if (data != null)
-                {
-                    // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
-                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                    data.CompletionHandler(rpc);
-                }
-
-                return;
+                // Fatal error. Raise disconnected event.
+                this.OnJsonRpcDisconnected(eventArgs);
             }
-
-            // Not a request or return. Raise disconnected event.
-            this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
-                string.Format(CultureInfo.CurrentCulture, Resources.UnrecognizedIncomingJsonRpc, json),
-                DisconnectedReason.ParseError,
-                json));
         }
 
         private async Task HandleCancellationNotificationAsync(JsonRpcMessage rpc)
