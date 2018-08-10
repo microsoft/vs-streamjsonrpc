@@ -36,15 +36,15 @@ namespace StreamJsonRpc
 
             this.request = request;
 
-            foreach (var method in candidateMethodTargets)
+            foreach (var candidateMethod in candidateMethodTargets)
             {
-                object[] args = this.TryGetParameters(request, method.Signature, jsonSerializer, request.Method);
+                object[] args = this.TryGetParameters(request, candidateMethod.Signature, jsonSerializer, request.Method);
                 if (this.method == null && args != null)
                 {
-                    this.target = method.Target;
-                    this.method = method.Signature.MethodInfo;
+                    this.target = candidateMethod.Target;
+                    this.method = candidateMethod.Signature.MethodInfo;
                     this.parameters = args;
-                    this.AcceptsCancellationToken = method.Signature.HasCancellationTokenParameter;
+                    this.AcceptsCancellationToken = candidateMethod.Signature.HasCancellationTokenParameter;
                     break;
                 }
             }
