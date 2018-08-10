@@ -11,10 +11,14 @@ StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.Synchroniza
 StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void
 StreamJsonRpc.JsonRpcProxyOptions
 StreamJsonRpc.JsonRpcProxyOptions.JsonRpcProxyOptions() -> void
+StreamJsonRpc.JsonRpcProxyOptions.EventNameTransform.get -> System.Func<string, string>
+StreamJsonRpc.JsonRpcProxyOptions.EventNameTransform.set -> void
 StreamJsonRpc.JsonRpcProxyOptions.MethodNameTransform.get -> System.Func<string, string>
 StreamJsonRpc.JsonRpcProxyOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions
 StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions() -> void
+StreamJsonRpc.JsonRpcTargetOptions.EventNameTransform.get -> System.Func<string, string>
+StreamJsonRpc.JsonRpcTargetOptions.EventNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.get -> System.Func<string, string>
 StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.get -> bool
