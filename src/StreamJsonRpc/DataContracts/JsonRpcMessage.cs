@@ -143,18 +143,11 @@ namespace StreamJsonRpc
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
 
             int index = 0;
-            var result = new List<object>(parameterInfos.Length);
+            var result = new object[parameterInfos.Length];
             foreach (var parameter in this.Parameters?.Children() ?? Enumerable.Empty<JToken>())
             {
-                Type type = typeof(object);
-                if (index < parameterInfos.Length)
-                {
-                    type = parameterInfos[index].ParameterType;
-                    index++;
-                }
-
-                object value = parameter.ToObject(type, jsonSerializer);
-                result.Add(value);
+                object value = parameter.ToObject(parameterInfos[index].ParameterType, jsonSerializer);
+                result[index++] = value;
             }
 
             for (; index < parameterInfos.Length; index++)
@@ -163,10 +156,10 @@ namespace StreamJsonRpc
                     parameterInfos[index].HasDefaultValue ? parameterInfos[index].DefaultValue :
                     parameterInfos[index].ParameterType == typeof(CancellationToken) ? (CancellationToken?)CancellationToken.None :
                     null;
-                result.Add(value);
+                result[index++] = value;
             }
 
-            return result.ToArray();
+            return result;
         }
 
         public string ToJson(Formatting formatting, JsonSerializerSettings settings)

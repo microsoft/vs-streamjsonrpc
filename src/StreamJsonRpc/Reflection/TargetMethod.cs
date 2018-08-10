@@ -24,7 +24,7 @@ namespace StreamJsonRpc
         internal TargetMethod(
             JsonRpcMessage request,
             JsonSerializer jsonSerializer,
-            IEnumerable<MethodSignatureAndTarget> candidateMethodTargets)
+            List<MethodSignatureAndTarget> candidateMethodTargets)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
@@ -112,21 +112,22 @@ namespace StreamJsonRpc
                     return null;
                 }
 
-                var args = new List<object>(2);
-                args.Add(request.Parameters);
-
-                if (method.Parameters.Length > 1 && method.Parameters[1].ParameterType == typeof(CancellationToken))
-                {
-                    args.Add(CancellationToken.None);
-                }
-
                 if (method.Parameters.Length > 2)
                 {
                     // We don't support methods with more than two parameters.
                     return null;
                 }
 
-                return args.ToArray();
+                bool includeCancellationToken = method.Parameters.Length > 1 && method.Parameters[1].ParameterType == typeof(CancellationToken);
+
+                var args = new object[includeCancellationToken ? 2 : 1];
+                args[0] = request.Parameters;
+                if (includeCancellationToken)
+                {
+                    args[1] = CancellationToken.None;
+                }
+
+                return args;
             }
 
             // The number of parameters must fall within required and total parameters.
