@@ -24,7 +24,7 @@ namespace StreamJsonRpc
     /// This is based on the language server protocol spec:
     /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol
     /// </remarks>
-    public class HeaderDelimitedMessageHandler : DelimitedMessageHandler
+    public class HeaderDelimitedMessageHandler : StreamMessageHandler
     {
         /// <summary>
         /// The maximum supported size of a single element in the header.

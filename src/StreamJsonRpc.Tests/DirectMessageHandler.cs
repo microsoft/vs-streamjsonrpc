@@ -12,7 +12,7 @@ using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 
-public class DirectMessageHandler : DelimitedMessageHandler
+public class DirectMessageHandler : StreamMessageHandler
 {
     public DirectMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         : base(sendingStream, receivingStream, encoding)

@@ -19,7 +19,7 @@ namespace StreamJsonRpc
     /// A message handler for the <see cref="JsonRpc"/> class
     /// that uses <see cref="System.Net.WebSockets.WebSocket"/> as the transport.
     /// </summary>
-    public class WebSocketMessageHandler : DelimitedMessageHandler
+    public class WebSocketMessageHandler : StreamMessageHandler
     {
         private readonly ArraySegment<byte> readBuffer;
         private MemoryStream readBufferStream;

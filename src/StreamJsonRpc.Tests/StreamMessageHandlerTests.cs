@@ -16,13 +16,13 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class DelimitedMessageHandlerTests : TestBase
+public class StreamMessageHandlerTests : TestBase
 {
     private readonly MemoryStream sendingStream = new MemoryStream();
     private readonly MemoryStream receivingStream = new MemoryStream();
     private DirectMessageHandler handler;
 
-    public DelimitedMessageHandlerTests(ITestOutputHelper logger)
+    public StreamMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
         this.handler = new DirectMessageHandler(this.sendingStream, this.receivingStream, Encoding.UTF8);
@@ -104,7 +104,7 @@ public class DelimitedMessageHandlerTests : TestBase
     }
 
     /// <summary>
-    /// Verifies that <see cref="DelimitedMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// Verifies that <see cref="StreamMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
     /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
     /// apply while reading (at least when cancellation occurs first).
     /// </summary>
@@ -166,7 +166,7 @@ public class DelimitedMessageHandlerTests : TestBase
     }
 
     /// <summary>
-    /// Verifies that <see cref="DelimitedMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// Verifies that <see cref="StreamMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
     /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
     /// apply while reading (at least when cancellation occurs first).
     /// </summary>
@@ -189,7 +189,7 @@ public class DelimitedMessageHandlerTests : TestBase
         Assert.NotNull(this.handler.Encoding);
     }
 
-    private class DelayedWriter : DelimitedMessageHandler
+    private class DelayedWriter : StreamMessageHandler
     {
         internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
 

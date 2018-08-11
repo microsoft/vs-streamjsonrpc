@@ -22,7 +22,7 @@ namespace StreamJsonRpc
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class DelimitedMessageHandler : IMessageHandler, IDisposableObservable
+    public abstract class StreamMessageHandler : IMessageHandler, IDisposableObservable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -60,12 +60,12 @@ namespace StreamJsonRpc
         private Encoding encoding;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DelimitedMessageHandler"/> class.
+        /// Initializes a new instance of the <see cref="StreamMessageHandler"/> class.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="encoding">The character encoding to use when transmitting messages.</param>
-        protected DelimitedMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
+        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         {
             Requires.NotNull(encoding, nameof(encoding));
             Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
