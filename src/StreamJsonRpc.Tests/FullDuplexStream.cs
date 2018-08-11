@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
     using Microsoft;
 
-    // TODO: switch back to Nerbank.FullDuplexStream when https://github.com/AArnott/Nerdbank.FullDuplexStream/issues/2 is fixed.
+    // CONSIDER: switch back to Nerdbank.FullDuplexStream when https://github.com/AArnott/Nerdbank.FullDuplexStream/issues/2 is fixed.
     public delegate void BeforeWriteToFullDuplexStreamDelegate(FullDuplexStream stream, byte[] buffer, int offset, int count);
 
     /// <summary>
