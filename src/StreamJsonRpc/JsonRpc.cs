@@ -110,7 +110,23 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
-            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target)
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream))
+        {
+            if (target != null)
+            {
+                this.AddLocalRpcTarget(target);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class.
+        /// </summary>
+        /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
+        public JsonRpc(IMessageHandler messageHandler)
+            : this(messageHandler, null)
         {
         }
 
@@ -122,7 +138,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(IMessageHandler messageHandler, object target = null)
+        public JsonRpc(IMessageHandler messageHandler, object target)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
