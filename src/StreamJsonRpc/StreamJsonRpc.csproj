@@ -1,15 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.1;portable-net45+win8+wpa81;net45;net46;netstandard1.3;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net46;netstandard1.6;netstandard2.0</TargetFrameworks>
     <CodeAnalysisRuleSet>StreamJsonRpc.ruleset</CodeAnalysisRuleSet>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>7.3</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants Condition=" '$(TargetFramework)' == 'net45' or '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);WEBSOCKETS</DefineConstants>
-    <DefineConstants Condition=" '$(TargetFramework)' == 'net45' or '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);SERIALIZABLE_EXCEPTIONS</DefineConstants>
-    <DefineConstants Condition=" '$(TargetFramework)' == 'net45' or '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);EXCLUDEFROMCODECOVERAGEATTRIBUTE</DefineConstants>
-    <DefineConstants Condition=" '$(TargetFramework)' == 'netstandard1.3' or '$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'net46' ">$(DefineConstants);TRYSETCANCELED_CT</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);WEBSOCKETS</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);SERIALIZABLE_EXCEPTIONS</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFramework)' == 'net46' or '$(TargetFramework)' == 'netstandard2.0' ">$(DefineConstants);EXCLUDEFROMCODECOVERAGEATTRIBUTE</DefineConstants>
 
     <Description>A cross-platform .NET portable library that implements the JSON-RPC wire protocol and can use System.IO.Stream or WebSocket so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc</PackageTags>
@@ -36,6 +35,7 @@
     <PackageReference Include="System.Net.Http" Version="4.3.3" />
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="1.2.0-beta2" PrivateAssets="all" />
+    <PackageReference Include="System.Net.WebSockets" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.1" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
