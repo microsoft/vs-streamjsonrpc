@@ -501,9 +501,7 @@ public class JsonRpcTests : TestBase
                 };
 
                 var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
-#if !NET452
                 Assert.Equal(cts.Token, ex.CancellationToken);
-#endif
                 this.clientStream.BeforeWrite = null;
             }
 
@@ -553,9 +551,7 @@ public class JsonRpcTests : TestBase
 
             // Ultimately, the server throws because it was canceled.
             var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
-#if !NET452
             Assert.Equal(cts.Token, ex.CancellationToken);
-#endif
         }
     }
 
@@ -1211,7 +1207,7 @@ public class JsonRpcTests : TestBase
         await Task.WhenAll(invocation1, invocation2);
     }
 
-#if NET452 || NET461 || NETCOREAPP2_0
+#if NET461 || NETCOREAPP2_0
     [Fact]
     public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
     {
@@ -1348,16 +1344,7 @@ public class JsonRpcTests : TestBase
             return tcs.Task;
         }
 
-        public Task ReturnPlainTask()
-        {
-#if NET452
-            var task = new Task(() => { });
-            task.RunSynchronously(TaskScheduler.Default);
-            return task;
-#else
-            return Task.CompletedTask;
-#endif
-        }
+        public Task ReturnPlainTask() => Task.CompletedTask;
 
         public void MethodThatThrowsUnauthorizedAccessException()
         {

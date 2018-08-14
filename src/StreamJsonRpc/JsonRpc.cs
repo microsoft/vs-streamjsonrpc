@@ -888,11 +888,7 @@ namespace StreamJsonRpc
                         {
                             if (response.Error?.Code == (int)JsonRpcErrorCode.RequestCanceled)
                             {
-#if TRYSETCANCELED_CT
                                 tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
-#else
-                                tcs.TrySetCanceled();
-#endif
                             }
                             else
                             {
@@ -1499,7 +1495,7 @@ namespace StreamJsonRpc
             internal MethodNameMap(TypeInfo typeInfo)
             {
                 Requires.NotNull(typeInfo, nameof(typeInfo));
-#if NET45 || NET46 || NETSTANDARD2_0
+#if NET46 || NETSTANDARD2_0
                 this.interfaceMaps = typeInfo.ImplementedInterfaces.Select(i => typeInfo.GetInterfaceMap(i)).ToList();
 #else
                 this.interfaceMaps = new List<InterfaceMapping>();
