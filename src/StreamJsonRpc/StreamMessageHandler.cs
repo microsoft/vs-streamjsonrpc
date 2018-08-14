@@ -14,11 +14,11 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Linq;
 
     /// <summary>
-    /// An abstract base class for for sending and receiving distinct string messages
-    /// over a channel that provides no natural boundaries and no built-in character encoding.
+    /// An abstract base class for for sending and receiving messages over a
+    /// reading and writing pair of <see cref="Stream"/> objects.
     /// </summary>
     /// <remarks>
-    /// This class and its derivates are safe to call from any thread.
+    /// This class and its derivatives are safe to call from any thread.
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
@@ -33,11 +33,6 @@ namespace StreamJsonRpc
         /// A semaphore acquired while sending a message.
         /// </summary>
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
-
-        /// <summary>
-        /// A semaphore acquired while receiving a message.
-        /// </summary>
-        private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
 
         /// <summary>
         /// A temporary buffer used to serialize a <see cref="JToken"/>. Lazily initialized.
@@ -132,11 +127,8 @@ namespace StreamJsonRpc
             {
                 try
                 {
-                    using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
-                    {
-                        JToken result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
-                        return result;
-                    }
+                    JToken result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    return result;
                 }
                 catch (ObjectDisposedException)
                 {
@@ -201,7 +193,6 @@ namespace StreamJsonRpc
                 this.ReceivingStream?.Dispose();
                 this.SendingStream?.Dispose();
                 this.sendingSemaphore.Dispose();
-                this.receivingSemaphore.Dispose();
             }
         }
 
