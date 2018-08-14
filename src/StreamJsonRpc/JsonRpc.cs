@@ -1466,34 +1466,14 @@ namespace StreamJsonRpc
         /// <param name="state">The ID associated with the request to be canceled.</param>
         private void CancelPendingOutboundRequest(object state)
         {
+            Requires.NotNull(state, nameof(state));
             Task.Run(async delegate
             {
-                try
+                if (!this.disposed)
                 {
-                    Requires.NotNull(state, nameof(state));
-                    object id = state;
-                    if (!this.disposed)
-                    {
-                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = id }, parameterSerializer: DefaultJsonSerializer);
-                        await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
-                    }
+                    var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = state }, parameterSerializer: DefaultJsonSerializer);
+                    await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-#if NET45
-                catch (Exception ex)
-                {
-                    Debug.Fail(ex.Message, ex.ToString());
-                }
-#else
-                catch (Exception)
-                {
-                }
-#endif
             });
         }
 
