@@ -9,27 +9,28 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 
-public class DirectMessageHandler : DelimitedMessageHandler
+public class DirectMessageHandler : StreamMessageHandler
 {
     public DirectMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         : base(sendingStream, receivingStream, encoding)
     {
     }
 
-    internal AsyncQueue<string> MessagesToRead { get; } = new AsyncQueue<string>();
+    internal AsyncQueue<JToken> MessagesToRead { get; } = new AsyncQueue<JToken>();
 
-    internal AsyncQueue<string> WrittenMessages { get; } = new AsyncQueue<string>();
+    internal AsyncQueue<JToken> WrittenMessages { get; } = new AsyncQueue<JToken>();
 
-    protected override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
+    protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
     {
-        return this.MessagesToRead.DequeueAsync(cancellationToken);
+        return await this.MessagesToRead.DequeueAsync(cancellationToken);
     }
 
-    protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+    protected override ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
     {
         this.WrittenMessages.Enqueue(content);
-        return TplExtensions.CompletedTask;
+        return default(ValueTask);
     }
 }

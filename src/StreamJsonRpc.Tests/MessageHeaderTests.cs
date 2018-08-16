@@ -102,8 +102,9 @@ public class MessageHeaderTests : TestBase
     [MemberData(nameof(TestedEncodings))]
     public async Task SendMessageWithEncoding(string encodingName)
     {
-        var rpcClient = JsonRpc.Attach(this.clientStream);
-        rpcClient.Encoding = Encoding.GetEncoding(encodingName);
+        var messageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream);
+        var rpcClient = new JsonRpc(messageHandler);
+        messageHandler.Encoding = Encoding.GetEncoding(encodingName);
         await rpcClient.NotifyAsync("Foo");
         rpcClient.Dispose();
 

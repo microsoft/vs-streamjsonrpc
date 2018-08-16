@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,7 +30,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     public async Task SubType_ForcesHeader()
     {
         this.handler.SubType = "nonstandard";
-        await this.handler.WriteAsync("hello", this.TimeoutToken);
+        await this.handler.WriteAsync(JObject.FromObject(new { message = "hello" }), this.TimeoutToken);
         this.sendingStream.Position = 0;
         var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
         string writtenContent = sr.ReadToEnd();
@@ -43,29 +44,29 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
 "Content-Length:  10   " + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"0123456789";
+"{\"a\":3123}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        string readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal<string>("0123456789", readContent);
+        JToken readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+        Assert.Equal(3123, readContent["a"].Value<int>());
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
 
         content =
-"Content-Length:5" + CRLF +
+"Content-Length:9" + CRLF +
 CRLF +
-"ABCDE";
+"{\"a\":123}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
         readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal<string>("ABCDE", readContent);
+        Assert.Equal(123, readContent["a"].Value<int>());
     }
 
     [Fact]
@@ -76,14 +77,14 @@ CRLF +
 "Content-Length: 10" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf8" + CRLF +
 CRLF +
-"0123456789";
+"{\"a\":3123}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        string readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal<string>("0123456789", readContent);
+        JToken readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
+        Assert.Equal(3123, readContent["a"].Value<int>());
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
@@ -93,14 +94,14 @@ CRLF +
 "Content-Length: 10" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"ABCDEFGHIJ";
+"{\"a\":3123}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
         readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal<string>("ABCDEFGHIJ", readContent);
+        Assert.Equal(3123, readContent["a"].Value<int>());
     }
 
     /// <summary>
@@ -119,7 +120,7 @@ CRLF +
         var writeTasks = new List<Task>(3);
         for (int i = 0; i < writeTasks.Capacity; i++)
         {
-            writeTasks.Add(this.handler.WriteAsync("my content " + i, this.TimeoutToken));
+            writeTasks.Add(this.handler.WriteAsync(JToken.Parse("{\"mycontent\":" + i + "}"), this.TimeoutToken).AsTask());
         }
 
         await Task.WhenAll(writeTasks);
@@ -132,8 +133,8 @@ CRLF +
 
         for (int i = 0; i < writeTasks.Capacity; i++)
         {
-            string content = await this.handler.ReadAsync(this.TimeoutToken);
-            Assert.Equal("my content " + i, content);
+            JToken content = await this.handler.ReadAsync(this.TimeoutToken);
+            Assert.Equal(i, content["mycontent"].Value<int>());
         }
     }
 

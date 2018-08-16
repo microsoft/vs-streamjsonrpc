@@ -10,6 +10,8 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// An abstract base class for for sending and receiving distinct string messages
@@ -20,7 +22,7 @@ namespace StreamJsonRpc
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class DelimitedMessageHandler : IDisposableObservable
+    public abstract class StreamMessageHandler : IMessageHandler, IDisposableObservable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -38,17 +40,32 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore receivingSemaphore = new AsyncSemaphore(1);
 
         /// <summary>
+        /// A temporary buffer used to serialize a <see cref="JToken"/>. Lazily initialized.
+        /// </summary>
+        private MemoryStream sendingContentBufferStream;
+
+        /// <summary>
+        /// A recycled <see cref="StreamWriter"/> used to write to <see cref="sendingContentBufferStream"/>. Lazily initialized.
+        /// </summary>
+        private StreamWriter sendingContentBufferStreamWriter;
+
+        /// <summary>
+        /// A recycled <see cref="JsonWriter"/> used to write to <see cref="sendingContentBufferStreamWriter"/>. Lazily initialized.
+        /// </summary>
+        private JsonWriter sendingContentBufferStreamJsonWriter;
+
+        /// <summary>
         /// The character encoding to use for the transmitted content.
         /// </summary>
         private Encoding encoding;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DelimitedMessageHandler"/> class.
+        /// Initializes a new instance of the <see cref="StreamMessageHandler"/> class.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="encoding">The character encoding to use when transmitting messages.</param>
-        protected DelimitedMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
+        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         {
             Requires.NotNull(encoding, nameof(encoding));
             Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
@@ -104,12 +121,8 @@ namespace StreamJsonRpc
         /// </summary>
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
 
-        /// <summary>
-        /// Reads a distinct and complete message from the stream, waiting for one if necessary.
-        /// </summary>
-        /// <param name="cancellationToken">A token to cancel the read request.</param>
-        /// <returns>A task whose result is the received messages.</returns>
-        public async Task<string> ReadAsync(CancellationToken cancellationToken)
+        /// <inheritdoc />
+        public async ValueTask<JToken> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -121,8 +134,7 @@ namespace StreamJsonRpc
                 {
                     using (await this.receivingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
-                        string result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
-                        Assumes.True(result != string.Empty); // null is allowed, but an empty string is not.
+                        JToken result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
                         return result;
                     }
                 }
@@ -135,13 +147,8 @@ namespace StreamJsonRpc
             }
         }
 
-        /// <summary>
-        /// Writes a message to the stream.
-        /// </summary>
-        /// <param name="content">The message to write.</param>
-        /// <param name="cancellationToken">A token to cancel the transmission.</param>
-        /// <returns>A task that represents the asynchronous write operation.</returns>
-        public async Task WriteAsync(string content, CancellationToken cancellationToken)
+        /// <inheritdoc />
+        public async ValueTask WriteAsync(JToken content, CancellationToken cancellationToken)
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.SendingStream != null, "No sending stream.");
@@ -198,6 +205,7 @@ namespace StreamJsonRpc
             }
         }
 
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <summary>
         /// Reads a distinct and complete message from the stream, waiting for one if necessary.
         /// </summary>
@@ -207,7 +215,7 @@ namespace StreamJsonRpc
         /// A null string indicates the stream has ended.
         /// An empty string should never be returned.
         /// </returns>
-        protected abstract Task<string> ReadCoreAsync(CancellationToken cancellationToken);
+        protected abstract ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Writes a message to the stream.
@@ -216,13 +224,56 @@ namespace StreamJsonRpc
         /// <param name="contentEncoding">The encoding to use for <paramref name="content"/>.</param>
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
-        protected abstract Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken);
+        protected abstract ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken);
 
         /// <summary>
         /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,
         /// or equivalent sending stream if using an alternate transport.
         /// </summary>
         /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
-        protected virtual Task FlushCoreAsync() => this.SendingStream.FlushAsync();
+        protected virtual ValueTask FlushCoreAsync() => new ValueTask(this.SendingStream.FlushAsync());
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+
+        /// <summary>
+        /// Serializes a <see cref="JToken"/> to a memory stream and returns the result.
+        /// </summary>
+        /// <param name="content">The <see cref="JToken"/> to serialize.</param>
+        /// <param name="encoding">The text encoding to use.</param>
+        /// <returns>A <see cref="MemoryStream"/> with the serialized content, positioned at 0.</returns>
+        /// <remarks>
+        /// The returned <see cref="MemoryStream"/> is recycled for each call. This method should *not* be invoked
+        /// until any prior invocation's result is no longer necessary.
+        /// </remarks>
+        protected MemoryStream Serialize(JToken content, Encoding encoding)
+        {
+            Requires.NotNull(content, nameof(content));
+            Requires.NotNull(encoding, nameof(encoding));
+
+            if (this.sendingContentBufferStream == null)
+            {
+                this.sendingContentBufferStream = new MemoryStream(4 * 1024);
+            }
+            else
+            {
+                this.sendingContentBufferStream.SetLength(0);
+            }
+
+            if (this.sendingContentBufferStreamWriter == null || this.sendingContentBufferStreamWriter.Encoding != encoding)
+            {
+                this.sendingContentBufferStreamWriter = new StreamWriter(this.sendingContentBufferStream, encoding);
+                this.sendingContentBufferStreamJsonWriter = null; // we'll need to reinitialize this for the new StreamWriter
+            }
+
+            if (this.sendingContentBufferStreamJsonWriter == null)
+            {
+                this.sendingContentBufferStreamJsonWriter = new JsonTextWriter(this.sendingContentBufferStreamWriter);
+            }
+
+            content.WriteTo(this.sendingContentBufferStreamJsonWriter);
+            this.sendingContentBufferStreamWriter.Flush(); // this flushes the internal encoder so it's safe to reuse
+            this.sendingContentBufferStream.Position = 0;
+
+            return this.sendingContentBufferStream;
+        }
     }
 }

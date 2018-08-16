@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
@@ -47,7 +48,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyAsync_ParameterObjectSentAsArray()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
     }
@@ -56,7 +57,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal(0, ((JArray)request["params"]).Count);
     }
@@ -65,7 +66,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
         Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Object, request["params"].Type);
         Assert.Equal("value", request["params"]["Bar"].ToString());
     }
@@ -74,7 +75,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyWithParameterPassedAsObjectAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("value");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
 
@@ -82,7 +83,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeAsync_ParameterObjectSentAsArray()
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
     }
@@ -91,7 +92,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal(0, ((JArray)request["params"]).Count);
     }
@@ -101,7 +102,8 @@ public class JsonRpcClientInteropTests : InteropTestBase
     {
         this.clientRpc.JsonSerializerFormatting = Newtonsoft.Json.Formatting.None;
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        string json = jtoken.ToString(Formatting.None);
         this.Logger.WriteLine(json);
         Assert.Equal(@"{""jsonrpc"":""2.0"",""method"":""test"",""params"":[]}", json);
     }
@@ -110,7 +112,8 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task SerializeWithPrettyFormatting()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        string json = jtoken.ToString();
         this.Logger.WriteLine(json);
         string expected = "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"test\",\n  \"params\": []\n}"
             .Replace("\n", Environment.NewLine);
@@ -121,7 +124,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Object, request["params"].Type);
         Assert.Equal("value", request["params"]["Bar"].ToString());
     }
@@ -130,7 +133,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeWithParameterPassedAsObjectAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
 

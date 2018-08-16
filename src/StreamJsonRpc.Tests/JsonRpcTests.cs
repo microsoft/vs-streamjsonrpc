@@ -73,7 +73,7 @@ public class JsonRpcTests : TestBase
 
         var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
         await helperHandler.WriteAsync(
-            JsonConvert.SerializeObject(new
+            JToken.FromObject(new
             {
                 jsonrpc = "2.0",
                 method = nameof(Server.NotificationMethod),
@@ -374,13 +374,6 @@ public class JsonRpcTests : TestBase
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndIn));
         Assert.Equal(5, result);
-    }
-
-    [Fact]
-    public void SetEncodingToNullThrows()
-    {
-        Assert.Throws<ArgumentNullException>(() => this.clientRpc.Encoding = null);
-        Assert.NotNull(this.clientRpc.Encoding);
     }
 
     [Fact]

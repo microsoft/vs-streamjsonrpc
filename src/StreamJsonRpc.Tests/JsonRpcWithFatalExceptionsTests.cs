@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 public class JsonRpcWithFatalExceptionsTests : TestBase
 {
     private readonly Server server;
-    private readonly DelimitedMessageHandler messageHandler;
+    private readonly StreamMessageHandler messageHandler;
     private readonly JsonRpcWithFatalExceptions clientRpc;
     private readonly JsonRpcWithFatalExceptions serverRpc;
 
@@ -338,7 +338,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
         internal int IsFatalExceptionCount;
 
-        public JsonRpcWithFatalExceptions(DelimitedMessageHandler messageHandler, object target = null)
+        public JsonRpcWithFatalExceptions(StreamMessageHandler messageHandler, object target = null)
             : base(messageHandler, target)
         {
             this.IsFatalExceptionCount = 0;

@@ -114,9 +114,10 @@ namespace StreamJsonRpc
             };
         }
 
-        public static JsonRpcMessage FromJson(string json, JsonSerializerSettings settings)
+        public static JsonRpcMessage FromJson(JToken json, JsonSerializerSettings settings)
         {
-            return JsonConvert.DeserializeObject<JsonRpcMessage>(json, settings);
+            JsonSerializer serializer = JsonSerializer.Create(settings);
+            return json.ToObject<JsonRpcMessage>(serializer);
         }
 
         public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
