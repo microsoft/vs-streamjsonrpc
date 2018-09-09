@@ -129,11 +129,18 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void ImplementsIDisposable()
+    public async Task ImplementsIDisposable()
     {
         var disposableClient = (IDisposable)this.clientRpc;
         disposableClient.Dispose();
-        Assert.True(this.clientStream.IsDisposed);
+
+        // There is an async delay in disposal of the clientStream when pipes are involved.
+        // Tolerate that while verifying that it does eventually close.
+        while (!this.clientStream.IsDisposed)
+        {
+            await Task.Delay(1);
+            this.TimeoutToken.ThrowIfCancellationRequested();
+        }
     }
 
     [Fact]

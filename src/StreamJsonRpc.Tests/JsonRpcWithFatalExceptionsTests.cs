@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
-using Nerdbank;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,7 +19,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         : base(logger)
     {
         this.server = new Server();
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
 
         this.messageHandler = new HeaderDelimitedMessageHandler(streams.Item1, streams.Item1);
         this.clientRpc = new JsonRpcWithFatalExceptions(this.messageHandler);
@@ -31,7 +29,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeMethodOnServer()
+    public async Task CanInvokeMethodOnServer_WithVeryLargePayload()
     {
         string testLine = "TestLine1" + new string('a', 1024 * 1024);
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.ServerMethod), testLine);

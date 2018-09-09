@@ -28,7 +28,7 @@ public class DirectMessageHandler : StreamMessageHandler
         return await this.MessagesToRead.DequeueAsync(cancellationToken);
     }
 
-    protected override ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
+    protected override ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken)
     {
         this.WrittenMessages.Enqueue(content);
         return default(ValueTask);

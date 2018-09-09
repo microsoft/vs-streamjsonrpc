@@ -5,15 +5,18 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Buffers;
-    using System.Collections.Generic;
+    using System.Buffers.Text;
     using System.Globalization;
     using System.IO;
+    using System.IO.Pipelines;
     using System.Net.Http.Headers;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.VisualStudio.Threading;
+    using Microsoft;
+    using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -24,12 +27,8 @@ namespace StreamJsonRpc
     /// This is based on the language server protocol spec:
     /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol.
     /// </remarks>
-    public class HeaderDelimitedMessageHandler : StreamMessageHandler
+    public class HeaderDelimitedMessageHandler : PipeMessageHandler
     {
-        /// <summary>
-        /// The maximum supported size of a single element in the header.
-        /// </summary>
-        private const int MaxHeaderElementSize = 1024;
         private const string ContentLengthHeaderNameText = "Content-Length";
         private const string ContentTypeHeaderNameText = "Content-Type";
         private const string DefaultSubType = "jsonrpc";
@@ -59,25 +58,48 @@ namespace StreamJsonRpc
         private static readonly byte[] ContentTypeHeaderName = HeaderEncoding.GetBytes(ContentTypeHeaderNameText);
         private static readonly byte[] CrlfBytes = HeaderEncoding.GetBytes("\r\n");
 
-        private readonly byte[] sendingHeaderBuffer = new byte[MaxHeaderElementSize];
+        private readonly SerializationHelper helper = new SerializationHelper();
 
-        private readonly MemoryStream sendingBufferStream = new MemoryStream(MaxHeaderElementSize);
-
-        private readonly byte[] receivingBuffer = new byte[MaxHeaderElementSize];
-
-        private readonly Dictionary<string, string> receivingHeaders = new Dictionary<string, string>(4);
-
-        private MemoryStream readBufferStream;
-
-        private StreamReader readBufferReader;
+        /// <summary>
+        /// Backing field for <see cref="SubType"/>.
+        /// </summary>
+        private string subType = DefaultSubType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
         /// </summary>
-        /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
-        /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
+        /// <param name="writer">The writer to use for transmitting messages.</param>
+        /// <param name="reader">The reader to use for receiving messages.</param>
+        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader)
+            : base(writer, reader, DefaultContentEncoding)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="pipe">The duplex pipe to use for exchanging messages.</param>
+        public HeaderDelimitedMessageHandler(IDuplexPipe pipe)
+            : this(pipe.Output, pipe.Input)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="duplexStream">The stream to use for exchanging messages.</param>
+        public HeaderDelimitedMessageHandler(Stream duplexStream)
+            : this(duplexStream, duplexStream)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="sendingStream">The stream to use for transmitting messages.</param>
+        /// <param name="receivingStream">The stream to use for receiving messages.</param>
         public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
-            : base(sendingStream, receivingStream != null ? new ReadBufferingStream(receivingStream, MaxHeaderElementSize) : null, DefaultContentEncoding)
+            : base(sendingStream, receivingStream, DefaultContentEncoding)
         {
         }
 
@@ -94,202 +116,165 @@ namespace StreamJsonRpc
         /// Gets or sets the value to use as the subtype in the Content-Type header (e.g. "application/SUBTYPE").
         /// </summary>
         /// <value>The default value is "jsonrpc".</value>
-        public string SubType { get; set; } = DefaultSubType;
-
-        private new ReadBufferingStream ReceivingStream => (ReadBufferingStream)base.ReceivingStream;
+        public string SubType
+        {
+            get => this.subType;
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                Requires.Argument(value.Length < 100, nameof(value), Resources.HeaderValueTooLarge);
+                this.subType = value;
+            }
+        }
 
         /// <inheritdoc />
         protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            this.receivingHeaders.Clear();
-            int headerBytesLength = 0;
-            var state = HeaderParseState.Name;
-            string headerName = null;
-            do
+            var headers = await this.ReadHeadersAsync(cancellationToken);
+            if (!headers.HasValue)
             {
-                if (this.receivingBuffer.Length - headerBytesLength == 0)
-                {
-                    throw new BadRpcHeaderException(Resources.HeaderValueTooLarge);
-                }
-
-                if (this.ReceivingStream.IsBufferEmpty)
-                {
-                    await this.ReceivingStream.FillBufferAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                int justRead = this.ReceivingStream.ReadByte();
-                if (justRead == -1)
-                {
-                    return null; // remote end disconnected
-                }
-
-                this.receivingBuffer[headerBytesLength] = (byte)justRead;
-                headerBytesLength++;
-                char lastCharRead = (char)justRead;
-                switch (state)
-                {
-                    case HeaderParseState.Name:
-                        if (lastCharRead == ':')
-                        {
-                            headerName = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
-                            state = HeaderParseState.Value;
-                            headerBytesLength = 0;
-                        }
-                        else if (lastCharRead == '\r' && headerBytesLength == 1)
-                        {
-                            state = HeaderParseState.EndOfHeader;
-                            headerBytesLength = 0;
-                        }
-                        else if (lastCharRead == '\r' || lastCharRead == '\n')
-                        {
-                            ThrowUnexpectedToken(lastCharRead);
-                        }
-
-                        break;
-                    case HeaderParseState.Value:
-                        if (lastCharRead == ' ')
-                        {
-                            --headerBytesLength;
-                        }
-
-                        // spec mandates \r always precedes \n
-                        if (lastCharRead == '\r')
-                        {
-                            string value = HeaderEncoding.GetString(this.receivingBuffer, index: 0, count: headerBytesLength - 1);
-                            this.receivingHeaders[headerName] = value;
-                            headerName = null;
-                            state = HeaderParseState.FieldDelimiter;
-                            headerBytesLength = 0;
-                        }
-
-                        break;
-                    case HeaderParseState.FieldDelimiter:
-                        ThrowIfNotExpectedToken(lastCharRead, '\n');
-                        state = HeaderParseState.Name;
-                        headerBytesLength = 0;
-                        break;
-                    case HeaderParseState.EndOfHeader:
-                        ThrowIfNotExpectedToken(lastCharRead, '\n');
-                        state = HeaderParseState.Terminate;
-                        headerBytesLength = 0;
-                        break;
-                }
-            }
-            while (state != HeaderParseState.Terminate);
-
-            string contentLengthAsText = this.receivingHeaders[ContentLengthHeaderNameText];
-            if (!int.TryParse(contentLengthAsText, out int contentLength))
-            {
-                throw new BadRpcHeaderException(string.Format(CultureInfo.CurrentCulture, Resources.HeaderContentLengthNotParseable, contentLengthAsText));
+                // end of stream reached before the next message started.
+                return null;
             }
 
-            Encoding contentEncoding = this.Encoding;
-            if (this.receivingHeaders.TryGetValue(ContentTypeHeaderNameText, out string contentTypeAsText))
+            if (!headers.Value.ContentLength.HasValue)
             {
-                contentEncoding = ParseEncodingFromContentTypeHeader(contentTypeAsText) ?? contentEncoding;
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new BadRpcHeaderException("No Content-Length header detected.");
             }
 
-            if (this.readBufferStream == null)
+            int contentLength = headers.Value.ContentLength.Value;
+            Encoding contentEncoding = headers.Value.ContentEncoding ?? this.Encoding;
+
+            ReadOnlySequence<byte> contentBuffer = default;
+            while (contentBuffer.Length < contentLength)
             {
-                this.readBufferStream = new MemoryStream(contentLength);
-            }
-            else
-            {
-                this.readBufferStream.SetLength(0);
-                if (this.readBufferStream.Capacity < contentLength)
+                var readResult = await this.Reader.ReadAsync(cancellationToken);
+                contentBuffer = readResult.Buffer;
+                if (contentBuffer.Length < contentLength)
                 {
-                    this.readBufferStream.Capacity = contentLength;
+                    this.Reader.AdvanceTo(contentBuffer.Start, contentBuffer.End);
                 }
             }
 
-            int bytesRead = 0;
-            while (bytesRead < contentLength)
+            contentBuffer = contentBuffer.Slice(0, contentLength);
+            try
             {
-                int bytesLeft = contentLength - bytesRead;
-                int bytesToRead = Math.Min(bytesLeft, this.receivingBuffer.Length);
-                int bytesJustRead = await this.ReceivingStream.ReadAsync(this.receivingBuffer, 0, bytesToRead, cancellationToken).ConfigureAwait(false);
-                if (bytesJustRead == 0)
-                {
-                    // Early termination of stream.
-                    return null;
-                }
-
-                this.readBufferStream.Write(this.receivingBuffer, 0, bytesJustRead);
-                bytesRead += bytesJustRead;
+                var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), contentEncoding));
+                return JToken.ReadFrom(jsonReader);
             }
-
-            this.readBufferStream.Position = 0;
-            if (this.readBufferReader == null || this.readBufferReader.CurrentEncoding != contentEncoding)
+            finally
             {
-                this.readBufferReader = new StreamReader(this.readBufferStream, contentEncoding);
+                // We're now done reading from the pipe's buffer. We can release it now.
+                this.Reader.AdvanceTo(contentBuffer.End);
             }
-            else
-            {
-                this.readBufferReader.DiscardBufferedData();
-            }
-
-            var jsonReader = new JsonTextReader(this.readBufferReader);
-            return JToken.ReadFrom(jsonReader);
         }
 
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc />
-        protected override async ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
+        protected override void Write(JToken content, CancellationToken cancellationToken)
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
         {
-            this.sendingBufferStream.SetLength(0);
-
-            MemoryStream sendingContentBufferStream = this.Serialize(content, contentEncoding);
-
-            // Transmit the Content-Length header.
-#pragma warning disable VSTHRD103 // Call async methods when in an async method
-            this.sendingBufferStream.Write(ContentLengthHeaderName, 0, ContentLengthHeaderName.Length);
-            this.sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-            string contentBytesLengthString = sendingContentBufferStream.Length.ToString(CultureInfo.InvariantCulture);
-            int headerValueBytesLength = HeaderEncoding.GetBytes(contentBytesLengthString, 0, contentBytesLengthString.Length, this.sendingHeaderBuffer, 0);
-            this.sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-            this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-
-            // Transmit the Content-Type header, but only when using a non-default encoding.
-            // We suppress it when it is the default both for smaller messages and to avoid
-            // having to load System.Net.Http on the receiving end in order to parse it.
-            if (DefaultContentEncoding.WebName != contentEncoding.WebName || this.SubType != DefaultSubType)
+            unsafe int WriteHeaderText(string value, Span<byte> memory)
             {
-                this.sendingBufferStream.Write(ContentTypeHeaderName, 0, ContentTypeHeaderName.Length);
-                this.sendingBufferStream.Write(HeaderKeyValueDelimiter, 0, HeaderKeyValueDelimiter.Length);
-                var contentTypeHeaderValue = $"application/{this.SubType}; charset={contentEncoding.WebName}";
-                headerValueBytesLength = HeaderEncoding.GetBytes(contentTypeHeaderValue, 0, contentTypeHeaderValue.Length, this.sendingHeaderBuffer, 0);
-                this.sendingBufferStream.Write(this.sendingHeaderBuffer, 0, headerValueBytesLength);
-                this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
+                fixed (char* pValue = &MemoryMarshal.GetReference(value.AsSpan()))
+                fixed (byte* pMemory = &MemoryMarshal.GetReference(memory))
+                {
+                    return HeaderEncoding.GetBytes(pValue, value.Length, pMemory, memory.Length);
+                }
             }
 
-            // Terminate the headers.
-            this.sendingBufferStream.Write(CrlfBytes, 0, CrlfBytes.Length);
-#pragma warning restore VSTHRD103 // Call async methods when in an async method
-
-            // Either write both the header and the content, or don't write anything.
-            // If we write only the header when the cancellation comes, that would confuse the recieving side
-            // and corrupt the data data it reads.
             cancellationToken.ThrowIfCancellationRequested();
+            Encoding contentEncoding = this.Encoding;
+            var contentSequence = this.helper.Serialize(content, contentEncoding);
+            try
+            {
+                Memory<byte> headerMemory = this.Writer.GetMemory(1024);
+                int bytesWritten = 0;
 
-            // Transmit the headers.
-            // Ignore the cancellation token so we don't write the header without the content.
-            this.sendingBufferStream.Position = 0;
-            await this.sendingBufferStream.CopyToAsync(this.SendingStream, MaxHeaderElementSize).ConfigureAwait(false);
+                // Transmit the Content-Length header.
+                ContentLengthHeaderName.CopyTo(headerMemory.Slice(bytesWritten));
+                bytesWritten += ContentLengthHeaderName.Length;
+                HeaderKeyValueDelimiter.CopyTo(headerMemory.Slice(bytesWritten));
+                bytesWritten += HeaderKeyValueDelimiter.Length;
 
-            // Transmit the content itself.
-            // Ignore the cancellation token so we don't write the header without the content.
-            await sendingContentBufferStream.CopyToAsync(this.SendingStream).ConfigureAwait(false);
+                Assumes.True(Utf8Formatter.TryFormat(contentSequence.Length, headerMemory.Span.Slice(bytesWritten), out int formattedBytes));
+                bytesWritten += formattedBytes;
+
+                CrlfBytes.CopyTo(headerMemory.Slice(bytesWritten));
+                bytesWritten += CrlfBytes.Length;
+
+                // Transmit the Content-Type header, but only when using a non-default encoding.
+                // We suppress it when it is the default both for smaller messages and to avoid
+                // having to load System.Net.Http on the receiving end in order to parse it.
+                if (DefaultContentEncoding.WebName != contentEncoding.WebName || this.SubType != DefaultSubType)
+                {
+                    ContentTypeHeaderName.CopyTo(headerMemory.Slice(bytesWritten));
+                    bytesWritten += ContentTypeHeaderName.Length;
+                    HeaderKeyValueDelimiter.CopyTo(headerMemory.Slice(bytesWritten));
+                    bytesWritten += HeaderKeyValueDelimiter.Length;
+
+                    bytesWritten += WriteHeaderText("application/", headerMemory.Slice(bytesWritten).Span);
+                    bytesWritten += WriteHeaderText(this.SubType, headerMemory.Slice(bytesWritten).Span);
+                    bytesWritten += WriteHeaderText("; charset=", headerMemory.Slice(bytesWritten).Span);
+                    bytesWritten += WriteHeaderText(contentEncoding.WebName, headerMemory.Slice(bytesWritten).Span);
+
+                    CrlfBytes.CopyTo(headerMemory.Slice(bytesWritten));
+                    bytesWritten += CrlfBytes.Length;
+                }
+
+                // Terminate the headers.
+                CrlfBytes.CopyTo(headerMemory.Slice(bytesWritten));
+                bytesWritten += CrlfBytes.Length;
+                this.Writer.Advance(bytesWritten);
+                bytesWritten = 0;
+
+                // Transmit the content itself.
+                var contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
+                contentSequence.CopyTo(contentMemory.Span);
+                this.Writer.Advance((int)contentSequence.Length);
+            }
+            finally
+            {
+                this.helper.Reset();
+            }
         }
 
         /// <summary>
         /// Extracts the content encoding from a Content-Type header.
         /// </summary>
-        /// <param name="contentTypeAsText">The value of the Content-Type header.</param>
+        /// <param name="contentTypeValue">The value of the Content-Type header.</param>
         /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
         [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
-        private static Encoding ParseEncodingFromContentTypeHeader(string contentTypeAsText)
+        private static unsafe Encoding ParseEncodingFromContentTypeHeader(ReadOnlySequence<byte> contentTypeValue)
         {
+            // Protect against blowing the stack since we're using stackalloc below.
+            if (contentTypeValue.Length > 200)
+            {
+                throw new BadRpcHeaderException("Content-Type header value length exceeds maximum allowed.");
+            }
+
             try
             {
+                Span<byte> stackSpan = stackalloc byte[(int)contentTypeValue.Length];
+                ReadOnlySpan<byte> contentTypeValueSpan = stackSpan;
+                if (contentTypeValue.IsSingleSegment)
+                {
+                    contentTypeValueSpan = contentTypeValue.First.Span;
+                }
+                else
+                {
+                    contentTypeValue.CopyTo(stackSpan);
+                }
+
+                contentTypeValueSpan = Trim(contentTypeValueSpan);
+
+                string contentTypeAsText;
+                fixed (byte* contentTypeValuePointer = &MemoryMarshal.GetReference(contentTypeValueSpan))
+                {
+                    contentTypeAsText = HeaderEncoding.GetString(contentTypeValuePointer, contentTypeValueSpan.Length);
+                }
+
                 var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
                 if (mediaType.CharSet != null)
                 {
@@ -340,6 +325,149 @@ namespace StreamJsonRpc
                 && buffer[lastIndex - 3] == lf
                 && buffer[lastIndex - 2] == cr
                 && buffer[lastIndex - 1] == lf;
+        }
+
+        private static int GetContentLength(ReadOnlySequence<byte> contentLengthValue)
+        {
+            // Ensure the length is reasonable so we don't blow the stack if we execute the stackalloc path.
+            if (contentLengthValue.Length > 20)
+            {
+                throw new BadRpcHeaderException("Content-Length header's value has a length that exceeds the maximum allowed.");
+            }
+
+            Span<byte> stackSpan = stackalloc byte[(int)contentLengthValue.Length];
+            ReadOnlySpan<byte> contentLengthSpan = stackSpan;
+            if (contentLengthValue.IsSingleSegment)
+            {
+                contentLengthSpan = contentLengthValue.First.Span;
+            }
+            else
+            {
+                contentLengthValue.CopyTo(stackSpan);
+            }
+
+            contentLengthSpan = Trim(contentLengthSpan);
+
+            if (!Utf8Parser.TryParse(contentLengthSpan, out int contentLength, out int bytesConsumed) || bytesConsumed < contentLengthSpan.Length)
+            {
+                throw new BadRpcHeaderException("Unable to parse Content-Length header value as an integer.");
+            }
+
+            return contentLength;
+        }
+
+        private static ReadOnlySpan<byte> Trim(ReadOnlySpan<byte> span) => TrimStart(TrimEnd(span));
+
+        private static ReadOnlySpan<byte> TrimStart(ReadOnlySpan<byte> span)
+        {
+            while (span.Length > 0 && char.IsWhiteSpace((char)span[0]))
+            {
+                span = span.Slice(1);
+            }
+
+            return span;
+        }
+
+        private static ReadOnlySpan<byte> TrimEnd(ReadOnlySpan<byte> span)
+        {
+            while (span.Length > 0 && char.IsWhiteSpace((char)span[span.Length - 1]))
+            {
+                span = span.Slice(0, span.Length - 1);
+            }
+
+            return span;
+        }
+
+        private async ValueTask<(int? ContentLength, Encoding ContentEncoding)?> ReadHeadersAsync(CancellationToken cancellationToken)
+        {
+            bool IsHeaderName(ReadOnlySequence<byte> buffer, ReadOnlySpan<byte> asciiHeaderName)
+            {
+                if (asciiHeaderName.Length != buffer.Length)
+                {
+                    return false;
+                }
+
+                foreach (ReadOnlyMemory<byte> segment in buffer)
+                {
+                    if (!asciiHeaderName.Slice(0, segment.Length).SequenceEqual(segment.Span))
+                    {
+                        return false;
+                    }
+
+                    asciiHeaderName = asciiHeaderName.Slice(segment.Length);
+                }
+
+                return true;
+            }
+
+            int? contentLengthHeaderValue = null;
+            Encoding contentEncoding = null;
+
+            while (true)
+            {
+                var readResult = await this.Reader.ReadAsync(cancellationToken);
+                if (readResult.Buffer.Length == 0 && readResult.IsCompleted)
+                {
+                    return default; // remote end disconnected at a reasonable place.
+                }
+
+                SequencePosition? lf = readResult.Buffer.PositionOf((byte)'\n');
+                if (!lf.HasValue)
+                {
+                    if (readResult.IsCompleted)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    // Indicate that we can't find what we're looking for and read again.
+                    this.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    continue;
+                }
+
+                var line = readResult.Buffer.Slice(0, lf.Value);
+
+                // Verify the line ends with an \r (that precedes the \n we already found)
+                SequencePosition? cr = line.PositionOf((byte)'\r');
+                if (!cr.HasValue || !line.GetPosition(1, cr.Value).Equals(lf))
+                {
+                    throw new BadRpcHeaderException("Header does not end with expected \r\n character sequence.");
+                }
+
+                // Trim off the \r now that we confirmed it was there.
+                line = line.Slice(0, line.Length - 1);
+
+                if (line.Length > 0)
+                {
+                    var colon = line.PositionOf((byte)':');
+                    if (!colon.HasValue)
+                    {
+                        throw new BadRpcHeaderException("Colon not found in header.");
+                    }
+
+                    var headerNameBytes = line.Slice(0, colon.Value);
+                    var headerValueBytes = line.Slice(line.GetPosition(1, colon.Value));
+
+                    if (IsHeaderName(headerNameBytes, ContentLengthHeaderName))
+                    {
+                        contentLengthHeaderValue = GetContentLength(headerValueBytes);
+                    }
+                    else if (IsHeaderName(headerNameBytes, ContentTypeHeaderName))
+                    {
+                        contentEncoding = ParseEncodingFromContentTypeHeader(headerValueBytes);
+                    }
+                }
+
+                // Advance to the next line.
+                this.Reader.AdvanceTo(readResult.Buffer.GetPosition(1, lf.Value));
+
+                if (line.Length == 0)
+                {
+                    // We found the empty line that constitutes the end of the HTTP headers.
+                    break;
+                }
+            }
+
+            return (contentLengthHeaderValue, contentEncoding);
         }
     }
 }

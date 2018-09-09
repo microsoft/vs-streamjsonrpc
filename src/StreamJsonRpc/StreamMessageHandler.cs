@@ -35,21 +35,6 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
 
         /// <summary>
-        /// A temporary buffer used to serialize a <see cref="JToken"/>. Lazily initialized.
-        /// </summary>
-        private MemoryStream sendingContentBufferStream;
-
-        /// <summary>
-        /// A recycled <see cref="StreamWriter"/> used to write to <see cref="sendingContentBufferStream"/>. Lazily initialized.
-        /// </summary>
-        private StreamWriter sendingContentBufferStreamWriter;
-
-        /// <summary>
-        /// A recycled <see cref="JsonWriter"/> used to write to <see cref="sendingContentBufferStreamWriter"/>. Lazily initialized.
-        /// </summary>
-        private JsonWriter sendingContentBufferStreamJsonWriter;
-
-        /// <summary>
         /// The character encoding to use for the transmitted content.
         /// </summary>
         private Encoding encoding;
@@ -147,16 +132,13 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
-            // Capture Encoding as a local since it may change over the time of this method's execution.
-            Encoding contentEncoding = this.Encoding;
-
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
             {
                 try
                 {
                     using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
-                        await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                        await this.WriteCoreAsync(content, cts.Token).ConfigureAwait(false);
                     }
 
                     await this.FlushCoreAsync().ConfigureAwait(false);
@@ -212,10 +194,9 @@ namespace StreamJsonRpc
         /// Writes a message to the stream.
         /// </summary>
         /// <param name="content">The message to write.</param>
-        /// <param name="contentEncoding">The encoding to use for <paramref name="content"/>.</param>
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
-        protected abstract ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken);
+        protected abstract ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken);
 
         /// <summary>
         /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,
@@ -224,47 +205,5 @@ namespace StreamJsonRpc
         /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
         protected virtual ValueTask FlushCoreAsync() => new ValueTask(this.SendingStream.FlushAsync());
 #pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
-
-        /// <summary>
-        /// Serializes a <see cref="JToken"/> to a memory stream and returns the result.
-        /// </summary>
-        /// <param name="content">The <see cref="JToken"/> to serialize.</param>
-        /// <param name="encoding">The text encoding to use.</param>
-        /// <returns>A <see cref="MemoryStream"/> with the serialized content, positioned at 0.</returns>
-        /// <remarks>
-        /// The returned <see cref="MemoryStream"/> is recycled for each call. This method should *not* be invoked
-        /// until any prior invocation's result is no longer necessary.
-        /// </remarks>
-        protected MemoryStream Serialize(JToken content, Encoding encoding)
-        {
-            Requires.NotNull(content, nameof(content));
-            Requires.NotNull(encoding, nameof(encoding));
-
-            if (this.sendingContentBufferStream == null)
-            {
-                this.sendingContentBufferStream = new MemoryStream(4 * 1024);
-            }
-            else
-            {
-                this.sendingContentBufferStream.SetLength(0);
-            }
-
-            if (this.sendingContentBufferStreamWriter == null || this.sendingContentBufferStreamWriter.Encoding != encoding)
-            {
-                this.sendingContentBufferStreamWriter = new StreamWriter(this.sendingContentBufferStream, encoding);
-                this.sendingContentBufferStreamJsonWriter = null; // we'll need to reinitialize this for the new StreamWriter
-            }
-
-            if (this.sendingContentBufferStreamJsonWriter == null)
-            {
-                this.sendingContentBufferStreamJsonWriter = new JsonTextWriter(this.sendingContentBufferStreamWriter);
-            }
-
-            content.WriteTo(this.sendingContentBufferStreamJsonWriter);
-            this.sendingContentBufferStreamWriter.Flush(); // this flushes the internal encoder so it's safe to reuse
-            this.sendingContentBufferStream.Position = 0;
-
-            return this.sendingContentBufferStream;
-        }
     }
 }
