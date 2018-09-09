@@ -1226,6 +1226,11 @@ public class JsonRpcTests : TestBase
             this.clientStream.Dispose();
         }
 
+        if (this.serverRpc.Completion.IsFaulted)
+        {
+            this.Logger.WriteLine("Server faulted with: " + this.serverRpc.Completion.Exception);
+        }
+
         base.Dispose(disposing);
     }
 
