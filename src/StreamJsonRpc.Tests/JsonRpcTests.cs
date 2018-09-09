@@ -1150,13 +1150,12 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public void Completion_ThrowsBeforeListening()
+    public void Completion_BeforeListeningAndAfterDisposal()
     {
         var rpc = new JsonRpc(Stream.Null, Stream.Null);
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            var foo = rpc.Completion;
-        });
+        Task completion = rpc.Completion;
+        rpc.Dispose();
+        Assert.True(completion.IsCompleted);
     }
 
     [Fact]

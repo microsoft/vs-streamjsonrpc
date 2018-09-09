@@ -220,10 +220,9 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Gets a <see cref="Task"/> that completes when listening has stopped,
+        /// Gets a <see cref="Task"/> that completes when this instance is disposed or when listening has stopped
         /// whether by error, disposal or the stream closing.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="StartListening"/> has not yet been called.</exception>
         /// <remarks>
         /// The returned <see cref="Task"/> may transition to a faulted state
         /// for exceptions fatal to the protocol or this instance.
@@ -232,7 +231,6 @@ namespace StreamJsonRpc
         {
             get
             {
-                Verify.Operation(this.startedListening, Resources.MustBeListening);
                 return this.completionSource.Task;
             }
         }
