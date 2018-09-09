@@ -28,18 +28,21 @@ namespace StreamJsonRpc
         [ExcludeFromCodeCoverage]
         private string DebuggerDisplay => $"{this.Signature} ({this.Target})";
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
             return obj is MethodSignatureAndTarget other
                 && this.Equals(other);
         }
 
+        /// <inheritdoc/>
         public bool Equals(MethodSignatureAndTarget other)
         {
             return this.Signature.Equals(other.Signature)
                 && object.ReferenceEquals(this.Target, other.Target);
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
             return this.Signature.GetHashCode() + RuntimeHelpers.GetHashCode(this.Target);
