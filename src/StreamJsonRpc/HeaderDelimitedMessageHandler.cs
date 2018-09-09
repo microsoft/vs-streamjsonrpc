@@ -22,7 +22,7 @@ namespace StreamJsonRpc
     /// </summary>
     /// <remarks>
     /// This is based on the language server protocol spec:
-    /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol
+    /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol.
     /// </remarks>
     public class HeaderDelimitedMessageHandler : StreamMessageHandler
     {

@@ -1475,7 +1475,7 @@ namespace StreamJsonRpc
                     var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = state }, parameterSerializer: DefaultJsonSerializer);
                     await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                 }
-            });
+            }).Forget();
         }
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
@@ -1607,7 +1607,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
-                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
             }
         }
     }
