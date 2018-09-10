@@ -1,0 +1,2 @@
+StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.get -> bool
+StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> void
