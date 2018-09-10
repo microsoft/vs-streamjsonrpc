@@ -561,7 +561,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="argument">Method argument, must be serializable to JSON.</param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
@@ -589,7 +589,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
@@ -620,7 +620,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="argument">Method argument, must be serializable to JSON.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
@@ -678,7 +678,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
@@ -801,7 +801,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Indicates whether the connection should be closed when the server throws an exception.
         /// </summary>
-        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
+        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal.</param>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
         /// <remarks>
         /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
@@ -811,9 +811,9 @@ namespace StreamJsonRpc
         protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
-        /// Invokes the specified RPC method
+        /// Invokes the specified RPC method.
         /// </summary>
-        /// <typeparam name="TResult">RPC method return type</typeparam>
+        /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
         /// <param name="targetName">Name of the method to invoke.</param>
@@ -826,9 +826,9 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Invokes the specified RPC method
+        /// Invokes the specified RPC method.
         /// </summary>
-        /// <typeparam name="TResult">RPC method return type</typeparam>
+        /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
         /// <param name="targetName">Name of the method to invoke.</param>
@@ -1475,7 +1475,7 @@ namespace StreamJsonRpc
                     var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = state }, parameterSerializer: DefaultJsonSerializer);
                     await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
                 }
-            });
+            }).Forget();
         }
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
@@ -1607,7 +1607,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
-                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
             }
         }
     }

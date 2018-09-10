@@ -346,6 +346,7 @@ public class WebSocketMessageHandlerTests : TestBase
                         await rpc.Completion;
                     }
                 }
+
                 await next();
             });
         }
