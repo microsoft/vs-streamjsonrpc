@@ -259,12 +259,6 @@ namespace StreamJsonRpc
         /// </summary>
         public JsonSerializer JsonSerializer { get; }
 
-        /// <summary>
-        /// Gets or sets the formatting to use when serializing JSON-RPC messages.
-        /// </summary>
-        /// <value>The default value is <see cref="Formatting.Indented"/>.</value>
-        public Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
-
         private JsonSerializerSettings MessageJsonSerializerSettings { get; }
 
         private JsonSerializerSettings MessageJsonDeserializerSettings { get; }

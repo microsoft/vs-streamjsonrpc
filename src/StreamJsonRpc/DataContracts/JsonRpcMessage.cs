@@ -120,19 +120,6 @@ namespace StreamJsonRpc
             return json.ToObject<JsonRpcMessage>(serializer);
         }
 
-        public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
-        {
-            JsonSerializer serializer = JsonSerializer.Create(settings);
-
-            JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);
-            if (result == null)
-            {
-                throw new JsonException(Resources.JsonRpcCannotBeNull);
-            }
-
-            return result;
-        }
-
         public T GetResult<T>(JsonSerializer serializer)
         {
             return this.Result == null ? default(T) : this.Result.ToObject<T>(serializer);
@@ -161,11 +148,6 @@ namespace StreamJsonRpc
             }
 
             return result;
-        }
-
-        public string ToJson(Formatting formatting, JsonSerializerSettings settings)
-        {
-            return JsonConvert.SerializeObject(this, formatting, settings);
         }
     }
 }
