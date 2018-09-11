@@ -100,7 +100,6 @@ public class JsonRpcClientInteropTests : InteropTestBase
     [Fact]
     public async Task SerializeWithNoWhitespace()
     {
-        this.clientRpc.JsonSerializerFormatting = Newtonsoft.Json.Formatting.None;
         Task notifyTask = this.clientRpc.NotifyAsync("test");
         JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
         string json = jtoken.ToString(Formatting.None);

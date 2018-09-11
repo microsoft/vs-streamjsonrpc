@@ -131,22 +131,6 @@ namespace StreamJsonRpc
             return message;
         }
 
-        internal static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
-        {
-            Requires.NotNull(reader, nameof(reader));
-            Requires.NotNull(settings, nameof(settings));
-
-            JsonSerializer serializer = JsonSerializer.Create(settings);
-
-            JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);
-            if (result == null)
-            {
-                throw new JsonException(Resources.JsonRpcCannotBeNull);
-            }
-
-            return result;
-        }
-
         internal T GetResult<T>(JsonSerializer serializer)
         {
             Requires.NotNull(serializer, nameof(serializer));
@@ -176,11 +160,6 @@ namespace StreamJsonRpc
             }
 
             return result;
-        }
-
-        internal string ToJson(Formatting formatting, JsonSerializerSettings settings)
-        {
-            return JsonConvert.SerializeObject(this, formatting, settings);
         }
     }
 }
