@@ -3,10 +3,11 @@
 
 namespace StreamJsonRpc
 {
+    using System.Runtime.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    [JsonObject(MemberSerialization.OptIn)]
+    [DataContract]
     internal sealed class JsonRpcError
     {
         /// <summary>
@@ -36,13 +37,13 @@ namespace StreamJsonRpc
 
         public string ErrorCode => this.Data is JObject && (this.Data?[DataCodeFieldName]?.Type == JTokenType.String || this.Data?[DataCodeFieldName]?.Type == JTokenType.Integer) ? this.Data.Value<string>(DataCodeFieldName) : null;
 
-        [JsonProperty("code", Required = Required.Always)]
+        [DataMember(Name = "code", Order = 1, IsRequired = true)]
         internal int Code { get; private set; }
 
-        [JsonProperty("message", Required = Required.Always)]
+        [DataMember(Name = "message", Order = 2, IsRequired = true)]
         internal string Message { get; private set; }
 
-        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)]
+        [DataMember(Name = "data", Order = 3, EmitDefaultValue = false)]
         internal JToken Data { get; private set; }
     }
 }

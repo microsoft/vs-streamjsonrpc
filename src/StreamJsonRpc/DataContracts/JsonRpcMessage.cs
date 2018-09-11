@@ -7,12 +7,13 @@ namespace StreamJsonRpc
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.Serialization;
     using System.Threading;
     using Microsoft;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    [JsonObject(MemberSerialization.OptIn)]
+    [DataContract]
     internal sealed class JsonRpcMessage
     {
         private JsonRpcMessage()
@@ -28,48 +29,53 @@ namespace StreamJsonRpc
             this.JsonRpcVersion = jsonrpc;
         }
 
-        [JsonProperty("jsonrpc")]
+        [DataMember(Name = "jsonrpc", Order = 1)]
         public string JsonRpcVersion { get; private set; }
 
-        [JsonProperty("method")]
+        [DataMember(Name = "method", Order = 2)]
         public string Method { get; private set; }
 
-        [JsonProperty("id")]
+        [DataMember(Name = "id", Order = 3)]
         public JToken Id { get; private set; }
 
-        [JsonProperty("error")]
+        [DataMember(Name = "error", Order = 4)]
         public JsonRpcError Error { get; private set; }
 
-        [JsonProperty("params")]
+        [DataMember(Name = "params", Order = 5)]
         public JContainer Parameters
         {
             get;
             set;
         }
 
-        public bool IsRequest => !string.IsNullOrEmpty(this.Method);
+        /// <summary>
+        /// Gets or sets the <see cref="JObject"/> that was originally deserialized into this message, if applicable.
+        /// </summary>
+        public JObject OriginalRepresentation { get; set; }
 
-        public bool IsResponse => this.IsError || this.Result != null;
+        internal bool IsRequest => !string.IsNullOrEmpty(this.Method);
 
-        public bool IsError => this.Error != null;
+        internal bool IsResponse => this.IsError || this.Result != null;
 
-        public bool IsNotification => this.Id == null;
+        internal bool IsError => this.Error != null;
 
-        public int ParameterCount => this.Parameters?.Count ?? 0;
+        internal bool IsNotification => this.Id == null;
 
-        [JsonProperty("result")]
+        internal int ParameterCount => this.Parameters?.Count ?? 0;
+
+        [DataMember(Name = "result", Order = 6)]
         private JToken Result
         {
             get;
             set;
         }
 
-        public static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters, JsonSerializer parametersSerializer)
+        internal static JsonRpcMessage CreateRequest(int? id, string @method, IReadOnlyList<object> parameters, JsonSerializer parametersSerializer)
         {
             return new JsonRpcMessage(method, JToken.FromObject(parameters, parametersSerializer), id);
         }
 
-        public static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters, JsonSerializer parameterSerializer)
+        internal static JsonRpcMessage CreateRequestWithNamedParameters(int? id, string @method, object namedParameters, JsonSerializer parameterSerializer)
         {
             if (namedParameters == null)
             {
@@ -81,7 +87,7 @@ namespace StreamJsonRpc
             }
         }
 
-        public static JsonRpcMessage CreateResult(JToken id, object result, JsonSerializer jsonSerializer)
+        internal static JsonRpcMessage CreateResult(JToken id, object result, JsonSerializer jsonSerializer)
         {
             return new JsonRpcMessage()
             {
@@ -90,22 +96,22 @@ namespace StreamJsonRpc
             };
         }
 
-        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message)
+        internal static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message)
         {
             return CreateError(id, (int)error, message);
         }
 
-        public static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message, JObject data)
+        internal static JsonRpcMessage CreateError(JToken id, JsonRpcErrorCode error, string message, JObject data)
         {
             return CreateError(id, (int)error, message, data);
         }
 
-        public static JsonRpcMessage CreateError(JToken id, int error, string message)
+        internal static JsonRpcMessage CreateError(JToken id, int error, string message)
         {
             return CreateError(id, error, message, data: null);
         }
 
-        public static JsonRpcMessage CreateError(JToken id, int error, string message, JObject data)
+        internal static JsonRpcMessage CreateError(JToken id, int error, string message, JObject data)
         {
             return new JsonRpcMessage()
             {
@@ -114,14 +120,22 @@ namespace StreamJsonRpc
             };
         }
 
-        public static JsonRpcMessage FromJson(JToken json, JsonSerializerSettings settings)
+        internal static JsonRpcMessage FromJson(JToken json, JsonSerializerSettings settings)
         {
+            Requires.NotNull(json, nameof(json));
+            Requires.NotNull(settings, nameof(settings));
+
             JsonSerializer serializer = JsonSerializer.Create(settings);
-            return json.ToObject<JsonRpcMessage>(serializer);
+            var message = json.ToObject<JsonRpcMessage>(serializer);
+            message.OriginalRepresentation = (JObject)json;
+            return message;
         }
 
-        public static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
+        internal static JsonRpcMessage FromJson(JsonReader reader, JsonSerializerSettings settings)
         {
+            Requires.NotNull(reader, nameof(reader));
+            Requires.NotNull(settings, nameof(settings));
+
             JsonSerializer serializer = JsonSerializer.Create(settings);
 
             JsonRpcMessage result = serializer.Deserialize<JsonRpcMessage>(reader);
@@ -133,12 +147,13 @@ namespace StreamJsonRpc
             return result;
         }
 
-        public T GetResult<T>(JsonSerializer serializer)
+        internal T GetResult<T>(JsonSerializer serializer)
         {
+            Requires.NotNull(serializer, nameof(serializer));
             return this.Result == null ? default(T) : this.Result.ToObject<T>(serializer);
         }
 
-        public object[] GetParameters(ParameterInfo[] parameterInfos, JsonSerializer jsonSerializer)
+        internal object[] GetParameters(ParameterInfo[] parameterInfos, JsonSerializer jsonSerializer)
         {
             Requires.NotNull(parameterInfos, nameof(parameterInfos));
             Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
@@ -163,7 +178,7 @@ namespace StreamJsonRpc
             return result;
         }
 
-        public string ToJson(Formatting formatting, JsonSerializerSettings settings)
+        internal string ToJson(Formatting formatting, JsonSerializerSettings settings)
         {
             return JsonConvert.SerializeObject(this, formatting, settings);
         }

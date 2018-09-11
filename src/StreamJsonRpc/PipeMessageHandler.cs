@@ -24,7 +24,7 @@ namespace StreamJsonRpc
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class PipeMessageHandler : IMessageHandler, IDisposableObservable
+    public abstract class PipeMessageHandler : IJsonMessageHandler, IDisposableObservable
     {
         /// <summary>
         /// A semaphore acquired while sending a message.

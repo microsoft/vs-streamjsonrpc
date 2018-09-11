@@ -224,16 +224,15 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Unexpected error processing JSON RPC '{0}': {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Unexpected error processing JSON-RPC message: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Unexpected token '{0}' while parsing header.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Unrecognized incoming JSON RPC '{0}'</value>
-    <comment>{0} is the json.</comment>
+    <value>Incoming JSON-RPC message did not conform to a recognized pattern.</value>
   </data>
   <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
     <value>A target object should be supplied if and only if the method is not static.</value>

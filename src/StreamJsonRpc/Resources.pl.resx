@@ -67,11 +67,10 @@
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>Nieoczekiwany błąd przetwarzania wywołania RPC JSON „{0}”: {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
-    <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Nie powiodło się przekształcanie nagłówka Content-Length w dodatnią liczbę całkowitą.</value>

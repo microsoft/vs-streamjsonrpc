@@ -377,7 +377,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unexpected error processing JSON RPC &apos;{0}&apos;: {1}.
+        ///   Looks up a localized string similar to Unexpected error processing JSON-RPC message: {0}.
         /// </summary>
         internal static string UnexpectedErrorProcessingJsonRpc {
             get {
@@ -395,7 +395,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unrecognized incoming JSON RPC &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Incoming JSON-RPC message did not conform to a recognized pattern..
         /// </summary>
         internal static string UnrecognizedIncomingJsonRpc {
             get {
