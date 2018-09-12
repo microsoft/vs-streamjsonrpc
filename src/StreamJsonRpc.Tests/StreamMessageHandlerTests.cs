@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
@@ -189,7 +190,7 @@ public class StreamMessageHandlerTests : TestBase
         Assert.NotNull(this.handler.Encoding);
     }
 
-    private class DelayedWriter : StreamMessageHandler
+    private class DelayedWriter : StreamMessageHandler<JToken>, IJsonMessageHandler
     {
         internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
 
@@ -199,6 +200,9 @@ public class StreamMessageHandlerTests : TestBase
             : base(sendingStream, receivingStream, encoding)
         {
         }
+
+        /// <inheritdoc />
+        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
 
         protected override ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
         {

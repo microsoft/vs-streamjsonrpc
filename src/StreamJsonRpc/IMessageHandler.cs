@@ -6,14 +6,14 @@ namespace StreamJsonRpc
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
 
     /// <summary>
     /// The contract for sending and receiving JSON-RPC messages.
     /// </summary>
-    internal interface IMessageHandler
+    public interface IMessageHandler
     {
         /// <summary>
         /// Gets a value indicating whether this message handler can receive messages.

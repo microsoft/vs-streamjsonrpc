@@ -174,8 +174,8 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} parameters are not compatible with the request: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <value>{0} parameters are not compatible with the arguments provided in the request.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>

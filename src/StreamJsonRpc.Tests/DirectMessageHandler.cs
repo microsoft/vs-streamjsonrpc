@@ -9,15 +9,19 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 
-public class DirectMessageHandler : StreamMessageHandler
+public class DirectMessageHandler : StreamMessageHandler<JToken>, IJsonMessageHandler
 {
     public DirectMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
         : base(sendingStream, receivingStream, encoding)
     {
     }
+
+    /// <inheritdoc />
+    public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
 
     internal AsyncQueue<JToken> MessagesToRead { get; } = new AsyncQueue<JToken>();
 

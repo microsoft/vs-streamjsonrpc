@@ -215,7 +215,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} parameters are not compatible with the request: {1}.
+        ///   Looks up a localized string similar to {0} parameters are not compatible with the arguments provided in the request..
         /// </summary>
         internal static string MethodParametersNotCompatible {
             get {

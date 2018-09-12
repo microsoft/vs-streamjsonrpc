@@ -35,7 +35,7 @@ namespace StreamJsonRpc
         /// <param name="remoteStack">The remote stack.</param>
         /// <param name="remoteCode">The remote code.</param>
         /// <param name="errorData">The value of the error.data field in the response.</param>
-        public RemoteInvocationException(string message, string remoteStack, string remoteCode, JToken errorData)
+        public RemoteInvocationException(string message, string remoteStack, string remoteCode, object errorData)
             : base(message)
         {
             this.RemoteStackTrace = remoteStack;
@@ -70,6 +70,6 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the <c>error.data</c> value in the error response, if one was provided.
         /// </summary>
-        public JToken ErrorData { get; }
+        public object ErrorData { get; }
     }
 }

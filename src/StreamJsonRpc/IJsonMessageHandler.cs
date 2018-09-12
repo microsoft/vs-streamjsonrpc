@@ -6,6 +6,7 @@ namespace StreamJsonRpc
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
@@ -24,6 +25,11 @@ namespace StreamJsonRpc
         /// Gets a value indicating whether this message handler can send messages.
         /// </summary>
         bool CanWrite { get; }
+
+        /// <summary>
+        /// Gets the <see cref="JsonSerializer"/> used when serializing and deserializing method arguments and return values.
+        /// </summary>
+        JsonSerializer JsonSerializer { get; }
 
         /// <summary>
         /// Reads a distinct and complete message from the transport, waiting for one if necessary.

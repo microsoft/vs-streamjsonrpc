@@ -19,7 +19,7 @@ namespace StreamJsonRpc
     /// A message handler for the <see cref="JsonRpc"/> class
     /// that uses <see cref="System.Net.WebSockets.WebSocket"/> as the transport.
     /// </summary>
-    public class WebSocketMessageHandler : StreamMessageHandler
+    public class WebSocketMessageHandler : StreamMessageHandler<JToken>, IJsonMessageHandler
     {
         private readonly ArraySegment<byte> readBuffer;
         private readonly SerializationHelper helper = new SerializationHelper();
@@ -51,6 +51,9 @@ namespace StreamJsonRpc
         /// Gets the <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
         /// </summary>
         public WebSocket WebSocket { get; }
+
+        /// <inheritdoc />
+        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
 
         /// <inheritdoc />
         protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)

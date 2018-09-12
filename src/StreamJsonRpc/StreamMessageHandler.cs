@@ -17,12 +17,14 @@ namespace StreamJsonRpc
     /// An abstract base class for for sending and receiving messages over a
     /// reading and writing pair of <see cref="Stream"/> objects.
     /// </summary>
+    /// <typeparam name="T">The type of object to be written/read.</typeparam>
     /// <remarks>
     /// This class and its derivatives are safe to call from any thread.
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class StreamMessageHandler : IJsonMessageHandler, IDisposableObservable
+    public abstract class StreamMessageHandler<T> : IDisposableObservable
+        where T : class
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -102,7 +104,7 @@ namespace StreamJsonRpc
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
 
         /// <inheritdoc />
-        public async ValueTask<JToken> ReadAsync(CancellationToken cancellationToken)
+        public async ValueTask<T> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.ReceivingStream != null, "No receiving stream.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -112,7 +114,7 @@ namespace StreamJsonRpc
             {
                 try
                 {
-                    JToken result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    T result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
                     return result;
                 }
                 catch (ObjectDisposedException)
@@ -125,7 +127,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc />
-        public async ValueTask WriteAsync(JToken content, CancellationToken cancellationToken)
+        public async ValueTask WriteAsync(T content, CancellationToken cancellationToken)
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.SendingStream != null, "No sending stream.");
@@ -188,7 +190,7 @@ namespace StreamJsonRpc
         /// A null string indicates the stream has ended.
         /// An empty string should never be returned.
         /// </returns>
-        protected abstract ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken);
+        protected abstract ValueTask<T> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Writes a message to the stream.
@@ -196,7 +198,7 @@ namespace StreamJsonRpc
         /// <param name="content">The message to write.</param>
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
-        protected abstract ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken);
+        protected abstract ValueTask WriteCoreAsync(T content, CancellationToken cancellationToken);
 
         /// <summary>
         /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,

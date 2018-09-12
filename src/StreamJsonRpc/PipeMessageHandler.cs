@@ -13,18 +13,21 @@ namespace StreamJsonRpc
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// An abstract base class for for sending and receiving messages
     /// using <see cref="PipeReader"/> and <see cref="PipeWriter"/>.
     /// </summary>
+    /// <typeparam name="T">The type of object to be written/read.</typeparam>
     /// <remarks>
     /// This class and its derivatives are safe to call from any thread.
     /// Read and write requests are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// </remarks>
-    public abstract class PipeMessageHandler : IJsonMessageHandler, IDisposableObservable
+    public abstract class PipeMessageHandler<T> : IDisposableObservable
+        where T : class
     {
         /// <summary>
         /// A semaphore acquired while sending a message.
@@ -142,7 +145,7 @@ namespace StreamJsonRpc
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc/>
-        public virtual ValueTask<JToken> ReadAsync(CancellationToken cancellationToken)
+        public virtual ValueTask<T> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.CanRead, "No input pipe.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -161,7 +164,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public virtual async ValueTask WriteAsync(JToken json, CancellationToken cancellationToken)
+        public virtual async ValueTask WriteAsync(T json, CancellationToken cancellationToken)
         {
             Requires.NotNull(json, nameof(json));
             Verify.Operation(this.CanWrite, "No output pipe.");
@@ -194,7 +197,7 @@ namespace StreamJsonRpc
         /// They can assume their caller will invoke <see cref="PipeWriter.FlushAsync(CancellationToken)"/> on their behalf
         /// after writing is completed.
         /// </remarks>
-        protected abstract void Write(JToken content, CancellationToken cancellationToken);
+        protected abstract void Write(T content, CancellationToken cancellationToken);
 
         /// <summary>
         /// Reads a message from the pipe.
@@ -204,7 +207,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// Implementations may assume the method is never called before the previous call has completed.
         /// </remarks>
-        protected abstract ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken);
+        protected abstract ValueTask<T> ReadCoreAsync(CancellationToken cancellationToken);
 #pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
 
         /// <summary>

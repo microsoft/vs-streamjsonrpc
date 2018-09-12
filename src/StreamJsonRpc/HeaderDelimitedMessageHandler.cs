@@ -27,7 +27,7 @@ namespace StreamJsonRpc
     /// This is based on the language server protocol spec:
     /// https://github.com/Microsoft/language-server-protocol/blob/master/protocol.md#base-protocol.
     /// </remarks>
-    public class HeaderDelimitedMessageHandler : PipeMessageHandler
+    public class HeaderDelimitedMessageHandler : PipeMessageHandler<JToken>, IJsonMessageHandler
     {
         private const string ContentLengthHeaderNameText = "Content-Length";
         private const string ContentTypeHeaderNameText = "Content-Type";
@@ -126,6 +126,9 @@ namespace StreamJsonRpc
                 this.subType = value;
             }
         }
+
+        /// <inheritdoc />
+        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
 
         /// <inheritdoc />
         protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)

@@ -26,9 +26,11 @@ public class JsonRpcTests : TestBase
     private readonly Server server;
     private Nerdbank.FullDuplexStream serverStream;
     private JsonRpc serverRpc;
+    private IJsonMessageHandler serverMessageHandler;
 
     private Nerdbank.FullDuplexStream clientStream;
     private JsonRpc clientRpc;
+    private IJsonMessageHandler clientMessageHandler;
 
     public JsonRpcTests(ITestOutputHelper logger)
         : base(logger)
@@ -41,8 +43,10 @@ public class JsonRpcTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
-        this.clientRpc = JsonRpc.Attach(this.clientStream);
+        this.serverRpc = new JsonRpc(this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream), this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream));
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
     }
 
     private interface IServer
@@ -656,8 +660,8 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task UnserializableTypeWorksWithConverter()
     {
-        this.clientRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
-        this.serverRpc.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        this.clientMessageHandler.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        this.serverMessageHandler.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
         var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(this.server.RepeatSpecialType), new UnserializableType { Value = "a" });
         Assert.Equal("a!", result.Value);
     }
@@ -670,17 +674,17 @@ public class JsonRpcTests : TestBase
         // doesn't find the method with the mangled name.
 
         // Test with the converter only on the client side.
-        this.clientRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
+        this.clientMessageHandler.JsonSerializer.Converters.Add(new StringBase64Converter());
         string result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.ExpectEncodedA), "a");
         Assert.Equal("a", result);
 
         // Test with the converter on both sides.
-        this.serverRpc.JsonSerializer.Converters.Add(new StringBase64Converter());
+        this.serverMessageHandler.JsonSerializer.Converters.Add(new StringBase64Converter());
         result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.RepeatString), "a");
         Assert.Equal("a", result);
 
         // Test with the converter only on the server side.
-        this.clientRpc.JsonSerializer.Converters.Clear();
+        this.clientMessageHandler.JsonSerializer.Converters.Clear();
         result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.AsyncMethod), "YQ==");
         Assert.Equal("YSE=", result); // a!
     }

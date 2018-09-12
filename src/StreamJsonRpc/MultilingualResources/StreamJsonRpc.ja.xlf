@@ -40,9 +40,10 @@
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
-          <source>{0} parameters are not compatible with the request: {1}</source>
-          <target state="translated">{0} パラメーターは、要求と互換性がありません: {1}</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+          <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+          <target state="needs-review-translation">{0} パラメーターは、要求と互換性がありません: {1}</target>
+          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
