@@ -1114,6 +1114,44 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ServerMethodIsCanceledWhenConnectionDrops()
+    {
+        this.ReinitializeRpcWithoutListening();
+        this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
+        this.clientRpc.StartListening();
+        this.serverRpc.StartListening();
+
+        Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
+        Assert.False(rpcTask.IsCompleted);
+        await this.server.ServerMethodReached.WaitAsync();
+        this.clientStream.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task ServerMethodIsNotCanceledWhenConnectionDrops()
+    {
+        Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
+        Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
+        Assert.False(rpcTask.IsCompleted);
+        await this.server.ServerMethodReached.WaitAsync();
+        this.clientStream.Dispose();
+        await Task.Delay(ExpectedTimeout);
+        this.server.AllowServerMethodToReturn.Set();
+        await this.server.ServerMethodCompleted.Task;
+    }
+
+    [Fact]
+    public void CannotSetAutoCancelWhileListening()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true);
+        Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
+        Assert.True(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
+    }
+
+    [Fact]
     public void AllowModificationWhileListening_DefaultsToFalse()
     {
         Assert.False(this.serverRpc.AllowModificationWhileListening);
@@ -1282,6 +1320,8 @@ public class JsonRpcTests : TestBase
 
         public AsyncAutoResetEvent ServerMethodReached { get; } = new AsyncAutoResetEvent();
 
+        public TaskCompletionSource<object> ServerMethodCompleted { get; } = new TaskCompletionSource<object>();
+
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
         public bool DelayAsyncMethodWithCancellation { get; set; }
@@ -1406,16 +1446,28 @@ public class JsonRpcTests : TestBase
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
         {
-            this.ServerMethodReached.Set();
-
-            // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
-            if (this.DelayAsyncMethodWithCancellation)
+            try
             {
-                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
-            }
+                this.ServerMethodReached.Set();
 
-            await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
-            return arg + "!";
+                // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
+                if (this.DelayAsyncMethodWithCancellation)
+                {
+                    await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+                }
+
+                await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
+                return arg + "!";
+            }
+            catch (Exception ex)
+            {
+                this.ServerMethodCompleted.TrySetException(ex);
+                throw;
+            }
+            finally
+            {
+                this.ServerMethodCompleted.TrySetResult(null);
+            }
         }
 
         public async Task<string> AsyncMethodIgnoresCancellation(string arg, CancellationToken cancellationToken)

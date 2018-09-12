@@ -95,6 +95,11 @@ namespace StreamJsonRpc
         private bool startedListening;
 
         /// <summary>
+        /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
+        /// </summary>
+        private bool cancelLocallyInvokedMethodsWhenConnectionIsClosed;
+
+        /// <summary>
         /// Backing field for the <see cref="SynchronizationContext"/> property.
         /// </summary>
         private SynchronizationContext synchronizationContext;
@@ -258,6 +263,23 @@ namespace StreamJsonRpc
         /// Gets the <see cref="JsonSerializer"/> used when serializing and deserializing method arguments and return values.
         /// </summary>
         public JsonSerializer JsonSerializer { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to cancel all methods dispatched locally
+        /// that accept a <see cref="CancellationToken"/> when the connection with the remote party is closed.
+        /// </summary>
+        public bool CancelLocallyInvokedMethodsWhenConnectionIsClosed
+        {
+            get => this.cancelLocallyInvokedMethodsWhenConnectionIsClosed;
+            set
+            {
+                // We don't typically allow changing this setting after listening has started because
+                // it would not have applied to requests that have already come in. Folks should opt in
+                // to that otherwise non-deterministic behavior, or simply set it before listening starts.
+                this.ThrowIfConfigurationLocked();
+                this.cancelLocallyInvokedMethodsWhenConnectionIsClosed = value;
+            }
+        }
 
         private JsonSerializerSettings MessageJsonSerializerSettings { get; }
 
@@ -1088,7 +1110,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            bool ctsAdded = false;
+            CancellationTokenSource localMethodCancellationSource = null;
             try
             {
                 TargetMethod targetMethod = null;
@@ -1121,12 +1143,13 @@ namespace StreamJsonRpc
                 var cancellationToken = CancellationToken.None;
                 if (targetMethod.AcceptsCancellationToken && !request.IsNotification)
                 {
-                    var cts = new CancellationTokenSource();
-                    cancellationToken = cts.Token;
+                    localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
+                        ? CancellationTokenSource.CreateLinkedTokenSource(this.disposeCts.Token)
+                        : new CancellationTokenSource();
+                    cancellationToken = localMethodCancellationSource.Token;
                     lock (this.dispatcherMapLock)
                     {
-                        this.inboundCancellationSources.Add(request.Id, cts);
-                        ctsAdded = true;
+                        this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
                     }
                 }
 
@@ -1155,12 +1178,16 @@ namespace StreamJsonRpc
             }
             finally
             {
-                if (ctsAdded)
+                if (localMethodCancellationSource != null)
                 {
                     lock (this.dispatcherMapLock)
                     {
                         this.inboundCancellationSources.Remove(request.Id);
                     }
+
+                    // Be sure to dispose the CTS because it may be linked to our long-lived disposal token
+                    // and otherwise cause a memory leak.
+                    localMethodCancellationSource.Dispose();
                 }
             }
         }

@@ -1,8 +1,11 @@
 trigger:
   branches:
-    include: ["master", "v1.2", "v1.3", "v1.4"]
+    include: ["master", "v1.4", "v1.5"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+
+variables:
+  TreatWarningsAsErrors: true
 
 steps:
 - task: PowerShell@2
@@ -37,38 +40,54 @@ steps:
   inputs:
     version: 2.1.300
 
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: 4.5.1
-  displayName: Pin nuget.exe version
-
 - task: MicroBuildIBCMergePlugin@0
   inputs:
-    branch: svc/d15svc
+    branch: rel/d15.8
   condition: and(succeeded(), ne(variables['Hosted'], 'true'))
   displayName: Install MicroBuild IBCMerge Plugin
 
 - task: MicroBuildSigningPlugin@1
   inputs:
     signType: $(SignType)
-    esrpSigning: true
     zipSources: false
   displayName: Install MicroBuild Signing Plugin
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
+  displayName: Restore
   inputs:
-    restoreSolution: '**\*.sln'
+    command: restore
+    verbosityRestore: normal # detailed, normal, minimal
+    projects: src/StreamJsonRpc.sln
     feedsToUse: config
     nugetConfigPath: src/nuget.config
-  displayName: Nuget restore packages
 
 - task: VSBuild@1
   inputs:
     vsVersion: 15.0
-    msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+    msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     platform: $(BuildPlatform)
     configuration: $(BuildConfiguration)
   displayName: Build Visual Studio solution
+
+- task: DotNetCoreCLI@2
+  displayName: Run tests
+  inputs:
+    command: test
+    projects: src/**/*.Tests.csproj
+    arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
+  condition: and(succeeded(), ne(variables['SignType'], 'real'))
+  
+- task: VSTest@2
+  displayName: Run tests on .NET Framework (with code coverage)
+  inputs:
+    testFiltercriteria: TestCategory!=FailsInCloudTest
+    searchFolder: $(System.DefaultWorkingDirectory)\bin
+    testAssemblyVer2: |
+      **\*tests*.dll
+    platform: $(BuildPlatform)
+    configuration: $(BuildConfiguration)
+    codeCoverageEnabled: true
+  condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: MicroBuildCleanup@1
   condition: succeededOrFailed()
@@ -88,6 +107,14 @@ steps:
     ArtifactName: projectAssetsJson
     ArtifactType: Container
   displayName: Publish projectAssetsJson artifacts
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
+    ArtifactName: build_logs
+    ArtifactType: Container
+  displayName: Publish build_logs artifacts
   condition: succeededOrFailed()
 
 ## The rest of these steps are for deployment and skipped for PR builds
