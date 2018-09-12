@@ -635,6 +635,32 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Invoke a method on the server.  The parameter is passed as an object.
+        /// </summary>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <returns>A task that completes when the server method executes and returns the result.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
+        /// </exception>
+        /// <exception cref="RemoteTargetNotSetException">
+        /// Result task fails with this exception if the server has no target object.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        public Task InvokeWithParameterObjectAsync(string targetName, object argument = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return this.InvokeWithParameterObjectAsync<object>(targetName, argument, cancellationToken);
+        }
+
+        /// <summary>
         /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
         /// </summary>
         /// <typeparam name="TResult">Type of the method result</typeparam>
