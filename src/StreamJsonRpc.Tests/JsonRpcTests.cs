@@ -225,8 +225,8 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task CanSendNotification()
     {
-        await this.clientRpc.NotifyAsync(nameof(Server.NotificationMethod), "foo");
-        Assert.Equal("foo", await this.server.NotificationReceived);
+        await this.clientRpc.NotifyAsync(nameof(Server.NotificationMethod), "foo").WithCancellation(this.TimeoutToken);
+        Assert.Equal("foo", await this.server.NotificationReceived.WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
@@ -447,8 +447,8 @@ public class JsonRpcTests : TestBase
         const string serverMethodName = "SyncContextMethod";
         var notifyResult = new TaskCompletionSource<bool>();
         this.serverRpc.AddLocalRpcMethod(serverMethodName, new Action(() => notifyResult.SetResult(syncContext.RunningInContext)));
-        await this.clientRpc.NotifyAsync(serverMethodName);
-        bool inContext = await notifyResult.Task;
+        await this.clientRpc.NotifyAsync(serverMethodName).WithCancellation(this.TimeoutToken);
+        bool inContext = await notifyResult.Task.WithCancellation(this.TimeoutToken);
         Assert.True(inContext);
     }
 
