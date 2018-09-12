@@ -76,27 +76,17 @@ steps:
     projects: src/**/*.Tests.csproj
     arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
-
-- task: PowerShell@2
-  displayName: Collect code coverage
+  
+- task: VSTest@2
+  displayName: Run tests on .NET Framework (with code coverage)
   inputs:
-    script: >-
-      "%userprofile%\.nuget\packages\OpenCover\4.6.519\tools\OpenCover.Console.exe"
-      -register:user
-      -target:"%xunit20%\xunit.console.x86.exe"
-      -targetargs:"bin\StreamJsonRpc.Tests\$(BuildConfiguration)\net461\StreamJsonRpc.Tests.dll -noshadow -html bin\StreamJsonRpc.Tests\$(BuildConfiguration)\net461\testresults.html -xml bin\StreamJsonRpc.Tests\$(BuildConfiguration)\net461\testresults.xml -appveyor -notrait TestCategory=FailsInCloudTest -nologo"
-      -returntargetcode
-      -excludebyattribute:*.ExcludeFromCodeCoverage*
-      -excludebyfile:*\*Designer.cs
-      -filter:"+[StreamJsonRpc]*"
-      -hideskipped:All
-      -output:bin\StreamJsonRpc.Tests\$(BuildConfiguration)\net461\code_coverage.xml
-
-      SET PATH=C:\Python34;C:\Python34\Scripts;%PATH%
-
-      pip install codecov
-
-      codecov -f "bin\StreamJsonRpc.Tests\$(BuildConfiguration)\net461\code_coverage.xml"
+    testFiltercriteria: TestCategory!=FailsInCloudTest
+    searchFolder: $(System.DefaultWorkingDirectory)\bin
+    testAssemblyVer2: |
+      **\*tests*.dll
+    platform: $(BuildPlatform)
+    configuration: $(BuildConfiguration)
+    codeCoverageEnabled: true
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: MicroBuildCleanup@1
