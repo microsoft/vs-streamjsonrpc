@@ -7,6 +7,7 @@ StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IMessageHandler messageHandler) -> v
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IMessageHandler messageHandler, object target) -> void
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.get -> bool
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> void
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.MessageHandler.get -> StreamJsonRpc.IMessageHandler
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage, System.Exception exception) -> void

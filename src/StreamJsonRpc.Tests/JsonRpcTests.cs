@@ -596,6 +596,18 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithParameterObjectAsync_NoResult_AndCancel()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
     public async Task InvokeWithParameterObjectAsync_AndComplete()
     {
         using (var cts = new CancellationTokenSource())
