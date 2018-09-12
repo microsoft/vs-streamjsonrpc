@@ -13,11 +13,9 @@ It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.str
 
 ## Supported platforms
 
-* .NET 4.5
-* Windows 8
-* Windows Phone 8.1
-* .NET Portable (Profile111)
-* .NET Standard 1.1
+* .NET 4.6
+* .NET Standard 1.6
+* .NET Standard 2.0
 
 ## Compatibility
 
