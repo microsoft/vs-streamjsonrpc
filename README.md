@@ -11,6 +11,12 @@ StreamJsonRpc is a cross-platform, .NET portable library that implements the
 
 It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream) or [WebSocket](https://docs.microsoft.com/en-us/dotnet/api/system.net.websockets.websocket) independent of the underlying transport.
 
+Bonus features beyond the JSON-RPC spec include:
+
+1. Request cancellation
+1. .NET Events as notifications
+1. Dynamic client proxy generation
+
 ## Supported platforms
 
 * .NET 4.5
