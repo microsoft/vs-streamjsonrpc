@@ -9,7 +9,7 @@ StreamJsonRpc
 StreamJsonRpc is a cross-platform, .NET portable library that implements the
 [JSON-RPC][JSONRPC] wire protocol.
 
-It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream) or [WebSocket](https://docs.microsoft.com/en-us/dotnet/api/system.net.websockets.websocket) independent of the underlying transport.
+It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream), [WebSocket](https://docs.microsoft.com/en-us/dotnet/api/system.net.websockets.websocket), or System.IO.Pipelines pipes, independent of the underlying transport.
 
 ## Supported platforms
 
