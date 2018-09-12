@@ -40,11 +40,6 @@ steps:
   inputs:
     version: 2.1.300
 
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: 4.7.1
-  displayName: Pin nuget.exe version
-
 - task: MicroBuildIBCMergePlugin@0
   inputs:
     branch: svc/d15svc
