@@ -7,17 +7,23 @@ steps:
   inputs:
     command: restore
     verbosityRestore: normal # detailed, normal, minimal
-    projects: src/StreamJsonRpc.sln
+    projects: src/**/*.sln
     feedsToUse: config
     nugetConfigPath: src/nuget.config
 
-- task: VSBuild@1
+- task: DotNetCoreCLI@2
+  displayName: Build
   inputs:
-    vsVersion: 15.0
-    msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-    platform: $(BuildPlatform)
-    configuration: $(BuildConfiguration)
-  displayName: Build Visual Studio solution
+    command: build
+    projects: src/**/*.sln
+    arguments: --no-restore -c $(BuildConfiguration) -bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+
+- task: DotNetCoreCLI@2
+  displayName: Pack
+  inputs:
+    command: pack
+    projects: src/**/*.sln
+    arguments: --no-build -c $(BuildConfiguration)
 
 - task: DotNetCoreCLI@2
   displayName: Run tests
