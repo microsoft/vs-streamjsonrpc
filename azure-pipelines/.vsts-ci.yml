@@ -26,7 +26,8 @@ steps:
         Write-Host "##vso[task.setvariable variable=Hosted]true"
       }
 
-- template: .azure-pipeline.microbuild.before.yml
+- ${{ if eq('false', 'true') }}:
+  - template: .azure-pipeline.microbuild.before.yml
 
 - task: DotNetCoreInstaller@0
   displayName: Install dotnet CLI
@@ -70,7 +71,8 @@ steps:
     codeCoverageEnabled: true
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-- template: .azure-pipeline.microbuild.after.yml
+- ${{ if eq('false', 'true') }}:
+  - template: .azure-pipeline.microbuild.after.yml
 
 - task: CopyFiles@1
   inputs:
