@@ -11,13 +11,14 @@ steps:
     feedsToUse: config
     nugetConfigPath: src/nuget.config
 
-- task: DotNetCoreCLI@2
-  displayName: Build
-  inputs:
-    command: build
-    projects: src/**/*.sln
-    arguments: --no-restore -c $(BuildConfiguration) -bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-  condition: and(succeeded(), eq(${{ parameters.build }}, 'all'))
+# Only Windows can build every target framework
+- ${{ if eq(parameters.build, 'all') }}:
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      command: build
+      projects: src/**/*.sln
+      arguments: --no-restore -c $(BuildConfiguration) -bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
 
 - task: DotNetCoreCLI@2
   displayName: Run tests
