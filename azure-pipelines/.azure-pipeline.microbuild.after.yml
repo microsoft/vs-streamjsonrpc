@@ -1,0 +1,13 @@
+steps:
+- task: MicroBuildCleanup@1
+  condition: and(succeededOrFailed(), ne(variables['Hosted'], 'true'))
+  displayName: MicroBuild Cleanup
+
+- task: NuGetCommand@2
+  inputs:
+    command: push
+    searchPatternPush: '$(Build.SourcesDirectory)\bin\**\$(BuildConfiguration)\**\*.nupkg;!**\*.symbols.nupkg;!**/VS.*.nupkg'
+    publishVstsFeed: $(feedGuid)
+    allowPackageConflicts: true
+  displayName: Push packages to VSTS feed
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))

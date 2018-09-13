@@ -26,32 +26,12 @@ steps:
         Write-Host "##vso[task.setvariable variable=Hosted]true"
       }
 
-- task: CmdLine@2
-  inputs:
-    script: |
-      del /s /q "%userprofile%\.nuget\packages"
-      del /s /q "%LocalAppData%\NuGet\Cache"
-      del /s /q "%AppData%\tsd-cache"
-  displayName: Purge package caches
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
+- template: .azure-pipeline.microbuild.before.yml
 
 - task: DotNetCoreInstaller@0
   displayName: Install dotnet CLI
   inputs:
     version: 2.1.300
-
-- task: MicroBuildIBCMergePlugin@0
-  inputs:
-    branch: rel/d15.8
-  displayName: Install MicroBuild IBCMerge Plugin
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
-
-- task: MicroBuildSigningPlugin@1
-  inputs:
-    signType: $(SignType)
-    zipSources: false
-  displayName: Install MicroBuild Signing Plugin
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
 
 - task: DotNetCoreCLI@2
   displayName: Restore
@@ -90,9 +70,7 @@ steps:
     codeCoverageEnabled: true
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-- task: MicroBuildCleanup@1
-  condition: and(succeededOrFailed(), ne(variables['Hosted'], 'true'))
-  displayName: MicroBuild Cleanup
+- template: .azure-pipeline.microbuild.after.yml
 
 - task: CopyFiles@1
   inputs:
@@ -141,7 +119,7 @@ steps:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/symbols
     ArtifactName: symbols
     ArtifactType: Container
-  displayName: Publish symbols as VSTS artifacts
+  displayName: Publish symbols as Azure DevOps artifacts
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: CopyFiles@1
@@ -168,13 +146,4 @@ steps:
     IndexSources: false
     SymbolServerType: TeamServices
   displayName: Publish symbols to symbol server
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: NuGetCommand@2
-  inputs:
-    command: push
-    searchPatternPush: '$(Build.SourcesDirectory)\bin\**\$(BuildConfiguration)\**\*.nupkg;!**\*.symbols.nupkg;!**/VS.*.nupkg'
-    publishVstsFeed: $(feedGuid)
-    allowPackageConflicts: true
-  displayName: Push packages to VSTS feed
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
