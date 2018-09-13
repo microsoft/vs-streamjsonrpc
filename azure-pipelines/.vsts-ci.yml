@@ -93,6 +93,7 @@ jobs:
       wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
       chmod +x /tmp/dotnet-install.sh
       . /tmp/dotnet-install.sh -v $(runtime) --runtime dotnet
+      . /tmp/dotnet-install.sh -v 2.1.300
       #export PATH=$DOTNETPATH:$PATH
       dotnet --info
   - task: DotNetCoreCLI@2
