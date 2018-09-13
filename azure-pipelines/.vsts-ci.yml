@@ -110,23 +110,6 @@ steps:
 
 - task: CopyFiles@1
   inputs:
-    SourceFolder: bin
-    Contents: |
-      StreamJsonRpc/$(BuildConfiguration)/**/StreamJsonRpc@(.pdb|.dll)
-    TargetFolder: $(Build.ArtifactStagingDirectory)/symbols
-  displayName: Collecting symbols artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/symbols
-    ArtifactName: symbols
-    ArtifactType: Container
-  displayName: Publish symbols as Azure DevOps artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: CopyFiles@1
-  inputs:
     Contents: |
       bin/**/$(BuildConfiguration)/**/StreamJsonRpc.*.nupkg
     TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
@@ -140,13 +123,4 @@ steps:
     ArtifactName: deployables
     ArtifactType: Container
   displayName: Publish deployables artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: PublishSymbols@2
-  inputs:
-    SymbolsFolder: $(Build.ArtifactStagingDirectory)/symbols
-    SearchPattern: '**/*.pdb'
-    IndexSources: false
-    SymbolServerType: TeamServices
-  displayName: Publish symbols to symbol server
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
