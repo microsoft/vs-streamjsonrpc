@@ -81,6 +81,8 @@ jobs:
 - job: Linux
   pool:
     vmImage: Ubuntu 16.04
+  variables:
+    GitLinkEnabled: false
   steps:
   - task: DotNetCoreInstaller@0
     displayName: Install dotnet CLI
@@ -91,5 +93,7 @@ jobs:
 - job: macOS
   pool:
     vmImage: macOS 10.13
+  variables:
+    GitLinkEnabled: false
   steps:
   - template: build.yml

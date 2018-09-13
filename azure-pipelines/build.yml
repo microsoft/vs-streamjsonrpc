@@ -30,7 +30,7 @@ steps:
 
 - ${{ if ne(parameters.build, 'all') }}:
   - task: DotNetCoreCLI@2
-    displayName: Run tests
+    displayName: Build and run tests
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
