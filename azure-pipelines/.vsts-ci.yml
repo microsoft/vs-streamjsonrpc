@@ -97,11 +97,18 @@ jobs:
       #export PATH=$DOTNETPATH:$PATH
       dotnet --info
   - task: DotNetCoreCLI@2
-    displayName: Build and run tests on .NET Core 1.0
+    displayName: Build tests for $(targetfx)
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
-      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
+      arguments: -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
+  - task: DotNetCoreCLI@2
+    displayName: Run tests on $(targetfx)
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      nobuild: true
+      arguments:  -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx)
     env:
       DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
       RuntimeFrameworkVersion: $(runtime)
