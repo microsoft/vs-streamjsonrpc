@@ -1,6 +1,6 @@
 trigger:
   branches:
-    include: ["master", "v1.4", "v1.5"]
+    include: ["master", "v1.4", "v1.5", "dev/andarno/hosted"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
 
@@ -33,6 +33,8 @@ steps:
   displayName: Install dotnet CLI
   inputs:
     version: 2.1.300
+
+- script: dotnet --info
 
 - task: DotNetCoreCLI@2
   displayName: Restore
