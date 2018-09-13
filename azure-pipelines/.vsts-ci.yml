@@ -29,12 +29,8 @@ steps:
 - ${{ if eq('false', 'true') }}:
   - template: .azure-pipeline.microbuild.before.yml
 
-- task: DotNetCoreInstaller@0
-  displayName: Install dotnet CLI
-  inputs:
-    version: 2.1.300
-
 - script: dotnet --info
+  displayName: Show dotnet SDK info
 
 - task: DotNetCoreCLI@2
   displayName: Restore
