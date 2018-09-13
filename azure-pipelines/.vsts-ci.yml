@@ -85,25 +85,25 @@ jobs:
     GitLinkEnabled: false
   steps:
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.300
-    inputs:
-      packageType: sdk
-      version: 2.1.300
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.0.7
+    displayName: Install .NET Core runtime 1.0.11
     inputs:
       packageType: runtime
-      version: 2.0.7
+      version: 1.0.11
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 1.1.8
+    displayName: Install .NET Core runtime 1.1.8
     inputs:
       packageType: runtime
       version: 1.1.8
   - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 1.0.11
+    displayName: Install .NET Core runtime 2.0.7
     inputs:
       packageType: runtime
-      version: 1.0.11
+      version: 2.0.7
+  - task: DotNetCoreInstaller@0
+    displayName: Install .NET Core SDK 2.1.300
+    inputs:
+      packageType: sdk
+      version: 2.1.300
   - template: build.yml
 
 - job: macOS

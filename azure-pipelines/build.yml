@@ -37,20 +37,42 @@ steps:
       command: test
       projects: src/**/*.Tests.csproj
       arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp1.0 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp1.0.binlog"
+    env:
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+      RuntimeFrameworkVersion: 1.0.11
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
+
+  - task: DotNetCoreCLI@2
+    displayName: Build and run tests on .NET Core 1.1
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp1.0 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp1.0.binlog" --no-build
+    env:
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+      RuntimeFrameworkVersion: 1.1.8
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
+
   - task: DotNetCoreCLI@2
     displayName: Build and run tests on .NET Core 2.0
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
       arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.0 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.0.binlog"
+    env:
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+      RuntimeFrameworkVersion: 2.0.7
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
+
   - task: DotNetCoreCLI@2
     displayName: Build and run tests on .NET Core 2.1
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
       arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.1 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.1.binlog"
+    env:
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+      RuntimeFrameworkVersion: 2.1.0
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: CopyFiles@1
