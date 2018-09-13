@@ -7,6 +7,8 @@ trigger:
 variables:
   TreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
 
 steps:
 - task: PowerShell@2
