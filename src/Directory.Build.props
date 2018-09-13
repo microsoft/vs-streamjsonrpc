@@ -30,6 +30,6 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004" PrivateAssets="all" />
     <PackageReference Include="MicroBuild.VisualStudio" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
     <PackageReference Include="MSBuild.SDK.Extras" Version="1.0.6" PrivateAssets="all" />
-    <PackageReference Include="GitLink" Version="3.2.0-unstable0014" PrivateAssets="all" />
+    <PackageReference Include="GitLink" Version="3.2.0-unstable0040" PrivateAssets="all" />
   </ItemGroup>
 </Project>

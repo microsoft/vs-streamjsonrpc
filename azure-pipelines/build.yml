@@ -30,11 +30,25 @@ steps:
 
 - ${{ if ne(parameters.build, 'all') }}:
   - task: DotNetCoreCLI@2
-    displayName: Build and run tests
+    displayName: Build and run tests on .NET Core 1.0
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
-      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp1.0
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
+  - task: DotNetCoreCLI@2
+    displayName: Build and run tests on .NET Core 2.0
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.0
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
+  - task: DotNetCoreCLI@2
+    displayName: Build and run tests on .NET Core 2.1
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.1
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: CopyFiles@1
