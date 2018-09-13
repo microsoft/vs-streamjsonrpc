@@ -13,12 +13,14 @@ steps:
 
 # Only Windows can build every target framework
 - ${{ if eq(parameters.build, 'all') }}:
-  - task: DotNetCoreCLI@2
-    displayName: Build
+  # Use VSBuild on Windows so GitLink will work (it fails on dotnet build)
+  - task: VSBuild@1
     inputs:
-      command: build
-      projects: src/**/*.sln
-      arguments: --no-restore -c $(BuildConfiguration) -bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      vsVersion: 15.0
+      msbuildArgs: /t:build /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+    displayName: Build Visual Studio solution
 
   - task: DotNetCoreCLI@2
     displayName: Run tests
@@ -34,21 +36,21 @@ steps:
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
-      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp1.0
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp1.0 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp1.0.binlog"
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
   - task: DotNetCoreCLI@2
     displayName: Build and run tests on .NET Core 2.0
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
-      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.0
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.0 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.0.binlog"
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
   - task: DotNetCoreCLI@2
     displayName: Build and run tests on .NET Core 2.1
     inputs:
       command: test
       projects: src/**/*.Tests.csproj
-      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.1
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f netcoreapp2.1 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.1.binlog"
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: CopyFiles@1
