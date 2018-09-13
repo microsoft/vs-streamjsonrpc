@@ -43,14 +43,15 @@ steps:
 - task: MicroBuildIBCMergePlugin@0
   inputs:
     branch: rel/d15.8
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
   displayName: Install MicroBuild IBCMerge Plugin
+  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
 
 - task: MicroBuildSigningPlugin@1
   inputs:
     signType: $(SignType)
     zipSources: false
   displayName: Install MicroBuild Signing Plugin
+  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
 
 - task: DotNetCoreCLI@2
   displayName: Restore
@@ -76,7 +77,7 @@ steps:
     projects: src/**/*.Tests.csproj
     arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
-  
+
 - task: VSTest@2
   displayName: Run tests on .NET Framework (with code coverage)
   inputs:
@@ -90,7 +91,7 @@ steps:
   condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: MicroBuildCleanup@1
-  condition: succeededOrFailed()
+  condition: and(succeededOrFailed(), ne(variables['Hosted'], 'true'))
   displayName: MicroBuild Cleanup
 
 - task: CopyFiles@1
