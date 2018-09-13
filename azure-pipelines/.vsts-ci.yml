@@ -44,7 +44,7 @@ jobs:
     inputs:
       command: pack
       projects: src/**/*.sln
-      arguments: --no-build -c $(BuildConfiguration)
+      nobuild: true
 
   - task: VSTest@2
     displayName: Run tests on .NET Framework (with code coverage)
@@ -100,8 +100,8 @@ jobs:
       projects: src/**/*.Tests.csproj
       arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
     env:
-      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0
-      RuntimeFrameworkVersion=$(runtime)
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+      RuntimeFrameworkVersion: $(runtime)
 
 - job: Linux
   pool:
