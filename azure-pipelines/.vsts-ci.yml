@@ -79,6 +79,8 @@ jobs:
     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - job: LinuxMatrix
+  pool:
+    vmImage: Ubuntu 16.04
   strategy:
     matrix:
       netcoreapp1_0:
