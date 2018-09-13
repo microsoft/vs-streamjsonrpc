@@ -36,6 +36,15 @@ jobs:
     - template: .azure-pipeline.microbuild.before.yml
 
   - template: build.yml
+    parameters:
+      build: all
+
+  - task: DotNetCoreCLI@2
+    displayName: Pack
+    inputs:
+      command: pack
+      projects: src/**/*.sln
+      arguments: --no-build -c $(BuildConfiguration)
 
   - task: VSTest@2
     displayName: Run tests on .NET Framework (with code coverage)
@@ -73,6 +82,10 @@ jobs:
   pool:
     vmImage: Ubuntu 16.04
   steps:
+  - task: DotNetCoreInstaller@0
+    displayName: Install dotnet CLI
+    inputs:
+      version: 2.1.300
   - template: build.yml
 
 - job: macOS
