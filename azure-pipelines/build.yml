@@ -20,13 +20,22 @@ steps:
       projects: src/**/*.sln
       arguments: --no-restore -c $(BuildConfiguration) -bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
 
-- task: DotNetCoreCLI@2
-  displayName: Run tests
-  inputs:
-    command: test
-    projects: src/**/*.Tests.csproj
-    arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
-  condition: and(succeeded(), ne(variables['SignType'], 'real'))
+  - task: DotNetCoreCLI@2
+    displayName: Run tests
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
+
+- ${{ if ne(parameters.build, 'all') }}:
+  - task: DotNetCoreCLI@2
+    displayName: Run tests
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --filter "TestCategory!=FailsInCloudTest" -v n
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
 - task: CopyFiles@1
   inputs:
