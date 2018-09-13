@@ -92,8 +92,9 @@ jobs:
     runtime: 1.0.11
   steps:
   - script: |
-      dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
-      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx)
+      ls /tmp
+      dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -c $(BuildConfiguration) -p:GitLinkEnabled=false
+      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx) -c $(BuildConfiguration)
 
 - job: LinuxMatrix
   pool:
