@@ -84,6 +84,8 @@ jobs:
     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - job: LinuxContainer
+  pool:
+    vmImage: Ubuntu 16.04
   container: linux
   variables:
     targetfx: netcoreapp1.0
