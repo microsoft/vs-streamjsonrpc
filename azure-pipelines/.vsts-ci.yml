@@ -6,6 +6,7 @@ trigger:
 
 variables:
   TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 steps:
 - task: PowerShell@2
