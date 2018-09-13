@@ -78,7 +78,7 @@ jobs:
     displayName: Publish deployables artifacts
     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
-- job: Linux matrix
+- job: LinuxMatrix
   strategy:
     matrix:
       netcoreapp1_0:
