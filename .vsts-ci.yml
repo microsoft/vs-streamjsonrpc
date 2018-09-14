@@ -94,7 +94,7 @@ jobs:
       ArtifactName: projectAssetsJson
       ArtifactType: Container
     displayName: Publish projectAssetsJson artifacts
-    condition: succeededOrFailed()
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
   - task: PublishBuildArtifacts@1
     inputs:
@@ -102,7 +102,7 @@ jobs:
       ArtifactName: build_logs
       ArtifactType: Container
     displayName: Publish build_logs artifacts
-    condition: succeededOrFailed()
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
   ## The rest of these steps are for deployment and skipped for PR builds
 
@@ -111,7 +111,7 @@ jobs:
   #    PathtoPublish: $(build.sourcesdirectory)/bin
   #    ArtifactName: bin
   #    ArtifactType: Container
-  #  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  #  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
   - task: VSTest@2
     displayName: Run tests on .NET Framework (with code coverage)
@@ -143,7 +143,7 @@ jobs:
       ArtifactName: deployables
       ArtifactType: Container
     displayName: Publish deployables artifacts
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
 - job: Linux
   pool:
