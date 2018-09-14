@@ -80,34 +80,10 @@ jobs:
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
-  strategy:
-    maxParallel: 4
-    matrix:
-      netcoreapp1_0:
-        runtime: 1.0.11
-        targetfx: netcoreapp1.0
-      netcoreapp1_1:
-        runtime: 1.1.8
-        targetfx: netcoreapp1.0
-      netcoreapp2_0:
-        runtime: 2.0.7
-        targetfx: netcoreapp2.0
-      netcoreapp2_1:
-        runtime: 2.1.0
-        targetfx: netcoreapp2.1
+  variables:
+    GitLinkEnabled: false
   steps:
-  - script: dotnet restore
-    displayName: Restore packages for $(targetfx)
-    workingDirectory: src/StreamJsonRpc.Tests
-  - script: dotnet build -v n -f $(targetfx) -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -p:GitLinkEnabled=false
-    displayName: Build test for $(targetfx)
-    workingDirectory: src/StreamJsonRpc.Tests
-  - script: dotnet test -v n -f $(targetfx) -c $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest"
-    displayName: Run tests for $(targetfx) on the .NET Core $(runtime) runtime
-    workingDirectory: src/StreamJsonRpc.Tests
-    env:
-      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
-      RuntimeFrameworkVersion: $(runtime)
+  - template: testnetcoreappX.Y.yml
 
 - job: macOS
   pool:
@@ -115,4 +91,4 @@ jobs:
   variables:
     GitLinkEnabled: false
   steps:
-  - template: build.yml
+  - template: testnetcoreappX.Y.yml

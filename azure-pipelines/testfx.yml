@@ -1,0 +1,14 @@
+parameters:
+  targetfx:
+  runtime:
+
+steps:
+- script: dotnet build -v n -f ${{ parameters.targetfx }} -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/${{ parameters.targetfx }}.binlog"
+  displayName: Build test for ${{ parameters.targetfx }}
+  workingDirectory: src/StreamJsonRpc.Tests
+- script: dotnet test -v n -f ${{ parameters.targetfx }} -c $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest"
+  displayName: Run tests for ${{ parameters.targetfx }} on the .NET Core ${{ parameters.runtime }} runtime
+  workingDirectory: src/StreamJsonRpc.Tests
+  env:
+    DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
+    RuntimeFrameworkVersion: ${{ parameters.runtime }}

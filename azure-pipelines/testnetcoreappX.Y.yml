@@ -1,0 +1,20 @@
+steps:
+- script: dotnet restore
+  displayName: Restore packages for $(targetfx)
+  workingDirectory: src/StreamJsonRpc.Tests
+- template: testfx.yml
+  parameters:
+    runtime: 1.0.11
+    targetfx: netcoreapp1.0
+- template: testfx.yml
+  parameters:
+    runtime: 1.1.8
+    targetfx: netcoreapp1.0
+- template: testfx.yml
+  parameters:
+    runtime: 2.0.7
+    targetfx: netcoreapp2.0
+- template: testfx.yml
+  parameters:
+    runtime: 2.1.0
+    targetfx: netcoreapp2.1
