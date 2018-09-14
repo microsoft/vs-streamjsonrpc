@@ -16,74 +16,74 @@ resources:
     image: andrewarnott/linux-buildagent
 
 jobs:
-- job: Windows
-  pool: Hosted VS2017
-  steps:
-  - task: PowerShell@2
-    displayName: Set VSTS variables
-    inputs:
-      targetType: inline
-      script: |
-        if ($env:SignType -eq 'Real') {
-          $feedGuid = '09d8d03c-1ac8-456e-9274-4d2364527d99'
-        } else {
-          $feedGuid = 'da484c78-f942-44ef-b197-99e2a1bef53c'
-        }
+# - job: Windows
+#   pool: Hosted VS2017
+#   steps:
+#   - task: PowerShell@2
+#     displayName: Set VSTS variables
+#     inputs:
+#       targetType: inline
+#       script: |
+#         if ($env:SignType -eq 'Real') {
+#           $feedGuid = '09d8d03c-1ac8-456e-9274-4d2364527d99'
+#         } else {
+#           $feedGuid = 'da484c78-f942-44ef-b197-99e2a1bef53c'
+#         }
 
-        Write-Host "##vso[task.setvariable variable=feedGuid]$feedGuid"
+#         Write-Host "##vso[task.setvariable variable=feedGuid]$feedGuid"
 
-        if ($env:ComputerName.StartsWith('factoryvm', [StringComparison]::OrdinalIgnoreCase)) {
-          Write-Host "Running on hosted queue"
-          Write-Host "##vso[task.setvariable variable=Hosted]true"
-        }
+#         if ($env:ComputerName.StartsWith('factoryvm', [StringComparison]::OrdinalIgnoreCase)) {
+#           Write-Host "Running on hosted queue"
+#           Write-Host "##vso[task.setvariable variable=Hosted]true"
+#         }
 
-  - ${{ if eq('false', 'true') }}:
-    - template: .azure-pipeline.microbuild.before.yml
+#   - ${{ if eq('false', 'true') }}:
+#     - template: .azure-pipeline.microbuild.before.yml
 
-  - template: build.yml
-    parameters:
-      build: all
+#   - template: build.yml
+#     parameters:
+#       build: all
 
-  - task: DotNetCoreCLI@2
-    displayName: Pack
-    inputs:
-      command: pack
-      projects: src/**/*.sln
-      nobuild: true
-      verbosityPack: normal
-      packDirectory: $(Build.ArtifactStagingDirectory)/deployables
+#   - task: DotNetCoreCLI@2
+#     displayName: Pack
+#     inputs:
+#       command: pack
+#       projects: src/**/*.sln
+#       nobuild: true
+#       verbosityPack: normal
+#       packDirectory: $(Build.ArtifactStagingDirectory)/deployables
 
-  - task: VSTest@2
-    displayName: Run tests on .NET Framework (with code coverage)
-    inputs:
-      testFiltercriteria: TestCategory!=FailsInCloudTest
-      searchFolder: $(System.DefaultWorkingDirectory)\bin
-      testAssemblyVer2: |
-        **\*tests*.dll
-      platform: $(BuildPlatform)
-      configuration: $(BuildConfiguration)
-      codeCoverageEnabled: true
-    condition: and(succeeded(), ne(variables['SignType'], 'real'))
+#   - task: VSTest@2
+#     displayName: Run tests on .NET Framework (with code coverage)
+#     inputs:
+#       testFiltercriteria: TestCategory!=FailsInCloudTest
+#       searchFolder: $(System.DefaultWorkingDirectory)\bin
+#       testAssemblyVer2: |
+#         **\*tests*.dll
+#       platform: $(BuildPlatform)
+#       configuration: $(BuildConfiguration)
+#       codeCoverageEnabled: true
+#     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-  - ${{ if eq('false', 'true') }}:
-    - template: .azure-pipeline.microbuild.after.yml
+#   - ${{ if eq('false', 'true') }}:
+#     - template: .azure-pipeline.microbuild.after.yml
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-      ArtifactName: deployables
-      ArtifactType: Container
-    displayName: Publish deployables artifacts
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+#   - task: PublishBuildArtifacts@1
+#     inputs:
+#       PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
+#       ArtifactName: deployables
+#       ArtifactType: Container
+#     displayName: Publish deployables artifacts
+#     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
-- job: Linux
-  pool:
-    vmImage: Ubuntu 16.04
-  container: xenial
-  variables:
-    GitLinkEnabled: false
-  steps:
-  - template: testnetcoreappX.Y.yml
+# - job: Linux
+#   pool:
+#     vmImage: Ubuntu 16.04
+#   container: xenial
+#   variables:
+#     GitLinkEnabled: false
+#   steps:
+#   - template: testnetcoreappX.Y.yml
 
 - job: macOS
   pool:

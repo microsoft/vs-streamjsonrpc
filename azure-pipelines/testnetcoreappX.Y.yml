@@ -1,6 +1,6 @@
 steps:
 - script: dotnet restore
-  displayName: Restore packages for $(targetfx)
+  displayName: Restore packages
   workingDirectory: src/StreamJsonRpc.Tests
 - template: testfx.yml
   parameters:

@@ -1,6 +1,6 @@
 parameters:
-  targetfx:
-  runtime:
+  targetfx: ''
+  runtime: ''
 
 steps:
 - script: dotnet build -v n -f ${{ parameters.targetfx }} -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/${{ parameters.targetfx }}.binlog"
