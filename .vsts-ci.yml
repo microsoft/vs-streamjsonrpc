@@ -1,6 +1,6 @@
 trigger:
   branches:
-    include: ["master", "v1.4", "v1.5", "dev/andarno/hosted"]
+    include: ["master", "v1.4", "v1.5"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
 
@@ -37,14 +37,13 @@ jobs:
           Write-Host "##vso[task.setvariable variable=Hosted]true"
         }
 
-        if (($env:System_TeamFoundationCollectionUri -eq 'https://dev.azure.com/devdiv') -or ($env:System_TeamFoundationCollectionUri -eq 'https://devdiv.visualstudio.com/')) {
+        if ($env:SYSTEM_COLLECTIONID -eq '011b8bdf-6d56-4f87-be0d-0092136884d9') {
           Write-Host "Running on official devdiv account: $env:System_TeamFoundationCollectionUri"
-          Write-Host "##vso[task.setvariable variable=Official]true"
         } else {
           Write-Host "Running under OSS account: $env:System_TeamFoundationCollectionUri"
         }
 
-  - ${{ if eq(variables['Official'], 'true') }}:
+  - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
     - template: azure-pipelines/.azure-pipeline.microbuild.before.yml
 
   - script: dotnet --info
@@ -130,7 +129,7 @@ jobs:
       codeCoverageEnabled: true
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-  - ${{ if eq(variables['Official'], 'true') }}:
+  - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
     - template: azure-pipelines/.azure-pipeline.microbuild.after.yml
 
   - task: PublishBuildArtifacts@1
