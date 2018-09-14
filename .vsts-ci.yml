@@ -45,7 +45,7 @@ jobs:
         }
 
   - ${{ if eq(variables['Official'], 'true') }}:
-    - template: .azure-pipeline.microbuild.before.yml
+    - template: azure-pipelines/.azure-pipeline.microbuild.before.yml
 
   - script: dotnet --info
     displayName: Show dotnet SDK info
@@ -131,7 +131,7 @@ jobs:
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
   - ${{ if eq(variables['Official'], 'true') }}:
-    - template: .azure-pipeline.microbuild.after.yml
+    - template: azure-pipelines/.azure-pipeline.microbuild.after.yml
 
   - task: PublishBuildArtifacts@1
     inputs:
@@ -163,7 +163,7 @@ jobs:
         runtime: 2.1.0
         targetfx: netcoreapp2.1
   steps:
-  - template: testfx.yml
+  - template: azure-pipelines/testfx.yml
 
 - job: macOS
   pool:
@@ -186,4 +186,4 @@ jobs:
         runtime: 2.1.0
         targetfx: netcoreapp2.1
   steps:
-  - template: testfx.yml
+  - template: azure-pipelines/testfx.yml
