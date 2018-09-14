@@ -19,6 +19,11 @@ jobs:
 - job: Windows
   pool: Hosted VS2017
   steps:
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src
+    displayName: Set build number
+    condition: ne(variables['system.pullrequest.isfork'], true)
   - task: PowerShell@2
     displayName: Set VSTS variables
     inputs:
