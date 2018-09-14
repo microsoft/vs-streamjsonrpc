@@ -163,6 +163,7 @@ jobs:
         targetfx: netcoreapp2.1
   steps:
   - template: azure-pipelines/testfx.yml
+  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
 
 - job: macOS
   pool:
@@ -186,3 +187,4 @@ jobs:
         targetfx: netcoreapp2.1
   steps:
   - template: azure-pipelines/testfx.yml
+  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
