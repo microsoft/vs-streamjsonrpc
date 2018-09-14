@@ -1,19 +1,13 @@
-parameters:
-  targetfx: ''
-  runtime: ''
-
 steps:
-- script: env
-  displayName: Confirm environment
-  env:
-    DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
-    RuntimeFrameworkVersion: ${{ parameters.runtime }}
-- script: format('dotnet build -v n -f {0} -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/{0}.binlog"', parameters.targetfx)
-  displayName: format('Build test for {0}', parameters.targetfx)
+- script: dotnet restore
+  displayName: Restore packages for $(targetfx)
   workingDirectory: src/StreamJsonRpc.Tests
-- script: format('dotnet test -v n -f {0} -c $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest"', parameters.targetfx)
-  displayName: format('Run tests for {0} on the .NET Core {1} runtime', parameters.targetfx, parameters.runtime)
+- script: dotnet build -v n -f $(targetfx) -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -p:GitLinkEnabled=false
+  displayName: Build test for $(targetfx)
+  workingDirectory: src/StreamJsonRpc.Tests
+- script: dotnet test -v n -f $(targetfx) -c $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest"
+  displayName: Run tests for $(targetfx) on the .NET Core $(runtime) runtime
   workingDirectory: src/StreamJsonRpc.Tests
   env:
     DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
-    RuntimeFrameworkVersion: ${{ parameters.runtime }}
+    RuntimeFrameworkVersion: $(runtime)
