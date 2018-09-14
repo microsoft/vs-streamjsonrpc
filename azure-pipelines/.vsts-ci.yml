@@ -76,7 +76,7 @@ jobs:
     displayName: Publish deployables artifacts
     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
-- job: UbuntuXenial
+- job: Linux
   pool:
     vmImage: Ubuntu 16.04
   container: xenial
@@ -96,7 +96,7 @@ jobs:
         runtime: 2.1.0
         targetfx: netcoreapp2.1
   steps:
-  - script: dotnet restore -v n -f $(targetfx)
+  - script: dotnet restore
     displayName: Restore packages for $(targetfx)
     workingDirectory: src/StreamJsonRpc.Tests
   - script: dotnet build -v n -f $(targetfx) -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -p:GitLinkEnabled=false
