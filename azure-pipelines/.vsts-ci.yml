@@ -37,7 +37,14 @@ jobs:
           Write-Host "##vso[task.setvariable variable=Hosted]true"
         }
 
-  - ${{ if ne(variables['Hosted'], 'true') }}:
+        if ($env:System_TeamFoundationCollectionUri -eq 'https://dev.azure.com/devdiv') {
+          Write-Host "Running on official devdiv account: $env:System_TeamFoundationCollectionUri"
+          Write-Host "##vso[task.setvariable variable=Official]true"
+        } else {
+          Write-Host "Running under OSS account: $env:System_TeamFoundationCollectionUri"
+        }
+
+  - ${{ if eq(variables['Official'], 'true') }}:
     - template: .azure-pipeline.microbuild.before.yml
 
   - script: dotnet --info
@@ -123,7 +130,7 @@ jobs:
       codeCoverageEnabled: true
     condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-  - ${{ if ne(variables['Hosted'], 'true') }}:
+  - ${{ if eq(variables['Official'], 'true') }}:
     - template: .azure-pipeline.microbuild.after.yml
 
   - task: PublishBuildArtifacts@1
