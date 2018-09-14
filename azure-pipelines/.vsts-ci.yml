@@ -83,21 +83,10 @@ jobs:
     displayName: Publish deployables artifacts
     condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
-- job: LinuxContainer
+- job: Linux
   pool:
     vmImage: Ubuntu 16.04
   container: linux
-  variables:
-    targetfx: netcoreapp1.0
-    runtime: 1.0.11
-  steps:
-  - script: |
-      dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -c $(BuildConfiguration) -p:GitLinkEnabled=false
-      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx) -c $(BuildConfiguration)
-
-- job: LinuxMatrix
-  pool:
-    vmImage: Ubuntu 16.04
   strategy:
     matrix:
       netcoreapp1_0:
@@ -105,65 +94,18 @@ jobs:
         targetfx: netcoreapp1.0
       netcoreapp1_1:
         runtime: 1.1.8
+        targetfx: netcoreapp1.0
+      netcoreapp2_0:
+        runtime: 2.0.7
+        targetfx: netcoreapp2.0
+      netcoreapp2_1:
+        runtime: 2.1.0
+        targetfx: netcoreapp2.1
   steps:
-  - script: |
-      wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
-      chmod +x /tmp/dotnet-install.sh
-      . /tmp/dotnet-install.sh -v $(runtime) --runtime dotnet
-      . /tmp/dotnet-install.sh -v 2.1.300
-      dotnet --info
-      dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
-      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx)
-    displayName: Installing .NET Core SDK and runtimes and building and running tests
-#  - task: DotNetCoreCLI@2
-#    displayName: Build tests for $(targetfx)
-#    inputs:
-#      command: build
-#      projects: src/**/*.Tests.csproj
-#      arguments: -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog"
-#  - task: DotNetCoreCLI@2
-#    displayName: Run tests on $(targetfx)
-#    inputs:
-#      command: test
-#      projects: src/**/*.Tests.csproj
-#      nobuild: true
-#      arguments:  -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx)
-#    env:
-#      DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
-#      RuntimeFrameworkVersion: $(runtime)
-
-- job: Linux
-  pool:
-    vmImage: Ubuntu 16.04
-  variables:
-    GitLinkEnabled: false
-  steps:
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core runtime 1.0.11
-    inputs:
-      packageType: runtime
-      version: 1.0.11
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core runtime 1.1.8
-    inputs:
-      packageType: runtime
-      version: 1.1.8
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core runtime 2.0.7
-    inputs:
-      packageType: runtime
-      version: 2.0.7
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core runtime 2.0.0
-    inputs:
-      packageType: runtime
-      version: 2.0.0
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core SDK 2.1.300
-    inputs:
-      packageType: sdk
-      version: 2.1.300
-  - template: build.yml
+  - script: dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -c $(BuildConfiguration) -p:GitLinkEnabled=false
+    displayName: Build test for $(targetfx)
+  - script: DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx) -c $(BuildConfiguration)
+    displayName: Run tests for $(targetfx) on the .NET Core $(runtime) runtime
 
 - job: macOS
   pool:
