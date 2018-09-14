@@ -93,12 +93,12 @@ jobs:
   steps:
   - script: |
       ls /tmp
-      mkdir /var/log/LD_DEBUG
-      LD_DEBUG=all dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -c $(BuildConfiguration) -p:GitLinkEnabled=false 2> /var/log/LD_DEBUG/lg2.log
+      mkdir LD_DEBUG
+      LD_DEBUG=all dotnet build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n -f $(targetfx) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/$(targetfx).binlog" -c $(BuildConfiguration) -p:GitLinkEnabled=false 2> LD_DEBUG/lg2.log
       DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX=0 RuntimeFrameworkVersion=$(runtime) dotnet test --no-build src/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj -v n --filter "TestCategory!=FailsInCloudTest" -f $(targetfx) -c $(BuildConfiguration)
   - task: PublishBuildArtifacts@1
     inputs:
-      PathtoPublish: /var/log/LD_DEBUG
+      PathtoPublish: LD_DEBUG/lg2.log
       ArtifactName: LD_DEBUG
       ArtifactType: Container
     displayName: Publish LD_DEBUG logs
