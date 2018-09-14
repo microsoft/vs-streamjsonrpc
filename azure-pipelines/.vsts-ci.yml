@@ -13,7 +13,7 @@ variables:
 resources:
   containers:
   - container: linux
-    image: andrewarnott.azurecr.io/linux-buildagent
+    image: linux-buildagent
     endpoint: andrewarnott ACR
 
 jobs:
