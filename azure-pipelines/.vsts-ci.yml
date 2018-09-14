@@ -14,7 +14,7 @@ resources:
   containers:
   - container: linux
     image: andrewarnott.azurecr.io/linux-buildagent
-    endpoint: Azure Free Trial (c5eda4ed-4681-4034-8835-65d67e7d4b7c)
+    endpoint: andrewarnott ACR
 
 jobs:
 - job: Windows
