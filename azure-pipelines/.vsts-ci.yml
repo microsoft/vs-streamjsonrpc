@@ -37,7 +37,7 @@ jobs:
           Write-Host "##vso[task.setvariable variable=Hosted]true"
         }
 
-        if ($env:System_TeamFoundationCollectionUri -eq 'https://dev.azure.com/devdiv') {
+        if (($env:System_TeamFoundationCollectionUri -eq 'https://dev.azure.com/devdiv') -or ($env:System_TeamFoundationCollectionUri -eq 'https://devdiv.visualstudio.com/')) {
           Write-Host "Running on official devdiv account: $env:System_TeamFoundationCollectionUri"
           Write-Host "##vso[task.setvariable variable=Official]true"
         } else {
