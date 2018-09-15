@@ -512,6 +512,15 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task Invoke_ThrowsCancellationExceptionOverDisposedException()
+    {
+        this.clientRpc.Dispose();
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeAsync("anything"));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.InvokeWithCancellationAsync("anything", Array.Empty<object>(), CancellationToken.None));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync("anything", Array.Empty<object>(), new CancellationToken(true)));
+    }
+
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithNoArgs()
     {
         Assert.Equal(5, await this.clientRpc.InvokeAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));

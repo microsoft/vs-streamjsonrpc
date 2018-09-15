@@ -827,8 +827,8 @@ namespace StreamJsonRpc
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
-            Verify.NotDisposed(this);
             cancellationToken.ThrowIfCancellationRequested();
+            Verify.NotDisposed(this);
 
             var request = new JsonRpcRequest
             {
