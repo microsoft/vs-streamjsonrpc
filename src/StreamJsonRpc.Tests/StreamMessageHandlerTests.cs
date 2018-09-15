@@ -205,7 +205,7 @@ public class StreamMessageHandlerTests : TestBase
             throw new NotImplementedException();
         }
 
-        protected override ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
+        protected override ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref this.WriteCoreCallCount);
             return new ValueTask(this.WriteBlock.WaitAsync());

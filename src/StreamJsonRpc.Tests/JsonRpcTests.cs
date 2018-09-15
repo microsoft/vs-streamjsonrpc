@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
-using Nerdbank;
+using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
@@ -24,10 +24,10 @@ public class JsonRpcTests : TestBase
     private const string HubName = "TestHub";
 
     private readonly Server server;
-    private FullDuplexStream serverStream;
+    private Nerdbank.FullDuplexStream serverStream;
     private JsonRpc serverRpc;
 
-    private FullDuplexStream clientStream;
+    private Nerdbank.FullDuplexStream clientStream;
     private JsonRpc clientRpc;
 
     public JsonRpcTests(ITestOutputHelper logger)
@@ -37,7 +37,7 @@ public class JsonRpcTests : TestBase
 
         this.server = new Server();
 
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
@@ -108,20 +108,21 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
     {
-        var sendingStream = new MemoryStream();
-        long lastPosition = sendingStream.Position;
+        var sendingStream = new HalfDuplexStream();
         var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
 
         // Sending notifications is fine, as it's an outbound-only communication.
         await rpc.NotifyAsync("foo");
-        Assert.NotEqual(lastPosition, sendingStream.Position);
+
+        // Verify that something was sent.
+        await sendingStream.ReadAsync(new byte[1], 0, 1).WithCancellation(this.TimeoutToken);
 
         // Sending requests should not be allowed, since it requires waiting for a response.
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
     }
 
     [Fact]
-    public async Task CanInvokeMethodOnServer()
+    public async Task CanInvokeMethodOnServer_WithVeryLargePayload()
     {
         string testLine = "TestLine1" + new string('a', 1024 * 1024);
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.ServerMethod), testLine);
@@ -849,7 +850,7 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
     {
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreatePair();
         var localRpc = JsonRpc.Attach(streams.Item2);
         var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
         serverRpc.AddLocalRpcTarget(new Server());
@@ -863,7 +864,7 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task AddLocalRpcTarget_WithNamespace()
     {
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreatePair();
         var localRpc = JsonRpc.Attach(streams.Item2);
         var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
         serverRpc.AddLocalRpcTarget(new Server());
@@ -884,7 +885,7 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("serverMethod", "hi"));
 
         // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreatePair();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
         rpc.StartListening();
@@ -900,7 +901,7 @@ public class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_MethodNameTransformAndRpcMethodAttribute()
     {
         // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
-        var streams = FullDuplexStream.CreateStreams();
+        var streams = FullDuplexStream.CreatePair();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
         rpc.StartListening();
@@ -924,7 +925,7 @@ public class JsonRpcTests : TestBase
         this.serverRpc.AddLocalRpcMethod("biz.bar", new Action(() => invoked = true));
         this.StartListening();
 
-        await this.clientRpc.InvokeAsync("biz.bar");
+        await this.clientRpc.InvokeAsync("biz.bar").WithCancellation(this.TimeoutToken);
         Assert.True(invoked);
     }
 

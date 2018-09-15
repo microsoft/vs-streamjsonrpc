@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
@@ -23,7 +24,8 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream, this.receivingStream);
+        // Use strict pipe writer so we get deterministic writes for consistent testing.
+        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader());
     }
 
     [Fact]
@@ -104,38 +106,10 @@ CRLF +
         Assert.Equal(3123, readContent["a"].Value<int>());
     }
 
-    /// <summary>
-    /// Confirms that sending several messages with headers that exceed the built-in buffer size
-    /// will not cause corruption.
-    /// </summary>
     [Fact]
-    public async Task LargeHeader()
+    public void TooLargeHeader()
     {
-        this.sendingStream = new SlowWriteStream();
-        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream, this.receivingStream);
-
-        this.handler.SubType = new string('a', 980);
-        this.handler.Encoding = Encoding.ASCII;
-
-        var writeTasks = new List<Task>(3);
-        for (int i = 0; i < writeTasks.Capacity; i++)
-        {
-            writeTasks.Add(this.handler.WriteAsync(JToken.Parse("{\"mycontent\":" + i + "}"), this.TimeoutToken).AsTask());
-        }
-
-        await Task.WhenAll(writeTasks);
-        this.sendingStream.Position = 0;
-        var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
-        this.Logger.WriteLine(sr.ReadToEnd());
-        this.sendingStream.Position = 0;
-        await this.sendingStream.CopyToAsync(this.receivingStream, 500, this.TimeoutToken);
-        this.receivingStream.Position = 0;
-
-        for (int i = 0; i < writeTasks.Capacity; i++)
-        {
-            JToken content = await this.handler.ReadAsync(this.TimeoutToken);
-            Assert.Equal(i, content["mycontent"].Value<int>());
-        }
+        Assert.Throws<ArgumentException>(() => this.handler.SubType = new string('a', 980));
     }
 
     private class SlowWriteStream : Stream

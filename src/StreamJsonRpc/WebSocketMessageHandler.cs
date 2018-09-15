@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#if WEBSOCKETS
-
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.IO;
     using System.Net.WebSockets;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -22,6 +22,7 @@ namespace StreamJsonRpc
     public class WebSocketMessageHandler : StreamMessageHandler
     {
         private readonly ArraySegment<byte> readBuffer;
+        private readonly SerializationHelper helper = new SerializationHelper();
         private MemoryStream readBufferStream;
         private StreamReader readBufferReader;
 
@@ -93,17 +94,37 @@ namespace StreamJsonRpc
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc />
-        protected override ValueTask WriteCoreAsync(JToken content, Encoding contentEncoding, CancellationToken cancellationToken)
+        protected override async ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken)
 #pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
         {
             Requires.NotNull(content, nameof(content));
-            Requires.NotNull(contentEncoding, nameof(contentEncoding));
 
-            MemoryStream sendingContentBufferStream = this.Serialize(content, contentEncoding);
-            var bufferSegment = new ArraySegment<byte>(sendingContentBufferStream.GetBuffer(), 0, (int)sendingContentBufferStream.Length);
-            return new ValueTask(this.WebSocket.SendAsync(bufferSegment, WebSocketMessageType.Text, true, cancellationToken));
+            ReadOnlySequence<byte> contentSequence = this.helper.Serialize(content, this.Encoding);
+            cancellationToken.ThrowIfCancellationRequested();
+            int bytesCopied = 0;
+            foreach (ReadOnlyMemory<byte> memory in contentSequence)
+            {
+                bool endOfMessage = bytesCopied + memory.Length == contentSequence.Length;
+                if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
+                {
+                    await this.WebSocket.SendAsync(segment, WebSocketMessageType.Text, endOfMessage, CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    byte[] array = ArrayPool<byte>.Shared.Rent(memory.Length);
+                    try
+                    {
+                        memory.CopyTo(array);
+                        await this.WebSocket.SendAsync(new ArraySegment<byte>(array, 0, memory.Length), WebSocketMessageType.Text, endOfMessage, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(array);
+                    }
+                }
+
+                bytesCopied += memory.Length;
+            }
         }
     }
 }
-
-#endif
