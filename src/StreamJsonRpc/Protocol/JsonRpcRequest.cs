@@ -18,24 +18,42 @@ namespace StreamJsonRpc.Protocol
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     {
+        /// <summary>
+        /// Backing field for the <see cref="Arguments"/> property.
+        /// </summary>
+        private object arguments;
+
+         /// <summary>
+        /// The result of an attempt to match request arguments with a candidate method's parameters.
+        /// </summary>
         public enum ArgumentMatchResult
         {
+            /// <summary>
+            /// All arguments matched up with all method parameters.
+            /// </summary>
             Success,
 
+            /// <summary>
+            /// The number of arguments did not match the number of parameters.
+            /// </summary>
             ParameterArgumentCountMismatch,
 
+            /// <summary>
+            /// At least one argument could not be made to match its corresponding parameter.
+            /// </summary>
             ParameterArgumentTypeMismatch,
 
+            /// <summary>
+            /// An argument could not be found for a required parameter.
+            /// </summary>
             MissingArgument,
         }
 
-        /// <summary>
+       /// <summary>
         /// Gets or sets the name of the method to be invoked.
         /// </summary>
         [DataMember(Name = "method", Order = 1, IsRequired = true)]
         public string Method { get; set; }
-
-        private object arguments;
 
         /// <summary>
         /// Gets or sets the arguments to use when invoking the specified <see cref="Method"/>.

@@ -257,11 +257,6 @@ namespace StreamJsonRpc
         bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
 
         /// <summary>
-        /// Gets the message handler used to send and receive messages.
-        /// </summary>
-        internal IMessageHandler MessageHandler { get; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether to cancel all methods dispatched locally
         /// that accept a <see cref="CancellationToken"/> when the connection with the remote party is closed.
         /// </summary>
@@ -277,6 +272,11 @@ namespace StreamJsonRpc
                 this.cancelLocallyInvokedMethodsWhenConnectionIsClosed = value;
             }
         }
+
+        /// <summary>
+        /// Gets the message handler used to send and receive messages.
+        /// </summary>
+        internal IMessageHandler MessageHandler { get; }
 
         /// <summary>
         /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
