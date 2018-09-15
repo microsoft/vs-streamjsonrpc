@@ -24,7 +24,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     public HeaderDelimitedMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
-        // Use strict pipe writer so we can deterministic writes for consistent testing.
+        // Use strict pipe writer so we get deterministic writes for consistent testing.
         this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader());
     }
 

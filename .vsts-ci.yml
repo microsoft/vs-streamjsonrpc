@@ -1,152 +1,195 @@
 trigger:
   branches:
-    include: ["master", "v1.2", "v1.3", "v1.4"]
+    include: ["master", "v1.5"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
 
-steps:
-- task: PowerShell@2
-  displayName: Set VSTS variables
-  inputs:
-    targetType: inline
-    script: |
-      if ($env:SignType -eq 'Real') {
-        $feedGuid = '09d8d03c-1ac8-456e-9274-4d2364527d99'
-      } else {
-        $feedGuid = 'da484c78-f942-44ef-b197-99e2a1bef53c'
-      }
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
 
-      Write-Host "##vso[task.setvariable variable=feedGuid]$feedGuid"
+resources:
+  containers:
+  - container: xenial
+    image: andrewarnott/linux-buildagent
 
-      if ($env:ComputerName.StartsWith('factoryvm', [StringComparison]::OrdinalIgnoreCase)) {
-        Write-Host "Running on hosted queue"
-        Write-Host "##vso[task.setvariable variable=Hosted]true"
-      }
+jobs:
+- job: Windows
+  pool: Hosted VS2017
+  steps:
+  - script: |
+      dotnet tool install --tool-path . nbgv
+      .\nbgv cloud -p src
+    displayName: Set build number
+    condition: ne(variables['system.pullrequest.isfork'], true)
+  - task: PowerShell@2
+    displayName: Set VSTS variables
+    inputs:
+      targetType: inline
+      script: |
+        if ($env:SignType -eq 'Real') {
+          $feedGuid = '09d8d03c-1ac8-456e-9274-4d2364527d99'
+        } else {
+          $feedGuid = 'da484c78-f942-44ef-b197-99e2a1bef53c'
+        }
 
-- task: CmdLine@2
-  inputs:
-    script: |
-      del /s /q "%userprofile%\.nuget\packages"
-      del /s /q "%LocalAppData%\NuGet\Cache"
-      del /s /q "%AppData%\tsd-cache"
-  displayName: Purge package caches
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
+        Write-Host "##vso[task.setvariable variable=feedGuid]$feedGuid"
 
-- task: DotNetCoreInstaller@0
-  displayName: Install dotnet CLI
-  inputs:
-    version: 2.1.300
+        if ($env:ComputerName.StartsWith('factoryvm', [StringComparison]::OrdinalIgnoreCase)) {
+          Write-Host "Running on hosted queue"
+          Write-Host "##vso[task.setvariable variable=Hosted]true"
+        }
 
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: 4.5.1
-  displayName: Pin nuget.exe version
+        if ($env:SYSTEM_COLLECTIONID -eq '011b8bdf-6d56-4f87-be0d-0092136884d9') {
+          Write-Host "Running on official devdiv account: $env:System_TeamFoundationCollectionUri"
+        } else {
+          Write-Host "Running under OSS account: $env:System_TeamFoundationCollectionUri"
+        }
 
-- task: MicroBuildIBCMergePlugin@0
-  inputs:
-    branch: svc/d15svc
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
-  displayName: Install MicroBuild IBCMerge Plugin
+  - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
+    - template: azure-pipelines/.azure-pipeline.microbuild.before.yml
 
-- task: MicroBuildSigningPlugin@1
-  inputs:
-    signType: $(SignType)
-    esrpSigning: true
-    zipSources: false
-  displayName: Install MicroBuild Signing Plugin
+  - script: dotnet --info
+    displayName: Show dotnet SDK info
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '**\*.sln'
-    feedsToUse: config
-    nugetConfigPath: src/nuget.config
-  displayName: Nuget restore packages
+  - task: DotNetCoreCLI@2
+    displayName: Restore
+    inputs:
+      command: restore
+      verbosityRestore: normal # detailed, normal, minimal
+      projects: src/**/*.sln
+      feedsToUse: config
+      nugetConfigPath: src/nuget.config
 
-- task: VSBuild@1
-  inputs:
-    vsVersion: 15.0
-    msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-    platform: $(BuildPlatform)
-    configuration: $(BuildConfiguration)
-  displayName: Build Visual Studio solution
+  # Use VSBuild on Windows so GitLink will work (it fails on dotnet build)
+  - task: VSBuild@1
+    inputs:
+      vsVersion: 15.0
+      msbuildArgs: /t:build /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+    displayName: Build Visual Studio solution
 
-- task: MicroBuildCleanup@1
-  condition: succeededOrFailed()
-  displayName: MicroBuild Cleanup
+  - task: DotNetCoreCLI@2
+    displayName: Run tests
+    inputs:
+      command: test
+      projects: src/**/*.Tests.csproj
+      arguments: --configuration $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" -v n
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-- task: CopyFiles@1
-  inputs:
-    Contents: |
-      obj/**/project.assets.json
-    TargetFolder: $(Build.ArtifactStagingDirectory)/projectAssetsJson
-  displayName: Collecting project.assets.json artifacts
-  condition: succeededOrFailed()
+  - task: CopyFiles@1
+    inputs:
+      Contents: |
+        obj/**/project.assets.json
+      TargetFolder: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+    displayName: Collecting project.assets.json artifacts
+    condition: succeededOrFailed()
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/projectAssetsJson
-    ArtifactName: projectAssetsJson
-    ArtifactType: Container
-  displayName: Publish projectAssetsJson artifacts
-  condition: succeededOrFailed()
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/projectAssetsJson
+      ArtifactName: projectAssetsJson
+      ArtifactType: Container
+    displayName: Publish projectAssetsJson artifacts
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
-## The rest of these steps are for deployment and skipped for PR builds
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/build_logs
+      ArtifactName: build_logs
+      ArtifactType: Container
+    displayName: Publish build_logs artifacts
+    condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
 
-#- task: PublishBuildArtifacts@1
-#  inputs:
-#    PathtoPublish: $(build.sourcesdirectory)/bin
-#    ArtifactName: bin
-#    ArtifactType: Container
-#  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  ## The rest of these steps are for deployment and skipped for PR builds
 
-- task: CopyFiles@1
-  inputs:
-    SourceFolder: bin
-    Contents: |
-      StreamJsonRpc/$(BuildConfiguration)/**/StreamJsonRpc@(.pdb|.dll)
-    TargetFolder: $(Build.ArtifactStagingDirectory)/symbols
-  displayName: Collecting symbols artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  #- task: PublishBuildArtifacts@1
+  #  inputs:
+  #    PathtoPublish: $(build.sourcesdirectory)/bin
+  #    ArtifactName: bin
+  #    ArtifactType: Container
+  #  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/symbols
-    ArtifactName: symbols
-    ArtifactType: Container
-  displayName: Publish symbols as VSTS artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  - task: DotNetCoreCLI@2
+    displayName: Pack
+    inputs:
+      command: pack
+      projects: src/**/*.sln
+      nobuild: true
+      verbosityPack: normal
+      packDirectory: $(Build.ArtifactStagingDirectory)/deployables
 
-- task: CopyFiles@1
-  inputs:
-    Contents: |
-      bin/**/$(BuildConfiguration)/**/StreamJsonRpc.*.nupkg
-    TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
-    flattenFolders: true
-  displayName: Collecting deployables
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  - task: VSTest@2
+    displayName: Run tests on .NET Framework (with code coverage)
+    inputs:
+      testFiltercriteria: TestCategory!=FailsInCloudTest
+      searchFolder: $(System.DefaultWorkingDirectory)\bin
+      testAssemblyVer2: |
+        **\*tests*.dll
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+      codeCoverageEnabled: true
+    condition: and(succeeded(), ne(variables['SignType'], 'real'))
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-    ArtifactName: deployables
-    ArtifactType: Container
-  displayName: Publish deployables artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
+    - template: azure-pipelines/.azure-pipeline.microbuild.after.yml
 
-- task: PublishSymbols@2
-  inputs:
-    SymbolsFolder: $(Build.ArtifactStagingDirectory)/symbols
-    SearchPattern: '**/*.pdb'
-    IndexSources: false
-    SymbolServerType: TeamServices
-  displayName: Publish symbols to symbol server
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
+      ArtifactName: deployables
+      ArtifactType: Container
+    displayName: Publish deployables artifacts
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
-- task: NuGetCommand@2
-  inputs:
-    command: push
-    searchPatternPush: '$(Build.SourcesDirectory)\bin\**\$(BuildConfiguration)\**\*.nupkg;!**\*.symbols.nupkg;!**/VS.*.nupkg'
-    publishVstsFeed: $(feedGuid)
-    allowPackageConflicts: true
-  displayName: Push packages to VSTS feed
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+- job: Linux
+  pool:
+    vmImage: Ubuntu 16.04
+  container: xenial
+  variables:
+    GitLinkEnabled: false
+  strategy:
+    maxParallel: 4
+    matrix:
+      netcoreapp1_0:
+        runtime: 1.0.11
+        targetfx: netcoreapp1.0
+      netcoreapp1_1:
+        runtime: 1.1.8
+        targetfx: netcoreapp1.0
+      netcoreapp2_0:
+        runtime: 2.0.7
+        targetfx: netcoreapp2.0
+      netcoreapp2_1:
+        runtime: 2.1.0
+        targetfx: netcoreapp2.1
+  steps:
+  - template: azure-pipelines/testfx.yml
+  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
+
+- job: macOS
+  pool:
+    vmImage: macOS 10.13
+  variables:
+    GitLinkEnabled: false
+  strategy:
+    maxParallel: 4
+    matrix:
+      netcoreapp1_0:
+        runtime: 1.0.11
+        targetfx: netcoreapp1.0
+      netcoreapp1_1:
+        runtime: 1.1.8
+        targetfx: netcoreapp1.0
+      netcoreapp2_0:
+        runtime: 2.0.7
+        targetfx: netcoreapp2.0
+      netcoreapp2_1:
+        runtime: 2.1.0
+        targetfx: netcoreapp2.1
+  steps:
+  - template: azure-pipelines/testfx.yml
+  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
