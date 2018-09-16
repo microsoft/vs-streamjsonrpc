@@ -13,7 +13,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// The contract for sending and receiving JSON-RPC messages.
     /// </summary>
-    public interface IMessageHandler
+    public interface IJsonRpcMessageHandler
     {
         /// <summary>
         /// Gets a value indicating whether this message handler can receive messages.

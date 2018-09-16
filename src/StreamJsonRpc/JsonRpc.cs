@@ -24,7 +24,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public partial class JsonRpc : IDisposableObservable
+    public class JsonRpc : IDisposableObservable
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
@@ -68,7 +68,7 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
+        /// A delegate for the <see cref="HandleInvocationTaskResult(object, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
@@ -107,7 +107,8 @@ namespace StreamJsonRpc
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
-        /// <see cref="HeaderDelimitedMessageHandler"/> for encoding/decoding messages.
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
@@ -116,7 +117,7 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
-            : this(new JsonMessageHandler(new HeaderDelimitedMessageHandler(sendingStream, receivingStream)))
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
         {
             if (target != null)
             {
@@ -127,25 +128,13 @@ namespace StreamJsonRpc
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class.
         /// </summary>
-        /// <param name="jsonMessageHandler">The message handler to use to transmit and receive RPC messages as JSON.</param>
-        /// <remarks>
-        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
-        /// </remarks>
-        public JsonRpc(IJsonMessageHandler jsonMessageHandler)
-            : this(new JsonMessageHandler(jsonMessageHandler))
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class.
-        /// </summary>
-        /// <param name="jsonMessageHandler">The message handler to use to transmit and receive RPC messages as JSON.</param>
+        /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(IJsonMessageHandler jsonMessageHandler, object target)
-            : this(new JsonMessageHandler(jsonMessageHandler))
+        public JsonRpc(IJsonRpcMessageHandler messageHandler, object target)
+            : this(messageHandler)
         {
             if (target != null)
             {
@@ -160,7 +149,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        internal JsonRpc(IMessageHandler messageHandler)
+        public JsonRpc(IJsonRpcMessageHandler messageHandler)
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
@@ -276,7 +265,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the message handler used to send and receive messages.
         /// </summary>
-        internal IMessageHandler MessageHandler { get; }
+        internal IJsonRpcMessageHandler MessageHandler { get; }
 
         /// <summary>
         /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.

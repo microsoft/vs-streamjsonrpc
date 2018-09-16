@@ -17,26 +17,13 @@ using Xunit.Abstractions;
 
 public class InteropTestBase : TestBase
 {
-    protected readonly Stream serverStream;
-    protected readonly Stream clientStream;
     protected readonly DirectMessageHandler messageHandler;
     protected readonly JsonRpc rpc;
 
     public InteropTestBase(ITestOutputHelper logger, bool serverTest)
         : base(logger)
     {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        if (serverTest)
-        {
-            this.messageHandler = new DirectMessageHandler(this.clientStream, this.serverStream, Encoding.UTF8);
-        }
-        else
-        {
-            this.messageHandler = new DirectMessageHandler(this.serverStream, this.clientStream, Encoding.UTF8);
-        }
+        this.messageHandler = new DirectMessageHandler();
     }
 
     protected ValueTask<JToken> RequestAsync(object request)

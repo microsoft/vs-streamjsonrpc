@@ -12,19 +12,31 @@ namespace StreamJsonRpc
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
+    using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// A message handler for the <see cref="JsonRpc"/> class
     /// that uses <see cref="System.Net.WebSockets.WebSocket"/> as the transport.
     /// </summary>
-    public class WebSocketMessageHandler : StreamMessageHandler<JToken>, IJsonMessageHandler
+    public class WebSocketMessageHandler : MessageHandlerBase
     {
-        private readonly ArraySegment<byte> readBuffer;
-        private readonly SerializationHelper helper = new SerializationHelper();
-        private MemoryStream readBufferStream;
-        private StreamReader readBufferReader;
+        private readonly int sizeHint;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebSocketMessageHandler"/> class
+        /// that uses the <see cref="JsonMessageFormatter"/> to serialize messages as textual JSON.
+        /// </summary>
+        /// <param name="webSocket">
+        /// The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
+        /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
+        /// </param>
+        public WebSocketMessageHandler(WebSocket webSocket)
+            : this(webSocket, new JsonMessageFormatter())
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketMessageHandler"/> class.
@@ -33,19 +45,32 @@ namespace StreamJsonRpc
         /// The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
         /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
         /// </param>
-        /// <param name="bufferSize">
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        /// <param name="sizeHint">
         /// The size of the buffer to use for reading JSON-RPC messages.
         /// Messages which exceed this size will be handled properly but may require multiple I/O operations.
         /// </param>
-        public WebSocketMessageHandler(WebSocket webSocket, int bufferSize = 4096)
-            : base(Stream.Null, Stream.Null, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        public WebSocketMessageHandler(WebSocket webSocket, IJsonRpcMessageFormatter formatter, int sizeHint = 4096)
         {
             Requires.NotNull(webSocket, nameof(webSocket));
-            Requires.Range(bufferSize > 0, nameof(bufferSize));
+            Requires.NotNull(formatter, nameof(formatter));
+            Requires.Range(sizeHint > 0, nameof(sizeHint));
 
             this.WebSocket = webSocket;
-            this.readBuffer = new ArraySegment<byte>(new byte[bufferSize]);
+            this.Formatter = formatter;
+            this.sizeHint = sizeHint;
         }
+
+        /// <summary>
+        /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances.
+        /// </summary>
+        public IJsonRpcMessageFormatter Formatter { get; }
+
+        /// <inheritdoc />
+        public override bool CanWrite => true;
+
+        /// <inheritdoc />
+        public override bool CanRead => true;
 
         /// <summary>
         /// Gets the <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
@@ -53,81 +78,96 @@ namespace StreamJsonRpc
         public WebSocket WebSocket { get; }
 
         /// <inheritdoc />
-        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
+        protected override bool CanFlushConcurrentlyWithOtherWrites => true;
 
         /// <inheritdoc />
-        protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            if (this.readBufferStream == null)
+            using (var contentSequenceBuilder = new Sequence<byte>())
             {
-                this.readBufferStream = new MemoryStream(this.readBuffer.Array.Length);
-            }
-            else
-            {
-                this.readBufferStream.SetLength(0);
-            }
-
-            if (this.readBufferReader == null || this.readBufferReader.CurrentEncoding != this.Encoding)
-            {
-                this.readBufferReader = new StreamReader(this.readBufferStream, this.Encoding);
-            }
-            else
-            {
-                this.readBufferReader.DiscardBufferedData();
-            }
-
-            WebSocketReceiveResult result;
-            do
-            {
-                result = await this.WebSocket.ReceiveAsync(this.readBuffer, cancellationToken).ConfigureAwait(false);
-                if (result.CloseStatus.HasValue)
+#if NETCOREAPP2_1
+                ValueWebSocketReceiveResult result;
+#else
+                WebSocketReceiveResult result;
+#endif
+                do
                 {
-                    await this.WebSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None).ConfigureAwait(false);
-                    return null;
-                }
-
-                this.readBufferStream.Write(this.readBuffer.Array, this.readBuffer.Offset, this.readBuffer.Count);
-            }
-            while (!result.EndOfMessage);
-
-            this.readBufferStream.Position = 0;
-            var readBufferJsonReader = new JsonTextReader(this.readBufferReader);
-            return JToken.ReadFrom(readBufferJsonReader);
-        }
-
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
-        /// <inheritdoc />
-        protected override async ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken)
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
-        {
-            Requires.NotNull(content, nameof(content));
-
-            ReadOnlySequence<byte> contentSequence = this.helper.Serialize(content, this.Encoding);
-            cancellationToken.ThrowIfCancellationRequested();
-            int bytesCopied = 0;
-            foreach (ReadOnlyMemory<byte> memory in contentSequence)
-            {
-                bool endOfMessage = bytesCopied + memory.Length == contentSequence.Length;
-                if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
-                {
-                    await this.WebSocket.SendAsync(segment, WebSocketMessageType.Text, endOfMessage, CancellationToken.None).ConfigureAwait(false);
-                }
-                else
-                {
-                    byte[] array = ArrayPool<byte>.Shared.Rent(memory.Length);
+                    var memory = contentSequenceBuilder.GetMemory(this.sizeHint);
+#if NETCOREAPP2_1
+                    result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
+                    contentSequenceBuilder.Advance(result.Count);
+#else
+                    ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+                    byte[] segment = pool.Rent(this.sizeHint);
                     try
                     {
-                        memory.CopyTo(array);
-                        await this.WebSocket.SendAsync(new ArraySegment<byte>(array, 0, memory.Length), WebSocketMessageType.Text, endOfMessage, CancellationToken.None).ConfigureAwait(false);
+                        result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(segment), cancellationToken).ConfigureAwait(false);
+                        contentSequenceBuilder.Write(segment.AsSpan(0, result.Count));
                     }
                     finally
                     {
-                        ArrayPool<byte>.Shared.Return(array);
+                        pool.Return(segment);
+                    }
+#endif
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        await this.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed as requested.", CancellationToken.None).ConfigureAwait(false);
+                        return null;
                     }
                 }
+                while (!result.EndOfMessage);
 
-                bytesCopied += memory.Length;
+                return contentSequenceBuilder.AsReadOnlySequence.Length > 0 ? this.Formatter.Deserialize(contentSequenceBuilder) : null;
             }
         }
+
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
+
+        /// <inheritdoc />
+        protected override async ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
+        {
+            Requires.NotNull(content, nameof(content));
+
+            using (var contentSequenceBuilder = new Sequence<byte>())
+            {
+                var messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
+                this.Formatter.Serialize(contentSequenceBuilder, content);
+                cancellationToken.ThrowIfCancellationRequested();
+                int bytesCopied = 0;
+                ReadOnlySequence<byte> contentSequence = contentSequenceBuilder.AsReadOnlySequence;
+                foreach (ReadOnlyMemory<byte> memory in contentSequence)
+                {
+                    bool endOfMessage = bytesCopied + memory.Length == contentSequence.Length;
+#if NETCOREAPP2_1
+                    await this.WebSocket.SendAsync(memory, messageType, endOfMessage, cancellationToken).ConfigureAwait(false);
+#else
+                    if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
+                    {
+                        await this.WebSocket.SendAsync(segment, messageType, endOfMessage, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        byte[] array = ArrayPool<byte>.Shared.Rent(memory.Length);
+                        try
+                        {
+                            memory.CopyTo(array);
+                            await this.WebSocket.SendAsync(new ArraySegment<byte>(array, 0, memory.Length), messageType, endOfMessage, CancellationToken.None).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            ArrayPool<byte>.Shared.Return(array);
+                        }
+                    }
+#endif
+
+                    bytesCopied += memory.Length;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        protected override ValueTask FlushAsync(CancellationToken cancellationToken) => default;
+
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
     }
 }

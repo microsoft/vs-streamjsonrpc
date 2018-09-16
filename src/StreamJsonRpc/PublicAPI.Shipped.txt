@@ -18,7 +18,6 @@ StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, params object[] ar
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> void
-StreamJsonRpc.JsonRpc.JsonSerializer.get -> Newtonsoft.Json.JsonSerializer
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, params object[] arguments) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.StartListening() -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs
@@ -44,14 +43,12 @@ StreamJsonRpc.RemoteTargetNotSetException.RemoteTargetNotSetException(System.Run
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> StreamJsonRpc.JsonRpc
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = null) -> StreamJsonRpc.JsonRpc
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 virtual StreamJsonRpc.JsonRpc.IsFatalException(System.Exception ex) -> bool
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string targetName, object argument = null) -> System.Threading.Tasks.Task
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name) -> void
 StreamJsonRpc.JsonRpcMethodAttribute.Name.get -> string
@@ -81,11 +78,8 @@ StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.get -> System.Func<string
 StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.set -> void
-StreamJsonRpc.RemoteInvocationException.ErrorData.get -> Newtonsoft.Json.Linq.JToken
-StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, string remoteStack, string remoteCode, Newtonsoft.Json.Linq.JToken errorData) -> void
 StreamJsonRpc.WebSocketMessageHandler
 StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
-StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void
 static StreamJsonRpc.CommonMethodNameTransforms.CamelCase.get -> System.Func<string, string>
 static StreamJsonRpc.CommonMethodNameTransforms.Prepend(string prefix) -> System.Func<string, string>
 static StreamJsonRpc.JsonRpc.Attach<T>(System.IO.Stream sendingStream, System.IO.Stream receivingStream) -> T

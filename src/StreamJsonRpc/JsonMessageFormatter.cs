@@ -4,23 +4,26 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Runtime.Serialization;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
+    using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
-    /// Uses Newtonsoft.Json serialization to translate <see cref="JToken"/> used by <see cref="IJsonMessageHandler"/>
-    /// into <see cref="JsonRpcMessage"/> objects.
+    /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
     /// </summary>
-    internal class JsonMessageHandler : IMessageHandler, IDisposableObservable
+    public class JsonMessageFormatter : IJsonRpcMessageTextFormatter
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -28,42 +31,74 @@ namespace StreamJsonRpc
         internal const string ExceptionDataKey = "JToken";
 
         /// <summary>
-        /// The underlying <see cref="JToken"/>-based message handler.
+        /// Backing field for the <see cref="Encoding"/> property.
         /// </summary>
-        private readonly IJsonMessageHandler innerHandler;
+        private Encoding encoding;
 
         /// <summary>
-        /// Backing field for the <see cref="IsDisposed"/> property.
+        /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
+        /// that uses <see cref="Encoding.UTF8"/> for its text encoding.
         /// </summary>
-        private bool isDisposed;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JsonMessageHandler"/> class.
-        /// </summary>
-        /// <param name="jsonMessageHandler">The <see cref="IJsonMessageHandler"/> to wrap.</param>
-        public JsonMessageHandler(IJsonMessageHandler jsonMessageHandler)
+        public JsonMessageFormatter()
+            : this(Encoding.UTF8)
         {
-            this.innerHandler = jsonMessageHandler ?? throw new ArgumentNullException(nameof(jsonMessageHandler));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class.
+        /// </summary>
+        /// <param name="encoding">The encoding to use for the JSON text.</param>
+        public JsonMessageFormatter(Encoding encoding)
+        {
+            Requires.NotNull(encoding, nameof(encoding));
+            this.Encoding = encoding;
+        }
+
+        /// <summary>
+        /// Gets or sets the encoding to use for transmitted messages.
+        /// </summary>
+        public Encoding Encoding
+        {
+            get => this.encoding;
+
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.encoding = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Newtonsoft.Json.JsonSerializer"/> used when serializing and deserializing method arguments and return values.
+        /// </summary>
+        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
+
+        /// <inheritdoc/>
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
+
+        /// <inheritdoc/>
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
+        {
+            Requires.NotNull(encoding, nameof(encoding));
+
+            JToken json = this.ReadJToken(contentBuffer, encoding);
+            return this.Deserialize(json);
         }
 
         /// <inheritdoc/>
-        public bool CanRead => this.innerHandler.CanRead;
-
-        /// <inheritdoc/>
-        public bool CanWrite => this.innerHandler.CanWrite;
-
-        /// <inheritdoc/>
-        public bool IsDisposed => (this.innerHandler as IDisposableObservable)?.IsDisposed ?? this.isDisposed;
-
-        /// <inheritdoc/>
-        public async ValueTask<JsonRpcMessage> ReadAsync(CancellationToken cancellationToken)
+        public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
-            JToken json = await this.innerHandler.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (json == null)
-            {
-                return null;
-            }
+            JToken json = this.Serialize(message);
+            this.WriteJToken(contentBuffer, json);
+        }
 
+        /// <summary>
+        /// Deserializes a <see cref="JToken"/> to a <see cref="JsonRpcMessage"/>.
+        /// </summary>
+        /// <param name="json">The JSON to deserialize.</param>
+        /// <returns>The deserialized message.</returns>
+        public JsonRpcMessage Deserialize(JToken json)
+        {
             try
             {
                 return
@@ -80,32 +115,25 @@ namespace StreamJsonRpc
             }
         }
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
-        /// <inheritdoc/>
-        public ValueTask WriteAsync(JsonRpcMessage jsonRpcMessage, CancellationToken cancellationToken)
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+        /// <summary>
+        /// Serializes a <see cref="JsonRpcMessage"/> to a <see cref="JToken"/>.
+        /// </summary>
+        /// <param name="message">The message to serialize.</param>
+        /// <returns>The JSON of the message.</returns>
+        public JToken Serialize(JsonRpcMessage message)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
-            this.TokenizeUserData(jsonRpcMessage);
+            this.TokenizeUserData(message);
 
-            var json = JToken.FromObject(jsonRpcMessage);
+            var json = JToken.FromObject(message);
 
             // Fix up dropped fields that are mandatory
-            if (jsonRpcMessage is Protocol.JsonRpcResult && json["result"] == null)
+            if (message is Protocol.JsonRpcResult && json["result"] == null)
             {
                 json["result"] = JValue.CreateNull();
             }
 
-            return this.innerHandler.WriteAsync(json, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.isDisposed = true;
-            (this.innerHandler as IDisposable)?.Dispose();
+            return json;
         }
 
         private static IReadOnlyDictionary<string, object> PartiallyParseNamedArguments(JObject args)
@@ -135,6 +163,22 @@ namespace StreamJsonRpc
                 idToken?.Type == JTokenType.String ? idToken.Value<string>() :
                 idToken == null ? (object)null :
                 throw new JsonSerializationException("Unexpected type for id property: " + idToken.Type);
+        }
+
+        private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
+        {
+            var jsonWriter = new JsonTextWriter(new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096));
+            json.WriteTo(jsonWriter);
+            jsonWriter.Flush();
+        }
+
+        private JToken ReadJToken(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
+        {
+            Requires.NotNull(encoding, nameof(encoding));
+
+            var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), encoding));
+            JToken json = JToken.ReadFrom(jsonReader);
+            return json;
         }
 
         /// <summary>
@@ -179,7 +223,7 @@ namespace StreamJsonRpc
                 return JValue.CreateNull();
             }
 
-            return JToken.FromObject(value, this.innerHandler.JsonSerializer);
+            return JToken.FromObject(value, this.JsonSerializer);
         }
 
         private JsonRpcRequest ReadRequest(JToken json)
@@ -196,7 +240,7 @@ namespace StreamJsonRpc
                 args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
                 null;
 
-            return new JsonRpcRequest(this.innerHandler.JsonSerializer)
+            return new JsonRpcRequest(this.JsonSerializer)
             {
                 Id = GetNormalizedId(id),
                 Method = json.Value<string>("method"),
@@ -211,7 +255,7 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken result = json["result"];
 
-            return new JsonRpcResult(this.innerHandler.JsonSerializer)
+            return new JsonRpcResult(this.JsonSerializer)
             {
                 Id = GetNormalizedId(id),
                 Result = result,

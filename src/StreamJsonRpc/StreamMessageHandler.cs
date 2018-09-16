@@ -17,9 +17,7 @@ namespace StreamJsonRpc
     /// An abstract base class for for sending and receiving messages over a
     /// reading and writing pair of <see cref="Stream"/> objects.
     /// </summary>
-    /// <typeparam name="T">The type of object to be written/read.</typeparam>
-    public abstract class StreamMessageHandler<T> : MessageHandlerBase<T>
-        where T : class
+    public abstract class StreamMessageHandler : MessageHandlerBase
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -27,13 +25,11 @@ namespace StreamJsonRpc
         private readonly CancellationTokenSource disposalTokenSource = new CancellationTokenSource();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StreamMessageHandler{T}"/> class.
+        /// Initializes a new instance of the <see cref="StreamMessageHandler"/> class.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
-        /// <param name="encoding">The character encoding to use when transmitting messages.</param>
-        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
-            : base(Requires.NotNull(encoding, nameof(encoding)))
+        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream)
         {
             Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
             Requires.Argument(receivingStream == null || receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);

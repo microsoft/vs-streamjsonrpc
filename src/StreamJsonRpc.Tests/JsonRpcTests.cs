@@ -15,6 +15,7 @@ using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,11 +27,13 @@ public class JsonRpcTests : TestBase
     private readonly Server server;
     private Nerdbank.FullDuplexStream serverStream;
     private JsonRpc serverRpc;
-    private IJsonMessageHandler serverMessageHandler;
+    private HeaderDelimitedMessageHandler serverMessageHandler;
+    private JsonMessageFormatter serverMessageFormatter;
 
     private Nerdbank.FullDuplexStream clientStream;
     private JsonRpc clientRpc;
-    private IJsonMessageHandler clientMessageHandler;
+    private HeaderDelimitedMessageHandler clientMessageHandler;
+    private JsonMessageFormatter clientMessageFormatter;
 
     public JsonRpcTests(ITestOutputHelper logger)
         : base(logger)
@@ -45,6 +48,10 @@ public class JsonRpcTests : TestBase
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream), this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream));
+
+        this.serverMessageFormatter = (JsonMessageFormatter)this.serverMessageHandler.Formatter;
+        this.clientMessageFormatter = (JsonMessageFormatter)this.clientMessageHandler.Formatter;
+
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
     }
@@ -75,14 +82,14 @@ public class JsonRpcTests : TestBase
         var disconnected = new AsyncManualResetEvent();
         rpc.Disconnected += (s, e) => disconnected.Set();
 
-        var helperHandler = new HeaderDelimitedMessageHandler(streams.Item2, null);
+        var helperHandler = new HeaderDelimitedMessageHandler(sendingStream: streams.Item2, receivingStream: null);
         await helperHandler.WriteAsync(
-            JToken.FromObject(new
+            new JsonRpcRequest
             {
-                jsonrpc = "2.0",
-                method = nameof(Server.NotificationMethod),
-                @params = new[] { "hello" },
-            }), this.TimeoutToken);
+                Method = nameof(Server.NotificationMethod),
+                ArgumentsArray = new[] { "hello" },
+            },
+            this.TimeoutToken);
 
         Assert.Equal("hello", await server.NotificationReceived.WithCancellation(this.TimeoutToken));
 
@@ -94,13 +101,13 @@ public class JsonRpcTests : TestBase
 
         // Receiving a request should forcibly terminate the stream.
         await helperHandler.WriteAsync(
-            JsonConvert.SerializeObject(new
+            new JsonRpcRequest
             {
-                jsonrpc = "2.0",
-                id = 1,
-                method = nameof(Server.MethodThatAccceptsAndReturnsNull),
-                @params = new object[] { null },
-            }), this.TimeoutToken);
+                Id = 1,
+                Method = nameof(Server.MethodThatAccceptsAndReturnsNull),
+                ArgumentsArray = new object[] { null },
+            },
+            this.TimeoutToken);
 
         // The connection should be closed because we can't send a response.
         await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
@@ -681,8 +688,8 @@ public class JsonRpcTests : TestBase
     [Fact]
     public async Task UnserializableTypeWorksWithConverter()
     {
-        this.clientMessageHandler.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
-        this.serverMessageHandler.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        this.clientMessageFormatter.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
+        this.serverMessageFormatter.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
         var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(this.server.RepeatSpecialType), new UnserializableType { Value = "a" });
         Assert.Equal("a!", result.Value);
     }
@@ -695,17 +702,17 @@ public class JsonRpcTests : TestBase
         // doesn't find the method with the mangled name.
 
         // Test with the converter only on the client side.
-        this.clientMessageHandler.JsonSerializer.Converters.Add(new StringBase64Converter());
+        this.clientMessageFormatter.JsonSerializer.Converters.Add(new StringBase64Converter());
         string result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.ExpectEncodedA), "a");
         Assert.Equal("a", result);
 
         // Test with the converter on both sides.
-        this.serverMessageHandler.JsonSerializer.Converters.Add(new StringBase64Converter());
+        this.serverMessageFormatter.JsonSerializer.Converters.Add(new StringBase64Converter());
         result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.RepeatString), "a");
         Assert.Equal("a", result);
 
         // Test with the converter only on the server side.
-        this.clientMessageHandler.JsonSerializer.Converters.Clear();
+        this.clientMessageFormatter.JsonSerializer.Converters.Clear();
         result = await this.clientRpc.InvokeAsync<string>(nameof(this.server.AsyncMethod), "YQ==");
         Assert.Equal("YSE=", result); // a!
     }

@@ -15,14 +15,13 @@ namespace StreamJsonRpc
     using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// An abstract base class for for sending and receiving messages
     /// using <see cref="PipeReader"/> and <see cref="PipeWriter"/>.
     /// </summary>
-    /// <typeparam name="T">The type of object to be written/read.</typeparam>
-    public abstract class PipeMessageHandler<T> : MessageHandlerBase<T>
-        where T : class
+    public abstract class PipeMessageHandler : MessageHandlerBase
     {
         /// <summary>
         /// Objects that we should dispose when we are disposed. May be null.
@@ -33,9 +32,8 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="PipeMessageHandler"/> class.
         /// </summary>
         /// <param name="pipe">The reader and writer to use for receiving/transmitting messages.</param>
-        /// <param name="encoding">The encoding to use for transmitted messages.</param>
-        public PipeMessageHandler(IDuplexPipe pipe, Encoding encoding)
-            : this(Requires.NotNull(pipe, nameof(pipe)).Output, Requires.NotNull(pipe, nameof(pipe)).Input, encoding)
+        public PipeMessageHandler(IDuplexPipe pipe)
+            : this(Requires.NotNull(pipe, nameof(pipe)).Output, Requires.NotNull(pipe, nameof(pipe)).Input)
         {
         }
 
@@ -44,11 +42,8 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
-        /// <param name="encoding">The encoding to use for transmitted messages.</param>
-        public PipeMessageHandler(PipeWriter writer, PipeReader reader, Encoding encoding)
-            : base(Requires.NotNull(encoding, nameof(encoding)))
+        public PipeMessageHandler(PipeWriter writer, PipeReader reader)
         {
-
             this.Reader = reader;
             this.Writer = writer;
         }
@@ -58,9 +53,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The stream to use for transmitting messages.</param>
         /// <param name="reader">The stream to use for receiving messages.</param>
-        /// <param name="encoding">The encoding to use for transmitted messages.</param>
-        public PipeMessageHandler(Stream writer, Stream reader, Encoding encoding)
-            : base(Requires.NotNull(encoding, nameof(encoding)))
+        public PipeMessageHandler(Stream writer, Stream reader)
         {
             // We use Strict reader to avoid max buffer size issues in Pipe (https://github.com/dotnet/corefx/issues/30689)
             // since it's just stream semantics.
@@ -100,7 +93,7 @@ namespace StreamJsonRpc
 
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc/>
-        protected override ValueTask WriteCoreAsync(T content, CancellationToken cancellationToken)
+        protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             this.Write(content, cancellationToken);
             return default;
@@ -117,7 +110,7 @@ namespace StreamJsonRpc
         /// They can assume their caller will invoke <see cref="PipeWriter.FlushAsync(CancellationToken)"/> on their behalf
         /// after writing is completed.
         /// </remarks>
-        protected abstract void Write(T content, CancellationToken cancellationToken);
+        protected abstract void Write(JsonRpcMessage content, CancellationToken cancellationToken);
 
         /// <inheritdoc />
         protected override void Dispose(bool disposing)

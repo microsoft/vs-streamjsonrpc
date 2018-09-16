@@ -14,6 +14,7 @@ using Nerdbank;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,7 +27,7 @@ public class StreamMessageHandlerTests : TestBase
     public StreamMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.handler = new DirectMessageHandler(this.sendingStream, this.receivingStream, Encoding.UTF8);
+        this.handler = new DirectMessageHandler();
     }
 
     [Fact]
@@ -39,28 +40,28 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task Ctor_AcceptsNullSendingStream()
     {
-        var handler = new DirectMessageHandler(null, this.receivingStream, Encoding.UTF8);
+        var handler = new MyStreamMessageHandler(null, this.receivingStream);
         Assert.True(handler.CanRead);
         Assert.False(handler.CanWrite);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.WriteAsync("hi", this.TimeoutToken).AsTask());
-        JToken expected = "bye";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.WriteAsync(CreateRequestMessage(), this.TimeoutToken).AsTask());
+        JsonRpcMessage expected = CreateNotifyMessage();
         handler.MessagesToRead.Enqueue(expected);
-        JToken actual = await handler.ReadAsync(this.TimeoutToken);
+        var actual = await handler.ReadAsync(this.TimeoutToken);
         Assert.Equal(expected, actual);
     }
 
     [Fact]
     public async Task Ctor_AcceptsNullReceivingStream()
     {
-        var handler = new DirectMessageHandler(this.sendingStream, null, Encoding.UTF8);
+        var handler = new MyStreamMessageHandler(this.sendingStream, null);
         Assert.False(handler.CanRead);
         Assert.True(handler.CanWrite);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.ReadAsync(this.TimeoutToken).AsTask());
-        JToken expected = "bye";
+        JsonRpcMessage expected = CreateNotifyMessage();
         await handler.WriteAsync(expected, this.TimeoutToken);
-        JToken actual = await handler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        var actual = await handler.WrittenMessages.DequeueAsync(this.TimeoutToken);
         Assert.Equal(expected, actual);
     }
 
@@ -77,7 +78,7 @@ public class StreamMessageHandlerTests : TestBase
     public void Dispose_StreamsAreDisposed()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var handler = new DirectMessageHandler(streams.Item1, streams.Item2, Encoding.UTF8);
+        var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2);
         Assert.False(streams.Item1.IsDisposed);
         Assert.False(streams.Item2.IsDisposed);
         handler.Dispose();
@@ -89,7 +90,7 @@ public class StreamMessageHandlerTests : TestBase
     public void WriteAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
-        ValueTask result = this.handler.WriteAsync("content", this.TimeoutToken);
+        ValueTask result = this.handler.WriteAsync(CreateNotifyMessage(), this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
     }
 
@@ -101,21 +102,21 @@ public class StreamMessageHandlerTests : TestBase
     public void WriteAsync_PreferOperationCanceledException_AtEntry()
     {
         this.handler.Dispose();
-        Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync("content", PrecanceledToken).GetAwaiter().GetResult());
+        Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync(CreateNotifyMessage(), PrecanceledToken).GetAwaiter().GetResult());
     }
 
     /// <summary>
-    /// Verifies that <see cref="StreamMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// Verifies that <see cref="MessageHandlerBase.ReadAsync(CancellationToken)"/> prefers throwing
     /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
     /// apply while reading (at least when cancellation occurs first).
     /// </summary>
     [Fact]
     public async Task WriteAsync_PreferOperationCanceledException_MidExecution()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, Encoding.UTF8);
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream);
 
         var cts = new CancellationTokenSource();
-        var writeTask = handler.WriteAsync("content", cts.Token);
+        var writeTask = handler.WriteAsync(CreateRequestMessage(), cts.Token);
 
         cts.Cancel();
         handler.Dispose();
@@ -133,9 +134,9 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task WriteAsync_SemaphoreIncludesWriteCoreAsync_Task()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, Encoding.UTF8);
-        var writeTask = handler.WriteAsync("content", CancellationToken.None).AsTask();
-        var write2Task = handler.WriteAsync("content", CancellationToken.None).AsTask();
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream);
+        var writeTask = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
+        var write2Task = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
 
         // Give the library extra time to do the wrong thing asynchronously.
         await Task.Delay(ExpectedTimeout);
@@ -150,7 +151,7 @@ public class StreamMessageHandlerTests : TestBase
     public void ReadAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
-        ValueTask<JToken> result = this.handler.ReadAsync(this.TimeoutToken);
+        ValueTask<JsonRpcMessage> result = this.handler.ReadAsync(this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
@@ -167,7 +168,7 @@ public class StreamMessageHandlerTests : TestBase
     }
 
     /// <summary>
-    /// Verifies that <see cref="StreamMessageHandler.ReadAsync(CancellationToken)"/> prefers throwing
+    /// Verifies that <see cref="MessageHandlerBase.ReadAsync(CancellationToken)"/> prefers throwing
     /// <see cref="OperationCanceledException"/> over <see cref="ObjectDisposedException"/> when both conditions
     /// apply while reading (at least when cancellation occurs first).
     /// </summary>
@@ -183,36 +184,53 @@ public class StreamMessageHandlerTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask);
     }
 
-    [Fact]
-    public void SetEncodingToNullThrows()
-    {
-        Assert.Throws<ArgumentNullException>(() => this.handler.Encoding = null);
-        Assert.NotNull(this.handler.Encoding);
-    }
+    private static JsonRpcMessage CreateNotifyMessage() => new JsonRpcRequest { Method = "test" };
 
-    private class DelayedWriter : StreamMessageHandler<JToken>, IJsonMessageHandler
+    private static JsonRpcMessage CreateRequestMessage() => new JsonRpcRequest { Id = 1, Method = "test" };
+
+    private class DelayedWriter : StreamMessageHandler
     {
         internal readonly AsyncManualResetEvent WriteBlock = new AsyncManualResetEvent();
 
         internal int WriteCoreCallCount;
 
-        public DelayedWriter(Stream sendingStream, Stream receivingStream, Encoding encoding)
-            : base(sendingStream, receivingStream, encoding)
+        public DelayedWriter(Stream sendingStream, Stream receivingStream)
+            : base(sendingStream, receivingStream)
         {
         }
 
-        /// <inheritdoc />
-        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
-
-        protected override ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
 
-        protected override ValueTask WriteCoreAsync(JToken content, CancellationToken cancellationToken)
+        protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref this.WriteCoreCallCount);
             return new ValueTask(this.WriteBlock.WaitAsync());
+        }
+    }
+
+    private class MyStreamMessageHandler : StreamMessageHandler
+    {
+        public MyStreamMessageHandler(Stream sendingStream, Stream receivingStream)
+            : base(sendingStream, receivingStream)
+        {
+        }
+
+        internal AsyncQueue<JsonRpcMessage> MessagesToRead { get; } = new AsyncQueue<JsonRpcMessage>();
+
+        internal AsyncQueue<JsonRpcMessage> WrittenMessages { get; } = new AsyncQueue<JsonRpcMessage>();
+
+        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        {
+            return await this.MessagesToRead.DequeueAsync(cancellationToken);
+        }
+
+        protected override ValueTask WriteCoreAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            this.WrittenMessages.Enqueue(message);
+            return default;
         }
     }
 }

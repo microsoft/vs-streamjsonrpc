@@ -11,20 +11,19 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// An abstract base class for for sending and receiving messages.
     /// </summary>
-    /// <typeparam name="T">The type of object to be written/read.</typeparam>
     /// <remarks>
     /// This class and its derivatives are safe to call from any thread.
-    /// Calls to <see cref="WriteAsync(T, CancellationToken)"/>
+    /// Calls to <see cref="WriteAsync(JsonRpcMessage, CancellationToken)"/>
     /// are protected by a semaphore to guarantee message integrity
     /// and may be made from any thread.
     /// The caller must take care to call <see cref="ReadAsync(CancellationToken)"/> sequentially.
     /// </remarks>
-    public abstract class MessageHandlerBase<T> : IDisposableObservable
-         where T : class
+    public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -37,17 +36,10 @@ namespace StreamJsonRpc
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
 
         /// <summary>
-        /// The backing field for the <see cref="Encoding"/> property.
+        /// Initializes a new instance of the <see cref="MessageHandlerBase"/> class.
         /// </summary>
-        private Encoding encoding;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MessageHandlerBase{T}"/> class.
-        /// </summary>
-        /// <param name="encoding">The encoding to use when serializing text.</param>
-        public MessageHandlerBase(Encoding encoding)
+        public MessageHandlerBase()
         {
-            this.Encoding = encoding;
         }
 
         /// <summary>
@@ -59,23 +51,6 @@ namespace StreamJsonRpc
         /// Gets a value indicating whether this message handler can send messages.
         /// </summary>
         public abstract bool CanWrite { get; }
-
-        /// <summary>
-        /// Gets or sets the encoding to use for transmitted messages.
-        /// </summary>
-        public Encoding Encoding
-        {
-            get
-            {
-                return this.encoding;
-            }
-
-            set
-            {
-                Requires.NotNull(value, nameof(value));
-                this.encoding = value;
-            }
-        }
 
         /// <summary>
         /// Gets a value indicating whether this instance has been disposed.
@@ -104,7 +79,7 @@ namespace StreamJsonRpc
         /// Implementations may assume this method is never called before any async result
         /// from a prior call to this method has completed.
         /// </remarks>
-        public async ValueTask<T> ReadAsync(CancellationToken cancellationToken)
+        public async ValueTask<JsonRpcMessage> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.CanRead, "No receiving stream.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -114,7 +89,7 @@ namespace StreamJsonRpc
             {
                 try
                 {
-                    T result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
+                    JsonRpcMessage result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
                     return result;
                 }
                 catch (InvalidOperationException ex) when (cancellationToken.IsCancellationRequested)
@@ -144,7 +119,7 @@ namespace StreamJsonRpc
         /// Implementations should expect this method to be invoked concurrently
         /// and use a queue to preserve message order as they are transmitted one at a time.
         /// </remarks>
-        public async ValueTask WriteAsync(T content, CancellationToken cancellationToken)
+        public async ValueTask WriteAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             Requires.NotNull(content, nameof(content));
             Verify.Operation(this.CanWrite, "No sending stream.");
@@ -158,6 +133,7 @@ namespace StreamJsonRpc
                     ValueTask flushTask;
                     using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
+                        cts.Token.ThrowIfCancellationRequested();
                         await this.WriteCoreAsync(content, cts.Token).ConfigureAwait(false);
                         flushTask = this.FlushAsync(cts.Token);
 
@@ -217,7 +193,7 @@ namespace StreamJsonRpc
         /// A null string indicates the stream has ended.
         /// An empty string should never be returned.
         /// </returns>
-        protected abstract ValueTask<T> ReadCoreAsync(CancellationToken cancellationToken);
+        protected abstract ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Writes a message.
@@ -225,7 +201,7 @@ namespace StreamJsonRpc
         /// <param name="content">The message to write.</param>
         /// <param name="cancellationToken">A token to cancel the transmission.</param>
         /// <returns>A task that represents the asynchronous write operation.</returns>
-        protected abstract ValueTask WriteCoreAsync(T content, CancellationToken cancellationToken);
+        protected abstract ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken);
 
         /// <summary>
         /// Ensures that all messages transmitted up to this point are en route to their destination,
