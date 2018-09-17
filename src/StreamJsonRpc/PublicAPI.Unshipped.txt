@@ -47,6 +47,7 @@ StreamJsonRpc.PipeMessageHandler
 StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Pipelines.IDuplexPipe pipe) -> void
 StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Pipelines.PipeWriter writer, System.IO.Pipelines.PipeReader reader) -> void
 StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Stream writer, System.IO.Stream reader) -> void
+StreamJsonRpc.PipeMessageHandler.ReadAtLeastAsync(int requiredBytes, bool allowEmpty, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.IO.Pipelines.ReadResult>
 StreamJsonRpc.PipeMessageHandler.Reader.get -> System.IO.Pipelines.PipeReader
 StreamJsonRpc.PipeMessageHandler.Writer.get -> System.IO.Pipelines.PipeWriter
 StreamJsonRpc.Protocol.JsonRpcError

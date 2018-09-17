@@ -141,6 +141,42 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async ValueTask FlushAsync(CancellationToken cancellationToken) => await this.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
+        /// <summary>
+        /// Reads from the <see cref="Reader"/> until at least a specified number of bytes are available.
+        /// </summary>
+        /// <param name="requiredBytes">The number of bytes that must be available.</param>
+        /// <param name="allowEmpty"><c>true</c> to allow returning 0 bytes if the end of the stream is encountered before any bytes are read.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The <see cref="ReadResult"/> containing at least <paramref name="requiredBytes"/> bytes.</returns>
+        /// <exception cref="OperationCanceledException">Thrown if <see cref="ReadResult.IsCanceled"/>.</exception>
+        /// <exception cref="EndOfStreamException">
+        /// Thrown if <see cref="ReadResult.IsCompleted"/> before we have <paramref name="requiredBytes"/> bytes.
+        /// Not thrown if 0 bytes were read and <paramref name="allowEmpty"/> is <c>true</c>.
+        /// </exception>
+        protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
+        {
+            var readResult = await this.Reader.ReadAsync(cancellationToken);
+            while (readResult.Buffer.Length < requiredBytes && !readResult.IsCompleted && !readResult.IsCanceled)
+            {
+                this.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                readResult = await this.Reader.ReadAsync(cancellationToken);
+            }
+
+            if (allowEmpty && readResult.Buffer.Length == 0)
+            {
+                return readResult;
+            }
+
+            if (readResult.Buffer.Length < requiredBytes)
+            {
+                throw readResult.IsCompleted ? new EndOfStreamException() :
+                    readResult.IsCanceled ? new OperationCanceledException() :
+                    Assumes.NotReachable();
+            }
+
+            return readResult;
+        }
+
         private void DisposeDisposables()
         {
             if (this.disposables != null)

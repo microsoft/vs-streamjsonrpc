@@ -191,19 +191,8 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-
-            ReadOnlySequence<byte> contentBuffer = default;
-            while (contentBuffer.Length < contentLength)
-            {
-                var readResult = await this.Reader.ReadAsync(cancellationToken);
-                contentBuffer = readResult.Buffer;
-                if (contentBuffer.Length < contentLength)
-                {
-                    this.Reader.AdvanceTo(contentBuffer.Start, contentBuffer.End);
-                }
-            }
-
-            contentBuffer = contentBuffer.Slice(0, contentLength);
+            var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken);
+            ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
             try
             {
                 if (this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
