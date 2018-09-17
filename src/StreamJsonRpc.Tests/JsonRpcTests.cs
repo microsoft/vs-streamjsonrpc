@@ -610,7 +610,7 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
-            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
             cts.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
         }
@@ -622,7 +622,7 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.AsyncMethodWithJTokenAndCancellation), new { b = "a" }, cts.Token);
-            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
             cts.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
         }
@@ -646,7 +646,7 @@ public class JsonRpcTests : TestBase
         using (var cts = new CancellationTokenSource())
         {
             var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
-            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
             cts.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
         }
@@ -1252,9 +1252,9 @@ public class JsonRpcTests : TestBase
     {
         Task completion = this.serverRpc.Completion;
         byte[] invalidMessage = Encoding.UTF8.GetBytes("A\n\n");
-        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length);
-        await this.clientStream.FlushAsync();
-        await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion);
+        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length).WithCancellation(this.TimeoutToken);
+        await this.clientStream.FlushAsync().WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion).WithCancellation(this.TimeoutToken);
         Assert.Same(completion, this.serverRpc.Completion);
     }
 
