@@ -40,7 +40,7 @@
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>Parametry metody {0} nie są zgodne z żądaniem: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Osiągnięto koniec strumienia.</value>
@@ -67,11 +67,10 @@
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>Nieoczekiwany błąd przetwarzania wywołania RPC JSON „{0}”: {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
-    <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Nie powiodło się przekształcanie nagłówka Content-Length w dodatnią liczbę całkowitą.</value>

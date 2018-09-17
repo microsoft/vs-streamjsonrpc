@@ -248,7 +248,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Null(ex.RemoteStackTrace);
         Assert.Null(ex.RemoteErrorCode);
-        Assert.Equal(errorData.stack.foo, ex.ErrorData["stack"].Value<int>("foo"));
+        Assert.Equal(errorData.stack.foo, ((JToken)ex.ErrorData)["stack"].Value<int>("foo"));
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
         });
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Equal(expectedMessage, ex.Message);
-        Assert.Equal(expectedData, ex.ErrorData?.Value<string>());
+        Assert.Equal(expectedData, ((JToken)ex.ErrorData)?.Value<string>());
     }
 
     [Fact]

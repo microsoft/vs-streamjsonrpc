@@ -40,7 +40,7 @@
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>스트림 끝에 도달했습니다.</value>
@@ -67,11 +67,10 @@
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>JSON RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류 발생:{1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>인식되지 않은 들어오는 JSON RPC '{0}'</value>
-    <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Content-Length 헤더를 양의 정수로 구문 분석할 수 없습니다.</value>

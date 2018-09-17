@@ -40,7 +40,7 @@
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>Parametry {0} nejsou kompatibilní s žádostí: {1}.</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Bylo dosaženo konce streamu.</value>
@@ -67,11 +67,10 @@
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>Neočekávaná chyba při zpracování JSON RPC {0}: {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Nerozpoznané příchozí JSON RPC {0}</value>
-    <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</value>

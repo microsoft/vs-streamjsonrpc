@@ -40,7 +40,7 @@
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
     <value>{0} parametreleri istekle uyumlu değil: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Akışın sonuna ulaşıldı.</value>
@@ -67,11 +67,10 @@
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
     <value>JSON RPC '{0}' işlenirken beklenmeyen bir hata oluştu: {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Tanınmayan gelen JSON RPC '{0}'</value>
-    <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Content-Length üst bilgisini pozitif bir tamsayıya ayrıştırma başarısız oldu.</value>

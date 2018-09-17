@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 public class JsonRpcWithFatalExceptionsTests : TestBase
 {
     private readonly Server server;
-    private readonly IMessageHandler messageHandler;
+    private readonly IJsonRpcMessageHandler messageHandler;
     private readonly JsonRpcWithFatalExceptions clientRpc;
     private readonly JsonRpcWithFatalExceptions serverRpc;
 
@@ -62,7 +62,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync("missingMethod", 50));
 
         // Assert MessageHandler object is not disposed
-        Assert.False(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.False(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are not disposed
         Assert.False(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.False(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.False(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.False(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         // Assert that the JsonRpc and MessageHandler objects are disposed after exception
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
         Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.clientRpc.MessageHandler).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -326,7 +326,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
         internal int IsFatalExceptionCount;
 
-        public JsonRpcWithFatalExceptions(IMessageHandler messageHandler, object target = null)
+        public JsonRpcWithFatalExceptions(IJsonRpcMessageHandler messageHandler, object target = null)
             : base(messageHandler, target)
         {
             this.IsFatalExceptionCount = 0;

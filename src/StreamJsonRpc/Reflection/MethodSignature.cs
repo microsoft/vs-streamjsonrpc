@@ -38,9 +38,9 @@ namespace StreamJsonRpc
 
         internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && !IsCancellationToken(pi));
 
-        internal int TotalParamCountExcludingCancellationToken => this.Parameters.Count(pi => !IsCancellationToken(pi));
+        internal int TotalParamCountExcludingCancellationToken => this.HasCancellationTokenParameter ? this.Parameters.Length - 1 : this.Parameters.Length;
 
-        internal bool HasCancellationTokenParameter => this.Parameters.Any(IsCancellationToken);
+        internal bool HasCancellationTokenParameter => this.Parameters.Length > 0 && this.Parameters[this.Parameters.Length - 1].ParameterType == typeof(CancellationToken);
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 

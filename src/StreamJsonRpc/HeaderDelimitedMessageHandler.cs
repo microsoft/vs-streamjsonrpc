@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Adds headers before each text message transmitted over a stream.
@@ -58,8 +59,6 @@ namespace StreamJsonRpc
         private static readonly byte[] ContentTypeHeaderName = HeaderEncoding.GetBytes(ContentTypeHeaderNameText);
         private static readonly byte[] CrlfBytes = HeaderEncoding.GetBytes("\r\n");
 
-        private readonly SerializationHelper helper = new SerializationHelper();
-
         /// <summary>
         /// Backing field for <see cref="SubType"/>.
         /// </summary>
@@ -70,17 +69,21 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
-        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader)
-            : base(writer, reader, DefaultContentEncoding)
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageTextFormatter formatter)
+            : base(writer, reader)
         {
+            Requires.NotNull(formatter, nameof(formatter));
+            this.Formatter = formatter;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
         /// </summary>
         /// <param name="pipe">The duplex pipe to use for exchanging messages.</param>
-        public HeaderDelimitedMessageHandler(IDuplexPipe pipe)
-            : this(pipe.Output, pipe.Input)
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        public HeaderDelimitedMessageHandler(IDuplexPipe pipe, IJsonRpcMessageTextFormatter formatter)
+            : this(pipe.Output, pipe.Input, formatter)
         {
         }
 
@@ -88,6 +91,16 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
         /// </summary>
         /// <param name="duplexStream">The stream to use for exchanging messages.</param>
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        public HeaderDelimitedMessageHandler(Stream duplexStream, IJsonRpcMessageTextFormatter formatter)
+            : this(duplexStream, duplexStream, formatter)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="duplexStream">The stream to use for transmitting and receiving messages.</param>
         public HeaderDelimitedMessageHandler(Stream duplexStream)
             : this(duplexStream, duplexStream)
         {
@@ -99,8 +112,21 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
-            : base(sendingStream, receivingStream, DefaultContentEncoding)
+            : this(sendingStream, receivingStream, new JsonMessageFormatter())
         {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
+        /// </summary>
+        /// <param name="sendingStream">The stream to use for transmitting messages.</param>
+        /// <param name="receivingStream">The stream to use for receiving messages.</param>
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageTextFormatter formatter)
+            : base(sendingStream, receivingStream)
+        {
+            Requires.NotNull(formatter, nameof(formatter));
+            this.Formatter = formatter;
         }
 
         private enum HeaderParseState
@@ -127,8 +153,22 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Gets or sets the encoding to use for transmitted messages.
+        /// </summary>
+        public Encoding Encoding
+        {
+            get => this.Formatter.Encoding;
+            set => this.Formatter.Encoding = value;
+        }
+
+        /// <summary>
+        /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances.
+        /// </summary>
+        public IJsonRpcMessageTextFormatter Formatter { get; }
+
         /// <inheritdoc />
-        protected override async ValueTask<JToken> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
             var headers = await this.ReadHeadersAsync(cancellationToken);
             if (!headers.HasValue)
@@ -144,7 +184,7 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            Encoding contentEncoding = headers.Value.ContentEncoding ?? this.Encoding;
+            Encoding contentEncoding = headers.Value.ContentEncoding ?? DefaultContentEncoding;
 
             ReadOnlySequence<byte> contentBuffer = default;
             while (contentBuffer.Length < contentLength)
@@ -160,8 +200,7 @@ namespace StreamJsonRpc
             contentBuffer = contentBuffer.Slice(0, contentLength);
             try
             {
-                var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), contentEncoding));
-                return JToken.ReadFrom(jsonReader);
+                return this.Formatter.Deserialize(contentBuffer, contentEncoding);
             }
             finally
             {
@@ -170,10 +209,8 @@ namespace StreamJsonRpc
             }
         }
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc />
-        protected override void Write(JToken content, CancellationToken cancellationToken)
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+        protected override void Write(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             unsafe int WriteHeaderText(string value, Span<byte> memory)
             {
@@ -186,9 +223,10 @@ namespace StreamJsonRpc
 
             cancellationToken.ThrowIfCancellationRequested();
             Encoding contentEncoding = this.Encoding;
-            var contentSequence = this.helper.Serialize(content, contentEncoding);
-            try
+            using (var contentSequenceBuilder = new Sequence<byte>())
             {
+                this.Formatter.Serialize(contentSequenceBuilder, content);
+                ReadOnlySequence<byte> contentSequence = contentSequenceBuilder.AsReadOnlySequence;
                 Memory<byte> headerMemory = this.Writer.GetMemory(1024);
                 int bytesWritten = 0;
 
@@ -233,10 +271,6 @@ namespace StreamJsonRpc
                 var contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
                 contentSequence.CopyTo(contentMemory.Span);
                 this.Writer.Advance((int)contentSequence.Length);
-            }
-            finally
-            {
-                this.helper.Reset();
             }
         }
 

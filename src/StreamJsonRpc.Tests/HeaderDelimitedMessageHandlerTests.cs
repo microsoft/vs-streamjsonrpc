@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -25,14 +26,14 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
         : base(logger)
     {
         // Use strict pipe writer so we get deterministic writes for consistent testing.
-        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader());
+        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader(), new JsonMessageFormatter());
     }
 
     [Fact]
     public async Task SubType_ForcesHeader()
     {
         this.handler.SubType = "nonstandard";
-        await this.handler.WriteAsync(JObject.FromObject(new { message = "hello" }), this.TimeoutToken);
+        await this.handler.WriteAsync(new JsonRpcRequest { Method = "test" }, this.TimeoutToken);
         this.sendingStream.Position = 0;
         var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
         string writtenContent = sr.ReadToEnd();
@@ -40,70 +41,70 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public void ReadCoreAsync_HandlesSpacingCorrectly()
+    public async Task ReadCoreAsync_HandlesSpacingCorrectly()
     {
         string content =
-"Content-Length:  10   " + CRLF +
+"Content-Length:  17   " + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"{\"a\":3123}";
+"{\"method\":\"test\"}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        JToken readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal(3123, readContent["a"].Value<int>());
+        var readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent.Method);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
 
         content =
-"Content-Length:9" + CRLF +
+"Content-Length:17" + CRLF +
 CRLF +
-"{\"a\":123}";
+"{\"method\":\"test\"}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal(123, readContent["a"].Value<int>());
+        readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent.Method);
     }
 
     [Fact]
-    public void ReadCoreAsync_HandlesUtf8CharsetCorrectly()
+    public async Task ReadCoreAsync_HandlesUtf8CharsetCorrectly()
     {
         // Using 'utf8'
         string content =
-"Content-Length: 10" + CRLF +
+"Content-Length: 17" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf8" + CRLF +
 CRLF +
-"{\"a\":3123}";
+"{\"method\":\"test\"}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        JToken readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal(3123, readContent["a"].Value<int>());
+        var readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent.Method);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
 
         // Using 'utf-8'
         content =
-"Content-Length: 10" + CRLF +
+"Content-Length: 17" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"{\"a\":3123}";
+"{\"method\":\"test\"}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        readContent = this.handler.ReadAsync(default(CancellationToken)).GetAwaiter().GetResult();
-        Assert.Equal(3123, readContent["a"].Value<int>());
+        readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent.Method);
     }
 
     [Fact]
