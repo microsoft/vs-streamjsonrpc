@@ -24,7 +24,7 @@ namespace StreamJsonRpc
         /// Deserializes a sequence of bytes to a <see cref="JsonRpcMessage"/>.
         /// </summary>
         /// <param name="contentBuffer">The bytes to deserialize.</param>
-        /// <param name="encoding">The encoding to read the bytes in <paramref name="contentBuffer"/> with.</param>
+        /// <param name="encoding">The encoding to read the bytes in <paramref name="contentBuffer"/> with. Must not be null.</param>
         /// <returns>The deserialized message.</returns>
         JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding);
     }

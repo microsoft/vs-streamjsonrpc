@@ -167,9 +167,14 @@ namespace StreamJsonRpc
 
         private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
         {
-            var jsonWriter = new JsonTextWriter(new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096));
-            json.WriteTo(jsonWriter);
-            jsonWriter.Flush();
+            using (var streamWriter = new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096))
+            {
+                using (var jsonWriter = new JsonTextWriter(streamWriter))
+                {
+                    json.WriteTo(jsonWriter);
+                    jsonWriter.Flush();
+                }
+            }
         }
 
         private JToken ReadJToken(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
