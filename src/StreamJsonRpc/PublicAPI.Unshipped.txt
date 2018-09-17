@@ -63,9 +63,7 @@ StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Code.get -> StreamJsonRpc.Protoc
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Code.set -> void
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Data.get -> object
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Data.set -> void
-StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorCode.get -> string
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorDetail() -> void
-StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorStack.get -> string
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Message.get -> string
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Message.set -> void
 StreamJsonRpc.Protocol.JsonRpcError.Id.get -> object
@@ -152,6 +150,8 @@ override sealed StreamJsonRpc.PipeMessageHandler.WriteCoreAsync(StreamJsonRpc.Pr
 virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(long? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(long? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
 virtual StreamJsonRpc.MessageHandlerBase.Dispose(bool disposing) -> void
+virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorCode.get -> string
+virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorStack.get -> string
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetArgumentByNameOrIndex(string name, int position, System.Type typeHint, out object value) -> bool
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetTypedArguments(System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters, System.Span<object> typedArguments) -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
 virtual StreamJsonRpc.Protocol.JsonRpcResult.GetResult<T>() -> T
