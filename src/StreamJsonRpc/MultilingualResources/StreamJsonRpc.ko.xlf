@@ -195,6 +195,11 @@
           <source>"{0}" is not an interface.</source>
           <target state="translated">"{0}"은(는) 인터페이스가 아닙니다.</target>
         </trans-unit>
+        <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+          <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+          <target state="new">Text encoding is not supported because the formatter "{0}" does not implement "{1}".</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+        </trans-unit>
       </group>
     </body>
   </file>
