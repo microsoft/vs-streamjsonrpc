@@ -16,6 +16,7 @@ Bonus features beyond the JSON-RPC spec include:
 1. Request cancellation
 1. .NET Events as notifications
 1. Dynamic client proxy generation
+1. Support for [compact binary serialization](doc/protocol.md) (e.g. MessagePack)
 
 ## Supported platforms
 
