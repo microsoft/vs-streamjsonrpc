@@ -12,7 +12,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Reads an <see cref="int"/> value from a buffer using big endian.
         /// </summary>
-        /// <param name="sequence">The sequence of bytes to read from. Must be at least 4 byte slong.</param>
+        /// <param name="sequence">The sequence of bytes to read from. Must be at least 4 bytes long.</param>
         /// <returns>The read value.</returns>
         internal static int ReadInt32BE(ReadOnlySequence<byte> sequence)
         {

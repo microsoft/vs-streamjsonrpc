@@ -17,7 +17,7 @@ namespace StreamJsonRpc
     using StreamJsonRpc.Protocol;
 
     /// <summary>
-    /// A minimal header for each message that is simply declares content length.
+    /// A minimal header for each message that simply declares content length.
     /// </summary>
     /// <remarks>
     /// The length is expressed as a big endian, 4 byte integer.
@@ -25,7 +25,7 @@ namespace StreamJsonRpc
     public class LengthHeaderMessageHandler : PipeMessageHandler
     {
         /// <summary>
-        /// The formatter to use for messaeg serialization.
+        /// The formatter to use for message serialization.
         /// </summary>
         private readonly IJsonRpcMessageFormatter formatter;
 
@@ -38,7 +38,7 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="LengthHeaderMessageHandler"/> class.
         /// </summary>
         /// <param name="pipe">The reader and writer to use for receiving/transmitting messages.</param>
-        /// <param name="formatter">The formatter to use for messaeg serialization.</param>
+        /// <param name="formatter">The formatter to use for message serialization.</param>
         public LengthHeaderMessageHandler(IDuplexPipe pipe, IJsonRpcMessageFormatter formatter)
             : base(pipe)
         {
@@ -51,7 +51,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
-        /// <param name="formatter">The formatter to use for messaeg serialization.</param>
+        /// <param name="formatter">The formatter to use for message serialization.</param>
         public LengthHeaderMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
             : base(writer, reader)
         {
