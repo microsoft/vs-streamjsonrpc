@@ -31,6 +31,12 @@ steps:
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.before.yml
 
+- task: DotNetCoreInstaller@0
+  displayName: Install .NET Core SDK 2.1.300
+  inputs:
+    packageType: sdk
+    version: 2.1.300
+
 - script: dotnet --info
   displayName: Show dotnet SDK info
 
