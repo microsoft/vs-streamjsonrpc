@@ -3,6 +3,7 @@
 
 namespace StreamJsonRpc.Protocol
 {
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Runtime.Serialization;
     using Newtonsoft.Json.Linq;
@@ -75,12 +76,32 @@ namespace StreamJsonRpc.Protocol
             /// <summary>
             /// Gets the callstack of an exception thrown by the server.
             /// </summary>
-            public string ErrorStack => this.Data is JObject dataObject && dataObject[DataStackFieldName]?.Type == JTokenType.String ? dataObject.Value<string>(DataStackFieldName) : null;
+            [IgnoreDataMember]
+            public virtual string ErrorStack
+            {
+                get
+                {
+                    return
+                        this.Data is JObject dataObject && dataObject[DataStackFieldName]?.Type == JTokenType.String ? dataObject.Value<string>(DataStackFieldName) :
+                        this.Data is Dictionary<object, object> data && data.TryGetValue(DataStackFieldName, out var stack) && stack is string stackString ? stackString :
+                        null;
+                }
+            }
 
             /// <summary>
             /// Gets the server error code.
             /// </summary>
-            public string ErrorCode => this.Data is JObject dataObject && (dataObject[DataCodeFieldName]?.Type == JTokenType.String || dataObject?[DataCodeFieldName]?.Type == JTokenType.Integer) ? dataObject.Value<string>(DataCodeFieldName) : null;
+            [IgnoreDataMember]
+            public virtual string ErrorCode
+            {
+                get
+                {
+                    return
+                        this.Data is JObject dataObject && (dataObject[DataCodeFieldName]?.Type == JTokenType.String || dataObject?[DataCodeFieldName]?.Type == JTokenType.Integer) ? dataObject.Value<string>(DataCodeFieldName) :
+                        this.Data is Dictionary<object, object> data && data.TryGetValue(DataCodeFieldName, out var code) && (code is string || code is int) ? code.ToString() :
+                        null;
+                }
+            }
         }
     }
 }

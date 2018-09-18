@@ -3,6 +3,8 @@
 See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes
 on the same machine utilizing this library for RPC, using either named pipes or web sockets.
 
+Learn more about how you can [customize the JSON-RPC protocol's wire format](protocol.md) that StreamJsonRpc uses for better interoperability or better performance.
+
 See also [Visual Studio specific concerns](vs.md).
 
 ## Establishing Connection
@@ -32,7 +34,7 @@ public void ConstructRpc(Stream clientStream, Stream serverStream)
 ## Invoking a notification
 To invoke a remote method named "foo" which takes one `string` parameter and does not return anything (i.e. send a notification remotely):
 ```csharp
-public async Task NotifyRemote(Stream stream) 
+public async Task NotifyRemote(Stream stream)
 {
     var target = new Server();
     var rpc = JsonRpc.Attach(stream, target);
@@ -43,7 +45,7 @@ The parameter will be passed remotely as an array of one object.
 
 To invoke a remote method named "bar" which takes one `string` parameter (but the parameter should be passed as an object instead of an array of one object):
 ```csharp
-public async Task NotifyRemote(Stream stream) 
+public async Task NotifyRemote(Stream stream)
 {
     var target = new Server();
     var rpc = JsonRpc.Attach(stream, target);
@@ -53,7 +55,7 @@ public async Task NotifyRemote(Stream stream)
 ## Invoking a request
 To invoke a remote method named "foo" which takes two `string` parameters and returns an int:
 ```csharp
-public async Task InvokeRemote(Stream stream) 
+public async Task InvokeRemote(Stream stream)
 {
     var target = new Server();
     var rpc = JsonRpc.Attach(stream, target);
@@ -64,7 +66,7 @@ The parameters will be passed remotely as an array of objects.
 
 To invoke a remote method named "baz" which takes one `string` parameter (but the parameter should be passed as an object instead of an array of one object) and returns a string:
 ```csharp
-public async Task InvokeRemote(Stream stream) 
+public async Task InvokeRemote(Stream stream)
 {
     var target = new Server();
     var rpc = JsonRpc.Attach(stream, target);
@@ -88,9 +90,9 @@ public class Server
     }
 }
 
-public class Connection 
+public class Connection
 {
-    public async Task InvokeRemote(Stream stream) 
+    public async Task InvokeRemote(Stream stream)
     {
         var target = new Server();
         var rpc = JsonRpc.Attach(stream, target);
@@ -110,9 +112,9 @@ public class Server : BaseClass
 ```
 With this attribute on the server method, the client can now invoke that method with a special name.
 ```csharp
-public class Connection 
+public class Connection
 {
-    public async Task InvokeRemote(Stream stream) 
+    public async Task InvokeRemote(Stream stream)
     {
         var rpc = JsonRpc.Attach(stream);
         var myResult = await rpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");

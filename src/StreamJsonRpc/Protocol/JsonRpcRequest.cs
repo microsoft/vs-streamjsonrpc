@@ -86,21 +86,25 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets a value indicating whether a response to this request is expected.
         /// </summary>
+        [IgnoreDataMember]
         public bool IsResponseExpected => this.Id != null;
 
         /// <summary>
         /// Gets a value indicating whether this is a notification, and no response is expected.
         /// </summary>
+        [IgnoreDataMember]
         public bool IsNotification => this.Id == null;
 
         /// <summary>
         /// Gets the number of arguments supplied in the request.
         /// </summary>
+        [IgnoreDataMember]
         public int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsArray?.Length ?? 0;
 
         /// <summary>
         /// Gets or sets the dictionary of named arguments, if applicable.
         /// </summary>
+        [IgnoreDataMember]
         public IReadOnlyDictionary<string, object> NamedArguments
         {
             get => this.Arguments as IReadOnlyDictionary<string, object>;
@@ -110,6 +114,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets an array of arguments, if applicable.
         /// </summary>
+        [IgnoreDataMember]
         public object[] ArgumentsArray
         {
             get => this.Arguments as object[];
