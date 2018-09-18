@@ -27,45 +27,17 @@ jobs:
   container: xenial
   variables:
     GitLinkEnabled: false
-  strategy:
-    maxParallel: 4
-    matrix:
-      netcoreapp1_0:
-        runtime: 1.0.11
-        targetfx: netcoreapp1.0
-      netcoreapp1_1:
-        runtime: 1.1.8
-        targetfx: netcoreapp1.0
-      netcoreapp2_0:
-        runtime: 2.0.7
-        targetfx: netcoreapp2.0
-      netcoreapp2_1:
-        runtime: 2.1.0
-        targetfx: netcoreapp2.1
   steps:
   - template: azure-pipelines/testfx.yml
-  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
+    parameters:
+      projectdirectory: src/StreamJsonRpc.Tests
 
 - job: macOS
   pool:
     vmImage: macOS 10.13
   variables:
     GitLinkEnabled: false
-  strategy:
-    maxParallel: 4
-    matrix:
-      netcoreapp1_0:
-        runtime: 1.0.11
-        targetfx: netcoreapp1.0
-      netcoreapp1_1:
-        runtime: 1.1.8
-        targetfx: netcoreapp1.0
-      netcoreapp2_0:
-        runtime: 2.0.7
-        targetfx: netcoreapp2.0
-      netcoreapp2_1:
-        runtime: 2.1.0
-        targetfx: netcoreapp2.1
   steps:
   - template: azure-pipelines/testfx.yml
-  condition: ne(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') # OSS builds exercise this enough
+    parameters:
+      projectdirectory: src/StreamJsonRpc.Tests
