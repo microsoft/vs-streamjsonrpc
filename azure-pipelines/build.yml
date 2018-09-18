@@ -50,10 +50,11 @@ steps:
     nugetConfigPath: src/nuget.config
 
 # Use VSBuild on Windows so GitLink will work (it fails on dotnet build)
+# Also we pack with this because `dotnet pack` can't sign packages with MicroBuild.
 - task: VSBuild@1
   inputs:
     vsVersion: 15.0
-    msbuildArgs: /t:build /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+    msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     platform: $(BuildPlatform)
     configuration: $(BuildConfiguration)
   displayName: Build Visual Studio solution
@@ -99,15 +100,6 @@ steps:
 #    ArtifactType: Container
 #  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
-- task: DotNetCoreCLI@2
-  displayName: Pack
-  inputs:
-    command: pack
-    projects: src/**/*.sln
-    nobuild: true
-    verbosityPack: normal
-    packDirectory: $(Build.ArtifactStagingDirectory)/deployables
-
 - task: VSTest@2
   displayName: Run tests on .NET Framework (with code coverage)
   inputs:
@@ -122,6 +114,15 @@ steps:
 
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.after.yml
+
+- task: CopyFiles@1
+  inputs:
+    Contents: |
+      bin/**/$(BuildConfiguration)/**/StreamJsonRpc.*.nupkg
+    TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
+    flattenFolders: true
+  displayName: Collecting deployables
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: PublishBuildArtifacts@1
   inputs:
