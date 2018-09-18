@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -38,6 +39,14 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
         var sr = new StreamReader(this.sendingStream, this.handler.Encoding);
         string writtenContent = sr.ReadToEnd();
         Assert.Contains(this.handler.SubType, writtenContent);
+    }
+
+    [Fact]
+    public void EncodingThrowsForNonTextFormatters()
+    {
+        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader(), new MockFormatter());
+        Assert.Throws<NotSupportedException>(() => this.handler.Encoding);
+        Assert.Throws<NotSupportedException>(() => this.handler.Encoding = Encoding.UTF8);
     }
 
     [Fact]
@@ -147,6 +156,19 @@ CRLF +
                 await Task.Delay(10);
                 await this.inner.WriteAsync(buffer, offset, count, cancellationToken);
             }
+        }
+    }
+
+    private class MockFormatter : IJsonRpcMessageFormatter
+    {
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
+        {
+            throw new NotImplementedException();
         }
     }
 }

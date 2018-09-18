@@ -70,7 +70,7 @@ namespace StreamJsonRpc
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageTextFormatter formatter)
+        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
             : base(writer, reader)
         {
             Requires.NotNull(formatter, nameof(formatter));
@@ -82,7 +82,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="pipe">The duplex pipe to use for exchanging messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(IDuplexPipe pipe, IJsonRpcMessageTextFormatter formatter)
+        public HeaderDelimitedMessageHandler(IDuplexPipe pipe, IJsonRpcMessageFormatter formatter)
             : this(pipe.Output, pipe.Input, formatter)
         {
         }
@@ -92,7 +92,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="duplexStream">The stream to use for exchanging messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(Stream duplexStream, IJsonRpcMessageTextFormatter formatter)
+        public HeaderDelimitedMessageHandler(Stream duplexStream, IJsonRpcMessageFormatter formatter)
             : this(duplexStream, duplexStream, formatter)
         {
         }
@@ -122,7 +122,7 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageTextFormatter formatter)
+        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
             : base(sendingStream, receivingStream)
         {
             Requires.NotNull(formatter, nameof(formatter));
@@ -156,16 +156,23 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the encoding to use for transmitted messages.
         /// </summary>
+        /// <exception cref="NotSupportedException">Thrown if the <see cref="Formatter"/> in use does not implement <see cref="IJsonRpcMessageTextFormatter"/>.</exception>
         public Encoding Encoding
         {
-            get => this.Formatter.Encoding;
-            set => this.Formatter.Encoding = value;
+            get => this.TextFormatter.Encoding;
+            set => this.TextFormatter.Encoding = value;
         }
 
         /// <summary>
         /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances.
         /// </summary>
-        public IJsonRpcMessageTextFormatter Formatter { get; }
+        public IJsonRpcMessageFormatter Formatter { get; }
+
+        /// <summary>
+        /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances as text.
+        /// Throws if the formatter is not a text-based formatter.
+        /// </summary>
+        private IJsonRpcMessageTextFormatter TextFormatter => this.Formatter as IJsonRpcMessageTextFormatter ?? throw this.ThrowNoTextEncoder();
 
         /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
@@ -184,23 +191,24 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            Encoding contentEncoding = headers.Value.ContentEncoding ?? DefaultContentEncoding;
-
-            ReadOnlySequence<byte> contentBuffer = default;
-            while (contentBuffer.Length < contentLength)
-            {
-                var readResult = await this.Reader.ReadAsync(cancellationToken);
-                contentBuffer = readResult.Buffer;
-                if (contentBuffer.Length < contentLength)
-                {
-                    this.Reader.AdvanceTo(contentBuffer.Start, contentBuffer.End);
-                }
-            }
-
-            contentBuffer = contentBuffer.Slice(0, contentLength);
+            var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken);
+            ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
             try
             {
-                return this.Formatter.Deserialize(contentBuffer, contentEncoding);
+                if (this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
+                {
+                    Encoding contentEncoding = headers.Value.ContentEncoding ?? DefaultContentEncoding;
+                    return textFormatter.Deserialize(contentBuffer, contentEncoding);
+                }
+                else
+                {
+                    if (headers.Value.ContentEncoding != null)
+                    {
+                        this.ThrowNoTextEncoder();
+                    }
+
+                    return this.Formatter.Deserialize(contentBuffer);
+                }
             }
             finally
             {
@@ -502,6 +510,11 @@ namespace StreamJsonRpc
             }
 
             return (contentLengthHeaderValue, contentEncoding);
+        }
+
+        private Exception ThrowNoTextEncoder()
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.TextEncoderNotApplicable, this.Formatter.GetType().FullName, typeof(IJsonRpcMessageTextFormatter).FullName));
         }
     }
 }
