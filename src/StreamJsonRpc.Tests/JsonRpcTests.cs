@@ -259,7 +259,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task ThrowsIfTargetNotSet()
     {
-        await Assert.ThrowsAsync(typeof(RemoteTargetNotSetException), () => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
+        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
     }
 
     [Theory]

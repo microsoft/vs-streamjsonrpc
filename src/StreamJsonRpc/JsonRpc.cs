@@ -519,10 +519,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -544,10 +541,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -570,10 +564,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -598,10 +589,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -629,10 +617,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -656,10 +641,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -687,10 +669,7 @@ namespace StreamJsonRpc
         /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -716,10 +695,7 @@ namespace StreamJsonRpc
         /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -1076,11 +1052,9 @@ namespace StreamJsonRpc
 
             switch (response.Error.Code)
             {
+                case JsonRpcErrorCode.InvalidParams:
                 case JsonRpcErrorCode.MethodNotFound:
                     return new RemoteMethodNotFoundException(response.Error.Message, targetName);
-
-                case JsonRpcErrorCode.NoCallbackObject:
-                    return new RemoteTargetNotSetException(response.Error.Message);
 
                 default:
                     return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode, response.Error.Data);
@@ -1166,7 +1140,7 @@ namespace StreamJsonRpc
                             Id = request.Id,
                             Error = new JsonRpcError.ErrorDetail
                             {
-                                Code = JsonRpcErrorCode.NoCallbackObject,
+                                Code = JsonRpcErrorCode.MethodNotFound,
                                 Message = message,
                             },
                         };
@@ -1197,7 +1171,7 @@ namespace StreamJsonRpc
                         Id = request.Id,
                         Error = new JsonRpcError.ErrorDetail
                         {
-                            Code = JsonRpcErrorCode.MethodNotFound,
+                            Code = JsonRpcErrorCode.InvalidParams,
                             Message = targetMethod.LookupErrorMessage,
                         },
                     };

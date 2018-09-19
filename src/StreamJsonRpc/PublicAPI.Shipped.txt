@@ -38,8 +38,6 @@ StreamJsonRpc.RemoteRpcException
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(string message) -> void
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(string message, System.Exception innerException) -> void
-StreamJsonRpc.RemoteTargetNotSetException
-StreamJsonRpc.RemoteTargetNotSetException.RemoteTargetNotSetException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> StreamJsonRpc.JsonRpc
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = null) -> StreamJsonRpc.JsonRpc
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
