@@ -1052,6 +1052,7 @@ namespace StreamJsonRpc
 
             switch (response.Error.Code)
             {
+                case JsonRpcErrorCode.InvalidParams:
                 case JsonRpcErrorCode.MethodNotFound:
                     return new RemoteMethodNotFoundException(response.Error.Message, targetName);
 
@@ -1170,7 +1171,7 @@ namespace StreamJsonRpc
                         Id = request.Id,
                         Error = new JsonRpcError.ErrorDetail
                         {
-                            Code = JsonRpcErrorCode.MethodNotFound,
+                            Code = JsonRpcErrorCode.InvalidParams,
                             Message = targetMethod.LookupErrorMessage,
                         },
                     };
