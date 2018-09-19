@@ -75,7 +75,6 @@ StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidParams = -32602 -> StreamJsonRpc.
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidRequest = -32600 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationError = -32000 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.MethodNotFound = -32601 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
-StreamJsonRpc.Protocol.JsonRpcErrorCode.NoCallbackObject = -32001 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.ParseError = -32700 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.RequestCanceled = -32800 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcMessage

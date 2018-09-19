@@ -17,11 +17,6 @@ namespace StreamJsonRpc.Protocol
         InvocationError = -32000,
 
         /// <summary>
-        /// No callback object was given to the client but an RPC call was attempted.
-        /// </summary>
-        NoCallbackObject = -32001,
-
-        /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
         /// </summary>
         ParseError = -32700,
