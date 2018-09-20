@@ -425,12 +425,15 @@ namespace StreamJsonRpc
                 {
                     foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
                     {
-                        if (this.eventReceivers == null)
+                        if (evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
                         {
-                            this.eventReceivers = new List<EventReceiver>();
-                        }
+                            if (this.eventReceivers == null)
+                            {
+                                this.eventReceivers = new List<EventReceiver>();
+                            }
 
-                        this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                            this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                        }
                     }
                 }
             }
