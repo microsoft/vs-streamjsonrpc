@@ -1447,7 +1447,16 @@ namespace StreamJsonRpc
                 // It may have callbacks registered on cancellation.
                 // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
                 await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                cts.Cancel();
+                try
+                {
+                    cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // There is a race condition between when we retrieve the CTS and actually call Cancel,
+                    // vs. another thread that disposes the CTS at the conclusion of the method invocation.
+                    // It cannot be prevented, so just swallow it since the method executed successfully.
+                }
             }
         }
 
