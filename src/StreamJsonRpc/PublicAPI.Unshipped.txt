@@ -34,6 +34,21 @@ StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> v
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler) -> void
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler, object target) -> void
+StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.Closed = 11 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ListeningStarted = 3 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalEventListenerAdded = 2 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalInvocation = 9 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalInvocationError = 10 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalMethodAdded = 0 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalMethodNotAdded = 1 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.MessageReceived = 7 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.MessageSent = 8 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ReceivedCancellation = 4 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestReceived = 6 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestWithoutMatchingTarget = 5 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceSource.get -> System.Diagnostics.TraceSource
+StreamJsonRpc.JsonRpc.TraceSource.set -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage, System.Exception exception) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.LastMessage.get -> Newtonsoft.Json.Linq.JToken
