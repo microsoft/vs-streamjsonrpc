@@ -447,12 +447,15 @@ namespace StreamJsonRpc
                 {
                     foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
                     {
-                        if (this.eventReceivers == null)
+                        if (evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
                         {
-                            this.eventReceivers = new List<EventReceiver>();
-                        }
+                            if (this.eventReceivers == null)
+                            {
+                                this.eventReceivers = new List<EventReceiver>();
+                            }
 
-                        this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                            this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                        }
                     }
                 }
             }
@@ -1495,7 +1498,16 @@ namespace StreamJsonRpc
                 // It may have callbacks registered on cancellation.
                 // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
                 await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                cts.Cancel();
+                try
+                {
+                    cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // There is a race condition between when we retrieve the CTS and actually call Cancel,
+                    // vs. another thread that disposes the CTS at the conclusion of the method invocation.
+                    // It cannot be prevented, so just swallow it since the method executed successfully.
+                }
             }
         }
 
