@@ -67,6 +67,15 @@ public class TargetObjectEventsTests : TestBase
     }
 
     [Fact]
+    public async Task StaticServerEventDoesNotRaiseCallback()
+    {
+        var tcs = new TaskCompletionSource<EventArgs>();
+        this.client.PublicStaticServerEventRaised = args => tcs.SetResult(args);
+        Server.TriggerPublicStaticServerEvent(EventArgs.Empty);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+    }
+
+    [Fact]
     public async Task GenericServerEventRaisesCallback()
     {
         var tcs = new TaskCompletionSource<CustomEventArgs>();
@@ -181,22 +190,34 @@ public class TargetObjectEventsTests : TestBase
     {
         internal Action<EventArgs> ServerEventRaised { get; set; }
 
+        internal Action<EventArgs> PublicStaticServerEventRaised { get; set; }
+
         internal Action<CustomEventArgs> GenericServerEventRaised { get; set; }
 
         public void ServerEvent(EventArgs args) => this.ServerEventRaised?.Invoke(args);
+
+        public void PublicStaticServerEvent(EventArgs args) => this.PublicStaticServerEventRaised?.Invoke(args);
 
         public void ServerEventWithCustomArgs(CustomEventArgs args) => this.GenericServerEventRaised?.Invoke(args);
     }
 
     private class Server
     {
+        public static event EventHandler PublicStaticServerEvent;
+
         public event EventHandler ServerEvent;
 
         public event EventHandler<CustomEventArgs> ServerEventWithCustomArgs;
 
+        private static event EventHandler PrivateStaticServerEvent;
+
+        private event EventHandler PrivateServerEvent;
+
         internal EventHandler ServerEventAccessor => this.ServerEvent;
 
         internal EventHandler<CustomEventArgs> ServerEventWithCustomArgsAccessor => this.ServerEventWithCustomArgs;
+
+        public static void TriggerPublicStaticServerEvent(EventArgs args) => PublicStaticServerEvent?.Invoke(null, args);
 
         public void TriggerEvent(EventArgs args)
         {
@@ -208,9 +229,13 @@ public class TargetObjectEventsTests : TestBase
             this.OnServerEventWithCustomArgs(args);
         }
 
+        protected static void OnPrivateStaticServerEvent(EventArgs args) => PrivateStaticServerEvent?.Invoke(null, args);
+
         protected virtual void OnServerEvent(EventArgs args) => this.ServerEvent?.Invoke(this, args);
 
         protected virtual void OnServerEventWithCustomArgs(CustomEventArgs args) => this.ServerEventWithCustomArgs?.Invoke(this, args);
+
+        protected virtual void OnPrivateServerEvent(EventArgs args) => this.PrivateServerEvent?.Invoke(this, args);
     }
 
     private class ServerWithIncompatibleEvents
