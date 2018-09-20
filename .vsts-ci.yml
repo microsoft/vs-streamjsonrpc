@@ -1,152 +1,17 @@
 trigger:
   branches:
-    include: ["master", "v1.2", "v1.3", "v1.4"]
+    include: ["master", "v1.4", "v1.5"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
 
-steps:
-- task: PowerShell@2
-  displayName: Set VSTS variables
-  inputs:
-    targetType: inline
-    script: |
-      if ($env:SignType -eq 'Real') {
-        $feedGuid = '09d8d03c-1ac8-456e-9274-4d2364527d99'
-      } else {
-        $feedGuid = 'da484c78-f942-44ef-b197-99e2a1bef53c'
-      }
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
 
-      Write-Host "##vso[task.setvariable variable=feedGuid]$feedGuid"
-
-      if ($env:ComputerName.StartsWith('factoryvm', [StringComparison]::OrdinalIgnoreCase)) {
-        Write-Host "Running on hosted queue"
-        Write-Host "##vso[task.setvariable variable=Hosted]true"
-      }
-
-- task: CmdLine@2
-  inputs:
-    script: |
-      del /s /q "%userprofile%\.nuget\packages"
-      del /s /q "%LocalAppData%\NuGet\Cache"
-      del /s /q "%AppData%\tsd-cache"
-  displayName: Purge package caches
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
-
-- task: DotNetCoreInstaller@0
-  displayName: Install dotnet CLI
-  inputs:
-    version: 2.1.300
-
-- task: NuGetToolInstaller@0
-  inputs:
-    versionSpec: 4.5.1
-  displayName: Pin nuget.exe version
-
-- task: MicroBuildIBCMergePlugin@0
-  inputs:
-    branch: svc/d15svc
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
-  displayName: Install MicroBuild IBCMerge Plugin
-
-- task: MicroBuildSigningPlugin@1
-  inputs:
-    signType: $(SignType)
-    esrpSigning: true
-    zipSources: false
-  displayName: Install MicroBuild Signing Plugin
-
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '**\*.sln'
-    feedsToUse: config
-    nugetConfigPath: src/nuget.config
-  displayName: Nuget restore packages
-
-- task: VSBuild@1
-  inputs:
-    vsVersion: 15.0
-    msbuildArgs: /t:build,pack /m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
-    platform: $(BuildPlatform)
-    configuration: $(BuildConfiguration)
-  displayName: Build Visual Studio solution
-
-- task: MicroBuildCleanup@1
-  condition: succeededOrFailed()
-  displayName: MicroBuild Cleanup
-
-- task: CopyFiles@1
-  inputs:
-    Contents: |
-      obj/**/project.assets.json
-    TargetFolder: $(Build.ArtifactStagingDirectory)/projectAssetsJson
-  displayName: Collecting project.assets.json artifacts
-  condition: succeededOrFailed()
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/projectAssetsJson
-    ArtifactName: projectAssetsJson
-    ArtifactType: Container
-  displayName: Publish projectAssetsJson artifacts
-  condition: succeededOrFailed()
-
-## The rest of these steps are for deployment and skipped for PR builds
-
-#- task: PublishBuildArtifacts@1
-#  inputs:
-#    PathtoPublish: $(build.sourcesdirectory)/bin
-#    ArtifactName: bin
-#    ArtifactType: Container
-#  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: CopyFiles@1
-  inputs:
-    SourceFolder: bin
-    Contents: |
-      StreamJsonRpc/$(BuildConfiguration)/**/StreamJsonRpc@(.pdb|.dll)
-    TargetFolder: $(Build.ArtifactStagingDirectory)/symbols
-  displayName: Collecting symbols artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/symbols
-    ArtifactName: symbols
-    ArtifactType: Container
-  displayName: Publish symbols as VSTS artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: CopyFiles@1
-  inputs:
-    Contents: |
-      bin/**/$(BuildConfiguration)/**/StreamJsonRpc.*.nupkg
-    TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
-    flattenFolders: true
-  displayName: Collecting deployables
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-    ArtifactName: deployables
-    ArtifactType: Container
-  displayName: Publish deployables artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: PublishSymbols@2
-  inputs:
-    SymbolsFolder: $(Build.ArtifactStagingDirectory)/symbols
-    SearchPattern: '**/*.pdb'
-    IndexSources: false
-    SymbolServerType: TeamServices
-  displayName: Publish symbols to symbol server
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-
-- task: NuGetCommand@2
-  inputs:
-    command: push
-    searchPatternPush: '$(Build.SourcesDirectory)\bin\**\$(BuildConfiguration)\**\*.nupkg;!**\*.symbols.nupkg;!**/VS.*.nupkg'
-    publishVstsFeed: $(feedGuid)
-    allowPackageConflicts: true
-  displayName: Push packages to VSTS feed
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+jobs:
+- job: Windows
+  pool: Hosted VS2017
+  steps:
+  - template: azure-pipelines/build.yml
