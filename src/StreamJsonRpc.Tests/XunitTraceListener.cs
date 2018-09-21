@@ -24,11 +24,12 @@ internal class XunitTraceListener : TraceListener
 
     public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, object data)
     {
-        // Convert all data messages to JSON representations.
-        if (data is JsonRpcMessage message)
-        {
-            this.TraceEvent(eventCache, source, eventType, id, "{0}{1}{2}", (JsonRpc.TraceEvents)id, Environment.NewLine, JToken.FromObject(message).ToString(Newtonsoft.Json.Formatting.Indented));
-        }
+        // no-op here to keep the trace clean.
+    }
+
+    public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, params object[] data)
+    {
+        // no-op here to keep the trace clean.
     }
 
     public override void Write(string message) => this.lineInProgress.Append(message);

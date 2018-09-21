@@ -40,7 +40,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task Ctor_AcceptsNullSendingStream()
     {
-        var handler = new MyStreamMessageHandler(null, this.receivingStream);
+        var handler = new MyStreamMessageHandler(null, this.receivingStream, new JsonMessageFormatter());
         Assert.True(handler.CanRead);
         Assert.False(handler.CanWrite);
 
@@ -54,7 +54,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task Ctor_AcceptsNullReceivingStream()
     {
-        var handler = new MyStreamMessageHandler(this.sendingStream, null);
+        var handler = new MyStreamMessageHandler(this.sendingStream, null, new JsonMessageFormatter());
         Assert.False(handler.CanRead);
         Assert.True(handler.CanWrite);
 
@@ -78,7 +78,7 @@ public class StreamMessageHandlerTests : TestBase
     public void Dispose_StreamsAreDisposed()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2);
+        var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2, new JsonMessageFormatter());
         Assert.False(streams.Item1.IsDisposed);
         Assert.False(streams.Item2.IsDisposed);
         handler.Dispose();
@@ -113,7 +113,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task WriteAsync_PreferOperationCanceledException_MidExecution()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream);
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, new JsonMessageFormatter());
 
         var cts = new CancellationTokenSource();
         var writeTask = handler.WriteAsync(CreateRequestMessage(), cts.Token);
@@ -134,7 +134,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task WriteAsync_SemaphoreIncludesWriteCoreAsync_Task()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream);
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, new JsonMessageFormatter());
         var writeTask = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
         var write2Task = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
 
@@ -194,8 +194,8 @@ public class StreamMessageHandlerTests : TestBase
 
         internal int WriteCoreCallCount;
 
-        public DelayedWriter(Stream sendingStream, Stream receivingStream)
-            : base(sendingStream, receivingStream)
+        public DelayedWriter(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+            : base(sendingStream, receivingStream, formatter)
         {
         }
 
@@ -213,8 +213,8 @@ public class StreamMessageHandlerTests : TestBase
 
     private class MyStreamMessageHandler : StreamMessageHandler
     {
-        public MyStreamMessageHandler(Stream sendingStream, Stream receivingStream)
-            : base(sendingStream, receivingStream)
+        public MyStreamMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+            : base(sendingStream, receivingStream, formatter)
         {
         }
 

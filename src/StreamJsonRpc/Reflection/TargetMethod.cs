@@ -77,6 +77,12 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+        }
+
         internal object Invoke(CancellationToken cancellationToken)
         {
             if (this.signature == null)
@@ -91,6 +97,8 @@ namespace StreamJsonRpc
 
             return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
         }
+
+        private string GetParameterSignature() => string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name));
 
         private void AddErrorMessage(string message)
         {

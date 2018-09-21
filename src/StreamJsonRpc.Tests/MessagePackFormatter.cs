@@ -62,5 +62,8 @@ namespace StreamJsonRpc
                 MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message);
             }
         }
+
+        /// <inheritdoc/>
+        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.ToJson<object>(message);
     }
 }

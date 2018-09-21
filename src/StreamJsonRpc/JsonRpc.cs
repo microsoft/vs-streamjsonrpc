@@ -68,7 +68,7 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskResult(object, Task)"/> method.
+        /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
@@ -159,7 +159,7 @@ namespace StreamJsonRpc
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
-            this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult(id, t);
+            this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
 
             this.MessageHandler = messageHandler;
         }
@@ -264,6 +264,16 @@ namespace StreamJsonRpc
             /// Occurs when a locally invoked method from a <see cref="JsonRpcRequest"/> throws an exception (or returns a faulted <see cref="Task"/>).
             /// </summary>
             LocalInvocationError,
+
+            /// <summary>
+            /// Occurs when a successful result message for a prior invocation is received.
+            /// </summary>
+            ReceivedResult,
+
+            /// <summary>
+            /// Occurs when an error message for a prior invocation is received.
+            /// </summary>
+            ReceivedError,
 
             /// <summary>
             /// Occurs when the connection is closed.
@@ -1216,16 +1226,14 @@ namespace StreamJsonRpc
             bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
         }
 
-        private JsonRpcError CreateError(object id, Exception exception)
+        private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
         {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(exception, nameof(exception));
 
             if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Error))
             {
-                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\": {1}", id, exception);
+                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\" for method {1}: {2}", request.Id, request.Method, exception);
             }
 
             exception = StripExceptionToInnerException(exception);
@@ -1233,7 +1241,7 @@ namespace StreamJsonRpc
             var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
             return new JsonRpcError
             {
-                Id = id,
+                Id = request.Id,
                 Error = new JsonRpcError.ErrorDetail
                 {
                     Code = JsonRpcErrorCode.InvocationError,
@@ -1331,7 +1339,7 @@ namespace StreamJsonRpc
 
                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
                 {
-                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Received {0} for method \"{1}\". Invoking {2}.", request.IsResponseExpected ? "request" : "notification", request.Method, targetMethod);
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
                 }
 
                 // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
@@ -1352,14 +1360,14 @@ namespace StreamJsonRpc
 
                 return await resultingTask.ContinueWith(
                     this.handleInvocationTaskResultDelegate,
-                    request.Id,
+                    request,
                     CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously,
                     TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
-                return this.CreateError(request.Id, ex);
+                return this.CreateError(request, ex);
             }
             finally
             {
@@ -1377,12 +1385,9 @@ namespace StreamJsonRpc
             }
         }
 
-        private JsonRpcMessage HandleInvocationTaskResult(object id, Task t)
+        private JsonRpcMessage HandleInvocationTaskResult(JsonRpcRequest request, Task t)
         {
-            if (t == null)
-            {
-                throw new ArgumentNullException(nameof(t));
-            }
+            Requires.NotNull(t, nameof(t));
 
             if (!t.IsCompleted)
             {
@@ -1402,14 +1407,14 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                return this.CreateError(id, t.Exception);
+                return this.CreateError(request, t.Exception);
             }
 
             if (t.IsCanceled)
             {
                 return new JsonRpcError
                 {
-                    Id = id,
+                    Id = request.Id,
                     Error = new JsonRpcError.ErrorDetail
                     {
                         Code = JsonRpcErrorCode.RequestCanceled,
@@ -1439,7 +1444,7 @@ namespace StreamJsonRpc
 
             return new JsonRpcResult
             {
-                Id = id,
+                Id = request.Id,
                 Result = taskResult,
             };
         }
@@ -1559,7 +1564,7 @@ namespace StreamJsonRpc
                     {
                         if (request.IsResponseExpected)
                         {
-                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request {0} for method \"{1}\".", request.Id, request.Method);
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request \"{0}\" for method \"{1}\".", request.Id, request.Method);
                         }
                         else
                         {
@@ -1611,6 +1616,18 @@ namespace StreamJsonRpc
                         if (this.resultDispatcherMap.TryGetValue(id, out data))
                         {
                             this.resultDispatcherMap.Remove(id);
+                        }
+                    }
+
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (resultOrError is JsonRpcResult result)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.Id);
+                        }
+                        else if (resultOrError is JsonRpcError error)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.Id, error.Error.Code, error.Error.Message);
                         }
                     }
 
@@ -1735,7 +1752,7 @@ namespace StreamJsonRpc
 
             if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
             {
-                this.TraceSource.TraceData(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", this.GetMessageJson(message));
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", this.GetMessageJson(message));
             }
         }
 
@@ -1748,7 +1765,7 @@ namespace StreamJsonRpc
 
             if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
             {
-                this.TraceSource.TraceData(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", this.GetMessageJson(message));
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", this.GetMessageJson(message));
             }
         }
 
@@ -1756,13 +1773,10 @@ namespace StreamJsonRpc
         {
             try
             {
-                return JToken.FromObject(message);
+                return this.MessageHandler.Formatter.GetJsonText(message);
             }
             catch (Exception ex)
             {
-                // In the event that a formatter is in use that is not JsonMessageFormatter,
-                // there is no guarantee that the message is serializable with Newtonsoft.Json.
-                // This was a best effort, and it didn't work out.
                 return $"<JSON representation not available: {ex.Message}>";
             }
         }
