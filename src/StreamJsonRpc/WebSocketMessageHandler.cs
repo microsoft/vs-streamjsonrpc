@@ -51,20 +51,14 @@ namespace StreamJsonRpc
         /// Messages which exceed this size will be handled properly but may require multiple I/O operations.
         /// </param>
         public WebSocketMessageHandler(WebSocket webSocket, IJsonRpcMessageFormatter formatter, int sizeHint = 4096)
+            : base(formatter)
         {
             Requires.NotNull(webSocket, nameof(webSocket));
-            Requires.NotNull(formatter, nameof(formatter));
             Requires.Range(sizeHint > 0, nameof(sizeHint));
 
             this.WebSocket = webSocket;
-            this.Formatter = formatter;
             this.sizeHint = sizeHint;
         }
-
-        /// <summary>
-        /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances.
-        /// </summary>
-        public IJsonRpcMessageFormatter Formatter { get; }
 
         /// <inheritdoc />
         public override bool CanWrite => true;

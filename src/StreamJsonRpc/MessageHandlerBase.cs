@@ -38,8 +38,11 @@ namespace StreamJsonRpc
         /// <summary>
         /// Initializes a new instance of the <see cref="MessageHandlerBase"/> class.
         /// </summary>
-        public MessageHandlerBase()
+        /// <param name="formatter">The formatter used to serialize messages.</param>
+        public MessageHandlerBase(IJsonRpcMessageFormatter formatter)
         {
+            Requires.NotNull(formatter, nameof(formatter));
+            this.Formatter = formatter;
         }
 
         /// <summary>
@@ -51,6 +54,9 @@ namespace StreamJsonRpc
         /// Gets a value indicating whether this message handler can send messages.
         /// </summary>
         public abstract bool CanWrite { get; }
+
+        /// <inheritdoc/>
+        public IJsonRpcMessageFormatter Formatter { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance has been disposed.

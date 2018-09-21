@@ -12,6 +12,7 @@ namespace StreamJsonRpc
     using Microsoft.VisualStudio.Threading;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// An abstract base class for for sending and receiving messages over a
@@ -29,7 +30,9 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
-        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream)
+        /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
+        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+            : base(formatter)
         {
             Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
             Requires.Argument(receivingStream == null || receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -84,6 +85,12 @@ public class MessagePackFormatterTests : TestBase
 
         var clientRpc = new JsonRpc(clientHandler);
         var serverRpc = new JsonRpc(serverHandler, new Server());
+
+        serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+
+        serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
 
         clientRpc.StartListening();
         serverRpc.StartListening();

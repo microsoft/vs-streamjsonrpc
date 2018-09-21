@@ -136,6 +136,9 @@ namespace StreamJsonRpc
             return json;
         }
 
+        /// <inheritdoc/>
+        public object GetJsonText(JsonRpcMessage message) => JToken.FromObject(message);
+
         private static IReadOnlyDictionary<string, object> PartiallyParseNamedArguments(JObject args)
         {
             Requires.NotNull(args, nameof(args));

@@ -170,5 +170,10 @@ CRLF +
         {
             throw new NotImplementedException();
         }
+
+        public object GetJsonText(JsonRpcMessage message)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

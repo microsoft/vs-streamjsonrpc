@@ -24,5 +24,12 @@ namespace StreamJsonRpc
         /// <param name="contentBuffer">The receiver of the serialized bytes.</param>
         /// <param name="message">The message to serialize.</param>
         void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message);
+
+        /// <summary>
+        /// Gets a JSON representation for a given message for tracing purposes.
+        /// </summary>
+        /// <param name="message">The message to be traced.</param>
+        /// <returns>Any object whose <see cref="object.ToString()"/> method will produce a human-readable JSON string, suitable for tracing.</returns>
+        object GetJsonText(JsonRpcMessage message);
     }
 }

@@ -68,7 +68,7 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskResult(object, Task)"/> method.
+        /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
         /// </summary>
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
@@ -94,6 +94,11 @@ namespace StreamJsonRpc
         private bool disposed;
         private bool hasDisconnectedEventBeenRaised;
         private bool startedListening;
+
+        /// <summary>
+        /// Backing field for the <see cref="TraceSource"/> property.
+        /// </summary>
+        private TraceSource traceSource = new TraceSource(nameof(JsonRpc));
 
         /// <summary>
         /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
@@ -154,7 +159,7 @@ namespace StreamJsonRpc
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
-            this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult(id, t);
+            this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
 
             this.MessageHandler = messageHandler;
         }
@@ -191,6 +196,90 @@ namespace StreamJsonRpc
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs> DisconnectedPrivate;
+
+        /// <summary>
+        /// Event IDs raised to our <see cref="TraceSource"/>.
+        /// </summary>
+        public enum TraceEvents
+        {
+            /// <summary>
+            /// Occurs when a local RPC method is added to our mapping table.
+            /// </summary>
+            LocalMethodAdded,
+
+            /// <summary>
+            /// Occurs when a candidate local RPC method is NOT added to our mapping table.
+            /// </summary>
+            LocalMethodNotAdded,
+
+            /// <summary>
+            /// Occurs when an event handler subscribes to an event on an added target object.
+            /// </summary>
+            LocalEventListenerAdded,
+
+            /// <summary>
+            /// Occurs when this instance starts listening for incoming RPC messages.
+            /// </summary>
+            ListeningStarted,
+
+            /// <summary>
+            /// Occurs when a notification arrives that is attempting to cancel a prior request.
+            /// </summary>
+            ReceivedCancellation,
+
+            /// <summary>
+            /// Occurs when a JSON-RPC request or notification was received, but no local method is found to invoke for it.
+            /// </summary>
+            RequestWithoutMatchingTarget,
+
+            /// <summary>
+            /// Occurs when a <see cref="JsonRpcRequest"/> is received.
+            /// </summary>
+            RequestReceived,
+
+            /// <summary>
+            /// Occurs when any <see cref="JsonRpcMessage"/> is received.
+            /// At <see cref="System.Diagnostics.TraceLevel.Info"/>, <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object)"/>
+            /// is invoked with the <see cref="JsonRpcMessage"/> that is received.
+            /// At <see cref="System.Diagnostics.TraceLevel.Verbose"/>, <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/>
+            /// is invoked with the JSON representation of the message.
+            /// </summary>
+            MessageReceived,
+
+            /// <summary>
+            /// Occurs when any <see cref="JsonRpcMessage"/> is transmitted.
+            /// At <see cref="System.Diagnostics.TraceLevel.Info"/>, <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object)"/>
+            /// is invoked with the <see cref="JsonRpcMessage"/> that is transmitted.
+            /// At <see cref="System.Diagnostics.TraceLevel.Verbose"/>, <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/>
+            /// is invoked with the JSON representation of the message.
+            /// </summary>
+            MessageSent,
+
+            /// <summary>
+            /// Occurs when a <see cref="JsonRpcRequest"/> is received and successfully mapped to a local method to be invoked.
+            /// </summary>
+            LocalInvocation,
+
+            /// <summary>
+            /// Occurs when a locally invoked method from a <see cref="JsonRpcRequest"/> throws an exception (or returns a faulted <see cref="Task"/>).
+            /// </summary>
+            LocalInvocationError,
+
+            /// <summary>
+            /// Occurs when a successful result message for a prior invocation is received.
+            /// </summary>
+            ReceivedResult,
+
+            /// <summary>
+            /// Occurs when an error message for a prior invocation is received.
+            /// </summary>
+            ReceivedError,
+
+            /// <summary>
+            /// Occurs when the connection is closed.
+            /// </summary>
+            Closed,
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="System.Threading.SynchronizationContext"/> to use when invoking methods requested by the remote party.
@@ -259,6 +348,21 @@ namespace StreamJsonRpc
                 // to that otherwise non-deterministic behavior, or simply set it before listening starts.
                 this.ThrowIfConfigurationLocked();
                 this.cancelLocallyInvokedMethodsWhenConnectionIsClosed = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the <see cref="System.Diagnostics.TraceSource"/> used to trace JSON-RPC messages and events.
+        /// </summary>
+        /// <value>The value can never be null.</value>
+        /// <exception cref="ArgumentNullException">Thrown by the setter if a null value is provided.</exception>
+        public TraceSource TraceSource
+        {
+            get => this.traceSource;
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.traceSource = value;
             }
         }
 
@@ -414,12 +518,25 @@ namespace StreamJsonRpc
                         {
                             if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
                             {
+                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
                                 existingList.Add(newMethod);
+                            }
+                            else
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                                }
                             }
                         }
                     }
                     else
                     {
+                        foreach (var newMethod in item.Value)
+                        {
+                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                        }
+
                         this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
                     }
                 }
@@ -433,6 +550,11 @@ namespace StreamJsonRpc
                             if (this.eventReceivers == null)
                             {
                                 this.eventReceivers = new List<EventReceiver>();
+                            }
+
+                            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                            {
+                                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
                             }
 
                             this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
@@ -480,6 +602,7 @@ namespace StreamJsonRpc
             lock (this.syncObject)
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
+                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                 {
                     if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
@@ -1064,28 +1187,6 @@ namespace StreamJsonRpc
             }
         }
 
-        private static JsonRpcError CreateError(object id, Exception exception)
-        {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
-
-            exception = StripExceptionToInnerException(exception);
-
-            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
-            return new JsonRpcError
-            {
-                Id = id,
-                Error = new JsonRpcError.ErrorDetail
-                {
-                    Code = JsonRpcErrorCode.InvocationError,
-                    Message = exception.Message,
-                    Data = data,
-                },
-            };
-        }
-
         private static Exception StripExceptionToInnerException(Exception exception)
         {
             if (exception is TargetInvocationException || (exception is AggregateException && exception.InnerException != null))
@@ -1125,6 +1226,31 @@ namespace StreamJsonRpc
             bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
         }
 
+        private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
+        {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(exception, nameof(exception));
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Error))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\" for method {1}: {2}", request.Id, request.Method, exception);
+            }
+
+            exception = StripExceptionToInnerException(exception);
+
+            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
+            return new JsonRpcError
+            {
+                Id = request.Id,
+                Error = new JsonRpcError.ErrorDetail
+                {
+                    Code = JsonRpcErrorCode.InvocationError,
+                    Message = exception.Message,
+                    Data = data,
+                },
+            };
+        }
+
         private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
         {
             Requires.NotNull(request, nameof(request));
@@ -1137,6 +1263,11 @@ namespace StreamJsonRpc
                 {
                     if (this.targetRequestMethodToClrMethodMap.Count == 0)
                     {
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered. \"{0}\" will not be invoked.", request.Method);
+                        }
+
                         string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
                         return new JsonRpcError
                         {
@@ -1157,6 +1288,11 @@ namespace StreamJsonRpc
 
                 if (targetMethod == null)
                 {
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
+                    }
+
                     return new JsonRpcError
                     {
                         Id = request.Id,
@@ -1169,6 +1305,11 @@ namespace StreamJsonRpc
                 }
                 else if (!targetMethod.IsFound)
                 {
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
+                    }
+
                     return new JsonRpcError
                     {
                         Id = request.Id,
@@ -1196,6 +1337,11 @@ namespace StreamJsonRpc
                     }
                 }
 
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
+                }
+
                 // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
                 // IMPORTANT: This should be the first await in this async method,
                 //            and no other await should be between this one and actually invoking the target method.
@@ -1214,14 +1360,14 @@ namespace StreamJsonRpc
 
                 return await resultingTask.ContinueWith(
                     this.handleInvocationTaskResultDelegate,
-                    request.Id,
+                    request,
                     CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously,
                     TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
-                return CreateError(request.Id, ex);
+                return this.CreateError(request, ex);
             }
             finally
             {
@@ -1239,12 +1385,9 @@ namespace StreamJsonRpc
             }
         }
 
-        private JsonRpcMessage HandleInvocationTaskResult(object id, Task t)
+        private JsonRpcMessage HandleInvocationTaskResult(JsonRpcRequest request, Task t)
         {
-            if (t == null)
-            {
-                throw new ArgumentNullException(nameof(t));
-            }
+            Requires.NotNull(t, nameof(t));
 
             if (!t.IsCompleted)
             {
@@ -1264,14 +1407,14 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                return CreateError(id, t.Exception);
+                return this.CreateError(request, t.Exception);
             }
 
             if (t.IsCanceled)
             {
                 return new JsonRpcError
                 {
-                    Id = id,
+                    Id = request.Id,
                     Error = new JsonRpcError.ErrorDetail
                     {
                         Code = JsonRpcErrorCode.RequestCanceled,
@@ -1301,13 +1444,19 @@ namespace StreamJsonRpc
 
             return new JsonRpcResult
             {
-                Id = id,
+                Id = request.Id,
                 Result = taskResult,
             };
         }
 
         private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
         {
+            TraceEventType eventType = eventArgs.Reason == DisconnectedReason.Disposed ? TraceEventType.Information : TraceEventType.Critical;
+            if (this.TraceSource.Switch.ShouldTrace(eventType))
+            {
+                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
+            }
+
             EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
             lock (this.disconnectedEventLock)
             {
@@ -1352,6 +1501,7 @@ namespace StreamJsonRpc
         private async Task ReadAndHandleRequestsAsync()
         {
             JsonRpcDisconnectedEventArgs disconnectedEventArgs = null;
+            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
 
             try
             {
@@ -1361,6 +1511,7 @@ namespace StreamJsonRpc
                     try
                     {
                         protocolMessage = await this.MessageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
+                        this.TraceMessageReceived(protocolMessage);
                     }
                     catch (OperationCanceledException)
                     {
@@ -1409,6 +1560,18 @@ namespace StreamJsonRpc
             {
                 if (rpc is JsonRpcRequest request)
                 {
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (request.IsResponseExpected)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request \"{0}\" for method \"{1}\".", request.Id, request.Method);
+                        }
+                        else
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received notification for method \"{0}\".", request.Method);
+                        }
+                    }
+
                     // We can't accept a request that requires a response if we can't write.
                     Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
 
@@ -1456,6 +1619,18 @@ namespace StreamJsonRpc
                         }
                     }
 
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (resultOrError is JsonRpcResult result)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.Id);
+                        }
+                        else if (resultOrError is JsonRpcError error)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.Id, error.Error.Code, error.Error.Message);
+                        }
+                    }
+
                     if (data != null)
                     {
                         // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
@@ -1489,6 +1664,11 @@ namespace StreamJsonRpc
 
             if (request.TryGetArgumentByNameOrIndex("id", -1, null, out object id))
             {
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedCancellation, "Cancellation request received for \"{0}\".", id);
+                }
+
                 CancellationTokenSource cts;
                 lock (this.dispatcherMapLock)
                 {
@@ -1553,10 +1733,60 @@ namespace StreamJsonRpc
             }).Forget();
         }
 
+        private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
+        {
+            Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Added local RPC method \"{0}\" -> {1}", rpcMethodName, targetMethod);
+            }
+        }
+
+        private void TraceMessageSent(JsonRpcMessage message)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageSent, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", this.GetMessageJson(message));
+            }
+        }
+
+        private void TraceMessageReceived(JsonRpcMessage message)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageReceived, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", this.GetMessageJson(message));
+            }
+        }
+
+        private object GetMessageJson(JsonRpcMessage message)
+        {
+            try
+            {
+                return this.MessageHandler.Formatter.GetJsonText(message);
+            }
+            catch (Exception ex)
+            {
+                return $"<JSON representation not available: {ex.Message}>";
+            }
+        }
+
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         private ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
 #pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
         {
+            this.TraceMessageSent(message);
+
             return this.MessageHandler.WriteAsync(message, cancellationToken);
         }
 

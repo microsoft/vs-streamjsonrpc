@@ -23,7 +23,7 @@ namespace StreamJsonRpc.Protocol
         /// </summary>
         private object arguments;
 
-         /// <summary>
+        /// <summary>
         /// The result of an attempt to match request arguments with a candidate method's parameters.
         /// </summary>
         public enum ArgumentMatchResult
@@ -49,7 +49,7 @@ namespace StreamJsonRpc.Protocol
             MissingArgument,
         }
 
-       /// <summary>
+        /// <summary>
         /// Gets or sets the name of the method to be invoked.
         /// </summary>
         [DataMember(Name = "method", Order = 1, IsRequired = true)]
@@ -210,6 +210,16 @@ namespace StreamJsonRpc.Protocol
 
             value = default;
             return false;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return new JObject
+            {
+                new JProperty("id", this.Id),
+                new JProperty("method", this.Method),
+            }.ToString(Newtonsoft.Json.Formatting.None);
         }
     }
 }

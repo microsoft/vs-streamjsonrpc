@@ -16,15 +16,16 @@ using StreamJsonRpc.Protocol;
 
 public class DirectMessageHandler : MessageHandlerBase
 {
-    private JsonMessageFormatter formatter = new JsonMessageFormatter();
-
     public DirectMessageHandler()
+        : base(new JsonMessageFormatter())
     {
     }
 
     public override bool CanRead => true;
 
     public override bool CanWrite => true;
+
+    public new JsonMessageFormatter Formatter => (JsonMessageFormatter)base.Formatter;
 
     internal AsyncQueue<JToken> MessagesToRead { get; } = new AsyncQueue<JToken>();
 
@@ -34,12 +35,12 @@ public class DirectMessageHandler : MessageHandlerBase
 
     protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
     {
-        return this.formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
+        return this.Formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
     }
 
     protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
     {
-        this.WrittenMessages.Enqueue(this.formatter.Serialize(content));
+        this.WrittenMessages.Enqueue(this.Formatter.Serialize(content));
         return default;
     }
 

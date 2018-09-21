@@ -71,10 +71,8 @@ namespace StreamJsonRpc
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
         public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
-            : base(writer, reader)
+            : base(writer, reader, formatter)
         {
-            Requires.NotNull(formatter, nameof(formatter));
-            this.Formatter = formatter;
         }
 
         /// <summary>
@@ -123,10 +121,8 @@ namespace StreamJsonRpc
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
         public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
-            : base(sendingStream, receivingStream)
+            : base(sendingStream, receivingStream, formatter)
         {
-            Requires.NotNull(formatter, nameof(formatter));
-            this.Formatter = formatter;
         }
 
         private enum HeaderParseState
@@ -156,17 +152,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the encoding to use for transmitted messages.
         /// </summary>
-        /// <exception cref="NotSupportedException">Thrown if the <see cref="Formatter"/> in use does not implement <see cref="IJsonRpcMessageTextFormatter"/>.</exception>
+        /// <exception cref="NotSupportedException">Thrown if the <see cref="MessageHandlerBase.Formatter"/> in use does not implement <see cref="IJsonRpcMessageTextFormatter"/>.</exception>
         public Encoding Encoding
         {
             get => this.TextFormatter.Encoding;
             set => this.TextFormatter.Encoding = value;
         }
-
-        /// <summary>
-        /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances.
-        /// </summary>
-        public IJsonRpcMessageFormatter Formatter { get; }
 
         /// <summary>
         /// Gets the formatter to use to serialize <see cref="JsonRpcMessage"/> instances as text.

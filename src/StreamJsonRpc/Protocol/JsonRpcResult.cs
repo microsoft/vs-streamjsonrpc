@@ -6,6 +6,7 @@ namespace StreamJsonRpc.Protocol
     using System;
     using System.Diagnostics;
     using System.Runtime.Serialization;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Describes the result of a successful method invocation.
@@ -42,5 +43,14 @@ namespace StreamJsonRpc.Protocol
         /// such that it can be assignable to <typeparamref name="T"/>.
         /// </remarks>
         public virtual T GetResult<T>() => (T)this.Result;
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return new JObject
+            {
+                new JProperty("id", this.Id),
+            }.ToString(Newtonsoft.Json.Formatting.None);
+        }
     }
 }

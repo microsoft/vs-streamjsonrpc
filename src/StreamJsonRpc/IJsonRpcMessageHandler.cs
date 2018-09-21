@@ -26,6 +26,11 @@ namespace StreamJsonRpc
         bool CanWrite { get; }
 
         /// <summary>
+        /// Gets the formatter used for message serialization.
+        /// </summary>
+        IJsonRpcMessageFormatter Formatter { get; }
+
+        /// <summary>
         /// Reads a distinct and complete message from the transport, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>

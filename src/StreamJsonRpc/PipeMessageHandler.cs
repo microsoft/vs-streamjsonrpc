@@ -32,8 +32,9 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="PipeMessageHandler"/> class.
         /// </summary>
         /// <param name="pipe">The reader and writer to use for receiving/transmitting messages.</param>
-        public PipeMessageHandler(IDuplexPipe pipe)
-            : this(Requires.NotNull(pipe, nameof(pipe)).Output, Requires.NotNull(pipe, nameof(pipe)).Input)
+        /// <param name="formatter">The formatter used to serialize messages.</param>
+        public PipeMessageHandler(IDuplexPipe pipe, IJsonRpcMessageFormatter formatter)
+            : this(Requires.NotNull(pipe, nameof(pipe)).Output, Requires.NotNull(pipe, nameof(pipe)).Input, formatter)
         {
         }
 
@@ -42,7 +43,9 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
-        public PipeMessageHandler(PipeWriter writer, PipeReader reader)
+        /// <param name="formatter">The formatter used to serialize messages.</param>
+        public PipeMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
+            : base(formatter)
         {
             this.Reader = reader;
             this.Writer = writer;
@@ -53,7 +56,9 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="writer">The stream to use for transmitting messages.</param>
         /// <param name="reader">The stream to use for receiving messages.</param>
-        public PipeMessageHandler(Stream writer, Stream reader)
+        /// <param name="formatter">The formatter used to serialize messages.</param>
+        public PipeMessageHandler(Stream writer, Stream reader, IJsonRpcMessageFormatter formatter)
+            : base(formatter)
         {
             // We use Strict reader to avoid max buffer size issues in Pipe (https://github.com/dotnet/corefx/issues/30689)
             // since it's just stream semantics.

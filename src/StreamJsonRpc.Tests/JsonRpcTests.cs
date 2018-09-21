@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -42,14 +43,7 @@ public abstract class JsonRpcTests : TestBase
 
         this.server = new Server();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.InitializeFormattersAndHandlers();
-
-        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
-        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+        this.ReinitializeRpcWithoutListening();
 
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
@@ -1192,8 +1186,16 @@ public abstract class JsonRpcTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream, this.server);
-        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Error);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Error);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
     private void StartListening()

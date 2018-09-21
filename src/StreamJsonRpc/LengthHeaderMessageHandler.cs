@@ -40,7 +40,7 @@ namespace StreamJsonRpc
         /// <param name="pipe">The reader and writer to use for receiving/transmitting messages.</param>
         /// <param name="formatter">The formatter to use for message serialization.</param>
         public LengthHeaderMessageHandler(IDuplexPipe pipe, IJsonRpcMessageFormatter formatter)
-            : base(pipe)
+            : base(pipe, formatter)
         {
             Requires.NotNull(formatter, nameof(formatter));
             this.formatter = formatter;
@@ -53,7 +53,7 @@ namespace StreamJsonRpc
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use for message serialization.</param>
         public LengthHeaderMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
-            : base(writer, reader)
+            : base(writer, reader, formatter)
         {
             Requires.NotNull(formatter, nameof(formatter));
             this.formatter = formatter;
@@ -66,7 +66,7 @@ namespace StreamJsonRpc
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
         public LengthHeaderMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
-            : base(sendingStream, receivingStream)
+            : base(sendingStream, receivingStream, formatter)
         {
             Requires.NotNull(formatter, nameof(formatter));
             this.formatter = formatter;
