@@ -153,6 +153,9 @@ override StreamJsonRpc.PipeMessageHandler.CanRead.get -> bool
 override StreamJsonRpc.PipeMessageHandler.CanWrite.get -> bool
 override StreamJsonRpc.PipeMessageHandler.Dispose(bool disposing) -> void
 override StreamJsonRpc.PipeMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override StreamJsonRpc.Protocol.JsonRpcError.ToString() -> string
+override StreamJsonRpc.Protocol.JsonRpcRequest.ToString() -> string
+override StreamJsonRpc.Protocol.JsonRpcResult.ToString() -> string
 override StreamJsonRpc.StreamMessageHandler.CanFlushConcurrentlyWithOtherWrites.get -> bool
 override StreamJsonRpc.StreamMessageHandler.CanRead.get -> bool
 override StreamJsonRpc.StreamMessageHandler.CanWrite.get -> bool

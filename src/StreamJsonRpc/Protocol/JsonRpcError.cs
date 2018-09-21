@@ -33,6 +33,20 @@ namespace StreamJsonRpc.Protocol
         /// </summary>
         protected string DebuggerDisplay => $"Error: {this.Error.Code} \"{this.Error.Message}\" ({this.Id})";
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return new JObject
+            {
+                new JProperty("id", this.Id),
+                new JProperty("error", new JObject
+                {
+                    new JProperty("code", this.Error?.Code),
+                    new JProperty("message", this.Error?.Message),
+                }),
+            }.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         /// <summary>
         /// Describes the error.
         /// </summary>

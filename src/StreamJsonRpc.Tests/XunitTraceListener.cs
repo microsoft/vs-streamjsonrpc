@@ -22,16 +22,6 @@ internal class XunitTraceListener : TraceListener
 
     public override bool IsThreadSafe => false;
 
-    public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, object data)
-    {
-        // no-op here to keep the trace clean.
-    }
-
-    public override void TraceData(TraceEventCache eventCache, string source, TraceEventType eventType, int id, params object[] data)
-    {
-        // no-op here to keep the trace clean.
-    }
-
     public override void Write(string message) => this.lineInProgress.Append(message);
 
     public override void WriteLine(string message)
