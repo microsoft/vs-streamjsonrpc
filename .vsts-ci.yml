@@ -31,6 +31,7 @@ jobs:
   - template: azure-pipelines/testfx.yml
     parameters:
       projectdirectory: src/StreamJsonRpc.Tests
+      testlogartifactname: linux_testlogs
 
 - job: macOS
   pool:
@@ -41,3 +42,4 @@ jobs:
   - template: azure-pipelines/testfx.yml
     parameters:
       projectdirectory: src/StreamJsonRpc.Tests
+      testlogartifactname: macOS_testlogs
