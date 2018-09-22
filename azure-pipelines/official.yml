@@ -1,3 +1,9 @@
+trigger:
+  branches:
+    include: ["master", "v1.4", "v1.5"]
+  paths:
+    exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+
 variables:
   TreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
