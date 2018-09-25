@@ -1183,7 +1183,7 @@ namespace StreamJsonRpc
                     return new RemoteMethodNotFoundException(response.Error.Message, targetName);
 
                 default:
-                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode, response.Error.Data);
+                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data);
             }
         }
 
@@ -1237,14 +1237,16 @@ namespace StreamJsonRpc
             }
 
             exception = StripExceptionToInnerException(exception);
-
-            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
+            var localRpcEx = exception as LocalRpcException;
+            var data = localRpcEx != null
+                ? localRpcEx.ErrorData
+                : new CommonErrorData(exception);
             return new JsonRpcError
             {
                 Id = request.Id,
                 Error = new JsonRpcError.ErrorDetail
                 {
-                    Code = JsonRpcErrorCode.InvocationError,
+                    Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? JsonRpcErrorCode.InvocationError,
                     Message = exception.Message,
                     Data = data,
                 },

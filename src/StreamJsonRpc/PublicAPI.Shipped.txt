@@ -27,10 +27,7 @@ StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string d
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, System.Exception exception) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.Reason.get -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.RemoteInvocationException
-StreamJsonRpc.RemoteInvocationException.RemoteErrorCode.get -> string
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
-StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, string remoteStack, string remoteCode) -> void
-StreamJsonRpc.RemoteInvocationException.RemoteStackTrace.get -> string
 StreamJsonRpc.RemoteMethodNotFoundException
 StreamJsonRpc.RemoteMethodNotFoundException.RemoteMethodNotFoundException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.RemoteMethodNotFoundException.TargetMethod.get -> string

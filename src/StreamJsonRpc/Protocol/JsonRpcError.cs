@@ -54,20 +54,11 @@ namespace StreamJsonRpc.Protocol
         public class ErrorDetail
         {
             /// <summary>
-            /// The name of the error object's "data.stack" field within the data object.
-            /// </summary>
-            private const string DataStackFieldName = "stack";
-
-            /// <summary>
-            /// The name of the error object's "data.code" field within the data object.
-            /// </summary>
-            private const string DataCodeFieldName = "code";
-
-            /// <summary>
             /// Gets or sets a number that indicates the error type that occurred.
             /// </summary>
             /// <value>
-            /// The error codes from and including -32768 to -32000 are reserved for pre-defined errors.
+            /// The error codes from and including -32768 to -32000 are reserved for errors defined by the spec or this library.
+            /// Codes outside that range are available for app-specific error codes.
             /// </value>
             [DataMember(Name = "code", Order = 0, IsRequired = true)]
             public JsonRpcErrorCode Code { get; set; }
@@ -86,36 +77,6 @@ namespace StreamJsonRpc.Protocol
             /// </summary>
             [DataMember(Name = "data", Order = 2, IsRequired = false)]
             public object Data { get; set; }
-
-            /// <summary>
-            /// Gets the callstack of an exception thrown by the server.
-            /// </summary>
-            [IgnoreDataMember]
-            public virtual string ErrorStack
-            {
-                get
-                {
-                    return
-                        this.Data is JObject dataObject && dataObject[DataStackFieldName]?.Type == JTokenType.String ? dataObject.Value<string>(DataStackFieldName) :
-                        this.Data is Dictionary<object, object> data && data.TryGetValue(DataStackFieldName, out var stack) && stack is string stackString ? stackString :
-                        null;
-                }
-            }
-
-            /// <summary>
-            /// Gets the server error code.
-            /// </summary>
-            [IgnoreDataMember]
-            public virtual string ErrorCode
-            {
-                get
-                {
-                    return
-                        this.Data is JObject dataObject && (dataObject[DataCodeFieldName]?.Type == JTokenType.String || dataObject?[DataCodeFieldName]?.Type == JTokenType.Integer) ? dataObject.Value<string>(DataCodeFieldName) :
-                        this.Data is Dictionary<object, object> data && data.TryGetValue(DataCodeFieldName, out var code) && (code is string || code is int) ? code.ToString() :
-                        null;
-                }
-            }
         }
     }
 }

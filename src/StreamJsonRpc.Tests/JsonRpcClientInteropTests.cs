@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -193,8 +194,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
             },
         };
         this.Send(errorObject);
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
     }
 
     [Fact]
@@ -218,9 +220,10 @@ public class JsonRpcClientInteropTests : InteropTestBase
             },
         };
         this.Send(errorObject);
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
-        Assert.Equal("-2147467261", ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteErrorCode);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
+        Assert.Equal(-2147467261, commonErrorData.HResult);
     }
 
     [Fact]
@@ -246,9 +249,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Null(ex.RemoteStackTrace);
-        Assert.Null(ex.RemoteErrorCode);
-        Assert.Equal(errorData.stack.foo, ((JToken)ex.ErrorData)["stack"].Value<int>("foo"));
+        JToken errorDataToken = (JToken)ex.ErrorData;
+        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
+        Assert.Equal(errorData.stack.foo, errorDataToken["stack"].Value<int>("foo"));
     }
 
     [Fact]
