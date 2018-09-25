@@ -171,17 +171,6 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CanPassExceptionFromServer()
-    {
-#pragma warning disable SA1139 // Use literal suffix notation instead of casting
-        const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
-#pragma warning restore SA1139 // Use literal suffix notation instead of casting
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
-        Assert.NotNull(exception.RemoteStackTrace);
-        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS.ToString(CultureInfo.InvariantCulture), exception.RemoteErrorCode);
-    }
-
-    [Fact]
     public async Task CanCallMethodWithDefaultParameters()
     {
         var result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithDefaultParameter), 10);
@@ -230,7 +219,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task CanCallAsyncMethodThatThrows()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        Assert.NotNull(exception.RemoteStackTrace);
+        Assert.NotNull(exception.ErrorData);
     }
 
     [Fact]
@@ -1149,6 +1138,13 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.AddWithNameSubstitution), "andrew"));
     }
 
+    [Fact]
+    public async Task ExceptionControllingErrorCode()
+    {
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException)));
+        Assert.Equal(2, exception.ErrorCode);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1475,6 +1471,11 @@ public abstract class JsonRpcTests : TestBase
 
         [JsonRpcMethod("ClassNameForMethod")]
         public int AddWithNameSubstitution(int a, int b) => a + b;
+
+        public void ThrowRemoteInvocationException()
+        {
+            throw new LocalRpcException { ErrorCode = 2, ErrorData = new { myCustomData = "hi" } };
+        }
 
         internal void InternalMethod()
         {
