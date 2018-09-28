@@ -1015,7 +1015,7 @@ namespace StreamJsonRpc
                     {
                         if (response == null)
                         {
-                            tcs.TrySetCanceled();
+                            tcs.TrySetException(new ConnectionLostException());
                         }
                         else if (response is JsonRpcError error)
                         {

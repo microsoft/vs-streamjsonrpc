@@ -107,6 +107,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The JSON-RPC connection with the remote party was lost before the request could complete..
+        /// </summary>
+        internal static string ConnectionDropped {
+            get {
+                return ResourceManager.GetString("ConnectionDropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {
