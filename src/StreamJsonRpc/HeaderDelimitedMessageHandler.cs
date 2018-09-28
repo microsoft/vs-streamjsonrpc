@@ -463,7 +463,7 @@ namespace StreamJsonRpc
                 SequencePosition? cr = line.PositionOf((byte)'\r');
                 if (!cr.HasValue || !line.GetPosition(1, cr.Value).Equals(lf))
                 {
-                    throw new BadRpcHeaderException("Header does not end with expected \r\n character sequence.");
+                    throw new BadRpcHeaderException("Header does not end with expected \r\n character sequence: " + HeaderEncoding.GetString(line.ToArray()));
                 }
 
                 // Trim off the \r now that we confirmed it was there.
