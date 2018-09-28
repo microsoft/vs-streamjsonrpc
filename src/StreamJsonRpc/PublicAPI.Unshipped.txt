@@ -164,7 +164,6 @@ StreamJsonRpc.StreamMessageHandler.SendingStream.get -> System.IO.Stream
 StreamJsonRpc.StreamMessageHandler.StreamMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket) -> void
 StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, StreamJsonRpc.IJsonRpcMessageFormatter formatter, int sizeHint = 4096) -> void
-abstract StreamJsonRpc.MessageHandlerBase.CanFlushConcurrentlyWithOtherWrites.get -> bool
 abstract StreamJsonRpc.MessageHandlerBase.CanRead.get -> bool
 abstract StreamJsonRpc.MessageHandlerBase.CanWrite.get -> bool
 abstract StreamJsonRpc.MessageHandlerBase.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -175,7 +174,6 @@ override StreamJsonRpc.HeaderDelimitedMessageHandler.ReadCoreAsync(System.Thread
 override StreamJsonRpc.HeaderDelimitedMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
 override StreamJsonRpc.LengthHeaderMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
 override StreamJsonRpc.LengthHeaderMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
-override StreamJsonRpc.PipeMessageHandler.CanFlushConcurrentlyWithOtherWrites.get -> bool
 override StreamJsonRpc.PipeMessageHandler.CanRead.get -> bool
 override StreamJsonRpc.PipeMessageHandler.CanWrite.get -> bool
 override StreamJsonRpc.PipeMessageHandler.Dispose(bool disposing) -> void
@@ -183,12 +181,10 @@ override StreamJsonRpc.PipeMessageHandler.FlushAsync(System.Threading.Cancellati
 override StreamJsonRpc.Protocol.JsonRpcError.ToString() -> string
 override StreamJsonRpc.Protocol.JsonRpcRequest.ToString() -> string
 override StreamJsonRpc.Protocol.JsonRpcResult.ToString() -> string
-override StreamJsonRpc.StreamMessageHandler.CanFlushConcurrentlyWithOtherWrites.get -> bool
 override StreamJsonRpc.StreamMessageHandler.CanRead.get -> bool
 override StreamJsonRpc.StreamMessageHandler.CanWrite.get -> bool
 override StreamJsonRpc.StreamMessageHandler.Dispose(bool disposing) -> void
 override StreamJsonRpc.StreamMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-override StreamJsonRpc.WebSocketMessageHandler.CanFlushConcurrentlyWithOtherWrites.get -> bool
 override StreamJsonRpc.WebSocketMessageHandler.CanRead.get -> bool
 override StreamJsonRpc.WebSocketMessageHandler.CanWrite.get -> bool
 override StreamJsonRpc.WebSocketMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

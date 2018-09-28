@@ -51,9 +51,6 @@ namespace StreamJsonRpc
         /// </summary>
         public override bool CanWrite => this.SendingStream != null;
 
-        /// <inheritdoc/>
-        protected override bool CanFlushConcurrentlyWithOtherWrites => true;
-
         /// <summary>
         /// Gets the stream used to transmit messages. May be null.
         /// </summary>

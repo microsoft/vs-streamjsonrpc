@@ -72,9 +72,6 @@ namespace StreamJsonRpc
         public WebSocket WebSocket { get; }
 
         /// <inheritdoc />
-        protected override bool CanFlushConcurrentlyWithOtherWrites => true;
-
-        /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
             using (var contentSequenceBuilder = new Sequence<byte>())
