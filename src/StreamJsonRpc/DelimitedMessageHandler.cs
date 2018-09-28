@@ -158,9 +158,8 @@ namespace StreamJsonRpc
                     using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
                         await this.WriteCoreAsync(content, contentEncoding, cts.Token).ConfigureAwait(false);
+                        await this.FlushCoreAsync().ConfigureAwait(false);
                     }
-
-                    await this.FlushCoreAsync().ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException)
                 {
