@@ -1,5 +1,4 @@
-StreamJsonRpc
-===============
+# StreamJsonRpc
 
 [![NuGet package](https://img.shields.io/nuget/v/StreamJsonRpc.svg)](https://nuget.org/packages/StreamJsonRpc)
 [![Build Status](https://andrewarnott.visualstudio.com/OSS/_apis/build/status/vs-streamjsonrpc)](https://andrewarnott.visualstudio.com/OSS/_build/latest?definitionId=10)
@@ -18,6 +17,8 @@ Bonus features beyond the JSON-RPC spec include:
 1. Dynamic client proxy generation
 1. Support for [compact binary serialization](doc/protocol.md) (e.g. MessagePack)
 
+Learn about the use cases for JSON-RPC and how to use this library from our [documentation](doc/index.md).
+
 ## Supported platforms
 
 * .NET 4.6
@@ -31,15 +32,6 @@ JSON-RPC libraries:
 
 * [json-rpc-peer][json-rpc-peer] (npm)
 
-## Documentation
-[Documentation](doc/index.md)
-
-## Testability/mockability
-
-Testing this library or users of this library can be done without any transport
-by using the [Nerdbank.FullDuplexStream][FullDuplexStream] library in your tests
-to produce the Stream object.
 
 [JSONRPC]: http://jsonrpc.org/
 [json-rpc-peer]: https://www.npmjs.com/package/json-rpc-peer
-[FullDuplexStream]: https://www.nuget.org/packages/nerdbank.fullduplexstream
