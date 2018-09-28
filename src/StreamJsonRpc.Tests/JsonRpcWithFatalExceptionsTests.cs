@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
@@ -24,6 +25,13 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         this.messageHandler = new HeaderDelimitedMessageHandler(streams.Item1, streams.Item1);
         this.clientRpc = new JsonRpcWithFatalExceptions(this.messageHandler);
         this.serverRpc = new JsonRpcWithFatalExceptions(new HeaderDelimitedMessageHandler(streams.Item2, streams.Item2), this.server);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Error);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Error);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
         this.clientRpc.StartListening();
         this.serverRpc.StartListening();
     }
