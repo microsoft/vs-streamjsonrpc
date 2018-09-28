@@ -377,7 +377,9 @@ namespace StreamJsonRpc
         private SynchronizationContext SynchronizationContextOrDefault => this.SynchronizationContext ?? DefaultSynchronizationContext;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
         /// </summary>
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
@@ -392,7 +394,9 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
