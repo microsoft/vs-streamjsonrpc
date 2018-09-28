@@ -80,7 +80,9 @@ You can customize the method names used in the event notification by adding the 
 with a `JsonRpcTargetOptions` with a custom function set to its EventNameTransform property.
 
 You can stop `JsonRpc` from sending notifications for events on the server object by adding the target object
-with a `new JsonRpcTargetOptions { NotifyClientsOfEvents = false }` argument.
+with a `new JsonRpcTargetOptions { NotifyClientsOfEvents = false }` argument (the default is `true`).
+You may want to turn off the event functionality if your target object is reused from another class
+and has events that shouldn't be exposed to RPC.
 
 ### Special method names
 

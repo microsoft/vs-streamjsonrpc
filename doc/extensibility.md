@@ -43,7 +43,7 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
 1. `HeaderDelimitedMessageHandler` - This is the default handler. It is compatible with the
    [`vscode-jsonrpc`](https://www.npmjs.com/package/vscode-jsonrpc) NPM package. It utilizes HTTP-like headers to
    introduce each JSON-RPC message by describing its length and (optionally) its text encoding. This handler works
-   with .NET `Stream` and the new pipelines API.
+   with .NET `Stream` and the new [pipelines API](https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/).
 1. `LengthHeaderMessageHandler` - This prepends a big endian 32-bit integer to each message to describe the length
    of the message. This handler works with .NET `Stream` and the new pipelines API. This handler is the fastest
    handler for those transports.
