@@ -28,7 +28,7 @@ class Server
 
     public async Task DoSomething(CancellationToken cancellationToken)
     {
-        using (semaphore.EnterAsync(cancellationToken))
+        using (await semaphore.EnterAsync(cancellationToken))
         {
             // Do really great stuff here.
         }
@@ -36,7 +36,7 @@ class Server
 
     public async Task DoSomethingElse(CancellationToken cancellationToken)
     {
-        using (semaphore.EnterAsync(cancellationToken))
+        using (await semaphore.EnterAsync(cancellationToken))
         {
             // Do other really great stuff here.
         }
