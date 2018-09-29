@@ -1486,11 +1486,12 @@ namespace StreamJsonRpc
             }
             finally
             {
-                // Dispose the stream and cancel pending requests in the finally block
+                // Dispose the stream and fault pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
-                this.disposeCts.Cancel();
+                this.FaultPendingRequests(); // fault existing ones so they don't get inadvertently canceled
+                this.disposeCts.Cancel(); // slam the door shut on new requests
+                this.FaultPendingRequests(); // fault any that slipped through while we closed the door.
                 (this.MessageHandler as IDisposable)?.Dispose();
-                this.CancelPendingRequests();
 
                 // Ensure the Task we may have returned from Completion is completed.
                 if (eventArgs.Exception != null)
@@ -1701,7 +1702,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private void CancelPendingRequests()
+        private void FaultPendingRequests()
         {
             OutstandingCallData[] pendingRequests;
             lock (this.dispatcherMapLock)
