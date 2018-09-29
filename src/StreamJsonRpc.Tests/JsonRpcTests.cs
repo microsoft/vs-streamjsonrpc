@@ -1341,8 +1341,12 @@ public abstract class JsonRpcTests : TestBase
 
         public void SyncMethodWaitsToReturn()
         {
+            // Get in line for the signal before signaling the test to let us return.
+            // That way, the MultipleSyncMethodsExecuteConcurrentlyOnServer test won't signal the Auto-style reset event twice
+            // before both folks are waiting for it, causing a signal to be lost and the test to hang.
+            Task waitToReturn = this.AllowServerMethodToReturn.WaitAsync();
             this.ServerMethodReached.Set();
-            this.AllowServerMethodToReturn.WaitAsync().Wait();
+            waitToReturn.Wait();
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
