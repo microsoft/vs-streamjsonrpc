@@ -26,8 +26,8 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         this.clientRpc = new JsonRpcWithFatalExceptions(this.messageHandler);
         this.serverRpc = new JsonRpcWithFatalExceptions(new HeaderDelimitedMessageHandler(streams.Item2, streams.Item2), this.server);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Error);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Error);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -62,47 +62,59 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     public async Task CloseStreamsOnSynchronousMethodException()
     {
         var exceptionMessage = "Exception from CloseStreamsOnSynchronousMethodException";
-        ConnectionLostException exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
+        OperationCanceledException exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        await this.AssertAllPartiesDisposedEventuallyAsync();
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
     public async Task CloseStreamOnAsyncYieldAndThrowException()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncYieldAndThrowException";
-        Exception exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
+        Exception exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        await this.AssertAllPartiesDisposedEventuallyAsync();
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
-    public async Task CloseStreamOnAsyncThrowExceptionAndYield()
+    public async Task CloseStreamOnAsyncThrowExceptionandYield()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncThrowExceptionAndYield";
-        Exception exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
+        Exception exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        await this.AssertAllPartiesDisposedEventuallyAsync();
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
     public async Task CloseStreamOnAsyncTMethodException()
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncTMethodException";
-        await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        await this.AssertAllPartiesDisposedEventuallyAsync();
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -144,12 +156,15 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
 
-            await Assert.ThrowsAnyAsync<ConnectionLostException>(() => invokeTask);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
             Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException.Message);
             Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
 
-        await this.AssertAllPartiesDisposedEventuallyAsync();
+        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
+        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
     }
 
     [Fact]
@@ -188,41 +203,6 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         }
 
         base.Dispose(disposing);
-    }
-
-    private Task AssertAllPartiesDisposedEventuallyAsync()
-    {
-        return Task.WhenAll(
-            this.AssertIsDisposedEventuallyAsync(this.clientRpc),
-            this.AssertIsDisposedEventuallyAsync(this.serverRpc),
-            this.AssertIsDisposedEventuallyAsync(this.messageHandler as IDisposableObservable));
-    }
-
-    private async Task AssertIsDisposedEventuallyAsync(IDisposableObservable disposableObservable)
-    {
-        if (disposableObservable == null)
-        {
-            return;
-        }
-
-        try
-        {
-            while (!this.TimeoutToken.IsCancellationRequested)
-            {
-                if (disposableObservable.IsDisposed)
-                {
-                    return;
-                }
-
-                await Task.Delay(1, this.TimeoutToken);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Swallow this. We're going to assert next for a better failure message.
-        }
-
-        Assert.True(disposableObservable.IsDisposed);
     }
 
     public class Server

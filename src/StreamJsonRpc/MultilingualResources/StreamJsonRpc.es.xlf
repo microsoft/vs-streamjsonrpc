@@ -200,10 +200,6 @@
           <target state="new">Text encoding is not supported because the formatter "{0}" does not implement "{1}".</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
         </trans-unit>
-        <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
-          <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
-          <target state="new">The JSON-RPC connection with the remote party was lost before the request could complete.</target>
-        </trans-unit>
       </group>
     </body>
   </file>

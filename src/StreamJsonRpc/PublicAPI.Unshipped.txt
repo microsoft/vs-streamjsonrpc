@@ -1,8 +1,3 @@
-StreamJsonRpc.ConnectionLostException
-StreamJsonRpc.ConnectionLostException.ConnectionLostException() -> void
-StreamJsonRpc.ConnectionLostException.ConnectionLostException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
-StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message) -> void
-StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message, System.Exception innerException) -> void
 StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.get -> System.Text.Encoding
 StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.set -> void
 StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
