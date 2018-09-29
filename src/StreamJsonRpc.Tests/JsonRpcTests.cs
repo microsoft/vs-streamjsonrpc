@@ -391,7 +391,9 @@ public abstract class JsonRpcTests : TestBase
         // Assert that the second Post call on the server will not happen while the first Post hasn't returned.
         // This is the way we verify that processing incoming requests never becomes concurrent before the
         // invocation is sent to the SynchronizationContext.
-        await syncContext.PostInvoked.WaitAsync().WithCancellation(UnexpectedTimeoutToken);
+        Task unblockingTask = await Task.WhenAny(invoke1, invoke2, syncContext.PostInvoked.WaitAsync()).WithCancellation(UnexpectedTimeoutToken);
+        await unblockingTask; // rethrow any exception that may have occurred while we were waiting.
+
         await Task.Delay(ExpectedTimeout);
         Assert.Equal(1, syncContext.PostCalls);
 
