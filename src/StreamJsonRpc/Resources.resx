@@ -265,4 +265,7 @@
     <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>
     <comment>{0} and {1} are CLR type names.</comment>
   </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>
+  </data>
 </root>
