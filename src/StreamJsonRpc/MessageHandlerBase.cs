@@ -69,11 +69,6 @@ namespace StreamJsonRpc
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
 
         /// <summary>
-        /// Gets a value indicating whether the transport allows flushing while writing more data.
-        /// </summary>
-        protected abstract bool CanFlushConcurrentlyWithOtherWrites { get; }
-
-        /// <summary>
         /// Reads a distinct and complete message from the transport, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>
@@ -136,22 +131,11 @@ namespace StreamJsonRpc
             {
                 try
                 {
-                    ValueTask flushTask;
                     using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
                     {
                         cts.Token.ThrowIfCancellationRequested();
                         await this.WriteCoreAsync(content, cts.Token).ConfigureAwait(false);
-                        flushTask = this.FlushAsync(cts.Token);
-
-                        if (!this.CanFlushConcurrentlyWithOtherWrites)
-                        {
-                            await flushTask.ConfigureAwait(false);
-                        }
-                    }
-
-                    if (this.CanFlushConcurrentlyWithOtherWrites)
-                    {
-                        await flushTask.ConfigureAwait(false);
+                        await this.FlushAsync(cts.Token).ConfigureAwait(false);
                     }
                 }
                 catch (ObjectDisposedException)

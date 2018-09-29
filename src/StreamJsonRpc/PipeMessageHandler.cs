@@ -93,9 +93,6 @@ namespace StreamJsonRpc
         /// </summary>
         protected PipeWriter Writer { get; }
 
-        /// <inheritdoc/>
-        protected override bool CanFlushConcurrentlyWithOtherWrites => false;
-
 #pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc/>
         protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
