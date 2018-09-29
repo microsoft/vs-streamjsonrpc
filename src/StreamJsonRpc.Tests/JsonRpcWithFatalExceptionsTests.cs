@@ -59,10 +59,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
+        await this.AssertAllPartiesDisposedEventuallyAsync();
     }
 
     [Fact]
@@ -74,10 +71,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
+        await this.AssertAllPartiesDisposedEventuallyAsync();
     }
 
     [Fact]
@@ -89,10 +83,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
+        await this.AssertAllPartiesDisposedEventuallyAsync();
     }
 
     [Fact]
@@ -103,10 +94,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
+        await this.AssertAllPartiesDisposedEventuallyAsync();
     }
 
     [Fact]
@@ -153,10 +141,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
 
-        // Assert that the JsonRpc and MessageHandler objects are disposed after exception
-        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverRpc).IsDisposed);
-        Assert.True(((IDisposableObservable)this.messageHandler).IsDisposed);
+        await this.AssertAllPartiesDisposedEventuallyAsync();
     }
 
     [Fact]
@@ -195,6 +180,39 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         }
 
         base.Dispose(disposing);
+    }
+
+    private Task AssertAllPartiesDisposedEventuallyAsync()
+    {
+        return Task.WhenAll(
+            this.AssertIsDisposedEventuallyAsync(this.clientRpc),
+            this.AssertIsDisposedEventuallyAsync(this.serverRpc),
+            this.AssertIsDisposedEventuallyAsync(this.messageHandler as IDisposableObservable));
+    }
+
+    private async Task AssertIsDisposedEventuallyAsync(IDisposableObservable disposableObservable)
+    {
+        if (disposableObservable == null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (!this.TimeoutToken.IsCancellationRequested)
+            {
+                if (!disposableObservable.IsDisposed)
+                {
+                    await Task.Delay(1, this.TimeoutToken);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Swallow this. We're going to assert next for a better failure message.
+        }
+
+        Assert.True(disposableObservable.IsDisposed);
     }
 
     public class Server
