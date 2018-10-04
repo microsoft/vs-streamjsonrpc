@@ -1812,7 +1812,7 @@ namespace StreamJsonRpc
             internal MethodNameMap(TypeInfo typeInfo)
             {
                 Requires.NotNull(typeInfo, nameof(typeInfo));
-#if NET46 || NETSTANDARD2_0
+#if !NETSTANDARD1_6
                 this.interfaceMaps = typeInfo.ImplementedInterfaces.Select(i => typeInfo.GetInterfaceMap(i)).ToList();
 #else
                 this.interfaceMaps = new List<InterfaceMapping>();

@@ -15,7 +15,7 @@
     <!-- VS2017 Test Explorer test navigation and callstack links don't work with portable PDBs yet. -->
     <DebugType>Full</DebugType>
 
-    <AspNetCoreHost Condition=" '$(TargetFramework)' == 'netcoreapp2.0' or '$(TargetFramework)' == 'net461' ">true</AspNetCoreHost>
+    <AspNetCoreHost Condition=" '$(TargetFramework)' != 'netcoreapp1.0' ">true</AspNetCoreHost>
     <DefineConstants Condition=" '$(AspNetCoreHost)' == 'true' ">$(DefineConstants);ASPNETCORE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
