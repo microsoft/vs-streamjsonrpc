@@ -1123,7 +1123,7 @@ public abstract class JsonRpcTests : TestBase
         await Task.WhenAll(invocation1, invocation2);
     }
 
-#if NET461 || NETCOREAPP2_0
+#if !NETCOREAPP1_0
     [Fact]
     public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
     {
