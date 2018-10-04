@@ -77,7 +77,10 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
 
-        private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
+        /// <summary>
+        /// The source for the <see cref="DisconnectedToken"/> property.
+        /// </summary>
+        private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
 
         /// <summary>
         /// The completion source behind <see cref="Completion"/>.
@@ -91,8 +94,7 @@ namespace StreamJsonRpc
 
         private Task readLinesTask;
         private long nextId = 1;
-        private bool disposed;
-        private bool hasDisconnectedEventBeenRaised;
+        private JsonRpcDisconnectedEventArgs disconnectedEventArgs;
         private bool startedListening;
 
         /// <summary>
@@ -172,19 +174,19 @@ namespace StreamJsonRpc
             add
             {
                 Requires.NotNull(value, nameof(value));
-                bool handlerAdded = false;
+                JsonRpcDisconnectedEventArgs disconnectedArgs;
                 lock (this.disconnectedEventLock)
                 {
-                    if (!this.hasDisconnectedEventBeenRaised)
+                    disconnectedArgs = this.disconnectedEventArgs;
+                    if (disconnectedArgs == null)
                     {
                         this.DisconnectedPrivate += value;
-                        handlerAdded = true;
                     }
                 }
 
-                if (!handlerAdded)
+                if (disconnectedArgs != null)
                 {
-                    value(this, new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed));
+                    value(this, disconnectedArgs);
                 }
             }
 
@@ -279,6 +281,11 @@ namespace StreamJsonRpc
             /// Occurs when the connection is closed.
             /// </summary>
             Closed,
+
+            /// <summary>
+            /// A local request is canceled because the remote party terminated the connection.
+            /// </summary>
+            RequestAbandonedByRemote,
         }
 
         /// <summary>
@@ -332,7 +339,7 @@ namespace StreamJsonRpc
         public bool AllowModificationWhileListening { get; set; }
 
         /// <inheritdoc />
-        bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
+        public bool IsDisposed { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to cancel all methods dispatched locally
@@ -370,6 +377,11 @@ namespace StreamJsonRpc
         /// Gets the message handler used to send and receive messages.
         /// </summary>
         internal IJsonRpcMessageHandler MessageHandler { get; }
+
+        /// <summary>
+        /// Gets a token that is cancelled when the connection is lost.
+        /// </summary>
+        internal CancellationToken DisconnectedToken => this.disconnectedSource.Token;
 
         /// <summary>
         /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
@@ -633,7 +645,7 @@ namespace StreamJsonRpc
             Verify.Operation(this.MessageHandler.CanRead, Resources.StreamMustBeReadable);
             Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
             Verify.NotDisposed(this);
-            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
+            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.DisconnectedToken);
         }
 
         /// <summary>
@@ -907,22 +919,12 @@ namespace StreamJsonRpc
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (!this.IsDisposed)
             {
-                this.disposed = true;
+                this.IsDisposed = true;
                 if (disposing)
                 {
-                    if (this.eventReceivers != null)
-                    {
-                        foreach (var receiver in this.eventReceivers)
-                        {
-                            receiver.Dispose();
-                        }
-
-                        this.eventReceivers = null;
-                    }
-
-                    var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
+                    var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
             }
@@ -998,7 +1000,7 @@ namespace StreamJsonRpc
                 request.Arguments = arguments ?? EmptyObjectArray;
             }
 
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.disposeCts.Token))
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
             {
                 if (!request.IsResponseExpected)
                 {
@@ -1019,6 +1021,11 @@ namespace StreamJsonRpc
                     {
                         if (response == null)
                         {
+                            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                            {
+                                this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
+                            }
+
                             tcs.TrySetException(new ConnectionLostException());
                         }
                         else if (response is JsonRpcError error)
@@ -1334,7 +1341,7 @@ namespace StreamJsonRpc
                 if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
                 {
                     localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
-                        ? CancellationTokenSource.CreateLinkedTokenSource(this.disposeCts.Token)
+                        ? CancellationTokenSource.CreateLinkedTokenSource(this.DisconnectedToken)
                         : new CancellationTokenSource();
                     cancellationToken = localMethodCancellationSource.Token;
                     lock (this.dispatcherMapLock)
@@ -1457,26 +1464,30 @@ namespace StreamJsonRpc
 
         private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
         {
-            TraceEventType eventType = eventArgs.Reason == DisconnectedReason.Disposed ? TraceEventType.Information : TraceEventType.Critical;
-            if (this.TraceSource.Switch.ShouldTrace(eventType))
-            {
-                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
-            }
-
             EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
             lock (this.disconnectedEventLock)
             {
-                if (this.hasDisconnectedEventBeenRaised)
+                if (this.disconnectedEventArgs != null)
                 {
                     // Someone else has done all this work.
                     return;
                 }
                 else
                 {
-                    this.hasDisconnectedEventBeenRaised = true;
+                    this.disconnectedEventArgs = eventArgs;
                     handlersToInvoke = this.DisconnectedPrivate;
                     this.DisconnectedPrivate = null;
                 }
+            }
+
+            this.UnregisterEventHandlersFromTargetObjects();
+
+            TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
+                ? TraceEventType.Information
+                : TraceEventType.Critical;
+            if (this.TraceSource.Switch.ShouldTrace(eventType))
+            {
+                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
             }
 
             try
@@ -1488,10 +1499,9 @@ namespace StreamJsonRpc
             {
                 // Dispose the stream and fault pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
-                this.FaultPendingRequests(); // fault existing ones so they don't get inadvertently canceled
-                this.disposeCts.Cancel(); // slam the door shut on new requests
-                this.FaultPendingRequests(); // fault any that slipped through while we closed the door.
+                this.disconnectedSource.Cancel();
                 (this.MessageHandler as IDisposable)?.Dispose();
+                this.FaultPendingRequests();
 
                 // Ensure the Task we may have returned from Completion is completed.
                 if (eventArgs.Exception != null)
@@ -1505,58 +1515,65 @@ namespace StreamJsonRpc
             }
         }
 
+        private void UnregisterEventHandlersFromTargetObjects()
+        {
+            if (this.eventReceivers != null)
+            {
+                foreach (var receiver in this.eventReceivers)
+                {
+                    receiver.Dispose();
+                }
+
+                this.eventReceivers = null;
+            }
+        }
+
         private async Task ReadAndHandleRequestsAsync()
         {
-            JsonRpcDisconnectedEventArgs disconnectedEventArgs = null;
             this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
 
             try
             {
-                while (!this.disposed)
+                while (!this.IsDisposed && !this.DisconnectedToken.IsCancellationRequested)
                 {
                     JsonRpcMessage protocolMessage = null;
                     try
                     {
-                        protocolMessage = await this.MessageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
+                        protocolMessage = await this.MessageHandler.ReadAsync(this.DisconnectedToken).ConfigureAwait(false);
+                        if (protocolMessage == null)
+                        {
+                            this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.ReachedEndOfStream, DisconnectedReason.RemotePartyTerminated));
+                            return;
+                        }
+
                         this.TraceMessageReceived(protocolMessage);
                     }
                     catch (OperationCanceledException)
                     {
+                        break;
                     }
                     catch (ObjectDisposedException)
                     {
+                        break;
                     }
                     catch (Exception exception)
                     {
-                        var e = new JsonRpcDisconnectedEventArgs(
+                        this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                             string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
                             exception is JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
-                            exception);
-
-                        // Fatal error. Raise disconnected event.
-                        this.OnJsonRpcDisconnected(e);
-                        break;
-                    }
-
-                    if (protocolMessage == null)
-                    {
-                        // End of stream reached
-                        disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.ReachedEndOfStream, DisconnectedReason.Disposed);
-                        break;
+                            exception));
+                        return;
                     }
 
                     this.HandleRpcAsync(protocolMessage).Forget(); // all exceptions are handled internally
                 }
-            }
-            finally
-            {
-                this.completionSource.TrySetResult(true);
-                if (disconnectedEventArgs == null)
-                {
-                    disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
-                }
 
-                this.OnJsonRpcDisconnected(disconnectedEventArgs);
+                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed));
+            }
+            catch (Exception ex)
+            {
+                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(ex.Message, DisconnectedReason.StreamError, ex));
+                throw;
             }
         }
 
@@ -1590,11 +1607,11 @@ namespace StreamJsonRpc
 
                     JsonRpcMessage result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
 
-                    if (request.IsResponseExpected)
+                    if (request.IsResponseExpected && !this.IsDisposed)
                     {
                         try
                         {
-                            await this.TransmitAsync(result, this.disposeCts.Token).ConfigureAwait(false);
+                            await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
@@ -1725,7 +1742,7 @@ namespace StreamJsonRpc
             Requires.NotNull(state, nameof(state));
             Task.Run(async delegate
             {
-                if (!this.disposed)
+                if (!this.IsDisposed)
                 {
                     var cancellationMessage = new JsonRpcRequest
                     {
@@ -1735,7 +1752,7 @@ namespace StreamJsonRpc
                             { "id", state },
                         },
                     };
-                    await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
+                    await this.TransmitAsync(cancellationMessage, this.DisconnectedToken).ConfigureAwait(false);
                 }
             }).Forget();
         }

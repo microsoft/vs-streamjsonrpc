@@ -1,11 +1,7 @@
 StreamJsonRpc.BadRpcHeaderException
 StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.Disposed = 3 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.FatalException = 4 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.ParseError = 2 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.StreamError = 1 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.Unknown = 0 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.HeaderDelimitedMessageHandler
 StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream) -> void
 StreamJsonRpc.HeaderDelimitedMessageHandler.SubType.get -> string

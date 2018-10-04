@@ -3,6 +3,10 @@ StreamJsonRpc.ConnectionLostException.ConnectionLostException() -> void
 StreamJsonRpc.ConnectionLostException.ConnectionLostException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message) -> void
 StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message, System.Exception innerException) -> void
+StreamJsonRpc.DisconnectedReason.LocallyDisposed = 2 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.ParseError = 1 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.RemotePartyTerminated = 3 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.StreamError = 0 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.get -> System.Text.Encoding
 StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.set -> void
 StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
@@ -39,6 +43,7 @@ StreamJsonRpc.JsonMessageFormatter.Serialize(System.Buffers.IBufferWriter<byte> 
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.get -> bool
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> void
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.IsDisposed.get -> bool
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler) -> void
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler, object target) -> void
 StreamJsonRpc.JsonRpc.TraceEvents
@@ -54,6 +59,7 @@ StreamJsonRpc.JsonRpc.TraceEvents.MessageSent = 8 -> StreamJsonRpc.JsonRpc.Trace
 StreamJsonRpc.JsonRpc.TraceEvents.ReceivedCancellation = 4 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ReceivedError = 12 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ReceivedResult = 11 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestAbandonedByRemote = 14 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.RequestReceived = 6 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.RequestWithoutMatchingTarget = 5 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceSource.get -> System.Diagnostics.TraceSource
