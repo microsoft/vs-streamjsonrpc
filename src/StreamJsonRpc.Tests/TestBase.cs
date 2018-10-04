@@ -27,6 +27,7 @@ public abstract class TestBase : IDisposable
     {
         this.Logger = logger;
         this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
+        this.timeoutTokenSource.Token.Register(() => this.Logger.WriteLine($"TEST TIMEOUT: {nameof(TestBase)}.{nameof(this.TimeoutToken)} has been canceled due to the test exceeding the {TestTimeout} time limit."));
     }
 
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
