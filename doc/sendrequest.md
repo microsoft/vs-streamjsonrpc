@@ -54,6 +54,33 @@ will reflect cancellation only after the request's transmission is avoided or th
 cancellation result. Otherwise, the `Task` will still complete or fault based on the server's ordinary
 response to the original request.
 
+## Responses come back asynchronously
+
+As JSON-RPC is fundamentally an async protocol, and typically used to communicate between processes or machines,
+`JsonRpc` exposes only async methods for sending requests and awaiting responses.
+
+In fact, supporting non-Task returning methods would be potentially very problematic because that would mean StreamJsonRpc is responsible to artificially block the calling thread until the result came back. But that can quickly lead to hangs if, for example, the calling thread is your app's UI thread. It can deadlock if the server needs to call back to your client before returning a response, and your client can't respond because its UI thread is hung.
+
+When you have an unavoidable requirement to synchronously block while waiting for *any* async code to complete (whether JSON-RPC related or otherwise),
+we recommend use of the [JoinableTaskFactory](https://aka.ms/vsthreading) as found in the [Microsoft.VisualStudio.Threading](https://www.nuget.org/packages/Microsoft.VisualStudio.threading) library. That can block the UI thread (or any other thread) while executing async operations. In the case of StreamJsonRpc, that means the client might have something like this:
+
+```cs
+interface IJsonRpcService
+{
+    Task SomeOperationAsync();
+}
+
+var client = JsonRpc.Attach<IJsonRpcService>(pipe);
+
+// Call the operation, blocking the thread till the operation is done:
+joinableTaskFactory.Run(async delegate
+{
+    await client.SomeOperationAsync();
+});
+```
+
+The upside of taking this approach is that you're writing new code that is async, which can be called asynchronously in all your *new* scenarios, all the while still satisfying your legacy synchronous requirements. It's a "bridge" into the new async world that can actually work in practice. :)
+
 ## Invoking methods (and requesting responses) with weak typing
 
 ### Invoking using positional arguments (array)
