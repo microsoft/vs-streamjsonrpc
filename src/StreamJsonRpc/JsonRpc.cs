@@ -952,7 +952,7 @@ namespace StreamJsonRpc
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
+        protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
@@ -968,7 +968,7 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
+        protected async Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
