@@ -32,5 +32,10 @@ namespace StreamJsonRpc
         /// A fatal exception was thrown in a local method that was requested by the remote party.
         /// </summary>
         FatalException,
+
+        /// <summary>
+        /// An extensibility point was leveraged locally and broke the contract.
+        /// </summary>
+        LocalContractViolation,
     }
 }
