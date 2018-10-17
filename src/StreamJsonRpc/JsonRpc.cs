@@ -264,6 +264,8 @@ namespace StreamJsonRpc
 
             /// <summary>
             /// Occurs when a locally invoked method from a <see cref="JsonRpcRequest"/> throws an exception (or returns a faulted <see cref="Task"/>).
+            /// <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object[])"/> is invoked with the thrown <see cref="Exception"/>, request method name, request ID, and the argument object/array.
+            /// <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/> is invoked with a text message formatted with exception information.
             /// </summary>
             LocalInvocationError,
 
@@ -1252,6 +1254,7 @@ namespace StreamJsonRpc
             if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Error))
             {
                 this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\" for method {1}: {2}", request.Id, request.Method, exception);
+                this.TraceSource.TraceData(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, exception, request.Method, request.Id, request.Arguments);
             }
 
             exception = StripExceptionToInnerException(exception);
