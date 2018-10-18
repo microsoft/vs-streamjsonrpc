@@ -42,7 +42,7 @@ namespace StreamJsonRpc
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
-        /// that uses <see cref="Encoding.UTF8"/> for its text encoding.
+        /// that uses <see cref="Encoding.UTF8"/> (without the preamble) for its text encoding.
         /// </summary>
         public JsonMessageFormatter()
             : this(DefaultEncoding)
