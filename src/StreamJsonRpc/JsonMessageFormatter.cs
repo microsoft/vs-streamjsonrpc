@@ -31,16 +31,21 @@ namespace StreamJsonRpc
         internal const string ExceptionDataKey = "JToken";
 
         /// <summary>
+        /// UTF-8 encoding without a preamble.
+        /// </summary>
+        private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        /// <summary>
         /// Backing field for the <see cref="Encoding"/> property.
         /// </summary>
         private Encoding encoding;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
-        /// that uses <see cref="Encoding.UTF8"/> for its text encoding.
+        /// that uses <see cref="Encoding.UTF8"/> (without the preamble) for its text encoding.
         /// </summary>
         public JsonMessageFormatter()
-            : this(Encoding.UTF8)
+            : this(DefaultEncoding)
         {
         }
 
