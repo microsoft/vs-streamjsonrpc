@@ -288,6 +288,11 @@ namespace StreamJsonRpc
             /// A local request is canceled because the remote party terminated the connection.
             /// </summary>
             RequestAbandonedByRemote,
+
+            /// <summary>
+            /// An extensibility point was leveraged locally and broke the contract.
+            /// </summary>
+            LocalContractViolation,
         }
 
         /// <summary>
@@ -945,6 +950,26 @@ namespace StreamJsonRpc
         protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
+        /// Creates the <see cref="JsonRpcError.ErrorDetail"/> to be used as the value for the error property to be sent back to the client in response to an exception being thrown from an RPC method invoked locally.
+        /// </summary>
+        /// <param name="request">The request that led to the invocation that ended up failing.</param>
+        /// <param name="exception">The exception thrown from the RPC method.</param>
+        /// <returns>The error details to return to the client. Must not be <c>null</c>.</returns>
+        /// <remarks>
+        /// This method may be overridden in a derived class to change the way error details are expressed.
+        /// </remarks>
+        protected virtual JsonRpcError.ErrorDetail CreateErrorDetails(JsonRpcRequest request, Exception exception)
+        {
+            var localRpcEx = exception as LocalRpcException;
+            return new JsonRpcError.ErrorDetail
+            {
+                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? JsonRpcErrorCode.InvocationError,
+                Message = exception.Message,
+                Data = localRpcEx != null ? localRpcEx.ErrorData : new CommonErrorData(exception),
+            };
+        }
+
+        /// <summary>
         /// Invokes the specified RPC method.
         /// </summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
@@ -1258,19 +1283,28 @@ namespace StreamJsonRpc
             }
 
             exception = StripExceptionToInnerException(exception);
-            var localRpcEx = exception as LocalRpcException;
-            var data = localRpcEx != null
-                ? localRpcEx.ErrorData
-                : new CommonErrorData(exception);
+
+            var errorDetails = this.CreateErrorDetails(request, exception);
+            if (errorDetails == null)
+            {
+                string errorMessage = $"The {this.GetType().Name}.{nameof(this.CreateErrorDetails)} method returned null, which is not allowed.";
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Critical))
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Critical, (int)TraceEvents.LocalContractViolation, errorMessage);
+                }
+
+                var e = new JsonRpcDisconnectedEventArgs(
+                    errorMessage,
+                    DisconnectedReason.LocalContractViolation,
+                    exception);
+
+                this.OnJsonRpcDisconnected(e);
+            }
+
             return new JsonRpcError
             {
                 Id = request.Id,
-                Error = new JsonRpcError.ErrorDetail
-                {
-                    Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? JsonRpcErrorCode.InvocationError,
-                    Message = exception.Message,
-                    Data = data,
-                },
+                Error = errorDetails,
             };
         }
 
