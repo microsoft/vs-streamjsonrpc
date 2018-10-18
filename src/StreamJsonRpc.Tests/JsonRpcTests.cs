@@ -682,6 +682,20 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithParameterObject_Fields()
+    {
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_DefaultParameters()
+    {
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new { x = 2 }, this.TimeoutToken);
+        Assert.Equal(12, sum);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
@@ -1612,5 +1626,13 @@ public abstract class JsonRpcTests : TestBase
             this.AllowPostToReturn.Wait();
             base.Post(d, state);
         }
+    }
+
+    private class XAndYFields
+    {
+#pragma warning disable SA1307 // The lowercase must match the parameter names.
+        public int x;
+        public int y;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 }
