@@ -14,4 +14,11 @@ public class JsonMessageFormatterTests : TestBase
         : base(logger)
     {
     }
+
+    [Fact]
+    public void DefaultEncodingLacksPreamble()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Empty(formatter.Encoding.GetPreamble());
+    }
 }
