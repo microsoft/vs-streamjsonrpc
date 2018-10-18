@@ -264,6 +264,8 @@ namespace StreamJsonRpc
 
             /// <summary>
             /// Occurs when a locally invoked method from a <see cref="JsonRpcRequest"/> throws an exception (or returns a faulted <see cref="Task"/>).
+            /// <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object[])"/> is invoked with the thrown <see cref="Exception"/>, request method name, request ID, and the argument object/array.
+            /// <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/> is invoked with a text message formatted with exception information.
             /// </summary>
             LocalInvocationError,
 
@@ -977,7 +979,7 @@ namespace StreamJsonRpc
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
+        protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
@@ -993,7 +995,7 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
+        protected async Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
@@ -1277,6 +1279,7 @@ namespace StreamJsonRpc
             if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Error))
             {
                 this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\" for method {1}: {2}", request.Id, request.Method, exception);
+                this.TraceSource.TraceData(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, exception, request.Method, request.Id, request.Arguments);
             }
 
             exception = StripExceptionToInnerException(exception);
