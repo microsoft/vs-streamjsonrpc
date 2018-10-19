@@ -1122,6 +1122,11 @@ namespace StreamJsonRpc
                 }
             }
 
+            foreach (var field in paramsObject.GetType().GetTypeInfo().GetFields(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance))
+            {
+                result[field.Name] = field.GetValue(paramsObject);
+            }
+
             return result;
         }
 
