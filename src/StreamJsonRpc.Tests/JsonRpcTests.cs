@@ -1562,6 +1562,17 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
+    [DataContract]
+    public class XAndYFields
+    {
+#pragma warning disable SA1307 // The lowercase must match the parameter names.
+        [DataMember]
+        public int x;
+        [DataMember]
+        public int y;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
     internal class InternalClass
     {
     }
@@ -1626,13 +1637,5 @@ public abstract class JsonRpcTests : TestBase
             this.AllowPostToReturn.Wait();
             base.Post(d, state);
         }
-    }
-
-    private class XAndYFields
-    {
-#pragma warning disable SA1307 // The lowercase must match the parameter names.
-        public int x;
-        public int y;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 }
