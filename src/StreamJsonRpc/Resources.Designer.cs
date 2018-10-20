@@ -296,6 +296,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An argument was not supplied for a required parameter..
+        /// </summary>
+        internal static string RequiredArgumentMissing {
+            get {
+                return ResourceManager.GetString("RequiredArgumentMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Response is not error..
         /// </summary>
         internal static string ResponseIsNotError {

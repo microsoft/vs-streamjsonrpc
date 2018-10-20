@@ -268,4 +268,7 @@
   <data name="ConnectionDropped" xml:space="preserve">
     <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>
   </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>An argument was not supplied for a required parameter.</value>
+  </data>
 </root>

@@ -204,6 +204,10 @@
           <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
           <target state="new">The JSON-RPC connection with the remote party was lost before the request could complete.</target>
         </trans-unit>
+        <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+          <source>An argument was not supplied for a required parameter.</source>
+          <target state="new">An argument was not supplied for a required parameter.</target>
+        </trans-unit>
       </group>
     </body>
   </file>
