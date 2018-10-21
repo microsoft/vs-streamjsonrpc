@@ -1181,6 +1181,15 @@ public abstract class JsonRpcTests : TestBase
 
     protected abstract void InitializeFormattersAndHandlers();
 
+    protected override Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = 10)
+    {
+        // Make sure we aren't logging anything but errors.
+        this.serverRpc.TraceSource.Switch.Level = SourceLevels.Error;
+        this.clientRpc.TraceSource.Switch.Level = SourceLevels.Error;
+
+        return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
+    }
+
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
         Requires.NotNull(receivingStream, nameof(receivingStream));
@@ -1203,8 +1212,8 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Error);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Error);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
