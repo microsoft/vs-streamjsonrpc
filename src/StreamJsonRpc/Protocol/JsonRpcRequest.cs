@@ -19,11 +19,6 @@ namespace StreamJsonRpc.Protocol
     public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     {
         /// <summary>
-        /// Backing field for the <see cref="Arguments"/> property.
-        /// </summary>
-        private object arguments;
-
-        /// <summary>
         /// The result of an attempt to match request arguments with a candidate method's parameters.
         /// </summary>
         public enum ArgumentMatchResult
@@ -66,15 +61,7 @@ namespace StreamJsonRpc.Protocol
         /// If neither of these, <see cref="ArgumentCount"/> and <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
         /// </value>
         [DataMember(Name = "params", Order = 2, IsRequired = false, EmitDefaultValue = false)]
-        public object Arguments
-        {
-            get => this.arguments;
-            set
-            {
-                Requires.Argument(value is IReadOnlyDictionary<string, object> || value is object[] || value == null, nameof(value), "Disallowed type.");
-                this.arguments = value;
-            }
-        }
+        public object Arguments { get; set; }
 
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.

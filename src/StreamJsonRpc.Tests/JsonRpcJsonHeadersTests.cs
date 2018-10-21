@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -104,6 +105,14 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
+    public async Task InvokeWithParameterObject_WithRenamingAttributes()
+    {
+        var param = new ParamsObjectWithCustomNames { TheArgument = "hello" };
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.ServerMethod), param, this.TimeoutToken);
+        Assert.Equal(param.TheArgument + "!", result);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
@@ -192,6 +201,13 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
         this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+    }
+
+    [DataContract]
+    public class ParamsObjectWithCustomNames
+    {
+        [DataMember(Name = "argument")]
+        public string TheArgument { get; set; }
     }
 
     private class StringBase64Converter : JsonConverter
