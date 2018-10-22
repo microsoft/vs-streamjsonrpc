@@ -1181,6 +1181,15 @@ public abstract class JsonRpcTests : TestBase
 
     protected abstract void InitializeFormattersAndHandlers();
 
+    protected override Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = 10)
+    {
+        // Make sure we aren't logging anything but errors.
+        this.serverRpc.TraceSource.Switch.Level = SourceLevels.Error;
+        this.clientRpc.TraceSource.Switch.Level = SourceLevels.Error;
+
+        return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
+    }
+
     private static void SendObject(Stream receivingStream, object jsonObject)
     {
         Requires.NotNull(receivingStream, nameof(receivingStream));
@@ -1203,8 +1212,8 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Error);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Error);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -1562,6 +1571,18 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
+    [DataContract]
+    public class XAndYFields
+    {
+// We disable SA1307 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        [DataMember]
+        public int x;
+        [DataMember]
+        public int y;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
     internal class InternalClass
     {
     }
@@ -1626,13 +1647,5 @@ public abstract class JsonRpcTests : TestBase
             this.AllowPostToReturn.Wait();
             base.Post(d, state);
         }
-    }
-
-    private class XAndYFields
-    {
-#pragma warning disable SA1307 // The lowercase must match the parameter names.
-        public int x;
-        public int y;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 }
