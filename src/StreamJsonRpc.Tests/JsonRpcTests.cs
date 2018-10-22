@@ -1574,7 +1574,8 @@ public abstract class JsonRpcTests : TestBase
     [DataContract]
     public class XAndYFields
     {
-#pragma warning disable SA1307 // The lowercase must match the parameter names.
+// We disable SA1307 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
         [DataMember]
         public int x;
         [DataMember]
