@@ -1020,7 +1020,7 @@ namespace StreamJsonRpc
                     argument = arguments[0];
                 }
 
-                request.Arguments = GetParamsObjectDictionary(argument);
+                request.Arguments = argument;
             }
             else
             {
@@ -1099,35 +1099,6 @@ namespace StreamJsonRpc
             {
                 throw new ConnectionLostException(Resources.ConnectionDropped, ex);
             }
-        }
-
-        /// <summary>
-        /// Extracts a dictionary of property names and values from the specified params object.
-        /// </summary>
-        /// <param name="paramsObject">The params object supplied to <see cref="InvokeWithParameterObjectAsync{TResult}(string, object, CancellationToken)"/>.</param>
-        /// <returns>A dictionary, or <c>null</c> if <paramref name="paramsObject"/> is null.</returns>
-        private static Dictionary<string, object> GetParamsObjectDictionary(object paramsObject)
-        {
-            if (paramsObject == null)
-            {
-                return null;
-            }
-
-            var result = new Dictionary<string, object>(StringComparer.Ordinal);
-            foreach (var property in paramsObject.GetType().GetTypeInfo().GetProperties(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (property.GetMethod != null)
-                {
-                    result[property.Name] = property.GetValue(paramsObject);
-                }
-            }
-
-            foreach (var field in paramsObject.GetType().GetTypeInfo().GetFields(BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance))
-            {
-                result[field.Name] = field.GetValue(paramsObject);
-            }
-
-            return result;
         }
 
         /// <summary>

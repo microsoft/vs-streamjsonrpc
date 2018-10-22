@@ -202,15 +202,15 @@ namespace StreamJsonRpc
         {
             if (jsonRpcMessage is Protocol.JsonRpcRequest request)
             {
-                if (request.NamedArguments != null)
-                {
-                    request.NamedArguments = request.NamedArguments.ToDictionary(
-                        kv => kv.Key,
-                        kv => (object)this.TokenizeUserData(kv.Value));
-                }
-                else if (request.ArgumentsArray != null)
+                if (request.ArgumentsArray != null)
                 {
                     request.ArgumentsArray = request.ArgumentsArray.Select(this.TokenizeUserData).ToArray();
+                }
+                else if (request.Arguments != null)
+                {
+                    // Tokenize the user data using the user-supplied serializer.
+                    var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+                    request.Arguments = paramsObject;
                 }
             }
             else if (jsonRpcMessage is Protocol.JsonRpcResult result)
