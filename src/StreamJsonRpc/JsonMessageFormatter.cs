@@ -76,7 +76,11 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the <see cref="Newtonsoft.Json.JsonSerializer"/> used when serializing and deserializing method arguments and return values.
         /// </summary>
-        public JsonSerializer JsonSerializer { get; } = new JsonSerializer();
+        public JsonSerializer JsonSerializer { get; } = new JsonSerializer()
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+        };
 
         /// <inheritdoc/>
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
