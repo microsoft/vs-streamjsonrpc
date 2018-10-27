@@ -168,7 +168,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            var headers = await this.ReadHeadersAsync(cancellationToken);
+            var headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
             if (!headers.HasValue)
             {
                 // end of stream reached before the next message started.
@@ -182,7 +182,7 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken);
+            var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken).ConfigureAwait(false);
             ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
             try
             {
@@ -438,7 +438,7 @@ namespace StreamJsonRpc
 
             while (true)
             {
-                var readResult = await this.Reader.ReadAsync(cancellationToken);
+                var readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
                 if (readResult.Buffer.Length == 0 && readResult.IsCompleted)
                 {
                     return default; // remote end disconnected at a reasonable place.

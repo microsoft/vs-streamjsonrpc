@@ -157,11 +157,11 @@ namespace StreamJsonRpc
         /// </exception>
         protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
         {
-            var readResult = await this.Reader.ReadAsync(cancellationToken);
+            var readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             while (readResult.Buffer.Length < requiredBytes && !readResult.IsCompleted && !readResult.IsCanceled)
             {
                 this.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                readResult = await this.Reader.ReadAsync(cancellationToken);
+                readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             }
 
             if (allowEmpty && readResult.Buffer.Length == 0)
