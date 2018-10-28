@@ -4,6 +4,7 @@
 using System;
 using System.Text;
 using Nerdbank.Streams;
+using Newtonsoft.Json;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
@@ -44,5 +45,13 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal(msg.Method, readMsg.Method);
 
         Assert.Equal(utf32Length - Encoding.UTF32.GetPreamble().Length, asciiLength * 4);
+    }
+
+    [Fact]
+    public void SerializerDefaults()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Equal(ConstructorHandling.AllowNonPublicDefaultConstructor, formatter.JsonSerializer.ConstructorHandling);
+        Assert.Equal(NullValueHandling.Ignore, formatter.JsonSerializer.NullValueHandling);
     }
 }
