@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Parametry {0} nejsou kompatibilní s žádostí: {1}.</value>
+    <value>Počet parametrů nekompatibilních s argumenty zadanými v žádosti: {0}</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Neočekávaná chyba při zpracování JSON RPC {0}: {1}</value>
+    <value>Neočekávaná chyba při zpracování zprávy JSON-RPC: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Nerozpoznané příchozí JSON RPC {0}</value>
+    <value>Příchozí zpráva JSON-RPC se neshoduje s rozpoznávaným vzorkem.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</value>
@@ -155,5 +155,12 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>{0} není rozhraní.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Kódování textu není podporováno, protože formátovací modul {0} neimplementuje {1}.</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>Připojení JSON-RPC se vzdálenou stranou bylo ztraceno, ještě než se žádost mohla dokončit.</value>
   </data>
 </root>

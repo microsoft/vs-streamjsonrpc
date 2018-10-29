@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Los parámetros {0} no son compatibles con la solicitud: {1}</value>
+    <value>Los parámetros de {0} no son compatibles con los argumentos proporcionados en la solicitud.</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Error inesperado al procesar '{0}' de JSON RPC: {1}</value>
+    <value>Mensaje de error inesperado al procesar JSON-RPC: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>No se reconoce '{0}' de JSON RPC entrante</value>
+    <value>El mensaje de JSON-RPC entrante no se ajusta a un patrón reconocido.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>No se pudo analizar el encabezado Content-Length en un número entero positivo.</value>
@@ -155,5 +155,15 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" no es una interfaz.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>La codificación de texto no es compatible porque el formateador "{0}" no implementa "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>La conexión de JSON-RPC con la parte remota se perdió antes de que se pudiera completar la solicitud.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>No se proporcionó un argumento para un parámetro requerido.</value>
   </data>
 </root>

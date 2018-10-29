@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} paramètres ne sont pas compatibles avec la demande : {1}</value>
+    <value>Les paramètres de {0} ne sont pas compatibles avec les arguments fournis dans la requête.</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Erreur inattendue lors du traitement du protocole JSON RPC '{0}' : {1}</value>
+    <value>Erreur inattendue durant le traitement du message JSON-RPC : {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>JSON RPC entrant non reconnu '{0}'</value>
+    <value>Le message JSON-RPC entrant n’est pas conforme à un modèle reconnu.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Échec de l’analyse de l’en-tête Content-Length dans un entier positif.</value>
@@ -155,5 +155,15 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" n'est pas une interface.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>L'encodage de texte n’est pas pris en charge car le formateur « {0} » n'implémente pas « {1} ».</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>La connexion JSON-RPC avec le site distant a été interrompue avant la fin de la requête.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Un argument n'a pas été fourni pour un paramètre obligatoire.</value>
   </data>
 </root>

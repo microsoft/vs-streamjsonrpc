@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Parâmetros {0} não são compatíveis com a solicitação: {1}</value>
+    <value>Os parâmetros {0} não são compatíveis com os argumentos fornecidos na solicitação.</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Erro inesperado ao processar o RPC de JSON '{0}': {1}</value>
+    <value>Erro inesperado ao processar a mensagem JSON-RPC: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>RPC de JSON de entrada '{0}' não reconhecido</value>
+    <value>A mensagem JSON-RPC de entrada não estava em conformidade com um padrão reconhecido.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Falha ao analisar o cabeçalho de Content-Length em um inteiro positivo.</value>
@@ -155,5 +155,15 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" não é uma interface.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Não há suporte para a codificação de texto, pois o formatador "{0}" não implementa "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>A conexão JSON-RPC com a parte remota foi perdida antes que a solicitação pudesse ser concluída.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Um argumento não foi fornecido para um parâmetro necessário.</value>
   </data>
 </root>

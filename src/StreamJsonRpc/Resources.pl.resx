@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Parametry metody {0} nie są zgodne z żądaniem: {1}</value>
+    <value>Parametry {0} nie są zgodne z argumentami zawartymi w żądaniu.</value>
     <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Nieoczekiwany błąd przetwarzania wywołania RPC JSON „{0}”: {1}</value>
+    <value>Nieoczekiwany błąd podczas przetwarzania komunikatu JSON-RPC: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Nierozpoznane przychodzące wywołanie JSON RPC „{0}”</value>
+    <value>Przychodzący komunikat JSON-RPC nie był zgodny z rozpoznanym wzorcem.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Nie powiodło się przekształcanie nagłówka Content-Length w dodatnią liczbę całkowitą.</value>
@@ -155,5 +155,12 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>Element „{0}” nie jest interfejsem.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Kodowanie tekstu nie jest obsługiwane, ponieważ program formatujący „{0}” nie implementuje elementu „{1}”.</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>Połączenie JSON-RPC z podmiotem zdalnym zostało utracone, zanim można było ukończyć żądanie.</value>
   </data>
 </root>
