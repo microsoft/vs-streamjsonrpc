@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en-US" target-language="ko" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -41,8 +41,7 @@
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the arguments provided in the request.</source>
-          <target state="needs-review-translation">{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">{0} 매개 변수는 요청에 제공된 인수와 호환되지 않습니다.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -77,14 +76,12 @@
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unexpected error processing JSON-RPC message: {0}</source>
-          <target state="needs-review-translation">JSON RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류 발생:{1}</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류 발생: {0}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
           <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
-          <target state="needs-review-translation">인식되지 않은 들어오는 JSON RPC '{0}'</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">들어오는 JSON-RPC 메시지가 인식되는 패턴과 일치하지 않습니다.</target>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -197,16 +194,16 @@
         </trans-unit>
         <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
           <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
-          <target state="new">Text encoding is not supported because the formatter "{0}" does not implement "{1}".</target>
+          <target state="translated">포맷터 "{0}"이(가) "{1}"을(를) 구현하지 않기 때문에 텍스트 인코딩이 지원되지 않습니다.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
         </trans-unit>
         <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
           <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
-          <target state="new">The JSON-RPC connection with the remote party was lost before the request could complete.</target>
+          <target state="translated">요청을 완료하기 전에 원격 대상과 JSON-RPC 연결이 끊어졌습니다.</target>
         </trans-unit>
         <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
           <source>An argument was not supplied for a required parameter.</source>
-          <target state="new">An argument was not supplied for a required parameter.</target>
+          <target state="translated">필수 매개 변수에 인수가 제공되지 않았습니다.</target>
         </trans-unit>
       </group>
     </body>

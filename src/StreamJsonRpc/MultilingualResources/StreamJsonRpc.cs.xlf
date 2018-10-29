@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en-US" target-language="cs" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -41,8 +41,7 @@
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the arguments provided in the request.</source>
-          <target state="needs-review-translation">Parametry {0} nejsou kompatibilní s žádostí: {1}.</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">Počet parametrů nekompatibilních s argumenty zadanými v žádosti: {0}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -77,14 +76,12 @@
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unexpected error processing JSON-RPC message: {0}</source>
-          <target state="needs-review-translation">Neočekávaná chyba při zpracování JSON RPC {0}: {1}</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">Neočekávaná chyba při zpracování zprávy JSON-RPC: {0}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
           <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
-          <target state="needs-review-translation">Nerozpoznané příchozí JSON RPC {0}</target>
-          <note from="MultilingualUpdate" annotates="source" priority="2">Please verify the translation’s accuracy as the source string was updated after it was translated.</note>
+          <target state="translated">Příchozí zpráva JSON-RPC se neshoduje s rozpoznávaným vzorkem.</target>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -197,16 +194,15 @@
         </trans-unit>
         <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
           <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
-          <target state="new">Text encoding is not supported because the formatter "{0}" does not implement "{1}".</target>
+          <target state="translated">Kódování textu není podporováno, protože formátovací modul {0} neimplementuje {1}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
         </trans-unit>
         <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
           <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
-          <target state="new">The JSON-RPC connection with the remote party was lost before the request could complete.</target>
+          <target state="translated">Připojení JSON-RPC se vzdálenou stranou bylo ztraceno, ještě než se žádost mohla dokončit.</target>
         </trans-unit>
         <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
           <source>An argument was not supplied for a required parameter.</source>
-          <target state="new">An argument was not supplied for a required parameter.</target>
         </trans-unit>
       </group>
     </body>
