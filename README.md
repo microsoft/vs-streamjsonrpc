@@ -2,7 +2,7 @@ StreamJsonRpc
 ===============
 
 [![NuGet package](https://img.shields.io/nuget/v/StreamJsonRpc.svg)](https://nuget.org/packages/StreamJsonRpc)
-[![Build Status](https://andrewarnott.visualstudio.com/OSS/_apis/build/status/vs-streamjsonrpc)](https://andrewarnott.visualstudio.com/OSS/_build/latest?definitionId=10)
+[![Build Status](https://dev.azure.com/azure-public/vside/_apis/build/status/vs-streamjsonrpc)](https://dev.azure.com/azure-public/vside/_build/latest?definitionId=13)
 [![codecov](https://codecov.io/gh/Microsoft/vs-streamjsonrpc/branch/master/graph/badge.svg)](https://codecov.io/gh/Microsoft/vs-streamjsonrpc)
 [![Join the chat at https://gitter.im/vs-streamjsonrpc/Lobby](https://badges.gitter.im/vs-streamjsonrpc/Lobby.svg)](https://gitter.im/vs-streamjsonrpc/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
