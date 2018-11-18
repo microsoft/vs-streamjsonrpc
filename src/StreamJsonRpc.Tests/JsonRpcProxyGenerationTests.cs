@@ -57,6 +57,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
+    public interface IServerWithBadCancellationParam
+    {
+        Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
+    }
+
     public interface IServer3
     {
         Task<string> SayHiAsync();
@@ -222,6 +227,12 @@ public class JsonRpcProxyGenerationTests : TestBase
         cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
         Assert.Equal(456, await this.server.MethodResult.Task); // assert that the argument we passed actually reached the method
+    }
+
+    [Fact]
+    public void CancellationTokenInBadPositionIsRejected()
+    {
+        Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithBadCancellationParam>(new MemoryStream()));
     }
 
     /// <summary>

@@ -246,6 +246,9 @@
   <data name="MustNotBeListening" xml:space="preserve">
     <value>This cannot be done after listening has started.</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>A CancellationToken is only allowed as the last parameter.</value>
+  </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" is not an interface.</value>
   </data>
