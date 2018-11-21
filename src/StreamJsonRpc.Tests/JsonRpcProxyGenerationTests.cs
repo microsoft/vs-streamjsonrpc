@@ -18,7 +18,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     private JsonRpc serverRpc;
 
     private FullDuplexStream clientStream;
-    private IServer clientRpc;
+    private IServerDerived clientRpc;
 
     public JsonRpcProxyGenerationTests(ITestOutputHelper logger)
         : base(logger)
@@ -27,7 +27,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.clientRpc = JsonRpc.Attach<IServer>(this.clientStream);
+        this.clientRpc = JsonRpc.Attach<IServerDerived>(this.clientStream);
 
         this.server = new Server();
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
@@ -48,7 +48,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task IncrementAsync();
 
         Task Dispose();
+    }
 
+    public interface IServerDerived : IServer
+    {
         Task HeavyWorkAsync(CancellationToken cancellationToken);
 
         Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken);
@@ -99,7 +102,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     public void ProxyTypeIsReused()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var clientRpc = JsonRpc.Attach<IServer>(streams.Item1);
+        var clientRpc = JsonRpc.Attach<IServerDerived>(streams.Item1);
         Assert.IsType(this.clientRpc.GetType(), clientRpc);
     }
 
@@ -378,7 +381,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public int Seeds { get; set; }
     }
 
-    internal class Server : IServer, IServer2, IServer3
+    internal class Server : IServerDerived, IServer2, IServer3
     {
         public event EventHandler ItHappened;
 
