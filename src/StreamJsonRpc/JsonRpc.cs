@@ -1851,7 +1851,8 @@ namespace StreamJsonRpc
             {
                 Requires.NotNull(typeInfo, nameof(typeInfo));
 #if !NETSTANDARD1_6
-                this.interfaceMaps = typeInfo.ImplementedInterfaces.Select(i => typeInfo.GetInterfaceMap(i)).ToList();
+                this.interfaceMaps = typeInfo.IsInterface ? new List<InterfaceMapping>()
+                    : typeInfo.ImplementedInterfaces.Select(typeInfo.GetInterfaceMap).ToList();
 #else
                 this.interfaceMaps = new List<InterfaceMapping>();
 #endif
