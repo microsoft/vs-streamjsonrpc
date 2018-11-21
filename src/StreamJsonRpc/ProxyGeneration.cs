@@ -232,6 +232,7 @@ namespace StreamJsonRpc
                     {
                         if (methodParameters[i].ParameterType == typeof(CancellationToken))
                         {
+                            VerifySupported(i == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
                             cancellationTokenParameter = methodParameters[i];
                             continue;
                         }
