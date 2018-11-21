@@ -82,11 +82,11 @@ namespace StreamJsonRpc
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 var optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
 
-                VerifySupported(!serviceInterface.DeclaredProperties.Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
+                VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
                 // Implement events
                 var ctorActions = new List<Action<ILGenerator>>();
-                foreach (var evt in serviceInterface.DeclaredEvents)
+                foreach (var evt in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredEvents))
                 {
                     VerifySupported(evt.EventHandlerType.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
 
@@ -196,7 +196,7 @@ namespace StreamJsonRpc
                 var invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod);
                 var invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod);
 
-                foreach (var method in serviceInterface.DeclaredMethods.Where(m => !m.IsSpecialName))
+                foreach (var method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
                     VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
                     VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
@@ -232,6 +232,7 @@ namespace StreamJsonRpc
                     {
                         if (methodParameters[i].ParameterType == typeof(CancellationToken))
                         {
+                            VerifySupported(i == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
                             cancellationTokenParameter = methodParameters[i];
                             continue;
                         }
@@ -378,6 +379,15 @@ namespace StreamJsonRpc
 
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, messageFormat, formattingArgs));
             }
+        }
+
+        private static IEnumerable<T> FindAllOnThisAndOtherInterfaces<T>(TypeInfo interfaceType, Func<TypeInfo, IEnumerable<T>> oneInterfaceQuery)
+        {
+            Requires.NotNull(interfaceType, nameof(interfaceType));
+            Requires.NotNull(oneInterfaceQuery, nameof(oneInterfaceQuery));
+
+            var result = oneInterfaceQuery(interfaceType);
+            return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
         }
     }
 }

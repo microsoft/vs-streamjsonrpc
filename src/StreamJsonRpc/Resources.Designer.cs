@@ -71,6 +71,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A CancellationToken is only allowed as the last parameter..
+        /// </summary>
+        internal static string CancellationTokenMustBeLastParameter {
+            get {
+                return ResourceManager.GetString("CancellationTokenMustBeLastParameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &quot;{0}&quot; is not an interface..
         /// </summary>
         internal static string ClientProxyTypeArgumentMustBeAnInterface {

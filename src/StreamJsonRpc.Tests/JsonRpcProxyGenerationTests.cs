@@ -18,7 +18,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     private JsonRpc serverRpc;
 
     private FullDuplexStream clientStream;
-    private IServer clientRpc;
+    private IServerDerived clientRpc;
 
     public JsonRpcProxyGenerationTests(ITestOutputHelper logger)
         : base(logger)
@@ -27,7 +27,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.clientRpc = JsonRpc.Attach<IServer>(this.clientStream);
+        this.clientRpc = JsonRpc.Attach<IServerDerived>(this.clientStream);
 
         this.server = new Server();
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
@@ -48,13 +48,21 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task IncrementAsync();
 
         Task Dispose();
+    }
 
+    public interface IServerDerived : IServer
+    {
         Task HeavyWorkAsync(CancellationToken cancellationToken);
 
         Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken);
 
         [JsonRpcMethod("AnotherName")]
         Task<string> ARoseByAsync(string name);
+    }
+
+    public interface IServerWithBadCancellationParam
+    {
+        Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
 
     public interface IServer3
@@ -99,7 +107,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     public void ProxyTypeIsReused()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var clientRpc = JsonRpc.Attach<IServer>(streams.Item1);
+        var clientRpc = JsonRpc.Attach<IServerDerived>(streams.Item1);
         Assert.IsType(this.clientRpc.GetType(), clientRpc);
     }
 
@@ -192,14 +200,42 @@ public class JsonRpcProxyGenerationTests : TestBase
     {
         await this.clientRpc.HeavyWorkAsync(CancellationToken.None);
         Assert.Equal(1, this.server.Counter);
+        this.server.MethodEntered.Reset();
+
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(new CancellationToken(canceled: true)));
+        Assert.False(this.server.MethodEntered.IsSet);
+
+        var cts = new CancellationTokenSource();
+        this.server.ResumeMethod.Reset();
+        Task task = this.clientRpc.HeavyWorkAsync(cts.Token);
+        await this.server.MethodEntered.WaitAsync().WithCancellation(this.TimeoutToken);
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
     }
 
     [Fact]
     public async Task CallMethod_intCancellationToken_int()
     {
         Assert.Equal(123, await this.clientRpc.HeavyWorkAsync(123, CancellationToken.None));
+        this.server.MethodEntered.Reset();
+        this.server.MethodResult = new TaskCompletionSource<int>();
+
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.HeavyWorkAsync(456, new CancellationToken(canceled: true)));
+        Assert.False(this.server.MethodEntered.IsSet);
+
+        var cts = new CancellationTokenSource();
+        this.server.ResumeMethod.Reset();
+        Task task = this.clientRpc.HeavyWorkAsync(456, cts.Token);
+        await this.server.MethodEntered.WaitAsync().WithCancellation(this.TimeoutToken);
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+        Assert.Equal(456, await this.server.MethodResult.Task); // assert that the argument we passed actually reached the method
+    }
+
+    [Fact]
+    public void CancellationTokenInBadPositionIsRejected()
+    {
+        Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithBadCancellationParam>(new MemoryStream()));
     }
 
     /// <summary>
@@ -378,11 +414,17 @@ public class JsonRpcProxyGenerationTests : TestBase
         public int Seeds { get; set; }
     }
 
-    internal class Server : IServer, IServer2, IServer3
+    internal class Server : IServerDerived, IServer2, IServer3
     {
         public event EventHandler ItHappened;
 
         public event EventHandler<CustomEventArgs> TreeGrown;
+
+        public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
+
+        public AsyncManualResetEvent ResumeMethod { get; } = new AsyncManualResetEvent(initialState: true);
+
+        public TaskCompletionSource<int> MethodResult { get; set; } = new TaskCompletionSource<int>();
 
         public int Counter { get; set; }
 
@@ -404,17 +446,21 @@ public class JsonRpcProxyGenerationTests : TestBase
             return TplExtensions.CompletedTask;
         }
 
-        public Task HeavyWorkAsync(CancellationToken cancellationToken)
+        public async Task HeavyWorkAsync(CancellationToken cancellationToken)
         {
+            this.MethodEntered.Set();
+            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
             this.Counter++;
             cancellationToken.ThrowIfCancellationRequested();
-            return TplExtensions.CompletedTask;
         }
 
-        public Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken)
+        public async Task<int> HeavyWorkAsync(int param1, CancellationToken cancellationToken)
         {
+            this.MethodEntered.Set();
+            this.MethodResult.SetResult(param1);
+            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(param1);
+            return param1;
         }
 
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
