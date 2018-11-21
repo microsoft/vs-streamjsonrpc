@@ -46,6 +46,12 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the client proxy will pass named arguments (i.e. an args object)
+        /// instead of the default positional arguments (i.e. an args array).
+        /// </summary>
+        public bool ServerRequiresNamedArguments { get; set; }
+
+        /// <summary>
         /// Gets an instance with default properties.
         /// </summary>
         /// <remarks>

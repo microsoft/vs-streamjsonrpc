@@ -78,6 +78,20 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> MultiplyAsync(int a, int b);
     }
 
+    public interface IServerWithParamsObject
+    {
+        Task<int> SumOfParameterObject(int a, int b);
+
+        Task<int> SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
+    }
+
+    public interface IServerWithParamsObjectNoResult
+    {
+        Task SumOfParameterObject(int a, int b);
+
+        Task SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
+    }
+
     public interface IServerWithNonTaskReturnTypes
     {
         int Add(int a, int b);
@@ -405,6 +419,75 @@ public class JsonRpcProxyGenerationTests : TestBase
         clientRpcWithPrefix.ItHappened -= handler;
     }
 
+    [Fact]
+    public async Task CallServerWithParameterObject()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
+        client.StartListening();
+
+        int result = await clientRpc.SumOfParameterObject(1, 2);
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_WithCancellationToken()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
+        client.StartListening();
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+        server.ResumeMethod.Reset();
+        Task<int> task = clientRpc.SumOfParameterObject(1, 2, cts.Token);
+        Assert.Equal(3, await server.MethodResult.Task);
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_NoReturnValue()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
+        client.StartListening();
+
+        await clientRpc.SumOfParameterObject(1, 2);
+        int result = await server.MethodResult.Task;
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_NoReturnValue_WithCancellationToken()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
+        client.StartListening();
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+        server.ResumeMethod.Reset();
+        Task task = clientRpc.SumOfParameterObject(1, 2, cts.Token);
+        Assert.Equal(3, await server.MethodResult.Task);
+        cts.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+    }
+
     public class EmptyClass
     {
     }
@@ -466,6 +549,15 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
 
         public Task<string> ARoseByAsync(string name) => Task.FromResult(name.ToUpperInvariant());
+
+        public async Task<int> SumOfParameterObject(Newtonsoft.Json.Linq.JToken paramObject, CancellationToken cancellationToken)
+        {
+            this.MethodEntered.Set();
+            int sum = paramObject.Value<int>("a") + paramObject.Value<int>("b");
+            this.MethodResult.SetResult(sum);
+            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
+            return sum;
+        }
 
         internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
 
