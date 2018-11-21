@@ -37,6 +37,14 @@ The `JsonRpc` object assigned to the `rpc` variable is now listening for request
 methods on the `target` object as requested. You can also make requests with this `rpc` object just like the earlier example.
 [Learn more about receiving requests](recvrequest.md).
 
+For servers that should wait for incoming RPC requests until the client disconnects, utilize the `JsonRpc.Completion` property
+which returns a `Task` that completes when the connection drops. By awaiting this after attaching `JsonRpc` to the stream,
+and before disposing the stream, you can hold the connection open as long as the client maintains it:
+
+```cs
+await rpc.Completion;
+```
+
 ## Disconnecting
 
 Once connected, a *listening* `JsonRpc` object will continue to operate till the connection is terminated, even if
