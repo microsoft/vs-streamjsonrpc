@@ -419,7 +419,7 @@ namespace StreamJsonRpc
             options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
-            var mapping = GetRequestMethodToClrMethodMap(target);
+            var mapping = GetRequestMethodToClrMethodMap(target, options);
             lock (this.syncObject)
             {
                 foreach (var item in mapping)
@@ -982,10 +982,12 @@ namespace StreamJsonRpc
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
+        /// <param name="options">The options that apply for this target object.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target)
+        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
+            Requires.NotNull(options, nameof(options));
 
             var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
             var requestMethodToClrMethodNameMap = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -999,6 +1001,11 @@ namespace StreamJsonRpc
                 // As we enumerate methods, skip accessor methods
                 foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
+                    if (!options.AllowNonPublicInvocation && !method.IsPublic)
+                    {
+                        continue;
+                    }
+
                     var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))

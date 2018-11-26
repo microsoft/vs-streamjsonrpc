@@ -330,16 +330,33 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
     }
 
-    [Fact]
-    public async Task CannotCallPrivateMethod()
+    [Theory]
+    [PairwiseData]
+    public async Task NonPublicMethods_InvokableOnlyUnderOption(bool allowNonPublicInvocation, bool attributedMethod)
     {
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod), 10));
-    }
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
 
-    [Fact]
-    public async Task CannotCallPrivateMethodEvenWithAttribute()
-    {
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethodWithAttribute), 10));
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = allowNonPublicInvocation });
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string methodName = attributedMethod ? nameof(Server.InternalMethodWithAttribute) : nameof(Server.InternalMethod);
+        Task invocationAttempt = this.clientRpc.InvokeAsync(methodName);
+        if (allowNonPublicInvocation)
+        {
+            await invocationAttempt;
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => invocationAttempt);
+        }
     }
 
     [Fact]
@@ -1607,11 +1624,13 @@ public class JsonRpcTests : TestBase
 
         internal void InternalMethod()
         {
+            this.ServerMethodReached.Set();
         }
 
         [JsonRpcMethod("InternalMethodWithAttribute")]
         internal void InternalMethodWithAttribute()
         {
+            this.ServerMethodReached.Set();
         }
     }
 
