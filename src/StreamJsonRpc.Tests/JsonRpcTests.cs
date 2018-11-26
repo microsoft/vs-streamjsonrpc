@@ -330,18 +330,33 @@ public class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
     }
 
-    [Fact]
-    public async Task CanCallNonPublicMethods()
+    [Theory]
+    [PairwiseData]
+    public async Task NonPublicMethods_InvokableOnlyUnderOption(bool allowNonPublicInvocation, bool attributedMethod)
     {
-        await this.clientRpc.InvokeAsync(nameof(Server.InternalMethod));
-        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-    }
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
 
-    [Fact]
-    public async Task CanCallNonPublicMethodsWithAttribute()
-    {
-        await this.clientRpc.InvokeAsync(nameof(Server.InternalMethodWithAttribute));
-        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = allowNonPublicInvocation });
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string methodName = attributedMethod ? nameof(Server.InternalMethodWithAttribute) : nameof(Server.InternalMethod);
+        Task invocationAttempt = this.clientRpc.InvokeAsync(methodName);
+        if (allowNonPublicInvocation)
+        {
+            await invocationAttempt;
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => invocationAttempt);
+        }
     }
 
     [Fact]

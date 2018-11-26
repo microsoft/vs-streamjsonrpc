@@ -30,6 +30,13 @@ namespace StreamJsonRpc
         public bool NotifyClientOfEvents { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets a value indicating whether non-public methods/events on target objects can be invoked
+        /// by remote clients.
+        /// </summary>
+        /// <value>The default value is <c>true</c> (for backward compatibility with previous 1.x versions).</value>
+        public bool AllowNonPublicInvocation { get; set; } = true;
+
+        /// <summary>
         /// Gets an instance with default properties.
         /// </summary>
         /// <remarks>

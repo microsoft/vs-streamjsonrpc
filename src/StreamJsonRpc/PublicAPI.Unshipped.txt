@@ -16,6 +16,8 @@ StreamJsonRpc.JsonRpcProxyOptions.EventNameTransform.set -> void
 StreamJsonRpc.JsonRpcProxyOptions.MethodNameTransform.get -> System.Func<string, string>
 StreamJsonRpc.JsonRpcProxyOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions
+StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions() -> void
 StreamJsonRpc.JsonRpcTargetOptions.EventNameTransform.get -> System.Func<string, string>
 StreamJsonRpc.JsonRpcTargetOptions.EventNameTransform.set -> void
