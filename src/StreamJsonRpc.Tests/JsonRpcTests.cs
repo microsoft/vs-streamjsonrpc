@@ -331,9 +331,10 @@ public class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task CannotCallPrivateMethod()
+    public async Task CanCallNonPublicMethods()
     {
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod), 10));
+        await this.clientRpc.InvokeAsync(nameof(Server.InternalMethod));
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
     }
 
     [Fact]
@@ -1543,6 +1544,7 @@ public class JsonRpcTests : TestBase
 
         internal void InternalMethod()
         {
+            this.ServerMethodReached.Set();
         }
 
         [JsonRpcMethod("InternalMethodWithAttribute")]
