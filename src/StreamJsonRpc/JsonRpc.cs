@@ -117,6 +117,20 @@ namespace StreamJsonRpc
         /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
         /// <see cref="JsonMessageFormatter"/>.
         /// </summary>
+        /// <param name="stream">The full duplex stream used to transmit and receive messages.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
+        public JsonRpc(Stream stream)
+            : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>.
+        /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
