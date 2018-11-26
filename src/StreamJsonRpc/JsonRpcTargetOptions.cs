@@ -33,8 +33,11 @@ namespace StreamJsonRpc
         /// Gets or sets a value indicating whether non-public methods/events on target objects can be invoked
         /// by remote clients.
         /// </summary>
-        /// <value>The default value is <c>true</c> (for backward compatibility with previous 1.x versions).</value>
-        public bool AllowNonPublicInvocation { get; set; } = true;
+        /// <value>The default value is <c>false</c>.</value>
+        /// <remarks>
+        /// The default for this property was <c>true</c> in the 1.x versions.
+        /// </remarks>
+        public bool AllowNonPublicInvocation { get; set; } = false;
 
         /// <summary>
         /// Gets an instance with default properties.

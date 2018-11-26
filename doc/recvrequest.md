@@ -42,7 +42,8 @@ class Server
 
     private void NotReachable()
     {
-        // This method cannot be invoked via RPC because it is not public.
+        // This method cannot be invoked via RPC because it is not public
+        // when using StreamJsonRpc 2.0 or later. In 1.x, the default allowed private methods to be invoked remotely.
     }
 }
 ```
@@ -57,6 +58,27 @@ JsonRpc rpc = JsonRpc.Attach(stream, new Server());
 StreamJsonRpc automatically creates an alias for async methods that omit the `Async` suffix.
 Given the example above, the JSON-RPC server will now respond to `SumOf`, `Difference`, `ReadFileAsync`,
 and `ReadFile` methods.
+
+### Invocation of non-public methods
+
+The `JsonRpcTargetOptions.AllowNonPublicInvocation` property controls whether a target object's non-public methods
+are invokable by a JSON-RPC client. In StreamJsonRpc 1.x this property defaults to `true`, but defaults to `false`
+as of 2.0 for better security by default.
+
+To adjust the value to a non-default setting, add the target object using the `JsonRpc.AddLocalRpcTarget` method
+instead of using the `JsonRpc.Attach` method of the `JsonRpc` constructor that accepts a target object as an argument.
+For example:
+
+```cs
+JsonRpc rpc = new JsonRpc(stream);
+rpc.AddLocalRpcTarget(
+    new Server(),
+    new JsonRpcTargetOptions
+    {
+        AllowNonPublicInvocation = false,
+    });
+rpc.StartListening();
+```
 
 ### Server events
 
