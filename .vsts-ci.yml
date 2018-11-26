@@ -1,6 +1,6 @@
 trigger:
   branches:
-    include: ["master", "v1.4", "v1.5"]
+    include: ["master", "v1.5"]
   paths:
     exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
 
@@ -10,8 +10,34 @@ variables:
   BuildConfiguration: Release
   BuildPlatform: Any CPU
 
+resources:
+  containers:
+  - container: xenial
+    image: andrewarnott/linux-buildagent
+
 jobs:
 - job: Windows
   pool: Hosted VS2017
   steps:
   - template: azure-pipelines/build.yml
+
+- job: Linux
+  pool:
+    vmImage: Ubuntu 16.04
+  container: xenial
+  variables:
+    GitLinkEnabled: false
+  steps:
+  - template: azure-pipelines/testfx.yml
+    parameters:
+      projectdirectory: src/StreamJsonRpc.Tests
+
+- job: macOS
+  pool:
+    vmImage: macOS 10.13
+  variables:
+    GitLinkEnabled: false
+  steps:
+  - template: azure-pipelines/testfx.yml
+    parameters:
+      projectdirectory: src/StreamJsonRpc.Tests
