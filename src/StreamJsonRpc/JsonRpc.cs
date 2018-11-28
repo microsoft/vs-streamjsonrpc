@@ -1085,7 +1085,20 @@ namespace StreamJsonRpc
                         this.resultDispatcherMap.Add(id.Value, callData);
                     }
 
-                    await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                    try
+                    {
+                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.resultDispatcherMap.Remove(id.Value);
+                        }
+
+                        throw;
+                    }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
                     using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
