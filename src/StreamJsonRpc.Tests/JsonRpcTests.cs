@@ -126,6 +126,33 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void Ctor_Stream_Null()
+    {
+        Assert.Throws<ArgumentNullException>(() => new JsonRpc((Stream)null));
+    }
+
+    /// <summary>
+    /// Verifies tha the default message handler and formatter is as documented.
+    /// </summary>
+    [Fact]
+    public async Task Ctor_Stream()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.clientStream, new JsonMessageFormatter()));
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "hi");
+        Assert.Equal("hi!", result);
+    }
+
+    [Fact]
     public async Task CanInvokeMethodOnServer_WithVeryLargePayload()
     {
         string testLine = "TestLine1" + new string('a', 1024 * 1024);
@@ -1604,7 +1631,7 @@ public abstract class JsonRpcTests : TestBase
     [DataContract]
     public class XAndYFields
     {
-// We disable SA1307 because we must use lowercase members as required to match the parameter names.
+        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
 #pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
         [DataMember]
         public int x;

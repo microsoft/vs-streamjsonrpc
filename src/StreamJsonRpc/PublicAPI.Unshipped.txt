@@ -51,6 +51,7 @@ StreamJsonRpc.JsonRpcProxyOptions.ServerRequiresNamedArguments.set -> void
 StreamJsonRpc.JsonRpc.IsDisposed.get -> bool
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler) -> void
 StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler, object target) -> void
+StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream stream) -> void
 StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.Closed = 13 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ListeningStarted = 3 -> StreamJsonRpc.JsonRpc.TraceEvents
