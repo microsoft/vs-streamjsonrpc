@@ -50,6 +50,9 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
 1. `WebSocketMessageHandler` - This is designed specifically for `WebSocket`, which has implicit message boundaries
    as part of the web socket protocol. As such, no header is added. Each message is transmitted as a single web socket
    message.
+1. `HttpClientMessageHandler` - This is a client-side implementation of the 
+   [JSON-RPC over HTTP spec](https://www.jsonrpc.org/historical/json-rpc-over-http.html), delivered as
+   [a sample included in our test project](../src/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
 
 Some of the constructors on the `JsonRpc` class accept an object that implements the `IJsonRpcMessageHandler` interface,
 allowing you to select any of the built-in behaviors listed above, or define this part of the protocol yourself.

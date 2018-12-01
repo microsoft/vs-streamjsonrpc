@@ -1,3 +1,5 @@
+StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(string message) -> void
+StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(string message, System.Exception innerException) -> void
 StreamJsonRpc.ConnectionLostException
 StreamJsonRpc.ConnectionLostException.ConnectionLostException() -> void
 StreamJsonRpc.ConnectionLostException.ConnectionLostException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
