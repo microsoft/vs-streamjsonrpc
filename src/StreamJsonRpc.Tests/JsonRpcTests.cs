@@ -337,6 +337,13 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(object.GetType)));
     }
 
+    [Fact]
+    public async Task NonPublicMethods_NotInvokableByDefault()
+    {
+        Assert.False(new JsonRpcTargetOptions().AllowNonPublicInvocation);
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod)));
+    }
+
     [Theory]
     [PairwiseData]
     public async Task NonPublicMethods_InvokableOnlyUnderOption(bool allowNonPublicInvocation, bool attributedMethod)
