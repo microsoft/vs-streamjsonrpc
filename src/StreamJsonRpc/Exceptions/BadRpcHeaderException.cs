@@ -18,7 +18,7 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
         /// </summary>
         /// <param name="message">The message.</param>
-        internal BadRpcHeaderException(string message)
+        public BadRpcHeaderException(string message)
             : base(message)
         {
         }
@@ -28,7 +28,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="innerException">The inner exception.</param>
-        internal BadRpcHeaderException(string message, Exception innerException)
+        public BadRpcHeaderException(string message, Exception innerException)
             : base(message, innerException)
         {
         }
