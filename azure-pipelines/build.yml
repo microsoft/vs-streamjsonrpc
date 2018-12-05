@@ -49,8 +49,7 @@ steps:
     feedsToUse: config
     nugetConfigPath: src/nuget.config
 
-# Use VSBuild on Windows so GitLink will work (it fails on dotnet build)
-# Also we pack with this because `dotnet pack` can't sign packages with MicroBuild.
+# Use VSBuild to pack because `dotnet pack` can't sign packages with MicroBuild.
 - task: VSBuild@1
   inputs:
     vsVersion: 15.0

@@ -12,11 +12,25 @@ steps:
   displayName: Push packages to VSTS feed
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
+- powershell: |
+    $DllPaths = @(
+        ,"bin\StreamJsonRpc\$(BuildConfiguration)\StreamJsonRpc.dll"
+    )
+    Get-ChildItem $DllPaths -rec |% {
+        $OutputDir = "$($_.Directory.FullName)\symstore"
+        if (!(Test-Path $OutputDir)) { mkdir $OutputDir | Out-Null }
+        Write-Host "Converting PDB for $_"
+        azure-pipelines\Convert-PDB.ps1 -DllPath $_ -OutputPath "$OutputDir\$($_.BaseName).pdb"
+    }
+  displayName: Converting portable PDBs to Windows PDBs
+  condition: and(succeeded(), ne(variables['system.pullrequest.isfork'], true))
+
 - task: CopyFiles@1
   inputs:
     SourceFolder: bin
     Contents: |
-      StreamJsonRpc/$(BuildConfiguration)/**/StreamJsonRpc@(.pdb|.dll)
+      StreamJsonRpc/$(BuildConfiguration)/**/StreamJsonRpc.dll
+      StreamJsonRpc/$(BuildConfiguration)/**/symstore/StreamJsonRpc.pdb
     TargetFolder: $(Build.ArtifactStagingDirectory)/symbols
   displayName: Collecting symbols artifacts
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))

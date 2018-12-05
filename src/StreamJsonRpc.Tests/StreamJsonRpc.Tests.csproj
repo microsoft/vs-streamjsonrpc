@@ -12,9 +12,6 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
 
-    <!-- VS2017 Test Explorer test navigation and callstack links don't work with portable PDBs yet. -->
-    <DebugType>Full</DebugType>
-
     <AspNetCoreHost Condition=" '$(TargetFramework)' != 'netcoreapp1.0' ">true</AspNetCoreHost>
     <DefineConstants Condition=" '$(AspNetCoreHost)' == 'true' ">$(DefineConstants);ASPNETCORE</DefineConstants>
   </PropertyGroup>
