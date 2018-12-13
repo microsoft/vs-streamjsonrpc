@@ -12,6 +12,12 @@ steps:
   displayName: Push packages to VSTS feed
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
+# We need to ensure nuget.exe is on the path so the Convert-PDB step can invoke it.
+- task: NuGetToolInstaller@0
+  displayName: Pin nuget.exe version
+  inputs:
+    versionSpec: 4.6.1
+
 - powershell: |
     $DllPaths = @(
         ,"bin\StreamJsonRpc\$(BuildConfiguration)\StreamJsonRpc.dll"
