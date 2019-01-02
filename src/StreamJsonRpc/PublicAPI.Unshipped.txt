@@ -1,7 +1,0 @@
-StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.get -> bool
-StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> void
-StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
-StreamJsonRpc.JsonRpcProxyOptions.ServerRequiresNamedArguments.get -> bool
-StreamJsonRpc.JsonRpcProxyOptions.ServerRequiresNamedArguments.set -> void
-StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.get -> bool
-StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.set -> void
