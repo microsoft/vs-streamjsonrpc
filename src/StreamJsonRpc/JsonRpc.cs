@@ -11,14 +11,11 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Runtime.ExceptionServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
@@ -37,16 +34,19 @@ namespace StreamJsonRpc
         /// </summary>
         private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object syncObject = new object();
 
         /// <summary>
         /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object dispatcherMapLock = new object();
 
         /// <summary>
         /// The object to lock when accessing the <see cref="DisconnectedPrivate"/> member.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object disconnectedEventLock = new object();
 
         /// <summary>
@@ -65,11 +65,13 @@ namespace StreamJsonRpc
         /// <summary>
         /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
         /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         /// <summary>
@@ -80,11 +82,13 @@ namespace StreamJsonRpc
         /// <summary>
         /// The source for the <see cref="DisconnectedToken"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
 
         /// <summary>
         /// The completion source behind <see cref="Completion"/>.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
@@ -100,16 +104,19 @@ namespace StreamJsonRpc
         /// <summary>
         /// Backing field for the <see cref="TraceSource"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private TraceSource traceSource = new TraceSource(nameof(JsonRpc));
 
         /// <summary>
         /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool cancelLocallyInvokedMethodsWhenConnectionIsClosed;
 
         /// <summary>
         /// Backing field for the <see cref="SynchronizationContext"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext synchronizationContext;
 
         /// <summary>
