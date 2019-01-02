@@ -20,7 +20,7 @@ namespace StreamJsonRpc {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -278,6 +278,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0..
+        /// </summary>
+        internal static string ParameterObjectsNotSupportedInJsonRpc10 {
+            get {
+                return ResourceManager.GetString("ParameterObjectsNotSupportedInJsonRpc10", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A positive integer is required..
         /// </summary>
         internal static string PositiveIntegerRequired {
@@ -454,6 +463,15 @@ namespace StreamJsonRpc {
         internal static string UnsupportedGenericMethodsOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}.
+        /// </summary>
+        internal static string UnsupportedJsonRpcProtocolVersion {
+            get {
+                return ResourceManager.GetString("UnsupportedJsonRpcProtocolVersion", resourceCulture);
             }
         }
         

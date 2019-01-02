@@ -37,6 +37,8 @@ StreamJsonRpc.JsonMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<b
 StreamJsonRpc.JsonMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer, System.Text.Encoding encoding) -> StreamJsonRpc.Protocol.JsonRpcMessage
 StreamJsonRpc.JsonMessageFormatter.Encoding.get -> System.Text.Encoding
 StreamJsonRpc.JsonMessageFormatter.Encoding.set -> void
+StreamJsonRpc.JsonMessageFormatter.ProtocolVersion.get -> System.Version
+StreamJsonRpc.JsonMessageFormatter.ProtocolVersion.set -> void
 StreamJsonRpc.JsonMessageFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
 StreamJsonRpc.JsonMessageFormatter.JsonMessageFormatter() -> void
 StreamJsonRpc.JsonMessageFormatter.JsonMessageFormatter(System.Text.Encoding encoding) -> void

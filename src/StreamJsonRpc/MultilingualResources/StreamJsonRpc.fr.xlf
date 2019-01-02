@@ -209,6 +209,15 @@
           <source>A CancellationToken is only allowed as the last parameter.</source>
           <target state="new">A CancellationToken is only allowed as the last parameter.</target>
         </trans-unit>
+        <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+          <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+          <target state="new">Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+        </trans-unit>
+        <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+          <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+          <target state="new">JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</target>
+        </trans-unit>
       </group>
     </body>
   </file>

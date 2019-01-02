@@ -53,10 +53,10 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     public async Task ReadCoreAsync_HandlesSpacingCorrectly()
     {
         string content =
-"Content-Length:  17   " + CRLF +
+"Content-Length:  33   " + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"{\"method\":\"test\"}";
+"{\"jsonrpc\":\"2.0\",\"method\":\"test\"}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
@@ -69,9 +69,9 @@ CRLF +
         this.receivingStream.SetLength(0);
 
         content =
-"Content-Length:17" + CRLF +
+"Content-Length:33" + CRLF +
 CRLF +
-"{\"method\":\"test\"}";
+"{\"jsonrpc\":\"2.0\",\"method\":\"test\"}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
@@ -86,10 +86,10 @@ CRLF +
     {
         // Using 'utf8'
         string content =
-"Content-Length: 17" + CRLF +
+"Content-Length: 33" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf8" + CRLF +
 CRLF +
-"{\"method\":\"test\"}";
+"{\"jsonrpc\":\"2.0\",\"method\":\"test\"}";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();
@@ -103,10 +103,10 @@ CRLF +
 
         // Using 'utf-8'
         content =
-"Content-Length: 17" + CRLF +
+"Content-Length: 33" + CRLF +
 "Content-Type: application/vscode-jsonrpc;charset=utf-8" + CRLF +
 CRLF +
-"{\"method\":\"test\"}";
+"{\"jsonrpc\":\"2.0\",\"method\":\"test\"}";
         bytes = Encoding.UTF8.GetBytes(content);
         this.receivingStream.Write(bytes, 0, bytes.Length);
         this.receivingStream.Flush();

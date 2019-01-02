@@ -274,4 +274,11 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>An argument was not supplied for a required parameter.</value>
   </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
+  </data>
 </root>

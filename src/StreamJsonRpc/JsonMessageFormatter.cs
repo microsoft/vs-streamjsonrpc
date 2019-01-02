@@ -7,6 +7,7 @@ namespace StreamJsonRpc
     using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -31,13 +32,25 @@ namespace StreamJsonRpc
         internal const string ExceptionDataKey = "JToken";
 
         /// <summary>
+        /// A collection of supported protocol versions.
+        /// </summary>
+        private static readonly IReadOnlyCollection<Version> SupportedProtocolVersions = new Version[] { new Version(1, 0), new Version(2, 0) };
+
+        /// <summary>
         /// UTF-8 encoding without a preamble.
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         /// <summary>
+        /// The version of the JSON-RPC protocol being emulated by this instance.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Version protocolVersion = new Version(2, 0);
+
+        /// <summary>
         /// Backing field for the <see cref="Encoding"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Encoding encoding;
 
         /// <summary>
@@ -74,6 +87,26 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets or sets the version of the JSON-RPC protocol emulated by this instance.
+        /// </summary>
+        /// <value>The default value is 2.0.</value>
+        public Version ProtocolVersion
+        {
+            get => this.protocolVersion;
+
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                if (!SupportedProtocolVersions.Contains(value))
+                {
+                    throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.UnsupportedJsonRpcProtocolVersion, value, string.Join(", ", SupportedProtocolVersions)));
+                }
+
+                this.protocolVersion = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the <see cref="Newtonsoft.Json.JsonSerializer"/> used when serializing and deserializing method arguments and return values.
         /// </summary>
         public JsonSerializer JsonSerializer { get; } = new JsonSerializer()
@@ -98,6 +131,7 @@ namespace StreamJsonRpc
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
             JToken json = this.Serialize(message);
+
             this.WriteJToken(contentBuffer, json);
         }
 
@@ -108,18 +142,41 @@ namespace StreamJsonRpc
         /// <returns>The deserialized message.</returns>
         public JsonRpcMessage Deserialize(JToken json)
         {
+            Requires.NotNull(json, nameof(json));
+
             try
             {
-                return
-                    json["method"] != null ? this.ReadRequest(json) :
-                    json["result"] != null ? this.ReadResult(json) :
-                    json["error"] != null ? (JsonRpcMessage)this.ReadError(json) :
-                    throw new JsonSerializationException("Unrecognized JSON-RPC message: " + json);
+                switch (this.ProtocolVersion.Major)
+                {
+                    case 1:
+                        this.VerifyProtocolCompliance(json["jsonrpc"] == null, json, "\"jsonrpc\" property not expected. Use protocol version 2.0.");
+                        this.VerifyProtocolCompliance(json["id"] != null, json, "\"id\" property missing.");
+                        return
+                            json["method"] != null ? this.ReadRequest(json) :
+                            json["error"]?.Type == JTokenType.Null ? this.ReadResult(json) :
+                            json["error"]?.Type != JTokenType.Null ? (JsonRpcMessage)this.ReadError(json) :
+                            throw this.CreateProtocolNonComplianceException(json);
+                    case 2:
+                        this.VerifyProtocolCompliance(json.Value<string>("jsonrpc") == "2.0", json, $"\"jsonrpc\" property must be set to \"2.0\", or set {nameof(this.ProtocolVersion)} to 1.0 mode.");
+                        return
+                            json["method"] != null ? this.ReadRequest(json) :
+                            json["result"] != null ? this.ReadResult(json) :
+                            json["error"] != null ? (JsonRpcMessage)this.ReadError(json) :
+                            throw this.CreateProtocolNonComplianceException(json);
+                    default:
+                        throw Assumes.NotReachable();
+                }
             }
             catch (JsonException exception)
             {
                 var serializationException = new JsonSerializationException($"Unable to deserialize {nameof(JsonRpcMessage)}.", exception);
-                serializationException.Data[ExceptionDataKey] = json;
+#if NETFRAMEWORK
+                if (json.GetType().GetTypeInfo().IsSerializable)
+#endif
+                {
+                    serializationException.Data[ExceptionDataKey] = json;
+                }
+
                 throw serializationException;
             }
         }
@@ -140,6 +197,12 @@ namespace StreamJsonRpc
             if (message is Protocol.JsonRpcResult && json["result"] == null)
             {
                 json["result"] = JValue.CreateNull();
+            }
+
+            if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+            {
+                // JSON-RPC 1.0 requires the id property to be present even for notifications.
+                json["id"] = JValue.CreateNull();
             }
 
             return json;
@@ -177,6 +240,28 @@ namespace StreamJsonRpc
                 throw new JsonSerializationException("Unexpected type for id property: " + idToken.Type);
         }
 
+        private void VerifyProtocolCompliance(bool condition, JToken message, string explanation = null)
+        {
+            if (!condition)
+            {
+                throw this.CreateProtocolNonComplianceException(message, explanation);
+            }
+        }
+
+        private Exception CreateProtocolNonComplianceException(JToken message, string explanation = null)
+        {
+            var builder = new StringBuilder();
+            builder.AppendFormat(CultureInfo.CurrentCulture, "Unrecognized JSON-RPC {0} message", this.ProtocolVersion);
+            if (explanation != null)
+            {
+                builder.AppendFormat(" ({0})", explanation);
+            }
+
+            builder.Append(": ");
+            builder.Append(message);
+            return new JsonSerializationException(builder.ToString());
+        }
+
         private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
         {
             using (var streamWriter = new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096))
@@ -212,6 +297,11 @@ namespace StreamJsonRpc
                 }
                 else if (request.Arguments != null)
                 {
+                    if (this.ProtocolVersion.Major < 2)
+                    {
+                        throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
+                    }
+
                     // Tokenize the user data using the user-supplied serializer.
                     var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
                     request.Arguments = paramsObject;
