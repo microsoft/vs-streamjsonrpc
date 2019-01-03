@@ -11,11 +11,15 @@ using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcClientInteropTests : InteropTestBase
+/// <summary>
+/// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *client* (i.e. the one sending requests, and receiving results)
+/// against various server messages.
+/// </summary>
+public class JsonRpcClient20InteropTests : InteropTestBase
 {
     private readonly JsonRpc clientRpc;
 
-    public JsonRpcClientInteropTests(ITestOutputHelper logger)
+    public JsonRpcClient20InteropTests(ITestOutputHelper logger)
         : base(logger, serverTest: false)
     {
         this.clientRpc = new JsonRpc(this.messageHandler);

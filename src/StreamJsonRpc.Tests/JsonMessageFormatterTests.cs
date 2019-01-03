@@ -25,6 +25,37 @@ public class JsonMessageFormatterTests : TestBase
     }
 
     [Fact]
+    public void ProtocolVersion_Default()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Equal(new Version(2, 0), formatter.ProtocolVersion);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 0)]
+    public void ProtocolVersion_AcceptedVersions(int major, int minor)
+    {
+        Version expectedVersion = new Version(major, minor);
+        var formatter = new JsonMessageFormatter
+        {
+            ProtocolVersion = expectedVersion,
+        };
+        Assert.Equal(expectedVersion, formatter.ProtocolVersion);
+    }
+
+    [Fact]
+    public void ProtocolVersion_RejectsOtherVersions()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Throws<ArgumentNullException>(() => formatter.ProtocolVersion = null);
+        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(0, 0));
+        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(1, 1));
+        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(2, 1));
+        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(3, 0));
+    }
+
+    [Fact]
     public void EncodingProperty_UsedToFormat()
     {
         JsonRpcRequest msg = new JsonRpcRequest { Method = "a" };
