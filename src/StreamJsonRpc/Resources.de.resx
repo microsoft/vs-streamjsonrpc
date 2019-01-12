@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} Parameter sind nicht kompatibel mit der Anforderung: {1}</value>
+    <value>{0} Parameter sind nicht mit der Anforderung kompatibel: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" ist keine Schnittstelle.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Ein CancellationToken ist nur als letzter Parameter zulässig.</value>
   </data>
 </root>

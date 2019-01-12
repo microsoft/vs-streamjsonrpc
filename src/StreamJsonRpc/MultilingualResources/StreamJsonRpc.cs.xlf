@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en-US" target-language="cs" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
@@ -8,194 +8,194 @@
       <group id="STREAMJSONRPC/RESOURCES.RESX" datatype="resx">
         <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
           <source>Both readable and writable are null.</source>
-		  <target state="translated">Parametr readable i writable jsou null.</target>
+          <target state="translated">Parametr readable i writable jsou null.</target>
         </trans-unit>
         <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
           <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
-		  <target state="translated">Byla přijata žádost o provedení {0}, ale chybí objekt zpětného volání. Žádost se ruší.</target>
+          <target state="translated">Byla přijata žádost o provedení {0}, ale chybí objekt zpětného volání. Žádost se ruší.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
           <source>Error writing JSON RPC Result: {0}: {1}</source>
-		  <target state="translated">Chyba při zápisu výsledku JSON RPC: {0}: {1}</target>
+          <target state="translated">Chyba při zápisu výsledku JSON RPC: {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="FailureDeserializingJsonRpc" translate="yes" xml:space="preserve">
           <source>Failure deserializing incoming JSON RPC '{0}': {1}</source>
-		  <target state="translated">Selhání při deserializaci příchozího JSON RPC: {0}: {1}</target>
+          <target state="translated">Selhání při deserializaci příchozího JSON RPC: {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON RPC, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
           <source>JSON RPC must not be null.</source>
-		  <target state="translated">JSON RPC nesmí být null.</target>
+          <target state="translated">JSON RPC nesmí být null.</target>
         </trans-unit>
         <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
           <source>{0} has ref or out parameter(s), which is not supported</source>
-		  <target state="translated">{0} má parametry ref nebo out, což se nepodporuje.</target>
+          <target state="translated">{0} má parametry ref nebo out, což se nepodporuje.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
           <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
-		  <target state="translated">Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.</target>
+          <target state="translated">Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
           <source>{0} parameters are not compatible with the request: {1}</source>
-		  <target state="translated">Parametry {0} nejsou kompatibilní s žádostí: {1}.</target>
+          <target state="translated">Parametry metody {0} nejsou kompatibilní s požadavkem: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
-		  <target state="translated">Bylo dosaženo konce streamu.</target>
+          <target state="translated">Bylo dosaženo konce streamu.</target>
         </trans-unit>
         <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
           <source>Reading JSON RPC from the stream failed with {0}: {1}</source>
-		  <target state="translated">Čtení RPC JSON ze streamu se nezdařilo s {0}: {1}</target>
+          <target state="translated">Čtení RPC JSON ze streamu se nezdařilo s {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
           <source>Response is not error.</source>
-		  <target state="translated">Odpověď není chyba.</target>
+          <target state="translated">Odpověď není chyba.</target>
         </trans-unit>
         <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
           <source>Stream has been disposed</source>
-		  <target state="translated">Stream byl vyřazen.</target>
+          <target state="translated">Stream byl vyřazen.</target>
         </trans-unit>
         <trans-unit id="TaskNotCompleted" translate="yes" xml:space="preserve">
           <source>The task is not completed.</source>
-		  <target state="translated">Úloha není dokončena.</target>
+          <target state="translated">Úloha není dokončena.</target>
         </trans-unit>
         <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
           <source>The task was cancelled.</source>
-		  <target state="translated">Úloha byla zrušena.</target>
+          <target state="translated">Úloha byla zrušena.</target>
         </trans-unit>
         <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
           <source>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</source>
-		  <target state="translated">Nebyla nalezena metoda {0}/{1} v {2} z následujících důvodů: {3}</target>
+          <target state="translated">Nebyla nalezena metoda {0}/{1} v {2} z následujících důvodů: {3}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unexpected error processing JSON RPC '{0}': {1}</source>
-		  <target state="translated">Neočekávaná chyba při zpracování JSON RPC {0}: {1}</target>
+          <target state="translated">Neočekávaná chyba při zpracování JSON RPC {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
           <source>Unrecognized incoming JSON RPC '{0}'</source>
-		  <target state="translated">Nerozpoznané příchozí JSON RPC {0}</target>
+          <target state="translated">Nerozpoznané příchozí JSON RPC {0}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
-		  <target state="translated">Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</target>
+          <target state="translated">Selhalo zparsování hlavičky Content-Length na kladné celé číslo.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
         </trans-unit>
         <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
           <source>The size of the message header exceeds the maximum supported size.</source>
-		  <target state="translated">Velikost hlavičky zprávy překračuje maximální podporovanou velikost.</target>
+          <target state="translated">Velikost hlavičky zprávy překračuje maximální podporovanou velikost.</target>
         </trans-unit>
         <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
           <source>Unexpected token '{0}' while parsing header.</source>
-		  <target state="translated">Neočekávaný token {0} při parsování hlavičky</target>
+          <target state="translated">Neočekávaný token {0} při parsování hlavičky</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
         </trans-unit>
         <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
           <source>A positive integer is required.</source>
-		  <target state="translated">Je vyžadováno kladné celé číslo.</target>
+          <target state="translated">Je vyžadováno kladné celé číslo.</target>
         </trans-unit>
         <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
           <source>The buffer is empty. Call the async method to fill it first.</source>
-		  <target state="translated">Vyrovnávací paměť je prázdná. Nejdříve ji naplňte, a to zavoláním asynchronní metody.</target>
+          <target state="translated">Vyrovnávací paměť je prázdná. Nejdříve ji naplňte, a to zavoláním asynchronní metody.</target>
         </trans-unit>
         <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
           <source>A non-negative integer is required.</source>
-		  <target state="translated">Je vyžadováno nezáporné celé číslo.</target>
+          <target state="translated">Je vyžadováno nezáporné celé číslo.</target>
         </trans-unit>
         <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
           <source>The {0} and {1} parameters exceed length of array.</source>
-		  <target state="translated">Parametry {0} a {1} překračují délku pole.</target>
+          <target state="translated">Parametry {0} a {1} překračují délku pole.</target>
         </trans-unit>
         <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
           <source>The stream must be readable.</source>
-		  <target state="translated">Ze streamu musí být možné číst.</target>
+          <target state="translated">Ze streamu musí být možné číst.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
           <source>The stream must be writeable.</source>
-		  <target state="translated">Do streamu musí být možné zapisovat.</target>
+          <target state="translated">Do streamu musí být možné zapisovat.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
         </trans-unit>
         <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed after listening for messages has started.</source>
-		  <target state="translated">Po zahájení naslouchání zprávám není tato operace povolená.</target>
+          <target state="translated">Po zahájení naslouchání zprávám není tato operace povolená.</target>
         </trans-unit>
         <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
           <source>This operation is not allowed before listening for messages has started.</source>
-		  <target state="translated">Před zahájením naslouchání zprávám není tato operace povolená.</target>
+          <target state="translated">Před zahájením naslouchání zprávám není tato operace povolená.</target>
         </trans-unit>
         <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
           <source>Parameter is not in the form of a single object</source>
-		  <target state="translated">Parametr není ve formě jednoho objektu</target>
+          <target state="translated">Parametr není ve formě jednoho objektu</target>
         </trans-unit>
         <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
           <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
-		  <target state="translated">Všechna přetížení a přepisy metody {0} musí mít společnou hodnotu pro {1}.{2}.</target>
+          <target state="translated">Všechna přetížení a přepisy metody {0} musí mít společnou hodnotu pro {1}.{2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
         </trans-unit>
         <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
           <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
-		  <target state="translated">Metody .NET {0} i {1} se nemůžou současně mapovat ke stejnému názvu metody žádosti: {2}.</target>
+          <target state="translated">Metody .NET {0} i {1} se nemůžou současně mapovat ke stejnému názvu metody žádosti: {2}.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
         </trans-unit>
         <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
           <source>No method by the name '{0}' is found.</source>
-		  <target state="translated">Nenašla se žádná metoda s názvem {0}.</target>
+          <target state="translated">Nenašla se žádná metoda s názvem {0}.</target>
         </trans-unit>
         <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
           <source>A method with the same name and equivalent parameters has already been registered.</source>
-		  <target state="translated">Metoda se stejným názvem a rovnocennými parametry už je registrovaná.</target>
+          <target state="translated">Metoda se stejným názvem a rovnocennými parametry už je registrovaná.</target>
         </trans-unit>
         <trans-unit id="TargetObjectAndMethodStaticFlagMismatch" translate="yes" xml:space="preserve">
           <source>A target object should be supplied if and only if the method is not static.</source>
-		  <target state="translated">Cílový objekt by se měl zadat jen a pouze tehdy, pokud metoda není statická.</target>
+          <target state="translated">Cílový objekt by se měl zadat jen a pouze tehdy, pokud metoda není statická.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">"static" is a C# keyword and should not be translated.</note>
         </trans-unit>
         <trans-unit id="MustBeListening" translate="yes" xml:space="preserve">
           <source>Listening must be started first.</source>
-		  <target state="translated">Nejdříve je potřeba spustit naslouchání.</target>
+          <target state="translated">Nejdříve je potřeba spustit naslouchání.</target>
         </trans-unit>
         <trans-unit id="MustNotBeListening" translate="yes" xml:space="preserve">
           <source>This cannot be done after listening has started.</source>
-		  <target state="translated">Tuto akci nejde provést po spuštění naslouchání.</target>
+          <target state="translated">Tuto akci nejde provést po spuštění naslouchání.</target>
         </trans-unit>
         <trans-unit id="FatalExceptionWasThrown" translate="yes" xml:space="preserve">
           <source>A fatal exception was thrown from the server method {0}: {1}</source>
-		  <target state="translated">Při volání metody serveru {0} došlo k závažné výjimce: {1}</target>
+          <target state="translated">Při volání metody serveru {0} došlo k závažné výjimce: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
         </trans-unit>
         <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
-		  <target state="translated">Nepodporovaný typ obslužné rutiny události v: {0}. Jsou podporovány jen EventHandler a EventHandler&lt;T&gt;.</target>
+          <target state="translated">Nepodporovaný typ obslužné rutiny události v: {0}. Jsou podporovány jen EventHandler a EventHandler<it id="1" pos="open">&lt;T&gt;</it>.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
         </trans-unit>
         <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Generic methods are not supported.</source>
-		  <target state="translated">Obecné metody nejsou podporovány.</target>
+          <target state="translated">Obecné metody nejsou podporovány.</target>
         </trans-unit>
         <trans-unit id="UnsupportedMethodReturnTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</source>
-		  <target state="translated">Metoda {0} obsahuje nepodporovaný návratový typ {1}. Jsou podporovány jen metody vracející úlohy.</target>
+          <target state="translated">Metoda {0} obsahuje nepodporovaný návratový typ {1}. Jsou podporovány jen metody vracející úlohy.</target>
         </trans-unit>
         <trans-unit id="UnsupportedPropertiesOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Properties are not supported for service interfaces.</source>
-		  <target state="translated">Vlastnosti nejsou podporovány u rozhraní služby.</target>
+          <target state="translated">Vlastnosti nejsou podporovány u rozhraní služby.</target>
         </trans-unit>
         <trans-unit id="ClientProxyTypeArgumentMustBeAnInterface" translate="yes" xml:space="preserve">
           <source>"{0}" is not an interface.</source>
-		  <target state="translated">{0} není rozhraní.</target>
+          <target state="translated">{0} není rozhraní.</target>
         </trans-unit>
         <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
           <source>A CancellationToken is only allowed as the last parameter.</source>
-          <target state="new">A CancellationToken is only allowed as the last parameter.</target>
+          <target state="translated">CancellationToken je povolený jenom jako poslední parametr.</target>
         </trans-unit>
       </group>
     </body>

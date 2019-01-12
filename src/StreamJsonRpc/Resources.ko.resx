@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} 매개 변수가 {1} 요청과 호환되지 않습니다.</value>
+    <value>{0} 매개 변수가 다음 요청과 호환되지 않습니다. {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>JSON RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류 발생:{1}</value>
+    <value>JSON RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류가 발생했습니다. {1}</value>
     <comment>{0} is the json, {1} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>인식되지 않은 들어오는 JSON RPC '{0}'</value>
+    <value>들어오는 JSON RPC '{0}'을(를) 인식할 수 없습니다.</value>
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}"은(는) 인터페이스가 아닙니다.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken은 마지막 매개 변수로만 허용됩니다.</value>
   </data>
 </root>

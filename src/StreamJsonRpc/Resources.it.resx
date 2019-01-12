@@ -157,4 +157,7 @@
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" non è un'interfaccia.</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Un oggetto CancellationToken è consentito solo come ultimo parametro.</value>
+  </data>
 </root>

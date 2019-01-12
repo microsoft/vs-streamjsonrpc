@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} parametreleri istekle uyumlu değil: {1}</value>
+    <value>{0} parametreleri şu istekle uyumlu değil: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,7 +66,7 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>JSON RPC '{0}' işlenirken beklenmeyen bir hata oluştu: {1}</value>
+    <value>Json: {0}, beklenen ileti: {1}.</value>
     <comment>{0} is the json, {1} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" bir arabirim değil.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Bir CancellationToken'a yalnızca son parametre olarak izin verilir.</value>
   </data>
 </root>

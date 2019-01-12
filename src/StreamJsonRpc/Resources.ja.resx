@@ -70,7 +70,7 @@
     <comment>{0} is the json, {1} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>認識されない受信した JSON RPC '{0}'</value>
+    <value>認識されない JSON RPC '{0}' を受信しています</value>
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" はインターフェイスではありません。</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken は、最後のパラメーターとしてのみ許可されます。</value>
   </data>
 </root>

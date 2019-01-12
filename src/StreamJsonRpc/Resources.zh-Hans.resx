@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} 个参数与请求 {1} 不兼容</value>
+    <value>{0} 个参数与请求不兼容: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>处理 JSON RPC“{0}”出现意外错误：{1}</value>
+    <value>处理 JSON RPC“{0}”时出现意外错误: {1}</value>
     <comment>{0} is the json, {1} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>无法识别传入 JSON RPC“{0}”</value>
+    <value>无法识别传入的 JSON RPC“{0}”</value>
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>“{0}”不是接口。</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken 只能用作最后一个参数。</value>
   </data>
 </root>
