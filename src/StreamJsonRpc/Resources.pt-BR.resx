@@ -39,7 +39,7 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Parâmetros {0} não são compatíveis com a solicitação: {1}</value>
+    <value>Os parâmetros de {0} não são compatíveis com s solicitação: {1}</value>
     <comment>{0} is the method signature, {1} is the error message.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
@@ -66,11 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Erro inesperado ao processar o RPC de JSON '{0}': {1}</value>
+    <value>Erro inesperado ao processar a RPC JSON '{0}': {1}</value>
     <comment>{0} is the json, {1} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>RPC de JSON de entrada '{0}' não reconhecido</value>
+    <value>RPC JSON de entrada '{0}' não reconhecida</value>
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
@@ -156,5 +156,8 @@
   </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" não é uma interface.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Um Token de Cancelamento é permitido somente como o último parâmetro.</value>
   </data>
 </root>
