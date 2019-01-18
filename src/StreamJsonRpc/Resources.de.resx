@@ -163,4 +163,17 @@
   <data name="ConnectionDropped" xml:space="preserve">
     <value>Die JSON-RPC-Verbindung mit der Gegenseite ging verloren, bevor die Anforderung abgeschlossen werden konnte.</value>
   </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Für einen erforderlichen Parameter wurde ein Arguemt nicht angegeben.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Ein CancellationToken ist nur als letzter Parameter zulässig.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Nicht unterstützte JSON-RPC-Protokollversion: {0}. Folgende Protokollversionen werden unterstützt: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 unterstützt keine benannten Argumente (innerhalb eines Objekts übergebene Parameter). Verwenden Sie Positionsargumente (Parameterarrays), oder legen Sie die Protokollversion auf 2.0 fest.</value>
+  </data>
 </root>

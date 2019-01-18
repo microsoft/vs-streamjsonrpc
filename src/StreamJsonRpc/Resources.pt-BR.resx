@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>Um argumento não foi fornecido para um parâmetro necessário.</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Um Token de Cancelamento é permitido somente como o último parâmetro.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Versão {0} do protocolo JSON-RPC sem suporte. As versões do protocolo com suporte são: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>O JSON-RPC 1.0 não é compatível com argumentos nomeados (parâmetros passados dentro de um objeto). Use argumentos posicionais (matrizes de parâmetros) ou defina a versão do protocolo para 2.0.</value>
+  </data>
 </root>

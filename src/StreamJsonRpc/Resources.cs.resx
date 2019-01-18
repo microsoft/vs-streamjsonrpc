@@ -163,4 +163,17 @@
   <data name="ConnectionDropped" xml:space="preserve">
     <value>Připojení JSON-RPC se vzdálenou stranou bylo ztraceno, ještě než se žádost mohla dokončit.</value>
   </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Není zadaný argument pro požadovaný parametr.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken je povolený jenom jako poslední parametr.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Nepodporovaná verze protokolu JSON-RPC {0}. Podporované jsou tyto verze protokolu: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 nepodporuje pojmenované argumenty (parametry předané v objektu). Použijte poziční argumenty (pole parametrů) nebo nastavte verzi protokolu na 2.0.</value>
+  </data>
 </root>
