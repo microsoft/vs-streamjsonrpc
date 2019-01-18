@@ -173,7 +173,7 @@
         </trans-unit>
         <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
-          <target state="translated">Тип обработчика событий в "{0}" не поддерживается. Поддерживаются только EventHandler и EventHandler&lt;T&gt;.</target>
+          <target state="translated">Тип обработчика событий в "{0}" не поддерживается. Поддерживаются только EventHandler и EventHandler<it id="1" pos="open">&lt;T&gt;</it>.</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
         </trans-unit>
         <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
@@ -203,6 +203,7 @@
         </trans-unit>
         <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
           <source>An argument was not supplied for a required parameter.</source>
+          <target state="translated">Аргумент для обязательного параметра не указан.</target>
         </trans-unit>
         <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
           <source>A CancellationToken is only allowed as the last parameter.</source>
@@ -210,12 +211,12 @@
         </trans-unit>
         <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
           <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
-          <target state="new">Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</target>
+          <target state="translated">Версия протокола JSON-RPC не поддерживается {0}. Доступные версии протокола: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
         </trans-unit>
         <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
-          <target state="new">JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</target>
+          <target state="translated">JSON-RPC 1.0 не поддерживает именованные аргументы (параметры, передаваемые в объекте). Используйте позиционные аргументы (массивы параметров) или установите версию протокола 2.0.</target>
         </trans-unit>
       </group>
     </body>

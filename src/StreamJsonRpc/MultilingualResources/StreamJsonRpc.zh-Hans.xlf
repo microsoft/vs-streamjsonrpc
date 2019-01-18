@@ -173,7 +173,7 @@
         </trans-unit>
         <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
           <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
-          <target state="translated">“{0}”上不支持的事件处理程序类型。仅支持 EventHandler 和 EventHandler&lt;T&gt;。</target>
+          <target state="translated">“{0}”上不支持的事件处理程序类型。仅支持 EventHandler 和 EventHandler<it id="1" pos="open">&lt;T&gt;</it>。</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
         </trans-unit>
         <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
@@ -211,12 +211,12 @@
         </trans-unit>
         <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
           <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
-          <target state="new">Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</target>
+          <target state="translated">JSON-RPC 协议版本 {0} 不受支持。支持的协议版本为: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
         </trans-unit>
         <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
-          <target state="new">JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</target>
+          <target state="translated">JSON-RPC 1.0 不支持命名参数(在对象中传递的参数)。请使用位置参数(参数数组)或将协议版本设置为 2.0。</target>
         </trans-unit>
       </group>
     </body>
