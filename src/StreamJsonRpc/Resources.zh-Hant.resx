@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>未為必要參數提供引數。</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken 只可作為最後一個參數。</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>不支援的 JSON-RPC 通訊協定版本 {0}。支援的通訊協定版本為: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 不支援具名引數 (在物件中傳遞的參數)。請使用位置引數 (參數陣列)，或將通訊協定版本設定為 2.0。</value>
+  </data>
 </root>

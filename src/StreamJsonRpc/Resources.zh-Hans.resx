@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>没有为所需参数提供参数。</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken 只能用作最后一个参数。</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>JSON-RPC 协议版本 {0} 不受支持。支持的协议版本为: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 不支持命名参数(在对象中传递的参数)。请使用位置参数(参数数组)或将协议版本设置为 2.0。</value>
+  </data>
 </root>

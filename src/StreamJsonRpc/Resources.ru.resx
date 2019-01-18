@@ -163,4 +163,17 @@
   <data name="ConnectionDropped" xml:space="preserve">
     <value>Соединение JSON-RPC с удаленной стороной было утрачено до того, как удалось выполнить запрос.</value>
   </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Аргумент для обязательного параметра не указан.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken может указываться только в качестве последнего параметра.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Версия протокола JSON-RPC не поддерживается {0}. Доступные версии протокола: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 не поддерживает именованные аргументы (параметры, передаваемые в объекте). Используйте позиционные аргументы (массивы параметров) или установите версию протокола 2.0.</value>
+  </data>
 </root>

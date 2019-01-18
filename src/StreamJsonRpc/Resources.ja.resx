@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>必須のパラメーターに対して引数が指定されませんでした。</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken は、最後のパラメーターとしてのみ許可されます。</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>JSON-RPC プロトコル バージョン {0} はサポートされていません。サポート対象バージョン: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 は名前付き引数 (オブジェクト内で渡されるパラメーター) をサポートしていません。位置引数 (パラメーター配列) を使用するか、プロトコル バージョンを 2.0 に設定してください。</value>
+  </data>
 </root>

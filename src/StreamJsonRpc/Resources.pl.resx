@@ -163,4 +163,17 @@
   <data name="ConnectionDropped" xml:space="preserve">
     <value>Połączenie JSON-RPC z podmiotem zdalnym zostało utracone, zanim można było ukończyć żądanie.</value>
   </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Nie dostarczono argumentu dla wymaganego parametru.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Element CancellationToken jest dozwolony tylko jako ostatni parametr.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Nieobsługiwana wersja protokołu JSON-RPC: {0}. Obsługiwane wersje protokołu: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>Protokół JSON-RPC 1.0 nie obsługuje nazwanych argumentów (parametrów przekazywanych w ramach obiektu). Użyj argumentów pozycyjnych (tablic parametrów) lub ustaw wersję protokołu na 2.0.</value>
+  </data>
 </root>

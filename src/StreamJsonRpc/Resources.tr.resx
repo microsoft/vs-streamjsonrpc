@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>Gerekli bir parametre için bağımsız değişken sağlanmadı.</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Bir CancellationToken'a yalnızca son parametre olarak izin verilir.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Desteklenmeyen JSON-RPC protokolü sürüm {0}. Desteklenen protokol sürümleri: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 adlandırılmış bağımsız değişkenleri (bir nesne içinde geçirilen parametreler) desteklemez. Konumsal bağımsız değişkenler (parametre dizileri) kullanın veya protokolü sürümünü 2.0 olarak belirleyin.</value>
+  </data>
 </root>

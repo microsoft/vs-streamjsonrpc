@@ -166,4 +166,14 @@
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>필수 매개 변수에 인수가 제공되지 않았습니다.</value>
   </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken은 마지막 매개 변수로만 허용됩니다.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>JSON-RPC 프로토콜 버전 {0}은(는) 지원되지 않습니다. 지원되는 프로토콜 버전: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0은 명명된 인수(개체 내에서 전달된 매개 변수)를 지원하지 않습니다. 위치 인수(매개 변수 배열)를 사용하거나 프로토콜 버전을 2.0으로 설정하세요.</value>
+  </data>
 </root>
