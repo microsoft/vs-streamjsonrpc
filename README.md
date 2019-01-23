@@ -21,7 +21,7 @@ Learn about the use cases for JSON-RPC and how to use this library from our [doc
 
 ## Supported platforms
 
-* .NET 4.6
+* .NET 4.6 (caveat: [workaround .NET SDK binding redirect bug](https://github.com/dotnet/sdk/issues/2547#issuecomment-456645188))
 * .NET Standard 1.6
 * .NET Standard 2.0
 
