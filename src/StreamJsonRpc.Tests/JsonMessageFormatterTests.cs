@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Buffers;
 using System.Text;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
@@ -84,5 +85,21 @@ public class JsonMessageFormatterTests : TestBase
         var formatter = new JsonMessageFormatter();
         Assert.Equal(ConstructorHandling.AllowNonPublicDefaultConstructor, formatter.JsonSerializer.ConstructorHandling);
         Assert.Equal(NullValueHandling.Ignore, formatter.JsonSerializer.NullValueHandling);
+    }
+
+    [Fact]
+    public void JTokenParserHonorsSettingsOnSerializer()
+    {
+        var formatter = new JsonMessageFormatter()
+        {
+            JsonSerializer = { DateParseHandling = DateParseHandling.None },
+        };
+
+        string jsonRequest = @"{""jsonrpc"":""2.0"",""method"":""asdf"",""params"":[""2019-01-29T03:37:28.4433841Z""]}";
+        ReadOnlySequence<byte> jsonSequence = new ReadOnlySequence<byte>(formatter.Encoding.GetBytes(jsonRequest));
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(jsonSequence);
+        Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object value));
+        Assert.IsType<string>(value);
+        Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }
 }
