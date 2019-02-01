@@ -278,7 +278,16 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(encoding, nameof(encoding));
 
-            var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), encoding));
+            var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), encoding))
+            {
+                CloseInput = true,
+                Culture = this.JsonSerializer.Culture,
+                DateFormatString = this.JsonSerializer.DateFormatString,
+                DateParseHandling = this.JsonSerializer.DateParseHandling,
+                DateTimeZoneHandling = this.JsonSerializer.DateTimeZoneHandling,
+                FloatParseHandling = this.JsonSerializer.FloatParseHandling,
+                MaxDepth = this.JsonSerializer.MaxDepth,
+            };
             JToken json = JToken.ReadFrom(jsonReader);
             return json;
         }
