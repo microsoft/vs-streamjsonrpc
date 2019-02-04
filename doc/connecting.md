@@ -14,7 +14,7 @@ Certain decisions about the protocol details must be made up front while constru
 This library includes several built-in protocol variants and options, and you can add your own. This is all documented in our [extensibility](extensibility.md) document.
 
 In the remaining samples in this section we use the convenient static `Attach` method which
-instantiates the class with the default settings and begins listening for messages immediately. Samples for changing aspects of the protocol are further below in the next section.
+instantiates the class with the default settings and begins listening for messages immediately. Samples for changing aspects of the protocol are in [a section below](#Configuring).
 
 ### Client
 
@@ -49,9 +49,9 @@ and before disposing the stream, you can hold the connection open as long as the
 await rpc.Completion;
 ```
 
-## Configuring/customizing the protocol
+## Configuring/customizing the protocol <a name="Configuring"></a>
 
-To alter the protocol in any way from the defaults, use the constructor directly instead.
+To alter the protocol in any way from the defaults, use the `JsonRpc` constructor directly, instead of using the static `Attach` method.
 This gives you a chance to provide your own `IJsonRpcMessageHandler`, set text encoding, etc. before sending or receiving any messages.
 Remember after configuring your instance to start listening by calling the `JsonRpc.StartListening()` method. This step is not necessary when using the static `Attach` method because it calls `StartListening` for you.
 
