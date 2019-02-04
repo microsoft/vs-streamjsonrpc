@@ -50,7 +50,7 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
 1. `WebSocketMessageHandler` - This is designed specifically for `WebSocket`, which has implicit message boundaries
    as part of the web socket protocol. As such, no header is added. Each message is transmitted as a single web socket
    message.
-1. `HttpClientMessageHandler` - This is a client-side implementation of the 
+1. `HttpClientMessageHandler` - This is a client-side implementation of the
    [JSON-RPC over HTTP spec](https://www.jsonrpc.org/historical/json-rpc-over-http.html), delivered as
    [a sample included in our test project](../src/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
 
@@ -71,7 +71,7 @@ so that it can be used with an `IJsonRpcMessageHandler` such as `HeaderDelimited
 text encoding to use at the transport level.
 Interop with other parties is most likely with a UTF-8 text encoding of JSON-RPC messages.
 
-StreamJsonRpc includes just one `IJsonRpcMessageFormatter` interface:
+StreamJsonRpc includes just one `IJsonRpcMessageFormatter` implementation:
 
 1. `JsonMessageFormatter` - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
     The text encoding is configurable via a proeprty. All RPC method parameters and return types must be serializable
