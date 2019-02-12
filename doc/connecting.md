@@ -77,6 +77,7 @@ Stream send, recv;
 var formatter = new JsonMessageFormatter(Encoding.UTF8);
 var handler = new LengthHeaderMessageHandler(send, recv, formatter);
 var jsonRpc = new JsonRpc(handler);
+// Add any applicable target objects/methods here, or in the JsonRpc constructor above
 jsonRpc.StartListening();
 ```
 
