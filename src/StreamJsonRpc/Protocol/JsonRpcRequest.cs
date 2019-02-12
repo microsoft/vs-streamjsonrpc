@@ -144,7 +144,7 @@ namespace StreamJsonRpc.Protocol
                 {
                     if (argument == null)
                     {
-                        if (parameter.ParameterType.GetTypeInfo().IsValueType)
+                        if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) == null)
                         {
                             // We cannot pass a null value to a value type parameter.
                             return ArgumentMatchResult.ParameterArgumentTypeMismatch;
