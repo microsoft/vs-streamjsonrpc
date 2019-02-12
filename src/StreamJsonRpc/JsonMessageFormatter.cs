@@ -462,7 +462,7 @@ namespace StreamJsonRpc
                 var result = (JToken)this.Result;
                 if (result.Type == JTokenType.Null)
                 {
-                    Verify.Operation(!typeof(T).GetTypeInfo().IsValueType, "null result is not assignable to a value type.");
+                    Verify.Operation(!typeof(T).GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(typeof(T)) != null, "null result is not assignable to a value type.");
                     return default;
                 }
 
