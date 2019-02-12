@@ -393,6 +393,26 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NullableParameters()
+    {
+        int? result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodAcceptsNullableArgs), null, 3);
+        Assert.Equal(1, result);
+        result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodAcceptsNullableArgs), 3, null);
+        Assert.Equal(1, result);
+        result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodAcceptsNullableArgs), 3, 5);
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task NullableReturnType()
+    {
+        int? result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 0);
+        Assert.Null(result);
+        result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 5);
+        Assert.Equal(5, result);
+    }
+
+    [Fact]
     public async Task CanCallMethodWithoutOmittingAsyncSuffix()
     {
         int result = await this.clientRpc.InvokeAsync<int>("MethodThatEndsInAsync");
@@ -1338,6 +1358,10 @@ public abstract class JsonRpcTests : TestBase
         {
             return x + y;
         }
+
+        public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
+
+        public int MethodAcceptsNullableArgs(int? a, int? b) => (a.HasValue ? 1 : 0) + (b.HasValue ? 1 : 0);
 
         public string ServerMethodInstance(string argument) => argument + "!";
 
