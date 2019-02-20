@@ -14,7 +14,7 @@
     <PackageIconUrl>https://aka.ms/VsExtensibilityIcon</PackageIconUrl>
     <PackageReleaseNotes>https://go.microsoft.com/fwlink/?LinkID=746387</PackageReleaseNotes>
 
-    <MicroBuildPackageVersion>2.0.54</MicroBuildPackageVersion>
+    <MicroBuildPackageVersion>2.0.55</MicroBuildPackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugType>full</DebugType>
