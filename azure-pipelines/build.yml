@@ -1,7 +1,8 @@
 steps:
 - script: |
-    dotnet tool install --tool-path . nbgv
-    .\nbgv cloud -p src
+    dotnet tool install --tool-path .. nbgv
+    ..\nbgv cloud
+  workingDirectory: src
   displayName: Set build number
   condition: ne(variables['system.pullrequest.isfork'], true)
 - task: PowerShell@2
