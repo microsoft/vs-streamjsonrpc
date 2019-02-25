@@ -60,7 +60,7 @@ namespace StreamJsonRpc
                 return name => name;
             }
 
-            return name => prefix + name;
+            return name => prefix + name + name;
         }
     }
 }
