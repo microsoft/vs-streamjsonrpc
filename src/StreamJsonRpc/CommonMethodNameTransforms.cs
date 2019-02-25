@@ -49,6 +49,7 @@ namespace StreamJsonRpc
         /// The prefix to prepend to any method name.
         /// This value must not be null.
         /// When this value is the empty string, no transformation is performed by the returned function.
+        /// More comments here
         /// </param>
         /// <returns>The transform function.</returns>
         public static Func<string, string> Prepend(string prefix)
@@ -60,7 +61,7 @@ namespace StreamJsonRpc
                 return name => name;
             }
 
-            return name => prefix + name + name;
+            return name => prefix + name;
         }
     }
 }
