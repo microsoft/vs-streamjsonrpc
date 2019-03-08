@@ -13,7 +13,6 @@
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageProjectUrl>https://github.com/Microsoft/vs-streamjsonrpc</PackageProjectUrl>
     <PackageIconUrl>https://aka.ms/VsExtensibilityIcon</PackageIconUrl>
-    <PackageReleaseNotes>https://go.microsoft.com/fwlink/?LinkID=746387</PackageReleaseNotes>
 
     <MicroBuildPackageVersion>2.0.55</MicroBuildPackageVersion>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
