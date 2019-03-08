@@ -170,9 +170,7 @@ namespace StreamJsonRpc
             catch (JsonException exception)
             {
                 var serializationException = new JsonSerializationException($"Unable to deserialize {nameof(JsonRpcMessage)}.", exception);
-#if NETFRAMEWORK
                 if (json.GetType().GetTypeInfo().IsSerializable)
-#endif
                 {
                     serializationException.Data[ExceptionDataKey] = json;
                 }
