@@ -4,7 +4,6 @@ steps:
     ..\nbgv cloud
   workingDirectory: src
   displayName: Set build number
-  condition: ne(variables['system.pullrequest.isfork'], true)
 - task: PowerShell@2
   displayName: Set VSTS variables
   inputs:
@@ -81,7 +80,7 @@ steps:
     ArtifactName: projectAssetsJson
     ArtifactType: Container
   displayName: Publish projectAssetsJson artifacts
-  condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
+  condition: succeededOrFailed()
 
 - task: PublishBuildArtifacts@1
   inputs:
@@ -89,7 +88,7 @@ steps:
     ArtifactName: build_logs
     ArtifactType: Container
   displayName: Publish build_logs artifacts
-  condition: and(succeededOrFailed(), ne(variables['system.pullrequest.isfork'], true))
+  condition: succeededOrFailed()
 
 ## The rest of these steps are for deployment and skipped for PR builds
 
@@ -98,7 +97,6 @@ steps:
 #    PathtoPublish: $(build.sourcesdirectory)/bin
 #    ArtifactName: bin
 #    ArtifactType: Container
-#  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
 
 - task: VSTest@2
   displayName: Run tests on .NET Framework (with code coverage)
@@ -122,7 +120,6 @@ steps:
     TargetFolder: $(Build.ArtifactStagingDirectory)/deployables
     flattenFolders: true
   displayName: Collecting deployables
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
 - task: PublishBuildArtifacts@1
   inputs:
@@ -130,4 +127,3 @@ steps:
     ArtifactName: deployables
     ArtifactType: Container
   displayName: Publish deployables artifacts
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), ne(variables['system.pullrequest.isfork'], true))
