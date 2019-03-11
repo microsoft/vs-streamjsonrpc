@@ -32,7 +32,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// A wrapper to use for the <see cref="PipeMessageHandler.Writer"/> when we need to count bytes written.
         /// </summary>
-        private CountingWriterWrapper<byte> writerWrapper;
+        private PrefixingBufferWriter<byte> prefixingWriter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LengthHeaderMessageHandler"/> class.
@@ -95,65 +95,17 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         protected override void Write(JsonRpcMessage content, CancellationToken cancellationToken)
         {
-            if (this.writerWrapper == null)
+            if (this.prefixingWriter == null)
             {
-                this.writerWrapper = new CountingWriterWrapper<byte>(this.Writer);
+                this.prefixingWriter = new PrefixingBufferWriter<byte>(this.Writer, sizeof(int));
             }
-
-            // Reserve a 4 byte header for the content length.
-            Span<byte> lengthBuffer = this.Writer.GetSpan(sizeof(int));
-            this.Writer.Advance(4);
 
             // Write out the actual message content, counting all written bytes.
-            this.writerWrapper.Reset();
-            this.formatter.Serialize(this.writerWrapper, content);
+            this.formatter.Serialize(this.prefixingWriter, content);
 
             // Now go back and fill in the header with the actual content length.
-            Utilities.Write(lengthBuffer, this.writerWrapper.ElementCount);
-        }
-
-        /// <summary>
-        /// An <see cref="IBufferWriter{T}"/> that allows its owner to track how many elements are actually written.
-        /// </summary>
-        /// <typeparam name="T">The type of element written.</typeparam>
-        private class CountingWriterWrapper<T> : IBufferWriter<T>
-        {
-            /// <summary>
-            /// The writer to forward all write calls to.
-            /// </summary>
-            private readonly IBufferWriter<T> inner;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="CountingWriterWrapper{T}"/> class.
-            /// </summary>
-            /// <param name="inner">The writer to forward all write calls to.</param>
-            internal CountingWriterWrapper(IBufferWriter<T> inner)
-            {
-                this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
-            }
-
-            /// <summary>
-            /// Gets the number of elements written since the last call to <see cref="Reset"/>.
-            /// </summary>
-            internal int ElementCount { get; private set; }
-
-            /// <inheritdoc />
-            public void Advance(int count)
-            {
-                this.ElementCount += count;
-                this.inner.Advance(count);
-            }
-
-            /// <inheritdoc />
-            public Memory<T> GetMemory(int sizeHint = 0) => this.inner.GetMemory(sizeHint);
-
-            /// <inheritdoc />
-            public Span<T> GetSpan(int sizeHint = 0) => this.inner.GetSpan(sizeHint);
-
-            /// <summary>
-            /// Restarts the <see cref="ElementCount"/> value to 0.
-            /// </summary>
-            internal void Reset() => this.ElementCount = 0;
+            Utilities.Write(this.prefixingWriter.Prefix.Span, checked((int)this.prefixingWriter.Length));
+            this.prefixingWriter.Commit();
         }
     }
 }
