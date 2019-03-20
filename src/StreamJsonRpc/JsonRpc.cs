@@ -507,6 +507,43 @@ namespace StreamJsonRpc
         /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
         /// </summary>
         /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="handler">The message handler to use.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(IJsonRpcMessageHandler handler)
+            where T : class
+        {
+            return Attach<T>(handler, options: null);
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <param name="handler">The message handler to use.</param>
+        /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        /// </returns>
+        public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions options)
+            where T : class
+        {
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
+            var rpc = new JsonRpc(handler);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default);
+            rpc.StartListening();
+            return proxy;
+        }
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
         /// <returns>An instance of the generated proxy.</returns>
         public T Attach<T>()
             where T : class
