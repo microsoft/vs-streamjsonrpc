@@ -1,8 +1,8 @@
 trigger:
   branches:
-    include: ["master", "v1.5"]
+    include: ["master", "v*", "*_validate"]
   paths:
-    exclude: ["doc", "*.md", ".appveyor.yml", ".travis.yml"]
+    exclude: ["doc", "*.md"]
 
 variables:
   TreatWarningsAsErrors: true
