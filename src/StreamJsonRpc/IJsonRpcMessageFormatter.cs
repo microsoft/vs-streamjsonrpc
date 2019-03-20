@@ -21,9 +21,9 @@ namespace StreamJsonRpc
         /// <summary>
         /// Serializes a <see cref="JsonRpcMessage"/>.
         /// </summary>
-        /// <param name="contentBuffer">The receiver of the serialized bytes.</param>
+        /// <param name="bufferWriter">The receiver of the serialized bytes.</param>
         /// <param name="message">The message to serialize.</param>
-        void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message);
+        void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message);
 
         /// <summary>
         /// Gets a JSON representation for a given message for tracing purposes.

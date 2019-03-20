@@ -104,7 +104,7 @@ StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System
 StreamJsonRpc.IJsonRpcMessageFormatter
 StreamJsonRpc.IJsonRpcMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
 StreamJsonRpc.IJsonRpcMessageFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
-StreamJsonRpc.IJsonRpcMessageFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
+StreamJsonRpc.IJsonRpcMessageFormatter.Serialize(System.Buffers.IBufferWriter<byte> bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.IJsonRpcMessageHandler
 StreamJsonRpc.IJsonRpcMessageHandler.CanRead.get -> bool
 StreamJsonRpc.IJsonRpcMessageHandler.CanWrite.get -> bool
