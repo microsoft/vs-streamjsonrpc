@@ -1,10 +1,11 @@
 steps:
 
-- task: MicroBuildIBCMergePlugin@0
+- task: ms-vseng.MicroBuildTasks.965C8DC6-1483-45C9-B384-5AC75DA1F1A4.MicroBuildOptProfPlugin@4
   inputs:
-    branch: rel/d15.8
-  displayName: Install MicroBuild IBCMerge Plugin
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
+    optimizationInputsDropNamePrefix: OptimizationInputs/DevDiv/vs-streamjsonrpc
+    getDropNameByDrop: true
+    ShouldSkipOptimize: $(ShouldSkipOptimize)
+  displayName: Install OptProf Plugin
 
 - task: MicroBuildSigningPlugin@1
   inputs:

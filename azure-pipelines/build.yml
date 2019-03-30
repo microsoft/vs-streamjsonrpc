@@ -24,6 +24,12 @@ steps:
 - script: dotnet --info
   displayName: Show dotnet SDK info
 
+  # We need nuget.exe on the PATH for our VSInsertion.ps1 script.
+- task: NuGetToolInstaller@0
+  displayName: Install/Pin nuget.exe version
+  inputs:
+    versionSpec: 4.9.4
+
 - task: DotNetCoreCLI@2
   displayName: Restore
   inputs:
@@ -41,6 +47,12 @@ steps:
     platform: $(BuildPlatform)
     configuration: $(BuildConfiguration)
   displayName: Build Visual Studio solution
+
+- task: PowerShell@2
+  inputs:
+    filePath: azure-pipelines\artifacts\VSInsertion.ps1
+    failOnStderr: true
+  displayName: Build VSInsertion CoreXT nupkg
 
 - task: DotNetCoreCLI@2
   displayName: Run tests
