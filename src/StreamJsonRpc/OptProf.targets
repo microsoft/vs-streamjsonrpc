@@ -9,9 +9,6 @@
         <TestContainer Name="VSPE" Repository="VS">
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_env_startup_devenv" />
         </TestContainer>
-        <TestContainer Name="Microsoft.VisualStudio.Web.DDRIT" Repository="VS">
-          <TestCase FullyQualifiedName="Microsoft.VisualStudio.Web.DDRIT.CSharpWapTest.CSharpWebApplicationTests" />
-        </TestContainer>
       </Scenarios>
     </OptProf>
   </ItemGroup>
