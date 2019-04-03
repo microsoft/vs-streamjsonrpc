@@ -2,7 +2,7 @@
   <ItemGroup>
     <OptProf Include="$(TargetPath)">
       <Technology>IBC</Technology>
-      <InstallationPath>Common7\IDE\PublicAssemblies\StreamJsonRpc.2.0\$(TargetFileName)</InstallationPath>
+      <InstallationPath>Common7\IDE\PublicAssemblies\StreamJsonRpc.2.1\$(TargetFileName)</InstallationPath>
       <InstrumentationArguments>/ExeConfig:"%VisualStudio.InstallationUnderTest.Path%\Common7\IDE\vsn.exe"</InstrumentationArguments>
       <OptimizationArguments>-PartialNGEN</OptimizationArguments>
       <Scenarios>
