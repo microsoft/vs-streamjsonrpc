@@ -167,6 +167,13 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NonGenericTaskServerMethod_ReturnsNullToClient()
+    {
+        object result = await this.clientRpc.InvokeAsync<object>(nameof(Server.ServerMethodThatReturnsTask));
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task CanInvokeMethodThatReturnsCustomTask()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.ServerMethodThatReturnsCustomTask));
