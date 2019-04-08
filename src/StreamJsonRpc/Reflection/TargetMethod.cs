@@ -77,6 +77,8 @@ namespace StreamJsonRpc
             }
         }
 
+        internal Type ReturnType => this.signature?.MethodInfo.ReturnType;
+
         /// <inheritdoc/>
         public override string ToString()
         {

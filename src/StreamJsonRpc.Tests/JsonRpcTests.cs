@@ -167,6 +167,13 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NonGenericTaskServerMethod_ReturnsNullToClient()
+    {
+        object result = await this.clientRpc.InvokeAsync<object>(nameof(Server.ServerMethodThatReturnsTask));
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task CanInvokeMethodThatReturnsCustomTask()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.ServerMethodThatReturnsCustomTask));
@@ -191,8 +198,8 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeMethodThatReturnsTaskOfInternalClass()
     {
-        // JSON RPC cannot invoke non-public members. A public member cannot have Task<NonPublicType> result.
-        // Though it can have result of just Task type, and return a Task<NonPublicType>, and dev hub supports that.
+        // JsonRpc does not invoke non-public members in the default configuration. A public member cannot have Task<NonPublicType> result.
+        // Though it can have result of just Task<object> type, which carries a NonPublicType instance.
         InternalClass result = await this.clientRpc.InvokeAsync<InternalClass>(nameof(Server.MethodThatReturnsTaskOfInternalClass));
         Assert.NotNull(result);
     }
@@ -1369,7 +1376,7 @@ public abstract class JsonRpcTests : TestBase
 
         public new string RedeclaredBaseMethod() => "child";
 
-        public Task ServerMethodThatReturnsCustomTask()
+        public Task<int> ServerMethodThatReturnsCustomTask()
         {
             var result = new CustomTask<int>(CustomTaskResult);
             result.Start();
@@ -1533,9 +1540,9 @@ public abstract class JsonRpcTests : TestBase
             throw new Exception();
         }
 
-        public Task MethodThatReturnsTaskOfInternalClass()
+        public Task<object> MethodThatReturnsTaskOfInternalClass()
         {
-            var result = new Task<InternalClass>(() => new InternalClass());
+            var result = new Task<object>(() => new InternalClass());
             result.Start();
             return result;
         }

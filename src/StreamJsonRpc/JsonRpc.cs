@@ -69,6 +69,12 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
+        /// A delegate for the <see cref="HandleInvocationTaskOfTResult(JsonRpcRequest, Task)"/> method.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskOfTResultDelegate;
+
+        /// <summary>
         /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -182,6 +188,7 @@ namespace StreamJsonRpc
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
+            this.handleInvocationTaskOfTResultDelegate = (t, request) => this.HandleInvocationTaskOfTResult((JsonRpcRequest)request, t);
             this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
 
             this.MessageHandler = messageHandler;
@@ -1308,6 +1315,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
 
+            // Make sure we're prepared for Task<T>-derived types, by walking back up to the actual type in order to find the Result property.
             while (taskTypeInfo != null)
             {
                 if (IsTaskOfT(taskTypeInfo))
@@ -1469,8 +1477,16 @@ namespace StreamJsonRpc
                     };
                 }
 
+                // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
+                // Checking on the runtime result object itself is problematic because .NET / C# implements
+                // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
+                // the VoidTaskResult internal struct as a meaningful result.
+                var continuationDelegate = TryGetTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
+                    ? this.handleInvocationTaskOfTResultDelegate
+                    : this.handleInvocationTaskResultDelegate;
+
                 return await resultingTask.ContinueWith(
-                    this.handleInvocationTaskResultDelegate,
+                    continuationDelegate,
                     request,
                     CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously,
@@ -1534,14 +1550,25 @@ namespace StreamJsonRpc
                 };
             }
 
-            // If t is a Task<SomeType>, it will have Result property.
-            // If t is just a Task, there is no Result property on it.
-            // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
-            // read the result at runtime.
-            // Make sure we're prepared for Task<T>-derived types, by walking back up to the actual type in order to find the Result property.
-            object taskResult = null;
-            if (TryGetTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo))
+            return new JsonRpcResult
             {
+                Id = request.Id,
+            };
+        }
+
+        private JsonRpcMessage HandleInvocationTaskOfTResult(JsonRpcRequest request, Task t)
+        {
+            var message = this.HandleInvocationTaskResult(request, t);
+
+            if (message is JsonRpcResult resultMessage)
+            {
+                // This method should only be called for methods that declare to return Task<T> or a derived type.
+                Assumes.True(TryGetTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo));
+
+                // If t is a Task<SomeType>, it will have Result property.
+                // If t is just a Task, there is no Result property on it.
+                // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
+                // read the result at runtime.
 #pragma warning disable VSTHRD002 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
 #pragma warning disable VSTHRD102 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
                 const string ResultPropertyName = nameof(Task<int>.Result);
@@ -1550,14 +1577,10 @@ namespace StreamJsonRpc
 
                 PropertyInfo resultProperty = taskOfTTypeInfo.GetDeclaredProperty(ResultPropertyName);
                 Assumes.NotNull(resultProperty);
-                taskResult = resultProperty.GetValue(t);
+                resultMessage.Result = resultProperty.GetValue(t);
             }
 
-            return new JsonRpcResult
-            {
-                Id = request.Id,
-                Result = taskResult,
-            };
+            return message;
         }
 
         private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
