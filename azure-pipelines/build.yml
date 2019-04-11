@@ -97,18 +97,6 @@ steps:
     filePath: azure-pipelines\artifacts\_pipelines.ps1
   displayName: Publish artifacts
 
-- task: VSTest@2
-  displayName: Run tests on .NET Framework (with code coverage)
-  inputs:
-    testFiltercriteria: TestCategory!=FailsInCloudTest
-    searchFolder: $(System.DefaultWorkingDirectory)\bin
-    testAssemblyVer2: |
-      **\*tests*.dll
-    platform: $(BuildPlatform)
-    configuration: $(BuildConfiguration)
-    codeCoverageEnabled: true
-  condition: and(succeeded(), ne(variables['SignType'], 'real'))
-
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.after.yml
 
