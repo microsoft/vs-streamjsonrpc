@@ -74,7 +74,7 @@
     <comment>{0} is the json.</comment>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
-    <value>无法将内容长度标头分析为一个正整数。</value>
+    <value>无法将 Content-Length 标头分析为一个正整数。</value>
     <comment>{locked="Content-Length"}</comment>
   </data>
   <data name="HeaderValueTooLarge" xml:space="preserve">
@@ -142,7 +142,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>“{0}”上不支持的事件处理程序类型。仅支持 EventHandler 和 EventHandler&lt;T&gt;。</value>
+    <value>“{0}”上不受支持的事件处理程序类型。只支持 EventHandler 和 EventHandler&lt;T&gt;。</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">

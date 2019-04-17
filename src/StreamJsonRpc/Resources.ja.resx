@@ -142,7 +142,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>"{0}" でサポートされていないイベント ハンドラーの型です。EventHandler および EventHandler&lt;T&gt; のみがサポートされています。</value>
+    <value>"{0}" にサポートされていないイベント ハンドラーの型があります。サポートされているのは、EventHandler と EventHandler&lt;T&gt; のみです。</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">

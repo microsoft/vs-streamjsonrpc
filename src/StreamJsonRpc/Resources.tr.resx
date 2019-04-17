@@ -142,7 +142,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>"{0}" üzerindeki olay işleyici türü desteklenmiyor. Yalnızca EventHandler ve EventHandler&lt;T&gt; desteklenir.</value>
+    <value>"{0}" üzerinde desteklenmeyen olay işleyicisi türü. Yalnızca EventHandler ve EventHandler&lt;T&gt; desteklenir.</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">

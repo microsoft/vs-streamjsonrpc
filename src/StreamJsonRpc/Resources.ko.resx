@@ -142,7 +142,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>"{0}"의 지원되지 않는 이벤트 처리기 형식입니다. EventHandler 및 EventHandler&lt;T&gt;만 지원됩니다.</value>
+    <value>"{0}"의 지원되지 않는 이벤트 처리기 형식. EventHandler 및 EventHandler&lt;T&gt;만 지원됩니다.</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
