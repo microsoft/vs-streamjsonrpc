@@ -1079,7 +1079,7 @@ namespace StreamJsonRpc
                                 if (cancellationToken.IsCancellationRequested || this.IsDisposed)
                                 {
                                     // Consider lost connection to be result of task canceled or disposed and set state to canceled
-                                    tcs.TrySetCanceled();
+                                    tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
                                 }
                                 else
                                 {

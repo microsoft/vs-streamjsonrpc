@@ -150,7 +150,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     }
 
     [Fact]
-    public async Task CancelMayStillReturnErrorFromServer()
+    public async Task CancelExceptionPreferredOverConnectionLost()
     {
         using (var cts = new CancellationTokenSource())
         {
@@ -159,7 +159,10 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+            // When the remote hangs up while the local side has an outstanding request,
+            // we expect ConnectionLostException to be thrown locally unless the request was already canceled anyway.
+            var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+            Assert.Equal(cts.Token, ex.CancellationToken);
             Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException.Message);
             Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
