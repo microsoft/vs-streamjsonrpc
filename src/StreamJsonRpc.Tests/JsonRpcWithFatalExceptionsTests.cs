@@ -174,50 +174,6 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     }
 
     [Fact]
-    public async Task DisposedClientResultsInCancelled()
-    {
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
-            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-            this.clientRpc.Dispose();
-            this.server.AllowServerMethodToReturn.Set();
-
-            // Connection was closed before error was sent from the server
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
-            Assert.Equal(0, this.serverRpc.IsFatalExceptionCount);
-        }
-
-        Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverMessageHandler).IsDisposed);
-        Assert.True(this.clientRpc.IsDisposed);
-        Assert.False(this.serverRpc.IsDisposed);
-    }
-
-    [Fact]
-    public async Task UnexpectedDisconnectResultsInConnectionLostException()
-    {
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
-            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
-
-            // Simulate an unexpected lost connection
-            ((IDisposable)this.serverMessageHandler).Dispose();
-            this.server.AllowServerMethodToReturn.Set();
-
-            // Connection was closed before error was sent from the server
-            await Assert.ThrowsAnyAsync<ConnectionLostException>(() => invokeTask);
-            Assert.Equal(0, this.serverRpc.IsFatalExceptionCount);
-        }
-
-        Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
-        Assert.True(((IDisposableObservable)this.serverMessageHandler).IsDisposed);
-        Assert.False(this.clientRpc.IsDisposed);
-        Assert.False(this.serverRpc.IsDisposed);
-    }
-
-    [Fact]
     public async Task AggregateExceptionIsNotRemovedFromAsyncMethod()
     {
         var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner)));

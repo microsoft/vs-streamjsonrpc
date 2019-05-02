@@ -1076,10 +1076,10 @@ namespace StreamJsonRpc
                                     this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
                                 }
 
-                                if (cancellationToken.IsCancellationRequested || this.IsDisposed)
+                                if (cancellationToken.IsCancellationRequested)
                                 {
-                                    // Consider lost connection to be result of task canceled or disposed and set state to canceled
-                                    tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+                                    // Consider lost connection to be result of task canceled and set state to canceled.
+                                    tcs.TrySetCanceled(cancellationToken);
                                 }
                                 else
                                 {
@@ -1137,7 +1137,7 @@ namespace StreamJsonRpc
                     }
                 }
             }
-            catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested && !this.IsDisposed)
+            catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
                 throw new ConnectionLostException(Resources.ConnectionDropped, ex);
             }
