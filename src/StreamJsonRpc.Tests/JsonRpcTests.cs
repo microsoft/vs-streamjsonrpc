@@ -582,6 +582,21 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task Invoke_ThrowsConnectionLostExceptionOverDisposedException()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            this.clientRpc.Dispose();
+            this.server.AllowServerMethodToReturn.Set();
+
+            // Connection was closed before error was sent from the server
+            await Assert.ThrowsAnyAsync<ConnectionLostException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithNoArgs()
     {
         Assert.Equal(5, await this.clientRpc.InvokeAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));

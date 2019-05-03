@@ -141,7 +141,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>Тип обработчика событий в "{0}" не поддерживается. Поддерживаются только EventHandler и EventHandler&lt;T&gt;.</value>
+    <value>Неподдерживаемый тип обработчика событий в "{0}". Поддерживаются только EventHandler и EventHandler&lt;T&gt;.</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
