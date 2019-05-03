@@ -1,0 +1,39 @@
+queue:
+  name: Hosted VS2017
+
+steps:
+- task: DotNetCoreInstaller@0
+  displayName: Install .NET Core SDK 2.2.104
+  inputs:
+    packageType: sdk
+    version: 2.2.104
+
+- task: PowerShell@2
+  inputs:
+    filePath: azure-pipelines\variables\_pipelines.ps1
+    failOnStderr: true
+  displayName: Set pipeline variables based on source
+
+  # We need nuget.exe on the PATH for our VSInsertion.ps1 script.
+- task: NuGetToolInstaller@0
+  displayName: Install/Pin nuget.exe version
+  inputs:
+    versionSpec: 4.9.4
+
+- task: DotNetCoreCLI@2
+  displayName: Restore
+  inputs:
+    command: restore
+    verbosityRestore: normal # detailed, normal, minimal
+    projects: src/**/*.sln
+    feedsToUse: config
+    nugetConfigPath: src/nuget.config
+
+# Use VSBuild to pack because `dotnet pack` can't sign packages with MicroBuild.
+- task: VSBuild@1
+  inputs:
+    vsVersion: 15.0
+    msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
+    platform: 'Any CPU'
+    configuration: Release
+  displayName: Build Visual Studio solution
