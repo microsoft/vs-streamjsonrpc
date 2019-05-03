@@ -12,6 +12,7 @@ namespace StreamJsonRpc
         /// An error occurred while accessing the stream.
         /// </summary>
         StreamError,
+        // add a comment
 
         /// <summary>
         /// A syntax or schema error while reading a JSON-RPC packet occurred.
