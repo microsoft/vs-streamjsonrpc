@@ -141,7 +141,7 @@
     <comment>{0} is the exception type, {1} is the exception message</comment>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
-    <value>Il tipo di gestore eventi non è supportato su "{0}". Sono supportati solo EventHandler ed EventHandler&lt;T&gt;.</value>
+    <value>Tipo di gestore dell'evento non supportato in "{0}". Sono supportati solo EventHandler e EventHandler&lt;T&gt;.</value>
     <comment>{0} is a type and member name.</comment>
   </data>
   <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">

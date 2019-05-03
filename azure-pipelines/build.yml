@@ -99,17 +99,3 @@ steps:
 
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.after.yml
-
-- task: PowerShell@2
-  displayName: Collecting deployables
-  inputs:
-    targetType: inline
-    script: |
-      Get-ChildItem bin\Packages\$(BuildConfiguration)\NuGet\*.nupkg -rec |% { copy $_  $(Build.ArtifactStagingDirectory)\deployables }
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/deployables
-    ArtifactName: deployables
-    ArtifactType: Container
-  displayName: Publish deployables artifacts
