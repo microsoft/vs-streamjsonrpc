@@ -1076,7 +1076,15 @@ namespace StreamJsonRpc
                                     this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
                                 }
 
-                                tcs.TrySetException(new ConnectionLostException());
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    // Consider lost connection to be result of task canceled and set state to canceled.
+                                    tcs.TrySetCanceled(cancellationToken);
+                                }
+                                else
+                                {
+                                    tcs.TrySetException(new ConnectionLostException());
+                                }
                             }
                             else if (response is JsonRpcError error)
                             {
