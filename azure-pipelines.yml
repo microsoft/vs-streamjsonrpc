@@ -8,12 +8,6 @@ steps:
     packageType: sdk
     version: 2.2.104
 
-- task: PowerShell@2
-  inputs:
-    filePath: azure-pipelines\variables\_pipelines.ps1
-    failOnStderr: true
-  displayName: Set pipeline variables based on source
-
   # We need nuget.exe on the PATH for our VSInsertion.ps1 script.
 - task: NuGetToolInstaller@0
   displayName: Install/Pin nuget.exe version
