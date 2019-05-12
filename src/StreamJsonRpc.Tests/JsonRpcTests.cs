@@ -1210,6 +1210,46 @@ public class JsonRpcTests : TestBase
         Assert.Throws<InvalidOperationException>(() => this.serverRpc.StartListening());
     }
 
+    /// <summary>
+    /// Verifies (with a great deal of help by interactively debugging and freezing a thread) that <see cref="JsonRpc.StartListening"/>
+    /// shouldn't have a race condition with itself and a locally invoked RPC method calling <see cref="JsonRpc.InvokeCoreAsync{TResult}(int?, string, System.Collections.Generic.IReadOnlyList{object}, CancellationToken, bool)"/>.
+    /// </summary>
+    [Fact]
+    public async Task StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        var result = new TaskCompletionSource<object>();
+        this.clientRpc.AddLocalRpcMethod("nothing", new Action(() => { }));
+        this.serverRpc.AddLocalRpcMethod(
+            "race",
+            new Func<Task>(async delegate
+            {
+                try
+                {
+                    await this.serverRpc.InvokeAsync("nothing");
+                    result.SetResult(null);
+                }
+                catch (Exception ex)
+                {
+                    result.SetException(ex);
+                }
+            }));
+
+        this.clientRpc.StartListening();
+        var clientInvokeTask = this.clientRpc.InvokeAsync("race");
+
+        // For an effective test, the timing must be precise here.
+        // Within the StartListening method, one must freeze the executing thread after it kicks off the listening task,
+        // but BEFORE it assigns that Task to a field.
+        // That thread must remain frozen until our "race" method above has completed its InvokeAsync call.
+        // As of the time of this writing, there is in fact a race condition that will case the InvokeAsync call
+        // to throw an exception claiming that StartListening has not yet been called.
+        this.serverRpc.StartListening();
+
+        await Task.WhenAll(clientInvokeTask, result.Task).WithCancellation(this.TimeoutToken);
+    }
+
     [Fact]
     public async Task AddLocalRpcMethod_AllowedAfterListeningIfOptIn()
     {
