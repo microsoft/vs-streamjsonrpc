@@ -1,10 +1,22 @@
 steps:
+- task: DotNetCoreInstaller@0
+  displayName: Install .NET Core SDK
+  inputs:
+    packageType: sdk
+    version: 2.2.104
+
+- script: dotnet --info
+  workingDirectory: src
+  displayName: Show dotnet SDK info
+
 - script: |
     dotnet tool install --tool-path .. nbgv
     ..\nbgv cloud
     echo ##vso[task.setvariable variable=PATH]%Path%;$(Build.SourcesDirectory)
   workingDirectory: src
   displayName: Set build number
+  env:
+    DOTNET_MULTILEVEL_LOOKUP: 0 # workaround .NET CLI bug that shows up in Azure Pipelines
 
 - task: PowerShell@2
   inputs:
@@ -14,15 +26,6 @@ steps:
 
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.before.yml
-
-- task: DotNetCoreInstaller@0
-  displayName: Install .NET Core SDK
-  inputs:
-    packageType: sdk
-    version: 2.2.104
-
-- script: dotnet --info
-  displayName: Show dotnet SDK info
 
   # We need nuget.exe on the PATH for our VSInsertion.ps1 script.
 - task: NuGetToolInstaller@0
