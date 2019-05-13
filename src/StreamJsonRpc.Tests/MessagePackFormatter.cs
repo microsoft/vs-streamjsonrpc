@@ -57,7 +57,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
-            if (message is JsonRpcRequest request && request.Arguments != null && request.ArgumentsArray == null && !(request.Arguments is IReadOnlyDictionary<string, object>))
+            if (message is JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object>))
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
                 // the parameters can be matched to the method we're invoking.

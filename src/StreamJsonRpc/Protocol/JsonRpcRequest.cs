@@ -86,7 +86,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets the number of arguments supplied in the request.
         /// </summary>
         [IgnoreDataMember]
-        public int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsArray?.Length ?? 0;
+        public int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsList?.Count ?? 0;
 
         /// <summary>
         /// Gets or sets the dictionary of named arguments, if applicable.
@@ -102,9 +102,20 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets an array of arguments, if applicable.
         /// </summary>
         [IgnoreDataMember]
+        [Obsolete("Use " + nameof(ArgumentsList) + " instead.")]
         public object[] ArgumentsArray
         {
             get => this.Arguments as object[];
+            set => this.Arguments = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a read only list of arguments, if applicable.
+        /// </summary>
+        [IgnoreDataMember]
+        public IReadOnlyList<object> ArgumentsList
+        {
+            get => this.Arguments as IReadOnlyList<object>;
             set => this.Arguments = value;
         }
 
@@ -189,9 +200,9 @@ namespace StreamJsonRpc.Protocol
             {
                 return this.NamedArguments.TryGetValue(name, out value);
             }
-            else if (this.ArgumentsArray != null && position < this.ArgumentsArray.Length && position >= 0)
+            else if (this.ArgumentsList != null && position < this.ArgumentsList.Count && position >= 0)
             {
-                value = this.ArgumentsArray[position];
+                value = this.ArgumentsList[position];
                 return true;
             }
 

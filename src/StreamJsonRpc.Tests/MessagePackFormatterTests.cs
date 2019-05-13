@@ -28,15 +28,15 @@ public class MessagePackFormatterTests : TestBase
         {
             Id = 5,
             Method = "test",
-            ArgumentsArray = new object[] { 5, "hi", new CustomType { Age = 8 } },
+            ArgumentsList = new object[] { 5, "hi", new CustomType { Age = 8 } },
         };
 
         var actual = this.Roundtrip(original);
         Assert.Equal(original.Id, actual.Id);
         Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(original.ArgumentsArray[0], actual.ArgumentsArray[0]);
-        Assert.Equal(original.ArgumentsArray[1], actual.ArgumentsArray[1]);
-        Assert.Equal(((CustomType)original.ArgumentsArray[2]).Age, ((CustomType)actual.ArgumentsArray[2]).Age);
+        Assert.Equal(original.ArgumentsList[0], actual.ArgumentsList[0]);
+        Assert.Equal(original.ArgumentsList[1], actual.ArgumentsList[1]);
+        Assert.Equal(((CustomType)original.ArgumentsList[2]).Age, ((CustomType)actual.ArgumentsList[2]).Age);
     }
 
     [Fact]
