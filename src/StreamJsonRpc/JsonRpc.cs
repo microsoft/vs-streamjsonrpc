@@ -99,7 +99,6 @@ namespace StreamJsonRpc
         private Task readLinesTask;
         private long nextId = 1;
         private JsonRpcDisconnectedEventArgs disconnectedEventArgs;
-        private bool startedListening;
 
         /// <summary>
         /// Backing field for the <see cref="TraceSource"/> property.
@@ -417,6 +416,11 @@ namespace StreamJsonRpc
         private SynchronizationContext SynchronizationContextOrDefault => this.SynchronizationContext ?? DefaultSynchronizationContext;
 
         /// <summary>
+        /// Gets a value indicating whether listening has started.
+        /// </summary>
+        private bool HasListeningStarted => this.readLinesTask != null;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
         /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
         /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
@@ -668,12 +672,18 @@ namespace StreamJsonRpc
         /// </summary>
         public void StartListening()
         {
-            this.startedListening = true;
-
             Verify.Operation(this.MessageHandler.CanRead, Resources.StreamMustBeReadable);
             Verify.Operation(this.readLinesTask == null, Resources.InvalidAfterListenHasStarted);
             Verify.NotDisposed(this);
-            this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.DisconnectedToken);
+
+            // We take a lock around this Task.Run and field assignment,
+            // and also immediately within the invoked Task itself,
+            // to guarantee that the assignment will complete BEFORE we actually read the first message.
+            // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
+            lock (this.syncObject)
+            {
+                this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.DisconnectedToken);
+            }
         }
 
         /// <summary>
@@ -1599,6 +1609,15 @@ namespace StreamJsonRpc
 
         private async Task ReadAndHandleRequestsAsync()
         {
+            lock (this.syncObject)
+            {
+                // This block intentionally left blank.
+                // It ensures that this thread will not receive messages before our caller (StartListening)
+                // assigns the Task we return to a field before we go any further,
+                // since our caller holds this lock until the field assignment completes.
+                // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
+            }
+
             this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
 
             try
@@ -1889,7 +1908,7 @@ namespace StreamJsonRpc
         /// </summary>
         private void ThrowIfConfigurationLocked()
         {
-            Verify.Operation(!this.startedListening || this.AllowModificationWhileListening, Resources.MustNotBeListening);
+            Verify.Operation(!this.HasListeningStarted || this.AllowModificationWhileListening, Resources.MustNotBeListening);
         }
 
         internal class MethodNameMap
