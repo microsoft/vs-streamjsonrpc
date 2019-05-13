@@ -1,0 +1,2 @@
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.get -> System.Collections.Generic.IReadOnlyList<object>
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.set -> void

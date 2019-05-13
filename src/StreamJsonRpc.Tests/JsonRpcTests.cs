@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -80,7 +81,7 @@ public abstract class JsonRpcTests : TestBase
             new JsonRpcRequest
             {
                 Method = nameof(Server.NotificationMethod),
-                ArgumentsArray = new[] { "hello" },
+                ArgumentsList = new[] { "hello" },
             },
             this.TimeoutToken);
 
@@ -98,7 +99,7 @@ public abstract class JsonRpcTests : TestBase
             {
                 Id = 1,
                 Method = nameof(Server.MethodThatAccceptsAndReturnsNull),
-                ArgumentsArray = new object[] { null },
+                ArgumentsList = new object[] { null },
             },
             this.TimeoutToken);
 
@@ -614,6 +615,14 @@ public abstract class JsonRpcTests : TestBase
                 // this is also an acceptable result.
             }
         }
+    }
+
+    [Fact]
+    public async Task InvokeAsync_PassArgsAsNonArrayList()
+    {
+        var args = new List<object> { 1, 2 };
+        int result = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithDefaultParameter), args, this.TimeoutToken);
+        Assert.Equal(3, result);
     }
 
     [Fact]

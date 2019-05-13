@@ -298,9 +298,9 @@ namespace StreamJsonRpc
         {
             if (jsonRpcMessage is Protocol.JsonRpcRequest request)
             {
-                if (request.ArgumentsArray != null)
+                if (request.ArgumentsList != null)
                 {
-                    request.ArgumentsArray = request.ArgumentsArray.Select(this.TokenizeUserData).ToArray();
+                    request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
                 }
                 else if (request.Arguments != null)
                 {
