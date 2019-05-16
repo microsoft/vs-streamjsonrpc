@@ -2,20 +2,8 @@ steps:
 - script: dotnet --info
   displayName: Show dotnet SDK info
 
-- script: dotnet restore
-  displayName: Restore packages
-  workingDirectory: ${{ parameters.projectdirectory }}
-- script: dotnet build -v n -f netcoreapp1.0 -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp1.0.binlog"
-  displayName: Build test for netcoreapp1.0
-  workingDirectory: ${{ parameters.projectdirectory }}
-- script: dotnet build -v n -f netcoreapp2.0 -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.0.binlog"
-  displayName: Build test for netcoreapp2.0
-  workingDirectory: ${{ parameters.projectdirectory }}
-- script: dotnet build -v n -f netcoreapp2.1 -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.1.binlog"
-  displayName: Build test for netcoreapp2.1
-  workingDirectory: ${{ parameters.projectdirectory }}
-- script: dotnet build -v n -f netcoreapp2.2 -c $(BuildConfiguration) --no-restore /bl:"$(Build.ArtifactStagingDirectory)/build_logs/netcoreapp2.2.binlog"
-  displayName: Build test for netcoreapp2.2
+- script: dotnet build -v n -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+  displayName: Build test
   workingDirectory: ${{ parameters.projectdirectory }}
 
 - script: dotnet test -v n -f netcoreapp1.0 -c $(BuildConfiguration) --no-build --filter "TestCategory!=FailsInCloudTest" --logger "trx;LogFileName=$(Build.ArtifactStagingDirectory)/testlogs/netcoreapp1.0.trx"
