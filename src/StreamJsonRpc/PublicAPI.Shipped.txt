@@ -1,23 +1,7 @@
 StreamJsonRpc.BadRpcHeaderException
 StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
-StreamJsonRpc.DelimitedMessageHandler
-StreamJsonRpc.DelimitedMessageHandler.CanRead.get -> bool
-StreamJsonRpc.DelimitedMessageHandler.CanWrite.get -> bool
-StreamJsonRpc.DelimitedMessageHandler.DelimitedMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream, System.Text.Encoding encoding) -> void
-StreamJsonRpc.DelimitedMessageHandler.DisposalToken.get -> System.Threading.CancellationToken
-StreamJsonRpc.DelimitedMessageHandler.Dispose() -> void
-StreamJsonRpc.DelimitedMessageHandler.Encoding.get -> System.Text.Encoding
-StreamJsonRpc.DelimitedMessageHandler.Encoding.set -> void
-StreamJsonRpc.DelimitedMessageHandler.ReadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
-StreamJsonRpc.DelimitedMessageHandler.ReceivingStream.get -> System.IO.Stream
-StreamJsonRpc.DelimitedMessageHandler.SendingStream.get -> System.IO.Stream
-StreamJsonRpc.DelimitedMessageHandler.WriteAsync(string content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.Disposed = 3 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.DisconnectedReason.FatalException = 4 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.ParseError = 2 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.StreamError = 1 -> StreamJsonRpc.DisconnectedReason
-StreamJsonRpc.DisconnectedReason.Unknown = 0 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.HeaderDelimitedMessageHandler
 StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream) -> void
 StreamJsonRpc.HeaderDelimitedMessageHandler.SubType.get -> string
@@ -25,16 +9,11 @@ StreamJsonRpc.HeaderDelimitedMessageHandler.SubType.set -> void
 StreamJsonRpc.JsonRpc
 StreamJsonRpc.JsonRpc.Disconnected -> System.EventHandler<StreamJsonRpc.JsonRpcDisconnectedEventArgs>
 StreamJsonRpc.JsonRpc.Dispose() -> void
-StreamJsonRpc.JsonRpc.Encoding.get -> System.Text.Encoding
-StreamJsonRpc.JsonRpc.Encoding.set -> void
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, params object[] arguments) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, params object[] arguments) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
-StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.DelimitedMessageHandler messageHandler, object target = null) -> void
 StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> void
-StreamJsonRpc.JsonRpc.JsonSerializer.get -> Newtonsoft.Json.JsonSerializer
-StreamJsonRpc.JsonRpc.MessageHandler.get -> StreamJsonRpc.DelimitedMessageHandler
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, params object[] arguments) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.StartListening() -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs
@@ -42,15 +21,9 @@ StreamJsonRpc.JsonRpcDisconnectedEventArgs.Description.get -> string
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.Exception.get -> System.Exception
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, System.Exception exception) -> void
-StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, string lastMessage) -> void
-StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, string lastMessage, System.Exception exception) -> void
-StreamJsonRpc.JsonRpcDisconnectedEventArgs.LastMessage.get -> string
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.Reason.get -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.RemoteInvocationException
-StreamJsonRpc.RemoteInvocationException.RemoteErrorCode.get -> string
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
-StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, string remoteStack, string remoteCode) -> void
-StreamJsonRpc.RemoteInvocationException.RemoteStackTrace.get -> string
 StreamJsonRpc.RemoteMethodNotFoundException
 StreamJsonRpc.RemoteMethodNotFoundException.RemoteMethodNotFoundException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.RemoteMethodNotFoundException.TargetMethod.get -> string
@@ -58,24 +31,15 @@ StreamJsonRpc.RemoteRpcException
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(string message) -> void
 StreamJsonRpc.RemoteRpcException.RemoteRpcException(string message, System.Exception innerException) -> void
-StreamJsonRpc.RemoteTargetNotSetException
-StreamJsonRpc.RemoteTargetNotSetException.RemoteTargetNotSetException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
-abstract StreamJsonRpc.DelimitedMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
-abstract StreamJsonRpc.DelimitedMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
-override StreamJsonRpc.HeaderDelimitedMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
-override StreamJsonRpc.HeaderDelimitedMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream sendingStream, System.IO.Stream receivingStream, object target = null) -> StreamJsonRpc.JsonRpc
 static StreamJsonRpc.JsonRpc.Attach(System.IO.Stream stream, object target = null) -> StreamJsonRpc.JsonRpc
-virtual StreamJsonRpc.DelimitedMessageHandler.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.Dispose(bool disposing) -> void
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 virtual StreamJsonRpc.JsonRpc.IsFatalException(System.Exception ex) -> bool
 StreamJsonRpc.JsonRpc.NotifyAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync(string targetName, object argument) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string targetName, object argument = null) -> System.Threading.Tasks.Task
-virtual StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(int? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name) -> void
 StreamJsonRpc.JsonRpcMethodAttribute.Name.get -> string
@@ -89,8 +53,6 @@ StreamJsonRpc.JsonRpc.AllowModificationWhileListening.set -> void
 StreamJsonRpc.JsonRpc.Attach<T>() -> T
 StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.JsonRpcProxyOptions options) -> T
 StreamJsonRpc.JsonRpc.Completion.get -> System.Threading.Tasks.Task
-StreamJsonRpc.JsonRpc.JsonSerializerFormatting.get -> Newtonsoft.Json.Formatting
-StreamJsonRpc.JsonRpc.JsonSerializerFormatting.set -> void
 StreamJsonRpc.JsonRpc.SynchronizationContext.get -> System.Threading.SynchronizationContext
 StreamJsonRpc.JsonRpc.SynchronizationContext.set -> void
 StreamJsonRpc.JsonRpcProxyOptions
@@ -107,18 +69,12 @@ StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.get -> System.Func<string
 StreamJsonRpc.JsonRpcTargetOptions.MethodNameTransform.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.NotifyClientOfEvents.set -> void
-StreamJsonRpc.RemoteInvocationException.ErrorData.get -> Newtonsoft.Json.Linq.JToken
-StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, string remoteStack, string remoteCode, Newtonsoft.Json.Linq.JToken errorData) -> void
 StreamJsonRpc.WebSocketMessageHandler
 StreamJsonRpc.WebSocketMessageHandler.WebSocket.get -> System.Net.WebSockets.WebSocket
-StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, int bufferSize = 4096) -> void
-override StreamJsonRpc.WebSocketMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string>
-override StreamJsonRpc.WebSocketMessageHandler.WriteCoreAsync(string content, System.Text.Encoding contentEncoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
 static StreamJsonRpc.CommonMethodNameTransforms.CamelCase.get -> System.Func<string, string>
 static StreamJsonRpc.CommonMethodNameTransforms.Prepend(string prefix) -> System.Func<string, string>
 static StreamJsonRpc.JsonRpc.Attach<T>(System.IO.Stream sendingStream, System.IO.Stream receivingStream) -> T
 static StreamJsonRpc.JsonRpc.Attach<T>(System.IO.Stream stream) -> T
-virtual StreamJsonRpc.DelimitedMessageHandler.FlushCoreAsync() -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.get -> bool
 StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed.set -> void
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
@@ -126,3 +82,215 @@ StreamJsonRpc.JsonRpcProxyOptions.ServerRequiresNamedArguments.get -> bool
 StreamJsonRpc.JsonRpcProxyOptions.ServerRequiresNamedArguments.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation.set -> void
+StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(string message) -> void
+StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(string message, System.Exception innerException) -> void
+StreamJsonRpc.ConnectionLostException
+StreamJsonRpc.ConnectionLostException.ConnectionLostException() -> void
+StreamJsonRpc.ConnectionLostException.ConnectionLostException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
+StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message) -> void
+StreamJsonRpc.ConnectionLostException.ConnectionLostException(string message, System.Exception innerException) -> void
+StreamJsonRpc.DisconnectedReason.LocalContractViolation = 5 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.LocallyDisposed = 2 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.ParseError = 1 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.RemotePartyTerminated = 3 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.DisconnectedReason.StreamError = 0 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.get -> System.Text.Encoding
+StreamJsonRpc.HeaderDelimitedMessageHandler.Encoding.set -> void
+StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Pipelines.PipeWriter writer, System.IO.Pipelines.PipeReader reader, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Stream duplexStream) -> void
+StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Stream duplexStream, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.HeaderDelimitedMessageHandler.HeaderDelimitedMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.IJsonRpcMessageFormatter
+StreamJsonRpc.IJsonRpcMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.IJsonRpcMessageFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
+StreamJsonRpc.IJsonRpcMessageFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
+StreamJsonRpc.IJsonRpcMessageHandler
+StreamJsonRpc.IJsonRpcMessageHandler.CanRead.get -> bool
+StreamJsonRpc.IJsonRpcMessageHandler.CanWrite.get -> bool
+StreamJsonRpc.IJsonRpcMessageHandler.Formatter.get -> StreamJsonRpc.IJsonRpcMessageFormatter
+StreamJsonRpc.IJsonRpcMessageHandler.ReadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+StreamJsonRpc.IJsonRpcMessageHandler.WriteAsync(StreamJsonRpc.Protocol.JsonRpcMessage jsonRpcMessage, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+StreamJsonRpc.IJsonRpcMessageTextFormatter
+StreamJsonRpc.IJsonRpcMessageTextFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer, System.Text.Encoding encoding) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.IJsonRpcMessageTextFormatter.Encoding.get -> System.Text.Encoding
+StreamJsonRpc.IJsonRpcMessageTextFormatter.Encoding.set -> void
+StreamJsonRpc.JsonMessageFormatter
+StreamJsonRpc.JsonMessageFormatter.Deserialize(Newtonsoft.Json.Linq.JToken json) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.JsonMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.JsonMessageFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer, System.Text.Encoding encoding) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.JsonMessageFormatter.Encoding.get -> System.Text.Encoding
+StreamJsonRpc.JsonMessageFormatter.Encoding.set -> void
+StreamJsonRpc.JsonMessageFormatter.ProtocolVersion.get -> System.Version
+StreamJsonRpc.JsonMessageFormatter.ProtocolVersion.set -> void
+StreamJsonRpc.JsonMessageFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
+StreamJsonRpc.JsonMessageFormatter.JsonMessageFormatter() -> void
+StreamJsonRpc.JsonMessageFormatter.JsonMessageFormatter(System.Text.Encoding encoding) -> void
+StreamJsonRpc.JsonMessageFormatter.JsonSerializer.get -> Newtonsoft.Json.JsonSerializer
+StreamJsonRpc.JsonMessageFormatter.Serialize(StreamJsonRpc.Protocol.JsonRpcMessage message) -> Newtonsoft.Json.Linq.JToken
+StreamJsonRpc.JsonMessageFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
+StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(long? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(long? id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpc.IsDisposed.get -> bool
+StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler) -> void
+StreamJsonRpc.JsonRpc.JsonRpc(StreamJsonRpc.IJsonRpcMessageHandler messageHandler, object target) -> void
+StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream stream) -> void
+StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.Closed = 13 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ListeningStarted = 3 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalContractViolation = 15 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalEventListenerAdded = 2 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalInvocation = 9 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalInvocationError = 10 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalMethodAdded = 0 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.LocalMethodNotAdded = 1 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.MessageReceived = 7 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.MessageSent = 8 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ReceivedCancellation = 4 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ReceivedError = 12 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ReceivedResult = 11 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestAbandonedByRemote = 14 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestReceived = 6 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.RequestWithoutMatchingTarget = 5 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceSource.get -> System.Diagnostics.TraceSource
+StreamJsonRpc.JsonRpc.TraceSource.set -> void
+StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage) -> void
+StreamJsonRpc.JsonRpcDisconnectedEventArgs.JsonRpcDisconnectedEventArgs(string description, StreamJsonRpc.DisconnectedReason reason, Newtonsoft.Json.Linq.JToken lastMessage, System.Exception exception) -> void
+StreamJsonRpc.JsonRpcDisconnectedEventArgs.LastMessage.get -> Newtonsoft.Json.Linq.JToken
+StreamJsonRpc.LengthHeaderMessageHandler
+StreamJsonRpc.LengthHeaderMessageHandler.LengthHeaderMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.LengthHeaderMessageHandler.LengthHeaderMessageHandler(System.IO.Pipelines.PipeWriter writer, System.IO.Pipelines.PipeReader reader, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.LengthHeaderMessageHandler.LengthHeaderMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.LocalRpcException
+StreamJsonRpc.LocalRpcException.ErrorCode.get -> int
+StreamJsonRpc.LocalRpcException.ErrorCode.set -> void
+StreamJsonRpc.LocalRpcException.ErrorData.get -> object
+StreamJsonRpc.LocalRpcException.ErrorData.set -> void
+StreamJsonRpc.LocalRpcException.LocalRpcException() -> void
+StreamJsonRpc.LocalRpcException.LocalRpcException(string message) -> void
+StreamJsonRpc.LocalRpcException.LocalRpcException(string message, System.Exception inner) -> void
+StreamJsonRpc.MessageHandlerBase
+StreamJsonRpc.MessageHandlerBase.DisposalToken.get -> System.Threading.CancellationToken
+StreamJsonRpc.MessageHandlerBase.Dispose() -> void
+StreamJsonRpc.MessageHandlerBase.Formatter.get -> StreamJsonRpc.IJsonRpcMessageFormatter
+StreamJsonRpc.MessageHandlerBase.MessageHandlerBase(StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.MessageHandlerBase.ReadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+StreamJsonRpc.MessageHandlerBase.WriteAsync(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+StreamJsonRpc.PipeMessageHandler
+StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Pipelines.PipeWriter writer, System.IO.Pipelines.PipeReader reader, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.PipeMessageHandler.PipeMessageHandler(System.IO.Stream writer, System.IO.Stream reader, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.PipeMessageHandler.ReadAtLeastAsync(int requiredBytes, bool allowEmpty, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.IO.Pipelines.ReadResult>
+StreamJsonRpc.PipeMessageHandler.Reader.get -> System.IO.Pipelines.PipeReader
+StreamJsonRpc.PipeMessageHandler.Writer.get -> System.IO.Pipelines.PipeWriter
+StreamJsonRpc.Protocol.CommonErrorData
+StreamJsonRpc.Protocol.CommonErrorData.CommonErrorData() -> void
+StreamJsonRpc.Protocol.CommonErrorData.CommonErrorData(System.Exception copyFrom) -> void
+StreamJsonRpc.Protocol.CommonErrorData.HResult.get -> int
+StreamJsonRpc.Protocol.CommonErrorData.HResult.set -> void
+StreamJsonRpc.Protocol.CommonErrorData.Inner.get -> StreamJsonRpc.Protocol.CommonErrorData
+StreamJsonRpc.Protocol.CommonErrorData.Inner.set -> void
+StreamJsonRpc.Protocol.CommonErrorData.Message.get -> string
+StreamJsonRpc.Protocol.CommonErrorData.Message.set -> void
+StreamJsonRpc.Protocol.CommonErrorData.StackTrace.get -> string
+StreamJsonRpc.Protocol.CommonErrorData.StackTrace.set -> void
+StreamJsonRpc.Protocol.CommonErrorData.TypeName.get -> string
+StreamJsonRpc.Protocol.CommonErrorData.TypeName.set -> void
+StreamJsonRpc.Protocol.JsonRpcError
+StreamJsonRpc.Protocol.JsonRpcError.DebuggerDisplay.get -> string
+StreamJsonRpc.Protocol.JsonRpcError.Error.get -> StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail
+StreamJsonRpc.Protocol.JsonRpcError.Error.set -> void
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Code.get -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Code.set -> void
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Data.get -> object
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Data.set -> void
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.ErrorDetail() -> void
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Message.get -> string
+StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.Message.set -> void
+StreamJsonRpc.Protocol.JsonRpcError.Id.get -> object
+StreamJsonRpc.Protocol.JsonRpcError.Id.set -> void
+StreamJsonRpc.Protocol.JsonRpcError.JsonRpcError() -> void
+StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InternalError = -32603 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidParams = -32602 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidRequest = -32600 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationError = -32000 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.MethodNotFound = -32601 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.ParseError = -32700 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.RequestCanceled = -32800 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.Protocol.JsonRpcMessage.JsonRpcMessage() -> void
+StreamJsonRpc.Protocol.JsonRpcMessage.Version.get -> string
+StreamJsonRpc.Protocol.JsonRpcMessage.Version.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentCount.get -> int
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult.MissingArgument = 3 -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult.ParameterArgumentCountMismatch = 1 -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult.ParameterArgumentTypeMismatch = 2 -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult.Success = 0 -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+StreamJsonRpc.Protocol.JsonRpcRequest.Arguments.get -> object
+StreamJsonRpc.Protocol.JsonRpcRequest.Arguments.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsArray.get -> object[]
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsArray.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.DebuggerDisplay.get -> string
+StreamJsonRpc.Protocol.JsonRpcRequest.Id.get -> object
+StreamJsonRpc.Protocol.JsonRpcRequest.Id.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.IsNotification.get -> bool
+StreamJsonRpc.Protocol.JsonRpcRequest.IsResponseExpected.get -> bool
+StreamJsonRpc.Protocol.JsonRpcRequest.JsonRpcRequest() -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.Method.get -> string
+StreamJsonRpc.Protocol.JsonRpcRequest.Method.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.NamedArguments.get -> System.Collections.Generic.IReadOnlyDictionary<string, object>
+StreamJsonRpc.Protocol.JsonRpcRequest.NamedArguments.set -> void
+StreamJsonRpc.Protocol.JsonRpcResult
+StreamJsonRpc.Protocol.JsonRpcResult.DebuggerDisplay.get -> string
+StreamJsonRpc.Protocol.JsonRpcResult.Id.get -> object
+StreamJsonRpc.Protocol.JsonRpcResult.Id.set -> void
+StreamJsonRpc.Protocol.JsonRpcResult.JsonRpcResult() -> void
+StreamJsonRpc.Protocol.JsonRpcResult.Result.get -> object
+StreamJsonRpc.Protocol.JsonRpcResult.Result.set -> void
+StreamJsonRpc.RemoteInvocationException.ErrorCode.get -> int
+StreamJsonRpc.RemoteInvocationException.ErrorData.get -> object
+StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, int errorCode, object errorData) -> void
+StreamJsonRpc.StreamMessageHandler
+StreamJsonRpc.StreamMessageHandler.ReceivingStream.get -> System.IO.Stream
+StreamJsonRpc.StreamMessageHandler.SendingStream.get -> System.IO.Stream
+StreamJsonRpc.StreamMessageHandler.StreamMessageHandler(System.IO.Stream sendingStream, System.IO.Stream receivingStream, StreamJsonRpc.IJsonRpcMessageFormatter formatter) -> void
+StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket) -> void
+StreamJsonRpc.WebSocketMessageHandler.WebSocketMessageHandler(System.Net.WebSockets.WebSocket webSocket, StreamJsonRpc.IJsonRpcMessageFormatter formatter, int sizeHint = 4096) -> void
+abstract StreamJsonRpc.MessageHandlerBase.CanRead.get -> bool
+abstract StreamJsonRpc.MessageHandlerBase.CanWrite.get -> bool
+abstract StreamJsonRpc.MessageHandlerBase.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract StreamJsonRpc.MessageHandlerBase.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+abstract StreamJsonRpc.MessageHandlerBase.WriteCoreAsync(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract StreamJsonRpc.PipeMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
+override StreamJsonRpc.HeaderDelimitedMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+override StreamJsonRpc.HeaderDelimitedMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
+override StreamJsonRpc.LengthHeaderMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+override StreamJsonRpc.LengthHeaderMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
+override StreamJsonRpc.PipeMessageHandler.CanRead.get -> bool
+override StreamJsonRpc.PipeMessageHandler.CanWrite.get -> bool
+override StreamJsonRpc.PipeMessageHandler.Dispose(bool disposing) -> void
+override StreamJsonRpc.PipeMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override StreamJsonRpc.Protocol.JsonRpcError.ToString() -> string
+override StreamJsonRpc.Protocol.JsonRpcRequest.ToString() -> string
+override StreamJsonRpc.Protocol.JsonRpcResult.ToString() -> string
+override StreamJsonRpc.StreamMessageHandler.CanRead.get -> bool
+override StreamJsonRpc.StreamMessageHandler.CanWrite.get -> bool
+override StreamJsonRpc.StreamMessageHandler.Dispose(bool disposing) -> void
+override StreamJsonRpc.StreamMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override StreamJsonRpc.WebSocketMessageHandler.CanRead.get -> bool
+override StreamJsonRpc.WebSocketMessageHandler.CanWrite.get -> bool
+override StreamJsonRpc.WebSocketMessageHandler.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override StreamJsonRpc.WebSocketMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+override StreamJsonRpc.WebSocketMessageHandler.WriteCoreAsync(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+override sealed StreamJsonRpc.PipeMessageHandler.WriteCoreAsync(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+virtual StreamJsonRpc.JsonRpc.CreateErrorDetails(StreamJsonRpc.Protocol.JsonRpcRequest request, System.Exception exception) -> StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail
+virtual StreamJsonRpc.MessageHandlerBase.Dispose(bool disposing) -> void
+virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetArgumentByNameOrIndex(string name, int position, System.Type typeHint, out object value) -> bool
+virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetTypedArguments(System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters, System.Span<object> typedArguments) -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
+virtual StreamJsonRpc.Protocol.JsonRpcResult.GetResult<T>() -> T
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.get -> System.Collections.Generic.IReadOnlyList<object>
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.set -> void

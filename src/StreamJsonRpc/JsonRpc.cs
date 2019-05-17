@@ -11,19 +11,17 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
-    using System.Runtime.ExceptionServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public partial class JsonRpc : IDisposableObservable
+    public class JsonRpc : IDisposableObservable
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
@@ -36,39 +34,44 @@ namespace StreamJsonRpc
         /// </summary>
         private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
 
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object syncObject = new object();
 
         /// <summary>
         /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object dispatcherMapLock = new object();
 
         /// <summary>
         /// The object to lock when accessing the <see cref="DisconnectedPrivate"/> member.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object disconnectedEventLock = new object();
 
         /// <summary>
         /// A map of outbound calls awaiting responses.
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
-        private readonly Dictionary<int, OutstandingCallData> resultDispatcherMap = new Dictionary<int, OutstandingCallData>();
+        private readonly Dictionary<long, OutstandingCallData> resultDispatcherMap = new Dictionary<long, OutstandingCallData>();
 
         /// <summary>
         /// A map of id's from inbound calls that have not yet completed and may be canceled,
         /// to their <see cref="CancellationTokenSource"/> instances.
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
-        private readonly Dictionary<JToken, CancellationTokenSource> inboundCancellationSources = new Dictionary<JToken, CancellationTokenSource>(JToken.EqualityComparer);
+        private readonly Dictionary<object, CancellationTokenSource> inboundCancellationSources = new Dictionary<object, CancellationTokenSource>();
 
         /// <summary>
         /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskResult(JToken, Task)"/> method.
+        /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
 
         /// <summary>
@@ -76,11 +79,16 @@ namespace StreamJsonRpc
         /// </summary>
         private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
 
-        private readonly CancellationTokenSource disposeCts = new CancellationTokenSource();
+        /// <summary>
+        /// The source for the <see cref="DisconnectedToken"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
 
         /// <summary>
         /// The completion source behind <see cref="Completion"/>.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
@@ -89,23 +97,45 @@ namespace StreamJsonRpc
         private List<EventReceiver> eventReceivers;
 
         private Task readLinesTask;
-        private int nextId = 1;
-        private bool disposed;
-        private bool hasDisconnectedEventBeenRaised;
+        private long nextId = 1;
+        private JsonRpcDisconnectedEventArgs disconnectedEventArgs;
+
+        /// <summary>
+        /// Backing field for the <see cref="TraceSource"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private TraceSource traceSource = new TraceSource(nameof(JsonRpc));
 
         /// <summary>
         /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool cancelLocallyInvokedMethodsWhenConnectionIsClosed;
 
         /// <summary>
         /// Backing field for the <see cref="SynchronizationContext"/> property.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext synchronizationContext;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
-        /// <see cref="HeaderDelimitedMessageHandler"/> for encoding/decoding messages.
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>.
+        /// </summary>
+        /// <param name="stream">The full duplex stream used to transmit and receive messages.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
+        public JsonRpc(Stream stream)
+            : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
@@ -114,8 +144,12 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
-            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream), target)
+            : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
         {
+            if (target != null)
+            {
+                this.AddLocalRpcTarget(target);
+            }
         }
 
         /// <summary>
@@ -126,29 +160,30 @@ namespace StreamJsonRpc
         /// <remarks>
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
-        public JsonRpc(DelimitedMessageHandler messageHandler, object target = null)
+        public JsonRpc(IJsonRpcMessageHandler messageHandler, object target)
+            : this(messageHandler)
         {
-            Requires.NotNull(messageHandler, nameof(messageHandler));
-
-            this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
-            this.handleInvocationTaskResultDelegate = (t, id) => this.HandleInvocationTaskResult((JToken)id, t);
-
-            this.MessageHandler = messageHandler;
-            this.MessageJsonSerializerSettings = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-            };
-            this.MessageJsonDeserializerSettings = new JsonSerializerSettings
-            {
-                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-                Converters = this.MessageJsonSerializerSettings.Converters,
-            };
-            this.JsonSerializer = new JsonSerializer();
-
             if (target != null)
             {
                 this.AddLocalRpcTarget(target);
             }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class.
+        /// </summary>
+        /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
+        /// <remarks>
+        /// It is important to call <see cref="StartListening"/> to begin receiving messages.
+        /// </remarks>
+        public JsonRpc(IJsonRpcMessageHandler messageHandler)
+        {
+            Requires.NotNull(messageHandler, nameof(messageHandler));
+
+            this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
+            this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
+
+            this.MessageHandler = messageHandler;
         }
 
         /// <summary>
@@ -159,19 +194,19 @@ namespace StreamJsonRpc
             add
             {
                 Requires.NotNull(value, nameof(value));
-                bool handlerAdded = false;
+                JsonRpcDisconnectedEventArgs disconnectedArgs;
                 lock (this.disconnectedEventLock)
                 {
-                    if (!this.hasDisconnectedEventBeenRaised)
+                    disconnectedArgs = this.disconnectedEventArgs;
+                    if (disconnectedArgs == null)
                     {
                         this.DisconnectedPrivate += value;
-                        handlerAdded = true;
                     }
                 }
 
-                if (!handlerAdded)
+                if (disconnectedArgs != null)
                 {
-                    value(this, new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed));
+                    value(this, disconnectedArgs);
                 }
             }
 
@@ -185,18 +220,100 @@ namespace StreamJsonRpc
         private event EventHandler<JsonRpcDisconnectedEventArgs> DisconnectedPrivate;
 
         /// <summary>
-        /// Gets or sets the encoding to use for transmitted JSON messages.
+        /// Event IDs raised to our <see cref="TraceSource"/>.
         /// </summary>
-        public Encoding Encoding
+        public enum TraceEvents
         {
-            get { return this.MessageHandler.Encoding; }
-            set { this.MessageHandler.Encoding = value; }
-        }
+            /// <summary>
+            /// Occurs when a local RPC method is added to our mapping table.
+            /// </summary>
+            LocalMethodAdded,
 
-        /// <summary>
-        /// Gets the message handler used to send and receive messages.
-        /// </summary>
-        public DelimitedMessageHandler MessageHandler { get; }
+            /// <summary>
+            /// Occurs when a candidate local RPC method is NOT added to our mapping table.
+            /// </summary>
+            LocalMethodNotAdded,
+
+            /// <summary>
+            /// Occurs when an event handler subscribes to an event on an added target object.
+            /// </summary>
+            LocalEventListenerAdded,
+
+            /// <summary>
+            /// Occurs when this instance starts listening for incoming RPC messages.
+            /// </summary>
+            ListeningStarted,
+
+            /// <summary>
+            /// Occurs when a notification arrives that is attempting to cancel a prior request.
+            /// </summary>
+            ReceivedCancellation,
+
+            /// <summary>
+            /// Occurs when a JSON-RPC request or notification was received, but no local method is found to invoke for it.
+            /// </summary>
+            RequestWithoutMatchingTarget,
+
+            /// <summary>
+            /// Occurs when a <see cref="JsonRpcRequest"/> is received.
+            /// </summary>
+            RequestReceived,
+
+            /// <summary>
+            /// Occurs when any <see cref="JsonRpcMessage"/> is received.
+            /// At <see cref="System.Diagnostics.TraceLevel.Info"/>, <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object)"/>
+            /// is invoked with the <see cref="JsonRpcMessage"/> that is received.
+            /// At <see cref="System.Diagnostics.TraceLevel.Verbose"/>, <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/>
+            /// is invoked with the JSON representation of the message.
+            /// </summary>
+            MessageReceived,
+
+            /// <summary>
+            /// Occurs when any <see cref="JsonRpcMessage"/> is transmitted.
+            /// At <see cref="System.Diagnostics.TraceLevel.Info"/>, <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object)"/>
+            /// is invoked with the <see cref="JsonRpcMessage"/> that is transmitted.
+            /// At <see cref="System.Diagnostics.TraceLevel.Verbose"/>, <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/>
+            /// is invoked with the JSON representation of the message.
+            /// </summary>
+            MessageSent,
+
+            /// <summary>
+            /// Occurs when a <see cref="JsonRpcRequest"/> is received and successfully mapped to a local method to be invoked.
+            /// </summary>
+            LocalInvocation,
+
+            /// <summary>
+            /// Occurs when a locally invoked method from a <see cref="JsonRpcRequest"/> throws an exception (or returns a faulted <see cref="Task"/>).
+            /// <see cref="TraceListener.TraceData(TraceEventCache, string, TraceEventType, int, object[])"/> is invoked with the thrown <see cref="Exception"/>, request method name, request ID, and the argument object/array.
+            /// <see cref="TraceListener.TraceEvent(TraceEventCache, string, TraceEventType, int, string, object[])"/> is invoked with a text message formatted with exception information.
+            /// </summary>
+            LocalInvocationError,
+
+            /// <summary>
+            /// Occurs when a successful result message for a prior invocation is received.
+            /// </summary>
+            ReceivedResult,
+
+            /// <summary>
+            /// Occurs when an error message for a prior invocation is received.
+            /// </summary>
+            ReceivedError,
+
+            /// <summary>
+            /// Occurs when the connection is closed.
+            /// </summary>
+            Closed,
+
+            /// <summary>
+            /// A local request is canceled because the remote party terminated the connection.
+            /// </summary>
+            RequestAbandonedByRemote,
+
+            /// <summary>
+            /// An extensibility point was leveraged locally and broke the contract.
+            /// </summary>
+            LocalContractViolation,
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="System.Threading.SynchronizationContext"/> to use when invoking methods requested by the remote party.
@@ -217,10 +334,9 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Gets a <see cref="Task"/> that completes when listening has stopped,
+        /// Gets a <see cref="Task"/> that completes when this instance is disposed or when listening has stopped
         /// whether by error, disposal or the stream closing.
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="StartListening"/> has not yet been called.</exception>
         /// <remarks>
         /// The returned <see cref="Task"/> may transition to a faulted state
         /// for exceptions fatal to the protocol or this instance.
@@ -229,7 +345,6 @@ namespace StreamJsonRpc
         {
             get
             {
-                Verify.Operation(this.HasListeningStarted, Resources.MustBeListening);
                 return this.completionSource.Task;
             }
         }
@@ -251,18 +366,7 @@ namespace StreamJsonRpc
         public bool AllowModificationWhileListening { get; set; }
 
         /// <inheritdoc />
-        bool IDisposableObservable.IsDisposed => this.disposeCts.IsCancellationRequested;
-
-        /// <summary>
-        /// Gets the <see cref="JsonSerializer"/> used when serializing and deserializing method arguments and return values.
-        /// </summary>
-        public JsonSerializer JsonSerializer { get; }
-
-        /// <summary>
-        /// Gets or sets the formatting to use when serializing JSON-RPC messages.
-        /// </summary>
-        /// <value>The default value is <see cref="Formatting.Indented"/>.</value>
-        public Formatting JsonSerializerFormatting { get; set; } = Formatting.Indented;
+        public bool IsDisposed { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to cancel all methods dispatched locally
@@ -281,9 +385,30 @@ namespace StreamJsonRpc
             }
         }
 
-        private JsonSerializerSettings MessageJsonSerializerSettings { get; }
+        /// <summary>
+        /// Gets or sets the <see cref="System.Diagnostics.TraceSource"/> used to trace JSON-RPC messages and events.
+        /// </summary>
+        /// <value>The value can never be null.</value>
+        /// <exception cref="ArgumentNullException">Thrown by the setter if a null value is provided.</exception>
+        public TraceSource TraceSource
+        {
+            get => this.traceSource;
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.traceSource = value;
+            }
+        }
 
-        private JsonSerializerSettings MessageJsonDeserializerSettings { get; }
+        /// <summary>
+        /// Gets the message handler used to send and receive messages.
+        /// </summary>
+        internal IJsonRpcMessageHandler MessageHandler { get; }
+
+        /// <summary>
+        /// Gets a token that is cancelled when the connection is lost.
+        /// </summary>
+        internal CancellationToken DisconnectedToken => this.disconnectedSource.Token;
 
         /// <summary>
         /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
@@ -296,7 +421,9 @@ namespace StreamJsonRpc
         private bool HasListeningStarted => this.readLinesTask != null;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
         /// </summary>
         /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
         /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
@@ -311,7 +438,9 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonRpc"/> class and immediately starts listening.
+        /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+        /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
+        /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
         /// </summary>
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
@@ -386,7 +515,7 @@ namespace StreamJsonRpc
         public T Attach<T>()
             where T : class
         {
-            return this.Attach<T>((JsonRpcProxyOptions)null);
+            return this.Attach<T>(null);
         }
 
         /// <summary>
@@ -437,12 +566,25 @@ namespace StreamJsonRpc
                         {
                             if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
                             {
+                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
                                 existingList.Add(newMethod);
+                            }
+                            else
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                                }
                             }
                         }
                     }
                     else
                     {
+                        foreach (var newMethod in item.Value)
+                        {
+                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                        }
+
                         this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
                     }
                 }
@@ -456,6 +598,11 @@ namespace StreamJsonRpc
                             if (this.eventReceivers == null)
                             {
                                 this.eventReceivers = new List<EventReceiver>();
+                            }
+
+                            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                            {
+                                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
                             }
 
                             this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
@@ -503,6 +650,7 @@ namespace StreamJsonRpc
             lock (this.syncObject)
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
+                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
                 {
                     if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
@@ -534,7 +682,7 @@ namespace StreamJsonRpc
             // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
             lock (this.syncObject)
             {
-                this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.disposeCts.Token);
+                this.readLinesTask = Task.Run(this.ReadAndHandleRequestsAsync, this.DisconnectedToken);
             }
         }
 
@@ -551,10 +699,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -576,10 +721,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -591,7 +733,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="argument">Method argument, must be serializable to JSON.</param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
@@ -602,10 +744,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -619,7 +758,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
@@ -630,10 +769,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -661,10 +797,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -676,7 +809,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="argument">Method argument, must be serializable to JSON.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
@@ -688,10 +821,7 @@ namespace StreamJsonRpc
         /// Result task fails with this exception if the server method throws an exception.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -699,7 +829,7 @@ namespace StreamJsonRpc
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object[] argumentToPass = argument == null ? null : new object[] { argument };
-            int id = Interlocked.Increment(ref this.nextId);
+            long id = Interlocked.Increment(ref this.nextId);
             return this.InvokeCoreAsync<TResult>(id, targetName, argumentToPass, cancellationToken, isParameterObject: true);
         }
 
@@ -719,10 +849,7 @@ namespace StreamJsonRpc
         /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
@@ -734,7 +861,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Invoke a method on the server and get back the result.
         /// </summary>
-        /// <typeparam name="TResult">Type of the method result</typeparam>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
@@ -748,16 +875,13 @@ namespace StreamJsonRpc
         /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
         /// </exception>
         /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method is not found on the target object on the server.
-        /// </exception>
-        /// <exception cref="RemoteTargetNotSetException">
-        /// Result task fails with this exception if the server has no target object.
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object> arguments = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            int id = Interlocked.Increment(ref this.nextId);
+            long id = Interlocked.Increment(ref this.nextId);
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken);
         }
 
@@ -833,22 +957,12 @@ namespace StreamJsonRpc
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (!this.IsDisposed)
             {
-                this.disposed = true;
+                this.IsDisposed = true;
                 if (disposing)
                 {
-                    if (this.eventReceivers != null)
-                    {
-                        foreach (var receiver in this.eventReceivers)
-                        {
-                            receiver.Dispose();
-                        }
-
-                        this.eventReceivers = null;
-                    }
-
-                    var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
+                    var disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed);
                     this.OnJsonRpcDisconnected(disconnectedEventArgs);
                 }
             }
@@ -857,7 +971,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Indicates whether the connection should be closed when the server throws an exception.
         /// </summary>
-        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal</param>
+        /// <param name="ex">The <see cref="Exception"/> thrown from server that is potentially fatal.</param>
         /// <returns>A <see cref="bool"/> indicating if the streams should be closed.</returns>
         /// <remarks>
         /// This method is invoked within the context of an exception filter or when a task fails to complete and simply returns false by default.
@@ -867,24 +981,44 @@ namespace StreamJsonRpc
         protected virtual bool IsFatalException(Exception ex) => false;
 
         /// <summary>
-        /// Invokes the specified RPC method
+        /// Creates the <see cref="JsonRpcError.ErrorDetail"/> to be used as the value for the error property to be sent back to the client in response to an exception being thrown from an RPC method invoked locally.
         /// </summary>
-        /// <typeparam name="TResult">RPC method return type</typeparam>
+        /// <param name="request">The request that led to the invocation that ended up failing.</param>
+        /// <param name="exception">The exception thrown from the RPC method.</param>
+        /// <returns>The error details to return to the client. Must not be <c>null</c>.</returns>
+        /// <remarks>
+        /// This method may be overridden in a derived class to change the way error details are expressed.
+        /// </remarks>
+        protected virtual JsonRpcError.ErrorDetail CreateErrorDetails(JsonRpcRequest request, Exception exception)
+        {
+            var localRpcEx = exception as LocalRpcException;
+            return new JsonRpcError.ErrorDetail
+            {
+                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? JsonRpcErrorCode.InvocationError,
+                Message = exception.Message,
+                Data = localRpcEx != null ? localRpcEx.ErrorData : new CommonErrorData(exception),
+            };
+        }
+
+        /// <summary>
+        /// Invokes the specified RPC method.
+        /// </summary>
+        /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
         /// <param name="targetName">Name of the method to invoke.</param>
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual Task<TResult> InvokeCoreAsync<TResult>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
+        protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
 
         /// <summary>
-        /// Invokes the specified RPC method
+        /// Invokes the specified RPC method.
         /// </summary>
-        /// <typeparam name="TResult">RPC method return type</typeparam>
+        /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
         /// <param name="targetName">Name of the method to invoke.</param>
@@ -892,14 +1026,18 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected virtual async Task<TResult> InvokeCoreAsync<TResult>(int? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
+        protected async Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object> arguments, CancellationToken cancellationToken, bool isParameterObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
-            Verify.NotDisposed(this);
             cancellationToken.ThrowIfCancellationRequested();
+            Verify.NotDisposed(this);
 
-            JsonRpcMessage request;
+            var request = new JsonRpcRequest
+            {
+                Id = id,
+                Method = targetName,
+            };
             if (isParameterObject)
             {
                 object argument = arguments;
@@ -913,78 +1051,105 @@ namespace StreamJsonRpc
                     argument = arguments[0];
                 }
 
-                request = JsonRpcMessage.CreateRequestWithNamedParameters(id, targetName, argument, this.JsonSerializer);
+                request.Arguments = argument;
             }
             else
             {
-                arguments = arguments ?? EmptyObjectArray;
-
-                request = JsonRpcMessage.CreateRequest(id, targetName, arguments, this.JsonSerializer);
+                request.Arguments = arguments ?? EmptyObjectArray;
             }
 
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.disposeCts.Token))
+            try
             {
-                if (id == null)
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
                 {
-                    await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
-                    return default(TResult);
-                }
+                    if (!request.IsResponseExpected)
+                    {
+                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                        return default;
+                    }
 
-                Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
-                var tcs = new TaskCompletionSource<TResult>();
-                Action<JsonRpcMessage> dispatcher = (response) =>
-                {
+                    Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
+                    var tcs = new TaskCompletionSource<TResult>();
+                    Action<JsonRpcMessage> dispatcher = (response) =>
+                    {
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.resultDispatcherMap.Remove(id.Value);
+                        }
+
+                        try
+                        {
+                            if (response == null)
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
+                                }
+
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    // Consider lost connection to be result of task canceled and set state to canceled.
+                                    tcs.TrySetCanceled(cancellationToken);
+                                }
+                                else
+                                {
+                                    tcs.TrySetException(new ConnectionLostException());
+                                }
+                            }
+                            else if (response is JsonRpcError error)
+                            {
+                                if (error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
+                                {
+                                    tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+                                }
+                                else
+                                {
+                                    tcs.TrySetException(CreateExceptionFromRpcError(error, targetName));
+                                }
+                            }
+                            else if (response is JsonRpcResult result)
+                            {
+                                tcs.TrySetResult(result.GetResult<TResult>());
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            tcs.TrySetException(ex);
+                        }
+                    };
+
+                    var callData = new OutstandingCallData(tcs, dispatcher);
                     lock (this.dispatcherMapLock)
                     {
-                        this.resultDispatcherMap.Remove(id.Value);
+                        this.resultDispatcherMap.Add(id.Value, callData);
                     }
 
                     try
                     {
-                        if (response == null)
-                        {
-                            tcs.TrySetCanceled();
-                        }
-                        else if (response.IsError)
-                        {
-                            if (response.Error?.Code == (int)JsonRpcErrorCode.RequestCanceled)
-                            {
-#if TRYSETCANCELED_CT
-                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
-#else
-                                tcs.TrySetCanceled();
-#endif
-                            }
-                            else
-                            {
-                                tcs.TrySetException(CreateExceptionFromRpcError(response, targetName));
-                            }
-                        }
-                        else
-                        {
-                            tcs.TrySetResult(response.GetResult<TResult>(this.JsonSerializer));
-                        }
+                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        tcs.TrySetException(ex);
+                        // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.resultDispatcherMap.Remove(id.Value);
+                        }
+
+                        throw;
                     }
-                };
 
-                var callData = new OutstandingCallData(tcs, dispatcher);
-                lock (this.dispatcherMapLock)
-                {
-                    this.resultDispatcherMap.Add(id.Value, callData);
+                    // Arrange for sending a cancellation message if canceled while we're waiting for a response.
+                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
+                    {
+                        // This task will be completed when the Response object comes back from the other end of the pipe
+                        return await tcs.Task.ConfigureAwait(false);
+                    }
                 }
-
-                await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
-
-                // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
-                {
-                    // This task will be completed when the Response object comes back from the other end of the pipe
-                    return await tcs.Task.ConfigureAwait(false);
-                }
+            }
+            catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                throw new ConnectionLostException(Resources.ConnectionDropped, ex);
             }
         }
 
@@ -1087,35 +1252,19 @@ namespace StreamJsonRpc
             return requestMethodToDelegateMap;
         }
 
-        private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcMessage response, string targetName)
+        private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcError response, string targetName)
         {
             Requires.NotNull(response, nameof(response));
-            Requires.Argument(response.IsError, nameof(response), Resources.ResponseIsNotError);
 
             switch (response.Error.Code)
             {
-                case (int)JsonRpcErrorCode.MethodNotFound:
+                case JsonRpcErrorCode.InvalidParams:
+                case JsonRpcErrorCode.MethodNotFound:
                     return new RemoteMethodNotFoundException(response.Error.Message, targetName);
 
-                case (int)JsonRpcErrorCode.NoCallbackObject:
-                    return new RemoteTargetNotSetException(response.Error.Message);
-
                 default:
-                    return new RemoteInvocationException(response.Error.Message, response.Error.ErrorStack, response.Error.ErrorCode, response.Error.Data);
+                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data);
             }
-        }
-
-        private static JsonRpcMessage CreateError(JToken id, Exception exception)
-        {
-            if (exception == null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
-
-            exception = StripExceptionToInnerException(exception);
-
-            var data = new { stack = exception.StackTrace, code = exception.HResult.ToString(CultureInfo.InvariantCulture) };
-            return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.InvocationError, exception.Message, JObject.FromObject(data, DefaultJsonSerializer));
         }
 
         private static Exception StripExceptionToInnerException(Exception exception)
@@ -1157,7 +1306,44 @@ namespace StreamJsonRpc
             bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcMessage request)
+        private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
+        {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(exception, nameof(exception));
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Error))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, "Exception thrown from request \"{0}\" for method {1}: {2}", request.Id, request.Method, exception);
+                this.TraceSource.TraceData(TraceEventType.Error, (int)TraceEvents.LocalInvocationError, exception, request.Method, request.Id, request.Arguments);
+            }
+
+            exception = StripExceptionToInnerException(exception);
+
+            var errorDetails = this.CreateErrorDetails(request, exception);
+            if (errorDetails == null)
+            {
+                string errorMessage = $"The {this.GetType().Name}.{nameof(this.CreateErrorDetails)} method returned null, which is not allowed.";
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Critical))
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Critical, (int)TraceEvents.LocalContractViolation, errorMessage);
+                }
+
+                var e = new JsonRpcDisconnectedEventArgs(
+                    errorMessage,
+                    DisconnectedReason.LocalContractViolation,
+                    exception);
+
+                this.OnJsonRpcDisconnected(e);
+            }
+
+            return new JsonRpcError
+            {
+                Id = request.Id,
+                Error = errorDetails,
+            };
+        }
+
+        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
         {
             Requires.NotNull(request, nameof(request));
 
@@ -1169,39 +1355,83 @@ namespace StreamJsonRpc
                 {
                     if (this.targetRequestMethodToClrMethodMap.Count == 0)
                     {
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered. \"{0}\" will not be invoked.", request.Method);
+                        }
+
                         string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
-                        return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.NoCallbackObject, message);
+                        return new JsonRpcError
+                        {
+                            Id = request.Id,
+                            Error = new JsonRpcError.ErrorDetail
+                            {
+                                Code = JsonRpcErrorCode.MethodNotFound,
+                                Message = message,
+                            },
+                        };
                     }
 
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
                     {
-                        targetMethod = new TargetMethod(request, this.JsonSerializer, candidateTargets);
+                        targetMethod = new TargetMethod(request, candidateTargets);
                     }
                 }
 
                 if (targetMethod == null)
                 {
-                    return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method));
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
+                    }
+
+                    return new JsonRpcError
+                    {
+                        Id = request.Id,
+                        Error = new JsonRpcError.ErrorDetail
+                        {
+                            Code = JsonRpcErrorCode.MethodNotFound,
+                            Message = string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method),
+                        },
+                    };
                 }
                 else if (!targetMethod.IsFound)
                 {
-                    return JsonRpcMessage.CreateError(request.Id, JsonRpcErrorCode.MethodNotFound, targetMethod.LookupErrorMessage);
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
+                    }
+
+                    return new JsonRpcError
+                    {
+                        Id = request.Id,
+                        Error = new JsonRpcError.ErrorDetail
+                        {
+                            Code = JsonRpcErrorCode.InvalidParams,
+                            Message = targetMethod.LookupErrorMessage,
+                        },
+                    };
                 }
 
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
                 // it cannot be preempted by the cancellation request that would try to set it
                 // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
                 var cancellationToken = CancellationToken.None;
-                if (targetMethod.AcceptsCancellationToken && !request.IsNotification)
+                if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
                 {
                     localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
-                        ? CancellationTokenSource.CreateLinkedTokenSource(this.disposeCts.Token)
+                        ? CancellationTokenSource.CreateLinkedTokenSource(this.DisconnectedToken)
                         : new CancellationTokenSource();
                     cancellationToken = localMethodCancellationSource.Token;
                     lock (this.dispatcherMapLock)
                     {
                         this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
                     }
+                }
+
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
                 }
 
                 // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
@@ -1213,19 +1443,23 @@ namespace StreamJsonRpc
                 object result = targetMethod.Invoke(cancellationToken);
                 if (!(result is Task resultingTask))
                 {
-                    return JsonRpcMessage.CreateResult(request.Id, result, this.JsonSerializer);
+                    return new JsonRpcResult
+                    {
+                        Id = request.Id,
+                        Result = result,
+                    };
                 }
 
                 return await resultingTask.ContinueWith(
                     this.handleInvocationTaskResultDelegate,
-                    request.Id,
+                    request,
                     CancellationToken.None,
                     TaskContinuationOptions.ExecuteSynchronously,
                     TaskScheduler.Default).ConfigureAwait(false);
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
-                return CreateError(request.Id, ex);
+                return this.CreateError(request, ex);
             }
             finally
             {
@@ -1243,12 +1477,9 @@ namespace StreamJsonRpc
             }
         }
 
-        private JsonRpcMessage HandleInvocationTaskResult(JToken id, Task t)
+        private JsonRpcMessage HandleInvocationTaskResult(JsonRpcRequest request, Task t)
         {
-            if (t == null)
-            {
-                throw new ArgumentNullException(nameof(t));
-            }
+            Requires.NotNull(t, nameof(t));
 
             if (!t.IsCompleted)
             {
@@ -1268,12 +1499,20 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                return CreateError(id, t.Exception);
+                return this.CreateError(request, t.Exception);
             }
 
             if (t.IsCanceled)
             {
-                return JsonRpcMessage.CreateError(id, JsonRpcErrorCode.RequestCanceled, Resources.TaskWasCancelled);
+                return new JsonRpcError
+                {
+                    Id = request.Id,
+                    Error = new JsonRpcError.ErrorDetail
+                    {
+                        Code = JsonRpcErrorCode.RequestCanceled,
+                        Message = Resources.TaskWasCancelled,
+                    },
+                };
             }
 
             // If t is a Task<SomeType>, it will have Result property.
@@ -1295,7 +1534,11 @@ namespace StreamJsonRpc
                 taskResult = resultProperty.GetValue(t);
             }
 
-            return JsonRpcMessage.CreateResult(id, taskResult, this.JsonSerializer);
+            return new JsonRpcResult
+            {
+                Id = request.Id,
+                Result = taskResult,
+            };
         }
 
         private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)
@@ -1303,17 +1546,27 @@ namespace StreamJsonRpc
             EventHandler<JsonRpcDisconnectedEventArgs> handlersToInvoke = null;
             lock (this.disconnectedEventLock)
             {
-                if (this.hasDisconnectedEventBeenRaised)
+                if (this.disconnectedEventArgs != null)
                 {
                     // Someone else has done all this work.
                     return;
                 }
                 else
                 {
-                    this.hasDisconnectedEventBeenRaised = true;
+                    this.disconnectedEventArgs = eventArgs;
                     handlersToInvoke = this.DisconnectedPrivate;
                     this.DisconnectedPrivate = null;
                 }
+            }
+
+            this.UnregisterEventHandlersFromTargetObjects();
+
+            TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
+                ? TraceEventType.Information
+                : TraceEventType.Critical;
+            if (this.TraceSource.Switch.ShouldTrace(eventType))
+            {
+                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
             }
 
             try
@@ -1323,11 +1576,11 @@ namespace StreamJsonRpc
             }
             finally
             {
-                // Dispose the stream and cancel pending requests in the finally block
+                // Dispose the stream and fault pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
-                this.disposeCts.Cancel();
-                this.MessageHandler.Dispose();
-                this.CancelPendingRequests();
+                this.disconnectedSource.Cancel();
+                (this.MessageHandler as IDisposable)?.Dispose();
+                this.FaultPendingRequests();
 
                 // Ensure the Task we may have returned from Completion is completed.
                 if (eventArgs.Exception != null)
@@ -1338,6 +1591,19 @@ namespace StreamJsonRpc
                 {
                     this.completionSource.TrySetResult(true);
                 }
+            }
+        }
+
+        private void UnregisterEventHandlersFromTargetObjects()
+        {
+            if (this.eventReceivers != null)
+            {
+                foreach (var receiver in this.eventReceivers)
+                {
+                    receiver.Dispose();
+                }
+
+                this.eventReceivers = null;
             }
         }
 
@@ -1352,98 +1618,88 @@ namespace StreamJsonRpc
                 // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
             }
 
-            JsonRpcDisconnectedEventArgs disconnectedEventArgs = null;
+            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
 
             try
             {
-                while (!this.disposed)
+                while (!this.IsDisposed && !this.DisconnectedToken.IsCancellationRequested)
                 {
-                    string json = null;
+                    JsonRpcMessage protocolMessage = null;
                     try
                     {
-                        json = await this.MessageHandler.ReadAsync(this.disposeCts.Token).ConfigureAwait(false);
+                        protocolMessage = await this.MessageHandler.ReadAsync(this.DisconnectedToken).ConfigureAwait(false);
+                        if (protocolMessage == null)
+                        {
+                            this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.ReachedEndOfStream, DisconnectedReason.RemotePartyTerminated));
+                            return;
+                        }
+
+                        this.TraceMessageReceived(protocolMessage);
                     }
                     catch (OperationCanceledException)
                     {
+                        break;
                     }
                     catch (ObjectDisposedException)
                     {
+                        break;
                     }
                     catch (Exception exception)
                     {
-                        var e = new JsonRpcDisconnectedEventArgs(
+                        this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                             string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
-                            DisconnectedReason.StreamError,
-                            exception);
-
-                        // Fatal error. Raise disconnected event.
-                        this.OnJsonRpcDisconnected(e);
-                        break;
-                    }
-
-                    if (json == null)
-                    {
-                        // End of stream reached
-                        disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.ReachedEndOfStream, DisconnectedReason.Disposed);
-                        break;
-                    }
-
-                    this.HandleRpcAsync(json).Forget(); // all exceptions are handled internally
-                }
-            }
-            finally
-            {
-                this.completionSource.TrySetResult(true);
-                if (disconnectedEventArgs == null)
-                {
-                    disconnectedEventArgs = new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.Disposed);
-                }
-
-                this.OnJsonRpcDisconnected(disconnectedEventArgs);
-            }
-        }
-
-        private async Task HandleRpcAsync(string json)
-        {
-            try
-            {
-                JsonRpcMessage rpc;
-                try
-                {
-                    rpc = JsonRpcMessage.FromJson(json, this.MessageJsonDeserializerSettings);
-                    Assumes.NotNull(rpc);
-                }
-                catch (JsonException exception)
-                {
-                    var e = new JsonRpcDisconnectedEventArgs(
-                        string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingJsonRpc, json, exception.Message),
-                        DisconnectedReason.ParseError,
-                        json,
-                        exception);
-
-                    // Fatal error. Raise disconnected event.
-                    this.OnJsonRpcDisconnected(e);
-                    return;
-                }
-
-                if (rpc.IsRequest)
-                {
-                    // We can't accept a request that requires a response if we can't write.
-                    Verify.Operation(rpc.IsNotification || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
-
-                    if (rpc.IsNotification && rpc.Method == CancelRequestSpecialMethod)
-                    {
-                        await this.HandleCancellationNotificationAsync(rpc).ConfigureAwait(false);
+                            exception is JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
+                            exception));
                         return;
                     }
 
-                    JsonRpcMessage result = await this.DispatchIncomingRequestAsync(rpc).ConfigureAwait(false);
+                    this.HandleRpcAsync(protocolMessage).Forget(); // all exceptions are handled internally
+                }
 
-                    if (!rpc.IsNotification)
+                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed));
+            }
+            catch (Exception ex)
+            {
+                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(ex.Message, DisconnectedReason.StreamError, ex));
+                throw;
+            }
+        }
+
+        private async Task HandleRpcAsync(JsonRpcMessage rpc)
+        {
+            Requires.NotNull(rpc, nameof(rpc));
+            try
+            {
+                if (rpc is JsonRpcRequest request)
+                {
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (request.IsResponseExpected)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request \"{0}\" for method \"{1}\".", request.Id, request.Method);
+                        }
+                        else
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received notification for method \"{0}\".", request.Method);
+                        }
+                    }
+
+                    // We can't accept a request that requires a response if we can't write.
+                    Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
+
+                    if (request.IsNotification && request.Method == CancelRequestSpecialMethod)
+                    {
+                        await this.HandleCancellationNotificationAsync(request).ConfigureAwait(false);
+                        return;
+                    }
+
+                    JsonRpcMessage result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
+
+                    if (request.IsResponseExpected && !this.IsDisposed)
                     {
                         try
                         {
-                            await this.TransmitAsync(result, this.disposeCts.Token).ConfigureAwait(false);
+                            await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
@@ -1462,19 +1718,28 @@ namespace StreamJsonRpc
                             this.OnJsonRpcDisconnected(e);
                         }
                     }
-
-                    return;
                 }
-
-                if (rpc.IsResponse)
+                else if (rpc is IJsonRpcMessageWithId resultOrError)
                 {
                     OutstandingCallData data = null;
                     lock (this.dispatcherMapLock)
                     {
-                        int id = (int)rpc.Id;
+                        long id = (long)resultOrError.Id;
                         if (this.resultDispatcherMap.TryGetValue(id, out data))
                         {
                             this.resultDispatcherMap.Remove(id);
+                        }
+                    }
+
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (resultOrError is JsonRpcResult result)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.Id);
+                        }
+                        else if (resultOrError is JsonRpcError error)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.Id, error.Error.Code, error.Error.Message);
                         }
                     }
 
@@ -1484,22 +1749,20 @@ namespace StreamJsonRpc
                         await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                         data.CompletionHandler(rpc);
                     }
-
-                    return;
                 }
-
-                // Not a request or return. Raise disconnected event.
-                this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
-                    string.Format(CultureInfo.CurrentCulture, Resources.UnrecognizedIncomingJsonRpc, json),
-                    DisconnectedReason.ParseError,
-                    json));
+                else
+                {
+                    // Not a request or result/error. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
+                        Resources.UnrecognizedIncomingJsonRpc,
+                        DisconnectedReason.ParseError));
+                }
             }
             catch (Exception ex)
             {
                 var eventArgs = new JsonRpcDisconnectedEventArgs(
-                    string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, json, ex.Message),
+                    string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),
                     DisconnectedReason.ParseError,
-                    json,
                     ex);
 
                 // Fatal error. Raise disconnected event.
@@ -1507,37 +1770,44 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task HandleCancellationNotificationAsync(JsonRpcMessage rpc)
+        private async Task HandleCancellationNotificationAsync(JsonRpcRequest request)
         {
-            Requires.NotNull(rpc, nameof(rpc));
+            Requires.NotNull(request, nameof(request));
 
-            JToken id = rpc.Parameters.SelectToken("id");
-            CancellationTokenSource cts;
-            lock (this.dispatcherMapLock)
+            if (request.TryGetArgumentByNameOrIndex("id", -1, null, out object id))
             {
-                this.inboundCancellationSources.TryGetValue(id, out cts);
-            }
-
-            if (cts != null)
-            {
-                // This cancellation token is the one that is passed to the server method.
-                // It may have callbacks registered on cancellation.
-                // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
-                await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                try
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
                 {
-                    cts.Cancel();
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedCancellation, "Cancellation request received for \"{0}\".", id);
                 }
-                catch (ObjectDisposedException)
+
+                CancellationTokenSource cts;
+                lock (this.dispatcherMapLock)
                 {
-                    // There is a race condition between when we retrieve the CTS and actually call Cancel,
-                    // vs. another thread that disposes the CTS at the conclusion of the method invocation.
-                    // It cannot be prevented, so just swallow it since the method executed successfully.
+                    this.inboundCancellationSources.TryGetValue(id, out cts);
+                }
+
+                if (cts != null)
+                {
+                    // This cancellation token is the one that is passed to the server method.
+                    // It may have callbacks registered on cancellation.
+                    // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
+                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
+                    try
+                    {
+                        cts.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // There is a race condition between when we retrieve the CTS and actually call Cancel,
+                        // vs. another thread that disposes the CTS at the conclusion of the method invocation.
+                        // It cannot be prevented, so just swallow it since the method executed successfully.
+                    }
                 }
             }
         }
 
-        private void CancelPendingRequests()
+        private void FaultPendingRequests()
         {
             OutstandingCallData[] pendingRequests;
             lock (this.dispatcherMapLock)
@@ -1557,41 +1827,79 @@ namespace StreamJsonRpc
         /// <param name="state">The ID associated with the request to be canceled.</param>
         private void CancelPendingOutboundRequest(object state)
         {
+            Requires.NotNull(state, nameof(state));
             Task.Run(async delegate
             {
-                try
+                if (!this.IsDisposed)
                 {
-                    Requires.NotNull(state, nameof(state));
-                    object id = state;
-                    if (!this.disposed)
+                    var cancellationMessage = new JsonRpcRequest
                     {
-                        var cancellationMessage = JsonRpcMessage.CreateRequestWithNamedParameters(id: null, method: CancelRequestSpecialMethod, namedParameters: new { id = id }, parameterSerializer: DefaultJsonSerializer);
-                        await this.TransmitAsync(cancellationMessage, this.disposeCts.Token).ConfigureAwait(false);
-                    }
+                        Method = CancelRequestSpecialMethod,
+                        NamedArguments = new Dictionary<string, object>
+                        {
+                            { "id", state },
+                        },
+                    };
+                    await this.TransmitAsync(cancellationMessage, this.DisconnectedToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-#if NET45
-                catch (Exception ex)
-                {
-                    Debug.Fail(ex.Message, ex.ToString());
-                }
-#else
-                catch (Exception)
-                {
-                }
-#endif
-            });
+            }).Forget();
         }
 
-        private Task TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
         {
-            string json = message.ToJson(this.JsonSerializerFormatting, this.MessageJsonSerializerSettings);
-            return this.MessageHandler.WriteAsync(json, cancellationToken);
+            Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Added local RPC method \"{0}\" -> {1}", rpcMethodName, targetMethod);
+            }
+        }
+
+        private void TraceMessageSent(JsonRpcMessage message)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageSent, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", this.GetMessageJson(message));
+            }
+        }
+
+        private void TraceMessageReceived(JsonRpcMessage message)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageReceived, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", this.GetMessageJson(message));
+            }
+        }
+
+        private object GetMessageJson(JsonRpcMessage message)
+        {
+            try
+            {
+                return this.MessageHandler.Formatter.GetJsonText(message);
+            }
+            catch (Exception ex)
+            {
+                return $"<JSON representation not available: {ex.Message}>";
+            }
+        }
+
+#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
+        private ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+        {
+            this.TraceMessageSent(message);
+
+            return this.MessageHandler.WriteAsync(message, cancellationToken);
         }
 
         /// <summary>
@@ -1610,7 +1918,7 @@ namespace StreamJsonRpc
             internal MethodNameMap(TypeInfo typeInfo)
             {
                 Requires.NotNull(typeInfo, nameof(typeInfo));
-#if NET45 || NET46 || NETSTANDARD2_0
+#if !NETSTANDARD1_6
                 this.interfaceMaps = typeInfo.IsInterface ? new List<InterfaceMapping>()
                     : typeInfo.ImplementedInterfaces.Select(typeInfo.GetInterfaceMap).ToList();
 #else
@@ -1715,7 +2023,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaised(object sender, EventArgs args)
             {
-                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
             }
         }
     }

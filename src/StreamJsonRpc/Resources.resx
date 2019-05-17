@@ -174,8 +174,8 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} parameters are not compatible with the request: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <value>{0} parameters are not compatible with the arguments provided in the request.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
@@ -224,16 +224,15 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Unexpected error processing JSON RPC '{0}': {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Unexpected error processing JSON-RPC message: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Unexpected token '{0}' while parsing header.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Unrecognized incoming JSON RPC '{0}'</value>
-    <comment>{0} is the json.</comment>
+    <value>Incoming JSON-RPC message did not conform to a recognized pattern.</value>
   </data>
   <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
     <value>A target object should be supplied if and only if the method is not static.</value>
@@ -264,5 +263,22 @@
   </data>
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>An argument was not supplied for a required parameter.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
   </data>
 </root>

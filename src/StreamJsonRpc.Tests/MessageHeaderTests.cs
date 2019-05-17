@@ -3,9 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -40,30 +38,38 @@ public class MessageHeaderTests : TestBase
 
         await clientRpc.NotifyAsync("someMethod");
         clientRpc.Dispose();
-        var sr = new StreamReader(this.serverStream, Encoding.ASCII, false);
+        MemoryStream seekableServerStream = await this.GetSeekableServerStream();
+        var sr = new StreamReader(seekableServerStream, Encoding.ASCII, false);
         var headers = new Dictionary<string, string>();
         string header;
         var headerRegEx = new Regex("(.+?): (.+)");
+        int bytesRead = 0;
         while ((header = sr.ReadLine())?.Length > 0)
         {
+            bytesRead += header.Length + 2; // CRLF
             this.Logger.WriteLine(header);
             var match = headerRegEx.Match(header);
             Assert.True(match.Success);
             headers[match.Groups[1].Value] = match.Groups[2].Value;
         }
 
+        bytesRead += 2; // final CRLF
+
         Assert.True(headers.ContainsKey("Content-Length"));
         Assert.True(int.TryParse(headers["Content-Length"], out int length));
         Assert.NotEqual(0, length);
         byte[] messageBuffer = new byte[length];
-        int bytesRead = 0;
+        seekableServerStream.Position = bytesRead; // reset position to counteract buffer built up in StreamReader
+        bytesRead = 0;
         while (bytesRead < length)
         {
-            bytesRead += await this.serverStream.ReadAsync(messageBuffer, bytesRead, length - bytesRead, this.TimeoutToken);
+            int bytesJustRead = await seekableServerStream.ReadAsync(messageBuffer, bytesRead, length - bytesRead, this.TimeoutToken);
+            Assert.NotEqual(0, bytesJustRead); // end of stream reached unexpectedly.
+            bytesRead += bytesJustRead;
         }
 
         // Assert that the stream terminates after the alleged length of the only message sent.
-        Assert.Equal(-1, this.serverStream.ReadByte());
+        Assert.Equal(-1, seekableServerStream.ReadByte());
 
         // Decode the message for logging purposes.
         // Actually deserializing the message is beyond the scope of this test.
@@ -80,7 +86,7 @@ public class MessageHeaderTests : TestBase
         var rpcServer = JsonRpc.Attach(this.serverStream, server);
 
         Encoding contentEncoding = Encoding.GetEncoding(encodingName);
-        string jsonMessage = @"{""method"":""Foo"",""id"":1}";
+        string jsonMessage = @"{""jsonrpc"":""2.0"",""method"":""Foo"",""id"":1}";
         byte[] message = contentEncoding.GetBytes(jsonMessage);
 
         // Write the header, which is always in ASCII.
@@ -102,19 +108,24 @@ public class MessageHeaderTests : TestBase
     [MemberData(nameof(TestedEncodings))]
     public async Task SendMessageWithEncoding(string encodingName)
     {
-        var rpcClient = JsonRpc.Attach(this.clientStream);
-        rpcClient.Encoding = Encoding.GetEncoding(encodingName);
+        var messageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream);
+        var rpcClient = new JsonRpc(messageHandler);
+        messageHandler.Encoding = Encoding.GetEncoding(encodingName);
         await rpcClient.NotifyAsync("Foo");
         rpcClient.Dispose();
 
-        var reader = new StreamReader(this.serverStream, Encoding.ASCII);
+        MemoryStream seekableServerStream = await this.GetSeekableServerStream();
+        int bytesRead = 0;
+        var reader = new StreamReader(seekableServerStream, Encoding.ASCII);
         var headerLines = new List<string>();
         string line;
         while ((line = reader.ReadLine()) != string.Empty)
         {
             headerLines.Add(line);
+            bytesRead += line.Length + 2; // + CRLF
         }
 
+        bytesRead += 2; // final CRLF
         this.Logger.WriteLine(string.Join(Environment.NewLine, headerLines));
 
         // utf-8 headers may not be present because they are the default, per the protocol spec.
@@ -123,9 +134,20 @@ public class MessageHeaderTests : TestBase
             Assert.Contains(headerLines, l => l.Contains($"charset={encodingName}"));
         }
 
-        reader = new StreamReader(this.serverStream, Encoding.GetEncoding(encodingName));
+        // Because the first StreamReader probably read farther (to fill its buffer) than the end of the headers,
+        // we need to reposition the stream at the start of the content to create a new StreamReader.
+        seekableServerStream.Position = bytesRead;
+        reader = new StreamReader(seekableServerStream, Encoding.GetEncoding(encodingName));
         string json = reader.ReadToEnd();
         Assert.Equal('{', json[0]);
+    }
+
+    private async Task<MemoryStream> GetSeekableServerStream()
+    {
+        var seekableServerStream = new MemoryStream();
+        await this.serverStream.CopyToAsync(seekableServerStream);
+        seekableServerStream.Position = 0;
+        return seekableServerStream;
     }
 
     private class Server

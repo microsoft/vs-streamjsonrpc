@@ -4,16 +4,22 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcClientInteropTests : InteropTestBase
+/// <summary>
+/// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *client* (i.e. the one sending requests, and receiving results)
+/// against various server messages.
+/// </summary>
+public class JsonRpcClient20InteropTests : InteropTestBase
 {
     private readonly JsonRpc clientRpc;
 
-    public JsonRpcClientInteropTests(ITestOutputHelper logger)
+    public JsonRpcClient20InteropTests(ITestOutputHelper logger)
         : base(logger, serverTest: false)
     {
         this.clientRpc = new JsonRpc(this.messageHandler);
@@ -47,7 +53,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyAsync_ParameterObjectSentAsArray()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
     }
@@ -56,7 +62,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal(0, ((JArray)request["params"]).Count);
     }
@@ -65,7 +71,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
         Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Object, request["params"].Type);
         Assert.Equal("value", request["params"]["Bar"].ToString());
     }
@@ -74,7 +80,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task NotifyWithParameterPassedAsObjectAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("value");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
 
@@ -82,7 +88,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeAsync_ParameterObjectSentAsArray()
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
     }
@@ -91,7 +97,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"].Type);
         Assert.Equal(0, ((JArray)request["params"]).Count);
     }
@@ -99,9 +105,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
     [Fact]
     public async Task SerializeWithNoWhitespace()
     {
-        this.clientRpc.JsonSerializerFormatting = Newtonsoft.Json.Formatting.None;
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        string json = jtoken.ToString(Formatting.None);
         this.Logger.WriteLine(json);
         Assert.Equal(@"{""jsonrpc"":""2.0"",""method"":""test"",""params"":[]}", json);
     }
@@ -110,7 +116,8 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task SerializeWithPrettyFormatting()
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
-        string json = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+        string json = jtoken.ToString();
         this.Logger.WriteLine(json);
         string expected = "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"test\",\n  \"params\": []\n}"
             .Replace("\n", Environment.NewLine);
@@ -121,7 +128,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" });
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Object, request["params"].Type);
         Assert.Equal("value", request["params"]["Bar"].ToString());
     }
@@ -130,7 +137,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
     public async Task InvokeWithParameterPassedAsObjectAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
-        JObject request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
 
@@ -191,8 +198,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
             },
         };
         this.Send(errorObject);
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
     }
 
     [Fact]
@@ -216,9 +224,10 @@ public class JsonRpcClientInteropTests : InteropTestBase
             },
         };
         this.Send(errorObject);
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Equal(errorObject.error.data.stack, ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteStackTrace);
-        Assert.Equal("-2147467261", ((RemoteInvocationException)requestTask.Exception.InnerException).RemoteErrorCode);
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
+        Assert.Equal(-2147467261, commonErrorData.HResult);
     }
 
     [Fact]
@@ -244,9 +253,9 @@ public class JsonRpcClientInteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        Assert.Null(ex.RemoteStackTrace);
-        Assert.Null(ex.RemoteErrorCode);
-        Assert.Equal(errorData.stack.foo, ex.ErrorData["stack"].Value<int>("foo"));
+        JToken errorDataToken = (JToken)ex.ErrorData;
+        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
+        Assert.Equal(errorData.stack.foo, errorDataToken["stack"].Value<int>("foo"));
     }
 
     [Fact]
@@ -295,7 +304,7 @@ public class JsonRpcClientInteropTests : InteropTestBase
         });
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Equal(expectedMessage, ex.Message);
-        Assert.Equal(expectedData, ex.ErrorData?.Value<string>());
+        Assert.Equal(expectedData, ((JToken)ex.ErrorData)?.Value<string>());
     }
 
     [Fact]

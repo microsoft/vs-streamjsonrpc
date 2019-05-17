@@ -1,4 +1,4 @@
-﻿#if NETCOREAPP2_0 || NET452 || NET461
+﻿#if !NETCOREAPP1_0
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
 #if ASPNETCORE
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -16,23 +17,34 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 #endif
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
 public class WebSocketMessageHandlerTests : TestBase
 {
-    private const int BufferSize = 9; // an odd number so as to split multi-byte encoded characters
-    private static readonly IReadOnlyList<Encoding> Encodings = new Encoding[] { Encoding.UTF8, Encoding.Unicode, Encoding.UTF32 };
+    private const int BufferSize = (3 * 12) + 1; // an odd number so as to split multi-byte encoded characters
+    private const int LengthOfStringQuotes = 2; // ""
+    private static readonly IReadOnlyList<Encoding> Encodings = new Encoding[]
+    {
+        new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+        new UnicodeEncoding(bigEndian: false, byteOrderMark: false),
+        new UTF32Encoding(bigEndian: false, byteOrderMark: false),
+    };
+
     private Random random = new Random();
     private MockWebSocket socket;
     private WebSocketMessageHandler handler;
+    private JsonMessageFormatter formatter = new JsonMessageFormatter();
 
     public WebSocketMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
         this.socket = new MockWebSocket();
-        this.handler = new WebSocketMessageHandler(this.socket, BufferSize);
+        this.handler = new WebSocketMessageHandler(this.socket, this.formatter, BufferSize);
     }
 
     public static object[][] EncodingTheoryData
@@ -47,10 +59,10 @@ public class WebSocketMessageHandlerTests : TestBase
     public void CtorInputValidation()
     {
         Assert.Throws<ArgumentNullException>(() => new WebSocketMessageHandler(null));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), -1));
-        new WebSocketMessageHandler(new MockWebSocket(), 1);
-        new WebSocketMessageHandler(new MockWebSocket(), 1 * 1024 * 1024);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), -1));
+        new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 1);
+        new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 1 * 1024 * 1024);
     }
 
     [Fact]
@@ -79,7 +91,7 @@ public class WebSocketMessageHandlerTests : TestBase
         // Enqueuing an empty buffer has special meaning to our mock socket
         // that tells it to send a close message.
         this.socket.EnqueueRead(new byte[0]);
-        string result = await this.handler.ReadAsync(CancellationToken.None);
+        var result = await this.handler.ReadAsync(CancellationToken.None);
         Assert.Null(result);
     }
 
@@ -87,80 +99,81 @@ public class WebSocketMessageHandlerTests : TestBase
     [MemberData(nameof(EncodingTheoryData))]
     public async Task ReadMessage_UnderBufferSize(Encoding encoding)
     {
-        this.handler.Encoding = encoding;
-        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding, BufferSize - 1));
-        byte[] buffer = encoding.GetBytes(msg);
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage(BufferSize - 1);
+        var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
         this.socket.EnqueueRead(buffer);
-        string result = await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg, result);
+        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result.Method);
     }
 
     [Fact]
     public async Task ReadMessage_ExactBufferSize()
     {
-        var encoding = Encoding.UTF8;
-        this.handler.Encoding = encoding;
-        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding));
-        byte[] buffer = encoding.GetBytes(msg);
+        var encoding = Encoding.UTF8; // use only UTF8 so we can assume each ASCII character is just one byte.
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage(BufferSize);
+        var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
+        Assumes.True(buffer.Length == BufferSize);
         this.socket.EnqueueRead(buffer);
-        string result = await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg, result);
+        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result.Method);
     }
 
     [Theory]
     [MemberData(nameof(EncodingTheoryData))]
     public async Task ReadMessage_ExceedsBufferSize(Encoding encoding)
     {
-        this.handler.Encoding = encoding;
-        string msg = new string('a', (int)(BufferSize * 2.5));
-        byte[] buffer = encoding.GetBytes(msg);
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage((int)(BufferSize * 2.5));
+        var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
         this.socket.EnqueueRead(buffer);
-        string result = await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg, result);
+        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result.Method);
     }
 
     [Theory]
     [MemberData(nameof(EncodingTheoryData))]
     public async Task WriteMessage_UnderBufferSize(Encoding encoding)
     {
-        this.handler.Encoding = encoding;
-        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding) - 1);
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage(BufferSize - 1);
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
         string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
-        Assert.Equal(msg, writtenString);
+        Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
     [Fact]
     public async Task WriteMessage_ExactBufferSize()
     {
-        Encoding encoding = Encoding.UTF8;
-        this.handler.Encoding = encoding;
-        string msg = new string('a', GetMaxCharsThatFitInBuffer(encoding));
+        Encoding encoding = new UTF8Encoding(false); // Always use UTF8 so we can assume 1 byte = 1 character
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage(BufferSize);
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
         string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
-        Assert.Equal(msg, writtenString);
+        Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
     [Theory]
     [MemberData(nameof(EncodingTheoryData))]
     public async Task WriteMessage_ExceedsBufferSize(Encoding encoding)
     {
-        this.handler.Encoding = encoding;
-        string msg = new string('a', (int)(BufferSize * 2.5));
+        this.formatter.Encoding = encoding;
+        var msg = this.CreateMessage((int)(BufferSize * 2.5));
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
         string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
-        Assert.Equal(msg, writtenString);
+        Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
     [Fact]
     public async Task WriteMessage_BufferIsSmallerThanOneEncodedChar()
     {
-        this.handler = new WebSocketMessageHandler(this.socket, 2);
-        this.handler.Encoding = Encoding.UTF32;
-        await Assert.ThrowsAsync<ArgumentException>(() => this.handler.WriteAsync("a", this.TimeoutToken));
+        this.handler = new WebSocketMessageHandler(this.socket, new JsonMessageFormatter(), 2);
+        this.formatter.Encoding = Encoding.UTF32;
+        await this.handler.WriteAsync(CreateDefaultMessage(), this.TimeoutToken);
     }
 
 #if ASPNETCORE
@@ -198,7 +211,13 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 #endif
 
-    private static int GetMaxCharsThatFitInBuffer(Encoding encoding, int bufferSize = BufferSize) => bufferSize / encoding.GetMaxByteCount(1);
+    private static JsonRpcRequest CreateDefaultMessage()
+    {
+        return new JsonRpcRequest
+        {
+            Method = "t",
+        };
+    }
 
 #if ASPNETCORE
     private async Task<(JsonRpc, WebSocket)> EstablishWebSocket()
@@ -214,6 +233,19 @@ public class WebSocketMessageHandlerTests : TestBase
         return (rpc, webSocket);
     }
 #endif
+
+    private JsonRpcRequest CreateMessage(int requiredEncodedBytesCount)
+    {
+        var msg = CreateDefaultMessage();
+        string baseline = this.formatter.Serialize(msg).ToString(Formatting.None);
+        if (baseline.Length > requiredEncodedBytesCount)
+        {
+            throw new ArgumentException("Cannot make a message that small. The min size is " + baseline.Length, nameof(requiredEncodedBytesCount));
+        }
+
+        msg.Method += new string('a', (requiredEncodedBytesCount - baseline.Length) / this.formatter.Encoding.GetByteCount("a"));
+        return msg;
+    }
 
     private byte[] GetRandomBuffer(int count)
     {
@@ -338,6 +370,7 @@ public class WebSocketMessageHandlerTests : TestBase
                         await rpc.Completion;
                     }
                 }
+
                 await next();
             });
         }

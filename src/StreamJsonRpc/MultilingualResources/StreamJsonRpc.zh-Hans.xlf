@@ -40,9 +40,9 @@
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
         </trans-unit>
         <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
-          <source>{0} parameters are not compatible with the request: {1}</source>
-          <target state="translated">{0} 个参数与请求不兼容: {1}</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+          <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+          <target state="translated">{0} 参数与请求中提供的参数不兼容。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
         </trans-unit>
         <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
           <source>Reached end of stream.</source>
@@ -75,14 +75,13 @@
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
         </trans-unit>
         <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
-          <source>Unexpected error processing JSON RPC '{0}': {1}</source>
-          <target state="translated">处理 JSON RPC“{0}”时出现意外错误: {1}</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
+          <source>Unexpected error processing JSON-RPC message: {0}</source>
+          <target state="translated">处理 JSON-RPC 消息时出现意外错误: {0}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
         </trans-unit>
         <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
-          <source>Unrecognized incoming JSON RPC '{0}'</source>
-          <target state="translated">无法识别传入的 JSON RPC“{0}”</target>
-          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
+          <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
+          <target state="translated">传入的 JSON-RPC 消息不符合已识别的模式。</target>
         </trans-unit>
         <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
           <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -193,9 +192,31 @@
           <source>"{0}" is not an interface.</source>
           <target state="translated">“{0}”不是接口。</target>
         </trans-unit>
+        <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+          <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+          <target state="translated">不支持文本编码，因为格式化程序“{0}”未实现“{1}”。</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+        </trans-unit>
+        <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
+          <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
+          <target state="translated">在请求完成之前, 与远程方的 JSON-RPC 连接已丢失。</target>
+        </trans-unit>
+        <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+          <source>An argument was not supplied for a required parameter.</source>
+          <target state="translated">没有为所需参数提供参数。</target>
+        </trans-unit>
         <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
           <source>A CancellationToken is only allowed as the last parameter.</source>
           <target state="translated">CancellationToken 只能用作最后一个参数。</target>
+        </trans-unit>
+        <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+          <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+          <target state="translated">JSON-RPC 协议版本 {0} 不受支持。支持的协议版本为: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+        </trans-unit>
+        <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+          <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+          <target state="translated">JSON-RPC 1.0 不支持命名参数(在对象中传递的参数)。请使用位置参数(参数数组)或将协议版本设置为 2.0。</target>
         </trans-unit>
       </group>
     </body>

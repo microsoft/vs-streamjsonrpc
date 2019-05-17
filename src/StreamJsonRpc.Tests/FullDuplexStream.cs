@@ -41,7 +41,7 @@
         private TaskCompletionSource<object> enqueuedSource = new TaskCompletionSource<object>(EnqueuedSourceOptions);
 
         /// <summary>
-        /// Gets or sets a value indicating whether the stream is disposed
+        /// Gets or sets a value indicating whether the stream is disposed.
         /// </summary>
         public bool IsDisposed { get; set; }
 

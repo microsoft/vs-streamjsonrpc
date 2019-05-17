@@ -62,7 +62,7 @@ public class JsonRpcRawStreamTests : TestBase
             Assert.NotNull(args);
             Assert.NotNull(args.Description);
             Assert.Equal(DisconnectedReason.ParseError, args.Reason);
-            Assert.Equal("{", args.LastMessage);
+            Assert.Null(args.LastMessage);
             Assert.NotNull(args.Exception);
 
             // Server must dispose the stream now

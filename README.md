@@ -1,5 +1,4 @@
-StreamJsonRpc
-===============
+# StreamJsonRpc
 
 [![NuGet package](https://img.shields.io/nuget/v/StreamJsonRpc.svg)](https://nuget.org/packages/StreamJsonRpc)
 [![Build Status](https://dev.azure.com/azure-public/vside/_apis/build/status/vs-streamjsonrpc)](https://dev.azure.com/azure-public/vside/_build/latest?definitionId=13)
@@ -9,21 +8,22 @@ StreamJsonRpc
 StreamJsonRpc is a cross-platform, .NET portable library that implements the
 [JSON-RPC][JSONRPC] wire protocol.
 
-It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream) or [WebSocket](https://docs.microsoft.com/en-us/dotnet/api/system.net.websockets.websocket) independent of the underlying transport.
+It works over [Stream](https://docs.microsoft.com/en-us/dotnet/api/system.io.stream), [WebSocket](https://docs.microsoft.com/en-us/dotnet/api/system.net.websockets.websocket), or System.IO.Pipelines pipes, independent of the underlying transport.
 
 Bonus features beyond the JSON-RPC spec include:
 
 1. Request cancellation
 1. .NET Events as notifications
 1. Dynamic client proxy generation
+1. Support for [compact binary serialization](doc/extensibility.md) (e.g. MessagePack)
+
+Learn about the use cases for JSON-RPC and how to use this library from our [documentation](doc/index.md).
 
 ## Supported platforms
 
-* .NET 4.5
-* Windows 8
-* Windows Phone 8.1
-* .NET Portable (Profile111)
-* .NET Standard 1.1
+* .NET 4.6
+* .NET Standard 1.6
+* .NET Standard 2.0
 
 ## Compatibility
 
@@ -32,15 +32,6 @@ JSON-RPC libraries:
 
 * [json-rpc-peer][json-rpc-peer] (npm)
 
-## Documentation
-[Documentation](doc/index.md)
-
-## Testability/mockability
-
-Testing this library or users of this library can be done without any transport
-by using the [Nerdbank.FullDuplexStream][FullDuplexStream] library in your tests
-to produce the Stream object.
 
 [JSONRPC]: http://jsonrpc.org/
 [json-rpc-peer]: https://www.npmjs.com/package/json-rpc-peer
-[FullDuplexStream]: https://www.nuget.org/packages/nerdbank.fullduplexstream

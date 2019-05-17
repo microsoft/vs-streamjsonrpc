@@ -5,6 +5,7 @@ namespace StreamJsonRpc
 {
     using System;
     using Microsoft;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Describes the reason behind a disconnection with the remote party.
@@ -39,7 +40,7 @@ namespace StreamJsonRpc
         /// <param name="description">The description.</param>
         /// <param name="reason">The reason for disconnection.</param>
         /// <param name="lastMessage">The last message.</param>
-        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, string lastMessage)
+        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken lastMessage)
             : this(description, reason, lastMessage: lastMessage, exception: null)
         {
         }
@@ -51,7 +52,7 @@ namespace StreamJsonRpc
         /// <param name="reason">The reason for disconnection.</param>
         /// <param name="lastMessage">The last message.</param>
         /// <param name="exception">The exception.</param>
-        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, string lastMessage, Exception exception)
+        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken lastMessage, Exception exception)
         {
             Requires.NotNullOrWhiteSpace(description, nameof(description));
 
@@ -74,7 +75,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the last message.
         /// </summary>
-        public string LastMessage { get; }
+        public JToken LastMessage { get; }
 
         /// <summary>
         /// Gets the exception.
