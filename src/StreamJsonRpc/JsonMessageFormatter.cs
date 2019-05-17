@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Runtime.Serialization;
     using System.Text;
     using System.Threading;
@@ -40,6 +41,11 @@ namespace StreamJsonRpc
         /// UTF-8 encoding without a preamble.
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        /// <summary>
+        /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
+        /// </summary>
+        private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
 
         /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
@@ -262,13 +268,11 @@ namespace StreamJsonRpc
 
         private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
         {
-            using (var streamWriter = new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096))
+            this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
+            using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
             {
-                using (var jsonWriter = new JsonTextWriter(streamWriter))
-                {
-                    json.WriteTo(jsonWriter);
-                    jsonWriter.Flush();
-                }
+                json.WriteTo(jsonWriter);
+                jsonWriter.Flush();
             }
         }
 
