@@ -17,11 +17,11 @@ namespace Benchmarks
 
         public InvokeBenchmarks()
         {
-            var duplex = FullDuplexStream.CreatePair();
-            this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item1, duplex.Item1));
+            var duplex = FullDuplexStream.CreatePipePair();
+            this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item1, new JsonMessageFormatter()));
             this.clientRpc.StartListening();
 
-            this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item2, duplex.Item2));
+            this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item2, new JsonMessageFormatter()));
             this.serverRpc.AddLocalRpcTarget(new Server());
             this.serverRpc.StartListening();
         }
