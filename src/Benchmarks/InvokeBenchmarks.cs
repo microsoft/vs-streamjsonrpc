@@ -27,7 +27,7 @@ namespace Benchmarks
         }
 
         /// <summary>
-        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837
+        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837.
         /// </summary>
         [GlobalSetup]
         public void Workaround() => this.InvokeAsync_NoArgs();
