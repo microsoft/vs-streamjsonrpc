@@ -19,6 +19,12 @@ namespace Benchmarks
             this.clientRpc = new JsonRpc(Stream.Null);
         }
 
+        /// <summary>
+        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837
+        /// </summary>
+        [GlobalSetup]
+        public void Workaround() => this.NotifyAsync_NoArgs();
+
         [Benchmark]
         public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());
     }
