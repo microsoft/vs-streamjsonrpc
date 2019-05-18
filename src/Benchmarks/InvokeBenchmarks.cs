@@ -26,6 +26,12 @@ namespace Benchmarks
             this.serverRpc.StartListening();
         }
 
+        /// <summary>
+        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837
+        /// </summary>
+        [GlobalSetup]
+        public void Workaround() => this.InvokeAsync_NoArgs();
+
         [Benchmark]
         public Task InvokeAsync_NoArgs() => this.clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
 
