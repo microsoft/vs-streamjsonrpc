@@ -48,6 +48,11 @@ namespace StreamJsonRpc
         private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
 
         /// <summary>
+        /// The reusable <see cref="TextReader"/> to use with newtonsoft.json's deserializer.
+        /// </summary>
+        private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
+
+        /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -280,7 +285,8 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(encoding, nameof(encoding));
 
-            var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), encoding))
+            this.sequenceTextReader.Initialize(contentBuffer, encoding);
+            var jsonReader = new JsonTextReader(this.sequenceTextReader)
             {
                 CloseInput = true,
                 Culture = this.JsonSerializer.Culture,
