@@ -48,6 +48,16 @@ namespace StreamJsonRpc
         private static readonly IArrayPool<char> JsonCharArrayPool = new JsonArrayPool<char>(ArrayPool<char>.Shared);
 
         /// <summary>
+        /// An exactly default instance of the <see cref="JsonSerializer"/> to use where no special settings
+        /// are needed.
+        /// </summary>
+        /// <remarks>
+        /// This is useful when calling such APIs as <see cref="JToken.FromObject(object, JsonSerializer)"/>
+        /// because <see cref="JToken.FromObject(object)"/> allocates a new serializer with each invocation.
+        /// </remarks>
+        private static readonly JsonSerializer DefaultSerializer = JsonSerializer.CreateDefault();
+
+        /// <summary>
         /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
         /// </summary>
         private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
@@ -205,7 +215,7 @@ namespace StreamJsonRpc
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
             this.TokenizeUserData(message);
 
-            var json = JToken.FromObject(message);
+            var json = JToken.FromObject(message, DefaultSerializer);
 
             // Fix up dropped fields that are mandatory
             if (message is Protocol.JsonRpcResult && json["result"] == null)
