@@ -43,6 +43,11 @@ namespace StreamJsonRpc
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         /// <summary>
+        /// The <see cref="char"/> array pool to use for each <see cref="JsonTextReader"/> instance.
+        /// </summary>
+        private static readonly IArrayPool<char> JsonCharArrayPool = new JsonArrayPool<char>(ArrayPool<char>.Shared);
+
+        /// <summary>
         /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
         /// </summary>
         private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
@@ -288,6 +293,7 @@ namespace StreamJsonRpc
             this.sequenceTextReader.Initialize(contentBuffer, encoding);
             var jsonReader = new JsonTextReader(this.sequenceTextReader)
             {
+                ArrayPool = JsonCharArrayPool,
                 CloseInput = true,
                 Culture = this.JsonSerializer.Culture,
                 DateFormatString = this.JsonSerializer.DateFormatString,
@@ -296,8 +302,16 @@ namespace StreamJsonRpc
                 FloatParseHandling = this.JsonSerializer.FloatParseHandling,
                 MaxDepth = this.JsonSerializer.MaxDepth,
             };
-            JToken json = JToken.ReadFrom(jsonReader);
-            return json;
+            try
+            {
+                JToken json = JToken.ReadFrom(jsonReader);
+                return json;
+            }
+            finally
+            {
+                // Return rented arrays
+                jsonReader.Close();
+            }
         }
 
         /// <summary>
@@ -476,6 +490,23 @@ namespace StreamJsonRpc
 
                 return result.ToObject<T>(this.jsonSerializer);
             }
+        }
+
+        /// <summary>
+        /// Adapts the .NET <see cref="ArrayPool{T}" /> to Newtonsoft.Json's <see cref="IArrayPool{T}" /> interface.
+        /// </summary>
+        private class JsonArrayPool<T> : IArrayPool<T>
+        {
+            private readonly ArrayPool<T> arrayPool;
+
+            internal JsonArrayPool(ArrayPool<T> arrayPool)
+            {
+                this.arrayPool = arrayPool ?? throw new ArgumentNullException(nameof(arrayPool));
+            }
+
+            public T[] Rent(int minimumLength) => this.arrayPool.Rent(minimumLength);
+
+            public void Return(T[] array) => this.arrayPool.Return(array);
         }
     }
 }
