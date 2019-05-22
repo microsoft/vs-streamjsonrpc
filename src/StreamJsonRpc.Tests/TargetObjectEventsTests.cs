@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,6 +33,12 @@ public class TargetObjectEventsTests : TestBase
 
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
         this.clientRpc = JsonRpc.Attach(this.clientStream, this.client);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
     [Theory]

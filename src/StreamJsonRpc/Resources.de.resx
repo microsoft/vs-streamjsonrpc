@@ -39,8 +39,8 @@
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} Parameter sind nicht mit der Anforderung kompatibel: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
+    <value>{0}-Parameter sind nicht kompatibel mit den in der Anforderung angegebenen Argumenten.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Das Ende des Datenstroms wurde erreicht.</value>
@@ -66,12 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Unerwarteter Fehler beim Verarbeiten des JSON-RPC "{0}": {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Unerwarteter Fehler beim Verarbeiten der JSON-RPC-Nachricht: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Nicht erkannter eingehender JSON-RPC "{0}".</value>
-    <comment>{0} is the json.</comment>
+    <value>Die eingehende JSON-RPC-Nachricht entsprach keinem bekannten Muster.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Fehler beim Analysieren des Content-Length-Headers in einen positiven Integerwert.</value>
@@ -157,7 +156,24 @@
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" ist keine Schnittstelle.</value>
   </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Die Textcodierung wird nicht unterstützt, weil "{1}" vom Formatierer "{0}" nicht implementiert wird.</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>Die JSON-RPC-Verbindung mit der Gegenseite ging verloren, bevor die Anforderung abgeschlossen werden konnte.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Für einen erforderlichen Parameter wurde ein Arguemt nicht angegeben.</value>
+  </data>
   <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
     <value>Ein CancellationToken ist nur als letzter Parameter zulässig.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Nicht unterstützte JSON-RPC-Protokollversion: {0}. Folgende Protokollversionen werden unterstützt: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 unterstützt keine benannten Argumente (innerhalb eines Objekts übergebene Parameter). Verwenden Sie Positionsargumente (Parameterarrays), oder legen Sie die Protokollversion auf 2.0 fest.</value>
   </data>
 </root>

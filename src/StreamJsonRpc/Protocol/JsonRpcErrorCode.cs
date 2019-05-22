@@ -1,19 +1,20 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc.Protocol
 {
-    internal enum JsonRpcErrorCode : int
+    /// <summary>
+    /// Error codes laid out in the JSON-RPC spec or this library.
+    /// </summary>
+    /// <remarks>
+    /// The error codes from and including -32768 to -32000 are reserved for pre-defined errors.
+    /// </remarks>
+    public enum JsonRpcErrorCode : int
     {
         /// <summary>
         /// Indicates the RPC call was made but the target threw an exception.
         /// </summary>
         InvocationError = -32000,
-
-        /// <summary>
-        /// No callback object was given to the client but an RPC call was attempted.
-        /// </summary>
-        NoCallbackObject = -32001,
 
         /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
