@@ -1713,7 +1713,7 @@ namespace StreamJsonRpc
                 this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
             }
 
-            private void OnEventRaised(object sender, EventArgs args)
+            private void OnEventRaised(object sender, object args)
             {
                 this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
             }
