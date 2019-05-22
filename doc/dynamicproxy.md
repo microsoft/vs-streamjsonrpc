@@ -16,7 +16,7 @@ A proxy can only be dynamically generated for an interface that meets these requ
 1. No properties
 1. No generic methods
 1. All methods return `Task` or `Task<T>`
-1. All events are typed with `EventHandler` or `EventHandler<T> where T : EventArgs`
+1. All events are typed with `EventHandler` or `EventHandler<T>`
 1. Methods *may* accept a `CancellationToken` as the last parameter.
 
 ## Async methods and generated proxies
