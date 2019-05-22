@@ -41,6 +41,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         event EventHandler<CustomNonDerivingEventArgs> AppleGrown;
 
+        event EventHandler<bool> BoolEvent;
+
         Task<string> SayHiAsync();
 
         Task<string> SayHiAsync(string name);
@@ -385,6 +387,25 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task GenericEventWithBoolArgRaisedOnClient()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        EventHandler<bool> handler = (sender, args) => tcs.SetResult(args);
+        this.clientRpc.BoolEvent += handler;
+        var expectedArgs = true;
+        this.server.OnBoolEvent(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs, actualArgs);
+
+        // Now unregister and confirm we don't get notified.
+        this.clientRpc.BoolEvent -= handler;
+        tcs = new TaskCompletionSource<bool>();
+        this.server.OnBoolEvent(expectedArgs);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
+    }
+
+    [Fact]
     public async Task NonGenericEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
@@ -536,6 +557,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         public event EventHandler<CustomNonDerivingEventArgs> AppleGrown;
 
+        public event EventHandler<bool> BoolEvent;
+
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
         public AsyncManualResetEvent ResumeMethod { get; } = new AsyncManualResetEvent(initialState: true);
@@ -597,5 +620,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnTreeGrown(CustomEventArgs args) => this.TreeGrown?.Invoke(this, args);
 
         internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
+
+        internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
     }
 }
