@@ -39,6 +39,10 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         event EventHandler<CustomEventArgs> TreeGrown;
 
+        event EventHandler<CustomNonDerivingEventArgs> AppleGrown;
+
+        event EventHandler<bool> BoolEvent;
+
         Task<string> SayHiAsync();
 
         Task<string> SayHiAsync(string name);
@@ -364,6 +368,44 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task GenericEventWithoutEventArgsBaseTypeRaisedOnClient()
+    {
+        var tcs = new TaskCompletionSource<CustomNonDerivingEventArgs>();
+        EventHandler<CustomNonDerivingEventArgs> handler = (sender, args) => tcs.SetResult(args);
+        this.clientRpc.AppleGrown += handler;
+        var expectedArgs = new CustomNonDerivingEventArgs { Color = "Red" };
+        this.server.OnAppleGrown(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs.Color, actualArgs.Color);
+
+        // Now unregister and confirm we don't get notified.
+        this.clientRpc.AppleGrown -= handler;
+        tcs = new TaskCompletionSource<CustomNonDerivingEventArgs>();
+        this.server.OnAppleGrown(expectedArgs);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task GenericEventWithBoolArgRaisedOnClient()
+    {
+        var tcs = new TaskCompletionSource<bool>();
+        EventHandler<bool> handler = (sender, args) => tcs.SetResult(args);
+        this.clientRpc.BoolEvent += handler;
+        var expectedArgs = true;
+        this.server.OnBoolEvent(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs, actualArgs);
+
+        // Now unregister and confirm we don't get notified.
+        this.clientRpc.BoolEvent -= handler;
+        tcs = new TaskCompletionSource<bool>();
+        this.server.OnBoolEvent(expectedArgs);
+        await Assert.ThrowsAsync<TimeoutException>(() => tcs.Task.WithTimeout(ExpectedTimeout));
+        Assert.False(tcs.Task.IsCompleted);
+    }
+
+    [Fact]
     public async Task NonGenericEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
@@ -497,11 +539,25 @@ public class JsonRpcProxyGenerationTests : TestBase
         public int Seeds { get; set; }
     }
 
+    /// <summary>
+    /// This class serves as a type argument to <see cref="EventHandler{TEventArgs}"/>
+    /// but intentionally does *not* derive from <see cref="EventArgs"/>
+    /// since that is no longer a requirement as of .NET 4.5.
+    /// </summary>
+    public class CustomNonDerivingEventArgs
+    {
+        public string Color { get; set; }
+    }
+
     internal class Server : IServerDerived, IServer2, IServer3
     {
         public event EventHandler ItHappened;
 
         public event EventHandler<CustomEventArgs> TreeGrown;
+
+        public event EventHandler<CustomNonDerivingEventArgs> AppleGrown;
+
+        public event EventHandler<bool> BoolEvent;
 
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
@@ -562,5 +618,9 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
 
         internal void OnTreeGrown(CustomEventArgs args) => this.TreeGrown?.Invoke(this, args);
+
+        internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
+
+        internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
     }
 }
