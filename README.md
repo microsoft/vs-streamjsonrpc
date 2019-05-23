@@ -31,7 +31,8 @@ This library has been tested with and is compatible with the following other
 JSON-RPC libraries:
 
 * [json-rpc-peer][json-rpc-peer] (npm)
-
+* [vscode-jsonrpc][vscode-jsonrpc] (npm)
 
 [JSONRPC]: http://jsonrpc.org/
 [json-rpc-peer]: https://www.npmjs.com/package/json-rpc-peer
+[vscode-jsonrpc]: https://www.npmjs.com/package/vscode-jsonrpc
