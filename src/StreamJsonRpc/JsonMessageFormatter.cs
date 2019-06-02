@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.InteropServices;
     using System.Runtime.Serialization;
     using System.Text;
     using System.Threading;
@@ -40,6 +41,31 @@ namespace StreamJsonRpc
         /// UTF-8 encoding without a preamble.
         /// </summary>
         private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+        /// <summary>
+        /// The <see cref="char"/> array pool to use for each <see cref="JsonTextReader"/> instance.
+        /// </summary>
+        private static readonly IArrayPool<char> JsonCharArrayPool = new JsonArrayPool<char>(ArrayPool<char>.Shared);
+
+        /// <summary>
+        /// An exactly default instance of the <see cref="JsonSerializer"/> to use where no special settings
+        /// are needed.
+        /// </summary>
+        /// <remarks>
+        /// This is useful when calling such APIs as <see cref="JToken.FromObject(object, JsonSerializer)"/>
+        /// because <see cref="JToken.FromObject(object)"/> allocates a new serializer with each invocation.
+        /// </remarks>
+        private static readonly JsonSerializer DefaultSerializer = JsonSerializer.CreateDefault();
+
+        /// <summary>
+        /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
+        /// </summary>
+        private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
+
+        /// <summary>
+        /// The reusable <see cref="TextReader"/> to use with newtonsoft.json's deserializer.
+        /// </summary>
+        private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
@@ -189,7 +215,7 @@ namespace StreamJsonRpc
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
             this.TokenizeUserData(message);
 
-            var json = JToken.FromObject(message);
+            var json = JToken.FromObject(message, DefaultSerializer);
 
             // Fix up dropped fields that are mandatory
             if (message is Protocol.JsonRpcResult && json["result"] == null)
@@ -262,13 +288,11 @@ namespace StreamJsonRpc
 
         private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
         {
-            using (var streamWriter = new StreamWriter(contentBuffer.AsStream(), this.Encoding, 4096))
+            this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
+            using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
             {
-                using (var jsonWriter = new JsonTextWriter(streamWriter))
-                {
-                    json.WriteTo(jsonWriter);
-                    jsonWriter.Flush();
-                }
+                json.WriteTo(jsonWriter);
+                jsonWriter.Flush();
             }
         }
 
@@ -276,8 +300,10 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(encoding, nameof(encoding));
 
-            var jsonReader = new JsonTextReader(new StreamReader(contentBuffer.AsStream(), encoding))
+            this.sequenceTextReader.Initialize(contentBuffer, encoding);
+            var jsonReader = new JsonTextReader(this.sequenceTextReader)
             {
+                ArrayPool = JsonCharArrayPool,
                 CloseInput = true,
                 Culture = this.JsonSerializer.Culture,
                 DateFormatString = this.JsonSerializer.DateFormatString,
@@ -286,8 +312,16 @@ namespace StreamJsonRpc
                 FloatParseHandling = this.JsonSerializer.FloatParseHandling,
                 MaxDepth = this.JsonSerializer.MaxDepth,
             };
-            JToken json = JToken.ReadFrom(jsonReader);
-            return json;
+            try
+            {
+                JToken json = JToken.ReadFrom(jsonReader);
+                return json;
+            }
+            finally
+            {
+                // Return rented arrays
+                jsonReader.Close();
+            }
         }
 
         /// <summary>
@@ -466,6 +500,23 @@ namespace StreamJsonRpc
 
                 return result.ToObject<T>(this.jsonSerializer);
             }
+        }
+
+        /// <summary>
+        /// Adapts the .NET <see cref="ArrayPool{T}" /> to Newtonsoft.Json's <see cref="IArrayPool{T}" /> interface.
+        /// </summary>
+        private class JsonArrayPool<T> : IArrayPool<T>
+        {
+            private readonly ArrayPool<T> arrayPool;
+
+            internal JsonArrayPool(ArrayPool<T> arrayPool)
+            {
+                this.arrayPool = arrayPool ?? throw new ArgumentNullException(nameof(arrayPool));
+            }
+
+            public T[] Rent(int minimumLength) => this.arrayPool.Rent(minimumLength);
+
+            public void Return(T[] array) => this.arrayPool.Return(array);
         }
     }
 }

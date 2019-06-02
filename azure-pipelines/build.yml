@@ -1,9 +1,31 @@
 steps:
-- task: DotNetCoreInstaller@0
+- task: UseDotNet@2
+  displayName: Install .NET Core 1.0.x
+  inputs:
+    packageType: runtime
+    version: 1.0.x
+
+- task: UseDotNet@2
+  displayName: Install .NET Core 2.0.x
+  inputs:
+    packageType: runtime
+    version: 2.0.x
+
+- task: UseDotNet@2
+  displayName: Install .NET Core 2.1.x
+  inputs:
+    packageType: runtime
+    version: 2.1.x
+
+- task: UseDotNet@2
   displayName: Install .NET Core SDK 2.2.104
   inputs:
     packageType: sdk
     version: 2.2.104
+
+- script: dotnet --info
+  workingDirectory: src
+  displayName: Show dotnet SDK info
 
 - script: |
     dotnet tool install --tool-path .. nbgv
@@ -20,9 +42,6 @@ steps:
 
 - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
   - template: azure-pipeline.microbuild.before.yml
-
-- script: dotnet --info
-  displayName: Show dotnet SDK info
 
   # We need nuget.exe on the PATH for our VSInsertion.ps1 script.
 - task: NuGetToolInstaller@0

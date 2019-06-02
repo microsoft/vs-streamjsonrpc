@@ -59,24 +59,33 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void EncodingProperty_UsedToFormat()
     {
-        JsonRpcRequest msg = new JsonRpcRequest { Method = "a" };
-        var builder = new Sequence<byte>();
-        var formatter = new JsonMessageFormatter();
+        var msg = new JsonRpcRequest { Method = "a" };
 
-        formatter.Encoding = Encoding.ASCII;
-        formatter.Serialize(builder, msg);
-        long asciiLength = builder.AsReadOnlySequence.Length;
-        var readMsg = (JsonRpcRequest)formatter.Deserialize(builder.AsReadOnlySequence);
-        Assert.Equal(msg.Method, readMsg.Method);
+        var formatter = new JsonMessageFormatter(Encoding.ASCII);
+        long asciiLength = MeasureLength(msg, formatter);
 
-        builder.Reset();
         formatter.Encoding = Encoding.UTF32;
-        formatter.Serialize(builder, msg);
-        long utf32Length = builder.AsReadOnlySequence.Length;
-        readMsg = (JsonRpcRequest)formatter.Deserialize(builder.AsReadOnlySequence);
-        Assert.Equal(msg.Method, readMsg.Method);
+        var utf32Length = MeasureLength(msg, formatter);
+        Assert.Equal(asciiLength * 4, utf32Length - Encoding.UTF32.GetPreamble().Length);
+    }
 
-        Assert.Equal(utf32Length - Encoding.UTF32.GetPreamble().Length, asciiLength * 4);
+    [Fact]
+    public void EncodingPreambleWrittenOnlyOncePerMessage()
+    {
+        // Contrive a very long message, designed to exceed any buffer that would be used internally by the formatter.
+        // The goal here is to result in multiple write operations in order to coerce a second preamble to be written if there were a bug.
+        var msg = new JsonRpcRequest { Method = new string('a', 16 * 1024) };
+
+        var formatter = new JsonMessageFormatter(Encoding.ASCII);
+        long asciiLength = MeasureLength(msg, formatter);
+
+        formatter.Encoding = Encoding.UTF32;
+        var utf32Length = MeasureLength(msg, formatter);
+        Assert.Equal(asciiLength * 4, utf32Length - Encoding.UTF32.GetPreamble().Length);
+
+        // Measure UTF32 again to verify the length doesn't change (and the preamble is thus applied to each message).
+        var utf32Length2 = MeasureLength(msg, formatter);
+        Assert.Equal(utf32Length, utf32Length2);
     }
 
     [Fact]
@@ -101,5 +110,16 @@ public class JsonMessageFormatterTests : TestBase
         Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object value));
         Assert.IsType<string>(value);
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
+    }
+
+    private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
+    {
+        var builder = new Sequence<byte>();
+        formatter.Serialize(builder, msg);
+        var length = builder.AsReadOnlySequence.Length;
+        var readMsg = (JsonRpcRequest)formatter.Deserialize(builder.AsReadOnlySequence);
+        Assert.Equal(msg.Method, readMsg.Method);
+
+        return length;
     }
 }
