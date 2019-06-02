@@ -1343,7 +1343,7 @@ namespace StreamJsonRpc
             };
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
+        private async ValueTask<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
         {
             Requires.NotNull(request, nameof(request));
 
