@@ -2033,7 +2033,7 @@ namespace StreamJsonRpc
 
             private void OnEventRaisedGeneric<T>(object sender, T args)
             {
-                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args });
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
             }
 
             private void OnEventRaised(object sender, EventArgs args)
