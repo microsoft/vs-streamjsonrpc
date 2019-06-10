@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -22,7 +23,14 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     public JsonRpcClient20InteropTests(ITestOutputHelper logger)
         : base(logger, serverTest: false)
     {
-        this.clientRpc = new JsonRpc(this.messageHandler);
+        this.clientRpc = new JsonRpc(this.messageHandler)
+        {
+            TraceSource =
+            {
+                Switch = { Level = SourceLevels.Verbose },
+                Listeners = { new XunitTraceListener(logger) },
+            },
+        };
         this.clientRpc.StartListening();
     }
 
