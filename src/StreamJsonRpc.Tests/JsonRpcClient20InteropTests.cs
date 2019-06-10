@@ -324,4 +324,24 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         });
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
     }
+
+    /// <summary>
+    /// Some lesser JSON-RPC servers may convert the request ID from the JSON number that we sent to a string.
+    /// Reproduce that to verify that our client functionality is resilient enough to withstand that bad behavior.
+    /// </summary>
+    [Fact]
+    public async Task ServerReturnsOurRequestIdAsString()
+    {
+        var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test", cancellationToken: this.TimeoutToken);
+        dynamic request = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request.id.ToString(), // deliberately return the request id as a string instead of an integer.
+            result = "pass",
+        });
+
+        string result = await invokeTask;
+        Assert.Equal("pass", result);
+    }
 }
