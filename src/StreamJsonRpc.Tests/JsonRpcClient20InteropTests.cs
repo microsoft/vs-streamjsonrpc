@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -22,7 +23,14 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     public JsonRpcClient20InteropTests(ITestOutputHelper logger)
         : base(logger, serverTest: false)
     {
-        this.clientRpc = new JsonRpc(this.messageHandler);
+        this.clientRpc = new JsonRpc(this.messageHandler)
+        {
+            TraceSource =
+            {
+                Switch = { Level = SourceLevels.Verbose },
+                Listeners = { new XunitTraceListener(logger) },
+            },
+        };
         this.clientRpc.StartListening();
     }
 
@@ -323,5 +331,25 @@ public class JsonRpcClient20InteropTests : InteropTestBase
             },
         });
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+    }
+
+    /// <summary>
+    /// Some lesser JSON-RPC servers may convert the request ID from the JSON number that we sent to a string.
+    /// Reproduce that to verify that our client functionality is resilient enough to withstand that bad behavior.
+    /// </summary>
+    [Fact]
+    public async Task ServerReturnsOurRequestIdAsString()
+    {
+        var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test", cancellationToken: this.TimeoutToken);
+        dynamic request = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request.id.ToString(), // deliberately return the request id as a string instead of an integer.
+            result = "pass",
+        });
+
+        string result = await invokeTask;
+        Assert.Equal("pass", result);
     }
 }

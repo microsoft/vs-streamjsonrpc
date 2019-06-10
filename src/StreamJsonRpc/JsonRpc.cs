@@ -1784,7 +1784,7 @@ namespace StreamJsonRpc
                     OutstandingCallData data = null;
                     lock (this.dispatcherMapLock)
                     {
-                        long id = (long)resultOrError.Id;
+                        long id = Convert.ToInt64(resultOrError.Id);
                         if (this.resultDispatcherMap.TryGetValue(id, out data))
                         {
                             this.resultDispatcherMap.Remove(id);
