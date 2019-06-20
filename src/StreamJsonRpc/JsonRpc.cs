@@ -2007,14 +2007,20 @@ namespace StreamJsonRpc
                     // It will work for EventHandler and EventHandler<T>, at least.
                     // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                     // with the right signature.
-                    if (eventInfo.EventHandlerType.Equals(typeof(EventHandler)))
+                    var eventHandlerParameters = eventInfo.EventHandlerType.GetTypeInfo().GetMethod("Invoke").GetParameters();
+                    if (eventHandlerParameters.Length != 2)
+                    {
+                        throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
+                    }
+
+                    Type argsType = eventHandlerParameters[1].ParameterType;
+                    if (typeof(EventArgs).GetTypeInfo().IsAssignableFrom(argsType))
                     {
                         this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
                     }
                     else
                     {
-                        Type eventArgsType = eventInfo.EventHandlerType.GenericTypeArguments.FirstOrDefault() ?? typeof(object);
-                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(eventArgsType);
+                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
                         this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType, this);
                     }
                 }
