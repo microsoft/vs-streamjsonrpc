@@ -1343,7 +1343,7 @@ namespace StreamJsonRpc
             };
         }
 
-        private async Task<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
+        private async ValueTask<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
         {
             Requires.NotNull(request, nameof(request));
 
@@ -1980,6 +1980,7 @@ namespace StreamJsonRpc
         private class EventReceiver : IDisposable
         {
             private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
+            private static readonly MethodInfo OnEventRaisedGenericMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaisedGeneric));
             private readonly JsonRpc jsonRpc;
             private readonly object server;
             private readonly EventInfo eventInfo;
@@ -2006,7 +2007,16 @@ namespace StreamJsonRpc
                     // It will work for EventHandler and EventHandler<T>, at least.
                     // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                     // with the right signature.
-                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                    if (eventInfo.EventHandlerType.Equals(typeof(EventHandler)))
+                    {
+                        this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
+                    }
+                    else
+                    {
+                        Type eventArgsType = eventInfo.EventHandlerType.GenericTypeArguments.FirstOrDefault() ?? typeof(object);
+                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(eventArgsType);
+                        this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType, this);
+                    }
                 }
                 catch (ArgumentException ex)
                 {
@@ -2019,6 +2029,11 @@ namespace StreamJsonRpc
             public void Dispose()
             {
                 this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
+            }
+
+            private void OnEventRaisedGeneric<T>(object sender, T args)
+            {
+                this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
             }
 
             private void OnEventRaised(object sender, EventArgs args)

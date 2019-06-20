@@ -86,25 +86,22 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
+            try
             {
-                try
-                {
-                    JsonRpcMessage result = await this.ReadCoreAsync(cts.Token).ConfigureAwait(false);
-                    return result;
-                }
-                catch (InvalidOperationException ex) when (cancellationToken.IsCancellationRequested)
-                {
-                    // PipeReader.ReadAsync can throw InvalidOperationException in a race where PipeReader.Complete() has been
-                    // called but we haven't noticed the CancellationToken was canceled yet.
-                    throw new OperationCanceledException("Reading failed during cancellation.", ex, cancellationToken);
-                }
-                catch (ObjectDisposedException)
-                {
-                    // If already canceled, throw that instead of ObjectDisposedException.
-                    cancellationToken.ThrowIfCancellationRequested();
-                    throw;
-                }
+                JsonRpcMessage result = await this.ReadCoreAsync(cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (InvalidOperationException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                // PipeReader.ReadAsync can throw InvalidOperationException in a race where PipeReader.Complete() has been
+                // called but we haven't noticed the CancellationToken was canceled yet.
+                throw new OperationCanceledException("Reading failed during cancellation.", ex, cancellationToken);
+            }
+            catch (ObjectDisposedException)
+            {
+                // If already canceled, throw that instead of ObjectDisposedException.
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
             }
         }
 
@@ -127,23 +124,20 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(this.DisposalToken, cancellationToken))
+            try
             {
-                try
+                using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    using (await this.sendingSemaphore.EnterAsync(cts.Token).ConfigureAwait(false))
-                    {
-                        cts.Token.ThrowIfCancellationRequested();
-                        await this.WriteCoreAsync(content, cts.Token).ConfigureAwait(false);
-                        await this.FlushAsync(cts.Token).ConfigureAwait(false);
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
-                    // If already canceled, throw that instead of ObjectDisposedException.
                     cancellationToken.ThrowIfCancellationRequested();
-                    throw;
+                    await this.WriteCoreAsync(content, cancellationToken).ConfigureAwait(false);
+                    await this.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
+            }
+            catch (ObjectDisposedException)
+            {
+                // If already canceled, throw that instead of ObjectDisposedException.
+                cancellationToken.ThrowIfCancellationRequested();
+                throw;
             }
         }
 

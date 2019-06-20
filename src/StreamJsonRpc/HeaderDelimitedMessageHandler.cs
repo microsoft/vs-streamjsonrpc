@@ -60,6 +60,11 @@ namespace StreamJsonRpc
         private static readonly byte[] CrlfBytes = HeaderEncoding.GetBytes("\r\n");
 
         /// <summary>
+        /// The <see cref="IBufferWriter{T}"/> sent to the <see cref="TextFormatter"/> to write the message.
+        /// </summary>
+        private readonly Sequence<byte> contentSequenceBuilder = new Sequence<byte>(ArrayPool<byte>.Shared);
+
+        /// <summary>
         /// Backing field for <see cref="SubType"/>.
         /// </summary>
         private string subType = DefaultSubType;
@@ -222,10 +227,10 @@ namespace StreamJsonRpc
 
             cancellationToken.ThrowIfCancellationRequested();
             Encoding contentEncoding = this.Encoding;
-            using (var contentSequenceBuilder = new Sequence<byte>())
+            try
             {
-                this.Formatter.Serialize(contentSequenceBuilder, content);
-                ReadOnlySequence<byte> contentSequence = contentSequenceBuilder.AsReadOnlySequence;
+                this.Formatter.Serialize(this.contentSequenceBuilder, content);
+                ReadOnlySequence<byte> contentSequence = this.contentSequenceBuilder.AsReadOnlySequence;
                 Memory<byte> headerMemory = this.Writer.GetMemory(1024);
                 int bytesWritten = 0;
 
@@ -270,6 +275,10 @@ namespace StreamJsonRpc
                 var contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
                 contentSequence.CopyTo(contentMemory.Span);
                 this.Writer.Advance((int)contentSequence.Length);
+            }
+            finally
+            {
+                this.contentSequenceBuilder.Reset();
             }
         }
 

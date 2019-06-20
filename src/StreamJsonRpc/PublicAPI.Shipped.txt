@@ -292,3 +292,5 @@ virtual StreamJsonRpc.MessageHandlerBase.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetArgumentByNameOrIndex(string name, int position, System.Type typeHint, out object value) -> bool
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.TryGetTypedArguments(System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters, System.Span<object> typedArguments) -> StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentMatchResult
 virtual StreamJsonRpc.Protocol.JsonRpcResult.GetResult<T>() -> T
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.get -> System.Collections.Generic.IReadOnlyList<object>
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentsList.set -> void

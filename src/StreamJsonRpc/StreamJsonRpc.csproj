@@ -23,9 +23,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <XliffResource Include="MultilingualResources\*.xlf" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="15.8.209" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="15.8.209" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
@@ -36,7 +33,7 @@
     <PackageReference Include="System.Net.WebSockets" Version="4.3.0" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.2" />
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
-    <PackageReference Include="Nerdbank.Streams" Version="2.1.37" />
+    <PackageReference Include="Nerdbank.Streams" Version="2.2.26" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
