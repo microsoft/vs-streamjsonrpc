@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +33,23 @@ public class SpecialCaseTests : TestBase
         await Assert.ThrowsAsync<ConnectionLostException>(() => clientRpc.InvokeAsync("Hi"));
     }
 
+    [Fact]
+    public async Task TraceListenerThrows_CausesDisconnect()
+    {
+        var pair = FullDuplexStream.CreatePair();
+        var serverRpc = new JsonRpc(pair.Item1)
+        {
+            TraceSource =
+            {
+                Switch = { Level = SourceLevels.All },
+                Listeners = { new ThrowingTraceListener() },
+            },
+        };
+        serverRpc.StartListening();
+        int bytesRead = await pair.Item2.ReadAsync(new byte[1], 0, 1, this.TimeoutToken);
+        Assert.Equal(0, bytesRead);
+    }
+
     private class Server
     {
         public void Hi()
@@ -49,6 +67,19 @@ public class SpecialCaseTests : TestBase
         protected override void Write(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             throw new FileNotFoundException();
+        }
+    }
+
+    private class ThrowingTraceListener : TraceListener
+    {
+        public override void Write(string message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WriteLine(string message)
+        {
+            throw new NotImplementedException();
         }
     }
 }
