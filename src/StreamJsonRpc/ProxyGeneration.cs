@@ -52,6 +52,11 @@ namespace StreamJsonRpc
             ProxyModuleBuilder = AssemblyBuilder.DefineDynamicModule("rpcProxies");
         }
 
+        /// <summary>
+        /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
+        /// </summary>
+        /// <param name="serviceInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
+        /// <returns>The generated type.</returns>
         internal static TypeInfo Get(TypeInfo serviceInterface)
         {
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
