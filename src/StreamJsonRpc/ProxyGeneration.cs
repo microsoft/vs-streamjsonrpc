@@ -30,7 +30,6 @@ namespace StreamJsonRpc
         private static readonly ModuleBuilder ProxyModuleBuilder;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
-        private static readonly Dictionary<TypeInfo, TypeInfo> DisposableGeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
                                                                     where method.Name == nameof(Interlocked.CompareExchange)
                                                                     let parameters = method.GetParameters()
@@ -53,17 +52,16 @@ namespace StreamJsonRpc
             ProxyModuleBuilder = AssemblyBuilder.DefineDynamicModule("rpcProxies");
         }
 
-        internal static TypeInfo Get(TypeInfo serviceInterface, bool disposable)
+        internal static TypeInfo Get(TypeInfo serviceInterface)
         {
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
             VerifySupported(serviceInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, serviceInterface);
 
             TypeInfo generatedType;
 
-            var proxyCache = disposable ? DisposableGeneratedProxiesByInterface : GeneratedProxiesByInterface;
-            lock (proxyCache)
+            lock (GeneratedProxiesByInterface)
             {
-                if (proxyCache.TryGetValue(serviceInterface, out generatedType))
+                if (GeneratedProxiesByInterface.TryGetValue(serviceInterface, out generatedType))
                 {
                     return generatedType;
                 }
@@ -78,10 +76,7 @@ namespace StreamJsonRpc
                     serviceInterface.AsType(),
                 };
 
-                if (disposable)
-                {
-                    interfaces.Add(typeof(IDisposable));
-                }
+                interfaces.Add(typeof(IJsonRpcClientProxy));
 
                 var proxyTypeBuilder = ProxyModuleBuilder.DefineType(
                     string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
@@ -188,7 +183,6 @@ namespace StreamJsonRpc
                 }
 
                 // IDisposable.Dispose()
-                if (disposable)
                 {
                     var disposeMethod = proxyTypeBuilder.DefineMethod(nameof(IDisposable.Dispose), MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual);
                     var il = disposeMethod.GetILGenerator();
@@ -201,6 +195,31 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ret);
 
                     proxyTypeBuilder.DefineMethodOverride(disposeMethod, typeof(IDisposable).GetTypeInfo().GetDeclaredMethod(nameof(IDisposable.Dispose)));
+                }
+
+                // IJsonRpcClientProxy.JsonRpc property
+                {
+                    var jsonRpcProperty = proxyTypeBuilder.DefineProperty(
+                        nameof(IJsonRpcClientProxy.JsonRpc),
+                        PropertyAttributes.None,
+                        typeof(JsonRpc),
+                        parameterTypes: null);
+
+                    // get_JsonRpc() method
+                    var jsonRpcPropertyGetter = proxyTypeBuilder.DefineMethod(
+                        "get_" + nameof(IJsonRpcClientProxy.JsonRpc),
+                        MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual | MethodAttributes.SpecialName,
+                        typeof(JsonRpc),
+                        Type.EmptyTypes);
+                    var il = jsonRpcPropertyGetter.GetILGenerator();
+
+                    // return this.jsonRpc;
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, jsonRpcField);
+                    il.Emit(OpCodes.Ret);
+
+                    proxyTypeBuilder.DefineMethodOverride(jsonRpcPropertyGetter, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredProperty(nameof(IJsonRpcClientProxy.JsonRpc)).GetMethod);
+                    jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
                 }
 
                 var invokeAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeAsync) && m.GetParameters()[1].ParameterType == typeof(object[])).ToArray();
@@ -333,11 +352,11 @@ namespace StreamJsonRpc
                 generatedType = proxyTypeBuilder.CreateTypeInfo();
             }
 
-            lock (proxyCache)
+            lock (GeneratedProxiesByInterface)
             {
-                if (!proxyCache.TryGetValue(serviceInterface, out var raceGeneratedType))
+                if (!GeneratedProxiesByInterface.TryGetValue(serviceInterface, out var raceGeneratedType))
                 {
-                    proxyCache.Add(serviceInterface, generatedType);
+                    GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
                 }
                 else
                 {
