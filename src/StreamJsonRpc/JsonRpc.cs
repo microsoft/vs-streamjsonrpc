@@ -1561,16 +1561,16 @@ namespace StreamJsonRpc
 
             this.UnregisterEventHandlersFromTargetObjects();
 
-            TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
-                ? TraceEventType.Information
-                : TraceEventType.Critical;
-            if (this.TraceSource.Switch.ShouldTrace(eventType))
-            {
-                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
-            }
-
             try
             {
+                TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
+                    ? TraceEventType.Information
+                    : TraceEventType.Critical;
+                if (this.TraceSource.Switch.ShouldTrace(eventType))
+                {
+                    this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
+                }
+
                 // Fire the event first so that subscribers can interact with a non-disposed stream
                 handlersToInvoke?.Invoke(this, eventArgs);
             }
@@ -1618,10 +1618,10 @@ namespace StreamJsonRpc
                 // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
             }
 
-            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
-
             try
             {
+                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
+
                 while (!this.IsDisposed && !this.DisconnectedToken.IsCancellationRequested)
                 {
                     JsonRpcMessage protocolMessage = null;
