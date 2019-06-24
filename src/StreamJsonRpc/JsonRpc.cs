@@ -507,7 +507,7 @@ namespace StreamJsonRpc
         public static T Attach<T>(Stream sendingStream, Stream receivingStream)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(sendingStream, receivingStream);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default);
             rpc.StartListening();
@@ -544,7 +544,7 @@ namespace StreamJsonRpc
         public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions options)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: true);
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(handler);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default);
             rpc.StartListening();
@@ -571,7 +571,7 @@ namespace StreamJsonRpc
         public T Attach<T>(JsonRpcProxyOptions options)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo(), disposable: false);
+            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
 
             return proxy;

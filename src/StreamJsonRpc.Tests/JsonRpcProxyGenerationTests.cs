@@ -289,7 +289,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void InstanceProxiesDoNotImplementIDisposable()
+    public void InstanceProxiesImplementIJsonRpcClientProxy()
     {
         var streams = FullDuplexStream.CreateStreams();
         var server = new Server();
@@ -297,7 +297,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
-        Assert.IsNotType(typeof(IDisposable), client1);
+        Assert.Same(clientRpc, ((IJsonRpcClientProxy)client1).JsonRpc);
     }
 
     [Fact]
