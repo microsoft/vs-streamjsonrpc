@@ -1621,16 +1621,16 @@ namespace StreamJsonRpc
 
             this.UnregisterEventHandlersFromTargetObjects();
 
-            TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
-                ? TraceEventType.Information
-                : TraceEventType.Critical;
-            if (this.TraceSource.Switch.ShouldTrace(eventType))
-            {
-                this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
-            }
-
             try
             {
+                TraceEventType eventType = (eventArgs.Reason == DisconnectedReason.LocallyDisposed || eventArgs.Reason == DisconnectedReason.RemotePartyTerminated)
+                    ? TraceEventType.Information
+                    : TraceEventType.Critical;
+                if (this.TraceSource.Switch.ShouldTrace(eventType))
+                {
+                    this.TraceSource.TraceEvent(eventType, (int)TraceEvents.Closed, "Connection closing ({0}: {1}). {2}", eventArgs.Reason, eventArgs.Description, eventArgs.Exception);
+                }
+
                 // Fire the event first so that subscribers can interact with a non-disposed stream
                 handlersToInvoke?.Invoke(this, eventArgs);
             }
@@ -1678,10 +1678,10 @@ namespace StreamJsonRpc
                 // See the StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync test.
             }
 
-            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
-
             try
             {
+                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
+
                 while (!this.IsDisposed && !this.DisconnectedToken.IsCancellationRequested)
                 {
                     JsonRpcMessage protocolMessage = null;
@@ -2067,14 +2067,20 @@ namespace StreamJsonRpc
                     // It will work for EventHandler and EventHandler<T>, at least.
                     // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                     // with the right signature.
-                    if (eventInfo.EventHandlerType.Equals(typeof(EventHandler)))
+                    var eventHandlerParameters = eventInfo.EventHandlerType.GetTypeInfo().GetMethod("Invoke").GetParameters();
+                    if (eventHandlerParameters.Length != 2)
+                    {
+                        throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
+                    }
+
+                    Type argsType = eventHandlerParameters[1].ParameterType;
+                    if (typeof(EventArgs).GetTypeInfo().IsAssignableFrom(argsType))
                     {
                         this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType, this);
                     }
                     else
                     {
-                        Type eventArgsType = eventInfo.EventHandlerType.GenericTypeArguments.FirstOrDefault() ?? typeof(object);
-                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(eventArgsType);
+                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
                         this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType, this);
                     }
                 }
