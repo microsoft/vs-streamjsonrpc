@@ -783,6 +783,37 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ServerReturnsCompletedValueTask()
+    {
+        await this.clientRpc.InvokeAsync(nameof(Server.ReturnPlainValueTaskNoYield));
+    }
+
+    [Fact]
+    public async Task ServerReturnsYieldingValueTask()
+    {
+        // Make sure that JsonRpc recognizes a returned ValueTask as a yielding async method rather than just returning immediately.
+        Task invokeTask = this.clientRpc.InvokeAsync(nameof(Server.ReturnPlainValueTaskWithYield));
+        await Task.Delay(ExpectedTimeout);
+        Assert.False(invokeTask.IsCompleted);
+        this.server.AllowServerMethodToReturn.Set();
+        await invokeTask.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task ServerReturnsNoYieldValueTaskOfT()
+    {
+        int sum = await this.clientRpc.InvokeAsync<int>(nameof(Server.AddValueTaskNoYield), 1, 2);
+        Assert.Equal(3, sum);
+    }
+
+    [Fact]
+    public async Task ServerReturnsYieldingValueTaskOfT()
+    {
+        int sum = await this.clientRpc.InvokeAsync<int>(nameof(Server.AddValueTaskWithYield), 1, 2);
+        Assert.Equal(3, sum);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsObject()
     {
         string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter));
@@ -1460,6 +1491,21 @@ public abstract class JsonRpcTests : TestBase
         }
 
         public Task ReturnPlainTask() => Task.CompletedTask;
+
+        public ValueTask ReturnPlainValueTaskNoYield() => default;
+
+        public ValueTask<int> AddValueTaskNoYield(int a, int b) => new ValueTask<int>(a + b);
+
+        public async ValueTask ReturnPlainValueTaskWithYield()
+        {
+            await this.AllowServerMethodToReturn.WaitAsync();
+        }
+
+        public async ValueTask<int> AddValueTaskWithYield(int a, int b)
+        {
+            await Task.Yield();
+            return a + b;
+        }
 
         public void MethodThatThrowsUnauthorizedAccessException()
         {

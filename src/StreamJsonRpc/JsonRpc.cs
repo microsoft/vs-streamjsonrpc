@@ -1329,14 +1329,14 @@ namespace StreamJsonRpc
         /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
         /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
         /// <returns><c>true</c> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <c>false</c>.</returns>
-        private static bool TryGetTaskOfTType(TypeInfo taskTypeInfo, out TypeInfo taskOfTTypeInfo)
+        private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, out TypeInfo taskOfTTypeInfo)
         {
             Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
 
             // Make sure we're prepared for Task<T>-derived types, by walking back up to the actual type in order to find the Result property.
             while (taskTypeInfo != null)
             {
-                if (IsTaskOfT(taskTypeInfo))
+                if (IsTaskOfTOrValueTaskOfT(taskTypeInfo))
                 {
                     taskOfTTypeInfo = taskTypeInfo;
                     return true;
@@ -1348,7 +1348,35 @@ namespace StreamJsonRpc
             taskOfTTypeInfo = null;
             return false;
 
-            bool IsTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Task<>);
+            bool IsTaskOfTOrValueTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && (typeInfo.GetGenericTypeDefinition() == typeof(Task<>) || typeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>));
+        }
+
+        /// <summary>
+        /// Convert a <see cref="ValueTask"/> or <see cref="ValueTask{T}"/> into a <see cref="Task"/> if possible.
+        /// </summary>
+        /// <param name="result">The result from the RPC method invocation.</param>
+        /// <param name="task">Receives the converted <see cref="Task"/> object, if conversion was possible; otherwise <c>null</c>.</param>
+        /// <returns><c>true</c> if conversion succeeded; <c>false</c> otherwise.</returns>
+        private static bool TryGetTaskFromValueTask(object result, out Task task)
+        {
+            if (result is ValueTask resultingValueTask)
+            {
+                task = resultingValueTask.AsTask();
+                return true;
+            }
+
+            if (result != null)
+            {
+                TypeInfo resultTypeInfo = result.GetType().GetTypeInfo();
+                if (resultTypeInfo.IsGenericType && resultTypeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                {
+                    task = (Task)resultTypeInfo.GetDeclaredMethod(nameof(ValueTask<int>.AsTask)).Invoke(result, Array.Empty<object>());
+                    return true;
+                }
+            }
+
+            task = null;
+            return false;
         }
 
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
@@ -1486,6 +1514,12 @@ namespace StreamJsonRpc
                 //            when a single-threaded SynchronizationContext is applied.
                 await this.SynchronizationContextOrDefault;
                 object result = targetMethod.Invoke(cancellationToken);
+
+                if (TryGetTaskFromValueTask(result, out Task resultTask))
+                {
+                    result = resultTask;
+                }
+
                 if (!(result is Task resultingTask))
                 {
                     return new JsonRpcResult
@@ -1499,7 +1533,7 @@ namespace StreamJsonRpc
                 // Checking on the runtime result object itself is problematic because .NET / C# implements
                 // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                 // the VoidTaskResult internal struct as a meaningful result.
-                var continuationDelegate = TryGetTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
+                var continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
                     ? this.handleInvocationTaskOfTResultDelegate
                     : this.handleInvocationTaskResultDelegate;
 
@@ -1580,8 +1614,8 @@ namespace StreamJsonRpc
 
             if (message is JsonRpcResult resultMessage)
             {
-                // This method should only be called for methods that declare to return Task<T> or a derived type.
-                Assumes.True(TryGetTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo));
+                // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
+                Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo taskOfTTypeInfo));
 
                 // If t is a Task<SomeType>, it will have Result property.
                 // If t is just a Task, there is no Result property on it.
