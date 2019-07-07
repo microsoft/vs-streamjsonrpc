@@ -85,6 +85,10 @@ You could go further in achieving a high performance connection by replacing the
 
 It is important that both sides of a connection agree on the protocol settings.
 
+**Important**: Create a new `IJsonMessageFormatter` for each new instance of `IJsonMessageHandler`.
+Message formatters make certain thread safety decisions based on assumptions guaranteed by a single message handler.
+Sharing message formatters across handlers breaks those assumptions and can lead to instability and data corruption.
+
 ## Disconnecting
 
 Once connected, a *listening* `JsonRpc` object will continue to operate till the connection is terminated, even if
