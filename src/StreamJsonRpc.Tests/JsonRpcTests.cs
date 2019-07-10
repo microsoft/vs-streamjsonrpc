@@ -804,6 +804,58 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithParameterObject_ProgressParameter()
+    {
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
+        {
+            report = n;
+        });
+
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+
+        Assert.Equal(1, report);
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_ProgressParameterAndFields()
+    {
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
+        {
+            report += n;
+        });
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
+
+        Assert.Equal(7, report);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
+    {
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
+        {
+            report += n;
+        });
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
+
+        Assert.Equal(12, report);
+        Assert.Equal(12, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_ClassIncludingProgressProperty()
+    {
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new XAndYFieldsWithProgress { x = 2, y = 5, p = new Progress<int>() }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
@@ -1360,6 +1412,9 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
+        ((IJsonRpcInstanceContainer)this.clientMessageFormatter).Rpc = this.clientRpc;
+        ((IJsonRpcInstanceContainer)this.serverMessageFormatter).Rpc = this.serverRpc;
+
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
@@ -1428,6 +1483,33 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithDefaultParameter(int x, int y = 10)
         {
             return x + y;
+        }
+
+        public static int MethodWithProgressParameter(IProgress<int> p)
+        {
+            p.Report(1);
+            return 1;
+        }
+
+        public static int MethodWithProgressAndMoreParameters(IProgress<int> p, int x, int y = 10)
+        {
+            int sum = x + y;
+            p.Report(x);
+            p.Report(y);
+            return sum;
+        }
+
+        public static int MethodWithProgressArrayParameter(params IProgress<int>[] progressArray)
+        {
+            int report = 0;
+
+            foreach (IProgress<int> progress in progressArray)
+            {
+                report++;
+                progress.Report(report);
+            }
+
+            return 0;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
@@ -1739,6 +1821,20 @@ public abstract class JsonRpcTests : TestBase
         public int x;
         [DataMember]
         public int y;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
+    [DataContract]
+    public class XAndYFieldsWithProgress
+    {
+        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        [DataMember]
+        public int x;
+        [DataMember]
+        public int y;
+        [DataMember]
+        public IProgress<int> p;
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 

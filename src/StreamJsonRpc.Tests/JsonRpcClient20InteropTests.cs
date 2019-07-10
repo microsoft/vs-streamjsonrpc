@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
@@ -147,6 +148,147 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
         JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameterAsArray()
+    {
+        int sum = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
+        {
+            sum += report;
+        });
+
+        int n = 3;
+        Task<int> invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { n, progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        long progressID = request["params"][1].Value<long>();
+
+        // Send responses as $/progress
+        int sum2 = 0;
+        for (int i = 0; i < n; i++)
+        {
+            string content = "{ \"jsonrpc\": \"2.0\", \"method\": \"$/progress\", \"params\": { \"token\": " + progressID + ", \"value\": " + i + ", } ,}";
+            JObject json = JObject.Parse(content);
+
+            this.Send(json);
+
+            sum2 += i;
+        }
+
+        System.Threading.Thread.Sleep(1000);
+        Assert.Equal(sum2, sum);
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request["id"].Value<long>(),
+            result = sum,
+        });
+
+        int result = await invokeTask;
+        Assert.Equal(sum2, result);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameter()
+    {
+        int sum = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
+        {
+            sum += report;
+        });
+
+        int n = 3;
+        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = n, Progress = progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        long progressID = request["params"]["Progress"].Value<long>();
+
+        // Send responses as $/progress
+        int sum2 = 0;
+        for (int i = 0; i < n; i++)
+        {
+            string content = "{ \"jsonrpc\": \"2.0\", \"method\": \"$/progress\", \"params\": { \"token\": " + progressID + ", \"value\": " + i + ", } ,}";
+            JObject json = JObject.Parse(content);
+
+            this.Send(json);
+
+            sum2 += i;
+        }
+
+        System.Threading.Thread.Sleep(1000);
+        Assert.Equal(sum2, sum);
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request["id"].Value<long>(),
+            result = sum,
+        });
+
+        int result = await invokeTask;
+        Assert.Equal(sum2, result);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
+    {
+        WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
+        GC.Collect();
+        Assert.False(weakRef.IsAlive);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameterAsObject_CheckProgressObjectIsReplacedForId()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = "value", Progress = progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        Assert.Equal(JTokenType.Object, request["params"].Type);
+        Assert.Equal("value", request["params"]["Bar"].ToString());
+        Assert.Equal(JTokenType.Integer, request["params"]["Progress"].Type);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameterAsArray_CheckProgressObjectIsReplacedForId()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        Task<int> invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { "value", progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        Assert.Equal(JTokenType.Array, request["params"].Type);
+        Assert.Equal("value", request["params"][0].ToString());
+        Assert.Equal(JTokenType.Integer, request["params"][1].Type);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameter_IncrementalId()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        Task<int> invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { "value", progress });
+        JToken request = await this.ReceiveAsync();
+
+        long firstId = request["params"][1].Value<long>();
+
+        invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { "value", progress });
+        request = await this.ReceiveAsync();
+
+        Assert.Equal(firstId + 1, request["params"][1].Value<long>());
+
+        invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { "value", progress });
+        request = await this.ReceiveAsync();
+
+        Assert.Equal(firstId + 2, request["params"][1].Value<long>());
     }
 
     [Fact]
@@ -351,5 +493,30 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
         string result = await invokeTask;
         Assert.Equal("pass", result);
+    }
+
+    private async Task<WeakReference> InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        WeakReference weakRef = new WeakReference(progress);
+
+        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = 1, Progress = progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request["id"].Value<long>(),
+            result = 5,
+        });
+
+        // Clear progress variable locally
+        progress = null;
+
+        int result = await invokeTask;
+
+        return weakRef;
     }
 }

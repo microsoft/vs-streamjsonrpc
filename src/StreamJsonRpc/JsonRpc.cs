@@ -25,6 +25,7 @@ namespace StreamJsonRpc
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
+        private const string ProgressRequestSpecialMethod = "$/progress";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
@@ -104,6 +105,7 @@ namespace StreamJsonRpc
 
         private Task readLinesTask;
         private long nextId = 1;
+        private long nextProgressId = 1;
         private JsonRpcDisconnectedEventArgs disconnectedEventArgs;
 
         /// <summary>
@@ -1750,6 +1752,11 @@ namespace StreamJsonRpc
                     if (request.IsNotification && request.Method == CancelRequestSpecialMethod)
                     {
                         await this.HandleCancellationNotificationAsync(request).ConfigureAwait(false);
+                        return;
+                    }
+
+                    if (request.IsNotification && request.Method == ProgressRequestSpecialMethod)
+                    {
                         return;
                     }
 
