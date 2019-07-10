@@ -13,7 +13,6 @@ namespace StreamJsonRpc
         /// </summary>
         JsonRpc Rpc
         {
-            get;
             set;
         }
     }

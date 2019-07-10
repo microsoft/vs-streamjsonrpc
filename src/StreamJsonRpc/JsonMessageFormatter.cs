@@ -34,6 +34,11 @@ namespace StreamJsonRpc
         internal const string ExceptionDataKey = "JToken";
 
         /// <summary>
+        /// Special method name for progress notification.
+        /// </summary>
+        private const string ProgressRequestSpecialMethod = "$/progress";
+
+        /// <summary>
         /// A collection of supported protocol versions.
         /// </summary>
         private static readonly IReadOnlyCollection<Version> SupportedProtocolVersions = new Version[] { new Version(1, 0), new Version(2, 0) };
@@ -69,6 +74,16 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
+        /// Dictionary used to map the request id to their progress token so that the progress objects are cleaned after getting the final response.
+        /// </summary>
+        private readonly Dictionary<object, long> requestProgressMap = new Dictionary<object, long>();
+
+        /// <summary>
+        /// Dictionary used to map progress objects to their progress token.
+        /// </summary>
+        private readonly Dictionary<long, object> progressMap = new Dictionary<long, object>();
+
+        /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -80,10 +95,15 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Encoding encoding;
 
-        private long nextProgressId = 0;
-        private object requestId = null;
-        private Dictionary<object, long> requestProgressMap = new Dictionary<object, long>();
-        private Dictionary<long, object> progressMap = new Dictionary<long, object>();
+        /// <summary>
+        /// Incrementable number to assing as token for the progress objects.
+        /// </summary>
+        private long nextProgressId;
+
+        /// <summary>
+        /// Stores the request ID so that the converter can use it to create the request-progress map.
+        /// </summary>
+        private object requestId;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
@@ -345,32 +365,37 @@ namespace StreamJsonRpc
         /// <param name="jsonRpcMessage">A JSON-RPC message.</param>
         private void TokenizeUserData(JsonRpcMessage jsonRpcMessage)
         {
-            if (jsonRpcMessage is Protocol.JsonRpcRequest request)
+            try
             {
-                this.requestId = request.Id; // != null ? request.Id : 0;
+                if (jsonRpcMessage is Protocol.JsonRpcRequest request)
+                {
+                    this.requestId = request.Id; // != null ? request.Id : 0;
 
-                if (request.ArgumentsList != null)
-                {
-                    request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
-                }
-                else if (request.Arguments != null)
-                {
-                    if (this.ProtocolVersion.Major < 2)
+                    if (request.ArgumentsList != null)
                     {
-                        throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
+                        request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
                     }
+                    else if (request.Arguments != null)
+                    {
+                        if (this.ProtocolVersion.Major < 2)
+                        {
+                            throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
+                        }
 
-                    // Tokenize the user data using the user-supplied serializer.
-                    var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
-                    request.Arguments = paramsObject;
+                        // Tokenize the user data using the user-supplied serializer.
+                        var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+                        request.Arguments = paramsObject;
+                    }
+                }
+                else if (jsonRpcMessage is Protocol.JsonRpcResult result)
+                {
+                    result.Result = this.TokenizeUserData(result.Result);
                 }
             }
-            else if (jsonRpcMessage is Protocol.JsonRpcResult result)
+            finally
             {
-                result.Result = this.TokenizeUserData(result.Result);
+                this.requestId = null;
             }
-
-            this.requestId = null;
         }
 
         /// <summary>
@@ -410,25 +435,36 @@ namespace StreamJsonRpc
             // If method is $/progress, get the progress instance from the dictionary and call Report
             string method = json.Value<string>("method");
 
-            if (method.Equals("$/progress"))
+            if (string.Equals(method, ProgressRequestSpecialMethod))
             {
-                JToken progressId =
-                    args is JObject ? args["token"] :
-                    args is JArray ? args[0] :
-                    null;
-
-                JToken value =
-                    args is JObject ? args["value"] :
-                    args is JArray ? args[1] :
-                    null;
-
-                if (this.progressMap.TryGetValue(progressId.Value<long>(), out object progress))
+                try
                 {
-                    Type iprogressOfTType = MessageFormatterHelper.FindIProgressOfT(progress.GetType());
-                    Type valueType = iprogressOfTType.GenericTypeArguments[0];
-                    var reportMethod = iprogressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { valueType });
-                    object typedValue = value.ToObject(valueType);
-                    reportMethod.Invoke(progress, new object[] { typedValue });
+                    JToken progressId =
+                        args is JObject ? args["token"] :
+                        args is JArray ? args[0] :
+                        null;
+
+                    JToken value =
+                        args is JObject ? args["value"] :
+                        args is JArray ? args[1] :
+                        null;
+
+                    lock (this.progressMap)
+                    {
+
+                        if (this.progressMap.TryGetValue(progressId.Value<long>(), out object progress))
+                        {
+                            Type iprogressOfTType = MessageFormatterHelper.FindIProgressOfT(progress.GetType());
+                            Type valueType = iprogressOfTType.GenericTypeArguments[0];
+                            var reportMethod = iprogressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { valueType });
+                            object typedValue = value.ToObject(valueType);
+                            reportMethod.Invoke(progress, new object[] { typedValue });
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    this.Rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ProgressNotificationError, e.Message);
                 }
             }
 
@@ -463,7 +499,7 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken error = json["error"];
 
-            this.ClearProgressObject(id.Value<long>());
+            this.ClearProgressObject(id);
 
             return new JsonRpcError
             {
@@ -477,14 +513,20 @@ namespace StreamJsonRpc
             };
         }
 
-        private void ClearProgressObject(long id)
+        private void ClearProgressObject(object requestId)
         {
-            long progressId = 0;
-
-            if (this.requestProgressMap.TryGetValue(id, out progressId))
+            lock (this.requestProgressMap)
             {
-                this.requestProgressMap.Remove(id);
-                this.progressMap.Remove(progressId);
+                lock (this.progressMap)
+                {
+                    long progressId;
+
+                    if (this.requestProgressMap.TryGetValue(requestId, out progressId))
+                    {
+                        this.requestProgressMap.Remove(requestId);
+                        this.progressMap.Remove(progressId);
+                    }
+                }
             }
         }
 
@@ -580,11 +622,11 @@ namespace StreamJsonRpc
 
         private class JsonProgressClientConverter : JsonConverter
         {
-            private JsonMessageFormatter formatter = null;
+            private JsonMessageFormatter formatter;
 
             public JsonProgressClientConverter(JsonMessageFormatter formatter)
             {
-                this.formatter = formatter;
+                this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
             }
 
             public override bool CanConvert(Type objectType) => MessageFormatterHelper.FindIProgressOfT(objectType) != null;
@@ -596,19 +638,24 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                // if the requestId is empty it means the Progress object comes from a response
+                // if the requestId is empty it means the Progress object comes from a response or a notification
                 if (this.formatter.requestId == null)
                 {
-                    writer.WriteValue(value);
-                    return;
+                    throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
                 }
 
-                long progressId = Interlocked.Increment(ref this.formatter.nextProgressId);
-                this.formatter.requestProgressMap.Add(this.formatter.requestId, progressId);
+                lock (this.formatter.requestProgressMap)
+                {
+                    lock (this.formatter.progressMap)
+                    {
+                        long progressId = this.formatter.nextProgressId++;
+                        this.formatter.requestProgressMap.Add(this.formatter.requestId, progressId);
 
-                this.formatter.progressMap.Add(progressId, value);
+                        this.formatter.progressMap.Add(progressId, value);
 
-                writer.WriteValue(progressId);
+                        writer.WriteValue(progressId);
+                    }
+                }
             }
         }
 
@@ -656,7 +703,7 @@ namespace StreamJsonRpc
 
                 public void Report(T value)
                 {
-                    this.rpc.NotifyAsync("$/progress", this.token, value).Forget();
+                    this.rpc.NotifyAsync(ProgressRequestSpecialMethod, this.token, value).Forget();
                 }
             }
         }

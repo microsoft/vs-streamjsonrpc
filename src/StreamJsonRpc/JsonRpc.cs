@@ -105,7 +105,6 @@ namespace StreamJsonRpc
 
         private Task readLinesTask;
         private long nextId = 1;
-        private long nextProgressId = 1;
         private JsonRpcDisconnectedEventArgs disconnectedEventArgs;
 
         /// <summary>
@@ -322,6 +321,11 @@ namespace StreamJsonRpc
             /// An extensibility point was leveraged locally and broke the contract.
             /// </summary>
             LocalContractViolation,
+
+            /// <summary>
+            /// An exception occurred when readin the $/progress notification.
+            /// </summary>
+            ProgressNotificationError,
         }
 
         /// <summary>
@@ -1752,11 +1756,6 @@ namespace StreamJsonRpc
                     if (request.IsNotification && request.Method == CancelRequestSpecialMethod)
                     {
                         await this.HandleCancellationNotificationAsync(request).ConfigureAwait(false);
-                        return;
-                    }
-
-                    if (request.IsNotification && request.Method == ProgressRequestSpecialMethod)
-                    {
                         return;
                     }
 
