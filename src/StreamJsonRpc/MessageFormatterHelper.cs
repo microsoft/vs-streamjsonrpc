@@ -1,6 +1,7 @@
 ﻿
 namespace StreamJsonRpc
 {
+    using Microsoft;
     using System;
     using System.Linq;
     using System.Reflection;
@@ -11,18 +12,17 @@ namespace StreamJsonRpc
     public class MessageFormatterHelper
     {
         /// <summary>
-        /// Converts given <see cref="Type"/> to its IProgress <see cref="Type"/>.
+        /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
         /// </summary>
-        /// <param name="objectType">The type implementing IProgress. </param>
-        /// <returns>The IProgress <see cref="Type"/> from given <see cref="Type"/> object.</returns>
+        /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
+        /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or null if no such interface was found in the given.</returns>
         public static Type FindIProgressOfT(Type objectType)
         {
-            if (objectType != null)
+            Requires.NotNull(objectType, nameof(objectType));
+
+            if (objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
             {
-                if (objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
-                {
-                    return objectType;
-                }
+                return objectType;
             }
 
             return objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == typeof(IProgress<>));

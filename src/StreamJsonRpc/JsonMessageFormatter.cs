@@ -76,7 +76,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Dictionary used to map the request id to their progress token so that the progress objects are cleaned after getting the final response.
         /// </summary>
-        private readonly Dictionary<object, long> requestProgressMap = new Dictionary<object, long>();
+        private readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
 
         /// <summary>
         /// Dictionary used to map progress objects to their progress token.
@@ -103,7 +103,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Stores the request ID so that the converter can use it to create the request-progress map.
         /// </summary>
-        private object requestId;
+        private long requestId;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
@@ -369,7 +369,7 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    this.requestId = request.Id; // != null ? request.Id : 0;
+                    this.requestId = Convert.ToInt64(request.Id);
 
                     if (request.ArgumentsList != null)
                     {
@@ -394,7 +394,7 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.requestId = null;
+                this.requestId = 0;
             }
         }
 
@@ -435,7 +435,7 @@ namespace StreamJsonRpc
             // If method is $/progress, get the progress instance from the dictionary and call Report
             string method = json.Value<string>("method");
 
-            if (string.Equals(method, ProgressRequestSpecialMethod))
+            if (string.Equals(method, ProgressRequestSpecialMethod, StringComparison.Ordinal))
             {
                 try
                 {
@@ -464,7 +464,7 @@ namespace StreamJsonRpc
                 }
                 catch (Exception e)
                 {
-                    this.Rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ProgressNotificationError, e.Message);
+                    this.Rpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
                 }
             }
 
@@ -483,7 +483,7 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken result = json["result"];
 
-            this.ClearProgressObject(id.Value<long>());
+            this.ClearProgressObject(id);
 
             return new JsonRpcResult(this.JsonSerializer)
             {
@@ -513,19 +513,18 @@ namespace StreamJsonRpc
             };
         }
 
-        private void ClearProgressObject(object requestId)
+        private void ClearProgressObject(JToken requestId)
         {
-            lock (this.requestProgressMap)
-            {
-                lock (this.progressMap)
-                {
-                    long progressId;
+            long reqId = requestId.Value<long>();
 
-                    if (this.requestProgressMap.TryGetValue(requestId, out progressId))
-                    {
-                        this.requestProgressMap.Remove(requestId);
-                        this.progressMap.Remove(progressId);
-                    }
+            lock (this.progressMap)
+            {
+                long progressId;
+
+                if (this.requestProgressMap.TryGetValue(reqId, out progressId))
+                {
+                    this.requestProgressMap.Remove(reqId);
+                    this.progressMap.Remove(progressId);
                 }
             }
         }
@@ -622,7 +621,7 @@ namespace StreamJsonRpc
 
         private class JsonProgressClientConverter : JsonConverter
         {
-            private JsonMessageFormatter formatter;
+            private readonly JsonMessageFormatter formatter;
 
             public JsonProgressClientConverter(JsonMessageFormatter formatter)
             {
@@ -639,29 +638,26 @@ namespace StreamJsonRpc
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 // if the requestId is empty it means the Progress object comes from a response or a notification
-                if (this.formatter.requestId == null)
+                if (this.formatter.requestId == 0)
                 {
                     throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
                 }
 
-                lock (this.formatter.requestProgressMap)
+                lock (this.formatter.progressMap)
                 {
-                    lock (this.formatter.progressMap)
-                    {
-                        long progressId = this.formatter.nextProgressId++;
-                        this.formatter.requestProgressMap.Add(this.formatter.requestId, progressId);
+                    long progressId = this.formatter.nextProgressId++;
+                    this.formatter.requestProgressMap.Add(this.formatter.requestId, progressId);
 
-                        this.formatter.progressMap.Add(progressId, value);
+                    this.formatter.progressMap.Add(progressId, value);
 
-                        writer.WriteValue(progressId);
-                    }
+                    writer.WriteValue(progressId);
                 }
             }
         }
 
         private class JsonProgressServerConverter : JsonConverter
         {
-            private JsonMessageFormatter formatter = null;
+            private readonly JsonMessageFormatter formatter;
 
             public JsonProgressServerConverter(JsonMessageFormatter formatter)
             {
