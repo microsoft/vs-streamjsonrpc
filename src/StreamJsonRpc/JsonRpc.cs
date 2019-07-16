@@ -326,6 +326,11 @@ namespace StreamJsonRpc
             /// An exception occurred when reading the $/progress notification.
             /// </summary>
             ProgressNotificationError,
+
+            /// <summary>
+            /// An exception occurred when the request id is not a valid long.
+            /// </summary>
+            RequestIdCastError,
         }
 
         /// <summary>

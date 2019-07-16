@@ -9,7 +9,7 @@ namespace StreamJsonRpc
     public interface IJsonRpcInstanceContainer
     {
         /// <summary>
-        /// Gets or sets the <see cref="JsonRpc"/> instance.
+        /// Sets the <see cref="JsonRpc"/> instance.
         /// </summary>
         JsonRpc Rpc
         {

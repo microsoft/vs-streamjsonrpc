@@ -29,6 +29,11 @@ namespace StreamJsonRpc
     public class JsonMessageFormatter : IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
+        /// Event set when $/progress notification is processed.
+        /// </summary>
+        //public static ManualResetEvent ProgressReceivedSignal = new ManualResetEvent(false);
+
+        /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
         /// </summary>
         internal const string ExceptionDataKey = "JToken";
@@ -81,7 +86,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Dictionary used to map progress objects to their progress token.
         /// </summary>
-        private readonly Dictionary<long, object> progressMap = new Dictionary<long, object>();
+        private readonly Dictionary<long, ProgressParamInformation> progressMap = new Dictionary<long, ProgressParamInformation>();
 
         /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
@@ -103,7 +108,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// Stores the request ID so that the converter can use it to create the request-progress map.
         /// </summary>
-        private long requestId;
+        private long? requestId;
+
+        /// <summary>
+        /// Backing field for the <see cref="Rpc"/> property.
+        /// </summary>
+        private JsonRpc rpc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
@@ -174,7 +184,20 @@ namespace StreamJsonRpc
         /// </summary>
         public JsonSerializer JsonSerializer { get; }
 
-        public JsonRpc Rpc { get; set; }
+        /// <inheritdoc/>
+        public JsonRpc Rpc
+        {
+            private get => this.rpc;
+            set
+            {
+                if (this.rpc == null)
+                {
+                    Requires.NotNull(value, nameof(value));
+                }
+
+                this.rpc = value;
+            }
+        }
 
         /// <inheritdoc/>
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
@@ -394,7 +417,7 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.requestId = 0;
+                this.requestId = null;
             }
         }
 
@@ -451,15 +474,15 @@ namespace StreamJsonRpc
 
                     lock (this.progressMap)
                     {
+                        //ProgressReceivedSignal.Reset();
 
-                        if (this.progressMap.TryGetValue(progressId.Value<long>(), out object progress))
+                        if (this.progressMap.TryGetValue(progressId.Value<long>(), out ProgressParamInformation progressInfo))
                         {
-                            Type iprogressOfTType = MessageFormatterHelper.FindIProgressOfT(progress.GetType());
-                            Type valueType = iprogressOfTType.GenericTypeArguments[0];
-                            var reportMethod = iprogressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { valueType });
-                            object typedValue = value.ToObject(valueType);
-                            reportMethod.Invoke(progress, new object[] { typedValue });
+                            object typedValue = value.ToObject(progressInfo.valueType);
+                            progressInfo.reportMethod.Invoke(progressInfo.progressObject, new object[] { typedValue });
                         }
+
+                        //ProgressReceivedSignal.Set();
                     }
                 }
                 catch (Exception e)
@@ -515,17 +538,25 @@ namespace StreamJsonRpc
 
         private void ClearProgressObject(JToken requestId)
         {
-            long reqId = requestId.Value<long>();
-
-            lock (this.progressMap)
+            try
             {
-                long progressId;
+                long reqId = requestId.Value<long>();
 
-                if (this.requestProgressMap.TryGetValue(reqId, out progressId))
+                lock (this.progressMap)
                 {
-                    this.requestProgressMap.Remove(reqId);
-                    this.progressMap.Remove(progressId);
+                    long progressId;
+
+                    if (this.requestProgressMap.TryGetValue(reqId, out progressId))
+                    {
+                        this.requestProgressMap.Remove(reqId);
+                        this.progressMap.Remove(progressId);
+                    }
                 }
+            }
+            catch (FormatException e)
+            {
+                this.Rpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.RequestIdCastError, e);
+                throw e;
             }
         }
 
@@ -638,7 +669,7 @@ namespace StreamJsonRpc
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 // if the requestId is empty it means the Progress object comes from a response or a notification
-                if (this.formatter.requestId == 0)
+                if (this.formatter.requestId == null)
                 {
                     throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
                 }
@@ -646,12 +677,28 @@ namespace StreamJsonRpc
                 lock (this.formatter.progressMap)
                 {
                     long progressId = this.formatter.nextProgressId++;
-                    this.formatter.requestProgressMap.Add(this.formatter.requestId, progressId);
+                    this.formatter.requestProgressMap.Add(this.formatter.requestId.Value, progressId);
 
-                    this.formatter.progressMap.Add(progressId, value);
+                    this.formatter.progressMap.Add(progressId, new ProgressParamInformation(value));
 
                     writer.WriteValue(progressId);
                 }
+            }
+        }
+
+        private class ProgressParamInformation
+        {
+            public Type iProgressOfTType;
+            public Type valueType;
+            public MethodInfo reportMethod;
+            public object progressObject;
+
+            public ProgressParamInformation(object progressObject)
+            {
+                this.iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(progressObject.GetType());
+                this.valueType = this.iProgressOfTType.GenericTypeArguments[0];
+                this.reportMethod = this.iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.valueType });
+                this.progressObject = progressObject;
             }
         }
 

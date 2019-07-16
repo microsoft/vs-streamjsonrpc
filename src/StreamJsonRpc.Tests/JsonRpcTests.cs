@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
@@ -278,6 +279,14 @@ public abstract class JsonRpcTests : TestBase
     public async Task ThrowsIfTargetNotSet()
     {
         await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
+    {
+        WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
+        GC.Collect();
+        Assert.False(weakRef.IsAlive);
     }
 
     [Theory]
@@ -816,6 +825,62 @@ public abstract class JsonRpcTests : TestBase
 
         Assert.Equal(1, report);
         Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()
+    {
+        int report1 = 0;
+        ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n =>
+        {
+            report1 = n;
+        });
+
+        int report2 = 0;
+        ProgressWithCompletion<int> progress2 = new ProgressWithCompletion<int>(n =>
+        {
+            report2 = n * 2;
+        });
+
+        int report3 = 0;
+        ProgressWithCompletion<int> progress3 = new ProgressWithCompletion<int>(n =>
+        {
+            report3 = n * 3;
+        });
+
+        await this.InvokeMethodWithProgressParameter(progress1);
+        await this.InvokeMethodWithProgressParameter(progress2);
+        await this.InvokeMethodWithProgressParameter(progress3);
+
+        await progress1.WaitAsync();
+        await progress2.WaitAsync();
+        await progress3.WaitAsync();
+
+        Assert.Equal(1, report1);
+        Assert.Equal(2, report2);
+        Assert.Equal(3, report3);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_InvalidParamMethod()
+    {
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
+        {
+            report = n;
+        });
+
+        bool fail = false;
+        try
+        {
+            int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken);
+        }
+        catch (RemoteMethodNotFoundException)
+        {
+            fail = true;
+        }
+
+        Assert.True(fail);
     }
 
     [Fact]
@@ -1428,6 +1493,26 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        WeakReference weakRef = new WeakReference(progress);
+
+        int invokeTask = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress });
+
+        // Clear progress variable locally
+        progress = null;
+
+        return weakRef;
+    }
+
+    private async Task InvokeMethodWithProgressParameter(IProgress<int> progress)
+    {
+        await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+    }
+
     public class BaseClass
     {
         protected readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
@@ -1510,6 +1595,11 @@ public abstract class JsonRpcTests : TestBase
             }
 
             return 0;
+        }
+
+        public static int MethodWithInvalidProgressParameter(Progress<int> p)
+        {
+            return 1;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
