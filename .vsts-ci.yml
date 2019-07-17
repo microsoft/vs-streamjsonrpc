@@ -10,11 +10,6 @@ variables:
   BuildConfiguration: Release
   BuildPlatform: Any CPU
 
-resources:
-  containers:
-  - container: xenial
-    image: andrewarnott/linux-buildagent
-
 jobs:
 - job: Windows
   pool: Hosted Windows 2019 with VS2019
@@ -24,7 +19,6 @@ jobs:
 - job: Linux
   pool:
     vmImage: Ubuntu 16.04
-  container: xenial
   steps:
   - template: azure-pipelines/testfx.yml
     parameters:
