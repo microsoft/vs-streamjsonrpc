@@ -154,10 +154,13 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     [Fact]
     public async Task InvokeWithProgressParameterAsArray()
     {
+        AsyncAutoResetEvent signal = new AsyncAutoResetEvent();
+
         int sum = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
         {
             sum += report;
+            signal.Set();
         });
 
         int n = 3;
@@ -178,7 +181,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
             sum2 += i;
 
-            //JsonMessageFormatter.ProgressReceivedSignal.WaitOne();
+            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
             Assert.Equal(sum2, sum);
         }
 

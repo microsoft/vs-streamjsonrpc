@@ -40,59 +40,6 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
-    public void JsonRpcRequest_ProgressArg()
-    {
-        var original = new JsonRpcRequest
-        {
-            Id = 5,
-            Method = "test",
-            ArgumentsList = new object[] { new Progress<object>() },
-        };
-
-        var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
-        Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(typeof(long), actual.ArgumentsList[0].GetType());
-    }
-
-    [Fact]
-    public void JsonRpcRequest_MultipleProgressArgs()
-    {
-        var original = new JsonRpcRequest
-        {
-            Id = 5,
-            Method = "test",
-            ArgumentsList = new object[] { new Progress<object>(), new Progress<object>(), new Progress<object>() },
-        };
-
-        var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
-        Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(typeof(long), actual.ArgumentsList[0].GetType());
-        Assert.Equal(typeof(long), actual.ArgumentsList[1].GetType());
-        Assert.Equal(typeof(long), actual.ArgumentsList[2].GetType());
-    }
-
-    [Fact]
-    public void JsonRpcRequest_MultipleArgsIncludingProgress()
-    {
-        var original = new JsonRpcRequest
-        {
-            Id = 5,
-            Method = "test",
-            ArgumentsList = new object[] { 0, new Progress<object>(), "foo", new ProgressWithCompletion<object>(report => { }) },
-        };
-
-        var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
-        Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(original.ArgumentsList[0], actual.ArgumentsList[0]);
-        Assert.Equal(typeof(long), actual.ArgumentsList[1].GetType());
-        Assert.Equal(original.ArgumentsList[2], actual.ArgumentsList[2]);
-        Assert.Equal(typeof(long), actual.ArgumentsList[3].GetType());
-    }
-
-    [Fact]
     public void JsonRpcResult()
     {
         var original = new JsonRpcResult

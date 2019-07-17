@@ -870,17 +870,7 @@ public abstract class JsonRpcTests : TestBase
             report = n;
         });
 
-        bool fail = false;
-        try
-        {
-            int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken);
-        }
-        catch (RemoteMethodNotFoundException)
-        {
-            fail = true;
-        }
-
-        Assert.True(fail);
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
     }
 
     [Fact]
@@ -1476,9 +1466,6 @@ public abstract class JsonRpcTests : TestBase
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
-
-        ((IJsonRpcInstanceContainer)this.clientMessageFormatter).Rpc = this.clientRpc;
-        ((IJsonRpcInstanceContainer)this.serverMessageFormatter).Rpc = this.serverRpc;
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);

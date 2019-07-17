@@ -170,6 +170,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance..
+        /// </summary>
+        internal static string FormatterAlreadyInUseError {
+            get {
+                return ResourceManager.GetString("FormatterAlreadyInUseError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Failed parsing Content-Length header into a positive integer..
         /// </summary>
         internal static string HeaderContentLengthNotParseable {

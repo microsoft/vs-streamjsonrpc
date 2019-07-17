@@ -170,6 +170,11 @@ namespace StreamJsonRpc
         public JsonRpc(IJsonRpcMessageHandler messageHandler, object target)
             : this(messageHandler)
         {
+            if (messageHandler.Formatter is IJsonRpcInstanceContainer formatter)
+            {
+                formatter.Rpc = this;
+            }
+
             if (target != null)
             {
                 this.AddLocalRpcTarget(target);
