@@ -315,13 +315,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         Assert.Throws<TypeLoadException>(() => JsonRpc.Attach<IServerInternal>(streams.Item1));
     }
 
-#if !NETCOREAPP1_0
     [Fact]
     public async Task RPCMethodNameSubstitution()
     {
         Assert.Equal("ANDREW", await this.clientRpc.ARoseByAsync("andrew"));
     }
-#endif
 
     [Fact]
     public async Task RPCMethodNameSubstitutionByOptions()
@@ -346,10 +344,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         Assert.Equal("Hi!", await clientRpcWithCamelCase.SayHiAsync()); // "sayHiAsync"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
-#if !NETCOREAPP1_0 // skip attribute-based renames where not supported
         Assert.Equal("ANDREW", await clientRpcWithCamelCase.ARoseByAsync("andrew")); // "anotherName"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
-#endif
 
         // Prepare the server to *ALSO* accept method names with a prefix.
         this.serverRpc.AllowModificationWhileListening = true;
@@ -357,9 +353,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Retry with our second client proxy to send messages which the server should now accept.
         Assert.Equal("Hi!", await clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
-#if !NETCOREAPP1_0 // skip attribute-based renames where not supported
         Assert.Equal("ANDREW", await clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
-#endif
     }
 
     [Fact]

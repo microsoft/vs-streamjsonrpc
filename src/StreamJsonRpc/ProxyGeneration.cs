@@ -88,11 +88,7 @@ namespace StreamJsonRpc
                     TypeAttributes.Public,
                     typeof(object),
                     interfaces.ToArray());
-#if NETSTANDARD1_6
-                Type proxyType = proxyTypeBuilder.AsType();
-#else
                 Type proxyType = proxyTypeBuilder;
-#endif
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 var optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);

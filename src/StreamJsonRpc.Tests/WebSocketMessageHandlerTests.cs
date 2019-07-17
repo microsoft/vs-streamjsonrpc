@@ -1,6 +1,4 @@
-﻿#if !NETCOREAPP1_0
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
@@ -8,14 +6,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
-#if ASPNETCORE
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-#endif
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -176,7 +172,6 @@ public class WebSocketMessageHandlerTests : TestBase
         await this.handler.WriteAsync(CreateDefaultMessage(), this.TimeoutToken);
     }
 
-#if ASPNETCORE
     [Fact]
     public async Task AspNetCoreWebSocket_ServerHangUp()
     {
@@ -209,7 +204,6 @@ public class WebSocketMessageHandlerTests : TestBase
         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
         jsonRpc.Dispose();
     }
-#endif
 
     private static JsonRpcRequest CreateDefaultMessage()
     {
@@ -219,7 +213,6 @@ public class WebSocketMessageHandlerTests : TestBase
         };
     }
 
-#if ASPNETCORE
     private async Task<(JsonRpc, WebSocket)> EstablishWebSocket()
     {
         IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(Array.Empty<string>())
@@ -232,7 +225,6 @@ public class WebSocketMessageHandlerTests : TestBase
         rpc.StartListening();
         return (rpc, webSocket);
     }
-#endif
 
     private JsonRpcRequest CreateMessage(int requiredEncodedBytesCount)
     {
@@ -343,7 +335,6 @@ public class WebSocketMessageHandlerTests : TestBase
         }
     }
 
-#if ASPNETCORE
     private class AspNetStartup
     {
         public AspNetStartup(IConfiguration configuration)
@@ -392,8 +383,4 @@ public class WebSocketMessageHandlerTests : TestBase
             await this.webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "client requested server hang up", CancellationToken.None);
         }
     }
-
-#endif
 }
-
-#endif

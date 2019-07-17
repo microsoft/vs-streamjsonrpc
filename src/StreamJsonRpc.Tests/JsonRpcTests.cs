@@ -1316,14 +1316,12 @@ public abstract class JsonRpcTests : TestBase
         await Task.WhenAll(invocation1, invocation2);
     }
 
-#if !NETCOREAPP1_0
     [Fact]
     public async Task ServerRespondsWithMethodRenamedByInterfaceAttribute()
     {
         Assert.Equal("ANDREW", await this.clientRpc.InvokeAsync<string>("AnotherName", "andrew"));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.ARoseBy), "andrew"));
     }
-#endif
 
     [Fact]
     public async Task ClassDefinedNameOverridesInterfaceDefinedName()
