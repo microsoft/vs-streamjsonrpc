@@ -170,6 +170,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unable to cast given Type to IProgress&lt;T&gt;.
+        /// </summary>
+        internal static string FindIProgressOfTError {
+            get {
+                return ResourceManager.GetString("FindIProgressOfTError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance..
         /// </summary>
         internal static string FormatterAlreadyInUseError {

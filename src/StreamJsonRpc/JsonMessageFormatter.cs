@@ -26,6 +26,9 @@ namespace StreamJsonRpc
     /// <summary>
     /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
     /// </summary>
+    /// /// <remarks>
+    /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
+    /// </remarks>
     public class JsonMessageFormatter : IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
@@ -74,12 +77,17 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
-        /// Dictionary used to map the request id to their progress token so that the progress objects are cleaned after getting the final response.
+        /// Object used to lock the acces to <see cref="requestProgressMap"/> and <see cref="progressMap"/>.
+        /// </summary>
+        private readonly object progressLock = new object();
+
+        /// <summary>
+        /// Dictionary used to map the request id to their progress id token so that the progress objects are cleaned after getting the final response.
         /// </summary>
         private readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
 
         /// <summary>
-        /// Dictionary used to map progress objects to their progress token.
+        /// Dictionary used to map progress id token to its corresponding ProgressParamInformation instance containing the progress object and the necessary fields to report the results.
         /// </summary>
         private readonly Dictionary<long, ProgressParamInformation> progressMap = new Dictionary<long, ProgressParamInformation>();
 
@@ -101,9 +109,9 @@ namespace StreamJsonRpc
         private long nextProgressId;
 
         /// <summary>
-        /// Stores the request ID so that the converter can use it to create the request-progress map.
+        /// Stores the id of the request currently being serialized so the converter can use it to create the request-progress map.
         /// </summary>
-        private long? requestId;
+        private long? requestIdBeingSerialized;
 
         /// <summary>
         /// Backing field for the <see cref="Rpc"/> property.
@@ -384,7 +392,7 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    this.requestId = Convert.ToInt64(request.Id);
+                    this.requestIdBeingSerialized = Convert.ToInt64(request.Id);
 
                     if (request.ArgumentsList != null)
                     {
@@ -409,7 +417,7 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.requestId = null;
+                this.requestIdBeingSerialized = null;
             }
         }
 
@@ -464,11 +472,11 @@ namespace StreamJsonRpc
                         args is JArray ? args[1] :
                         null;
 
-                    lock (this.progressMap)
+                    lock (this.progressLock)
                     {
                         if (this.progressMap.TryGetValue(progressId.Value<long>(), out ProgressParamInformation progressInfo))
                         {
-                            object typedValue = value.ToObject(progressInfo.alueType);
+                            object typedValue = value.ToObject(progressInfo.ValueType);
                             progressInfo.ReportMethod.Invoke(progressInfo.ProgressObject, new object[] { typedValue });
                         }
                     }
@@ -528,7 +536,7 @@ namespace StreamJsonRpc
         {
             long reqId = requestId.Value<long>();
 
-            lock (this.progressMap)
+            lock (this.progressLock)
             {
                 long progressId;
 
@@ -649,15 +657,15 @@ namespace StreamJsonRpc
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 // if the requestId is empty it means the Progress object comes from a response or a notification
-                if (this.formatter.requestId == null)
+                if (this.formatter.requestIdBeingSerialized == null)
                 {
                     throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
                 }
 
-                lock (this.formatter.progressMap)
+                lock (this.formatter.progressLock)
                 {
                     long progressId = this.formatter.nextProgressId++;
-                    this.formatter.requestProgressMap.Add(this.formatter.requestId.Value, progressId);
+                    this.formatter.requestProgressMap.Add(this.formatter.requestIdBeingSerialized.Value, progressId);
 
                     this.formatter.progressMap.Add(progressId, new ProgressParamInformation(value));
 
@@ -673,6 +681,9 @@ namespace StreamJsonRpc
                 Requires.NotNull(progressObject, nameof(progressObject));
 
                 Type iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(progressObject.GetType());
+
+                Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
+
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
                 this.ReportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
                 this.ProgressObject = progressObject;

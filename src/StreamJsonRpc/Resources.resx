@@ -281,6 +281,9 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
   </data>
+  <data name="FindIProgressOfTError" xml:space="preserve">
+    <value>Unable to cast given Type to IProgress&lt;T&gt;</value>
+  </data>
   <data name="FormatterAlreadyInUseError" xml:space="preserve">
     <value>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</value>
   </data>

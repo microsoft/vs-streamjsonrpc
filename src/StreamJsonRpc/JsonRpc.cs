@@ -25,7 +25,6 @@ namespace StreamJsonRpc
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
-        private const string ProgressRequestSpecialMethod = "$/progress";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
@@ -170,11 +169,6 @@ namespace StreamJsonRpc
         public JsonRpc(IJsonRpcMessageHandler messageHandler, object target)
             : this(messageHandler)
         {
-            if (messageHandler.Formatter is IJsonRpcInstanceContainer formatter)
-            {
-                formatter.Rpc = this;
-            }
-
             if (target != null)
             {
                 this.AddLocalRpcTarget(target);
@@ -190,6 +184,11 @@ namespace StreamJsonRpc
         /// </remarks>
         public JsonRpc(IJsonRpcMessageHandler messageHandler)
         {
+            if (messageHandler.Formatter is IJsonRpcInstanceContainer formatter)
+            {
+                formatter.Rpc = this;
+            }
+
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
@@ -331,11 +330,6 @@ namespace StreamJsonRpc
             /// An exception occurred when reading the $/progress notification.
             /// </summary>
             ProgressNotificationError,
-
-            /// <summary>
-            /// An exception occurred when the request id is not a valid long.
-            /// </summary>
-            RequestIdCastError,
         }
 
         /// <summary>
