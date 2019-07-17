@@ -10,9 +10,7 @@ namespace StreamJsonRpc
     /// An exception used to fault a <see cref="Task"/> returned from a <see cref="JsonRpc"/> request
     /// when the request could not be completed or the response cannot be received because the connection dropped.
     /// </summary>
-#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
-#endif
     public class ConnectionLostException : RemoteRpcException
     {
         /// <summary>
@@ -42,7 +40,6 @@ namespace StreamJsonRpc
         {
         }
 
-#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="ConnectionLostException"/> class.
         /// </summary>
@@ -54,6 +51,5 @@ namespace StreamJsonRpc
             : base(info, context)
         {
         }
-#endif
     }
 }

@@ -2012,12 +2012,8 @@ namespace StreamJsonRpc
             internal MethodNameMap(TypeInfo typeInfo)
             {
                 Requires.NotNull(typeInfo, nameof(typeInfo));
-#if !NETSTANDARD1_6
                 this.interfaceMaps = typeInfo.IsInterface ? new List<InterfaceMapping>()
                     : typeInfo.ImplementedInterfaces.Select(typeInfo.GetInterfaceMap).ToList();
-#else
-                this.interfaceMaps = new List<InterfaceMapping>();
-#endif
             }
 
             internal string GetRpcMethodName(MethodInfo method)

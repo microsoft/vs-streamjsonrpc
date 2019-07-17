@@ -13,9 +13,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// The details of the target method exception can be found on the <see cref="ErrorCode"/> and <see cref="ErrorData"/> properties.
     /// </remarks>
-#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
-#endif
     public class RemoteInvocationException : RemoteRpcException
     {
         /// <summary>
@@ -31,7 +29,6 @@ namespace StreamJsonRpc
             this.ErrorData = errorData;
         }
 
-#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
@@ -43,7 +40,6 @@ namespace StreamJsonRpc
             : base(info, context)
         {
         }
-#endif
 
         /// <summary>
         /// Gets the value of the <c>error.code</c> field in the response.
