@@ -1,27 +1,15 @@
 steps:
 - task: UseDotNet@2
-  displayName: Install .NET Core 1.0.x
-  inputs:
-    packageType: runtime
-    version: 1.0.x
-
-- task: UseDotNet@2
-  displayName: Install .NET Core 2.0.x
-  inputs:
-    packageType: runtime
-    version: 2.0.x
-
-- task: UseDotNet@2
   displayName: Install .NET Core 2.1.x
   inputs:
     packageType: runtime
     version: 2.1.x
 
 - task: UseDotNet@2
-  displayName: Install .NET Core SDK 2.2.104
+  displayName: Install .NET Core SDK 2.2.300
   inputs:
     packageType: sdk
-    version: 2.2.104
+    version: 2.2.300
 
 - script: dotnet --info
   workingDirectory: src
@@ -61,7 +49,6 @@ steps:
 # Use VSBuild to pack because `dotnet pack` can't sign packages with MicroBuild.
 - task: VSBuild@1
   inputs:
-    vsVersion: 15.0
     msbuildArgs: /t:build,pack /m /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/msbuild.binlog"
     platform: $(BuildPlatform)
     configuration: $(BuildConfiguration)

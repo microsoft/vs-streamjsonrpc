@@ -52,6 +52,11 @@ namespace StreamJsonRpc
             ProxyModuleBuilder = AssemblyBuilder.DefineDynamicModule("rpcProxies");
         }
 
+        /// <summary>
+        /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
+        /// </summary>
+        /// <param name="serviceInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
+        /// <returns>The generated type.</returns>
         internal static TypeInfo Get(TypeInfo serviceInterface)
         {
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
@@ -83,11 +88,7 @@ namespace StreamJsonRpc
                     TypeAttributes.Public,
                     typeof(object),
                     interfaces.ToArray());
-#if NETSTANDARD1_6
-                Type proxyType = proxyTypeBuilder.AsType();
-#else
                 Type proxyType = proxyTypeBuilder;
-#endif
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
                 var jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 var optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
@@ -236,7 +237,9 @@ namespace StreamJsonRpc
 
                 foreach (var method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
-                    VerifySupported(method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)), Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
+                    bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+                    bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
+                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
                     VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
 
                     ParameterInfo[] methodParameters = method.GetParameters();
@@ -303,6 +306,13 @@ namespace StreamJsonRpc
                         }
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+
+                        if (returnTypeIsValueTask)
+                        {
+                            // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
+                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType }));
+                        }
+
                         il.Emit(OpCodes.Ret);
                     }
 
@@ -343,6 +353,13 @@ namespace StreamJsonRpc
                         }
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+
+                        if (returnTypeIsValueTask)
+                        {
+                            // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
+                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType }));
+                        }
+
                         il.Emit(OpCodes.Ret);
                     }
 
