@@ -29,17 +29,12 @@ namespace StreamJsonRpc
     /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
-    public class JsonMessageFormatter : IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
+    public class JsonMessageFormatter : MessageFormatterHelper, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
         /// </summary>
         internal const string ExceptionDataKey = "JToken";
-
-        /// <summary>
-        /// Special method name for progress notification.
-        /// </summary>
-        private const string ProgressRequestSpecialMethod = "$/progress";
 
         /// <summary>
         /// A collection of supported protocol versions.
@@ -77,21 +72,6 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
-        /// Object used to lock the acces to <see cref="requestProgressMap"/> and <see cref="progressMap"/>.
-        /// </summary>
-        private readonly object progressLock = new object();
-
-        /// <summary>
-        /// Dictionary used to map the request id to their progress id token so that the progress objects are cleaned after getting the final response.
-        /// </summary>
-        private readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
-
-        /// <summary>
-        /// Dictionary used to map progress id token to its corresponding ProgressParamInformation instance containing the progress object and the necessary fields to report the results.
-        /// </summary>
-        private readonly Dictionary<long, ProgressParamInformation> progressMap = new Dictionary<long, ProgressParamInformation>();
-
-        /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -102,16 +82,6 @@ namespace StreamJsonRpc
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Encoding encoding;
-
-        /// <summary>
-        /// Incrementable number to assing as token for the progress objects.
-        /// </summary>
-        private long nextProgressId;
-
-        /// <summary>
-        /// Stores the id of the request currently being serialized so the converter can use it to create the request-progress map.
-        /// </summary>
-        private long? requestIdBeingSerialized;
 
         /// <summary>
         /// Backing field for the <see cref="Rpc"/> property.
@@ -656,21 +626,8 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                // if the requestId is empty it means the Progress object comes from a response or a notification
-                if (this.formatter.requestIdBeingSerialized == null)
-                {
-                    throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
-                }
-
-                lock (this.formatter.progressLock)
-                {
-                    long progressId = this.formatter.nextProgressId++;
-                    this.formatter.requestProgressMap.Add(this.formatter.requestIdBeingSerialized.Value, progressId);
-
-                    this.formatter.progressMap.Add(progressId, new ProgressParamInformation(value));
-
-                    writer.WriteValue(progressId);
-                }
+                long progressId = this.formatter.AddProgressObjectToMap(value);
+                writer.WriteValue(progressId);
             }
         }
 
@@ -703,23 +660,6 @@ namespace StreamJsonRpc
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
-            }
-
-            private class JsonProgress<T> : IProgress<T>
-            {
-                private readonly JsonRpc rpc;
-                private readonly JToken token;
-
-                public JsonProgress(JsonRpc rpc, JToken token)
-                {
-                    this.rpc = rpc ?? throw new ArgumentNullException(nameof(rpc));
-                    this.token = token ?? throw new ArgumentNullException(nameof(token));
-                }
-
-                public void Report(T value)
-                {
-                    this.rpc.NotifyAsync(ProgressRequestSpecialMethod, this.token, value).Forget();
-                }
             }
         }
     }
