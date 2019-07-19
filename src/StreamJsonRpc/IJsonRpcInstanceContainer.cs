@@ -4,13 +4,14 @@
 namespace StreamJsonRpc
 {
     /// <summary>
-    /// Interface to contain an instance of <see cref="JsonRpc"/>.
+    /// Interface optionally implemented by <see cref="IJsonRpcMessageFormatter" /> implementations that need a reference to their owner <see cref="JsonRpc" /> class.
     /// </summary>
     public interface IJsonRpcInstanceContainer
     {
         /// <summary>
         /// Sets the <see cref="JsonRpc"/> instance.
         /// </summary>
+        /// <exception cref="System.InvalidOperationException">May be thrown when set more than once.</exception>
         JsonRpc Rpc
         {
             set;

@@ -1,10 +1,10 @@
 ﻿
 namespace StreamJsonRpc
 {
-    using Microsoft;
     using System;
     using System.Linq;
     using System.Reflection;
+    using Microsoft;
 
     /// <summary>
     /// Class containing useful method to help on the implementation of message formatters.
@@ -26,6 +26,28 @@ namespace StreamJsonRpc
             }
 
             return objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == typeof(IProgress<>));
+        }
+
+        internal class ProgressParamInformation
+        {
+            public ProgressParamInformation(object progressObject)
+            {
+                Requires.NotNull(progressObject, nameof(progressObject));
+
+                Type iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(progressObject.GetType());
+
+                Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
+
+                this.ValueType = iProgressOfTType.GenericTypeArguments[0];
+                this.ReportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
+                this.ProgressObject = progressObject;
+            }
+
+            internal Type ValueType { get; }
+
+            internal MethodInfo ReportMethod { get; }
+
+            internal object ProgressObject { get; }
         }
     }
 }

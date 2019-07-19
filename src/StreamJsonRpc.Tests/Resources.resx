@@ -135,6 +135,9 @@
   <data name="FillBufferFirst" xml:space="preserve">
     <value>The buffer is empty. Call the async method to fill it first.</value>
   </data>
+  <data name="FormatterAlreadyInUseError" xml:space="preserve">
+    <value>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</value>
+  </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Failed parsing Content-Length header into a positive integer.</value>
     <comment>{locked="Content-Length"}</comment>

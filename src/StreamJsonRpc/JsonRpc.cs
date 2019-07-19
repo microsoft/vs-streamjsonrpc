@@ -184,12 +184,12 @@ namespace StreamJsonRpc
         /// </remarks>
         public JsonRpc(IJsonRpcMessageHandler messageHandler)
         {
+            Requires.NotNull(messageHandler, nameof(messageHandler));
+
             if (messageHandler.Formatter is IJsonRpcInstanceContainer formatter)
             {
                 formatter.Rpc = this;
             }
-
-            Requires.NotNull(messageHandler, nameof(messageHandler));
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.handleInvocationTaskOfTResultDelegate = (t, request) => this.HandleInvocationTaskOfTResult((JsonRpcRequest)request, t);

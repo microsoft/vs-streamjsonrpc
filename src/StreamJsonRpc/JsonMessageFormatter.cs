@@ -26,7 +26,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
     /// </summary>
-    /// /// <remarks>
+    /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
     public class JsonMessageFormatter : IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
@@ -672,28 +672,6 @@ namespace StreamJsonRpc
                     writer.WriteValue(progressId);
                 }
             }
-        }
-
-        private class ProgressParamInformation
-        {
-            public ProgressParamInformation(object progressObject)
-            {
-                Requires.NotNull(progressObject, nameof(progressObject));
-
-                Type iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(progressObject.GetType());
-
-                Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
-
-                this.ValueType = iProgressOfTType.GenericTypeArguments[0];
-                this.ReportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
-                this.ProgressObject = progressObject;
-            }
-
-            internal Type ValueType { get; }
-
-            internal MethodInfo ReportMethod { get; }
-
-            internal object ProgressObject { get; }
         }
 
         private class JsonProgressServerConverter : JsonConverter
