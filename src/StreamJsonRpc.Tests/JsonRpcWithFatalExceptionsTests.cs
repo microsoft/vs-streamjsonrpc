@@ -123,7 +123,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     [Fact]
     public async Task StreamsStayOpenForNonServerException()
     {
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync("missingMethod", 50));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("missingMethod", 50));
 
         // Assert MessageHandler object is not disposed
         Assert.False(((IDisposableObservable)this.clientMessageHandler).IsDisposed);

@@ -270,14 +270,14 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task ThrowsIfCannotFindMethod()
     {
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync("missingMethod", 50));
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new { X = 100 }));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("missingMethod", 50));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new { X = 100 }));
     }
 
     [Fact]
     public async Task ThrowsIfTargetNotSet()
     {
-        await Assert.ThrowsAsync(typeof(RemoteMethodNotFoundException), () => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
     }
 
     [Theory]

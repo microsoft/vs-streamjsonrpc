@@ -101,7 +101,7 @@ public class TargetObjectEventsTests : TestBase
         this.client.ServerEventWithCustomGenericDelegateAndArgsRaised = args => tcs.SetResult(args);
         this.server.TriggerServerEventWithCustomGenericDelegateAndArgs(expectedArgs);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
-        Assert.Equal<string>(expectedArgs.Message, actualArgs.Message);
+        Assert.Equal(expectedArgs.Message, actualArgs.Message);
     }
 
     /// <summary>
