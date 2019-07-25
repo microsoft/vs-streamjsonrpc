@@ -13,6 +13,7 @@ Generated proxies have the following behaviors:
 
 A proxy can only be dynamically generated for an interface that meets these requirements:
 
+1. Is public
 1. No properties
 1. No generic methods
 1. All methods return `Task` or `Task<T>`
