@@ -187,30 +187,7 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken).ConfigureAwait(false);
-            ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
-            try
-            {
-                if (this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
-                {
-                    Encoding contentEncoding = headers.Value.ContentEncoding ?? DefaultContentEncoding;
-                    return textFormatter.Deserialize(contentBuffer, contentEncoding);
-                }
-                else
-                {
-                    if (headers.Value.ContentEncoding != null)
-                    {
-                        this.ThrowNoTextEncoder();
-                    }
-
-                    return this.Formatter.Deserialize(contentBuffer);
-                }
-            }
-            finally
-            {
-                // We're now done reading from the pipe's buffer. We can release it now.
-                this.Reader.AdvanceTo(contentBuffer.End);
-            }
+            return await this.DeserializeMessageAsync(contentLength, headers.Value.ContentEncoding, DefaultContentEncoding, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -510,11 +487,6 @@ namespace StreamJsonRpc
             }
 
             return (contentLengthHeaderValue, contentEncoding);
-        }
-
-        private Exception ThrowNoTextEncoder()
-        {
-            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.TextEncoderNotApplicable, this.Formatter.GetType().FullName, typeof(IJsonRpcMessageTextFormatter).FullName));
         }
     }
 }

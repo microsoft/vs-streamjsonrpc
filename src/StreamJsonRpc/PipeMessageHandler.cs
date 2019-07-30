@@ -4,7 +4,9 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.IO.Pipelines;
     using System.Text;
@@ -15,6 +17,7 @@ namespace StreamJsonRpc
     using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
@@ -23,6 +26,17 @@ namespace StreamJsonRpc
     /// </summary>
     public abstract class PipeMessageHandler : MessageHandlerBase
     {
+        /// <summary>
+        /// The largest size of a message to buffer completely before deserialization begins
+        /// when we have an async deserializing alternative from the formatter.
+        /// </summary>
+        /// <remarks>
+        /// This value is chosen to match the default buffer size for the <see cref="PipeOptions"/> class
+        /// since exceeding the <see cref="PipeOptions.PauseWriterThreshold"/> would cause an exception
+        /// when we call <see cref="PipeReader.AdvanceTo(SequencePosition, SequencePosition)"/> to wait for more data.
+        /// </remarks>
+        private static readonly long LargeMessageThreshold = new PipeOptions().PauseWriterThreshold;
+
         /// <summary>
         /// Objects that we should dispose when we are disposed. May be null.
         /// </summary>
@@ -177,6 +191,80 @@ namespace StreamJsonRpc
             }
 
             return readResult;
+        }
+
+        /// <summary>
+        /// Deserializes a JSON-RPC message using the <see cref="MessageHandlerBase.Formatter"/>.
+        /// </summary>
+        /// <param name="contentLength">The length of the JSON-RPC message.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The deserialized message.</returns>
+        private protected ValueTask<JsonRpcMessage> DeserializeMessageAsync(int contentLength, CancellationToken cancellationToken) => this.DeserializeMessageAsync(contentLength, null, null, cancellationToken);
+
+        /// <summary>
+        /// Deserializes a JSON-RPC message using the <see cref="MessageHandlerBase.Formatter"/>.
+        /// </summary>
+        /// <param name="contentLength">The length of the JSON-RPC message.</param>
+        /// <param name="specificEncoding">The encoding to use during deserialization, as specified in a header for this particular message.</param>
+        /// <param name="defaultEncoding">The encoding to use when <paramref name="specificEncoding"/> is <c>null</c> if the <see cref="MessageHandlerBase.Formatter"/> supports encoding.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The deserialized message.</returns>
+        /// <exception cref="NotSupportedException">Thrown if <paramref name="specificEncoding"/> is non-null and the formatter does not implement the appropriate interface to supply the encoding.</exception>
+        private protected async ValueTask<JsonRpcMessage> DeserializeMessageAsync(int contentLength, Encoding specificEncoding, Encoding defaultEncoding, CancellationToken cancellationToken)
+        {
+            Requires.Range(contentLength > 0, nameof(contentLength));
+            Encoding contentEncoding = specificEncoding ?? defaultEncoding;
+
+            // Being async during deserialization increases GC pressure,
+            // so prefer getting all bytes into a buffer first if the message is a reasonably small size.
+            if (contentLength >= LargeMessageThreshold && this.Formatter is IJsonRpcAsyncMessageFormatter asyncFormatter)
+            {
+                var slice = this.Reader.ReadSlice(contentLength);
+                if (contentEncoding != null && asyncFormatter is IJsonRpcAsyncMessageTextFormatter asyncTextFormatter)
+                {
+                    return await asyncTextFormatter.DeserializeAsync(slice, contentEncoding, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    if (specificEncoding != null)
+                    {
+                        this.ThrowNoTextEncoder();
+                    }
+
+                    return await asyncFormatter.DeserializeAsync(slice, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken).ConfigureAwait(false);
+                ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
+                try
+                {
+                    if (contentEncoding != null && this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
+                    {
+                        return textFormatter.Deserialize(contentBuffer, contentEncoding);
+                    }
+                    else
+                    {
+                        if (specificEncoding != null)
+                        {
+                            this.ThrowNoTextEncoder();
+                        }
+
+                        return this.Formatter.Deserialize(contentBuffer);
+                    }
+                }
+                finally
+                {
+                    // We're now done reading from the pipe's buffer. We can release it now.
+                    this.Reader.AdvanceTo(contentBuffer.End);
+                }
+            }
+        }
+
+        private protected Exception ThrowNoTextEncoder()
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.TextEncoderNotApplicable, this.Formatter.GetType().FullName, typeof(IJsonRpcMessageTextFormatter).FullName));
         }
 
         private void DisposeDisposables()

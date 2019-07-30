@@ -85,11 +85,7 @@ namespace StreamJsonRpc
             int length = Utilities.ReadInt32BE(lengthBuffer);
             this.Reader.AdvanceTo(lengthBuffer.End);
 
-            readResult = await this.ReadAtLeastAsync(length, allowEmpty: false, cancellationToken).ConfigureAwait(false);
-            ReadOnlySequence<byte> content = readResult.Buffer.Slice(0, length);
-            JsonRpcMessage message = this.formatter.Deserialize(content);
-            this.Reader.AdvanceTo(content.End);
-            return message;
+            return await this.DeserializeMessageAsync(length, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
