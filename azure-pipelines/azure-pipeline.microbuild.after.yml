@@ -16,6 +16,7 @@ steps:
     usePat: false
   displayName: Publish to Artifact Services - ProfilingInputs
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  continueOnError: true
 
 - task: NuGetCommand@2
   inputs:
