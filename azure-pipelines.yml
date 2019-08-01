@@ -2,7 +2,6 @@ trigger:
   branches:
     include:
     - master
-    - microbuild
     - validate/*
   paths:
     exclude:
@@ -15,9 +14,7 @@ variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   BuildPlatform: Any CPU
-  push_to_ci: true
+  codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
 
 jobs:
-- template: build.yml
-  parameters:
-    windowsPool: VSEng-MicroBuildVS2019
+- template: azure-pipelines/build.yml
