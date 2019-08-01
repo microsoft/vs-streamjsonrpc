@@ -1,8 +1,13 @@
 $RepoRoot = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\..")
-$config = 'Debug'
-if ($env:BuildConfiguration) { $config = $env:BuildConfiguration }
-$NuGetPackages = "$RepoRoot\bin\Packages\$config\NuGet"
+$BuildConfiguration = $env:BUILDCONFIGURATION
+if (!$BuildConfiguration) {
+    $BuildConfiguration = 'Debug'
+}
+
+$PackagesRoot = "$RepoRoot/bin/Packages/$BuildConfiguration"
+
+if (!(Test-Path $PackagesRoot))  { return }
 
 @{
-    "$NuGetPackages" = (Get-ChildItem "$NuGetPackages\*.nupkg");
+    "$PackagesRoot" = (Get-ChildItem $PackagesRoot -Recurse)
 }

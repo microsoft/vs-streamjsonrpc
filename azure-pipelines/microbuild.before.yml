@@ -12,4 +12,3 @@ steps:
     signType: $(SignType)
     zipSources: false
   displayName: Install MicroBuild Signing Plugin
-  condition: and(succeeded(), ne(variables['Hosted'], 'true'))
