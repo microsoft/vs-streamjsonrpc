@@ -196,7 +196,7 @@ namespace StreamJsonRpc
                         this.VerifyProtocolCompliance(json["id"] != null, json, "\"id\" property missing.");
                         return
                             json["method"] != null ? this.ReadRequest(json) :
-                            json["error"]?.Type == JTokenType.Null ? this.ReadResult(json) :
+                            json["result"]?.Type == JTokenType.Null ? this.ReadResult(json) :
                             json["error"]?.Type != JTokenType.Null ? (JsonRpcMessage)this.ReadError(json) :
                             throw this.CreateProtocolNonComplianceException(json);
                     case 2:
