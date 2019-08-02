@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
     using Microsoft;
 
-    // TODO: switch back to Nerbank.FullDuplexStream when https://github.com/AArnott/Nerdbank.FullDuplexStream/issues/2 is fixed.
+    // CONSIDER: switch back to Nerdbank.FullDuplexStream when https://github.com/AArnott/Nerdbank.FullDuplexStream/issues/2 is fixed.
     public delegate void BeforeWriteToFullDuplexStreamDelegate(FullDuplexStream stream, byte[] buffer, int offset, int count);
 
     /// <summary>
@@ -39,6 +39,11 @@
         /// is enqueued to <see cref="readQueue"/>.
         /// </summary>
         private TaskCompletionSource<object> enqueuedSource = new TaskCompletionSource<object>(EnqueuedSourceOptions);
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the stream is disposed.
+        /// </summary>
+        public bool IsDisposed { get; set; }
 
         /// <inheritdoc />
         public override bool CanRead => true;
@@ -230,6 +235,11 @@
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
+            if (disposing)
+            {
+                this.IsDisposed = true;
+            }
+
             // Sending an empty buffer is the traditional way to signal
             // that the transmitting stream has closed.
             this.other.PostMessage(new Message(EmptyByteArray));

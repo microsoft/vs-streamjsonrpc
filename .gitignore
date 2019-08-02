@@ -40,11 +40,6 @@ TestResult.xml
 [Rr]eleasePS/
 dlldata.c
 
-# DNX
-project.lock.json
-project.fragment.lock.json
-artifacts/
-
 *_i.c
 *_p.c
 *_i.h
@@ -255,3 +250,4 @@ paket-files/
 # MSBuild logs
 msbuild.err
 msbuild.wrn
+*.binlog

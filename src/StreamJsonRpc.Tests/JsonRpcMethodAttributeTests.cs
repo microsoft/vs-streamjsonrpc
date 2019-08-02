@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -85,17 +86,17 @@ public class JsonRpcMethodAttributeTests : TestBase
     [Fact]
     public async Task NotifyAsync_OverrideMethodNameAttribute()
     {
-        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodOverride");
+        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodOverride").WithCancellation(this.TimeoutToken);
 
-        Assert.Equal("child NotifyVirtualMethodOverride", await this.server.NotificationReceived);
+        Assert.Equal("child NotifyVirtualMethodOverride", await this.server.NotificationReceived.WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
     public async Task NotifyAsync_NoOverrideMethodNameAttribute()
     {
-        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodNoOverride");
+        await this.clientRpc.NotifyAsync("base/NotifyVirtualMethodNoOverride").WithCancellation(this.TimeoutToken);
 
-        Assert.Equal("child NotifyVirtualMethodNoOverride", await this.server.NotificationReceived);
+        Assert.Equal("child NotifyVirtualMethodNoOverride", await this.server.NotificationReceived.WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
@@ -106,11 +107,13 @@ public class JsonRpcMethodAttributeTests : TestBase
         Assert.Equal("string: mystring int: 1", await this.server.NotificationReceived);
     }
 
+    [Fact]
     public async Task CannotCallWithIncorrectSpelling()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("teST/InvokeTestmeTHod"));
     }
 
+    [Fact]
     public async Task CannotCallInvokeClrMethodNameWhenAttributeDefined()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("GetString", "two"));
@@ -118,12 +121,14 @@ public class JsonRpcMethodAttributeTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("GetStringAsync", "three"));
     }
 
+    [Fact]
     public async Task CanCallWithAttributeNameDefinedOnClrMethodsThatEndWithAsync()
     {
         string asyncResult = await this.clientRpc.InvokeAsync<string>("async/GetString", "one");
         Assert.Equal("async one", asyncResult);
     }
 
+    [Fact]
     public async Task CallingClrMethodsThatHaveAttributeDefinedDoesNotAttemptToMatchImpliedAsync()
     {
         string asyncResult = await this.clientRpc.InvokeAsync<string>("InvokeVirtualMethod", "four");

@@ -9,27 +9,38 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
+using StreamJsonRpc.Protocol;
 
-public class DirectMessageHandler : DelimitedMessageHandler
+public class DirectMessageHandler : MessageHandlerBase
 {
-    public DirectMessageHandler(Stream sendingStream, Stream receivingStream, Encoding encoding)
-        : base(sendingStream, receivingStream, encoding)
+    public DirectMessageHandler()
+        : base(new JsonMessageFormatter())
     {
     }
 
-    internal AsyncQueue<string> MessagesToRead { get; } = new AsyncQueue<string>();
+    public override bool CanRead => true;
 
-    internal AsyncQueue<string> WrittenMessages { get; } = new AsyncQueue<string>();
+    public override bool CanWrite => true;
 
-    protected override Task<string> ReadCoreAsync(CancellationToken cancellationToken)
+    public new JsonMessageFormatter Formatter => (JsonMessageFormatter)base.Formatter;
+
+    internal AsyncQueue<JToken> MessagesToRead { get; } = new AsyncQueue<JToken>();
+
+    internal AsyncQueue<JToken> WrittenMessages { get; } = new AsyncQueue<JToken>();
+
+    protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
     {
-        return this.MessagesToRead.DequeueAsync(cancellationToken);
+        return this.Formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
     }
 
-    protected override Task WriteCoreAsync(string content, Encoding contentEncoding, CancellationToken cancellationToken)
+    protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
     {
-        this.WrittenMessages.Enqueue(content);
-        return Task.CompletedTask;
+        this.WrittenMessages.Enqueue(this.Formatter.Serialize(content));
+        return default;
     }
+
+    protected override ValueTask FlushAsync(CancellationToken cancellationToken) => default;
 }

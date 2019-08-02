@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AttachTargetAfterStartListeningError" xml:space="preserve">
-    <value>Cannot attach additional target once JsonRpc has started listening for messages.</value>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Listening must be started first.</value>
   </data>
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
@@ -130,6 +130,9 @@
   <data name="ConflictingMethodNameAttribute" xml:space="preserve">
     <value>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</value>
     <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>A method with the same name and equivalent parameters has already been registered.</value>
   </data>
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
@@ -166,25 +169,13 @@
     <value>{0} has ref or out parameter(s), which is not supported</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} is not public</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>'{0}' method name has different case from requested '{1}'</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>{0} parameters are not compatible with the request: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>More than one target method found: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
+    <value>{0} parameters are not compatible with the arguments provided in the request.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="NonNegativeIntegerRequired" xml:space="preserve">
     <value>A non-negative integer is required.</value>
@@ -205,6 +196,9 @@
   <data name="ResponseIsNotError" xml:space="preserve">
     <value>Response is not error.</value>
   </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>No method by the name '{0}' is found.</value>
+  </data>
   <data name="StreamDisposed" xml:space="preserve">
     <value>Stream has been disposed</value>
   </data>
@@ -217,7 +211,7 @@
     <comment>An error message when a stream passed in as an argument is incorrect.</comment>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>The {0] and {1} parameters exceed length of array.</value>
+    <value>The {0} and {1} parameters exceed length of array.</value>
   </data>
   <data name="TaskNotCompleted" xml:space="preserve">
     <value>The task is not completed.</value>
@@ -230,15 +224,61 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Unexpected error processing JSON RPC '{0}': {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Unexpected error processing JSON-RPC message: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Unexpected token '{0}' while parsing header.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Unrecognized incoming JSON RPC '{0}'</value>
-    <comment>{0} is the json.</comment>
+    <value>Incoming JSON-RPC message did not conform to a recognized pattern.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>A target object should be supplied if and only if the method is not static.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>A fatal exception was thrown from the server method {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>This cannot be done after listening has started.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>A CancellationToken is only allowed as the last parameter.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" is not an interface.</value>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Unsupported event handler type on "{0}". Only EventHandler and EventHandler&lt;T&gt; are supported.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Generic methods are not supported.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Properties are not supported for service interfaces.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>An argument was not supplied for a required parameter.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
   </data>
 </root>

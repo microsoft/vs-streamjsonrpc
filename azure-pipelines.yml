@@ -1,0 +1,20 @@
+trigger:
+  branches:
+    include:
+    - master
+    - validate/*
+  paths:
+    exclude:
+    - doc/
+    - '*.md'
+    - .vscode/
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+  codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
+
+jobs:
+- template: azure-pipelines/build.yml

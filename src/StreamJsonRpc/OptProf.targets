@@ -1,0 +1,15 @@
+<Project>
+  <ItemGroup>
+    <OptProf Include="$(TargetPath)">
+      <Technology>IBC</Technology>
+      <InstallationPath>Common7\IDE\PublicAssemblies\StreamJsonRpc.2.1\$(TargetFileName)</InstallationPath>
+      <InstrumentationArguments>/ExeConfig:"%VisualStudio.InstallationUnderTest.Path%\Common7\IDE\vsn.exe"</InstrumentationArguments>
+      <OptimizationArguments>-PartialNGEN</OptimizationArguments>
+      <Scenarios>
+        <TestContainer Name="VSPE" Repository="VS">
+          <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_env_startup_devenv" />
+        </TestContainer>
+      </Scenarios>
+    </OptProf>
+  </ItemGroup>
+</Project>

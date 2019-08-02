@@ -1,0 +1,23 @@
+trigger:
+  branches:
+    include:
+    - master
+    - microbuild
+    - validate/*
+  paths:
+    exclude:
+    - doc/
+    - '*.md'
+    - .vscode/
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+  push_to_ci: true
+
+jobs:
+- template: build.yml
+  parameters:
+    windowsPool: VSEng-MicroBuildVS2019

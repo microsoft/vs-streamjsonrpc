@@ -34,25 +34,13 @@
     <value>{0} имеет параметры REF или OUT, что не поддерживается</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} не является открытым</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>Регистр имени метода "{0}" отличается от запрошенного "{1}"</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>Число параметров в {0} (исключая любые CancellationToken): {1}; в запросе же указано {2}.</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Параметры {0} несовместимы с запросом: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>Найдено более одного целевого метода: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
+    <value>Параметры {0} несовместимы с аргументами, переданными в запросе.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Достигнут конец потока.</value>
@@ -78,12 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Непредвиденная ошибка при обработке RPC JSON "{0}": {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Непредвиденная ошибка при обработке сообщения JSON-RPC: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>Нераспознанный входящий RPC JSON "{0}"</value>
-    <comment>{0} is the json.</comment>
+    <value>Входящее сообщение JSON-RPC не соответствует распознанному шаблону.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>Ошибка при анализе заголовка Content-Length в положительное целое число.</value>
@@ -106,7 +93,7 @@
     <value>Требуется неотрицательное целое число.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Параметры {0] и {1} превышают длину массива.</value>
+    <value>Параметры {0} и {1} превышают длину массива.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>Поток должен быть читаемым.</value>
@@ -132,5 +119,61 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>Методы .NET "{0}" и "{1}" не могут одновременно быть сопоставлены с одним и тем же именем метода запроса: "{2}".</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>Метод с именем "{0}" не найден.</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Метод с таким именем и аналогичными параметрами уже зарегистрирован.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Необходимо предоставить целевой объект, только если метод не статичный.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Сначала нужно запустить прослушивание.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>После запуска прослушивания сделать это невозможно.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Метод сервера {0} вызвал неустранимое исключение: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Неподдерживаемый тип обработчика событий в "{0}". Поддерживаются только EventHandler и EventHandler&lt;T&gt;.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Универсальные методы не поддерживаются.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Тип возвращаемого значения метода "{0}" ("{1}") не поддерживается. Поддерживаются только методы, возвращающие задачи.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>Свойства интерфейсов служб не поддерживаются.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" не является интерфейсом.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>Кодировка текста не поддерживается, так как модуль форматирования "{0}" не реализует "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>Соединение JSON-RPC с удаленной стороной было утрачено до того, как удалось выполнить запрос.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>Аргумент для обязательного параметра не указан.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>CancellationToken может указываться только в качестве последнего параметра.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Версия протокола JSON-RPC не поддерживается {0}. Доступные версии протокола: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 не поддерживает именованные аргументы (параметры, передаваемые в объекте). Используйте позиционные аргументы (массивы параметров) или установите версию протокола 2.0.</value>
   </data>
 </root>

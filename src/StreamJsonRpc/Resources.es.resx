@@ -34,25 +34,13 @@
     <value>{0} tiene los parámetros out o ref no admitidos</value>
     <comment>{0} is the method signature.</comment>
   </data>
-  <data name="MethodIsNotPublic" xml:space="preserve">
-    <value>{0} no es público</value>
-    <comment>{0} is the method signature.</comment>
-  </data>
-  <data name="MethodNameCaseIsDifferent" xml:space="preserve">
-    <value>En el nombre de método '{0}' se usan las mayúsculas y minúsculas de manera diferente a como se solicita en '{1}'</value>
-    <comment>{0} is the method signature, {1} is the requested method name.</comment>
-  </data>
   <data name="MethodParameterCountDoesNotMatch" xml:space="preserve">
     <value>{0} parámetro(s) (se excluirá cualquier CancellationToken): {1}, pero la solicitud suministra {2}</value>
     <comment>{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</comment>
   </data>
   <data name="MethodParametersNotCompatible" xml:space="preserve">
-    <value>Los parámetros {0} no son compatibles con la solicitud: {1}</value>
-    <comment>{0} is the method signature, {1} is the error message.</comment>
-  </data>
-  <data name="MoreThanOneMethodFound" xml:space="preserve">
-    <value>Se ha encontrado más de un método de destino: {0}.</value>
-    <comment>{0} is the list of method signatures.</comment>
+    <value>Los parámetros de {0} no son compatibles con los argumentos proporcionados en la solicitud.</value>
+    <comment>{0} is the method signature.</comment>
   </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Se alcanzó el final de la secuencia.</value>
@@ -78,12 +66,11 @@
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
   </data>
   <data name="UnexpectedErrorProcessingJsonRpc" xml:space="preserve">
-    <value>Error inesperado al procesar '{0}' de JSON RPC: {1}</value>
-    <comment>{0} is the json, {1} is the exception message.</comment>
+    <value>Mensaje de error inesperado al procesar JSON-RPC: {0}</value>
+    <comment>{0} is the exception message.</comment>
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
-    <value>No se reconoce '{0}' de JSON RPC entrante</value>
-    <comment>{0} is the json.</comment>
+    <value>El mensaje de JSON-RPC entrante no se ajusta a un patrón reconocido.</value>
   </data>
   <data name="HeaderContentLengthNotParseable" xml:space="preserve">
     <value>No se pudo analizar el encabezado Content-Length en un número entero positivo.</value>
@@ -106,7 +93,7 @@
     <value>Se requiere un número entero no negativo.</value>
   </data>
   <data name="SumOfTwoParametersExceedsArrayLength" xml:space="preserve">
-    <value>Los parámetros {0] y {1} superan la longitud de la matriz.</value>
+    <value>Los parámetros {0} y {1} superan la longitud de la matriz.</value>
   </data>
   <data name="StreamMustBeReadable" xml:space="preserve">
     <value>La secuencia debe poderse leer.</value>
@@ -132,5 +119,61 @@
   <data name="ConflictingMethodAttributeValue" xml:space="preserve">
     <value>Los métodos .NET "{0}" y "{1}" no pueden asignar ambos el mismo nombre de método de solicitud: "{2}".</value>
     <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
+  </data>
+  <data name="RpcMethodNameNotFound" xml:space="preserve">
+    <value>No se encontró ningún método con el nombre "{0}".</value>
+  </data>
+  <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
+    <value>Ya se ha registrado un método con el mismo nombre y parámetros equivalentes.</value>
+  </data>
+  <data name="TargetObjectAndMethodStaticFlagMismatch" xml:space="preserve">
+    <value>Se debe proporcionar un objeto de destino si, y solo si, el método no es estático.</value>
+    <comment>"static" is a C# keyword and should not be translated.</comment>
+  </data>
+  <data name="MustBeListening" xml:space="preserve">
+    <value>Primero debe iniciarse la escucha.</value>
+  </data>
+  <data name="MustNotBeListening" xml:space="preserve">
+    <value>Esto no se puede hacer una vez que haya iniciado la escucha.</value>
+  </data>
+  <data name="FatalExceptionWasThrown" xml:space="preserve">
+    <value>Se lanzó una excepción fatal desde el método del servidor {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message</comment>
+  </data>
+  <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
+    <value>Tipo de controlador de eventos no admitido en "{0}". Solo se admiten EventHandler o EventHandler&lt;T&gt;.</value>
+    <comment>{0} is a type and member name.</comment>
+  </data>
+  <data name="UnsupportedGenericMethodsOnClientProxyInterface" xml:space="preserve">
+    <value>Los métodos genéricos no son compatibles.</value>
+  </data>
+  <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
+    <value>El método "{0}" tiene el tipo de devolución no admitido "{1}". Solo se admiten los métodos de devolución de tareas.</value>
+  </data>
+  <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
+    <value>No se admiten las propiedades para las interfaces de servicio.</value>
+  </data>
+  <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
+    <value>"{0}" no es una interfaz.</value>
+  </data>
+  <data name="TextEncoderNotApplicable" xml:space="preserve">
+    <value>La codificación de texto no es compatible porque el formateador "{0}" no implementa "{1}".</value>
+    <comment>{0} and {1} are CLR type names.</comment>
+  </data>
+  <data name="ConnectionDropped" xml:space="preserve">
+    <value>La conexión de JSON-RPC con la parte remota se perdió antes de que se pudiera completar la solicitud.</value>
+  </data>
+  <data name="RequiredArgumentMissing" xml:space="preserve">
+    <value>No se proporcionó un argumento para un parámetro requerido.</value>
+  </data>
+  <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
+    <value>Un CancellationToken solo se permite como último parámetro.</value>
+  </data>
+  <data name="UnsupportedJsonRpcProtocolVersion" xml:space="preserve">
+    <value>Versión de protocolo JSON-RPC no admitida {0}. Las versiones de protocolo admitidas son: {1}</value>
+    <comment>{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</comment>
+  </data>
+  <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
+    <value>JSON-RPC 1.0 no admite argumentos con nombre (parámetros pasados dentro de un objeto). Utilice argumentos posicionales (matrices de parámetros) o establezca la versión de protocolo en 2.0.</value>
   </data>
 </root>

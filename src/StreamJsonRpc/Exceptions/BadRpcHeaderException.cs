@@ -9,16 +9,14 @@ namespace StreamJsonRpc
     /// An exception thrown when a deserialized message has a bad header.
     /// </summary>
     /// <seealso cref="RemoteRpcException" />
-#if NET45
     [Serializable]
-#endif
     public class BadRpcHeaderException : RemoteRpcException
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
         /// </summary>
         /// <param name="message">The message.</param>
-        internal BadRpcHeaderException(string message)
+        public BadRpcHeaderException(string message)
             : base(message)
         {
         }
@@ -28,12 +26,11 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="message">The message.</param>
         /// <param name="innerException">The inner exception.</param>
-        internal BadRpcHeaderException(string message, Exception innerException)
+        public BadRpcHeaderException(string message, Exception innerException)
             : base(message, innerException)
         {
         }
 
-#if NET45
         /// <summary>
         /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
         /// </summary>
@@ -45,6 +42,5 @@ namespace StreamJsonRpc
             : base(info, context)
         {
         }
-#endif
     }
 }

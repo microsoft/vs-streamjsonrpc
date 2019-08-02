@@ -9,11 +9,6 @@ namespace StreamJsonRpc
     public enum DisconnectedReason
     {
         /// <summary>
-        /// Unknown reason.
-        /// </summary>
-        Unknown,
-
-        /// <summary>
         /// An error occurred while accessing the stream.
         /// </summary>
         StreamError,
@@ -24,8 +19,23 @@ namespace StreamJsonRpc
         ParseError,
 
         /// <summary>
-        /// The stream was disposed.
+        /// The <see cref="JsonRpc"/> instance was disposed.
         /// </summary>
-        Disposed,
+        LocallyDisposed,
+
+        /// <summary>
+        /// The underlying transport was closed by the remote party.
+        /// </summary>
+        RemotePartyTerminated,
+
+        /// <summary>
+        /// A fatal exception was thrown in a local method that was requested by the remote party.
+        /// </summary>
+        FatalException,
+
+        /// <summary>
+        /// An extensibility point was leveraged locally and broke the contract.
+        /// </summary>
+        LocalContractViolation,
     }
 }

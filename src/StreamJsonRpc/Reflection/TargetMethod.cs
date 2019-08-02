@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
@@ -12,59 +13,55 @@ namespace StreamJsonRpc
     using Microsoft;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     internal sealed class TargetMethod
     {
-        private readonly HashSet<string> errorMessages = new HashSet<string>(StringComparer.Ordinal);
-        private readonly JsonRpcMessage request;
+        private readonly JsonRpcRequest request;
         private readonly object target;
-        private readonly MethodInfo method;
-        private readonly object[] parameters;
+        private readonly MethodSignature signature;
+        private readonly object[] arguments;
+
+        /// <summary>
+        /// A collection of error messages. May be null until the first message is added.
+        /// </summary>
+        private HashSet<string> errorMessages;
 
         internal TargetMethod(
-            JsonRpcMessage request,
-            object target,
-            JsonSerializer jsonSerializer,
-            IReadOnlyDictionary<string, string> requestMethodToClrMethodMap)
+            JsonRpcRequest request,
+            List<MethodSignatureAndTarget> candidateMethodTargets)
         {
             Requires.NotNull(request, nameof(request));
-            Requires.NotNull(target, nameof(target));
-            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
-            Requires.NotNull(requestMethodToClrMethodMap, nameof(requestMethodToClrMethodMap));
+            Requires.NotNull(candidateMethodTargets, nameof(candidateMethodTargets));
 
             this.request = request;
-            this.target = target;
 
-            if (requestMethodToClrMethodMap.TryGetValue(request.Method, out string clrMethodName))
+            ArrayPool<object> pool = ArrayPool<object>.Shared;
+            foreach (var candidateMethod in candidateMethodTargets)
             {
-                var targetMethods = new Dictionary<MethodSignature, object[]>();
-                for (TypeInfo t = target.GetType().GetTypeInfo(); t != null; t = t.BaseType?.GetTypeInfo())
+                int parameterCount = candidateMethod.Signature.Parameters.Length;
+                object[] argumentArray = pool.Rent(parameterCount);
+                try
                 {
-                    foreach (MethodInfo method in t.GetDeclaredMethods(clrMethodName))
+                    var args = argumentArray.AsSpan(0, parameterCount);
+                    if (this.TryGetArguments(request, candidateMethod.Signature, args))
                     {
-                        this.TryAddMethod(request, targetMethods, method, jsonSerializer, request.Method);
+                        this.target = candidateMethod.Target;
+                        this.signature = candidateMethod.Signature;
+                        this.arguments = args.ToArray();
+                        break;
                     }
                 }
-
-                if (targetMethods.Count == 1)
+                finally
                 {
-                    KeyValuePair<MethodSignature, object[]> methodWithParameters = targetMethods.First();
-                    this.method = methodWithParameters.Key.MethodInfo;
-                    this.parameters = methodWithParameters.Value;
-                    this.AcceptsCancellationToken = methodWithParameters.Key.HasCancellationTokenParameter;
-                }
-                else if (targetMethods.Count > 1)
-                {
-                    this.method = null;
-                    this.parameters = null;
-                    this.errorMessages.Add(string.Format(CultureInfo.CurrentCulture, Resources.MoreThanOneMethodFound, string.Join("; ", targetMethods.Keys)));
+                    pool.Return(argumentArray, clearArray: true);
                 }
             }
         }
 
-        internal bool IsFound => this.method != null;
+        internal bool IsFound => this.signature != null;
 
-        internal bool AcceptsCancellationToken { get; private set; }
+        internal bool AcceptsCancellationToken => this.signature.HasCancellationTokenParameter;
 
         internal string LookupErrorMessage
         {
@@ -74,127 +71,91 @@ namespace StreamJsonRpc
                     CultureInfo.CurrentCulture,
                     Resources.UnableToFindMethod,
                     this.request.Method,
-                    this.request.ParameterCount,
-                    this.target.GetType().FullName,
-                    string.Join("; ", this.errorMessages));
+                    this.request.ArgumentCount,
+                    this.target?.GetType().FullName ?? "{no object}",
+                    string.Join("; ", this.errorMessages ?? Enumerable.Empty<string>()));
             }
+        }
+
+        internal Type ReturnType => this.signature?.MethodInfo.ReturnType;
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
         }
 
         internal object Invoke(CancellationToken cancellationToken)
         {
-            if (this.method == null)
+            if (this.signature == null)
             {
                 throw new InvalidOperationException(this.LookupErrorMessage);
             }
 
             if (cancellationToken.CanBeCanceled && this.AcceptsCancellationToken)
             {
-                for (int i = this.parameters.Length - 1; i >= 0; i--)
-                {
-                    if (this.parameters[i] is CancellationToken)
-                    {
-                        this.parameters[i] = cancellationToken;
-                        break;
-                    }
-                }
+                this.arguments[this.arguments.Length - 1] = cancellationToken;
             }
 
-            return this.method.Invoke(!this.method.IsStatic ? this.target : null, this.parameters);
+            return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
         }
 
-        private static object[] TryGetParameters(JsonRpcMessage request, MethodSignature method, HashSet<string> errors, JsonSerializer jsonSerializer, string requestMethodName)
+        private string GetParameterSignature() => string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name));
+
+        private void AddErrorMessage(string message)
+        {
+            if (this.errorMessages == null)
+            {
+                this.errorMessages = new HashSet<string>(StringComparer.Ordinal);
+            }
+
+            this.errorMessages.Add(message);
+        }
+
+        private bool TryGetArguments(JsonRpcRequest request, MethodSignature method, Span<object> arguments)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(method, nameof(method));
-            Requires.NotNull(errors, nameof(errors));
-            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
-            Requires.NotNullOrEmpty(requestMethodName, nameof(requestMethodName));
-
-            if (!method.IsPublic)
-            {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodIsNotPublic, method));
-                return null;
-            }
+            Requires.Argument(arguments.Length == method.Parameters.Length, nameof(arguments), "Length must equal number of parameters in method signature.");
 
             // ref and out parameters aren't supported.
             if (method.HasOutOrRefParameters)
             {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
-                return null;
+                this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
+                return false;
             }
 
-            if (request.Parameters != null && request.Parameters.Type == JTokenType.Object)
+            // When there is a CancellationToken parameter, we require that it always be the last parameter.
+            Span<ParameterInfo> methodParametersExcludingCancellationToken = method.Parameters.AsSpan(0, method.TotalParamCountExcludingCancellationToken);
+            Span<object> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
+            if (method.HasCancellationTokenParameter)
             {
-                // If the parameter passed is an object, then we want to find the matching method with the same name and the method only takes a JToken as a parameter.
-                if (method.Parameters.Length != 1)
-                {
-                    return null;
-                }
-
-                if (method.Parameters[0].ParameterType != typeof(JToken))
-                {
-                    return null;
-                }
-
-                return new object[] { request.Parameters };
+                arguments[arguments.Length - 1] = CancellationToken.None;
             }
 
-            // The number of parameters must fall within required and total parameters.
-            int paramCount = request.ParameterCount;
-            if (paramCount < method.RequiredParamCount || paramCount > method.TotalParamCountExcludingCancellationToken)
+            switch (request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken))
             {
-                string methodParameterCount;
-                if (method.RequiredParamCount == method.TotalParamCountExcludingCancellationToken)
-                {
-                    methodParameterCount = method.RequiredParamCount.ToString(CultureInfo.CurrentCulture);
-                }
-                else
-                {
-                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
-                }
-
-                errors.Add(string.Format(
-                    CultureInfo.CurrentCulture,
-                    Resources.MethodParameterCountDoesNotMatch,
-                    method,
-                    methodParameterCount,
-                    request.ParameterCount));
-
-                return null;
-            }
-
-            // Parameters must be compatible
-            try
-            {
-                return request.GetParameters(method.Parameters, jsonSerializer);
-            }
-            catch (Exception exception)
-            {
-                errors.Add(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method, exception.Message));
-                return null;
-            }
-        }
-
-        private bool TryAddMethod(JsonRpcMessage request, Dictionary<MethodSignature, object[]> targetMethods, MethodInfo method, JsonSerializer jsonSerializer, string requestMethodName)
-        {
-            Requires.NotNull(request, nameof(request));
-            Requires.NotNull(targetMethods, nameof(targetMethods));
-            Requires.NotNull(method, nameof(method));
-            Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
-            Requires.NotNullOrEmpty(requestMethodName, nameof(requestMethodName));
-
-            var methodSignature = new MethodSignature(method);
-            if (!targetMethods.ContainsKey(methodSignature))
-            {
-                object[] parameters = TryGetParameters(request, methodSignature, this.errorMessages, jsonSerializer, requestMethodName);
-                if (parameters != null)
-                {
-                    targetMethods.Add(methodSignature, parameters);
+                case JsonRpcRequest.ArgumentMatchResult.Success:
                     return true;
-                }
+                case JsonRpcRequest.ArgumentMatchResult.ParameterArgumentCountMismatch:
+                    string methodParameterCount;
+                    methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
+                    this.AddErrorMessage(string.Format(
+                        CultureInfo.CurrentCulture,
+                        Resources.MethodParameterCountDoesNotMatch,
+                        method,
+                        methodParameterCount,
+                        request.ArgumentCount));
+                    return false;
+                case JsonRpcRequest.ArgumentMatchResult.ParameterArgumentTypeMismatch:
+                    this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method));
+                    return false;
+                case JsonRpcRequest.ArgumentMatchResult.MissingArgument:
+                    this.AddErrorMessage(Resources.RequiredArgumentMissing);
+                    return false;
+                default:
+                    return false;
             }
-
-            return false;
         }
     }
 }
