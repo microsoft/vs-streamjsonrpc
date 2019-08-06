@@ -61,7 +61,7 @@ namespace StreamJsonRpc
             private get => this.rpc;
             set
             {
-                Verify.Operation(this.rpc == null, Resources.FormatterAlreadyInUseError);
+                Verify.Operation(this.rpc == null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
 
                 this.rpc = value;
             }

@@ -9,9 +9,9 @@ namespace StreamJsonRpc
     using System.Diagnostics;
     using System.Globalization;
     using System.IO;
+    using System.IO.Pipelines;
     using System.Linq;
     using System.Reflection;
-    using System.Runtime.InteropServices;
     using System.Runtime.Serialization;
     using System.Text;
     using System.Threading;
@@ -29,7 +29,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
-    public class JsonMessageFormatter : MessageFormatterHelper, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer
+    public class JsonMessageFormatter : MessageFormatterHelper, IJsonRpcAsyncMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -182,6 +182,23 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
+        public async ValueTask<JsonRpcMessage> DeserializeAsync(PipeReader reader, Encoding encoding, CancellationToken cancellationToken)
+        {
+            Requires.NotNull(reader, nameof(reader));
+            Requires.NotNull(encoding, nameof(encoding));
+
+            using (var jsonReader = new JsonTextReader(new StreamReader(reader.AsStream(), encoding)))
+            {
+                this.ConfigureJsonTextReader(jsonReader);
+                JToken json = await JToken.ReadFromAsync(jsonReader, cancellationToken).ConfigureAwait(false);
+                return this.Deserialize(json);
+            }
+        }
+
+        /// <inheritdoc/>
+        public ValueTask<JsonRpcMessage> DeserializeAsync(PipeReader reader, CancellationToken cancellationToken) => this.DeserializeAsync(reader, this.Encoding, cancellationToken);
+
+        /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
             JToken json = this.Serialize(message);
@@ -329,27 +346,26 @@ namespace StreamJsonRpc
             Requires.NotNull(encoding, nameof(encoding));
 
             this.sequenceTextReader.Initialize(contentBuffer, encoding);
-            var jsonReader = new JsonTextReader(this.sequenceTextReader)
+            using (var jsonReader = new JsonTextReader(this.sequenceTextReader))
             {
-                ArrayPool = JsonCharArrayPool,
-                CloseInput = true,
-                Culture = this.JsonSerializer.Culture,
-                DateFormatString = this.JsonSerializer.DateFormatString,
-                DateParseHandling = this.JsonSerializer.DateParseHandling,
-                DateTimeZoneHandling = this.JsonSerializer.DateTimeZoneHandling,
-                FloatParseHandling = this.JsonSerializer.FloatParseHandling,
-                MaxDepth = this.JsonSerializer.MaxDepth,
-            };
-            try
-            {
+                this.ConfigureJsonTextReader(jsonReader);
                 JToken json = JToken.ReadFrom(jsonReader);
                 return json;
             }
-            finally
-            {
-                // Return rented arrays
-                jsonReader.Close();
-            }
+        }
+
+        private void ConfigureJsonTextReader(JsonTextReader reader)
+        {
+            Requires.NotNull(reader, nameof(reader));
+
+            reader.ArrayPool = JsonCharArrayPool;
+            reader.CloseInput = true;
+            reader.Culture = this.JsonSerializer.Culture;
+            reader.DateFormatString = this.JsonSerializer.DateFormatString;
+            reader.DateParseHandling = this.JsonSerializer.DateParseHandling;
+            reader.DateTimeZoneHandling = this.JsonSerializer.DateTimeZoneHandling;
+            reader.FloatParseHandling = this.JsonSerializer.FloatParseHandling;
+            reader.MaxDepth = this.JsonSerializer.MaxDepth;
         }
 
         /// <summary>
