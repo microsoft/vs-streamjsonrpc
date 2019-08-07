@@ -305,11 +305,14 @@ namespace StreamJsonRpc
 
         private void WriteJToken(IBufferWriter<byte> contentBuffer, JToken json)
         {
-            this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
-            using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
+            lock (this.bufferTextWriter)
             {
-                json.WriteTo(jsonWriter);
-                jsonWriter.Flush();
+                this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
+                using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
+                {
+                    json.WriteTo(jsonWriter);
+                    jsonWriter.Flush();
+                }
             }
         }
 
