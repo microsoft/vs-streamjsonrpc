@@ -1,0 +1,23 @@
+trigger: none
+pr: none
+schedules:
+- cron: "0 20 * * Thu"
+  displayName: Weekly OptProf run
+  branches:
+    include:
+    - v2.1
+  always: true # we must keep data fresh since optimizationdata drops are purged after 30 days
+
+variables:
+  TreatWarningsAsErrors: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  BuildConfiguration: Release
+  BuildPlatform: Any CPU
+  push_to_ci: true
+  SignType: test
+  PublicRelease: false # avoid using nice package versions since we're pushing unoptimized packages
+
+jobs:
+- template: build.yml
+  parameters:
+    windowsPool: VSEng-MicroBuildVS2019
