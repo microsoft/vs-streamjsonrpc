@@ -22,6 +22,7 @@ namespace StreamJsonRpc
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
+    using static StreamJsonRpc.MessageFormatterHelper;
 
     /// <summary>
     /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
@@ -29,7 +30,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
-    public class JsonMessageFormatter : MessageFormatterHelper, IJsonRpcAsyncMessageTextFormatter, IJsonRpcInstanceContainer
+    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -70,6 +71,11 @@ namespace StreamJsonRpc
         /// The reusable <see cref="TextReader"/> to use with newtonsoft.json's deserializer.
         /// </summary>
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
+
+        /// <summary>
+        /// <see cref="MessageFormatterHelper"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private readonly MessageFormatterHelper formatterHelper = new MessageFormatterHelper();
 
         /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
@@ -378,7 +384,7 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    this.requestIdBeingSerialized = Convert.ToInt64(request.Id);
+                    this.formatterHelper.requestIdBeingSerialized = Convert.ToInt64(request.Id);
 
                     if (request.ArgumentsList != null)
                     {
@@ -403,7 +409,7 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.requestIdBeingSerialized = null;
+                this.formatterHelper.requestIdBeingSerialized = null;
             }
         }
 
@@ -458,9 +464,9 @@ namespace StreamJsonRpc
                         args is JArray ? args[1] :
                         null;
 
-                    lock (this.progressLock)
+                    lock (this.formatterHelper.progressLock)
                     {
-                        if (this.progressMap.TryGetValue(progressId.Value<long>(), out ProgressParamInformation progressInfo))
+                        if (this.formatterHelper.progressMap.TryGetValue(progressId.Value<long>(), out ProgressParamInformation progressInfo))
                         {
                             object typedValue = value.ToObject(progressInfo.ValueType);
                             progressInfo.ReportMethod.Invoke(progressInfo.ProgressObject, new object[] { typedValue });
@@ -522,14 +528,14 @@ namespace StreamJsonRpc
         {
             long reqId = requestId.Value<long>();
 
-            lock (this.progressLock)
+            lock (this.formatterHelper.progressLock)
             {
                 long progressId;
 
-                if (this.requestProgressMap.TryGetValue(reqId, out progressId))
+                if (this.formatterHelper.requestProgressMap.TryGetValue(reqId, out progressId))
                 {
-                    this.requestProgressMap.Remove(reqId);
-                    this.progressMap.Remove(progressId);
+                    this.formatterHelper.requestProgressMap.Remove(reqId);
+                    this.formatterHelper.progressMap.Remove(progressId);
                 }
             }
         }
@@ -642,7 +648,7 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                long progressId = this.formatter.AddProgressObjectToMap(value);
+                long progressId = this.formatter.formatterHelper.AddProgressObjectToMap(value);
                 writer.WriteValue(progressId);
             }
         }

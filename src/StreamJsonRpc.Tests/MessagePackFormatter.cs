@@ -38,6 +38,11 @@ namespace StreamJsonRpc
         private JsonRpc rpc;
 
         /// <summary>
+        /// <see cref="MessageFormatterHelper"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private readonly MessageFormatterHelper formatterHelper = new MessageFormatterHelper();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class
         /// with LZ4 compression.
         /// </summary>
@@ -189,7 +194,7 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, TIProgressOfT value, MessagePackSerializerOptions options)
             {
-                long progressId = this.formatter.AddProgressObjectToMap(value);
+                long progressId = this.formatter.formatterHelper.AddProgressObjectToMap(value);
                 writer.Write(progressId);
             }
 
@@ -197,7 +202,7 @@ namespace StreamJsonRpc
             {
                 long token = reader.ReadInt64();
 
-                if (this.formatter.progressMap.TryGetValue(token, out ProgressParamInformation progressInfo))
+                if (this.formatter.formatterHelper.progressMap.TryGetValue(token, out ProgressParamInformation progressInfo))
                 {
                     Type progressType = typeof(JsonProgress<>).MakeGenericType(typeof(T));
                     IProgress<T> p = new JsonProgress<T>(this.formatter.Rpc, token);
