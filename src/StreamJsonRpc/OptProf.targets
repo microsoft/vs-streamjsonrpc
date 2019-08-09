@@ -7,6 +7,7 @@
       <OptimizationArguments>-PartialNGEN</OptimizationArguments>
       <Scenarios>
         <TestContainer Name="VSPE" Repository="VS">
+          <!-- When adding to this list, be sure to also add to VS repo too (e.g. https://devdiv.visualstudio.com/DevDiv/_git/VS/pullrequest/196226) -->
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_env_startup_devenv" />
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_perf_DesignTime_solution_loadclose_cs_picasso" />
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_ddbvtqa_vbwin" />
