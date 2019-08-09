@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 schedules:
-- cron: "0 3 * * Fri" # Thu @ 8 PM Mountain Time
+- cron: "0 3 * * Fri" # Thu @ 8 or 9 PM Mountain Time (depending on DST)
   displayName: Weekly OptProf run
   branches:
     include:
