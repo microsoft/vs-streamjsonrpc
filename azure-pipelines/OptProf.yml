@@ -99,7 +99,7 @@ stages:
       inputs:
         targetType: filePath
         filePath: $(Agent.TempDirectory)/DeploymentScripts/Scripts/Insertion/WriteArtifact.ps1
-        arguments: '-oldBuildID 2927556 -newBuildID $(TriggeredBuildIds) -artifactName "InsertionOutputs" -accessToken $(System.AccessToken)'
+        arguments: '-oldBuildID $(Build.BuildId) -newBuildID $(TriggeredBuildIds) -artifactName "InsertionOutputs" -accessToken $(System.AccessToken)'
     - task: PowerShell@2
       displayName: Tag the build with vs-streamjsonrpc-insertion
       inputs:
