@@ -9,6 +9,7 @@
         <TestContainer Name="VSPE" Repository="VS">
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_env_startup_devenv" />
           <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_perf_DesignTime_solution_loadclose_cs_picasso" />
+          <TestCase FullyQualifiedName="VSPE.OptProfTests.vs_ddbvtqa_vbwin" />
         </TestContainer>
       </Scenarios>
     </OptProf>
