@@ -384,7 +384,7 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    this.formatterHelper.requestIdBeingSerialized = Convert.ToInt64(request.Id);
+                    this.formatterHelper.requestIdBeingSerialized = (request.Id != null) ? Convert.ToInt64(request.Id) : (long?)null;
 
                     if (request.ArgumentsList != null)
                     {
