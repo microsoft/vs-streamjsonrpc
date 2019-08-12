@@ -308,8 +308,15 @@ namespace StreamJsonRpc
             this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
             using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
             {
-                json.WriteTo(jsonWriter);
-                jsonWriter.Flush();
+                try
+                {
+                    json.WriteTo(jsonWriter);
+                }
+                finally
+                {
+                    // If an exception happens we make sure the writter gets flushed, otherwise initializing will keep failing.
+                    jsonWriter.Flush();
+                }
             }
         }
 
