@@ -124,6 +124,8 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext synchronizationContext;
 
+        private JsonRpc relayRpc;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
         /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
@@ -575,6 +577,13 @@ namespace StreamJsonRpc
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
 
             return proxy;
+        }
+
+        public void Relay(Stream relaySendingStream, Stream relayReceivingStream, object relayTarget = null)
+        {
+            this.relayRpc = JsonRpc.Attach(relaySendingStream, relayReceivingStream, relayTarget);
+
+            this.relayRpc.relayRpc = this;
         }
 
         /// <summary>
@@ -1102,6 +1111,21 @@ namespace StreamJsonRpc
                 request.Arguments = arguments ?? EmptyObjectArray;
             }
 
+            return await this.InvokeCoreAsync<TResult>(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        protected async Task<TResult> InvokeCoreAsync<TResult>(JsonRpcRequest request, CancellationToken cancellationToken)
+        {
+            long id = default(long);
+            if (request.Id is long)
+            {
+                id = (long)request.Id;
+            }
+            else if (request.Id is long?)
+            {
+                id = ((long?)request.Id).Value;
+            }
+
             try
             {
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
@@ -1118,7 +1142,7 @@ namespace StreamJsonRpc
                     {
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id.Value);
+                            this.resultDispatcherMap.Remove(id);
                         }
 
                         try
@@ -1148,7 +1172,7 @@ namespace StreamJsonRpc
                                 }
                                 else
                                 {
-                                    tcs.TrySetException(CreateExceptionFromRpcError(error, targetName));
+                                    tcs.TrySetException(CreateExceptionFromRpcError(error, request.Method));
                                 }
                             }
                             else if (response is JsonRpcResult result)
@@ -1165,7 +1189,7 @@ namespace StreamJsonRpc
                     var callData = new OutstandingCallData(tcs, dispatcher);
                     lock (this.dispatcherMapLock)
                     {
-                        this.resultDispatcherMap.Add(id.Value, callData);
+                        this.resultDispatcherMap.Add(id, callData);
                     }
 
                     try
@@ -1177,14 +1201,14 @@ namespace StreamJsonRpc
                         // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id.Value);
+                            this.resultDispatcherMap.Remove(id);
                         }
 
                         throw;
                     }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id.Value, useSynchronizationContext: false))
+                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id, useSynchronizationContext: false))
                     {
                         // This task will be completed when the Response object comes back from the other end of the pipe
                         return await tcs.Task.ConfigureAwait(false);
@@ -1423,10 +1447,48 @@ namespace StreamJsonRpc
             CancellationTokenSource localMethodCancellationSource = null;
             try
             {
+                // Add cancelation to inboundCancellationSources before yielding to ensure that
+                // it cannot be preempted by the cancellation request that would try to set it
+                // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+                var cancellationToken = CancellationToken.None;
+                if (request.IsResponseExpected)
+                {
+                    localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
+                        ? CancellationTokenSource.CreateLinkedTokenSource(this.DisconnectedToken)
+                        : new CancellationTokenSource();
+                    cancellationToken = localMethodCancellationSource.Token;
+                }
+
+                bool targetRequestMethodToClrMethodMapHasItems = false;
                 TargetMethod targetMethod = null;
                 lock (this.syncObject)
                 {
-                    if (this.targetRequestMethodToClrMethodMap.Count == 0)
+                    targetRequestMethodToClrMethodMapHasItems = true;
+
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
+                    {
+                        targetMethod = new TargetMethod(request, candidateTargets);
+                    }
+                }
+
+                if (!targetRequestMethodToClrMethodMapHasItems || targetMethod == null || !targetMethod.IsFound)
+                {
+                    lock (this.dispatcherMapLock)
+                    {
+                        this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+                    }
+
+                    if (this.relayRpc != null)
+                    {
+                        var relayResult = await this.relayRpc.InvokeCoreAsync<object>(request, localMethodCancellationSource.Token).ConfigureAwait(false);
+                        return new JsonRpcResult
+                        {
+                            Id = request.Id,
+                            Result = relayResult,
+                        };
+                    }
+
+                    if (!targetRequestMethodToClrMethodMapHasItems)
                     {
                         if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                         {
@@ -1444,58 +1506,47 @@ namespace StreamJsonRpc
                             },
                         };
                     }
-
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
+                    else if (targetMethod == null)
                     {
-                        targetMethod = new TargetMethod(request, candidateTargets);
-                    }
-                }
-
-                if (targetMethod == null)
-                {
-                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
-                    }
-
-                    return new JsonRpcError
-                    {
-                        Id = request.Id,
-                        Error = new JsonRpcError.ErrorDetail
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                         {
-                            Code = JsonRpcErrorCode.MethodNotFound,
-                            Message = string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method),
-                        },
-                    };
-                }
-                else if (!targetMethod.IsFound)
-                {
-                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
-                    }
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
+                        }
 
-                    return new JsonRpcError
-                    {
-                        Id = request.Id,
-                        Error = new JsonRpcError.ErrorDetail
+                        return new JsonRpcError
                         {
-                            Code = JsonRpcErrorCode.InvalidParams,
-                            Message = targetMethod.LookupErrorMessage,
-                        },
-                    };
+                            Id = request.Id,
+                            Error = new JsonRpcError.ErrorDetail
+                            {
+                                Code = JsonRpcErrorCode.MethodNotFound,
+                                Message = string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method),
+                            },
+                        };
+                    }
+                    else if (!targetMethod.IsFound)
+                    {
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
+                        }
+
+                        return new JsonRpcError
+                        {
+                            Id = request.Id,
+                            Error = new JsonRpcError.ErrorDetail
+                            {
+                                Code = JsonRpcErrorCode.InvalidParams,
+                                Message = targetMethod.LookupErrorMessage,
+                            },
+                        };
+                    }
                 }
 
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
                 // it cannot be preempted by the cancellation request that would try to set it
                 // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
-                var cancellationToken = CancellationToken.None;
-                if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
+                if (targetMethod.AcceptsCancellationToken)
                 {
-                    localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
-                        ? CancellationTokenSource.CreateLinkedTokenSource(this.DisconnectedToken)
-                        : new CancellationTokenSource();
-                    cancellationToken = localMethodCancellationSource.Token;
                     lock (this.dispatcherMapLock)
                     {
                         this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
