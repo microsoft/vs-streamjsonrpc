@@ -10,7 +10,6 @@
 
 namespace StreamJsonRpc {
     using System;
-    using System.Reflection;
     
     
     /// <summary>
@@ -40,7 +39,7 @@ namespace StreamJsonRpc {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).GetTypeInfo().Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -310,6 +309,15 @@ namespace StreamJsonRpc {
         internal static string ReadingJsonRpcStreamFailed {
             get {
                 return ResourceManager.GetString("ReadingJsonRpcStreamFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Relay connection has already been established..
+        /// </summary>
+        internal static string RelayAlreadySet {
+            get {
+                return ResourceManager.GetString("RelayAlreadySet", resourceCulture);
             }
         }
         

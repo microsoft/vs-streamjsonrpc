@@ -579,10 +579,32 @@ namespace StreamJsonRpc
             return proxy;
         }
 
+        /// <summary>
+        /// Forms a JsonRpc connection with the given streams and relays calls from the server attached to this rpc connection
+        /// to the relay connection.
+        /// </summary>
+        /// <param name="relaySendingStream">Stream used to send messages to the server being relayed.</param>
+        /// <param name="relayReceivingStream">Stream used to receive messages from the server being relayed.</param>
+        /// <param name="relayTarget">The target the relay server can call back to on this rpc connection. If a target method is not found, then the message will be forwarded to the origin server.</param>
+        /// <remarks>
+        /// This method supports the scenario where 2 streams are being used to communicate between 3 endpoints (origin, local, relayServer). The connection established by this JsonRpc object represents
+        /// communication between origin and local.  However, there may need to be cases where origin needs to communicate with relayServer directly (and vice versa) using arbitrary messages, and the owner of
+        /// the local endpoint is the one who creates the connection to the relayServer. In this case, the local endpoint acts as a relay between origin and relayServer.  Messages sent from the origin can
+        /// either be destined to local, or relayServer.  The origin does not have to indicate where its messages should go. If local's target for the origin/local connection handles messages from server,
+        /// then the local target will be invoked.  Otherwise, the message will be forwarded to relayServer.  Likewise, messages sent from the relayServer does not need to indicate destination. If local's
+        /// relayTarget handles messages from relayServer, then relayTarget will be invoked.  Otherwise, the message will be forwarded to origin.
+        /// </remarks>
         public void Relay(Stream relaySendingStream, Stream relayReceivingStream, object relayTarget = null)
         {
+            if (this.relayRpc != null)
+            {
+                throw new InvalidOperationException(Resources.RelayAlreadySet);
+            }
+
+            // This establishes the forwarding from origin to relayServer.
             this.relayRpc = JsonRpc.Attach(relaySendingStream, relayReceivingStream, relayTarget);
 
+            // This establishes the forwardeding from relayServer to origin. In this case, the relay connection is the one between local and origin, which is "this".
             this.relayRpc.relayRpc = this;
         }
 
@@ -1114,16 +1136,18 @@ namespace StreamJsonRpc
             return await this.InvokeCoreAsync<TResult>(request, cancellationToken).ConfigureAwait(false);
         }
 
-        protected async Task<TResult> InvokeCoreAsync<TResult>(JsonRpcRequest request, CancellationToken cancellationToken)
+        private async Task<TResult> InvokeCoreAsync<TResult>(JsonRpcRequest request, CancellationToken cancellationToken)
         {
-            long id = default(long);
+            Requires.NotNull(request, nameof(request));
+
+            long? id = null;
             if (request.Id is long)
             {
                 id = (long)request.Id;
             }
             else if (request.Id is long?)
             {
-                id = ((long?)request.Id).Value;
+                id = (long?)request.Id;
             }
 
             try
@@ -1142,7 +1166,7 @@ namespace StreamJsonRpc
                     {
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id);
+                            this.resultDispatcherMap.Remove(id.Value);
                         }
 
                         try
@@ -1151,7 +1175,7 @@ namespace StreamJsonRpc
                             {
                                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                                 {
-                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
+                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id.Value);
                                 }
 
                                 if (cancellationToken.IsCancellationRequested)
@@ -1189,7 +1213,7 @@ namespace StreamJsonRpc
                     var callData = new OutstandingCallData(tcs, dispatcher);
                     lock (this.dispatcherMapLock)
                     {
-                        this.resultDispatcherMap.Add(id, callData);
+                        this.resultDispatcherMap.Add(id.Value, callData);
                     }
 
                     try
@@ -1201,7 +1225,7 @@ namespace StreamJsonRpc
                         // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id);
+                            this.resultDispatcherMap.Remove(id.Value);
                         }
 
                         throw;
@@ -1473,13 +1497,17 @@ namespace StreamJsonRpc
 
                 if (!targetRequestMethodToClrMethodMapHasItems || targetMethod == null || !targetMethod.IsFound)
                 {
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
-                    }
-
+                    // If we can't find the method or the target object does not exist or does not contain methods, we relay the message to the server.
+                    // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
+                    // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
+                    // other side.
                     if (this.relayRpc != null)
                     {
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+                        }
+
                         var relayResult = await this.relayRpc.InvokeCoreAsync<object>(request, localMethodCancellationSource.Token).ConfigureAwait(false);
                         return new JsonRpcResult
                         {

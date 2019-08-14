@@ -281,4 +281,7 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
   </data>
+  <data name="RelayAlreadySet" xml:space="preserve">
+    <value>Relay connection has already been established.</value>
+  </data>
 </root>
