@@ -1360,7 +1360,6 @@ public abstract class JsonRpcTests : TestBase
         clientFormatter.ThrowException = false;
         string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Success");
         Assert.Equal("Success!", result);
-
     }
 
     protected override void Dispose(bool disposing)
