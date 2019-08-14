@@ -1791,7 +1791,16 @@ namespace StreamJsonRpc
 
                     if (request.IsResponseExpected && !this.IsDisposed)
                     {
-                        await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                        try
+                        {
+                            await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                        }
                     }
                 }
                 else if (rpc is IJsonRpcMessageWithId resultOrError)
@@ -1975,21 +1984,20 @@ namespace StreamJsonRpc
                 this.TraceMessageSent(message);
                 await this.MessageHandler.WriteAsync(message, cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (ObjectDisposedException)
-            {
-            }
             catch (Exception exception)
             {
-                var e = new JsonRpcDisconnectedEventArgs(
-                    string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
-                    DisconnectedReason.StreamError,
-                    exception);
+                if ((bool)(this.MessageHandler as IDisposableObservable)?.IsDisposed)
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
+                        DisconnectedReason.StreamError,
+                        exception);
 
-                // Fatal error. Raise disconnected event.
-                this.OnJsonRpcDisconnected(e);
+                    // Fatal error. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(e);
+                }
+
+                throw;
             }
         }
 
