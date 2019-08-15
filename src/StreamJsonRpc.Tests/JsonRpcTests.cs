@@ -1362,6 +1362,26 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal("Success!", result);
     }
 
+    [Fact]
+    public async Task FormatterFatalException()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        ExceptionThrowingFormatter serverFormatter = new ExceptionThrowingFormatter();
+        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.serverStream, serverFormatter));
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc.StartListening();
+
+        // Failure on server side should cut the connection
+        serverFormatter.ThrowException = true;
+        await Assert.ThrowsAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1879,7 +1899,7 @@ public abstract class JsonRpcTests : TestBase
 
     private class ExceptionThrowingFormatter : JsonMessageFormatter, IJsonRpcMessageFormatter
     {
-        public bool ThrowException = false;
+        public bool ThrowException;
 
         public new void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
         {

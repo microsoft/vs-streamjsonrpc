@@ -10,7 +10,6 @@
 
 namespace StreamJsonRpc {
     using System;
-    using System.Reflection;
     
     
     /// <summary>
@@ -40,7 +39,7 @@ namespace StreamJsonRpc {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).GetTypeInfo().Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -130,6 +129,15 @@ namespace StreamJsonRpc {
         internal static string DroppingRequestDueToNoTargetObject {
             get {
                 return ResourceManager.GetString("DroppingRequestDueToNoTargetObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error writing JSON RPC Result: {0}: {1}.
+        /// </summary>
+        internal static string ErrorWritingJsonRpcMessage {
+            get {
+                return ResourceManager.GetString("ErrorWritingJsonRpcMessage", resourceCulture);
             }
         }
         

@@ -1801,6 +1801,16 @@ namespace StreamJsonRpc
                         catch (ObjectDisposedException)
                         {
                         }
+                        catch (Exception exception)
+                        {
+                            var e = new JsonRpcDisconnectedEventArgs(
+                                string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
+                                DisconnectedReason.StreamError,
+                                exception);
+
+                            // Fatal error. Raise disconnected event.
+                            this.OnJsonRpcDisconnected(e);
+                        }
                     }
                 }
                 else if (rpc is IJsonRpcMessageWithId resultOrError)
@@ -1986,10 +1996,10 @@ namespace StreamJsonRpc
             }
             catch (Exception exception)
             {
-                if ((bool)(this.MessageHandler as IDisposableObservable)?.IsDisposed)
+                if ((this.MessageHandler as IDisposableObservable)?.IsDisposed ?? false)
                 {
                     var e = new JsonRpcDisconnectedEventArgs(
-                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
+                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, exception.GetType().Name, exception.Message),
                         DisconnectedReason.StreamError,
                         exception);
 
