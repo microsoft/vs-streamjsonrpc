@@ -73,6 +73,14 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>.
+        /// </summary>
+        private MessagePackSerializerOptions CompressOptions
+        {
+            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
+        }
+
         /// <inheritdoc/>
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), this.CompressOptions);
 
@@ -87,14 +95,6 @@ namespace StreamJsonRpc
             }
 
             MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.CompressOptions);
-        }
-
-        /// <summary>
-        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>./>
-        /// </summary>
-        private MessagePackSerializerOptions CompressOptions
-        {
-            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
         }
 
         /// <inheritdoc/>
