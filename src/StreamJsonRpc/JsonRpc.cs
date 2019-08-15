@@ -1987,13 +1987,28 @@ namespace StreamJsonRpc
             }
         }
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
-        private ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+        private async ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
         {
-            this.TraceMessageSent(message);
+            try
+            {
+                this.TraceMessageSent(message);
+                await this.MessageHandler.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                if ((this.MessageHandler as IDisposableObservable)?.IsDisposed ?? false)
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, exception.GetType().Name, exception.Message),
+                        DisconnectedReason.StreamError,
+                        exception);
 
-            return this.MessageHandler.WriteAsync(message, cancellationToken);
+                    // Fatal error. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(e);
+                }
+
+                throw;
+            }
         }
 
         /// <summary>

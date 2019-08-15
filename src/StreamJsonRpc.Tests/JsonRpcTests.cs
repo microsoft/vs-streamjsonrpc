@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -1338,6 +1339,49 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(2, exception.ErrorCode);
     }
 
+    [Fact]
+    public async Task FormatterNonFatalException()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        ExceptionThrowingFormatter clientFormatter = new ExceptionThrowingFormatter();
+        this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.clientStream, clientFormatter));
+        this.clientRpc.StartListening();
+
+        clientFormatter.ThrowException = true;
+        await Assert.ThrowsAsync<Exception>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
+
+        clientFormatter.ThrowException = false;
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Success");
+        Assert.Equal("Success!", result);
+    }
+
+    [Fact]
+    public async Task FormatterFatalException()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        ExceptionThrowingFormatter serverFormatter = new ExceptionThrowingFormatter();
+        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.serverStream, serverFormatter));
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc.StartListening();
+
+        // Failure on server side should cut the connection
+        serverFormatter.ThrowException = true;
+        await Assert.ThrowsAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1849,6 +1893,21 @@ public abstract class JsonRpcTests : TestBase
             this.PostInvoked.Set();
             this.AllowPostToReturn.Wait();
             base.Post(d, state);
+        }
+    }
+
+    private class ExceptionThrowingFormatter : JsonMessageFormatter, IJsonRpcMessageFormatter
+    {
+        public bool ThrowException;
+
+        public new void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
+        {
+            if (this.ThrowException)
+            {
+                throw new Exception("Non fatal exception...");
+            }
+
+            base.Serialize(bufferWriter, message);
         }
     }
 }

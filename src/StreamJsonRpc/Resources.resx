@@ -281,4 +281,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>Error writing JSON RPC Message: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>
