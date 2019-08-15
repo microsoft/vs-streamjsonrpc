@@ -48,7 +48,7 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Gets or sets the the next id value to assign as token for the progress objects.
         /// </summary>
-        private long nextProgressId { get; set; }
+        private long NextProgressId { get; set; }
 
         /// <summary>
         /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
@@ -93,7 +93,7 @@ namespace StreamJsonRpc.Reflection
 
             lock (this.progressLock)
             {
-                long progressId = this.nextProgressId++;
+                long progressId = this.NextProgressId++;
                 this.requestProgressMap.Add(this.RequestIdBeingSerialized.Value, progressId);
 
                 this.progressMap.Add(progressId, new ProgressParamInformation(value));
@@ -143,6 +143,7 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Creates a new instance of the <see cref="JsonProgress{T}"/> class.
         /// </summary>
+        /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
         public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token) => new JsonProgress<T>(rpc, token);

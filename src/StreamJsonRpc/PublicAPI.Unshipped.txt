@@ -16,8 +16,6 @@ StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ClearProgressMaps(long 
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc rpc, object token, System.Type valueType) -> object
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc rpc, object token) -> System.IProgress<T>
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.GetProgressTypeToReport(object progressId, out StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation valueType) -> bool
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.JsonProgress(StreamJsonRpc.JsonRpc rpc, object token) -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.Report(T value) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.MessageFormatterProgressTracker() -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.InvokeReport(object typedValue) -> void
