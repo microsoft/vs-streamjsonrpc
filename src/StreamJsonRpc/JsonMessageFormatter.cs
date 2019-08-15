@@ -22,7 +22,7 @@ namespace StreamJsonRpc
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
-    using static StreamJsonRpc.MessageFormatterHelper;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
@@ -73,9 +73,9 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
-        /// <see cref="MessageFormatterHelper"/> instance containing useful methods to help on the implementation of message formatters.
+        /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
         /// </summary>
-        private readonly MessageFormatterHelper formatterHelper = new MessageFormatterHelper();
+        private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
 
         /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
@@ -384,7 +384,7 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    this.formatterHelper.requestIdBeingSerialized = (request.Id != null) ? Convert.ToInt64(request.Id) : (long?)null;
+                    this.formatterProgressTracker.RequestIdBeingSerialized = (request.Id != null) ? Convert.ToInt64(request.Id) : (long?)null;
 
                     if (request.ArgumentsList != null)
                     {
@@ -409,7 +409,7 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.formatterHelper.requestIdBeingSerialized = null;
+                this.formatterProgressTracker.RequestIdBeingSerialized = null;
             }
         }
 
@@ -450,7 +450,7 @@ namespace StreamJsonRpc
             // If method is $/progress, get the progress instance from the dictionary and call Report
             string method = json.Value<string>("method");
 
-            if (string.Equals(method, ProgressRequestSpecialMethod, StringComparison.Ordinal))
+            if (string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
             {
                 try
                 {
@@ -464,9 +464,9 @@ namespace StreamJsonRpc
                         args is JArray ? args[1] :
                         null;
 
-                    lock (this.formatterHelper.progressLock)
+                    lock (this.formatterProgressTracker.ProgressLock)
                     {
-                        if (this.formatterHelper.progressMap.TryGetValue(progressId.Value<long>(), out ProgressParamInformation progressInfo))
+                        if (this.formatterProgressTracker.ProgressMap.TryGetValue(progressId.Value<long>(), out MessageFormatterProgressTracker.ProgressParamInformation progressInfo))
                         {
                             object typedValue = value.ToObject(progressInfo.ValueType);
                             progressInfo.ReportMethod.Invoke(progressInfo.ProgressObject, new object[] { typedValue });
@@ -528,14 +528,14 @@ namespace StreamJsonRpc
         {
             long reqId = requestId.Value<long>();
 
-            lock (this.formatterHelper.progressLock)
+            lock (this.formatterProgressTracker.ProgressLock)
             {
                 long progressId;
 
-                if (this.formatterHelper.requestProgressMap.TryGetValue(reqId, out progressId))
+                if (this.formatterProgressTracker.RequestProgressMap.TryGetValue(reqId, out progressId))
                 {
-                    this.formatterHelper.requestProgressMap.Remove(reqId);
-                    this.formatterHelper.progressMap.Remove(progressId);
+                    this.formatterProgressTracker.RequestProgressMap.Remove(reqId);
+                    this.formatterProgressTracker.ProgressMap.Remove(progressId);
                 }
             }
         }
@@ -639,7 +639,7 @@ namespace StreamJsonRpc
                 this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
             }
 
-            public override bool CanConvert(Type objectType) => MessageFormatterHelper.FindIProgressOfT(objectType) != null;
+            public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.FindIProgressOfT(objectType) != null;
 
             public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
             {
@@ -648,7 +648,7 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                long progressId = this.formatter.formatterHelper.AddProgressObjectToMap(value);
+                long progressId = this.formatter.formatterProgressTracker.AddProgressObjectToMap(value);
                 writer.WriteValue(progressId);
             }
         }
@@ -675,7 +675,7 @@ namespace StreamJsonRpc
                 }
 
                 JToken token = JToken.Load(reader);
-                Type progressType = typeof(JsonProgress<>).MakeGenericType(objectType.GenericTypeArguments[0]);
+                Type progressType = typeof(MessageFormatterProgressTracker.JsonProgress<>).MakeGenericType(objectType.GenericTypeArguments[0]);
                 return Activator.CreateInstance(progressType, new object[] { this.formatter.Rpc, token });
             }
 

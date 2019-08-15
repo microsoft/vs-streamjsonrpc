@@ -289,6 +289,14 @@ public abstract class JsonRpcTests : TestBase
         Assert.False(weakRef.IsAlive);
     }
 
+    [Fact]
+    public async Task NotifyWithProgressParameter_NoMemoryLeakConfirm()
+    {
+        WeakReference weakRef = await this.NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper();
+        GC.Collect();
+        Assert.False(weakRef.IsAlive);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -847,10 +855,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressParameter()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
-        {
-            report = n;
-        });
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
         int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
 
@@ -862,22 +867,13 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()
     {
         int report1 = 0;
-        ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n =>
-        {
-            report1 = n;
-        });
+        ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n => report1 = n);
 
         int report2 = 0;
-        ProgressWithCompletion<int> progress2 = new ProgressWithCompletion<int>(n =>
-        {
-            report2 = n * 2;
-        });
+        ProgressWithCompletion<int> progress2 = new ProgressWithCompletion<int>(n => report2 = n * 2);
 
         int report3 = 0;
-        ProgressWithCompletion<int> progress3 = new ProgressWithCompletion<int>(n =>
-        {
-            report3 = n * 3;
-        });
+        ProgressWithCompletion<int> progress3 = new ProgressWithCompletion<int>(n => report3 = n * 3);
 
         await this.InvokeMethodWithProgressParameter(progress1);
         await this.InvokeMethodWithProgressParameter(progress2);
@@ -896,10 +892,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_InvalidParamMethod()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
-        {
-            report = n;
-        });
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
     }
@@ -908,10 +901,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
-        {
-            report += n;
-        });
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
 
@@ -923,10 +913,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n =>
-        {
-            report += n;
-        });
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
 
@@ -1517,6 +1504,21 @@ public abstract class JsonRpcTests : TestBase
         WeakReference weakRef = new WeakReference(progress);
 
         int invokeTask = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress });
+
+        // Clear progress variable locally
+        progress = null;
+
+        return weakRef;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        WeakReference weakRef = new WeakReference(progress);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
 
         // Clear progress variable locally
         progress = null;

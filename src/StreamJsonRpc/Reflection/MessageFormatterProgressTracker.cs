@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc.Reflection
 {
     using System;
     using System.Collections.Generic;
@@ -12,14 +12,14 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Linq;
 
     /// <summary>
-    /// Class containing useful methods to help on the implementation of message formatters.
+    /// Class containing useful methods to help message formatters implement support for <see cref="IProgress{T}"/>.
     /// </summary>
-    public class MessageFormatterHelper
+    public class MessageFormatterProgressTracker
     {
         /// <summary>
         /// Dictionary used to map progress id token to its corresponding <see cref="ProgressParamInformation" /> instance containing the progress object and the necessary fields to report the results.
         /// </summary>
-        public readonly Dictionary<long, ProgressParamInformation> progressMap = new Dictionary<long, ProgressParamInformation>();
+        public readonly Dictionary<long, ProgressParamInformation> ProgressMap = new Dictionary<long, ProgressParamInformation>();
 
         /// <summary>
         /// Special method name for progress notification.
@@ -27,24 +27,24 @@ namespace StreamJsonRpc
         internal const string ProgressRequestSpecialMethod = "$/progress";
 
         /// <summary>
-        /// Object used to lock the access to <see cref="requestProgressMap"/> and <see cref="progressMap"/>.
+        /// Object used to lock the access to <see cref="RequestProgressMap"/> and <see cref="ProgressMap"/>.
         /// </summary>
-        internal readonly object progressLock = new object();
+        internal readonly object ProgressLock = new object();
 
         /// <summary>
         /// Dictionary used to map the outbound request id to their progress id token so that the progress objects are cleaned after getting the final response.
         /// </summary>
-        internal readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
+        internal readonly Dictionary<long, long> RequestProgressMap = new Dictionary<long, long>();
 
         /// <summary>
-        /// Incrementable number to assign as token for the progress objects.
+        /// Gets or sets the the next id value to assign as token for the progress objects.
         /// </summary>
-        internal long nextProgressId;
+        internal long NextProgressId { get; set; }
 
         /// <summary>
-        /// Stores the id of the request currently being serialized so the converter can use it to create the request-progress map.
+        /// Gets or Sets the id of the request currently being serialized so the converter can use it to create the request-progress map.
         /// </summary>
-        internal long? requestIdBeingSerialized;
+        internal long? RequestIdBeingSerialized { get; set; }
 
         /// <summary>
         /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
@@ -64,7 +64,7 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Saves a <see cref="ProgressParamInformation"/> instance obtained from the given <see cref="object"/> into <see cref="progressMap"/>.
+        /// Saves a <see cref="ProgressParamInformation"/> instance obtained from the given <see cref="object"/> into <see cref="ProgressMap"/>.
         /// </summary>
         /// <param name="value">The object which should implement <see cref="IProgress{T}"/> to create the <see cref="ProgressParamInformation"/> instance.</param>
         /// <returns>The assigned <see cref="long"/> progres ID.</returns>
@@ -72,17 +72,17 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(value, nameof(value));
 
-            if (this.requestIdBeingSerialized == null)
+            if (this.RequestIdBeingSerialized == null)
             {
                 throw new NotSupportedException("IProgress<T> objects should not be part of any response or notification.");
             }
 
-            lock (this.progressLock)
+            lock (this.ProgressLock)
             {
-                long progressId = this.nextProgressId++;
-                this.requestProgressMap.Add(this.requestIdBeingSerialized.Value, progressId);
+                long progressId = this.NextProgressId++;
+                this.RequestProgressMap.Add(this.RequestIdBeingSerialized.Value, progressId);
 
-                this.progressMap.Add(progressId, new ProgressParamInformation(value));
+                this.ProgressMap.Add(progressId, new ProgressParamInformation(value));
 
                 return progressId;
             }
@@ -101,7 +101,7 @@ namespace StreamJsonRpc
             {
                 Requires.NotNull(progressObject, nameof(progressObject));
 
-                Type iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(progressObject.GetType());
+                Type iProgressOfTType = MessageFormatterProgressTracker.FindIProgressOfT(progressObject.GetType());
 
                 Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
 
@@ -111,17 +111,17 @@ namespace StreamJsonRpc
             }
 
             /// <summary>
-            /// The actual <see cref="Type"/> reported by <see cref="IProgress{T}"/>.
+            /// Gets the actual <see cref="Type"/> reported by <see cref="IProgress{T}"/>.
             /// </summary>
             public Type ValueType { get; }
 
             /// <summary>
-            /// The <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
+            /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
             /// </summary>
             public MethodInfo ReportMethod { get; }
 
             /// <summary>
-            /// The instance of the object implementing <see cref="IProgress{T}"/>.
+            /// Gets the instance of the object implementing <see cref="IProgress{T}"/>.
             /// </summary>
             public object ProgressObject { get; }
         }
@@ -138,7 +138,7 @@ namespace StreamJsonRpc
             /// Initializes a new instance of the <see cref="JsonProgress{T}"/> class.
             /// </summary>
             /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> norification.</param>
-            /// <param name="token">The <see cref="long"/> progress token used to obtain the <see cref="ProgressParamInformation"/> intance from <see cref="progressMap"/>.</param>
+            /// <param name="token">The <see cref="long"/> progress token used to obtain the <see cref="ProgressParamInformation"/> intance from <see cref="ProgressMap"/>.</param>
             public JsonProgress(JsonRpc rpc, long? token)
             {
                 this.rpc = rpc ?? throw new ArgumentNullException(nameof(rpc));
@@ -149,7 +149,7 @@ namespace StreamJsonRpc
             /// Initializes a new instance of the <see cref="JsonProgress{T}"/> class.
             /// </summary>
             /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> norification.</param>
-            /// <param name="token">The <see cref="JToken"/> progress token used to obtain the <see cref="ProgressParamInformation"/> intance from <see cref="progressMap"/>.</param>
+            /// <param name="token">The <see cref="JToken"/> progress token used to obtain the <see cref="ProgressParamInformation"/> intance from <see cref="ProgressMap"/>.</param>
             public JsonProgress(JsonRpc rpc, JToken token)
                 : this(rpc, token.Value<long>())
             {

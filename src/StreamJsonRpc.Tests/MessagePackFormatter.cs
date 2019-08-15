@@ -16,6 +16,7 @@ namespace StreamJsonRpc
     using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Serializes JSON-RPC messages using MessagePack (a fast, compact binary format).
@@ -25,7 +26,7 @@ namespace StreamJsonRpc
     /// The README on that project site describes use cases and its performance compared to alternative
     /// .NET MessagePack implementations and this one appears to be the best by far.
     /// </remarks>
-    public class MessagePackFormatter : MessageFormatterHelper, IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
+    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
         /// A value indicating whether to use LZ4 compression.
@@ -33,14 +34,14 @@ namespace StreamJsonRpc
         private readonly bool compress;
 
         /// <summary>
+        /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
+
+        /// <summary>
         /// Backing field for the <see cref="Rpc"/> property.
         /// </summary>
         private JsonRpc rpc;
-
-        /// <summary>
-        /// <see cref="MessageFormatterHelper"/> instance containing useful methods to help on the implementation of message formatters.
-        /// </summary>
-        private readonly MessageFormatterHelper formatterHelper = new MessageFormatterHelper();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class
@@ -60,6 +61,14 @@ namespace StreamJsonRpc
             this.compress = compress;
         }
 
+        /// <summary>
+        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>./>
+        /// </summary>
+        private MessagePackSerializerOptions CompressOptions
+        {
+            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
+        }
+
         /// <inheritdoc/>
         public JsonRpc Rpc
         {
@@ -76,9 +85,7 @@ namespace StreamJsonRpc
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
         {
 
-            return this.compress ?
-                (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), MessagePackSerializerOptions.LZ4Default) :
-                (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream());
+            return (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), this.CompressOptions);
         }
 
         /// <inheritdoc/>
@@ -91,14 +98,7 @@ namespace StreamJsonRpc
                 request.Arguments = GetParamsObjectDictionary(request.Arguments);
             }
 
-            if (this.compress)
-            {
-                MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, MessagePackSerializerOptions.LZ4Default);
-            }
-            else
-            {
-                MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message);
-            }
+            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.CompressOptions);
         }
 
         /// <inheritdoc/>
@@ -150,7 +150,7 @@ namespace StreamJsonRpc
         private class StandardPlusIProgressOfTResolver : IFormatterResolver
         {
             private readonly MessagePackFormatter formatter;
-            private Dictionary<Type, object> progressFormatterCache = new Dictionary<Type, object>();
+            private readonly Dictionary<Type, object> progressFormatterCache = new Dictionary<Type, object>();
 
             public StandardPlusIProgressOfTResolver(MessagePackFormatter formatter)
             {
@@ -159,7 +159,7 @@ namespace StreamJsonRpc
 
             public IMessagePackFormatter<T> GetFormatter<T>()
             {
-                Type iProgressOfTType = MessageFormatterHelper.FindIProgressOfT(typeof(T));
+                Type iProgressOfTType = MessageFormatterProgressTracker.FindIProgressOfT(typeof(T));
 
                 if (iProgressOfTType != null)
                 {
@@ -194,7 +194,7 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, TIProgressOfT value, MessagePackSerializerOptions options)
             {
-                long progressId = this.formatter.formatterHelper.AddProgressObjectToMap(value);
+                long progressId = this.formatter.formatterProgressTracker.AddProgressObjectToMap(value);
                 writer.Write(progressId);
             }
 
@@ -202,10 +202,10 @@ namespace StreamJsonRpc
             {
                 long token = reader.ReadInt64();
 
-                if (this.formatter.formatterHelper.progressMap.TryGetValue(token, out ProgressParamInformation progressInfo))
+                if (this.formatter.formatterProgressTracker.ProgressMap.TryGetValue(token, out MessageFormatterProgressTracker.ProgressParamInformation progressInfo))
                 {
-                    Type progressType = typeof(JsonProgress<>).MakeGenericType(typeof(T));
-                    IProgress<T> p = new JsonProgress<T>(this.formatter.Rpc, token);
+                    Type progressType = typeof(MessageFormatterProgressTracker.JsonProgress<>).MakeGenericType(typeof(T));
+                    IProgress<T> p = new MessageFormatterProgressTracker.JsonProgress<T>(this.formatter.Rpc, token);
                     return (TIProgressOfT)p;
                 }
 
