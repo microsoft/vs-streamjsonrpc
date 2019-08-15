@@ -287,4 +287,7 @@
   <data name="FormatterAlreadyInUseError" xml:space="preserve">
     <value>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</value>
   </data>
+  <data name="ProgressObjectInResponseOrNotificationError" xml:space="preserve">
+    <value>IProgress&lt;T&gt; objects should not be part of any response or notification.</value>
+  </data>
 </root>

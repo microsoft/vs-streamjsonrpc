@@ -61,14 +61,6 @@ namespace StreamJsonRpc
             this.compress = compress;
         }
 
-        /// <summary>
-        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>./>
-        /// </summary>
-        private MessagePackSerializerOptions CompressOptions
-        {
-            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
-        }
-
         /// <inheritdoc/>
         public JsonRpc Rpc
         {
@@ -82,11 +74,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
-        {
-
-            return (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), this.CompressOptions);
-        }
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), this.CompressOptions);
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -99,6 +87,14 @@ namespace StreamJsonRpc
             }
 
             MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.CompressOptions);
+        }
+
+        /// <summary>
+        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>./>
+        /// </summary>
+        private MessagePackSerializerOptions CompressOptions
+        {
+            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
         }
 
         /// <inheritdoc/>
@@ -202,14 +198,8 @@ namespace StreamJsonRpc
             {
                 long token = reader.ReadInt64();
 
-                if (this.formatter.formatterProgressTracker.ProgressMap.TryGetValue(token, out MessageFormatterProgressTracker.ProgressParamInformation progressInfo))
-                {
-                    Type progressType = typeof(MessageFormatterProgressTracker.JsonProgress<>).MakeGenericType(typeof(T));
-                    IProgress<T> p = new MessageFormatterProgressTracker.JsonProgress<T>(this.formatter.Rpc, token);
-                    return (TIProgressOfT)p;
-                }
-
-                return default(TIProgressOfT);
+                IProgress<T> p = this.formatter.formatterProgressTracker.CreateProgress<T>(this.formatter.Rpc, token);
+                return (TIProgressOfT)p;
             }
         }
     }

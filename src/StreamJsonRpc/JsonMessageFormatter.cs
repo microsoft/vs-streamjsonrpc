@@ -92,11 +92,15 @@ namespace StreamJsonRpc
         /// <summary>
         /// Backing field for the <see cref="Rpc"/> property.
         /// </summary>
+        /// <remarks>
+        /// This field is used to create the <see cref="MessageFormatterProgressTracker.JsonProgress{T}" /> object that will send the progress notifications when server reports it.
+        /// The <see cref="Rpc" /> property helps to ensure that only one <see cref="JsonRpc" /> instance is associated with this formatter.
+        /// </remarks>
         private JsonRpc rpc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
-        /// that uses <see cref="Encoding.UTF8"/> (without the preamble) for its text encoding.
+        /// that uses JsonProgress (without the preamble) for its text encoding.
         /// </summary>
         public JsonMessageFormatter()
             : this(DefaultEncoding)
@@ -464,13 +468,11 @@ namespace StreamJsonRpc
                         args is JArray ? args[1] :
                         null;
 
-                    lock (this.formatterProgressTracker.ProgressLock)
+                    MessageFormatterProgressTracker.ProgressParamInformation progressInfo = null;
+                    if (this.formatterProgressTracker.GetProgressTypeToReport(progressId, out progressInfo))
                     {
-                        if (this.formatterProgressTracker.ProgressMap.TryGetValue(progressId.Value<long>(), out MessageFormatterProgressTracker.ProgressParamInformation progressInfo))
-                        {
-                            object typedValue = value.ToObject(progressInfo.ValueType);
-                            progressInfo.ReportMethod.Invoke(progressInfo.ProgressObject, new object[] { typedValue });
-                        }
+                        object typedValue = value.ToObject(progressInfo.ValueType);
+                        progressInfo.InvokeReport(typedValue);
                     }
                 }
                 catch (Exception e)
@@ -526,18 +528,9 @@ namespace StreamJsonRpc
 
         private void ClearProgressObject(JToken requestId)
         {
-            long reqId = requestId.Value<long>();
+            Requires.NotNull(requestId, nameof(requestId));
 
-            lock (this.formatterProgressTracker.ProgressLock)
-            {
-                long progressId;
-
-                if (this.formatterProgressTracker.RequestProgressMap.TryGetValue(reqId, out progressId))
-                {
-                    this.formatterProgressTracker.RequestProgressMap.Remove(reqId);
-                    this.formatterProgressTracker.ProgressMap.Remove(progressId);
-                }
-            }
+            this.formatterProgressTracker.ClearProgressMaps(requestId.Value<long>());
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
@@ -675,8 +668,8 @@ namespace StreamJsonRpc
                 }
 
                 JToken token = JToken.Load(reader);
-                Type progressType = typeof(MessageFormatterProgressTracker.JsonProgress<>).MakeGenericType(objectType.GenericTypeArguments[0]);
-                return Activator.CreateInstance(progressType, new object[] { this.formatter.Rpc, token });
+
+                return this.formatter.formatterProgressTracker.CreateProgress(this.formatter.Rpc, token, objectType);
             }
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

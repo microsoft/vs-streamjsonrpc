@@ -12,17 +12,20 @@ StreamJsonRpc.JsonMessageFormatter.Rpc.set -> void
 StreamJsonRpc.JsonRpc.TraceEvents.ProgressNotificationError = 16 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.AddProgressObjectToMap(object value) -> long
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.JsonProgress(StreamJsonRpc.JsonRpc rpc, Newtonsoft.Json.Linq.JToken token) -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.JsonProgress(StreamJsonRpc.JsonRpc rpc, long? token) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ClearProgressMaps(long requestId) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc rpc, object token, System.Type valueType) -> object
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc rpc, object token) -> System.IProgress<T>
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.GetProgressTypeToReport(object progressId, out StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation valueType) -> bool
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.JsonProgress(StreamJsonRpc.JsonRpc rpc, object token) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.JsonProgress<T>.Report(T value) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.MessageFormatterProgressTracker() -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ProgressObject.get -> object
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.InvokeReport(object typedValue) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ProgressParamInformation(object progressObject) -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ReportMethod.get -> System.Reflection.MethodInfo
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ValueType.get -> System.Type
-readonly StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressMap -> System.Collections.Generic.Dictionary<long, StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation>
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialized.get -> long?
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialized.set -> void
+const StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressRequestSpecialMethod = "$/progress" -> string
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler) -> T
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler, StreamJsonRpc.JsonRpcProxyOptions options) -> T
 static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.FindIProgressOfT(System.Type objectType) -> System.Type
