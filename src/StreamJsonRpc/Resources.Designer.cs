@@ -340,6 +340,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Response is in an unexpected format.  Only error and result are supported: {0}.
+        /// </summary>
+        internal static string ResponseUnexpectedFormat {
+            get {
+                return ResourceManager.GetString("ResponseUnexpectedFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No method by the name &apos;{0}&apos; is found..
         /// </summary>
         internal static string RpcMethodNameNotFound {

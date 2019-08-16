@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Nerdbank.Streams;
 using StreamJsonRpc;
 using Xunit;
@@ -12,104 +7,166 @@ using Xunit.Abstractions;
 public class JsonRpcRelayTests : TestBase
 {
     private JsonRpc localRpc;
-    private JsonRpc serverRpc;
-    private JsonRpc relayServerRpc;
+    private JsonRpc originRpc;
+    private JsonRpc remoteRpc1;
+    private JsonRpc remoteRpc2;
 
     public JsonRpcRelayTests(ITestOutputHelper logger)
        : base(logger)
     {
         var streams = FullDuplexStream.CreatePair();
-        this.localRpc = JsonRpc.Attach(streams.Item2, new LocalOriginClient());
-        this.serverRpc = new JsonRpc(streams.Item1, streams.Item1, new OriginServer());
+        this.localRpc = JsonRpc.Attach(streams.Item2, new LocalOriginTarget());
+        this.localRpc.AllowModificationWhileListening = true;
+        this.originRpc = new JsonRpc(streams.Item1, streams.Item1, new OriginTarget());
 
-        this.serverRpc.AddLocalRpcTarget(new OriginServer());
-        this.serverRpc.StartListening();
+        this.originRpc.AddLocalRpcTarget(new OriginTarget());
+        this.originRpc.StartListening();
 
-        var relayStreams = Nerdbank.FullDuplexStream.CreateStreams();
-        var relayServerStream = relayStreams.Item1;
-        var relayClientStream = relayStreams.Item2;
+        var remoteStreams1 = Nerdbank.FullDuplexStream.CreateStreams();
+        var remoteServerStream1 = remoteStreams1.Item1;
+        var remoteClientStream1 = remoteStreams1.Item2;
 
-        this.relayServerRpc = new JsonRpc(relayServerStream, relayServerStream, new RelayServer());
-        this.relayServerRpc.StartListening();
+        var remoteStreams2 = Nerdbank.FullDuplexStream.CreateStreams();
+        var remoteServerStream2 = remoteStreams2.Item1;
+        var remoteClientStream2 = remoteStreams2.Item2;
 
-        this.localRpc.Relay(relayClientStream, relayClientStream, new LocalRelayClient());
+        var remoteTarget1 = JsonRpc.Attach(remoteClientStream1, remoteClientStream1, new LocalRelayTarget());
+        remoteTarget1.AllowModificationWhileListening = true;
+
+        var remoteTarget2 = JsonRpc.Attach(remoteClientStream2, remoteClientStream2, new LocalRelayTarget());
+        remoteTarget2.AllowModificationWhileListening = true;
+
+        this.remoteRpc1 = new JsonRpc(remoteServerStream1, remoteServerStream1, new RemoteTargetOne());
+        this.remoteRpc1.StartListening();
+
+        this.remoteRpc2 = new JsonRpc(remoteServerStream2, remoteServerStream2, new RemoteTargetTwo());
+        this.remoteRpc2.StartListening();
+
+        this.localRpc.AddRemoteRpcTarget(remoteTarget1);
+        this.localRpc.AddRemoteRpcTarget(remoteTarget2);
+        remoteTarget1.AddRemoteRpcTarget(this.localRpc);
+        remoteTarget2.AddRemoteRpcTarget(this.localRpc);
     }
 
     [Fact]
     public async Task CanInvokeOnRelayServer()
     {
-        string result1 = await this.serverRpc.InvokeAsync<string>(nameof(RelayServer.RelayServerSayHello), "foo");
-        Assert.Equal("Hello foo", result1);
+        int result1 = await this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.AddOne), 1);
+        Assert.Equal(2, result1);
     }
 
     [Fact]
     public async Task CanInvokeOnOriginServer()
     {
-        string result1 = await this.relayServerRpc.InvokeAsync<string>(nameof(OriginServer.OriginServerSayGoodbye), "foo");
+        string result1 = await this.remoteRpc1.InvokeAsync<string>(nameof(OriginTarget.OriginServerSayGoodbye), "foo");
         Assert.Equal("Goodbye foo", result1);
     }
 
     [Fact]
     public async Task CanInvokeOnRelayClient()
     {
-        string result1 = await this.relayServerRpc.InvokeAsync<string>(nameof(LocalRelayClient.LocalRelayClientSayHi), "foo");
-        Assert.Equal("Hi foo from LocalRelayClient", result1);
+        string result1 = await this.remoteRpc1.InvokeAsync<string>(nameof(LocalRelayTarget.LocalRelayClientSayHi), "foo");
+        Assert.Equal($"Hi foo from {nameof(LocalRelayTarget)}", result1);
     }
 
     [Fact]
     public async Task LocalOriginClientOverridesRelayServer()
     {
-        string result1 = await this.serverRpc.InvokeAsync<string>("GetName");
-        Assert.Equal(nameof(LocalOriginClient), result1);
+        string result1 = await this.originRpc.InvokeAsync<string>("GetName");
+        Assert.Equal(nameof(LocalOriginTarget), result1);
     }
 
     [Fact]
     public async Task LocalRelayClientOverridesOriginServer()
     {
-        string result1 = await this.relayServerRpc.InvokeAsync<string>("GetName");
-        Assert.Equal(nameof(LocalRelayClient), result1);
+        string result1 = await this.remoteRpc1.InvokeAsync<string>("GetName");
+        Assert.Equal(nameof(LocalRelayTarget), result1);
     }
 
-    public class RelayServer
+    [Fact]
+    public async Task CanInvokeAdditionalRemoteTarget()
     {
-        public static string RelayServerSayHello(string name)
+        int result = await this.originRpc.InvokeAsync<int>(nameof(RemoteTargetTwo.AddTwo), 2);
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public async Task AdditionRemoteTargetsInvokedInOrder()
+    {
+        string result = await this.originRpc.InvokeAsync<string>(nameof(RemoteTargetTwo.GetRemoteName));
+        Assert.Equal($"Remote {nameof(RemoteTargetOne)}", result);
+    }
+
+    [Fact]
+    public async Task CanInvokeOnOriginServerFromAdditionalRemoteTarget()
+    {
+        string result1 = await this.remoteRpc2.InvokeAsync<string>(nameof(OriginTarget.OriginServerSayGoodbye), "foo");
+        Assert.Equal("Goodbye foo", result1);
+    }
+
+    public class RemoteTargetOne
+    {
+        public static int AddOne(int value)
         {
-            return "Hello " + name;
+            return value + 1;
         }
 
         public string GetName()
         {
-            return nameof(RelayServer);
+            return nameof(RemoteTargetOne);
+        }
+
+        public string GetRemoteName()
+        {
+            return $"Remote {nameof(RemoteTargetOne)}";
         }
     }
 
-    public class LocalOriginClient
+    public class RemoteTargetTwo
+    {
+        public static int AddTwo(int value)
+        {
+            return value + 2;
+        }
+
+        public string GetName()
+        {
+            return nameof(RemoteTargetOne);
+        }
+
+        public string GetRemoteName()
+        {
+            return $"Remote {nameof(RemoteTargetTwo)}";
+        }
+    }
+
+    public class LocalOriginTarget
     {
         public static string LocalOriginClientSayHi(string name)
         {
-            return $"Hi {name} from {nameof(LocalOriginClient)}";
+            return $"Hi {name} from {nameof(LocalOriginTarget)}";
         }
 
         public string GetName()
         {
-            return nameof(LocalOriginClient);
+            return nameof(LocalOriginTarget);
         }
     }
 
-    public class LocalRelayClient
+    public class LocalRelayTarget
     {
         public static string LocalRelayClientSayHi(string name)
         {
-            return $"Hi {name} from {nameof(LocalRelayClient)}";
+            return $"Hi {name} from {nameof(LocalRelayTarget)}";
         }
 
         public string GetName()
         {
-            return nameof(LocalRelayClient);
+            return nameof(LocalRelayTarget);
         }
     }
 
-    public class OriginServer
+    public class OriginTarget
     {
         public static string OriginServerSayGoodbye(string name)
         {
@@ -118,7 +175,7 @@ public class JsonRpcRelayTests : TestBase
 
         public string GetName()
         {
-            return nameof(OriginServer);
+            return nameof(OriginTarget);
         }
     }
 }

@@ -124,7 +124,10 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext synchronizationContext;
 
-        private JsonRpc relayRpc;
+        /// <summary>
+        /// List of remote RPC targets to call if connection should be relayed.
+        /// </summary>
+        private readonly List<JsonRpc> remoteRpcTargets = new List<JsonRpc>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -580,35 +583,6 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Forms a JsonRpc connection with the given streams and relays calls from the server attached to this rpc connection
-        /// to the relay connection.
-        /// </summary>
-        /// <param name="relaySendingStream">Stream used to send messages to the server being relayed.</param>
-        /// <param name="relayReceivingStream">Stream used to receive messages from the server being relayed.</param>
-        /// <param name="relayTarget">The target the relay server can call back to on this rpc connection. If a target method is not found, then the message will be forwarded to the origin server.</param>
-        /// <remarks>
-        /// This method supports the scenario where 2 streams are being used to communicate between 3 endpoints (origin, local, relayServer). The connection established by this JsonRpc object represents
-        /// communication between origin and local.  However, there may need to be cases where origin needs to communicate with relayServer directly (and vice versa) using arbitrary messages, and the owner of
-        /// the local endpoint is the one who creates the connection to the relayServer. In this case, the local endpoint acts as a relay between origin and relayServer.  Messages sent from the origin can
-        /// either be destined to local, or relayServer.  The origin does not have to indicate where its messages should go. If local's target for the origin/local connection handles messages from server,
-        /// then the local target will be invoked.  Otherwise, the message will be forwarded to relayServer.  Likewise, messages sent from the relayServer does not need to indicate destination. If local's
-        /// relayTarget handles messages from relayServer, then relayTarget will be invoked.  Otherwise, the message will be forwarded to origin.
-        /// </remarks>
-        public void Relay(Stream relaySendingStream, Stream relayReceivingStream, object relayTarget = null)
-        {
-            if (this.relayRpc != null)
-            {
-                throw new InvalidOperationException(Resources.RelayAlreadySet);
-            }
-
-            // This establishes the forwarding from origin to relayServer.
-            this.relayRpc = JsonRpc.Attach(relaySendingStream, relayReceivingStream, relayTarget);
-
-            // This establishes the forwardeding from relayServer to origin. In this case, the relay connection is the one between local and origin, which is "this".
-            this.relayRpc.relayRpc = this;
-        }
-
-        /// <summary>
         /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
         /// should not inherit from each other and are invoked in the order which they are added.
         /// </summary>
@@ -685,6 +659,18 @@ namespace StreamJsonRpc
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds a remote rpc connection so calls can be forwarded to the remote target if local targets do not handle it. 
+        /// </summary>
+        /// <param name="remoteTarget">The json rpc connection to the remote target.</param>
+        public void AddRemoteRpcTarget(JsonRpc remoteTarget)
+        {
+            Requires.NotNull(remoteTarget, nameof(remoteTarget));
+            this.ThrowIfConfigurationLocked();
+
+            this.remoteRpcTargets.Add(remoteTarget);
         }
 
         /// <summary>
@@ -1133,10 +1119,23 @@ namespace StreamJsonRpc
                 request.Arguments = arguments ?? EmptyObjectArray;
             }
 
-            return await this.InvokeCoreAsync<TResult>(request, cancellationToken).ConfigureAwait(false);
+            var response = await this.InvokeCoreAsync(request, cancellationToken).ConfigureAwait(false);
+
+            if (response is JsonRpcError error)
+            {
+                throw CreateExceptionFromRpcError(error, request.Method);
+            }
+            else if (response is JsonRpcResult result)
+            {
+                return result.GetResult<TResult>();
+            }
+            else
+            {
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.ResponseUnexpectedFormat, JsonConvert.SerializeObject(response)));
+            }
         }
 
-        private async Task<TResult> InvokeCoreAsync<TResult>(JsonRpcRequest request, CancellationToken cancellationToken)
+        private async Task<JsonRpcMessage> InvokeCoreAsync(JsonRpcRequest request, CancellationToken cancellationToken)
         {
             Requires.NotNull(request, nameof(request));
 
@@ -1161,7 +1160,7 @@ namespace StreamJsonRpc
                     }
 
                     Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
-                    var tcs = new TaskCompletionSource<TResult>();
+                    var tcs = new TaskCompletionSource<JsonRpcMessage>();
                     Action<JsonRpcMessage> dispatcher = (response) =>
                     {
                         lock (this.dispatcherMapLock)
@@ -1188,20 +1187,13 @@ namespace StreamJsonRpc
                                     tcs.TrySetException(new ConnectionLostException());
                                 }
                             }
-                            else if (response is JsonRpcError error)
+                            else if (response is JsonRpcError error && error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
                             {
-                                if (error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
-                                {
-                                    tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
-                                }
-                                else
-                                {
-                                    tcs.TrySetException(CreateExceptionFromRpcError(error, request.Method));
-                                }
+                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
                             }
-                            else if (response is JsonRpcResult result)
+                            else
                             {
-                                tcs.TrySetResult(result.GetResult<TResult>());
+                                tcs.SetResult(response);
                             }
                         }
                         catch (Exception ex)
@@ -1501,19 +1493,29 @@ namespace StreamJsonRpc
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
                     // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
                     // other side.
-                    if (this.relayRpc != null)
+                    if (this.remoteRpcTargets.Any())
                     {
                         lock (this.dispatcherMapLock)
                         {
                             this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
                         }
 
-                        var relayResult = await this.relayRpc.InvokeCoreAsync<object>(request, localMethodCancellationSource.Token).ConfigureAwait(false);
-                        return new JsonRpcResult
+                        foreach (var remoteTarget in this.remoteRpcTargets)
                         {
-                            Id = request.Id,
-                            Result = relayResult,
-                        };
+                            var response = await remoteTarget.InvokeCoreAsync(request, localMethodCancellationSource.Token).ConfigureAwait(false);
+
+                            if (response is JsonRpcError error && error.Error != null)
+                            {
+                                if (error.Error.Code == JsonRpcErrorCode.MethodNotFound || error.Error.Code == JsonRpcErrorCode.InvalidParams)
+                                {
+                                    // If the result is an error and that error is method not found or invalid parameters on the remote target, then we continue on to the next target.
+                                    continue;
+                                }
+                            }
+
+                            // Otherwise, we simply retrun the json response;
+                            return response;
+                        }
                     }
 
                     if (!targetRequestMethodToClrMethodMapHasItems)
