@@ -3,166 +3,235 @@
 
 namespace StreamJsonRpc
 {
+    using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.Text;
     using StreamJsonRpc.Protocol;
 
-    [EventSource(Name = "Microsoft-VisualStudio-StreamJsonRpc")]
+    /// <summary>
+    /// The ETW source for logging events for this library.
+    /// </summary>
+    /// <remarks>
+    /// We use a fully-descriptive type name because the type name becomes the name
+    /// of the ETW Provider.
+    /// </remarks>
+    [EventSource(Name = "StreamJsonRpc")]
     internal sealed class JsonRpcEventSource : EventSource
     {
         /// <summary>
-        /// The singleton instance used for logging ETW events.
+        /// The singleton instance of this event source.
         /// </summary>
         internal static readonly JsonRpcEventSource Instance = new JsonRpcEventSource();
 
         /// <summary>
-        /// The event ID for the <see cref="SendNotificationStart(string)"/>.
+        /// The event ID for the <see cref="SendingNotification"/>.
         /// </summary>
-        private const int SendNotificationStartEvent = 1;
+        private const int SendingNotificationEvent = 1;
 
         /// <summary>
-        /// The event ID for the <see cref="SendNotificationStop(string)"/>.
+        /// The event ID for the <see cref="SendingRequest"/>.
         /// </summary>
-        private const int SendNotificationStopEvent = 2;
+        private const int SendingRequestEvent = 2;
 
         /// <summary>
-        /// The event ID for the <see cref="SendRequestStart(string)"/>.
+        /// The event ID for the <see cref="SendingCancellationRequest"/>.
         /// </summary>
-        private const int SendRequestStartEvent = 3;
+        private const int SendingCancellationRequestEvent = 3;
 
         /// <summary>
-        /// The event ID for the <see cref="SendRequestStop(string)"/>.
+        /// The event ID for the <see cref="ReceivedResult"/>.
         /// </summary>
-        private const int SendRequestStopEvent = 4;
+        private const int ReceivedResultEvent = 4;
 
         /// <summary>
-        /// The event ID for the <see cref="InvokeMethodStart(string)"/>.
+        /// The event ID for the <see cref="ReceivedError"/>.
         /// </summary>
-        private const int InvokeMethodStartEvent = 5;
+        private const int ReceivedErrorEvent = 5;
 
         /// <summary>
-        /// The event ID for the <see cref="InvokeMethodStop(string)"/>.
+        /// The event ID for the <see cref="ReceivedNoResponse"/>.
         /// </summary>
-        private const int InvokeMethodStopEvent = 6;
+        private const int ReceivedNoResponseEvent = 6;
 
         /// <summary>
-        /// The event ID for the <see cref="CancelRequestStart(string)"/>.
+        /// The event ID for the <see cref="ReceivedNotification"/>.
         /// </summary>
-        private const int CancelRequestStartEvent = 7;
+        private const int ReceivedNotificationEvent = 20;
 
         /// <summary>
-        /// The event ID for the <see cref="CancelRequestStop(string)"/>.
+        /// The event ID for the <see cref="ReceivedRequest"/>.
         /// </summary>
-        private const int CancelRequestStopEvent = 8;
+        private const int ReceivedRequestEvent = 21;
 
         /// <summary>
-        /// The event ID for the <see cref="InvokeNotificationStart(string)"/>.
+        /// The event ID for the <see cref="ReceivedCancellationRequest"/>.
         /// </summary>
-        private const int InvokeNotificationStartEvent = 9;
+        private const int ReceivedCancellationRequestEvent = 22;
 
         /// <summary>
-        /// The event ID for the <see cref="InvokeNotificationStop(string)"/>.
+        /// The event ID for the <see cref="SendingResult"/>.
         /// </summary>
-        private const int InvokeNotificationStopEvent = 10;
+        private const int SendingResultEvent = 23;
 
         /// <summary>
-        /// Send Notification start.
+        /// The event ID for the <see cref="SendingError"/>.
         /// </summary>
-        /// <param name="message">Notification details.</param>
-        [Event(SendNotificationStartEvent, Task = Tasks.SendNotification, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
-        public void SendNotificationStart(string message)
+        private const int SendingErrorEvent = 24;
+
+        /// <summary>
+        /// The event ID for the <see cref="TransmissionQueued"/>.
+        /// </summary>
+        private const int TransmissionQueuedEvent = 30;
+
+        /// <summary>
+        /// The event ID for the <see cref="TransmissionCompleted"/>.
+        /// </summary>
+        private const int TransmissionCompletedEvent = 31;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcEventSource"/> class.
+        /// </summary>
+        /// <remarks>
+        /// ETW wants to see no more than one instance of this class.
+        /// </remarks>
+        private JsonRpcEventSource()
         {
-            this.WriteEvent(SendNotificationStartEvent, message);
         }
 
         /// <summary>
-        /// Send Notification end.
+        /// Signals the transmission of a notification.
         /// </summary>
-        /// <param name="message">Notification details.</param>
-        [Event(SendNotificationStopEvent, Task = Tasks.SendNotification, Opcode = EventOpcode.Stop, Level = EventLevel.Verbose)]
-        public void SendNotificationStop(string message)
+        /// <param name="method">The name of the method.</param>
+        /// <param name="args">A snippet representing the arguments.</param>
+        [Event(SendingNotificationEvent, Task = Tasks.Notification, Opcode = EventOpcode.Send, Level = EventLevel.Verbose)]
+        public void SendingNotification(string method, string args)
         {
-            this.WriteEvent(SendNotificationStopEvent, message);
+            this.WriteEvent(SendingNotificationEvent, method, args);
         }
 
         /// <summary>
-        /// Send Request start.
+        /// Signals the transmission of a request.
         /// </summary>
-        /// <param name="message">Request details.</param>
-        [Event(SendRequestStartEvent, Task = Tasks.SendRequest, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
-        public void SendRequestStart(string message)
+        /// <param name="requestId">The id of the request, if any.</param>
+        /// <param name="method">The name of the method.</param>
+        /// <param name="args">A snippet representing the arguments.</param>
+        [Event(SendingRequestEvent, Task = Tasks.OutboundCall, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
+        public void SendingRequest(long requestId, string method, string args)
         {
-            this.WriteEvent(SendRequestStartEvent, message);
+            this.WriteEvent(SendingRequestEvent, requestId, method, args);
         }
 
         /// <summary>
-        /// Send Request end.
+        /// Signals the receipt of a successful response.
         /// </summary>
-        /// <param name="message">Request details.</param>
-        [Event(SendRequestStopEvent, Task = Tasks.SendRequest, Opcode = EventOpcode.Stop, Level = EventLevel.Verbose)]
-        public void SendRequestStop(string message)
+        /// <param name="requestId">The ID of the request being responded to.</param>
+        [Event(ReceivedResultEvent, Task = Tasks.OutboundCall, Opcode = EventOpcode.Stop, Tags = Tags.Success, Level = EventLevel.Informational)]
+        public void ReceivedResult(long requestId)
         {
-            this.WriteEvent(SendRequestStopEvent, message);
+            this.WriteEvent(ReceivedResultEvent, requestId);
         }
 
         /// <summary>
-        /// Invoke Method start.
+        /// Signals the receipt of a response.
         /// </summary>
-        /// <param name="message">Request and method details.</param>
-        [Event(InvokeMethodStartEvent, Task = Tasks.InvokeMethod, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
-        public void InvokeMethodStart(string message)
+        /// <param name="requestId">The ID of the request being responded to.</param>
+        /// <param name="errorCode">The <see cref="Protocol.JsonRpcErrorCode"/> on the error response.</param>
+        [Event(ReceivedErrorEvent, Task = Tasks.OutboundCall, Opcode = EventOpcode.Stop, Message = "Request {0} failed with: {1}", Tags = Tags.Error, Level = EventLevel.Warning)]
+        public void ReceivedError(long requestId, JsonRpcErrorCode errorCode)
         {
-            this.WriteEvent(InvokeMethodStartEvent, message);
+            this.WriteEvent(ReceivedErrorEvent, requestId, (long)errorCode);
         }
 
         /// <summary>
-        /// Invoke Method end.
+        /// Signals that the connection dropped before a response to a request was received.
         /// </summary>
-        /// <param name="message">Request and method details.</param>
-        [Event(InvokeMethodStopEvent, Task = Tasks.InvokeMethod, Opcode = EventOpcode.Stop, Level = EventLevel.Verbose)]
-        public void InvokeMethodStop(string message)
+        /// <param name="requestId">The ID of the request that did not receive a response.</param>
+        [Event(ReceivedNoResponseEvent, Task = Tasks.OutboundCall, Opcode = EventOpcode.Stop, Message = "Request {0} received no response.", Tags = Tags.Dropped, Level = EventLevel.Warning)]
+        public void ReceivedNoResponse(long requestId)
         {
-            this.WriteEvent(InvokeMethodStopEvent, message);
+            this.WriteEvent(ReceivedNoResponseEvent, requestId);
         }
 
         /// <summary>
-        /// Cancel Request start.
+        /// Signals that a previously transmitted request is being canceled.
         /// </summary>
-        /// <param name="message">Cancellation message.</param>
-        [Event(CancelRequestStartEvent, Task = Tasks.CancelRequest, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
-        public void CancelRequestStart(string message)
+        /// <param name="requestId">The ID of the request being canceled.</param>
+        [Event(SendingCancellationRequestEvent, Task = Tasks.Cancellation, Opcode = EventOpcode.Send, Level = EventLevel.Informational)]
+        public void SendingCancellationRequest(long requestId)
         {
-            this.WriteEvent(CancelRequestStartEvent, message);
+            this.WriteEvent(SendingCancellationRequestEvent, requestId);
         }
 
         /// <summary>
-        /// Cancel Request end.
+        /// Signals the receipt of a notification.
         /// </summary>
-        /// <param name="message">Cancellation message.</param>
-        [Event(CancelRequestStopEvent, Task = Tasks.CancelRequest, Opcode = EventOpcode.Stop, Level = EventLevel.Verbose)]
-        public void CancelRequestStop(string message)
+        /// <param name="method">The name of the method.</param>
+        /// <param name="args">A snippet representing the arguments.</param>
+        [Event(ReceivedNotificationEvent, Task = Tasks.Notification, Opcode = EventOpcode.Receive, Level = EventLevel.Verbose)]
+        public void ReceivedNotification(string method, string args)
         {
-            this.WriteEvent(CancelRequestStopEvent, message);
+            this.WriteEvent(ReceivedNotificationEvent, method, args);
         }
 
         /// <summary>
-        /// Invoke Notification.
+        /// Signals the receipt of a request.
         /// </summary>
-        /// <param name="message">Details of the Notification.</param>
-        [Event(InvokeNotificationStartEvent, Task = Tasks.InvokeNotification, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
-        public void InvokeNotificationStart(string message)
+        /// <param name="requestId">The id of the request, if any.</param>
+        /// <param name="method">The name of the method.</param>
+        /// <param name="args">A snippet representing the arguments.</param>
+        [Event(ReceivedRequestEvent, Task = Tasks.InboundCall, Opcode = EventOpcode.Start, Level = EventLevel.Verbose)]
+        public void ReceivedRequest(long requestId, string method, string args)
         {
-            this.WriteEvent(InvokeNotificationStartEvent, message);
+            this.WriteEvent(ReceivedRequestEvent, requestId, method, args);
         }
 
         /// <summary>
-        /// Notification completed.
+        /// Signals the transmission of a successful response.
         /// </summary>
-        /// <param name="message">Details of the Notification.</param>
-        [Event(InvokeNotificationStopEvent, Task = Tasks.InvokeNotification, Opcode = EventOpcode.Stop, Level = EventLevel.Verbose)]
-        public void InvokeNotificationStop(string message)
+        /// <param name="requestId">The ID of the request being responded to.</param>
+        [Event(SendingResultEvent, Task = Tasks.InboundCall, Opcode = EventOpcode.Stop, Tags = Tags.Success, Level = EventLevel.Informational)]
+        public void SendingResult(long requestId)
         {
-            this.WriteEvent(InvokeNotificationStopEvent, message);
+            this.WriteEvent(SendingResultEvent, requestId);
+        }
+
+        /// <summary>
+        /// Signals the receipt of a response.
+        /// </summary>
+        /// <param name="requestId">The ID of the request being responded to.</param>
+        /// <param name="errorCode">The <see cref="Protocol.JsonRpcErrorCode"/> on the error response.</param>
+        [Event(SendingErrorEvent, Task = Tasks.InboundCall, Opcode = EventOpcode.Stop, Message = "Request {0} failed with: {1}", Tags = Tags.Error, Level = EventLevel.Warning)]
+        public void SendingError(long requestId, JsonRpcErrorCode errorCode)
+        {
+            this.WriteEvent(SendingErrorEvent, requestId, (long)errorCode);
+        }
+
+        /// <summary>
+        /// Signals that a previously transmitted request is being canceled.
+        /// </summary>
+        /// <param name="requestId">The ID of the request being canceled.</param>
+        [Event(ReceivedCancellationRequestEvent, Task = Tasks.Cancellation, Opcode = EventOpcode.Receive, Level = EventLevel.Informational)]
+        public void ReceivedCancellationRequest(long requestId)
+        {
+            this.WriteEvent(ReceivedCancellationRequestEvent, requestId);
+        }
+
+        /// <summary>
+        /// Signals that a message has been queued for transmission.
+        /// </summary>
+        [Event(TransmissionQueuedEvent, Task = Tasks.MessageTransmission, Opcode = EventOpcode.Start, Level = EventLevel.Informational)]
+        public void TransmissionQueued()
+        {
+            this.WriteEvent(TransmissionQueuedEvent);
+        }
+
+        /// <summary>
+        /// Signals that a message has been transmitted.
+        /// </summary>
+        [Event(TransmissionCompletedEvent, Task = Tasks.MessageTransmission, Opcode = EventOpcode.Stop, Level = EventLevel.Informational)]
+        public void TransmissionCompleted()
+        {
+            this.WriteEvent(TransmissionCompletedEvent);
         }
 
         /// <summary>
@@ -203,39 +272,30 @@ namespace StreamJsonRpc
             }
         }
 
-        internal static string GetErrorDetails(JsonRpcError error)
-        {
-            if (error == null)
-            {
-                return string.Empty;
-            }
-
-            string errorDetails = "Error:";
-            if (error.Id != null)
-            {
-                errorDetails += $" Id = \"{error.Id}\", ";
-            }
-
-            if (error.Error != null)
-            {
-                errorDetails += $"Error.Code = \"{error.Error.Code}\", ";
-            }
-
-            return errorDetails;
-        }
-
         /// <summary>
         /// Names of constants in this class make up the middle term in the event name
-        /// E.g.: Microsoft-VisualStudio-StreamJsonRpc/InvokeMethod/Start.
+        /// E.g.: StreamJsonRpc/InvokeMethod/Start.
         /// </summary>
         /// <remarks>Name of this class is important for EventSource.</remarks>
         public static class Tasks
         {
-            public const EventTask SendNotification = (EventTask)1;
-            public const EventTask SendRequest = (EventTask)2;
-            public const EventTask InvokeMethod = (EventTask)3;
-            public const EventTask CancelRequest = (EventTask)4;
-            public const EventTask InvokeNotification = (EventTask)5;
+            public const EventTask OutboundCall = (EventTask)1;
+            public const EventTask InboundCall = (EventTask)2;
+            public const EventTask MessageTransmission = (EventTask)3;
+            public const EventTask Cancellation = (EventTask)4;
+            public const EventTask Notification = (EventTask)5;
+        }
+
+        /// <summary>
+        /// Names of constants in this class make up the middle term in the event name
+        /// E.g.: StreamJsonRpc/InvokeMethod/Start.
+        /// </summary>
+        /// <remarks>Name of this class is important for EventSource.</remarks>
+        public static class Tags
+        {
+            public const EventTags Success = (EventTags)0x1;
+            public const EventTags Error = (EventTags)0x2;
+            public const EventTags Dropped = (EventTags)0x4;
         }
     }
 }
