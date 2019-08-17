@@ -1108,12 +1108,20 @@ namespace StreamJsonRpc
                 {
                     if (!request.IsResponseExpected)
                     {
+                        if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Verbose, System.Diagnostics.Tracing.EventKeywords.None))
+                        {
+                            JsonRpcEventSource.Instance.SendingNotification(targetName, JsonRpcEventSource.GetArgumentsString(arguments));
+                        }
+
                         await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+
                         return default;
                     }
 
                     Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
                     var tcs = new TaskCompletionSource<TResult>();
+                    string responseDetails = string.Empty;
+
                     Action<JsonRpcMessage> dispatcher = (response) =>
                     {
                         lock (this.dispatcherMapLock)
@@ -1130,6 +1138,11 @@ namespace StreamJsonRpc
                                     this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id);
                                 }
 
+                                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
+                                {
+                                    JsonRpcEventSource.Instance.ReceivedNoResponse(id.Value);
+                                }
+
                                 if (cancellationToken.IsCancellationRequested)
                                 {
                                     // Consider lost connection to be result of task canceled and set state to canceled.
@@ -1142,6 +1155,11 @@ namespace StreamJsonRpc
                             }
                             else if (response is JsonRpcError error)
                             {
+                                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
+                                {
+                                    JsonRpcEventSource.Instance.ReceivedError(id.Value, error.Error.Code);
+                                }
+
                                 if (error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
                                 {
                                     tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
@@ -1153,6 +1171,11 @@ namespace StreamJsonRpc
                             }
                             else if (response is JsonRpcResult result)
                             {
+                                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                                {
+                                    JsonRpcEventSource.Instance.ReceivedResult(id.Value);
+                                }
+
                                 tcs.TrySetResult(result.GetResult<TResult>());
                             }
                         }
@@ -1170,6 +1193,11 @@ namespace StreamJsonRpc
 
                     try
                     {
+                        if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Verbose, System.Diagnostics.Tracing.EventKeywords.None))
+                        {
+                            JsonRpcEventSource.Instance.SendingRequest(id.Value, targetName, JsonRpcEventSource.GetArgumentsString(arguments));
+                        }
+
                         await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
                     }
                     catch
@@ -1421,6 +1449,7 @@ namespace StreamJsonRpc
             Requires.NotNull(request, nameof(request));
 
             CancellationTokenSource localMethodCancellationSource = null;
+            long idAsLongIfPossible = request.Id is long id ? id : -1;
             try
             {
                 TargetMethod targetMethod = null;
@@ -1507,6 +1536,18 @@ namespace StreamJsonRpc
                     this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
                 }
 
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Verbose, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    if (request.IsResponseExpected)
+                    {
+                        JsonRpcEventSource.Instance.ReceivedRequest(idAsLongIfPossible, request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                    }
+                    else
+                    {
+                        JsonRpcEventSource.Instance.ReceivedNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                    }
+                }
+
                 // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
                 // IMPORTANT: This should be the first await in this async method,
                 //            and no other await should be between this one and actually invoking the target method.
@@ -1522,6 +1563,11 @@ namespace StreamJsonRpc
 
                 if (!(result is Task resultingTask))
                 {
+                    if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                    {
+                        JsonRpcEventSource.Instance.SendingResult(idAsLongIfPossible);
+                    }
+
                     return new JsonRpcResult
                     {
                         Id = request.Id,
@@ -1546,7 +1592,14 @@ namespace StreamJsonRpc
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
-                return this.CreateError(request, ex);
+                JsonRpcError error = this.CreateError(request, ex);
+
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.SendingError(idAsLongIfPossible, error.Error.Code);
+                }
+
+                return error;
             }
             finally
             {
@@ -1573,6 +1626,7 @@ namespace StreamJsonRpc
                 throw new ArgumentException(Resources.TaskNotCompleted, nameof(t));
             }
 
+            JsonRpcMessage result;
             if (t.IsFaulted)
             {
                 var exception = StripExceptionToInnerException(t.Exception);
@@ -1586,12 +1640,11 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                return this.CreateError(request, t.Exception);
+                result = this.CreateError(request, t.Exception);
             }
-
-            if (t.IsCanceled)
+            else if (t.IsCanceled)
             {
-                return new JsonRpcError
+                result = new JsonRpcError
                 {
                     Id = request.Id,
                     Error = new JsonRpcError.ErrorDetail
@@ -1601,11 +1654,31 @@ namespace StreamJsonRpc
                     },
                 };
             }
-
-            return new JsonRpcResult
+            else
             {
-                Id = request.Id,
-            };
+                result = new JsonRpcResult
+                {
+                    Id = request.Id,
+                };
+            }
+
+            long idIfPossible = request.Id is long id ? id : -1;
+            if (result is JsonRpcError error)
+            {
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.SendingError(idIfPossible, error.Error.Code);
+                }
+            }
+            else
+            {
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.SendingResult(idIfPossible);
+                }
+            }
+
+            return result;
         }
 
         private JsonRpcMessage HandleInvocationTaskOfTResult(JsonRpcRequest request, Task t)
@@ -1875,6 +1948,11 @@ namespace StreamJsonRpc
                     this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedCancellation, "Cancellation request received for \"{0}\".", id);
                 }
 
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.ReceivedCancellationRequest(id is long v ? v : -1);
+                }
+
                 CancellationTokenSource cts;
                 lock (this.dispatcherMapLock)
                 {
@@ -1934,6 +2012,12 @@ namespace StreamJsonRpc
                             { "id", state },
                         },
                     };
+
+                    if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                    {
+                        JsonRpcEventSource.Instance.SendingCancellationRequest(state is long v ? v : -1);
+                    }
+
                     await this.TransmitAsync(cancellationMessage, this.DisconnectedToken).ConfigureAwait(false);
                 }
             }).Forget();
@@ -1992,7 +2076,18 @@ namespace StreamJsonRpc
             try
             {
                 this.TraceMessageSent(message);
+                bool etwEnabled = JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None);
+                if (etwEnabled)
+                {
+                    JsonRpcEventSource.Instance.TransmissionQueued();
+                }
+
                 await this.MessageHandler.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+
+                if (etwEnabled)
+                {
+                    JsonRpcEventSource.Instance.TransmissionCompleted();
+                }
             }
             catch (Exception exception)
             {
