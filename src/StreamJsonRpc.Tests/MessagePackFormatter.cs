@@ -39,7 +39,7 @@ namespace StreamJsonRpc
         private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
 
         /// <summary>
-        /// Backing field for the <see cref="Rpc"/> property.
+        /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
         /// </summary>
         private JsonRpc rpc;
 
@@ -62,9 +62,8 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public JsonRpc Rpc
+        JsonRpc IJsonRpcInstanceContainer.Rpc
         {
-            private get => this.rpc;
             set
             {
                 Verify.Operation(this.rpc == null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
@@ -76,13 +75,13 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>.
         /// </summary>
-        private MessagePackSerializerOptions CompressOptions
+        private MessagePackSerializerOptions SerializerOptions
         {
-            get => this.compress ? MessagePackSerializerOptions.LZ4Default : null;
+            get => this.compress ? MessagePackSerializerOptions.LZ4Default : MessagePackSerializerOptions.Default;
         }
 
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream(), this.CompressOptions);
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer.AsStream(), this.SerializerOptions);
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -94,7 +93,7 @@ namespace StreamJsonRpc
                 request.Arguments = GetParamsObjectDictionary(request.Arguments);
             }
 
-            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.CompressOptions);
+            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.SerializerOptions);
         }
 
         /// <inheritdoc/>
@@ -190,7 +189,7 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, TIProgressOfT value, MessagePackSerializerOptions options)
             {
-                long progressId = this.formatter.formatterProgressTracker.AddProgressObjectToMap(value);
+                long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
                 writer.Write(progressId);
             }
 
@@ -198,7 +197,7 @@ namespace StreamJsonRpc
             {
                 long token = reader.ReadInt64();
 
-                IProgress<T> p = this.formatter.formatterProgressTracker.CreateProgress<T>(this.formatter.Rpc, token);
+                IProgress<T> p = this.formatter.formatterProgressTracker.CreateProgress<T>(this.formatter.rpc, token);
                 return (TIProgressOfT)p;
             }
         }

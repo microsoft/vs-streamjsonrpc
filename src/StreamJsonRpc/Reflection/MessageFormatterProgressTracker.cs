@@ -41,14 +41,14 @@ namespace StreamJsonRpc.Reflection
         private readonly object progressLock = new object();
 
         /// <summary>
+        /// Gets or sets the the next id value to assign as token for the progress objects.
+        /// </summary>
+        private long nextProgressId;
+
+        /// <summary>
         /// Gets or Sets the id of the request currently being serialized so the converter can use it to create the request-progress map.
         /// </summary>
         public long? RequestIdBeingSerialized { get; set; }
-
-        /// <summary>
-        /// Gets or sets the the next id value to assign as token for the progress objects.
-        /// </summary>
-        private long NextProgressId { get; set; }
 
         /// <summary>
         /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
@@ -64,7 +64,7 @@ namespace StreamJsonRpc.Reflection
                 return objectType;
             }
 
-            Type iProgressOfTType = null;
+            Type iProgressOfTType;
             lock (IProgressOfTTypeMap)
             {
                 if (!IProgressOfTTypeMap.TryGetValue(objectType, out iProgressOfTType))
@@ -78,11 +78,21 @@ namespace StreamJsonRpc.Reflection
         }
 
         /// <summary>
-        /// Saves a <see cref="ProgressParamInformation"/> instance obtained from the given <see cref="object"/> into <see cref="progressMap"/>.
+        /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
         /// </summary>
-        /// <param name="value">The object which should implement <see cref="IProgress{T}"/> to create the <see cref="ProgressParamInformation"/> instance.</param>
-        /// <returns>The assigned <see cref="long"/> progres ID.</returns>
-        public long AddProgressObjectToMap(object value)
+        /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
+        /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
+        public static bool IsSupportedProgressType(Type objectType)
+        {
+            return FindIProgressOfT(objectType) != null;
+        }
+
+        /// <summary>
+        /// Gets a <see cref="long"/> type token to use as replacement of an <see cref="object"/> implementing <see cref="IProgress{T}"/> in the JSON message.
+        /// </summary>
+        /// <param name="value">The object which should implement <see cref="IProgress{T}"/>.</param>
+        /// <returns>The assigned <see cref="long"/> typed token.</returns>
+        public long GetTokenForProgress(object value)
         {
             Requires.NotNull(value, nameof(value));
 
@@ -93,20 +103,20 @@ namespace StreamJsonRpc.Reflection
 
             lock (this.progressLock)
             {
-                long progressId = this.NextProgressId++;
+                long progressId = this.nextProgressId++;
                 this.requestProgressMap.Add(this.RequestIdBeingSerialized.Value, progressId);
 
-                this.progressMap.Add(progressId, new ProgressParamInformation(value));
+                this.progressMap.Add((object)progressId, new ProgressParamInformation(value));
 
                 return progressId;
             }
         }
 
         /// <summary>
-        /// Clears the objects in <see cref="requestProgressMap"/> and <see cref="progressMap"/> associated to the given request ID.
+        /// Call this method when a response is received to clear the objects associated with the request and avoid a memory leak.
         /// </summary>
-        /// <param name="requestId">The id of the request whose associated object need to be cleared.</param>
-        public void ClearProgressMaps(long requestId)
+        /// <param name="requestId">The id of the request whose associated objects need to be cleared.</param>
+        public void OnResposeReceived(long requestId)
         {
             lock (this.progressLock)
             {
@@ -125,7 +135,8 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="progressId">The key to obtain the <see cref="ProgressParamInformation"/> object from <see cref="progressMap"/>.</param>
         /// <param name="valueType">Output parameter to store the obtained <see cref="ProgressParamInformation"/> object.</param>
-        public bool GetProgressTypeToReport(object progressId, out ProgressParamInformation valueType)
+        /// <returns>true if the <see cref="ProgressParamInformation"/> object was found with the specified key; otherwise, false.</returns>
+        public bool TryGetProgressObject(object progressId, out ProgressParamInformation valueType)
         {
             lock (this.progressLock)
             {
@@ -141,7 +152,7 @@ namespace StreamJsonRpc.Reflection
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="JsonProgress{T}"/> class.
+        /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.
         /// </summary>
         /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
@@ -149,11 +160,11 @@ namespace StreamJsonRpc.Reflection
         public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token) => new JsonProgress<T>(rpc, token);
 
         /// <summary>
-        /// Creates a new instance of the <see cref="JsonProgress{T}"/> class.
+        /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.
         /// </summary>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
-        /// <param name="valueType">The type that will replace the generic T in <see cref="JsonProgress{T}"/>.</param>
+        /// <param name="valueType">The type that the <see cref="IProgress{T}"/> intance will report.</param>
         public object CreateProgress(JsonRpc rpc, object token, Type valueType)
         {
             Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
@@ -166,6 +177,16 @@ namespace StreamJsonRpc.Reflection
         public class ProgressParamInformation
         {
             /// <summary>
+            /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
+            /// </summary>
+            private readonly MethodInfo reportMethod;
+
+            /// <summary>
+            /// Gets the instance of the object implementing <see cref="IProgress{T}"/>.
+            /// </summary>
+            private readonly object progressObject;
+
+            /// <summary>
             /// Initializes a new instance of the <see cref="ProgressParamInformation"/> class.
             /// </summary>
             /// <param name="progressObject">The object implementing <see cref="IProgress{T}"/>.</param>
@@ -173,13 +194,13 @@ namespace StreamJsonRpc.Reflection
             {
                 Requires.NotNull(progressObject, nameof(progressObject));
 
-                Type iProgressOfTType = MessageFormatterProgressTracker.FindIProgressOfT(progressObject.GetType());
+                Type iProgressOfTType = FindIProgressOfT(progressObject.GetType());
 
                 Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
 
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
-                this.ReportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
-                this.ProgressObject = progressObject;
+                this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
+                this.progressObject = progressObject;
             }
 
             /// <summary>
@@ -188,22 +209,12 @@ namespace StreamJsonRpc.Reflection
             public Type ValueType { get; }
 
             /// <summary>
-            /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
-            /// </summary>
-            private MethodInfo ReportMethod { get; }
-
-            /// <summary>
-            /// Gets the instance of the object implementing <see cref="IProgress{T}"/>.
-            /// </summary>
-            private object ProgressObject { get; }
-
-            /// <summary>
-            /// Invokes <see cref="ReportMethod"/> using the given typed value.
+            /// Invokes <see cref="reportMethod"/> using the given typed value.
             /// </summary>
             /// <param name="typedValue">The value to be reported.</param>
             public void InvokeReport(object typedValue)
             {
-                this.ReportMethod.Invoke(this.ProgressObject, new object[] { typedValue });
+                this.reportMethod.Invoke(this.progressObject, new object[] { typedValue });
             }
         }
 

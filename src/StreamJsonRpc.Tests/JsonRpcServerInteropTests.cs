@@ -59,6 +59,36 @@ public class JsonRpcServerInteropTests : InteropTestBase
     }
 
     [Fact]
+    public async Task ServerAcceptsNumberForProgressId()
+    {
+        dynamic response = await this.RequestAsync(new
+        {
+            jsonrpc = "2.0",
+            method = "EchoSuccessWithProgressParam",
+            @params = new[] { 5 },
+            id = "abc",
+        });
+
+        // If the response is returned without error it means the server succeded on using the token to create the JsonProgress instance
+        Assert.Equal("Success!", (string)response.result);
+    }
+
+    [Fact]
+    public async Task ServerAcceptsStringForProgressId()
+    {
+        dynamic response = await this.RequestAsync(new
+        {
+            jsonrpc = "2.0",
+            method = "EchoSuccessWithProgressParam",
+            @params = new[] { "Token" },
+            id = "abc",
+        });
+
+        // If the response is returned without error it means the server succeded on using the token to create the JsonProgress instance
+        Assert.Equal("Success!", (string)response.result);
+    }
+
+    [Fact]
     public async Task ServerAlwaysReturnsResultEvenIfNull()
     {
         var response = await this.RequestAsync(new
@@ -79,5 +109,7 @@ public class JsonRpcServerInteropTests : InteropTestBase
         public int EchoInt(int value) => value;
 
         public string EchoString(string value) => value;
+
+        public string EchoSuccessWithProgressParam(IProgress<int> progress) => "Success!";
     }
 }
