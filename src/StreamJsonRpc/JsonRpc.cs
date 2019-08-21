@@ -571,9 +571,28 @@ namespace StreamJsonRpc
         public T Attach<T>(JsonRpcProxyOptions options)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
+            return proxy;
+        }
 
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public object Attach(Type interfaceType) => this.Attach(interfaceType, options: null);
+
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
+        /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+        /// <returns>An instance of the generated proxy.</returns>
+        public object Attach(Type interfaceType, JsonRpcProxyOptions options)
+        {
+            TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo());
+            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default);
             return proxy;
         }
 
