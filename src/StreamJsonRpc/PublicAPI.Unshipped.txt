@@ -23,6 +23,8 @@ StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialize
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialized.set -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.TryGetProgressObject(object progressId, out StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation valueType) -> bool
 const StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressRequestSpecialMethod = "$/progress" -> string
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType) -> object
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType, StreamJsonRpc.JsonRpcProxyOptions options) -> object
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler) -> T
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler, StreamJsonRpc.JsonRpcProxyOptions options) -> T
 static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.FindIProgressOfT(System.Type objectType) -> System.Type
