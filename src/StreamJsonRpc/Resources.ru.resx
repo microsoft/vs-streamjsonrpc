@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 не поддерживает именованные аргументы (параметры, передаваемые в объекте). Используйте позиционные аргументы (массивы параметров) или установите версию протокола 2.0.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>Произошла ошибка при записи сообщения RPC JSON. {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>

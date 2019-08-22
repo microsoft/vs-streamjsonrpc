@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 adlandırılmış bağımsız değişkenleri (bir nesne içinde geçirilen parametreler) desteklemez. Konumsal bağımsız değişkenler (parametre dizileri) kullanın veya protokolü sürümünü 2.0 olarak belirleyin.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>JSON RPC İletisi yazılırken bir hata oluştu: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>
