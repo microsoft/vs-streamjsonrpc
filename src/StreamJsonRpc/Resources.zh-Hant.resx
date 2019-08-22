@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 不支援具名引數 (在物件中傳遞的參數)。請使用位置引數 (參數陣列)，或將通訊協定版本設定為 2.0。</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>寫入 JSON RPC 訊息時發生錯誤: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>
