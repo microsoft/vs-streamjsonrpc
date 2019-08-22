@@ -10,6 +10,7 @@ namespace StreamJsonRpc
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
@@ -662,7 +663,7 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Adds a remote rpc connection so calls can be forwarded to the remote target if local targets do not handle it. 
+        /// Adds a remote rpc connection so calls can be forwarded to the remote target if local targets do not handle it.
         /// </summary>
         /// <param name="remoteTarget">The json rpc connection to the remote target.</param>
         public void AddRemoteRpcTarget(JsonRpc remoteTarget)
@@ -1121,17 +1122,24 @@ namespace StreamJsonRpc
 
             var response = await this.InvokeCoreAsync(request, cancellationToken).ConfigureAwait(false);
 
-            if (response is JsonRpcError error)
+            if (request.IsResponseExpected)
             {
-                throw CreateExceptionFromRpcError(error, request.Method);
-            }
-            else if (response is JsonRpcResult result)
-            {
-                return result.GetResult<TResult>();
+                if (response is JsonRpcError error)
+                {
+                    throw CreateExceptionFromRpcError(error, request.Method);
+                }
+                else if (response is JsonRpcResult result)
+                {
+                    return result.GetResult<TResult>();
+                }
+                else
+                {
+                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.ResponseUnexpectedFormat, JsonConvert.SerializeObject(response)));
+                }
             }
             else
             {
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.ResponseUnexpectedFormat, JsonConvert.SerializeObject(response)));
+                return default;
             }
         }
 
@@ -1495,14 +1503,18 @@ namespace StreamJsonRpc
                     // other side.
                     if (this.remoteRpcTargets.Any())
                     {
-                        lock (this.dispatcherMapLock)
+                        if (request.IsResponseExpected)
                         {
-                            this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+                            lock (this.dispatcherMapLock)
+                            {
+                                this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+                            }
                         }
 
                         foreach (var remoteTarget in this.remoteRpcTargets)
                         {
-                            var response = await remoteTarget.InvokeCoreAsync(request, localMethodCancellationSource.Token).ConfigureAwait(false);
+                            CancellationToken token = request.IsResponseExpected ? localMethodCancellationSource.Token : CancellationToken.None;
+                            var response = await remoteTarget.InvokeCoreAsync(request, token).ConfigureAwait(false);
 
                             if (response is JsonRpcError error && error.Error != null)
                             {
@@ -1575,7 +1587,7 @@ namespace StreamJsonRpc
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
                 // it cannot be preempted by the cancellation request that would try to set it
                 // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
-                if (targetMethod.AcceptsCancellationToken)
+                if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
                 {
                     lock (this.dispatcherMapLock)
                     {

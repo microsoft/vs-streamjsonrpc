@@ -1,17 +1,18 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Nerdbank.Streams;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcRelayTests : TestBase
+public class JsonRpcRemoteTargetTests : TestBase
 {
     private JsonRpc localRpc;
     private JsonRpc originRpc;
     private JsonRpc remoteRpc1;
     private JsonRpc remoteRpc2;
 
-    public JsonRpcRelayTests(ITestOutputHelper logger)
+    public JsonRpcRemoteTargetTests(ITestOutputHelper logger)
        : base(logger)
     {
         var streams = FullDuplexStream.CreatePair();
@@ -56,10 +57,26 @@ public class JsonRpcRelayTests : TestBase
     }
 
     [Fact]
+    public async Task CanNotifyOnRelayServer()
+    {
+        await this.originRpc.NotifyAsync(nameof(RemoteTargetOne.GetOne));
+        var result = await RemoteTargetOne.NotificationReceived;
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
     public async Task CanInvokeOnOriginServer()
     {
         string result1 = await this.remoteRpc1.InvokeAsync<string>(nameof(OriginTarget.OriginServerSayGoodbye), "foo");
         Assert.Equal("Goodbye foo", result1);
+    }
+
+    [Fact]
+    public async Task CanNotifyOnOriginServer()
+    {
+        await this.remoteRpc1.NotifyAsync(nameof(OriginTarget.GetTwo));
+        var result = await OriginTarget.NotificationReceived;
+        Assert.Equal(2, result);
     }
 
     [Fact]
@@ -104,11 +121,55 @@ public class JsonRpcRelayTests : TestBase
         Assert.Equal("Goodbye foo", result1);
     }
 
+    [Fact]
+    public async Task CanCancelOnRemoteTarget()
+    {
+        var tokenSource = new CancellationTokenSource();
+        var task = this.originRpc.InvokeWithCancellationAsync<bool>(nameof(RemoteTargetOne.CancellableRemoteOperation), cancellationToken: tokenSource.Token);
+        tokenSource.Cancel();
+        var result = await task;
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task CanCancelOnOriginTarget()
+    {
+        var tokenSource = new CancellationTokenSource();
+        var task = this.remoteRpc1.InvokeWithCancellationAsync<bool>(nameof(OriginTarget.CancellableOriginOperation), cancellationToken: tokenSource.Token);
+        tokenSource.Cancel();
+        var result = await task;
+        Assert.True(result);
+    }
+
     public class RemoteTargetOne
     {
+        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
+
+        public static Task<int> NotificationReceived => notificationTcs.Task;
+
+        public static void GetOne()
+        {
+            notificationTcs.SetResult(1);
+        }
+
         public static int AddOne(int value)
         {
             return value + 1;
+        }
+
+        public static async Task<bool> CancellableRemoteOperation(CancellationToken token)
+        {
+            var retryIndex = 0;
+            while (retryIndex < 100)
+            {
+                await Task.Delay(100);
+                if (token.IsCancellationRequested)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public string GetName()
@@ -168,9 +229,33 @@ public class JsonRpcRelayTests : TestBase
 
     public class OriginTarget
     {
+        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
+
+        public static Task<int> NotificationReceived => notificationTcs.Task;
+
+        public static void GetTwo()
+        {
+            notificationTcs.SetResult(2);
+        }
+
         public static string OriginServerSayGoodbye(string name)
         {
             return "Goodbye " + name;
+        }
+
+        public static async Task<bool> CancellableOriginOperation(CancellationToken token)
+        {
+            var retryIndex = 0;
+            while (retryIndex < 100)
+            {
+                await Task.Delay(100);
+                if (token.IsCancellationRequested)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public string GetName()
