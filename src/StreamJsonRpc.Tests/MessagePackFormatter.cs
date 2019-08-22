@@ -29,9 +29,9 @@ namespace StreamJsonRpc
     public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
-        /// A value indicating whether to use LZ4 compression.
+        /// The options to use for serialization.
         /// </summary>
-        private readonly bool compress;
+        private readonly MessagePackSerializerOptions options;
 
         /// <summary>
         /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
@@ -58,7 +58,7 @@ namespace StreamJsonRpc
         /// <param name="compress">A value indicating whether to use LZ4 compression.</param>
         public MessagePackFormatter(bool compress)
         {
-            this.compress = compress;
+            this.options = TypelessContractlessStandardResolver.Options.WithLZ4Compression(useLZ4Compression: compress);
         }
 
         /// <inheritdoc/>
@@ -72,16 +72,8 @@ namespace StreamJsonRpc
             }
         }
 
-        /// <summary>
-        /// Gets <see cref="MessagePackSerializerOptions.LZ4Default"/> if <see cref="compress"/> is true, otherwise <c>null</c>.
-        /// </summary>
-        private MessagePackSerializerOptions SerializerOptions
-        {
-            get => this.compress ? MessagePackSerializerOptions.LZ4Default : MessagePackSerializerOptions.Default;
-        }
-
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer.AsStream(), this.SerializerOptions);
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => (JsonRpcMessage)MessagePackSerializer.Deserialize<object>(contentBuffer.AsStream(), this.options);
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -93,11 +85,11 @@ namespace StreamJsonRpc
                 request.Arguments = GetParamsObjectDictionary(request.Arguments);
             }
 
-            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.SerializerOptions);
+            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.options);
         }
 
         /// <inheritdoc/>
-        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.SerializeToJson(message);
+        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.SerializeToJson(message, this.options);
 
         /// <summary>
         /// Extracts a dictionary of property names and values from the specified params object.
