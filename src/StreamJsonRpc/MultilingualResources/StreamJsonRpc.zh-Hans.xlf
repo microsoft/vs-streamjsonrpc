@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="zh-Hans" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
+  <file datatype="xml" source-language="en" target-language="zh-HANS" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
       <tool tool-id="MultilingualAppToolkit" tool-name="Multilingual App Toolkit" tool-version="4.0.1605.0" tool-company="Microsoft" />
     </header>
@@ -220,7 +220,7 @@
         </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
           <source>Error writing JSON RPC Message: {0}: {1}</source>
-          <target state="new">Error writing JSON RPC Message: {0}: {1}</target>
+          <target state="translated">写入 JSON RPC 消息时出错: {0}: {1}</target>
           <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
       </group>
