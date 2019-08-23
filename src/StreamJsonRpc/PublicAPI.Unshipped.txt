@@ -7,5 +7,7 @@ StreamJsonRpc.IJsonRpcClientProxy.JsonRpc.get -> StreamJsonRpc.JsonRpc
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Text.Encoding encoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
 StreamJsonRpc.JsonRpc.AddRemoteRpcTarget(StreamJsonRpc.JsonRpc remoteTarget) -> void
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType) -> object
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType, StreamJsonRpc.JsonRpcProxyOptions options) -> object
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler) -> T
 static StreamJsonRpc.JsonRpc.Attach<T>(StreamJsonRpc.IJsonRpcMessageHandler handler, StreamJsonRpc.JsonRpcProxyOptions options) -> T
