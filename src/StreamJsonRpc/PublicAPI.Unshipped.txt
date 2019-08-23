@@ -8,6 +8,8 @@ StreamJsonRpc.IJsonRpcInstanceContainer
 StreamJsonRpc.IJsonRpcInstanceContainer.Rpc.set -> void
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Text.Encoding encoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType) -> object
+StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType, StreamJsonRpc.JsonRpcProxyOptions options) -> object
 StreamJsonRpc.JsonRpc.TraceEvents.ProgressNotificationError = 16 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc rpc, object token, System.Type valueType) -> object
