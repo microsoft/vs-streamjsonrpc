@@ -99,6 +99,11 @@ namespace StreamJsonRpc
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
+        /// List of remote RPC targets to call if connection should be relayed.
+        /// </summary>
+        private readonly List<JsonRpc> remoteRpcTargets = new List<JsonRpc>();
+
+        /// <summary>
         /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
         /// </summary>
         private List<EventReceiver> eventReceivers;
@@ -124,11 +129,6 @@ namespace StreamJsonRpc
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext synchronizationContext;
-
-        /// <summary>
-        /// List of remote RPC targets to call if connection should be relayed.
-        /// </summary>
-        private readonly List<JsonRpc> remoteRpcTargets = new List<JsonRpc>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -1143,108 +1143,6 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task<JsonRpcMessage> InvokeCoreAsync(JsonRpcRequest request, CancellationToken cancellationToken)
-        {
-            Requires.NotNull(request, nameof(request));
-
-            long? id = null;
-            if (request.Id is long)
-            {
-                id = (long)request.Id;
-            }
-            else if (request.Id is long?)
-            {
-                id = (long?)request.Id;
-            }
-
-            try
-            {
-                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
-                {
-                    if (!request.IsResponseExpected)
-                    {
-                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
-                        return default;
-                    }
-
-                    Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
-                    var tcs = new TaskCompletionSource<JsonRpcMessage>();
-                    Action<JsonRpcMessage> dispatcher = (response) =>
-                    {
-                        lock (this.dispatcherMapLock)
-                        {
-                            this.resultDispatcherMap.Remove(id.Value);
-                        }
-
-                        try
-                        {
-                            if (response == null)
-                            {
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id.Value);
-                                }
-
-                                if (cancellationToken.IsCancellationRequested)
-                                {
-                                    // Consider lost connection to be result of task canceled and set state to canceled.
-                                    tcs.TrySetCanceled(cancellationToken);
-                                }
-                                else
-                                {
-                                    tcs.TrySetException(new ConnectionLostException());
-                                }
-                            }
-                            else if (response is JsonRpcError error && error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
-                            {
-                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
-                            }
-                            else
-                            {
-                                tcs.SetResult(response);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            tcs.TrySetException(ex);
-                        }
-                    };
-
-                    var callData = new OutstandingCallData(tcs, dispatcher);
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.resultDispatcherMap.Add(id.Value, callData);
-                    }
-
-                    try
-                    {
-                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
-                        lock (this.dispatcherMapLock)
-                        {
-                            this.resultDispatcherMap.Remove(id.Value);
-                        }
-
-                        throw;
-                    }
-
-                    // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id, useSynchronizationContext: false))
-                    {
-                        // This task will be completed when the Response object comes back from the other end of the pipe
-                        return await tcs.Task.ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                throw new ConnectionLostException(Resources.ConnectionDropped, ex);
-            }
-        }
-
         /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
@@ -1425,6 +1323,108 @@ namespace StreamJsonRpc
 
             task = null;
             return false;
+        }
+
+        private async Task<JsonRpcMessage> InvokeCoreAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+        {
+            Requires.NotNull(request, nameof(request));
+
+            long? id = null;
+            if (request.Id is long)
+            {
+                id = (long)request.Id;
+            }
+            else if (request.Id is long?)
+            {
+                id = (long?)request.Id;
+            }
+
+            try
+            {
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
+                {
+                    if (!request.IsResponseExpected)
+                    {
+                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                        return default;
+                    }
+
+                    Verify.Operation(this.readLinesTask != null, Resources.InvalidBeforeListenHasStarted);
+                    var tcs = new TaskCompletionSource<JsonRpcMessage>();
+                    Action<JsonRpcMessage> dispatcher = (response) =>
+                    {
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.resultDispatcherMap.Remove(id.Value);
+                        }
+
+                        try
+                        {
+                            if (response == null)
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id.Value);
+                                }
+
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    // Consider lost connection to be result of task canceled and set state to canceled.
+                                    tcs.TrySetCanceled(cancellationToken);
+                                }
+                                else
+                                {
+                                    tcs.TrySetException(new ConnectionLostException());
+                                }
+                            }
+                            else if (response is JsonRpcError error && error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
+                            {
+                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+                            }
+                            else
+                            {
+                                tcs.SetResult(response);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            tcs.TrySetException(ex);
+                        }
+                    };
+
+                    var callData = new OutstandingCallData(tcs, dispatcher);
+                    lock (this.dispatcherMapLock)
+                    {
+                        this.resultDispatcherMap.Add(id.Value, callData);
+                    }
+
+                    try
+                    {
+                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.resultDispatcherMap.Remove(id.Value);
+                        }
+
+                        throw;
+                    }
+
+                    // Arrange for sending a cancellation message if canceled while we're waiting for a response.
+                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id, useSynchronizationContext: false))
+                    {
+                        // This task will be completed when the Response object comes back from the other end of the pipe
+                        return await tcs.Task.ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                throw new ConnectionLostException(Resources.ConnectionDropped, ex);
+            }
         }
 
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
