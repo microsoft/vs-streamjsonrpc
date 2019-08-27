@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>Protokół JSON-RPC 1.0 nie obsługuje nazwanych argumentów (parametrów przekazywanych w ramach obiektu). Użyj argumentów pozycyjnych (tablic parametrów) lub ustaw wersję protokołu na 2.0.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>Błąd zapisywania komunikatu JSON zdalnego wywołania procedury: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>

@@ -11,8 +11,8 @@
 namespace StreamJsonRpc {
     using System;
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -130,6 +130,15 @@ namespace StreamJsonRpc {
         internal static string DroppingRequestDueToNoTargetObject {
             get {
                 return ResourceManager.GetString("DroppingRequestDueToNoTargetObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error writing JSON RPC Message: {0}: {1}.
+        /// </summary>
+        internal static string ErrorWritingJsonRpcMessage {
+            get {
+                return ResourceManager.GetString("ErrorWritingJsonRpcMessage", resourceCulture);
             }
         }
         

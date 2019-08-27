@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="zh-Hant" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
+  <file datatype="xml" source-language="en" target-language="zh-HANT" original="STREAMJSONRPC/RESOURCES.RESX" tool-id="MultilingualAppToolkit" product-name="n/a" product-version="n/a" build-num="n/a">
     <header>
       <tool tool-id="MultilingualAppToolkit" tool-name="Multilingual App Toolkit" tool-version="4.0.1605.0" tool-company="Microsoft" />
     </header>
@@ -217,6 +217,11 @@
         <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
           <target state="translated">JSON-RPC 1.0 不支援具名引數 (在物件中傳遞的參數)。請使用位置引數 (參數陣列)，或將通訊協定版本設定為 2.0。</target>
+        </trans-unit>
+        <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+          <source>Error writing JSON RPC Message: {0}: {1}</source>
+          <target state="translated">寫入 JSON RPC 訊息時發生錯誤: {0}: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
         </trans-unit>
       </group>
     </body>

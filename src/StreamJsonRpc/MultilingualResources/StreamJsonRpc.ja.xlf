@@ -218,6 +218,11 @@
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
           <target state="translated">JSON-RPC 1.0 は名前付き引数 (オブジェクト内で渡されるパラメーター) をサポートしていません。位置引数 (パラメーター配列) を使用するか、プロトコル バージョンを 2.0 に設定してください。</target>
         </trans-unit>
+        <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+          <source>Error writing JSON RPC Message: {0}: {1}</source>
+          <target state="translated">JSON RPC メッセージの書き込み時のエラー: {0}: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

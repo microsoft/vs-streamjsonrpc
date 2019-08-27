@@ -218,6 +218,11 @@
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
           <target state="translated">JSON-RPC 1.0 adlandırılmış bağımsız değişkenleri (bir nesne içinde geçirilen parametreler) desteklemez. Konumsal bağımsız değişkenler (parametre dizileri) kullanın veya protokolü sürümünü 2.0 olarak belirleyin.</target>
         </trans-unit>
+        <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+          <source>Error writing JSON RPC Message: {0}: {1}</source>
+          <target state="translated">JSON RPC İletisi yazılırken bir hata oluştu: {0}: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

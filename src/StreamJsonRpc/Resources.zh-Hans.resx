@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 不支持命名参数(在对象中传递的参数)。请使用位置参数(参数数组)或将协议版本设置为 2.0。</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>写入 JSON RPC 消息时出错: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>
