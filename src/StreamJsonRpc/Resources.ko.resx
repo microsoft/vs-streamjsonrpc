@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0은 명명된 인수(개체 내에서 전달된 매개 변수)를 지원하지 않습니다. 위치 인수(매개 변수 배열)를 사용하거나 프로토콜 버전을 2.0으로 설정하세요.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>JSON RPC 메시지를 쓰는 동안 오류 발생: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>

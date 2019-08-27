@@ -230,6 +230,11 @@
           <source>IProgress<it id="1" pos="open">&lt;T&gt;</it> objects should not be part of any response or notification.</source>
           <target state="new">IProgress<it id="1" pos="open">&lt;T&gt;</it> objects should not be part of any response or notification.</target>
         </trans-unit>
+        <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+          <source>Error writing JSON RPC Message: {0}: {1}</source>
+          <target state="translated">Error al escribir el mensaje de JSON RPC: {0}: {1}</target>
+          <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+        </trans-unit>
       </group>
     </body>
   </file>

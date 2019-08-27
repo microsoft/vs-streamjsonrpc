@@ -176,4 +176,8 @@
   <data name="ParameterObjectsNotSupportedInJsonRpc10" xml:space="preserve">
     <value>JSON-RPC 1.0 no admite argumentos con nombre (parámetros pasados dentro de un objeto). Utilice argumentos posicionales (matrices de parámetros) o establezca la versión de protocolo en 2.0.</value>
   </data>
+  <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
+    <value>Error al escribir el mensaje de JSON RPC: {0}: {1}</value>
+    <comment>{0} is the exception type, {1} is the exception message.</comment>
+  </data>
 </root>
