@@ -863,6 +863,8 @@ public abstract class JsonRpcTests : TestBase
 
         int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
 
+        await progress.WaitAsync();
+
         Assert.Equal(1, report);
         Assert.Equal(1, result);
     }
@@ -915,6 +917,8 @@ public abstract class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
 
+        await progress.WaitAsync();
+
         Assert.Equal(7, report);
         Assert.Equal(7, sum);
     }
@@ -928,6 +932,8 @@ public abstract class JsonRpcTests : TestBase
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
+
+        await progress.WaitAsync();
 
         Assert.Equal(12, report);
         Assert.Equal(12, sum);
@@ -1519,6 +1525,8 @@ public abstract class JsonRpcTests : TestBase
 
         int invokeTask = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress });
 
+        await progress.WaitAsync();
+
         // Clear progress variable locally
         progress = null;
 
@@ -1533,6 +1541,8 @@ public abstract class JsonRpcTests : TestBase
         WeakReference weakRef = new WeakReference(progress);
 
         await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
+
+        await progress.WaitAsync();
 
         // Clear progress variable locally
         progress = null;

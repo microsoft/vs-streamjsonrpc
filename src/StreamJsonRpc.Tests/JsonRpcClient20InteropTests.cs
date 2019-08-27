@@ -199,10 +199,13 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     [Fact]
     public async Task InvokeWithProgressParameter()
     {
+        AsyncAutoResetEvent signal = new AsyncAutoResetEvent();
         int sum = 0;
+
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
         {
             sum += report;
+            signal.Set();
         });
 
         int n = 3;
@@ -222,9 +225,11 @@ public class JsonRpcClient20InteropTests : InteropTestBase
             this.Send(json);
 
             sum2 += i;
+
+            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
+            Assert.Equal(sum2, sum);
         }
 
-        System.Threading.Thread.Sleep(1000);
         Assert.Equal(sum2, sum);
 
         this.Send(new
