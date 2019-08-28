@@ -283,7 +283,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [SkippableFact]
-    [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeds locally.
+    [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
