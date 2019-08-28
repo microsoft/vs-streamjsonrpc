@@ -10,8 +10,13 @@ namespace StreamJsonRpc
     using System.Reflection;
     using System.Runtime.Serialization;
     using MessagePack;
+    using MessagePack.Formatters;
+    using MessagePack.Resolvers;
+    using Microsoft;
+    using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Serializes JSON-RPC messages using MessagePack (a fast, compact binary format).
@@ -21,12 +26,22 @@ namespace StreamJsonRpc
     /// The README on that project site describes use cases and its performance compared to alternative
     /// .NET MessagePack implementations and this one appears to be the best by far.
     /// </remarks>
-    public class MessagePackFormatter : IJsonRpcMessageFormatter
+    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
-        /// A value indicating whether to use LZ4 compression.
+        /// The options to use for serialization.
         /// </summary>
-        private readonly bool compress;
+        private readonly MessagePackSerializerOptions options;
+
+        /// <summary>
+        /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
+        /// </summary>
+        private JsonRpc rpc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class
@@ -43,16 +58,22 @@ namespace StreamJsonRpc
         /// <param name="compress">A value indicating whether to use LZ4 compression.</param>
         public MessagePackFormatter(bool compress)
         {
-            this.compress = compress;
+            this.options = TypelessContractlessStandardResolver.Options.WithLZ4Compression(useLZ4Compression: compress);
         }
 
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
+        JsonRpc IJsonRpcInstanceContainer.Rpc
         {
-            return this.compress
-                ? (JsonRpcMessage)LZ4MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream())
-                : (JsonRpcMessage)MessagePackSerializer.Typeless.Deserialize(contentBuffer.AsStream());
+            set
+            {
+                Verify.Operation(this.rpc == null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
+
+                this.rpc = value;
+            }
         }
+
+        /// <inheritdoc/>
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => (JsonRpcMessage)MessagePackSerializer.Deserialize<object>(contentBuffer.AsStream(), this.options);
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -64,18 +85,11 @@ namespace StreamJsonRpc
                 request.Arguments = GetParamsObjectDictionary(request.Arguments);
             }
 
-            if (this.compress)
-            {
-                LZ4MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message);
-            }
-            else
-            {
-                MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message);
-            }
+            MessagePackSerializer.Typeless.Serialize(contentBuffer.AsStream(), message, this.options);
         }
 
         /// <inheritdoc/>
-        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.ToJson<object>(message);
+        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.SerializeToJson(message, this.options);
 
         /// <summary>
         /// Extracts a dictionary of property names and values from the specified params object.

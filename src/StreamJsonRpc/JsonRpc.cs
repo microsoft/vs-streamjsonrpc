@@ -186,6 +186,11 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(messageHandler, nameof(messageHandler));
 
+            if (messageHandler.Formatter is IJsonRpcInstanceContainer formatter)
+            {
+                formatter.Rpc = this;
+            }
+
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
             this.handleInvocationTaskOfTResultDelegate = (t, request) => this.HandleInvocationTaskOfTResult((JsonRpcRequest)request, t);
             this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
@@ -320,6 +325,11 @@ namespace StreamJsonRpc
             /// An extensibility point was leveraged locally and broke the contract.
             /// </summary>
             LocalContractViolation,
+
+            /// <summary>
+            /// An exception occurred when reading the $/progress notification.
+            /// </summary>
+            ProgressNotificationError,
         }
 
         /// <summary>

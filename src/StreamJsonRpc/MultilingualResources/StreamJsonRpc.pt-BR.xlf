@@ -218,6 +218,18 @@
           <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
           <target state="translated">O JSON-RPC 1.0 não é compatível com argumentos nomeados (parâmetros passados dentro de um objeto). Use argumentos posicionais (matrizes de parâmetros) ou defina a versão do protocolo para 2.0.</target>
         </trans-unit>
+        <trans-unit id="FindIProgressOfTError" translate="yes" xml:space="preserve">
+          <source>Unable to cast given Type to IProgress<it id="1" pos="open">&lt;T&gt;</it></source>
+          <target state="new">Unable to cast given Type to IProgress<it id="1" pos="open">&lt;T&gt;</it></target>
+        </trans-unit>
+        <trans-unit id="FormatterAlreadyInUseError" translate="yes" xml:space="preserve">
+          <source>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</source>
+          <target state="new">This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</target>
+        </trans-unit>
+        <trans-unit id="ProgressObjectInResponseOrNotificationError" translate="yes" xml:space="preserve">
+          <source>IProgress<it id="1" pos="open">&lt;T&gt;</it> objects should not be part of any response or notification.</source>
+          <target state="new">IProgress<it id="1" pos="open">&lt;T&gt;</it> objects should not be part of any response or notification.</target>
+        </trans-unit>
         <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
           <source>Error writing JSON RPC Message: {0}: {1}</source>
           <target state="translated">Erro ao gravar a Mensagem da RPC do JSON: {0}: {1}</target>
