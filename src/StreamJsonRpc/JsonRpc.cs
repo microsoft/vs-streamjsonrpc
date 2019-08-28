@@ -1512,7 +1512,7 @@ namespace StreamJsonRpc
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
                     // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
                     // other side.
-                    if (localRemoteTargets.Any())
+                    if (!localRemoteTargets.IsEmpty)
                     {
                         if (request.IsResponseExpected)
                         {
