@@ -503,7 +503,7 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken result = json["result"];
 
-            this.formatterProgressTracker.OnResposeReceived(id.Value<long>());
+            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
 
             return new JsonRpcResult(this.JsonSerializer)
             {
@@ -519,7 +519,7 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken error = json["error"];
 
-            this.formatterProgressTracker.OnResposeReceived(id.Value<long>());
+            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
 
             return new JsonRpcError
             {
