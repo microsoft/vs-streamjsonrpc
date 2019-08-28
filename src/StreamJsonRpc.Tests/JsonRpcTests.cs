@@ -283,6 +283,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [SkippableFact]
+    [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
