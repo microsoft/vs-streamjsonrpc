@@ -26,6 +26,7 @@
     <PackageReference Include="Nerdbank.Streams" Version="2.3.26" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="2.9.3" PrivateAssets="all" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
     <PackageReference Include="System.Memory" Version="4.5.3" />
     <PackageReference Include="System.Net.Http" Version="4.3.3" />

@@ -5,6 +5,7 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.Globalization;
@@ -54,7 +55,7 @@ namespace StreamJsonRpc
         /// A map of outbound calls awaiting responses.
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
-        private readonly Dictionary<long, OutstandingCallData> resultDispatcherMap = new Dictionary<long, OutstandingCallData>();
+        private readonly Dictionary<object, OutstandingCallData> resultDispatcherMap = new Dictionary<object, OutstandingCallData>();
 
         /// <summary>
         /// A map of id's from inbound calls that have not yet completed and may be canceled,
@@ -101,7 +102,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// List of remote RPC targets to call if connection should be relayed.
         /// </summary>
-        private readonly List<JsonRpc> remoteRpcTargets = new List<JsonRpc>();
+        private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
 
         /// <summary>
         /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
@@ -690,7 +691,10 @@ namespace StreamJsonRpc
             Requires.NotNull(remoteTarget, nameof(remoteTarget));
             this.ThrowIfConfigurationLocked();
 
-            this.remoteRpcTargets.Add(remoteTarget);
+            lock (this.syncObject)
+            {
+                this.remoteRpcTargets = this.remoteRpcTargets.Add(remoteTarget);
+            }
         }
 
         /// <summary>
@@ -1348,16 +1352,6 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            long? id = null;
-            if (request.Id is long)
-            {
-                id = (long)request.Id;
-            }
-            else if (request.Id is long?)
-            {
-                id = (long?)request.Id;
-            }
-
             try
             {
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
@@ -1374,7 +1368,7 @@ namespace StreamJsonRpc
                     {
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id.Value);
+                            this.resultDispatcherMap.Remove(request.Id);
                         }
 
                         try
@@ -1383,7 +1377,7 @@ namespace StreamJsonRpc
                             {
                                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                                 {
-                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", id.Value);
+                                    this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestAbandonedByRemote, "Aborting pending request \"{0}\" because the connection was lost.", request.Id);
                                 }
 
                                 if (cancellationToken.IsCancellationRequested)
@@ -1414,7 +1408,7 @@ namespace StreamJsonRpc
                     var callData = new OutstandingCallData(tcs, dispatcher);
                     lock (this.dispatcherMapLock)
                     {
-                        this.resultDispatcherMap.Add(id.Value, callData);
+                        this.resultDispatcherMap.Add(request.Id, callData);
                     }
 
                     try
@@ -1426,14 +1420,14 @@ namespace StreamJsonRpc
                         // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(id.Value);
+                            this.resultDispatcherMap.Remove(request.Id);
                         }
 
                         throw;
                     }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, id, useSynchronizationContext: false))
+                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.Id, useSynchronizationContext: false))
                     {
                         // This task will be completed when the Response object comes back from the other end of the pipe
                         return await tcs.Task.ConfigureAwait(false);
@@ -1502,25 +1496,24 @@ namespace StreamJsonRpc
                     cancellationToken = localMethodCancellationSource.Token;
                 }
 
-                bool targetRequestMethodToClrMethodMapHasItems = false;
                 TargetMethod targetMethod = null;
                 lock (this.syncObject)
                 {
-                    targetRequestMethodToClrMethodMapHasItems = true;
-
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
                     {
                         targetMethod = new TargetMethod(request, candidateTargets);
                     }
                 }
 
-                if (!targetRequestMethodToClrMethodMapHasItems || targetMethod == null || !targetMethod.IsFound)
+                if (targetMethod == null || !targetMethod.IsFound)
                 {
+                    var localRemoteTargets = this.remoteRpcTargets;
+
                     // If we can't find the method or the target object does not exist or does not contain methods, we relay the message to the server.
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
                     // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
                     // other side.
-                    if (this.remoteRpcTargets.Any())
+                    if (localRemoteTargets.Any())
                     {
                         if (request.IsResponseExpected)
                         {
@@ -1530,7 +1523,16 @@ namespace StreamJsonRpc
                             }
                         }
 
-                        foreach (var remoteTarget in this.remoteRpcTargets)
+                        // Before we forward the request to the 
+                        object previousId = request.Id;
+                        if (request.IsResponseExpected)
+                        {
+                            long id = Interlocked.Increment(ref this.nextId);
+                            request.Id = id;
+                        }
+
+                        JsonRpcMessage remoteResponse = null;
+                        foreach (var remoteTarget in localRemoteTargets)
                         {
                             CancellationToken token = request.IsResponseExpected ? localMethodCancellationSource.Token : CancellationToken.None;
                             var response = await remoteTarget.InvokeCoreAsync(request, token).ConfigureAwait(false);
@@ -1543,31 +1545,27 @@ namespace StreamJsonRpc
                                     continue;
                                 }
                             }
-
-                            // Otherwise, we simply retrun the json response;
-                            return response;
-                        }
-                    }
-
-                    if (!targetRequestMethodToClrMethodMapHasItems)
-                    {
-                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
-                        {
-                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered. \"{0}\" will not be invoked.", request.Method);
-                        }
-
-                        string message = string.Format(CultureInfo.CurrentCulture, Resources.DroppingRequestDueToNoTargetObject, request.Method);
-                        return new JsonRpcError
-                        {
-                            Id = request.Id,
-                            Error = new JsonRpcError.ErrorDetail
+                            else
                             {
-                                Code = JsonRpcErrorCode.MethodNotFound,
-                                Message = message,
-                            },
-                        };
+                                // Otherwise, we simply return the json response;
+                                remoteResponse = response;
+                                break;
+                            }
+                        }
+
+                        request.Id = previousId;
+                        if (remoteResponse != null)
+                        {
+                            if (remoteResponse is JsonRpcResult remoteResult)
+                            {
+                                remoteResult.Id = previousId;
+                            }
+
+                            return remoteResponse;
+                        }
                     }
-                    else if (targetMethod == null)
+
+                    if (targetMethod == null)
                     {
                         if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                         {

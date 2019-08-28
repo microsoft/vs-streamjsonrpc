@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Nerdbank.Streams;
 using StreamJsonRpc;
@@ -8,17 +10,23 @@ using Xunit.Abstractions;
 public class JsonRpcRemoteTargetTests : TestBase
 {
     private JsonRpc localRpc;
-    private JsonRpc originRpc;
+    private RemoteTargetJsonRpc originRpc;
     private JsonRpc remoteRpc1;
     private JsonRpc remoteRpc2;
+    private RemoteTargetJsonRpc remoteTarget1;
 
     public JsonRpcRemoteTargetTests(ITestOutputHelper logger)
        : base(logger)
     {
+        // originRpc is the RPC connection from origin to local.
+        // localRpc is the RPC connection from local to origin.
+        // remoteTarget is the RPC connection from local to remote.
+        // remoteRpc* is the RPC connection from remote to local.
+
         var streams = FullDuplexStream.CreatePair();
         this.localRpc = JsonRpc.Attach(streams.Item2, new LocalOriginTarget());
         this.localRpc.AllowModificationWhileListening = true;
-        this.originRpc = new JsonRpc(streams.Item1, streams.Item1, new OriginTarget());
+        this.originRpc = new RemoteTargetJsonRpc(streams.Item1, streams.Item1, new OriginTarget());
 
         this.originRpc.AddLocalRpcTarget(new OriginTarget());
         this.originRpc.StartListening();
@@ -31,8 +39,9 @@ public class JsonRpcRemoteTargetTests : TestBase
         var remoteServerStream2 = remoteStreams2.Item1;
         var remoteClientStream2 = remoteStreams2.Item2;
 
-        var remoteTarget1 = JsonRpc.Attach(remoteClientStream1, remoteClientStream1, new LocalRelayTarget());
-        remoteTarget1.AllowModificationWhileListening = true;
+        this.remoteTarget1 = new RemoteTargetJsonRpc(remoteClientStream1, remoteClientStream1, new LocalRelayTarget());
+        this.remoteTarget1.AllowModificationWhileListening = true;
+        this.remoteTarget1.StartListening();
 
         var remoteTarget2 = JsonRpc.Attach(remoteClientStream2, remoteClientStream2, new LocalRelayTarget());
         remoteTarget2.AllowModificationWhileListening = true;
@@ -43,9 +52,9 @@ public class JsonRpcRemoteTargetTests : TestBase
         this.remoteRpc2 = new JsonRpc(remoteServerStream2, remoteServerStream2, new RemoteTargetTwo());
         this.remoteRpc2.StartListening();
 
-        this.localRpc.AddRemoteRpcTarget(remoteTarget1);
+        this.localRpc.AddRemoteRpcTarget(this.remoteTarget1);
         this.localRpc.AddRemoteRpcTarget(remoteTarget2);
-        remoteTarget1.AddRemoteRpcTarget(this.localRpc);
+        this.remoteTarget1.AddRemoteRpcTarget(this.localRpc);
         remoteTarget2.AddRemoteRpcTarget(this.localRpc);
     }
 
@@ -141,6 +150,47 @@ public class JsonRpcRemoteTargetTests : TestBase
         Assert.True(result);
     }
 
+    [Fact]
+    public async Task InvokeRemoteTargetWithExistingId()
+    {
+        var resultLocalTask = this.remoteTarget1.InvokeAsync<int>(1, nameof(RemoteTargetOne.AddTwo), 3, CancellationToken.None);
+        var resultRemoteTask = this.originRpc.InvokeAsync<int>(1, nameof(RemoteTargetOne.AddOneLongRunningAsync), 1, CancellationToken.None);
+
+        await Task.WhenAll(resultLocalTask, resultRemoteTask);
+
+        Assert.Equal(5, resultLocalTask.Result);
+        Assert.Equal(2, resultRemoteTask.Result);
+    }
+
+    public class RemoteTargetJsonRpc : JsonRpc
+    {
+        public RemoteTargetJsonRpc(Stream stream)
+            : base(stream)
+        {
+        }
+
+        public RemoteTargetJsonRpc(Stream sendingStream, Stream receivingStream, object target = null)
+            : base(sendingStream, receivingStream, target)
+        {
+        }
+
+        public RemoteTargetJsonRpc(IJsonRpcMessageHandler messageHandler, object target)
+            : base(messageHandler, target)
+        {
+        }
+
+        public RemoteTargetJsonRpc(IJsonRpcMessageHandler messageHandler)
+            : base(messageHandler)
+        {
+        }
+
+        public Task<T> InvokeAsync<T>(long requestId, string targetName, object argument, CancellationToken token)
+        {
+            var arguments = new object[] { argument };
+            return this.InvokeCoreAsync<T>(requestId, targetName, arguments, token);
+        }
+    }
+
     public class RemoteTargetOne
     {
         private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
@@ -154,6 +204,17 @@ public class JsonRpcRemoteTargetTests : TestBase
 
         public static int AddOne(int value)
         {
+            return value + 1;
+        }
+
+        public static int AddTwo(int value)
+        {
+            return value + 2;
+        }
+
+        public static async Task<int> AddOneLongRunningAsync(int value)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2));
             return value + 1;
         }
 
