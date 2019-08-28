@@ -116,7 +116,7 @@ namespace StreamJsonRpc.Reflection
         /// Call this method when a response is received to clear the objects associated with the request and avoid a memory leak.
         /// </summary>
         /// <param name="requestId">The id of the request whose associated objects need to be cleared.</param>
-        public void OnResposeReceived(long requestId)
+        public void OnResponseReceived(long requestId)
         {
             lock (this.progressLock)
             {

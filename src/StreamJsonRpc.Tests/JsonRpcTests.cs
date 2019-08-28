@@ -286,7 +286,7 @@ public abstract class JsonRpcTests : TestBase
     [Trait("TestCategory", "FailsInCloudTest")]
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
@@ -295,7 +295,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task NotifyWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
         WeakReference weakRef = await this.NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
@@ -858,7 +858,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_ProgressParameter()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
@@ -874,7 +874,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int report1 = 0;
         ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n => report1 = n);
@@ -901,7 +901,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_InvalidParamMethod()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
@@ -912,7 +912,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
@@ -928,7 +928,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
@@ -944,7 +944,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithParameterObject_ClassIncludingProgressProperty()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not suported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new XAndYFieldsWithProgress { x = 2, y = 5, p = new Progress<int>() }, this.TimeoutToken);
         Assert.Equal(7, sum);
