@@ -1505,7 +1505,62 @@ namespace StreamJsonRpc
                     }
                 }
 
-                if (targetMethod == null || !targetMethod.IsFound)
+                if (targetMethod != null && targetMethod.IsFound)
+                {
+                    // Add cancelation to inboundCancellationSources before yielding to ensure that
+                    // it cannot be preempted by the cancellation request that would try to set it
+                    // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
+                    if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
+                    {
+                        lock (this.dispatcherMapLock)
+                        {
+                            this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+                        }
+                    }
+
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
+                    }
+
+                    // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
+                    // IMPORTANT: This should be the first await in this async method,
+                    //            and no other await should be between this one and actually invoking the target method.
+                    //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                    //            when a single-threaded SynchronizationContext is applied.
+                    await this.SynchronizationContextOrDefault;
+                    object result = targetMethod.Invoke(cancellationToken);
+
+                    if (TryGetTaskFromValueTask(result, out Task resultTask))
+                    {
+                        result = resultTask;
+                    }
+
+                    if (!(result is Task resultingTask))
+                    {
+                        return new JsonRpcResult
+                        {
+                            Id = request.Id,
+                            Result = result,
+                        };
+                    }
+
+                    // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
+                    // Checking on the runtime result object itself is problematic because .NET / C# implements
+                    // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
+                    // the VoidTaskResult internal struct as a meaningful result.
+                    var continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
+                        ? this.handleInvocationTaskOfTResultDelegate
+                        : this.handleInvocationTaskResultDelegate;
+
+                    return await resultingTask.ContinueWith(
+                        continuationDelegate,
+                        request,
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default).ConfigureAwait(false);
+                }
+                else
                 {
                     var localRemoteTargets = this.remoteRpcTargets;
 
@@ -1601,58 +1656,7 @@ namespace StreamJsonRpc
                     }
                 }
 
-                // Add cancelation to inboundCancellationSources before yielding to ensure that
-                // it cannot be preempted by the cancellation request that would try to set it
-                // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
-                if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
-                {
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
-                    }
-                }
-
-                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                {
-                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalInvocation, "Invoking {0}", targetMethod);
-                }
-
-                // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
-                // IMPORTANT: This should be the first await in this async method,
-                //            and no other await should be between this one and actually invoking the target method.
-                //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                //            when a single-threaded SynchronizationContext is applied.
-                await this.SynchronizationContextOrDefault;
-                object result = targetMethod.Invoke(cancellationToken);
-
-                if (TryGetTaskFromValueTask(result, out Task resultTask))
-                {
-                    result = resultTask;
-                }
-
-                if (!(result is Task resultingTask))
-                {
-                    return new JsonRpcResult
-                    {
-                        Id = request.Id,
-                        Result = result,
-                    };
-                }
-
-                // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
-                // Checking on the runtime result object itself is problematic because .NET / C# implements
-                // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
-                // the VoidTaskResult internal struct as a meaningful result.
-                var continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
-                    ? this.handleInvocationTaskOfTResultDelegate
-                    : this.handleInvocationTaskResultDelegate;
-
-                return await resultingTask.ContinueWith(
-                    continuationDelegate,
-                    request,
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default).ConfigureAwait(false);
+                
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
@@ -1673,6 +1677,21 @@ namespace StreamJsonRpc
                 }
             }
         }
+
+        public async Task BuildAsync()
+        {
+            await SomeAsync();
+            await SomethingElseAsync();
+        }
+
+        public async Task CleanAsync()
+        {
+            await SomeAsync();
+            await SomethingElseAsync();
+        }
+
+        private Task<int> SomeAsync() => Task.FromResult(5);
+        private async Task SomethingElseAsync() { await Task.Yield(); }
 
         private JsonRpcMessage HandleInvocationTaskResult(JsonRpcRequest request, Task t)
         {
