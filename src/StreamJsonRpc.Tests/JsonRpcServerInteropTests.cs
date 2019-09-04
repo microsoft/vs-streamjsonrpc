@@ -29,21 +29,6 @@ public class JsonRpcServerInteropTests : InteropTestBase
     }
 
     [Fact]
-    public async Task ServerAcceptsObjectForMessageId()
-    {
-        dynamic response = await this.RequestAsync(new
-        {
-            jsonrpc = "2.0",
-            method = "EchoInt",
-            @params = new[] { 5 },
-            id = new { a = "b" },
-        });
-
-        Assert.Equal(5, (int)response.result);
-        Assert.Equal("b", (string)response.id.a);
-    }
-
-    [Fact]
     public async Task ServerAcceptsNumberForMessageId()
     {
         dynamic response = await this.RequestAsync(new
@@ -71,21 +56,6 @@ public class JsonRpcServerInteropTests : InteropTestBase
 
         Assert.Equal(5, (int)response.result);
         Assert.Equal("abc", (string)response.id);
-    }
-
-    [Fact]
-    public async Task ServerAcceptsEmptyObjectForMessageId()
-    {
-        var response = await this.RequestAsync(new
-        {
-            jsonrpc = "2.0",
-            method = "EchoInt",
-            @params = new[] { 5 },
-            id = new { },
-        });
-
-        Assert.Equal(5, (int)response["result"]);
-        Assert.Equal(0, response["id"].Count());
     }
 
     [Fact]

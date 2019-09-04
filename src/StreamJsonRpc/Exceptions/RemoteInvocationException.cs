@@ -5,45 +5,30 @@ namespace StreamJsonRpc
 {
     using System;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Remote RPC exception that indicates that the server target method threw an exception.
     /// </summary>
     /// <remarks>
-    /// The details of the target method exception can be found on <see cref="RemoteStackTrace"/> and <see cref="RemoteErrorCode"/>.
+    /// The details of the target method exception can be found on the <see cref="ErrorCode"/> and <see cref="ErrorData"/> properties.
     /// </remarks>
-#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
-#endif
     public class RemoteInvocationException : RemoteRpcException
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
         /// <param name="message">The message.</param>
-        /// <param name="remoteStack">The remote stack.</param>
-        /// <param name="remoteCode">The remote code.</param>
-        public RemoteInvocationException(string message, string remoteStack, string remoteCode)
-            : this(message, remoteStack, remoteCode, null)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        /// <param name="remoteStack">The remote stack.</param>
-        /// <param name="remoteCode">The remote code.</param>
+        /// <param name="errorCode">The value of the error.code field in the response.</param>
         /// <param name="errorData">The value of the error.data field in the response.</param>
-        public RemoteInvocationException(string message, string remoteStack, string remoteCode, JToken errorData)
+        public RemoteInvocationException(string message, int errorCode, object errorData)
             : base(message)
         {
-            this.RemoteStackTrace = remoteStack;
-            this.RemoteErrorCode = remoteCode;
+            this.ErrorCode = errorCode;
             this.ErrorData = errorData;
         }
 
-#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
@@ -55,21 +40,24 @@ namespace StreamJsonRpc
             : base(info, context)
         {
         }
-#endif
 
         /// <summary>
-        /// Gets the value of the <c>error.data.stack</c> field in the response, if that value is a string.
+        /// Gets the value of the <c>error.code</c> field in the response.
         /// </summary>
-        public string RemoteStackTrace { get; }
-
-        /// <summary>
-        /// Gets the value of the <c>error.data.code</c> field in the response, if that value is a string or integer.
-        /// </summary>
-        public string RemoteErrorCode { get; }
+        /// <value>
+        /// The value may be any integer.
+        /// The value may be <see cref="JsonRpcErrorCode.InvocationError"/>, which is a general value used for exceptions thrown on the server when the server does not give an app-specific error code.
+        /// </value>
+        public int ErrorCode { get; }
 
         /// <summary>
         /// Gets the <c>error.data</c> value in the error response, if one was provided.
         /// </summary>
-        public JToken ErrorData { get; }
+        /// <remarks>
+        /// Depending on the <see cref="IJsonRpcMessageFormatter"/> used, the value of this property, if any,
+        /// may be a <see cref="JToken"/> or a deserialized object.
+        /// Deserializing this or casting this object to <see cref="CommonErrorData"/> <em>may</em> succeed, and be a means to extract useful error information.
+        /// </remarks>
+        public object ErrorData { get; }
     }
 }

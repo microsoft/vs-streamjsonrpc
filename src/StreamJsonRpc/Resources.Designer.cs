@@ -11,8 +11,8 @@
 namespace StreamJsonRpc {
     using System;
     using System.Reflection;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -20,7 +20,7 @@ namespace StreamJsonRpc {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -116,11 +116,29 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The JSON-RPC connection with the remote party was lost before the request could complete..
+        /// </summary>
+        internal static string ConnectionDropped {
+            get {
+                return ResourceManager.GetString("ConnectionDropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {
             get {
                 return ResourceManager.GetString("DroppingRequestDueToNoTargetObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error writing JSON RPC Message: {0}: {1}.
+        /// </summary>
+        internal static string ErrorWritingJsonRpcMessage {
+            get {
+                return ResourceManager.GetString("ErrorWritingJsonRpcMessage", resourceCulture);
             }
         }
         
@@ -224,7 +242,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} parameters are not compatible with the request: {1}.
+        ///   Looks up a localized string similar to {0} parameters are not compatible with the arguments provided in the request..
         /// </summary>
         internal static string MethodParametersNotCompatible {
             get {
@@ -269,6 +287,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0..
+        /// </summary>
+        internal static string ParameterObjectsNotSupportedInJsonRpc10 {
+            get {
+                return ResourceManager.GetString("ParameterObjectsNotSupportedInJsonRpc10", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A positive integer is required..
         /// </summary>
         internal static string PositiveIntegerRequired {
@@ -292,6 +319,15 @@ namespace StreamJsonRpc {
         internal static string ReadingJsonRpcStreamFailed {
             get {
                 return ResourceManager.GetString("ReadingJsonRpcStreamFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An argument was not supplied for a required parameter..
+        /// </summary>
+        internal static string RequiredArgumentMissing {
+            get {
+                return ResourceManager.GetString("RequiredArgumentMissing", resourceCulture);
             }
         }
         
@@ -377,6 +413,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Text encoding is not supported because the formatter &quot;{0}&quot; does not implement &quot;{1}&quot;..
+        /// </summary>
+        internal static string TextEncoderNotApplicable {
+            get {
+                return ResourceManager.GetString("TextEncoderNotApplicable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to find method &apos;{0}/{1}&apos; on {2} for the following reasons: {3}.
         /// </summary>
         internal static string UnableToFindMethod {
@@ -386,7 +431,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unexpected error processing JSON RPC &apos;{0}&apos;: {1}.
+        ///   Looks up a localized string similar to Unexpected error processing JSON-RPC message: {0}.
         /// </summary>
         internal static string UnexpectedErrorProcessingJsonRpc {
             get {
@@ -404,7 +449,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unrecognized incoming JSON RPC &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Incoming JSON-RPC message did not conform to a recognized pattern..
         /// </summary>
         internal static string UnrecognizedIncomingJsonRpc {
             get {
@@ -427,6 +472,15 @@ namespace StreamJsonRpc {
         internal static string UnsupportedGenericMethodsOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}.
+        /// </summary>
+        internal static string UnsupportedJsonRpcProtocolVersion {
+            get {
+                return ResourceManager.GetString("UnsupportedJsonRpcProtocolVersion", resourceCulture);
             }
         }
         

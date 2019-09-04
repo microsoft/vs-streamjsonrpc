@@ -3,15 +3,15 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>netcoreapp2.2;net472</TargetFrameworks>
-    <CodeAnalysisRuleSet>..\StreamJsonRpc.Tests\StreamJsonRpc.Tests.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\tests.ruleset</CodeAnalysisRuleSet>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" version="0.11.4" />
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.11.4" />
-    <PackageReference Include="Nerdbank.Streams" Version="2.1.37" />
+    <PackageReference Include="BenchmarkDotNet" version="0.11.5" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.11.5" />
+    <PackageReference Include="MicroBuild.NonShipping" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

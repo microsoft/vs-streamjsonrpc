@@ -38,9 +38,9 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
       </trans-unit>
       <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
-        <source>{0} parameters are not compatible with the request: {1}</source>
-        <target state="translated">Les paramètres de {0} ne sont pas compatibles avec la demande : {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+        <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+        <target state="translated">Les paramètres de {0} ne sont pas compatibles avec les arguments fournis dans la requête.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
         <source>Reached end of stream.</source>
@@ -78,14 +78,14 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
       </trans-unit>
       <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unexpected error processing JSON RPC '{0}': {1}</source>
-        <target state="translated">Erreur inattendue pendant le traitement de JSON RPC '{0}' : {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
+        <source>Unexpected error processing JSON-RPC message: {0}</source>
+        <target state="translated">Erreur inattendue durant le traitement du message JSON-RPC : {0}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
       <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unrecognized incoming JSON RPC '{0}'</source>
-        <target state="translated">JSON RPC entrant '{0}' non reconnu</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
+        <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
+        <target state="translated">Le message JSON-RPC entrant n’est pas conforme à un modèle reconnu.</target>
+        <note />
       </trans-unit>
       <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
         <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -212,10 +212,40 @@
         <target state="translated">"{0}" n'est pas une interface.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+        <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+        <target state="translated">L'encodage de texte n’est pas pris en charge car le formateur « {0} » n'implémente pas « {1} ».</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+      </trans-unit>
+      <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
+        <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
+        <target state="translated">La connexion JSON-RPC avec le site distant a été interrompue avant la fin de la requête.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+        <source>An argument was not supplied for a required parameter.</source>
+        <target state="translated">Un argument n'a pas été fourni pour un paramètre obligatoire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
         <source>A CancellationToken is only allowed as the last parameter.</source>
         <target state="translated">Un jeton d'annulation (CancellationToken) est autorisé seulement comme dernier paramètre.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+        <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+        <target state="translated">Version de protocole JSON-RPC {0} non prise en charge. Les versions de protocole prises en charge sont : {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+      </trans-unit>
+      <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+        <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+        <target state="translated">JSON-RPC 1.0 ne prend pas en charge les arguments nommés (paramètres passés dans un objet). Utilisez des arguments positionnels (tableaux de paramètres) ou définissez la version de protocole sur 2.0.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+        <source>Error writing JSON RPC Message: {0}: {1}</source>
+        <target state="translated">Erreur lors de l'écriture du message RPC JSON : {0} : {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
     </body>
   </file>
