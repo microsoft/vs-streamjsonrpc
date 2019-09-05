@@ -11,7 +11,6 @@ namespace StreamJsonRpc
     using System.Globalization;
     using System.IO;
     using System.Linq;
-    using System.Net;
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
@@ -55,7 +54,7 @@ namespace StreamJsonRpc
         /// A map of outbound calls awaiting responses.
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
-        private readonly Dictionary<object, OutstandingCallData> resultDispatcherMap = new Dictionary<object, OutstandingCallData>();
+        private readonly Dictionary<long, OutstandingCallData> resultDispatcherMap = new Dictionary<long, OutstandingCallData>();
 
         /// <summary>
         /// A map of id's from inbound calls that have not yet completed and may be canceled,
@@ -1368,7 +1367,7 @@ namespace StreamJsonRpc
                     {
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(request.Id);
+                            this.resultDispatcherMap.Remove((long)request.Id);
                         }
 
                         try
@@ -1408,7 +1407,7 @@ namespace StreamJsonRpc
                     var callData = new OutstandingCallData(tcs, dispatcher);
                     lock (this.dispatcherMapLock)
                     {
-                        this.resultDispatcherMap.Add(request.Id, callData);
+                        this.resultDispatcherMap.Add((long)request.Id, callData);
                     }
 
                     try
@@ -1420,7 +1419,7 @@ namespace StreamJsonRpc
                         // Since we aren't expecting a response to this request, clear out our memory of it to avoid a memory leak.
                         lock (this.dispatcherMapLock)
                         {
-                            this.resultDispatcherMap.Remove(request.Id);
+                            this.resultDispatcherMap.Remove((long)request.Id);
                         }
 
                         throw;
@@ -1568,7 +1567,7 @@ namespace StreamJsonRpc
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
                     // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
                     // other side.
-                    if (remoteRpcTargets.Any())
+                    if (!localRemoteTargets.IsEmpty)
                     {
                         if (request.IsResponseExpected)
                         {
