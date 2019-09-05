@@ -7,16 +7,17 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcRemoteTargetTests : TestBase
+public class JsonRpcRemoteTargetTests : InteropTestBase
 {
-    private JsonRpc localRpc;
-    private RemoteTargetJsonRpc originRpc;
-    private JsonRpc remoteRpc1;
-    private JsonRpc remoteRpc2;
-    private RemoteTargetJsonRpc remoteTarget1;
+    private readonly JsonRpc localRpc;
+    private readonly RemoteTargetJsonRpc originRpc;
+    private readonly JsonRpc remoteRpc1;
+    private readonly JsonRpc remoteRpc2;
+    private readonly RemoteTargetJsonRpc remoteTarget1;
+    private readonly JsonRpc interopLocalRpc;
 
     public JsonRpcRemoteTargetTests(ITestOutputHelper logger)
-       : base(logger)
+       : base(logger, serverTest: true)
     {
         // originRpc is the RPC connection from origin to local.
         // localRpc is the RPC connection from local to origin.
@@ -24,10 +25,11 @@ public class JsonRpcRemoteTargetTests : TestBase
         // remoteRpc* is the RPC connection from remote to local.
 
         var streams = FullDuplexStream.CreatePair();
-        this.localRpc = JsonRpc.Attach(streams.Item2, new LocalOriginTarget());
+        this.localRpc = new JsonRpc(streams.Item2);
         this.localRpc.AllowModificationWhileListening = true;
-        this.originRpc = new RemoteTargetJsonRpc(streams.Item1, streams.Item1, new OriginTarget());
+        this.localRpc.StartListening();
 
+        this.originRpc = new RemoteTargetJsonRpc(streams.Item1, streams.Item1, new OriginTarget());
         this.originRpc.AddLocalRpcTarget(new OriginTarget());
         this.originRpc.StartListening();
 
@@ -52,21 +54,26 @@ public class JsonRpcRemoteTargetTests : TestBase
         this.remoteRpc2 = new JsonRpc(remoteServerStream2, remoteServerStream2, new RemoteTargetTwo());
         this.remoteRpc2.StartListening();
 
+        this.localRpc.AddLocalRpcTarget(new LocalOriginTarget(this.remoteTarget1));
         this.localRpc.AddRemoteRpcTarget(this.remoteTarget1);
         this.localRpc.AddRemoteRpcTarget(remoteTarget2);
         this.remoteTarget1.AddRemoteRpcTarget(this.localRpc);
         remoteTarget2.AddRemoteRpcTarget(this.localRpc);
+
+        this.interopLocalRpc = new JsonRpc(this.messageHandler, new LocalRelayTarget());
+        this.interopLocalRpc.AddRemoteRpcTarget(this.remoteTarget1);
+        this.interopLocalRpc.StartListening();
     }
 
     [Fact]
-    public async Task CanInvokeOnRelayServer()
+    public async Task CanInvokeOnRemoteTargetServer()
     {
         int result1 = await this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.AddOne), 1);
         Assert.Equal(2, result1);
     }
 
     [Fact]
-    public async Task CanNotifyOnRelayServer()
+    public async Task CanNotifyOnRemoteTargetServer()
     {
         await this.originRpc.NotifyAsync(nameof(RemoteTargetOne.GetOne));
         var result = await RemoteTargetOne.NotificationReceived;
@@ -89,21 +96,21 @@ public class JsonRpcRemoteTargetTests : TestBase
     }
 
     [Fact]
-    public async Task CanInvokeOnRelayClient()
+    public async Task CanInvokeOnRemoteTargetClient()
     {
         string result1 = await this.remoteRpc1.InvokeAsync<string>(nameof(LocalRelayTarget.LocalRelayClientSayHi), "foo");
         Assert.Equal($"Hi foo from {nameof(LocalRelayTarget)}", result1);
     }
 
     [Fact]
-    public async Task LocalOriginClientOverridesRelayServer()
+    public async Task LocalOriginClientOverridesRemoteTargetserver()
     {
         string result1 = await this.originRpc.InvokeAsync<string>("GetName");
         Assert.Equal(nameof(LocalOriginTarget), result1);
     }
 
     [Fact]
-    public async Task LocalRelayClientOverridesOriginServer()
+    public async Task LocalRemoteTargetClientOverridesOriginServer()
     {
         string result1 = await this.remoteRpc1.InvokeAsync<string>("GetName");
         Assert.Equal(nameof(LocalRelayTarget), result1);
@@ -160,6 +167,82 @@ public class JsonRpcRemoteTargetTests : TestBase
 
         Assert.Equal(5, resultLocalTask.Result);
         Assert.Equal(2, resultRemoteTask.Result);
+    }
+
+    [Fact]
+    public async Task InvokeRemoteTargetThrowsException()
+    {
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.originRpc.InvokeAsync<bool>(nameof(RemoteTargetOne.GenerateException), 1));
+        Assert.Equal("Invalid " + nameof(RemoteTargetOne.GenerateException), exception.Message);
+    }
+
+    [Fact]
+    public async Task InvokeRemoteWithStringId()
+    {
+        dynamic response = await this.RequestAsync(new
+        {
+            jsonrpc = "2.0",
+            method = "EchoInt",
+            @params = new[] { 5 },
+            id = "abc",
+        });
+
+        Assert.Equal(5, (int)response.result);
+        Assert.Equal("abc", (string)response.id);
+    }
+
+    [Fact]
+    public async Task VerifyMethodsAreInvokedInOrderBeforeYielding()
+    {
+        // Set up for this test:
+        // - origin issues a request intended for remote, but is intercepted by local (GetIntAfterSleepAsync). Local method blocks the thread by sleeping for 100ms to ensure that it doesn't complete before second request is processed.
+        // - origin issues another request bound for remote, this one is not intercepted by local (GetInvokeCountAsync)
+        // - both requests are kicked off without awaits.
+        // - SynchronizationContext waits for both requests to be in the queue and then processes.
+        // - Verify that the local call is ordered first, followed by its call to remote target (first await), then followed by the relayed remote call (because the GetInvokeCountAsync has a delay).
+        Counter.CurrentCount = 0;
+
+        this.localRpc.SynchronizationContext = new RpcOrderPreservingSynchronizationContext();
+        ((RpcOrderPreservingSynchronizationContext)this.localRpc.SynchronizationContext).ExpectedTasksQueued = 2;
+
+        var relaySleepCallTask = this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterSleepAsync));
+        var remoteCallTask = this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetInvokeCountAsync));
+
+        await Task.WhenAll(relaySleepCallTask, remoteCallTask);
+
+        Assert.Equal(1, LocalOriginTarget.InvokeCount);
+        Assert.Equal(2, relaySleepCallTask.Result);
+        Assert.Equal(3, remoteCallTask.Result);
+    }
+
+    [Fact]
+    public async Task VerifyMethodOrderingIsNotGuaranteedAfterYielding()
+    {
+        // Set up for this test:
+        // - origin issues a request intended for remote, but is intercepted by local (GetIntAfterSleepAsync). Local method delays 100ms and then makes the call to remote target.
+        // - origin issues another request bound for remote, this one is not intercepted by local (GetInvokeCountAsync)
+        // - both requests are kicked off without awaits.
+        // - SynchronizationContext waits for both requests to be in the queue and then processes.
+        // - Verify that the local call is ordered first, followed by the relayed remote call, followed by the local call to remote target.  The local call to the remote target happens last because Task.Delay would yield and process the continuation off the synchronization context.
+        // The delay time in GetIntAfterDelayAsync is also longer than the delay in GetInvokeCountAsync. 
+        Counter.CurrentCount = 0;
+
+        this.localRpc.SynchronizationContext = new RpcOrderPreservingSynchronizationContext();
+        ((RpcOrderPreservingSynchronizationContext)this.localRpc.SynchronizationContext).ExpectedTasksQueued = 2;
+
+        var relayDelayCallTask = this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterDelayAsync));
+        var remoteCallTask = this.originRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetInvokeCountAsync));
+
+        await Task.WhenAll(relayDelayCallTask, remoteCallTask);
+
+        Assert.Equal(1, LocalOriginTarget.InvokeCount);
+        Assert.Equal(3, relayDelayCallTask.Result);
+        Assert.Equal(2, remoteCallTask.Result);
+    }
+
+    public static class Counter
+    {
+        public static int CurrentCount;
     }
 
     public class RemoteTargetJsonRpc : JsonRpc
@@ -233,6 +316,29 @@ public class JsonRpcRemoteTargetTests : TestBase
             return false;
         }
 
+        public static bool GenerateException(int value)
+        {
+            throw new InvalidOperationException("Invalid " + nameof(GenerateException));
+        }
+
+        public Task<int> GetIntAfterSleepAsync()
+        {
+            var result = Interlocked.Increment(ref Counter.CurrentCount);
+            return Task.FromResult(result);
+        }
+
+        public Task<int> GetIntAfterDelayAsync()
+        {
+            var result = Interlocked.Increment(ref Counter.CurrentCount);
+            return Task.FromResult(result);
+        }
+
+        public async Task<int> GetInvokeCountAsync()
+        {
+            await Task.Delay(50);
+            return Interlocked.Increment(ref Counter.CurrentCount);
+        }
+
         public string GetName()
         {
             return nameof(RemoteTargetOne);
@@ -242,6 +348,8 @@ public class JsonRpcRemoteTargetTests : TestBase
         {
             return $"Remote {nameof(RemoteTargetOne)}";
         }
+
+        public int EchoInt(int value) => value;
     }
 
     public class RemoteTargetTwo
@@ -264,9 +372,38 @@ public class JsonRpcRemoteTargetTests : TestBase
 
     public class LocalOriginTarget
     {
+        private readonly JsonRpc remoteRpc;
+
+        public LocalOriginTarget(JsonRpc remoteRpc)
+        {
+            this.remoteRpc = remoteRpc;
+        }
+
+        public static int InvokeCount
+        {
+            get;
+            private set;
+        }
+
         public static string LocalOriginClientSayHi(string name)
         {
             return $"Hi {name} from {nameof(LocalOriginTarget)}";
+        }
+
+        public async Task<int> GetIntAfterSleepAsync()
+        {
+            Thread.Sleep(100);
+            InvokeCount = Interlocked.Increment(ref Counter.CurrentCount);
+
+            return await this.remoteRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterSleepAsync));
+        }
+
+        public async Task<int> GetIntAfterDelayAsync()
+        {
+            InvokeCount = Interlocked.Increment(ref Counter.CurrentCount);
+
+            await Task.Delay(100);
+            return await this.remoteRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterDelayAsync));
         }
 
         public string GetName()

@@ -1562,37 +1562,48 @@ namespace StreamJsonRpc
                 }
                 else
                 {
-                    var localRemoteTargets = this.remoteRpcTargets;
+                    var remoteRpcTargets = this.remoteRpcTargets;
 
                     // If we can't find the method or the target object does not exist or does not contain methods, we relay the message to the server.
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
                     // server would share the same id as the message sent from origin. We just take the message objec wholesale and pass it along to the
                     // other side.
-                    if (localRemoteTargets.Any())
+                    if (remoteRpcTargets.Any())
                     {
                         if (request.IsResponseExpected)
                         {
                             lock (this.dispatcherMapLock)
                             {
                                 this.inboundCancellationSources.Add(request.Id, localMethodCancellationSource);
+
                             }
                         }
 
-                        // Before we forward the request to the 
+                        // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
+                        // IMPORTANT: This should be the first await in this async method,
+                        //            and no other await should be between this one and actually invoking the target method.
+                        //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                        //            when a single-threaded SynchronizationContext is applied.
+                        await this.SynchronizationContextOrDefault;
+
+                        // Before we forward the request to the remote targets, we need to change the request ID so it gets a new ID in case we run into collisions.  For example,
+                        // if origin issues a request destined for the remote target at the same time as a request issued by the relay to the remote target, their IDs could be mixed up.
+                        // See InvokeRemoteTargetWithExistingId unit test for an example.
                         object previousId = request.Id;
-                        if (request.IsResponseExpected)
-                        {
-                            long id = Interlocked.Increment(ref this.nextId);
-                            request.Id = id;
-                        }
 
                         JsonRpcMessage remoteResponse = null;
-                        foreach (var remoteTarget in localRemoteTargets)
+                        foreach (var remoteTarget in remoteRpcTargets)
                         {
-                            CancellationToken token = request.IsResponseExpected ? localMethodCancellationSource.Token : CancellationToken.None;
-                            var response = await remoteTarget.InvokeCoreAsync(request, token).ConfigureAwait(false);
+                            if (request.IsResponseExpected)
+                            {
+                                long id = Interlocked.Increment(ref remoteTarget.nextId);
+                                request.Id = id;
+                            }
 
-                            if (response is JsonRpcError error && error.Error != null)
+                            CancellationToken token = request.IsResponseExpected ? localMethodCancellationSource.Token : CancellationToken.None;
+                            remoteResponse = await remoteTarget.InvokeCoreAsync(request, token).ConfigureAwait(false);
+
+                            if (remoteResponse is JsonRpcError error && error.Error != null)
                             {
                                 if (error.Error.Code == JsonRpcErrorCode.MethodNotFound || error.Error.Code == JsonRpcErrorCode.InvalidParams)
                                 {
@@ -1600,20 +1611,16 @@ namespace StreamJsonRpc
                                     continue;
                                 }
                             }
-                            else
-                            {
-                                // Otherwise, we simply return the json response;
-                                remoteResponse = response;
-                                break;
-                            }
+
+                            // Otherwise, we simply return the json response;
+                            break;
                         }
 
-                        request.Id = previousId;
                         if (remoteResponse != null)
                         {
-                            if (remoteResponse is JsonRpcResult remoteResult)
+                            if (remoteResponse is IJsonRpcMessageWithId messageWithId)
                             {
-                                remoteResult.Id = previousId;
+                                messageWithId.Id = previousId;
                             }
 
                             return remoteResponse;
@@ -1637,7 +1644,7 @@ namespace StreamJsonRpc
                             },
                         };
                     }
-                    else if (!targetMethod.IsFound)
+                    else
                     {
                         if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                         {
@@ -1655,8 +1662,6 @@ namespace StreamJsonRpc
                         };
                     }
                 }
-
-                
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
@@ -1677,21 +1682,6 @@ namespace StreamJsonRpc
                 }
             }
         }
-
-        public async Task BuildAsync()
-        {
-            await SomeAsync();
-            await SomethingElseAsync();
-        }
-
-        public async Task CleanAsync()
-        {
-            await SomeAsync();
-            await SomethingElseAsync();
-        }
-
-        private Task<int> SomeAsync() => Task.FromResult(5);
-        private async Task SomethingElseAsync() { await Task.Yield(); }
 
         private JsonRpcMessage HandleInvocationTaskResult(JsonRpcRequest request, Task t)
         {
