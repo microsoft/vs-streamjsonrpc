@@ -19,10 +19,10 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     public JsonRpcRemoteTargetTests(ITestOutputHelper logger)
        : base(logger, serverTest: true)
     {
-        // originRpc is the RPC connection from origin to local.
-        // localRpc is the RPC connection from local to origin.
-        // remoteTarget is the RPC connection from local to remote.
-        // remoteRpc* is the RPC connection from remote to local.
+        /* originRpc is the RPC connection from origin to local.
+         * localRpc is the RPC connection from local to origin.
+         * remoteTarget is the RPC connection from local to remote.
+         * remoteRpc* is the RPC connection from remote to local. */
 
         var streams = FullDuplexStream.CreatePair();
         this.localRpc = new JsonRpc(streams.Item2);
@@ -224,7 +224,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
         // - both requests are kicked off without awaits.
         // - SynchronizationContext waits for both requests to be in the queue and then processes.
         // - Verify that the local call is ordered first, followed by the relayed remote call, followed by the local call to remote target.  The local call to the remote target happens last because Task.Delay would yield and process the continuation off the synchronization context.
-        // The delay time in GetIntAfterDelayAsync is also longer than the delay in GetInvokeCountAsync. 
+        // The delay time in GetIntAfterDelayAsync is also longer than the delay in GetInvokeCountAsync.
         Counter.CurrentCount = 0;
 
         this.localRpc.SynchronizationContext = new RpcOrderPreservingSynchronizationContext();
