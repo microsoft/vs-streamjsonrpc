@@ -294,4 +294,11 @@
     <value>Error writing JSON RPC Message: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
   </data>
+  <data name="RelayAlreadySet" xml:space="preserve">
+    <value>Relay connection has already been established.</value>
+  </data>
+  <data name="ResponseUnexpectedFormat" xml:space="preserve">
+    <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
+    <comment>{0} is the response message.</comment>
+  </data>
 </root>

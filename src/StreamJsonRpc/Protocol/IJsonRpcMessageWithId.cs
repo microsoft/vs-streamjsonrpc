@@ -6,8 +6,8 @@ namespace StreamJsonRpc.Protocol
     internal interface IJsonRpcMessageWithId
     {
         /// <summary>
-        /// Gets the ID from a message.
+        /// Gets or sets the ID on a message.
         /// </summary>
-        object Id { get; }
+        object Id { get; set; }
     }
 }

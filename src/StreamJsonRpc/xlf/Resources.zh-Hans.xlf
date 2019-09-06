@@ -67,10 +67,20 @@
         <target state="translated">从流读取 JSON RPC 失败，出现 {0}：{1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="RelayAlreadySet">
+        <source>Relay connection has already been established.</source>
+        <target state="new">Relay connection has already been established.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
         <source>Response is not error.</source>
         <target state="translated">响应不是错误。</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResponseUnexpectedFormat">
+        <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
+        <target state="new">Response is in an unexpected format.  Only error and result are supported: {0}</target>
+        <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
         <source>Stream has been disposed</source>
