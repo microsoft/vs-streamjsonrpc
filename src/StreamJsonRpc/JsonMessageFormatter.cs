@@ -17,15 +17,20 @@ namespace StreamJsonRpc
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
+    using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Uses Newtonsoft.Json serialization to serialize <see cref="JsonRpcMessage"/> as JSON (text).
     /// </summary>
-    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter
+    /// <remarks>
+    /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
+    /// </remarks>
+    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcInstanceContainer
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -68,6 +73,11 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
+        /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
+
+        /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -80,8 +90,17 @@ namespace StreamJsonRpc
         private Encoding encoding;
 
         /// <summary>
+        /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
+        /// </summary>
+        /// <remarks>
+        /// This field is used to create the <see cref="IProgress{T}" /> instance that will send the progress notifications when server reports it.
+        /// The <see cref="IJsonRpcInstanceContainer.Rpc" /> property helps to ensure that only one <see cref="JsonRpc" /> instance is associated with this formatter.
+        /// </remarks>
+        private JsonRpc rpc;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
-        /// that uses <see cref="Encoding.UTF8"/> (without the preamble) for its text encoding.
+        /// that uses JsonProgress (without the preamble) for its text encoding.
         /// </summary>
         public JsonMessageFormatter()
             : this(DefaultEncoding)
@@ -96,6 +115,17 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(encoding, nameof(encoding));
             this.Encoding = encoding;
+
+            this.JsonSerializer = new JsonSerializer()
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+                Converters =
+                {
+                    new JsonProgressServerConverter(this),
+                    new JsonProgressClientConverter(this),
+                },
+            };
         }
 
         /// <summary>
@@ -135,11 +165,18 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the <see cref="Newtonsoft.Json.JsonSerializer"/> used when serializing and deserializing method arguments and return values.
         /// </summary>
-        public JsonSerializer JsonSerializer { get; } = new JsonSerializer()
+        public JsonSerializer JsonSerializer { get; }
+
+        /// <inheritdoc/>
+        JsonRpc IJsonRpcInstanceContainer.Rpc
         {
-            NullValueHandling = NullValueHandling.Ignore,
-            ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-        };
+            set
+            {
+                Verify.Operation(this.rpc == null, Resources.FormatterAlreadyInUseError);
+
+                this.rpc = value;
+            }
+        }
 
         /// <inheritdoc/>
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
@@ -308,8 +345,14 @@ namespace StreamJsonRpc
             this.bufferTextWriter.Initialize(contentBuffer, this.Encoding);
             using (var jsonWriter = new JsonTextWriter(this.bufferTextWriter))
             {
-                json.WriteTo(jsonWriter);
-                jsonWriter.Flush();
+                try
+                {
+                    json.WriteTo(jsonWriter);
+                }
+                finally
+                {
+                    jsonWriter.Flush();
+                }
             }
         }
 
@@ -346,27 +389,36 @@ namespace StreamJsonRpc
         /// <param name="jsonRpcMessage">A JSON-RPC message.</param>
         private void TokenizeUserData(JsonRpcMessage jsonRpcMessage)
         {
-            if (jsonRpcMessage is Protocol.JsonRpcRequest request)
+            try
             {
-                if (request.ArgumentsList != null)
+                if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
-                }
-                else if (request.Arguments != null)
-                {
-                    if (this.ProtocolVersion.Major < 2)
-                    {
-                        throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
-                    }
+                    this.formatterProgressTracker.RequestIdBeingSerialized = (request.Id != null) ? Convert.ToInt64(request.Id) : (long?)null;
 
-                    // Tokenize the user data using the user-supplied serializer.
-                    var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
-                    request.Arguments = paramsObject;
+                    if (request.ArgumentsList != null)
+                    {
+                        request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
+                    }
+                    else if (request.Arguments != null)
+                    {
+                        if (this.ProtocolVersion.Major < 2)
+                        {
+                            throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
+                        }
+
+                        // Tokenize the user data using the user-supplied serializer.
+                        var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+                        request.Arguments = paramsObject;
+                    }
+                }
+                else if (jsonRpcMessage is Protocol.JsonRpcResult result)
+                {
+                    result.Result = this.TokenizeUserData(result.Result);
                 }
             }
-            else if (jsonRpcMessage is Protocol.JsonRpcResult result)
+            finally
             {
-                result.Result = this.TokenizeUserData(result.Result);
+                this.formatterProgressTracker.RequestIdBeingSerialized = null;
             }
         }
 
@@ -404,6 +456,38 @@ namespace StreamJsonRpc
                 args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
                 null;
 
+            // If method is $/progress, get the progress instance from the dictionary and call Report
+            string method = json.Value<string>("method");
+
+            if (string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
+            {
+                try
+                {
+                    JToken progressId =
+                        args is JObject ? args["token"] :
+                        args is JArray ? args[0] :
+                        null;
+
+                    object progressToken = GetNormalizedId(progressId);
+
+                    JToken value =
+                        args is JObject ? args["value"] :
+                        args is JArray ? args[1] :
+                        null;
+
+                    MessageFormatterProgressTracker.ProgressParamInformation progressInfo = null;
+                    if (this.formatterProgressTracker.TryGetProgressObject(progressToken, out progressInfo))
+                    {
+                        object typedValue = value.ToObject(progressInfo.ValueType);
+                        progressInfo.InvokeReport(typedValue);
+                    }
+                }
+                catch (Exception e)
+                {
+                    this.rpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
+                }
+            }
+
             return new JsonRpcRequest(this.JsonSerializer)
             {
                 Id = GetNormalizedId(id),
@@ -419,6 +503,8 @@ namespace StreamJsonRpc
             JToken id = json["id"];
             JToken result = json["result"];
 
+            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
+
             return new JsonRpcResult(this.JsonSerializer)
             {
                 Id = GetNormalizedId(id),
@@ -432,6 +518,8 @@ namespace StreamJsonRpc
 
             JToken id = json["id"];
             JToken error = json["error"];
+
+            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
 
             return new JsonRpcError
             {
@@ -533,6 +621,61 @@ namespace StreamJsonRpc
             public T[] Rent(int minimumLength) => this.arrayPool.Rent(minimumLength);
 
             public void Return(T[] array) => this.arrayPool.Return(array);
+        }
+
+        private class JsonProgressClientConverter : JsonConverter
+        {
+            private readonly JsonMessageFormatter formatter;
+
+            public JsonProgressClientConverter(JsonMessageFormatter formatter)
+            {
+                this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+            }
+
+            public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.IsSupportedProgressType(objectType);
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                object progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                writer.WriteValue(progressId);
+            }
+        }
+
+        private class JsonProgressServerConverter : JsonConverter
+        {
+            private readonly JsonMessageFormatter formatter;
+
+            public JsonProgressServerConverter(JsonMessageFormatter formatter)
+            {
+                this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+            }
+
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>));
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                if (reader.TokenType == JsonToken.Null)
+                {
+                    return null;
+                }
+
+                JToken token = JToken.Load(reader);
+
+                return this.formatter.formatterProgressTracker.CreateProgress(this.formatter.rpc, token, objectType);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

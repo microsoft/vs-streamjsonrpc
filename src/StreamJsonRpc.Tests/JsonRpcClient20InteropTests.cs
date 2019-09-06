@@ -3,8 +3,10 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
@@ -147,6 +149,98 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
         JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameterAsArray()
+    {
+        AsyncAutoResetEvent signal = new AsyncAutoResetEvent();
+
+        int sum = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
+        {
+            sum += report;
+            signal.Set();
+        });
+
+        int n = 3;
+        Task<int> invokeTask = this.clientRpc.InvokeAsync<int>("test", new object[] { n, progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        JToken progressID = request["params"][1];
+
+        // Send responses as $/progress
+        int sum2 = 0;
+        for (int i = 1; i <= n; i++)
+        {
+            string content = "{ \"jsonrpc\": \"2.0\", \"method\": \"$/progress\", \"params\": { \"token\": " + progressID + ", \"value\": " + i + " } }";
+            JObject json = JObject.Parse(content);
+
+            this.Send(json);
+
+            sum2 += i;
+
+            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
+            Assert.Equal(sum2, sum);
+        }
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request["id"],
+            result = sum,
+        });
+
+        int result = await invokeTask;
+        Assert.Equal(sum2, result);
+    }
+
+    [Fact]
+    public async Task InvokeWithProgressParameter()
+    {
+        AsyncAutoResetEvent signal = new AsyncAutoResetEvent();
+        int sum = 0;
+
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report =>
+        {
+            sum += report;
+            signal.Set();
+        });
+
+        int n = 3;
+        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = n, Progress = progress });
+
+        JToken request = await this.ReceiveAsync();
+
+        long progressID = request["params"]["Progress"].Value<long>();
+
+        // Send responses as $/progress
+        int sum2 = 0;
+        for (int i = 0; i < n; i++)
+        {
+            string content = "{ \"jsonrpc\": \"2.0\", \"method\": \"$/progress\", \"params\": { \"token\": " + progressID + ", \"value\": " + i + "} }";
+            JObject json = JObject.Parse(content);
+
+            this.Send(json);
+
+            sum2 += i;
+
+            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
+            Assert.Equal(sum2, sum);
+        }
+
+        Assert.Equal(sum2, sum);
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = request["id"].Value<long>(),
+            result = sum,
+        });
+
+        int result = await invokeTask;
+        Assert.Equal(sum2, result);
     }
 
     [Fact]

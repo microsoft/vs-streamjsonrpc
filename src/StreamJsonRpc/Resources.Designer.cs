@@ -133,6 +133,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error writing JSON RPC Message: {0}: {1}.
+        /// </summary>
+        internal static string ErrorWritingJsonRpcMessage {
+            get {
+                return ResourceManager.GetString("ErrorWritingJsonRpcMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error writing JSON RPC Result: {0}: {1}.
         /// </summary>
         internal static string ErrorWritingJsonRpcResult {
@@ -165,6 +174,24 @@ namespace StreamJsonRpc {
         internal static string FillBufferFirst {
             get {
                 return ResourceManager.GetString("FillBufferFirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to cast given Type to IProgress&lt;T&gt;.
+        /// </summary>
+        internal static string FindIProgressOfTError {
+            get {
+                return ResourceManager.GetString("FindIProgressOfTError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance..
+        /// </summary>
+        internal static string FormatterAlreadyInUseError {
+            get {
+                return ResourceManager.GetString("FormatterAlreadyInUseError", resourceCulture);
             }
         }
         
@@ -291,6 +318,15 @@ namespace StreamJsonRpc {
         internal static string PositiveIntegerRequired {
             get {
                 return ResourceManager.GetString("PositiveIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to IProgress&lt;T&gt; objects should not be part of any response or notification..
+        /// </summary>
+        internal static string ProgressObjectInResponseOrNotificationError {
+            get {
+                return ResourceManager.GetString("ProgressObjectInResponseOrNotificationError", resourceCulture);
             }
         }
         

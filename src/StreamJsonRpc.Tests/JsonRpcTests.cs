@@ -2,12 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
@@ -278,6 +280,25 @@ public abstract class JsonRpcTests : TestBase
     public async Task ThrowsIfTargetNotSet()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
+    }
+
+    [SkippableFact]
+    [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
+    public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+        WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
+        GC.Collect();
+        Assert.False(weakRef.IsAlive);
+    }
+
+    [SkippableFact]
+    public async Task NotifyWithProgressParameter_NoMemoryLeakConfirm()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+        WeakReference weakRef = await this.NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper();
+        GC.Collect();
+        Assert.False(weakRef.IsAlive);
     }
 
     [Theory]
@@ -834,6 +855,101 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(12, sum);
     }
 
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_ProgressParameter()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
+
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(1, report);
+        Assert.Equal(1, result);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int report1 = 0;
+        ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n => report1 = n);
+
+        int report2 = 0;
+        ProgressWithCompletion<int> progress2 = new ProgressWithCompletion<int>(n => report2 = n * 2);
+
+        int report3 = 0;
+        ProgressWithCompletion<int> progress3 = new ProgressWithCompletion<int>(n => report3 = n * 3);
+
+        await this.InvokeMethodWithProgressParameter(progress1);
+        await this.InvokeMethodWithProgressParameter(progress2);
+        await this.InvokeMethodWithProgressParameter(progress3);
+
+        await progress1.WaitAsync();
+        await progress2.WaitAsync();
+        await progress3.WaitAsync();
+
+        Assert.Equal(1, report1);
+        Assert.Equal(2, report2);
+        Assert.Equal(3, report3);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_InvalidParamMethod()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_ProgressParameterAndFields()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(7, report);
+        Assert.Equal(7, sum);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int report = 0;
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(12, report);
+        Assert.Equal(12, sum);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithParameterObject_ClassIncludingProgressProperty()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new XAndYFieldsWithProgress { x = 2, y = 5, p = new Progress<int>() }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
     [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
@@ -1338,6 +1454,49 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(2, exception.ErrorCode);
     }
 
+    [Fact]
+    public async Task FormatterNonFatalException()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        ExceptionThrowingFormatter clientFormatter = new ExceptionThrowingFormatter();
+        this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.clientStream, clientFormatter));
+        this.clientRpc.StartListening();
+
+        clientFormatter.ThrowException = true;
+        await Assert.ThrowsAsync<Exception>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
+
+        clientFormatter.ThrowException = false;
+        string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Success");
+        Assert.Equal("Success!", result);
+    }
+
+    [Fact]
+    public async Task FormatterFatalException()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        ExceptionThrowingFormatter serverFormatter = new ExceptionThrowingFormatter();
+        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.serverStream, serverFormatter));
+        this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc.StartListening();
+
+        // Failure on server side should cut the connection
+        serverFormatter.ThrowException = true;
+        await Assert.ThrowsAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1402,6 +1561,45 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        WeakReference weakRef = new WeakReference(progress);
+
+        int invokeTask = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress });
+
+        await progress.WaitAsync();
+
+        // Clear progress variable locally
+        progress = null;
+
+        return weakRef;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper()
+    {
+        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(report => { });
+
+        WeakReference weakRef = new WeakReference(progress);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
+
+        await progress.WaitAsync();
+
+        // Clear progress variable locally
+        progress = null;
+
+        return weakRef;
+    }
+
+    private async Task InvokeMethodWithProgressParameter(IProgress<int> progress)
+    {
+        await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+    }
+
     public class BaseClass
     {
         protected readonly TaskCompletionSource<string> notificationTcs = new TaskCompletionSource<string>();
@@ -1457,6 +1655,38 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithDefaultParameter(int x, int y = 10)
         {
             return x + y;
+        }
+
+        public static int MethodWithProgressParameter(IProgress<int> p)
+        {
+            p.Report(1);
+            return 1;
+        }
+
+        public static int MethodWithProgressAndMoreParameters(IProgress<int> p, int x, int y = 10)
+        {
+            int sum = x + y;
+            p.Report(x);
+            p.Report(y);
+            return sum;
+        }
+
+        public static int MethodWithProgressArrayParameter(params IProgress<int>[] progressArray)
+        {
+            int report = 0;
+
+            foreach (IProgress<int> progress in progressArray)
+            {
+                report++;
+                progress.Report(report);
+            }
+
+            return 0;
+        }
+
+        public static int MethodWithInvalidProgressParameter(Progress<int> p)
+        {
+            return 1;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
@@ -1786,6 +2016,20 @@ public abstract class JsonRpcTests : TestBase
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 
+    [DataContract]
+    public class XAndYFieldsWithProgress
+    {
+        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        [DataMember]
+        public int x;
+        [DataMember]
+        public int y;
+        [DataMember]
+        public IProgress<int> p;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
     internal class InternalClass
     {
     }
@@ -1849,6 +2093,21 @@ public abstract class JsonRpcTests : TestBase
             this.PostInvoked.Set();
             this.AllowPostToReturn.Wait();
             base.Post(d, state);
+        }
+    }
+
+    private class ExceptionThrowingFormatter : JsonMessageFormatter, IJsonRpcMessageFormatter
+    {
+        public bool ThrowException;
+
+        public new void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
+        {
+            if (this.ThrowException)
+            {
+                throw new Exception("Non fatal exception...");
+            }
+
+            base.Serialize(bufferWriter, message);
         }
     }
 }

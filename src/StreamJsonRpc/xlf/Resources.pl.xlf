@@ -1,0 +1,277 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../Resources.resx">
+    <body>
+      <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
+        <source>Both readable and writable are null.</source>
+        <target state="translated">Elementy readable i writable mają wartość null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
+        <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
+        <target state="translated">Otrzymano żądanie wykonania metody „{0}”, ale brakuje obiektu wywołania zwrotnego. Żądanie zostanie odrzucone.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
+      </trans-unit>
+      <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
+        <source>Error writing JSON RPC Result: {0}: {1}</source>
+        <target state="translated">Błąd zapisywania wyniku JSON RPC: {0}: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="FailureDeserializingJsonRpc" translate="yes" xml:space="preserve">
+        <source>Failure deserializing incoming JSON RPC '{0}': {1}</source>
+        <target state="translated">Błąd deserializacji przychodzącego wywołania JSON RPC „{0}”: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON RPC, {1} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="FindIProgressOfTError">
+        <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
+        <target state="new">Unable to cast given Type to IProgress&lt;T&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatterAlreadyInUseError">
+        <source>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</source>
+        <target state="new">This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
+        <source>JSON RPC must not be null.</source>
+        <target state="translated">Wywołanie JSON RPC nie może mieć wartości null.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
+        <source>{0} has ref or out parameter(s), which is not supported</source>
+        <target state="translated">Metoda {0} ma parametry ref lub out, co nie jest obsługiwane</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+      </trans-unit>
+      <trans-unit id="MethodParameterCountDoesNotMatch" translate="yes" xml:space="preserve">
+        <source>{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}</source>
+        <target state="translated">Metoda {0} ma liczbę parametrów {1} (nie licząc wszelkich tokenów CancellationToken), ale żądanie dostarcza {2}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
+      </trans-unit>
+      <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
+        <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+        <target state="translated">Parametry {0} nie są zgodne z argumentami zawartymi w żądaniu.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+      </trans-unit>
+      <trans-unit id="ProgressObjectInResponseOrNotificationError">
+        <source>IProgress&lt;T&gt; objects should not be part of any response or notification.</source>
+        <target state="new">IProgress&lt;T&gt; objects should not be part of any response or notification.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
+        <source>Reached end of stream.</source>
+        <target state="translated">Osiągnięto koniec strumienia.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReadingJsonRpcStreamFailed" translate="yes" xml:space="preserve">
+        <source>Reading JSON RPC from the stream failed with {0}: {1}</source>
+        <target state="translated">Odczytywanie wywołania JSON RPC ze strumienia nie powiodło się — {0}: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="RelayAlreadySet">
+        <source>Relay connection has already been established.</source>
+        <target state="new">Relay connection has already been established.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
+        <source>Response is not error.</source>
+        <target state="translated">Odpowiedź nie jest błędem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResponseUnexpectedFormat">
+        <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
+        <target state="new">Response is in an unexpected format.  Only error and result are supported: {0}</target>
+        <note>{0} is the response message.</note>
+      </trans-unit>
+      <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
+        <source>Stream has been disposed</source>
+        <target state="translated">Strumień został usunięty</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskNotCompleted" translate="yes" xml:space="preserve">
+        <source>The task is not completed.</source>
+        <target state="translated">Zadanie nie zostało ukończone.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
+        <source>The task was cancelled.</source>
+        <target state="translated">Zadanie zostało anulowane.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
+        <source>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</source>
+        <target state="translated">Nie można odnaleźć metody „{0}/{1}” w klasie {2}. Przyczyny: {3}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
+      </trans-unit>
+      <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
+        <source>Unexpected error processing JSON-RPC message: {0}</source>
+        <target state="translated">Nieoczekiwany błąd podczas przetwarzania komunikatu JSON-RPC: {0}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
+        <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
+        <target state="translated">Przychodzący komunikat JSON-RPC nie był zgodny z rozpoznanym wzorcem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
+        <source>Failed parsing Content-Length header into a positive integer.</source>
+        <target state="translated">Nie powiodło się przekształcanie nagłówka Content-Length w dodatnią liczbę całkowitą.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{locked="Content-Length"}</note>
+      </trans-unit>
+      <trans-unit id="HeaderValueTooLarge" translate="yes" xml:space="preserve">
+        <source>The size of the message header exceeds the maximum supported size.</source>
+        <target state="translated">Rozmiar nagłówka komunikatu przekracza maksymalny obsługiwany rozmiar.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedTokenReadingHeader" translate="yes" xml:space="preserve">
+        <source>Unexpected token '{0}' while parsing header.</source>
+        <target state="translated">Nieoczekiwany token „{0}” podczas analizowania nagłówka.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the token, which is typically a single character.</note>
+      </trans-unit>
+      <trans-unit id="PositiveIntegerRequired" translate="yes" xml:space="preserve">
+        <source>A positive integer is required.</source>
+        <target state="translated">Wymagana jest dodatnia liczba całkowita.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FillBufferFirst" translate="yes" xml:space="preserve">
+        <source>The buffer is empty. Call the async method to fill it first.</source>
+        <target state="translated">Bufor jest pusty. Wywołaj metodę asynchroniczną, aby najpierw go wypełnić.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NonNegativeIntegerRequired" translate="yes" xml:space="preserve">
+        <source>A non-negative integer is required.</source>
+        <target state="translated">Wymagana jest nieujemna liczba całkowita.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SumOfTwoParametersExceedsArrayLength" translate="yes" xml:space="preserve">
+        <source>The {0} and {1} parameters exceed length of array.</source>
+        <target state="translated">Parametry {0} i {1} przekraczają długość tablicy.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StreamMustBeReadable" translate="yes" xml:space="preserve">
+        <source>The stream must be readable.</source>
+        <target state="translated">Strumień musi być możliwy do odczytu.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+      </trans-unit>
+      <trans-unit id="StreamMustBeWriteable" translate="yes" xml:space="preserve">
+        <source>The stream must be writeable.</source>
+        <target state="translated">Strumień musi być możliwy do zapisu.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">An error message when a stream passed in as an argument is incorrect.</note>
+      </trans-unit>
+      <trans-unit id="InvalidAfterListenHasStarted" translate="yes" xml:space="preserve">
+        <source>This operation is not allowed after listening for messages has started.</source>
+        <target state="translated">Ta operacja jest niedozwolona po rozpoczęciu nasłuchiwania komunikatów.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidBeforeListenHasStarted" translate="yes" xml:space="preserve">
+        <source>This operation is not allowed before listening for messages has started.</source>
+        <target state="translated">Ta operacja jest niedozwolona przed rozpoczęciem nasłuchiwania komunikatów.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParameterNotObject" translate="yes" xml:space="preserve">
+        <source>Parameter is not in the form of a single object</source>
+        <target state="translated">Parametr nie ma postaci pojedynczego obiektu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConflictingMethodNameAttribute" translate="yes" xml:space="preserve">
+        <source>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</source>
+        <target state="translated">Wszystkie przeciążenia i przesłonięcia metody „{0}” muszą udostępniać wspólną wartość dla elementu {1}.{2}.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</note>
+      </trans-unit>
+      <trans-unit id="ConflictingMethodAttributeValue" translate="yes" xml:space="preserve">
+        <source>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</source>
+        <target state="translated">Metody programu .NET „{0}” i „{1}” nie mogą mieć jednocześnie mapowania na tę samą nazwę metody żądania: „{2}”.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</note>
+      </trans-unit>
+      <trans-unit id="RpcMethodNameNotFound" translate="yes" xml:space="preserve">
+        <source>No method by the name '{0}' is found.</source>
+        <target state="translated">Nie znaleziono metody o nazwie „{0}”.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConflictMethodSignatureAlreadyRegistered" translate="yes" xml:space="preserve">
+        <source>A method with the same name and equivalent parameters has already been registered.</source>
+        <target state="translated">Metoda o tej samej nazwie i odpowiadających jej parametrach została już zarejestrowana.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TargetObjectAndMethodStaticFlagMismatch" translate="yes" xml:space="preserve">
+        <source>A target object should be supplied if and only if the method is not static.</source>
+        <target state="translated">Należy podać obiekt docelowy tylko wtedy, gdy metoda nie jest statyczna.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">"static" is a C# keyword and should not be translated.</note>
+      </trans-unit>
+      <trans-unit id="MustBeListening" translate="yes" xml:space="preserve">
+        <source>Listening must be started first.</source>
+        <target state="translated">Najpierw należy uruchomić nasłuchiwanie.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MustNotBeListening" translate="yes" xml:space="preserve">
+        <source>This cannot be done after listening has started.</source>
+        <target state="translated">Tego nie można zrobić po uruchomieniu nasłuchiwania.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FatalExceptionWasThrown" translate="yes" xml:space="preserve">
+        <source>A fatal exception was thrown from the server method {0}: {1}</source>
+        <target state="translated">Metoda serwera {0}: {1} zgłosiła wyjątek krytyczny</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message</note>
+      </trans-unit>
+      <trans-unit id="UnsupportedEventHandlerTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+        <source>Unsupported event handler type on "{0}". Only EventHandler and EventHandler<it id="1" pos="open">&lt;T&gt;</it> are supported.</source>
+        <target state="translated">Nieobsługiwany typ procedury obsługi zdarzeń dla elementu „{0}”. Obsługiwane są wyłącznie procedury obsługi EventHandler i EventHandler&lt;T&gt;.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is a type and member name.</note>
+      </trans-unit>
+      <trans-unit id="UnsupportedGenericMethodsOnClientProxyInterface" translate="yes" xml:space="preserve">
+        <source>Generic methods are not supported.</source>
+        <target state="translated">Metody ogólne nie są obsługiwane.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedMethodReturnTypeOnClientProxyInterface" translate="yes" xml:space="preserve">
+        <source>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</source>
+        <target state="translated">Metoda „{0}” ma nieobsługiwany zwracany typ „{1}”. Obsługiwane są tylko metody zwracające zadania.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedPropertiesOnClientProxyInterface" translate="yes" xml:space="preserve">
+        <source>Properties are not supported for service interfaces.</source>
+        <target state="translated">Właściwości nie są obsługiwane dla interfejsów usług.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClientProxyTypeArgumentMustBeAnInterface" translate="yes" xml:space="preserve">
+        <source>"{0}" is not an interface.</source>
+        <target state="translated">Element „{0}” nie jest interfejsem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+        <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+        <target state="translated">Kodowanie tekstu nie jest obsługiwane, ponieważ program formatujący „{0}” nie implementuje elementu „{1}”.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+      </trans-unit>
+      <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
+        <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
+        <target state="translated">Połączenie JSON-RPC z podmiotem zdalnym zostało utracone, zanim można było ukończyć żądanie.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+        <source>An argument was not supplied for a required parameter.</source>
+        <target state="translated">Nie dostarczono argumentu dla wymaganego parametru.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
+        <source>A CancellationToken is only allowed as the last parameter.</source>
+        <target state="translated">Element CancellationToken jest dozwolony tylko jako ostatni parametr.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+        <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+        <target state="translated">Nieobsługiwana wersja protokołu JSON-RPC: {0}. Obsługiwane wersje protokołu: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+      </trans-unit>
+      <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+        <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+        <target state="translated">Protokół JSON-RPC 1.0 nie obsługuje nazwanych argumentów (parametrów przekazywanych w ramach obiektu). Użyj argumentów pozycyjnych (tablic parametrów) lub ustaw wersję protokołu na 2.0.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+        <source>Error writing JSON RPC Message: {0}: {1}</source>
+        <target state="translated">Błąd zapisywania komunikatu JSON zdalnego wywołania procedury: {0}: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -7,11 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <Description>A cross-platform .NET portable library that implements the JSON-RPC wire protocol and can use System.IO.Stream or WebSocket so you can use it with any transport.</Description>
-    <PackageTags>visualstudio stream json rpc</PackageTags>
-  </PropertyGroup>
-  <PropertyGroup Label="MultilingualAppToolkit">
-    <MultilingualAppToolkitVersion>4.0</MultilingualAppToolkitVersion>
-    <MultilingualFallbackLanguage>en</MultilingualFallbackLanguage>
+    <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx">
@@ -32,7 +28,8 @@
     <PackageReference Include="System.Net.Http" Version="4.3.3" />
     <PackageReference Include="System.Net.WebSockets" Version="4.3.0" />
     <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.2" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.3" />
+    <PackageReference Include="XliffTasks" Version="1.0.0-beta.19253.2" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
@@ -50,8 +47,4 @@
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets" Label="MultilingualAppToolkit" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets')" />
-  <Target Name="MATPrerequisite" BeforeTargets="PrepareForBuild" Condition="!Exists('$(MSBuildExtensionsPath)\Microsoft\Multilingual App Toolkit\Microsoft.Multilingual.ResxResources.targets')" Label="MultilingualAppToolkit">
-    <Warning Text="$(MSBuildProjectFile) is Multilingual build enabled, but the Multilingual App Toolkit is unavailable during the build. If building with Visual Studio, please check to ensure that toolkit is properly installed." />
-  </Target>
 </Project>

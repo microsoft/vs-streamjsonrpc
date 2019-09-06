@@ -2,7 +2,7 @@ trigger:
   branches:
     include:
     - master
-    - microbuild
+    - v*
     - validate/*
   paths:
     exclude:
@@ -12,6 +12,7 @@ trigger:
 
 variables:
   TreatWarningsAsErrors: true
+  UpdateXlfOnBuild: false # force build breaks if xlf files aren't updated on dev box with resx changes
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   BuildPlatform: Any CPU
