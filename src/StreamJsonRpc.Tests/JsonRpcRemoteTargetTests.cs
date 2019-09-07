@@ -215,7 +215,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
         Assert.Equal(3, remoteCallTask.Result);
     }
 
-    [Fact]
+    [Fact(Skip = "Unstable. See https://github.com/microsoft/vs-streamjsonrpc/issues/336")]
     public async Task VerifyMethodOrderingIsNotGuaranteedAfterYielding()
     {
         // Set up for this test:
