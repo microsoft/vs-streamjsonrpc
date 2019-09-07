@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Text;
+using System.Threading.Tasks;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 using StreamJsonRpc;
@@ -110,6 +111,31 @@ public class JsonMessageFormatterTests : TestBase
         Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object value));
         Assert.IsType<string>(value);
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
+    }
+
+    /// <summary>
+    /// Verifies that the <see cref="JsonMessageFormatter.MultiplexingStream"/> property
+    /// retains values it is set to, and accepts null.
+    /// </summary>
+    /// <remarks>
+    /// The rest of the multiplexing stream tests are defined in <see cref="DuplexPipeMarshalingTests"/>.
+    /// </remarks>
+    [Fact]
+    public async Task MultiplexingStream()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Null(formatter.MultiplexingStream);
+
+        Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
+        MultiplexingStream[] mxStreams = await Task.WhenAll(
+            Nerdbank.Streams.MultiplexingStream.CreateAsync(streams.Item1, this.TimeoutToken),
+            Nerdbank.Streams.MultiplexingStream.CreateAsync(streams.Item2, this.TimeoutToken));
+
+        formatter.MultiplexingStream = mxStreams[0];
+        Assert.Same(mxStreams[0], formatter.MultiplexingStream);
+
+        formatter.MultiplexingStream = null;
+        Assert.Null(formatter.MultiplexingStream);
     }
 
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)

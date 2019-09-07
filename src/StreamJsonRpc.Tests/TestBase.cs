@@ -2,12 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -44,6 +42,23 @@ public abstract class TestBase : IDisposable
     {
         this.Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected static Task WhenAllSucceedOrAnyFault(params Task[] tasks)
+    {
+        if (tasks.Length == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        var resultTcs = new TaskCompletionSource<object>();
+        Task.WhenAll(tasks).ApplyResultTo(resultTcs);
+        foreach (Task task in tasks)
+        {
+            task.ContinueWith((failedTask, state) => ((TaskCompletionSource<object>)state).TrySetException(failedTask.Exception), resultTcs, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default).Forget();
+        }
+
+        return resultTcs.Task;
     }
 
     protected virtual void Dispose(bool disposing)

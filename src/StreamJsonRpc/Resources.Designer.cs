@@ -187,11 +187,11 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance..
+        ///   Looks up a localized string similar to The configuration is locked because this formatter has already been associated with a JsonRpc instance..
         /// </summary>
-        internal static string FormatterAlreadyInUseError {
+        internal static string FormatterConfigurationLockedAfterJsonRpcAssigned {
             get {
-                return ResourceManager.GetString("FormatterAlreadyInUseError", resourceCulture);
+                return ResourceManager.GetString("FormatterConfigurationLockedAfterJsonRpcAssigned", resourceCulture);
             }
         }
         
@@ -237,6 +237,15 @@ namespace StreamJsonRpc {
         internal static string JsonRpcCannotBeNull {
             get {
                 return ResourceManager.GetString("JsonRpcCannotBeNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This tracked object should not be part of any response or notification..
+        /// </summary>
+        internal static string MarshaledObjectInResponseOrNotificationError {
+            get {
+                return ResourceManager.GetString("MarshaledObjectInResponseOrNotificationError", resourceCulture);
             }
         }
         
@@ -295,6 +304,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?.
+        /// </summary>
+        internal static string NotSupportedWithoutMultiplexingStream {
+            get {
+                return ResourceManager.GetString("NotSupportedWithoutMultiplexingStream", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Parameter is not in the form of a single object.
         /// </summary>
         internal static string ParameterNotObject {
@@ -318,15 +336,6 @@ namespace StreamJsonRpc {
         internal static string PositiveIntegerRequired {
             get {
                 return ResourceManager.GetString("PositiveIntegerRequired", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to IProgress&lt;T&gt; objects should not be part of any response or notification..
-        /// </summary>
-        internal static string ProgressObjectInResponseOrNotificationError {
-            get {
-                return ResourceManager.GetString("ProgressObjectInResponseOrNotificationError", resourceCulture);
             }
         }
         
