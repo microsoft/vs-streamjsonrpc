@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using StreamJsonRpc;
 using Xunit;
@@ -151,9 +152,10 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanCancelOnOriginTarget()
     {
         var tokenSource = new CancellationTokenSource();
-        var task = this.remoteRpc1.InvokeWithCancellationAsync<bool>(nameof(OriginTarget.CancellableOriginOperation), cancellationToken: tokenSource.Token);
+        Task<bool> task = this.remoteRpc1.InvokeWithCancellationAsync<bool>(nameof(OriginTarget.CancellableOriginOperation), cancellationToken: tokenSource.Token);
+        await OriginTarget.CancellableOriginOperationReached.WaitAsync(this.TimeoutToken);
         tokenSource.Cancel();
-        var result = await task;
+        bool result = await task;
         Assert.True(result);
     }
 
@@ -427,13 +429,15 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
 
     public class OriginTarget
     {
-        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
+        public static readonly AsyncAutoResetEvent CancellableOriginOperationReached = new AsyncAutoResetEvent();
 
-        public static Task<int> NotificationReceived => notificationTcs.Task;
+        private static readonly TaskCompletionSource<int> NotificationTcs = new TaskCompletionSource<int>();
+
+        public static Task<int> NotificationReceived => NotificationTcs.Task;
 
         public static void GetTwo()
         {
-            notificationTcs.SetResult(2);
+            NotificationTcs.SetResult(2);
         }
 
         public static string OriginServerSayGoodbye(string name)
@@ -443,17 +447,16 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
 
         public static async Task<bool> CancellableOriginOperation(CancellationToken token)
         {
-            var retryIndex = 0;
-            while (retryIndex < 100)
+            CancellableOriginOperationReached.Set();
+            try
             {
-                await Task.Delay(100);
-                if (token.IsCancellationRequested)
-                {
-                    return true;
-                }
+                await Task.Delay(UnexpectedTimeout, token);
+                return false;
             }
-
-            return false;
+            catch (OperationCanceledException)
+            {
+                return true;
+            }
         }
 
         public string GetName()
