@@ -28,7 +28,7 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Dictionary used to map the outbound request id to their progress id token so that the progress objects are cleaned after getting the final response.
         /// </summary>
-        private readonly Dictionary<long, object> requestProgressMap = new Dictionary<long, object>();
+        private readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
 
         /// <summary>
         /// Dictionary used to map progress id token to its corresponding <see cref="ProgressParamInformation" /> instance containing the progress object and the necessary fields to report the results.
@@ -98,7 +98,7 @@ namespace StreamJsonRpc.Reflection
 
             if (this.RequestIdBeingSerialized == null)
             {
-                throw new NotSupportedException(Resources.ProgressObjectInResponseOrNotificationError);
+                throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
             }
 
             lock (this.progressLock)
@@ -120,9 +120,7 @@ namespace StreamJsonRpc.Reflection
         {
             lock (this.progressLock)
             {
-                object progressId;
-
-                if (this.requestProgressMap.TryGetValue(requestId, out progressId))
+                if (this.requestProgressMap.TryGetValue(requestId, out long progressId))
                 {
                     this.requestProgressMap.Remove(requestId);
                     this.progressMap.Remove(progressId);

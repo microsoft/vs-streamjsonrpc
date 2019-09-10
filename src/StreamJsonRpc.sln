@@ -9,13 +9,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StreamJsonRpc.Tests", "Stre
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{68DDB820-140B-4178-B030-3E47C460376B}"
 	ProjectSection(SolutionItems) = preProject
-		..\.vsts-ci.yml = ..\.vsts-ci.yml
+		.editorconfig = .editorconfig
+		..\azure-pipelines.yml = ..\azure-pipelines.yml
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
-		global.json = global.json
-		nuget.config = nuget.config
+		..\global.json = ..\global.json
+		..\nuget.config = ..\nuget.config
+		shipping.ruleset = shipping.ruleset
 		stylecop.json = stylecop.json
-		version.json = version.json
+		..\version.json = ..\version.json
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{CEF0F77F-19EB-4C76-A050-854984BB0364}"

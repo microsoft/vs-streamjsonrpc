@@ -19,7 +19,7 @@
         /// <summary>
         /// The options to use when creating the value for <see cref="enqueuedSource"/>.
         /// </summary>
-        private const TaskCreationOptions EnqueuedSourceOptions = TaskCreationOptions.None;
+        private const TaskCreationOptions EnqueuedSourceOptions = TaskCreationOptions.RunContinuationsAsynchronously;
         private static readonly byte[] EmptyByteArray = new byte[0];
         private static readonly Task CompletedTask = Task.FromResult<object>(null);
 

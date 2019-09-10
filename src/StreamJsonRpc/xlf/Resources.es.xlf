@@ -27,14 +27,19 @@
         <target state="new">Unable to cast given Type to IProgress&lt;T&gt;</target>
         <note />
       </trans-unit>
-      <trans-unit id="FormatterAlreadyInUseError">
-        <source>This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</source>
-        <target state="new">This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.</target>
+      <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
+        <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
+        <target state="new">The configuration is locked because this formatter has already been associated with a JsonRpc instance.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">JSON RPC no debe ser NULL.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MarshaledObjectInResponseOrNotificationError">
+        <source>This tracked object should not be part of any response or notification.</source>
+        <target state="new">This tracked object should not be part of any response or notification.</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -52,9 +57,9 @@
         <target state="translated">Los parámetros de {0} no son compatibles con los argumentos proporcionados en la solicitud.</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
       </trans-unit>
-      <trans-unit id="ProgressObjectInResponseOrNotificationError">
-        <source>IProgress&lt;T&gt; objects should not be part of any response or notification.</source>
-        <target state="new">IProgress&lt;T&gt; objects should not be part of any response or notification.</target>
+      <trans-unit id="NotSupportedWithoutMultiplexingStream">
+        <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
+        <target state="new">Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</target>
         <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">

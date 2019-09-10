@@ -163,6 +163,7 @@ namespace StreamJsonRpc
             if (disposing)
             {
                 this.sendingSemaphore.Dispose();
+                (this.Formatter as IDisposable)?.Dispose();
             }
         }
 

@@ -8,10 +8,26 @@ StreamJsonRpc.IJsonRpcInstanceContainer
 StreamJsonRpc.IJsonRpcInstanceContainer.Rpc.set -> void
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Text.Encoding encoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader reader, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+StreamJsonRpc.JsonMessageFormatter.Dispose() -> void
+StreamJsonRpc.JsonMessageFormatter.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream
+StreamJsonRpc.JsonMessageFormatter.MultiplexingStream.set -> void
 StreamJsonRpc.JsonRpc.AddRemoteRpcTarget(StreamJsonRpc.JsonRpc remoteTarget) -> void
 StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType) -> object
 StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType, StreamJsonRpc.JsonRpcProxyOptions options) -> object
 StreamJsonRpc.JsonRpc.TraceEvents.ProgressNotificationError = 16 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose() -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipe(int? token) -> System.IO.Pipelines.IDuplexPipe
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetToken(System.IO.Pipelines.IDuplexPipe duplexPipe) -> int?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MessageFormatterDuplexPipeTracker() -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MultiplexingStream.set -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseReceived(long requestId, bool successful) -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseSent(object requestId, bool successful) -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingDeserialized.get -> object
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingDeserialized.set -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingSerialized.get -> long?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingSerialized.set -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc rpc, object token, System.Type valueType) -> object
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc rpc, object token) -> System.IProgress<T>

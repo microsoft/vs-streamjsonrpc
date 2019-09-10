@@ -12,6 +12,7 @@ The rest of our documentation are organized around use case.
 1. [Test your code](testing.md)
 1. [Write resilient code](resiliency.md)
 1. [Remote Targets](remotetargets.md)
+1. [Passing `Stream`/`IDuplexPipe` around](oob_streams.md)
 1. [Troubleshoot](troubleshooting.md)
 
 See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes
