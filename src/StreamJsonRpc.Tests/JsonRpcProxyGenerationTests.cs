@@ -214,6 +214,14 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    [Trait("NegativeTest", "")]
+    public void GenerateProxyFromClassNotSuppported_NotNestedClass()
+    {
+        var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<JsonRpcProxyGenerationTests>(this.clientStream));
+        this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
     public async Task CallMethod_CancellationToken_int()
     {
         await this.clientRpc.HeavyWorkAsync(CancellationToken.None);
