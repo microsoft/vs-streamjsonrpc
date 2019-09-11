@@ -517,10 +517,12 @@ namespace StreamJsonRpc
 
         private static void VerifySupported(bool condition, string messageFormat, MemberInfo problematicMember, params object[] otherArgs)
         {
+            Requires.NotNull(problematicMember, nameof(problematicMember));
+
             if (!condition)
             {
                 object[] formattingArgs = new object[1 + otherArgs?.Length ?? 0];
-                formattingArgs[0] = problematicMember.DeclaringType.FullName + "." + problematicMember.Name;
+                formattingArgs[0] = problematicMember is TypeInfo problematicType ? problematicType.FullName : problematicMember.DeclaringType?.FullName + "." + problematicMember.Name;
                 if (otherArgs?.Length > 0)
                 {
                     Array.Copy(otherArgs, 0, formattingArgs, 1, otherArgs.Length);
