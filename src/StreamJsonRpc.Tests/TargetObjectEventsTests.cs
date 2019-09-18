@@ -24,7 +24,7 @@ public class TargetObjectEventsTests : TestBase
     public TargetObjectEventsTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.server = new Server();
+        this.server = new ServerDerived();
         this.client = new Client();
 
         var streams = FullDuplexStream.CreateStreams();
@@ -266,6 +266,10 @@ public class TargetObjectEventsTests : TestBase
         protected virtual void OnPrivateServerEvent(EventArgs args) => this.PrivateServerEvent?.Invoke(this, args);
 
         protected virtual void OnServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgs?.Invoke(this, args);
+    }
+
+    private class ServerDerived : Server
+    {
     }
 
     private class ServerWithIncompatibleEvents

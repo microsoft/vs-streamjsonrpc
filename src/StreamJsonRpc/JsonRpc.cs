@@ -670,21 +670,24 @@ namespace StreamJsonRpc
 
                 if (options.NotifyClientOfEvents)
                 {
-                    foreach (var evt in target.GetType().GetTypeInfo().DeclaredEvents)
+                    for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                     {
-                        if (evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
+                        foreach (var evt in t.DeclaredEvents)
                         {
-                            if (this.eventReceivers == null)
+                            if (evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
                             {
-                                this.eventReceivers = new List<EventReceiver>();
-                            }
+                                if (this.eventReceivers == null)
+                                {
+                                    this.eventReceivers = new List<EventReceiver>();
+                                }
 
-                            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                            {
-                                this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
-                            }
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
+                                }
 
-                            this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                                this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
+                            }
                         }
                     }
                 }
