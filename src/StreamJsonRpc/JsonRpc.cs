@@ -523,7 +523,7 @@ namespace StreamJsonRpc
         public static T Attach<T>(Stream sendingStream, Stream receivingStream)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(sendingStream, receivingStream);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default);
             rpc.StartListening();
@@ -560,7 +560,7 @@ namespace StreamJsonRpc
         public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions options)
             where T : class
         {
-            var proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(handler);
             T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default);
             rpc.StartListening();
@@ -631,17 +631,17 @@ namespace StreamJsonRpc
             options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
-            var mapping = GetRequestMethodToClrMethodMap(target, options);
+            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(target, options);
             lock (this.syncObject)
             {
-                foreach (var item in mapping)
+                foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
                 {
                     string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
                     Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget> existingList))
                     {
                         // Only add methods that do not have equivalent signatures to what we already have.
-                        foreach (var newMethod in item.Value)
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
                         {
                             if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
                             {
@@ -659,7 +659,7 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        foreach (var newMethod in item.Value)
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
                         {
                             this.TraceLocalMethodAdded(rpcMethodName, newMethod);
                         }
@@ -672,7 +672,7 @@ namespace StreamJsonRpc
                 {
                     for (TypeInfo t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                     {
-                        foreach (var evt in t.DeclaredEvents)
+                        foreach (EventInfo evt in t.DeclaredEvents)
                         {
                             if (evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
                             {
@@ -748,7 +748,7 @@ namespace StreamJsonRpc
             {
                 var methodTarget = new MethodSignatureAndTarget(handler, target);
                 this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
-                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out var existingList))
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget> existingList))
                 {
                     if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
                     {
@@ -1155,7 +1155,7 @@ namespace StreamJsonRpc
                 request.Arguments = arguments ?? EmptyObjectArray;
             }
 
-            var response = await this.InvokeCoreAsync(request, cancellationToken).ConfigureAwait(false);
+            JsonRpcMessage response = await this.InvokeCoreAsync(request, cancellationToken).ConfigureAwait(false);
 
             if (request.IsResponseExpected)
             {
@@ -1208,7 +1208,7 @@ namespace StreamJsonRpc
 
                     var requestName = mapping.GetRpcMethodName(method);
 
-                    if (!requestMethodToDelegateMap.TryGetValue(requestName, out var methodTargetList))
+                    if (!requestMethodToDelegateMap.TryGetValue(requestName, out List<MethodSignatureAndTarget> methodTargetList))
                     {
                         methodTargetList = new List<MethodSignatureAndTarget>();
                         requestMethodToDelegateMap.Add(requestName, methodTargetList);
@@ -1251,7 +1251,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
-                    var attribute = mapping.FindAttribute(method);
+                    JsonRpcMethodAttribute attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
@@ -1265,7 +1265,7 @@ namespace StreamJsonRpc
 
             // Now that all methods have been discovered, add the candidate aliases
             // if it would not introduce any collisions.
-            foreach (var candidateAlias in candidateAliases)
+            foreach (KeyValuePair<string, string> candidateAlias in candidateAliases)
             {
                 if (!requestMethodToClrMethodNameMap.ContainsKey(candidateAlias.Key))
                 {
@@ -1497,7 +1497,7 @@ namespace StreamJsonRpc
 
             exception = StripExceptionToInnerException(exception);
 
-            var errorDetails = this.CreateErrorDetails(request, exception);
+            JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
             if (errorDetails == null)
             {
                 string errorMessage = $"The {this.GetType().Name}.{nameof(this.CreateErrorDetails)} method returned null, which is not allowed.";
@@ -1532,7 +1532,7 @@ namespace StreamJsonRpc
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
                 // it cannot be preempted by the cancellation request that would try to set it
                 // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
-                var cancellationToken = CancellationToken.None;
+                CancellationToken cancellationToken = CancellationToken.None;
                 if (request.IsResponseExpected)
                 {
                     localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
@@ -1544,7 +1544,7 @@ namespace StreamJsonRpc
                 TargetMethod targetMethod = null;
                 lock (this.syncObject)
                 {
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out var candidateTargets))
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out List<MethodSignatureAndTarget> candidateTargets))
                     {
                         targetMethod = new TargetMethod(request, candidateTargets);
                     }
@@ -1611,7 +1611,7 @@ namespace StreamJsonRpc
                     // Checking on the runtime result object itself is problematic because .NET / C# implements
                     // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                     // the VoidTaskResult internal struct as a meaningful result.
-                    var continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
+                    Func<Task, object, JsonRpcMessage> continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType.GetTypeInfo(), out _)
                         ? this.handleInvocationTaskOfTResultDelegate
                         : this.handleInvocationTaskResultDelegate;
 
@@ -1624,7 +1624,7 @@ namespace StreamJsonRpc
                 }
                 else
                 {
-                    var remoteRpcTargets = this.remoteRpcTargets;
+                    ImmutableList<JsonRpc> remoteRpcTargets = this.remoteRpcTargets;
 
                     // If we can't find the method or the target object does not exist or does not contain methods, we relay the message to the server.
                     // Any exceptions from the relay will be returned back to the origin since we catch all exceptions here.  The message being relayed to the
@@ -1653,7 +1653,7 @@ namespace StreamJsonRpc
                         object previousId = request.Id;
 
                         JsonRpcMessage remoteResponse = null;
-                        foreach (var remoteTarget in remoteRpcTargets)
+                        foreach (JsonRpc remoteTarget in remoteRpcTargets)
                         {
                             if (request.IsResponseExpected)
                             {
@@ -1763,7 +1763,7 @@ namespace StreamJsonRpc
             JsonRpcMessage result;
             if (t.IsFaulted)
             {
-                var exception = StripExceptionToInnerException(t.Exception);
+                Exception exception = StripExceptionToInnerException(t.Exception);
                 if (this.IsFatalException(exception))
                 {
                     var e = new JsonRpcDisconnectedEventArgs(
@@ -1817,7 +1817,7 @@ namespace StreamJsonRpc
 
         private JsonRpcMessage HandleInvocationTaskOfTResult(JsonRpcRequest request, Task t)
         {
-            var message = this.HandleInvocationTaskResult(request, t);
+            JsonRpcMessage message = this.HandleInvocationTaskResult(request, t);
 
             if (message is JsonRpcResult resultMessage)
             {
@@ -1899,7 +1899,7 @@ namespace StreamJsonRpc
         {
             if (this.eventReceivers != null)
             {
-                foreach (var receiver in this.eventReceivers)
+                foreach (EventReceiver receiver in this.eventReceivers)
                 {
                     receiver.Dispose();
                 }
@@ -2285,7 +2285,7 @@ namespace StreamJsonRpc
             {
                 Requires.NotNull(methodImpl, nameof(methodImpl));
 
-                foreach (var map in this.interfaceMaps)
+                foreach (InterfaceMapping map in this.interfaceMaps)
                 {
                     int methodIndex = Array.IndexOf(map.TargetMethods, methodImpl);
                     if (methodIndex >= 0)
@@ -2341,7 +2341,7 @@ namespace StreamJsonRpc
                     // It will work for EventHandler and EventHandler<T>, at least.
                     // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                     // with the right signature.
-                    var eventHandlerParameters = eventInfo.EventHandlerType.GetTypeInfo().GetMethod("Invoke").GetParameters();
+                    ParameterInfo[] eventHandlerParameters = eventInfo.EventHandlerType.GetTypeInfo().GetMethod("Invoke").GetParameters();
                     if (eventHandlerParameters.Length != 2)
                     {
                         throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
@@ -2354,7 +2354,7 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        var closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
+                        MethodInfo closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
                         this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType, this);
                     }
                 }

@@ -1,0 +1,4 @@
+[*.cs]
+
+# Allow tests to use `var` even when the type isn't apparent
+csharp_style_var_elsewhere = false:silent
