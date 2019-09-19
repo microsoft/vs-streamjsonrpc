@@ -17,6 +17,7 @@ variables:
   BuildConfiguration: Release
   BuildPlatform: Any CPU
   push_to_ci: true
+  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
 
 jobs:
 - template: build.yml
