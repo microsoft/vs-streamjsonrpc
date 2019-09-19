@@ -123,9 +123,9 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal
+    internal interface IServerInternal : StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface
     {
-        Task AddAsync(int a, int b);
+        Task<int> AddAsync(int a, int b);
     }
 
     [Fact]
@@ -325,11 +325,22 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void InternalInterface()
+    public async Task InternalInterface()
     {
-        // When implementing internal interfaces work, fill out this test to actually invoke it.
         var streams = FullDuplexStream.CreateStreams();
-        Assert.Throws<TypeLoadException>(() => JsonRpc.Attach<IServerInternal>(streams.Item1));
+        var server = new ServerOfInternalInterface();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+
+        // Try the first internal interface, which is external to this test assembly
+        var proxy1 = clientRpc.Attach<StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface>();
+        Assert.Equal(-1, await proxy1.SubtractAsync(1, 2).WithCancellation(this.TimeoutToken));
+
+        // Now create a proxy for another interface that is internal within this assembly, but derives from the external assembly's internal interface.
+        // This verifies that we can handle multiple sets of assemblies which we need internal visibility into, as well as that it can track base type interfaces.
+        var proxy2 = clientRpc.Attach<IServerInternal>();
+        Assert.Equal(3, await proxy2.AddAsync(1, 2).WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
@@ -674,5 +685,12 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
 
         internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
+    }
+
+    internal class ServerOfInternalInterface : IServerInternal
+    {
+        public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
+
+        public Task<int> SubtractAsync(int a, int b) => Task.FromResult(a - b);
     }
 }

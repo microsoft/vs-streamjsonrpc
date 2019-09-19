@@ -10,24 +10,27 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.ComponentModel;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
+    using System.Security;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
 
     internal static class ProxyGeneration
     {
+        private static readonly Dictionary<ImmutableHashSet<AssemblyName>, ModuleBuilder> TransparentProxyModuleBuilderByVisibilityCheck = new Dictionary<ImmutableHashSet<AssemblyName>, ModuleBuilder>(new ByContentEqualityComparer());
+        private static readonly object BuilderLock = new object();
+
         private static readonly Type[] EmptyTypes = new Type[0];
         private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
         private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) });
         private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) });
         private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None)).GetMethod;
-        private static readonly AssemblyBuilder AssemblyBuilder;
-        private static readonly ModuleBuilder ProxyModuleBuilder;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
@@ -42,16 +45,6 @@ namespace StreamJsonRpc
         private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) });
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments)).GetMethod;
 
-        static ProxyGeneration()
-        {
-#if SaveAssembly
-            AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"rpcProxies_{Guid.NewGuid()}"), AssemblyBuilderAccess.RunAndSave);
-#else
-            AssemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"rpcProxies_{Guid.NewGuid()}"), AssemblyBuilderAccess.RunAndCollect);
-#endif
-            ProxyModuleBuilder = AssemblyBuilder.DefineDynamicModule("rpcProxies");
-        }
-
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
         /// </summary>
@@ -64,18 +57,17 @@ namespace StreamJsonRpc
 
             TypeInfo generatedType;
 
-            lock (GeneratedProxiesByInterface)
+            lock (BuilderLock)
             {
                 if (GeneratedProxiesByInterface.TryGetValue(serviceInterface, out generatedType))
                 {
                     return generatedType;
                 }
-            }
 
-            var methodNameMap = new JsonRpc.MethodNameMap(serviceInterface);
+                ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(serviceInterface);
 
-            lock (ProxyModuleBuilder)
-            {
+                var methodNameMap = new JsonRpc.MethodNameMap(serviceInterface);
+
                 var interfaces = new List<Type>
                 {
                     serviceInterface.AsType(),
@@ -83,7 +75,7 @@ namespace StreamJsonRpc
 
                 interfaces.Add(typeof(IJsonRpcClientProxy));
 
-                TypeBuilder proxyTypeBuilder = ProxyModuleBuilder.DefineType(
+                TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
                     string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
                     TypeAttributes.Public,
                     typeof(object),
@@ -280,7 +272,7 @@ namespace StreamJsonRpc
                     {
                         if (argumentCountExcludingCancellationToken > 0)
                         {
-                            ConstructorInfo paramObjectCtor = CreateParameterObjectType(methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), proxyType);
+                            ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), proxyType);
                             for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
                             {
                                 il.Emit(OpCodes.Ldarg, i + 1);
@@ -367,19 +359,7 @@ namespace StreamJsonRpc
                 }
 
                 generatedType = proxyTypeBuilder.CreateTypeInfo();
-            }
-
-            lock (GeneratedProxiesByInterface)
-            {
-                if (!GeneratedProxiesByInterface.TryGetValue(serviceInterface, out TypeInfo raceGeneratedType))
-                {
-                    GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
-                }
-                else
-                {
-                    // Ensure we only expose the same generated type externally.
-                    generatedType = raceGeneratedType;
-                }
+                GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
             }
 
 #if SaveAssembly
@@ -390,7 +370,44 @@ namespace StreamJsonRpc
             return generatedType;
         }
 
-        private static ConstructorInfo CreateParameterObjectType(ParameterInfo[] parameters, Type parentType)
+        /// <summary>
+        /// Gets the <see cref="ModuleBuilder"/> to use for generating a proxy for the given type.
+        /// </summary>
+        /// <param name="interfaceType">The type of the interface to generate a proxy for.</param>
+        /// <returns>The <see cref="ModuleBuilder"/> to use.</returns>
+        private static ModuleBuilder GetProxyModuleBuilder(TypeInfo interfaceType)
+        {
+            Requires.NotNull(interfaceType, nameof(interfaceType));
+            Assumes.True(Monitor.IsEntered(BuilderLock));
+
+            // Dynamic assemblies are relatively expensive. We want to create as few as possible.
+            // For each unique set of skip visibility check assemblies, we need a new dynamic assembly
+            // because the CLR will not honor any additions to that set once the first generated type is closed.
+            // So maintain a dictionary to point at dynamic modules based on the set of skip visiblity check assemblies they were generated with.
+            ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType);
+            if (!TransparentProxyModuleBuilderByVisibilityCheck.TryGetValue(skipVisibilityCheckAssemblies, out ModuleBuilder moduleBuilder))
+            {
+                AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder(typeof(SecurityTransparentAttribute).GetTypeInfo().GetConstructor(Type.EmptyTypes));
+                moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
+                var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
+                skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
+                TransparentProxyModuleBuilderByVisibilityCheck.Add(skipVisibilityCheckAssemblies, moduleBuilder);
+            }
+
+            return moduleBuilder;
+        }
+
+        private static AssemblyBuilder CreateProxyAssemblyBuilder(ConstructorInfo constructorInfo)
+        {
+            var proxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "rpcProxies_{0}", Guid.NewGuid()));
+#if SaveAssembly
+            return AssemblyBuilder.DefineDynamicAssembly(proxyAssemblyName, AssemblyBuilderAccess.RunAndSave);
+#else
+            return AssemblyBuilder.DefineDynamicAssembly(proxyAssemblyName, AssemblyBuilderAccess.RunAndCollect);
+#endif
+        }
+
+        private static ConstructorInfo CreateParameterObjectType(ModuleBuilder moduleBuilder, ParameterInfo[] parameters, Type parentType)
         {
             Requires.NotNull(parameters, nameof(parameters));
             if (parameters.Length == 0)
@@ -398,7 +415,7 @@ namespace StreamJsonRpc
                 return ObjectCtor;
             }
 
-            TypeBuilder proxyTypeBuilder = ProxyModuleBuilder.DefineType(
+            TypeBuilder proxyTypeBuilder = moduleBuilder.DefineType(
                 string.Format(CultureInfo.InvariantCulture, "_param_{0}", Guid.NewGuid()),
                 TypeAttributes.NotPublic);
 
@@ -539,6 +556,30 @@ namespace StreamJsonRpc
 
             IEnumerable<T> result = oneInterfaceQuery(interfaceType);
             return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
+        }
+
+        private class ByContentEqualityComparer : IEqualityComparer<ImmutableHashSet<AssemblyName>>
+        {
+            public bool Equals(ImmutableHashSet<AssemblyName> x, ImmutableHashSet<AssemblyName> y)
+            {
+                if (x.Count != y.Count)
+                {
+                    return false;
+                }
+
+                return !x.Except(y).Any();
+            }
+
+            public int GetHashCode(ImmutableHashSet<AssemblyName> obj)
+            {
+                int hashCode = 0;
+                foreach (AssemblyName item in obj)
+                {
+                    hashCode += item.GetHashCode();
+                }
+
+                return hashCode;
+            }
         }
     }
 }
