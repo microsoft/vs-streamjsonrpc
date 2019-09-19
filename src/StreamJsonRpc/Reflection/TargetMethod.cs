@@ -37,13 +37,13 @@ namespace StreamJsonRpc
             this.request = request;
 
             ArrayPool<object> pool = ArrayPool<object>.Shared;
-            foreach (var candidateMethod in candidateMethodTargets)
+            foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
             {
                 int parameterCount = candidateMethod.Signature.Parameters.Length;
                 object[] argumentArray = pool.Rent(parameterCount);
                 try
                 {
-                    var args = argumentArray.AsSpan(0, parameterCount);
+                    Span<object> args = argumentArray.AsSpan(0, parameterCount);
                     if (this.TryGetArguments(request, candidateMethod.Signature, args))
                     {
                         this.target = candidateMethod.Target;

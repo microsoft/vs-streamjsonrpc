@@ -468,7 +468,7 @@ namespace StreamJsonRpc
                 if (parameters.Length == 1 && parameters[0].ParameterType == typeof(JToken) && this.NamedArguments != null)
                 {
                     var obj = new JObject();
-                    foreach (var property in this.NamedArguments)
+                    foreach (KeyValuePair<string, object> property in this.NamedArguments)
                     {
                         obj.Add(new JProperty(property.Key, property.Value));
                     }

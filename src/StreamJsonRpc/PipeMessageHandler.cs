@@ -171,7 +171,7 @@ namespace StreamJsonRpc
         /// </exception>
         protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
         {
-            var readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            ReadResult readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             while (readResult.Buffer.Length < requiredBytes && !readResult.IsCompleted && !readResult.IsCanceled)
             {
                 this.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
@@ -219,7 +219,7 @@ namespace StreamJsonRpc
             // so prefer getting all bytes into a buffer first if the message is a reasonably small size.
             if (contentLength >= LargeMessageThreshold && this.Formatter is IJsonRpcAsyncMessageFormatter asyncFormatter)
             {
-                var slice = this.Reader.ReadSlice(contentLength);
+                PipeReader slice = this.Reader.ReadSlice(contentLength);
                 if (contentEncoding != null && asyncFormatter is IJsonRpcAsyncMessageTextFormatter asyncTextFormatter)
                 {
                     return await asyncTextFormatter.DeserializeAsync(slice, contentEncoding, cancellationToken).ConfigureAwait(false);
@@ -236,7 +236,7 @@ namespace StreamJsonRpc
             }
             else
             {
-                var readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken).ConfigureAwait(false);
+                ReadResult readResult = await this.ReadAtLeastAsync(contentLength, allowEmpty: false, cancellationToken).ConfigureAwait(false);
                 ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
                 try
                 {

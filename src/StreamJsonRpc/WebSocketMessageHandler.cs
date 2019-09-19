@@ -83,7 +83,7 @@ namespace StreamJsonRpc
 #endif
                 do
                 {
-                    var memory = contentSequenceBuilder.GetMemory(this.sizeHint);
+                    Memory<byte> memory = contentSequenceBuilder.GetMemory(this.sizeHint);
 #if NETCOREAPP2_1
                     result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
                     contentSequenceBuilder.Advance(result.Count);
@@ -121,7 +121,7 @@ namespace StreamJsonRpc
 
             using (var contentSequenceBuilder = new Sequence<byte>())
             {
-                var messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
+                WebSocketMessageType messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
                 this.Formatter.Serialize(contentSequenceBuilder, content);
                 cancellationToken.ThrowIfCancellationRequested();
                 int bytesCopied = 0;

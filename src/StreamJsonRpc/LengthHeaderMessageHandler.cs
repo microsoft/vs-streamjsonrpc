@@ -75,7 +75,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            var readResult = await this.ReadAtLeastAsync(4, allowEmpty: true, cancellationToken).ConfigureAwait(false);
+            ReadResult readResult = await this.ReadAtLeastAsync(4, allowEmpty: true, cancellationToken).ConfigureAwait(false);
             if (readResult.Buffer.Length == 0)
             {
                 return null;

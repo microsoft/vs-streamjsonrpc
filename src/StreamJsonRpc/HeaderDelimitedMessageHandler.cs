@@ -173,7 +173,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            var headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
+            (int? ContentLength, Encoding ContentEncoding)? headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
             if (!headers.HasValue)
             {
                 // end of stream reached before the next message started.
@@ -249,7 +249,7 @@ namespace StreamJsonRpc
                 bytesWritten = 0;
 
                 // Transmit the content itself.
-                var contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
+                Memory<byte> contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
                 contentSequence.CopyTo(contentMemory.Span);
                 this.Writer.Advance((int)contentSequence.Length);
             }
@@ -424,7 +424,7 @@ namespace StreamJsonRpc
 
             while (true)
             {
-                var readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                ReadResult readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
                 if (readResult.Buffer.Length == 0 && readResult.IsCompleted)
                 {
                     return default; // remote end disconnected at a reasonable place.
@@ -443,7 +443,7 @@ namespace StreamJsonRpc
                     continue;
                 }
 
-                var line = readResult.Buffer.Slice(0, lf.Value);
+                ReadOnlySequence<byte> line = readResult.Buffer.Slice(0, lf.Value);
 
                 // Verify the line ends with an \r (that precedes the \n we already found)
                 SequencePosition? cr = line.PositionOf((byte)'\r');
@@ -457,14 +457,14 @@ namespace StreamJsonRpc
 
                 if (line.Length > 0)
                 {
-                    var colon = line.PositionOf((byte)':');
+                    SequencePosition? colon = line.PositionOf((byte)':');
                     if (!colon.HasValue)
                     {
                         throw new BadRpcHeaderException("Colon not found in header.");
                     }
 
-                    var headerNameBytes = line.Slice(0, colon.Value);
-                    var headerValueBytes = line.Slice(line.GetPosition(1, colon.Value));
+                    ReadOnlySequence<byte> headerNameBytes = line.Slice(0, colon.Value);
+                    ReadOnlySequence<byte> headerValueBytes = line.Slice(line.GetPosition(1, colon.Value));
 
                     if (IsHeaderName(headerNameBytes, ContentLengthHeaderName))
                     {
