@@ -387,7 +387,7 @@ namespace StreamJsonRpc
             ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType);
             if (!TransparentProxyModuleBuilderByVisibilityCheck.TryGetValue(skipVisibilityCheckAssemblies, out ModuleBuilder moduleBuilder))
             {
-                AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder(typeof(SecurityTransparentAttribute).GetTypeInfo().GetConstructor(Type.EmptyTypes));
+                AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
                 moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
                 var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
                 skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
@@ -397,7 +397,7 @@ namespace StreamJsonRpc
             return moduleBuilder;
         }
 
-        private static AssemblyBuilder CreateProxyAssemblyBuilder(ConstructorInfo constructorInfo)
+        private static AssemblyBuilder CreateProxyAssemblyBuilder()
         {
             var proxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "rpcProxies_{0}", Guid.NewGuid()));
 #if SaveAssembly
