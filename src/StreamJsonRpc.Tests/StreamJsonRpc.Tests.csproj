@@ -9,6 +9,7 @@
     <RootNamespace />
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
     <ProjectReference Include="..\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
   <ItemGroup>
