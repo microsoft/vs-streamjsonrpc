@@ -19,7 +19,7 @@
     <!-- <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.4" PrivateAssets="all" /> -->
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.0.102" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.0.102" />
-    <PackageReference Include="Nerdbank.Streams" Version="2.3.32" />
+    <PackageReference Include="Nerdbank.Streams" Version="2.4.12-alpha" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="2.9.3" PrivateAssets="all" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />

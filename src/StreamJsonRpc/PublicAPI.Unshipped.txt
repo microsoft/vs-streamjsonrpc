@@ -18,7 +18,11 @@ StreamJsonRpc.JsonRpc.TraceEvents.ProgressNotificationError = 16 -> StreamJsonRp
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose() -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipe(int? token) -> System.IO.Pipelines.IDuplexPipe
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeReader(int? token) -> System.IO.Pipelines.PipeReader
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeWriter(int? token) -> System.IO.Pipelines.PipeWriter
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetToken(System.IO.Pipelines.IDuplexPipe duplexPipe) -> int?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetToken(System.IO.Pipelines.PipeReader reader) -> int?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetToken(System.IO.Pipelines.PipeWriter writer) -> int?
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MessageFormatterDuplexPipeTracker() -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MultiplexingStream.set -> void

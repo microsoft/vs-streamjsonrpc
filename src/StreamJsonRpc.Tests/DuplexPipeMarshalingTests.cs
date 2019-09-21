@@ -173,6 +173,49 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
     }
 
+    [Fact]
+    public async Task ClientCanSendPipeReaderToServer()
+    {
+        var pipe = new Pipe();
+        await pipe.Writer.WriteAsync(MemoryBuffer, this.TimeoutToken);
+        pipe.Writer.Complete();
+
+        int bytesReceived = await this.clientRpc.InvokeWithCancellationAsync<int>(
+            nameof(Server.AcceptPipeReader),
+            new object[] { ExpectedFileName, pipe.Reader },
+            this.TimeoutToken);
+
+        Assert.Equal(MemoryBuffer.Length, bytesReceived);
+    }
+
+    [Fact]
+    public async Task ClientCanSendPipeWriterToServer()
+    {
+        var pipe = new Pipe();
+
+        int bytesToReceive = MemoryBuffer.Length - 1;
+        await this.clientRpc.InvokeWithCancellationAsync(
+            nameof(Server.AcceptPipeWriter),
+            new object[] { pipe.Writer, bytesToReceive },
+            this.TimeoutToken);
+
+        // Read all that the server wanted us to know, and verify it.
+        // TODO: update this when we can detect that the server has finished transmission.
+        byte[] buffer = new byte[bytesToReceive + 1];
+        int receivedBytes = 0;
+        while (receivedBytes < bytesToReceive)
+        {
+            ReadResult readResult = await pipe.Reader.ReadAsync(this.TimeoutToken);
+            foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+            {
+                segment.CopyTo(buffer.AsMemory(receivedBytes));
+                receivedBytes += segment.Length;
+            }
+        }
+
+        Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -566,6 +609,35 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             }
 
             content.Output.Complete();
+        }
+
+        public async Task<long> AcceptPipeReader(string fileName, PipeReader reader, CancellationToken cancellationToken)
+        {
+            Assert.Equal(ExpectedFileName, fileName);
+            var ms = new MemoryStream();
+            using (Stream contentStream = reader.AsStream())
+            {
+                await contentStream.CopyToAsync(ms, 4096, cancellationToken);
+                Assert.Equal<byte>(MemoryBuffer, ms.ToArray());
+            }
+
+            return ms.Length;
+        }
+
+        public async Task AcceptPipeWriter(PipeWriter writer, int lengthToWrite, CancellationToken cancellationToken)
+        {
+            const int ChunkSize = 5;
+            int writtenBytes = 0;
+            while (writtenBytes < lengthToWrite)
+            {
+                // Write in small chunks to verify that it needn't be written all at once.
+                int bytesToWrite = Math.Min(lengthToWrite - writtenBytes, ChunkSize);
+                await writer.WriteAsync(MemoryBuffer.AsMemory(writtenBytes, bytesToWrite), cancellationToken);
+                await writer.FlushAsync(cancellationToken);
+                writtenBytes += bytesToWrite;
+            }
+
+            writer.Complete();
         }
 
         public async Task<long> AcceptReadableStream(string fileName, Stream content, CancellationToken cancellationToken)
