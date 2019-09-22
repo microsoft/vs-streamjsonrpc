@@ -130,6 +130,8 @@ namespace StreamJsonRpc
                     new JsonProgressServerConverter(this),
                     new JsonProgressClientConverter(this),
                     new DuplexPipeConverter(this),
+                    new PipeReaderConverter(this),
+                    new PipeWriterConverter(this),
                     new StreamConverter(this),
                 },
             };
@@ -740,6 +742,50 @@ namespace StreamJsonRpc
             }
 
             public override void WriteJson(JsonWriter writer, IDuplexPipe value, JsonSerializer serializer)
+            {
+                var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
+                writer.WriteValue(token);
+            }
+        }
+
+        private class PipeReaderConverter : JsonConverter<PipeReader>
+        {
+            private readonly JsonMessageFormatter jsonMessageFormatter;
+
+            public PipeReaderConverter(JsonMessageFormatter jsonMessageFormatter)
+            {
+                this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
+            }
+
+            public override PipeReader ReadJson(JsonReader reader, Type objectType, PipeReader existingValue, bool hasExistingValue, JsonSerializer serializer)
+            {
+                int? tokenId = JToken.Load(reader).Value<int?>();
+                return this.jsonMessageFormatter.duplexPipeTracker.GetPipeReader(tokenId);
+            }
+
+            public override void WriteJson(JsonWriter writer, PipeReader value, JsonSerializer serializer)
+            {
+                var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
+                writer.WriteValue(token);
+            }
+        }
+
+        private class PipeWriterConverter : JsonConverter<PipeWriter>
+        {
+            private readonly JsonMessageFormatter jsonMessageFormatter;
+
+            public PipeWriterConverter(JsonMessageFormatter jsonMessageFormatter)
+            {
+                this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
+            }
+
+            public override PipeWriter ReadJson(JsonReader reader, Type objectType, PipeWriter existingValue, bool hasExistingValue, JsonSerializer serializer)
+            {
+                int? tokenId = JToken.Load(reader).Value<int?>();
+                return this.jsonMessageFormatter.duplexPipeTracker.GetPipeWriter(tokenId);
+            }
+
+            public override void WriteJson(JsonWriter writer, PipeWriter value, JsonSerializer serializer)
             {
                 var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
                 writer.WriteValue(token);
