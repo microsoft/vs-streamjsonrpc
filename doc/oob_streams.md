@@ -2,7 +2,7 @@
 
 JSON-RPC is great for invoking methods and passing regular data types as arguments.
 When you want to pass binary data or stream a great deal of text without encoding as a very large JSON message,
-StreamJsonRpc gives you an option to pass `Stream` or `IDuplexPipe` as an argument to an RPC method.
+StreamJsonRpc gives you an option to pass `Stream`, `IDuplexPipe`, `PipeReader` or `PipeWriter` as an argument to an RPC method.
 
 The content of the `Stream` or `IDuplexPipe` is transmitted out of band of the JSON-RPC channel so that no extra encoding is required. This out of band channel is provisioned from a [`MultiplexingStream`](https://github.com/AArnott/Nerdbank.Streams/blob/master/doc/MultiplexingStream.md) that can optionally be provided to the `JsonMessageFormatter` (or other formatters that support this feature). The `JsonRpc` connection itself is expected to be one of the channels in this `MultiplexingStream`.
 This can be configured like this (creation of the `MultiplexingStream` is out of scope of this topic):
@@ -85,6 +85,8 @@ When your options are open, `IDuplexPipe` is the recommended type to use because
 
 1. it has lower overhead than a `Stream`
 2. it can express when one side is done writing but may still be listening
+
+`PipeReader` and `PipeWriter` are one-way components of an `IDuplexPipe` and when used with StreamJsonRpc are equivalent in terms of efficiency, but convey in the API that only one direction of communication is supported.
 
 But `Stream` may be the appropriate choice when:
 
