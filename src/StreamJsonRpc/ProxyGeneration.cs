@@ -23,7 +23,7 @@ namespace StreamJsonRpc
 
     internal static class ProxyGeneration
     {
-        private static readonly Dictionary<ImmutableHashSet<AssemblyName>, ModuleBuilder> TransparentProxyModuleBuilderByVisibilityCheck = new Dictionary<ImmutableHashSet<AssemblyName>, ModuleBuilder>(new ByContentEqualityComparer());
+        private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();
         private static readonly object BuilderLock = new object();
 
         private static readonly Type[] EmptyTypes = new Type[0];
@@ -381,18 +381,28 @@ namespace StreamJsonRpc
             Assumes.True(Monitor.IsEntered(BuilderLock));
 
             // Dynamic assemblies are relatively expensive. We want to create as few as possible.
-            // For each unique set of skip visibility check assemblies, we need a new dynamic assembly
-            // because the CLR will not honor any additions to that set once the first generated type is closed.
-            // So maintain a dictionary to point at dynamic modules based on the set of skip visiblity check assemblies they were generated with.
+            // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
+            // The CLR will not honor any additions to that set once the first generated type is closed.
+            // We maintain a dictionary to point at dynamic modules based on the set of skip visiblity check assemblies they were generated with.
             ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType);
-            if (!TransparentProxyModuleBuilderByVisibilityCheck.TryGetValue(skipVisibilityCheckAssemblies, out ModuleBuilder moduleBuilder))
+            foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
             {
-                AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
-                moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
-                var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
-                skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
-                TransparentProxyModuleBuilderByVisibilityCheck.Add(skipVisibilityCheckAssemblies, moduleBuilder);
+                if (existingSet.SkipVisibilitySet.IsSupersetOf(skipVisibilityCheckAssemblies))
+                {
+                    return existingSet.Builder;
+                }
             }
+
+            // As long as we're going to start a new module, let's maximize the chance that this is the last one
+            // by skipping visibility checks on ALL assemblies loaded so far.
+            // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking code.
+            ////skipVisibilityCheckAssemblies = skipVisibilityCheckAssemblies.Union(AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName()));
+
+            AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
+            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
+            var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
+            skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
+            TransparentProxyModuleBuilderByVisibilityCheck.Add((skipVisibilityCheckAssemblies, moduleBuilder));
 
             return moduleBuilder;
         }
@@ -556,30 +566,6 @@ namespace StreamJsonRpc
 
             IEnumerable<T> result = oneInterfaceQuery(interfaceType);
             return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
-        }
-
-        private class ByContentEqualityComparer : IEqualityComparer<ImmutableHashSet<AssemblyName>>
-        {
-            public bool Equals(ImmutableHashSet<AssemblyName> x, ImmutableHashSet<AssemblyName> y)
-            {
-                if (x.Count != y.Count)
-                {
-                    return false;
-                }
-
-                return !x.Except(y).Any();
-            }
-
-            public int GetHashCode(ImmutableHashSet<AssemblyName> obj)
-            {
-                int hashCode = 0;
-                foreach (AssemblyName item in obj)
-                {
-                    hashCode += item.GetHashCode();
-                }
-
-                return hashCode;
-            }
         }
     }
 }
