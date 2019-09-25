@@ -82,32 +82,21 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(typeInfo, nameof(typeInfo));
 
-            if (IsPublic(typeInfo.AsType()))
+            var visitedTypes = new HashSet<TypeInfo>();
+            ImmutableHashSet<AssemblyName>.Builder assembliesDeclaringInternalTypes = ImmutableHashSet.CreateBuilder<AssemblyName>(AssemblyNameEqualityComparer.Instance);
+            CheckForNonPublicTypes(typeInfo, assembliesDeclaringInternalTypes, visitedTypes);
+
+            // Enumerate members on the interface that we're going to need to implement.
+            foreach (MethodInfo methodInfo in typeInfo.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy))
             {
-                return ImmutableHashSet<AssemblyName>.Empty;
+                CheckForNonPublicTypes(methodInfo.ReturnType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                foreach (ParameterInfo parameter in methodInfo.GetParameters())
+                {
+                    CheckForNonPublicTypes(parameter.ParameterType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                }
             }
-            else
-            {
-                ImmutableHashSet<AssemblyName> result = ImmutableHashSet<AssemblyName>.Empty
-                    .Add(typeInfo.Assembly.GetName());
 
-                // If this type has a base type defined in another assembly that is also internal
-                // (with InternalsVisibleTo to the assembly hosting the original type)
-                // then we'll need to add that.
-                // TODO: Learn why somehow we don't need to do this, even given our test defines an internal interface
-                //       that derives from another internal interface defined in another assembly.
-                ////if (typeInfo.BaseType != null)
-                ////{
-                ////    result = result.Union(GetSkipVisibilityChecksRequirements(typeInfo.BaseType.GetTypeInfo()));
-                ////}
-
-                ////foreach (var iface in typeInfo.GetInterfaces())
-                ////{
-                ////    result = result.Union(GetSkipVisibilityChecksRequirements(iface.GetTypeInfo()));
-                ////}
-
-                return result;
-            }
+            return assembliesDeclaringInternalTypes.ToImmutable();
         }
 
         /// <summary>
@@ -142,37 +131,45 @@ namespace StreamJsonRpc
             }
         }
 
-        private static bool IsPublic(Type type, bool checkGenericTypeArgs = false)
+        private static void CheckForNonPublicTypes(TypeInfo typeInfo, ImmutableHashSet<AssemblyName>.Builder assembliesDeclaringInternalTypes, HashSet<TypeInfo> visitedTypes)
         {
-            Requires.NotNull(type, nameof(type));
+            Requires.NotNull(typeInfo, nameof(typeInfo));
+            Requires.NotNull(assembliesDeclaringInternalTypes, nameof(assembliesDeclaringInternalTypes));
+            Requires.NotNull(visitedTypes, nameof(visitedTypes));
 
-            TypeInfo typeInfo = type.GetTypeInfo();
-            if (typeInfo.IsNotPublic)
+            if (!visitedTypes.Add(typeInfo))
             {
-                return false;
+                // This type has already been visited.
+                // Break out early to avoid a stack overflow in the case of recursive generic types.
+                return;
             }
 
             if (typeInfo.IsArray)
             {
-                return IsPublic(typeInfo.GetElementType(), checkGenericTypeArgs);
+                CheckForNonPublicTypes(typeInfo.GetElementType().GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
             }
-
-            if (checkGenericTypeArgs && typeInfo.IsGenericType && !typeInfo.IsGenericTypeDefinition)
+            else
             {
-                // We have to treat embedded types that appear as generic type arguments as non-public,
-                // because the CLR cannot assign Outer<TEmbedded> to Outer<TEmbedded> across assembly boundaries.
-                if (typeInfo.GenericTypeArguments.Any(t => !IsPublic(t, true) || IsEmbeddedType(t)))
+                if (typeInfo.IsNotPublic || !(typeInfo.IsPublic || typeInfo.IsNestedPublic))
                 {
-                    return false;
+                    assembliesDeclaringInternalTypes.Add(typeInfo.Assembly.GetName());
+                }
+
+                if (typeInfo.IsGenericType && !typeInfo.IsGenericTypeDefinition)
+                {
+                    // We have to treat embedded types that appear as generic type arguments as non-public,
+                    // because the CLR cannot assign Outer<TEmbedded> to Outer<TEmbedded> across assembly boundaries.
+                    foreach (Type typeArg in typeInfo.GenericTypeArguments)
+                    {
+                        if (IsEmbeddedType(typeArg))
+                        {
+                            assembliesDeclaringInternalTypes.Add(typeInfo.Assembly.GetName());
+                        }
+
+                        CheckForNonPublicTypes(typeArg.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                    }
                 }
             }
-
-            if (typeInfo.IsPublic || typeInfo.IsNestedPublic)
-            {
-                return true;
-            }
-
-            return false;
         }
 
         private static bool IsEmbeddedType(Type type)
@@ -241,6 +238,37 @@ namespace StreamJsonRpc
             il.Emit(OpCodes.Ret);
 
             return tb.CreateTypeInfo();
+        }
+
+        private class AssemblyNameEqualityComparer : IEqualityComparer<AssemblyName>
+        {
+            internal static readonly IEqualityComparer<AssemblyName> Instance = new AssemblyNameEqualityComparer();
+
+            private AssemblyNameEqualityComparer()
+            {
+            }
+
+            public bool Equals(AssemblyName x, AssemblyName y)
+            {
+                if (x == null && y == null)
+                {
+                    return true;
+                }
+
+                if (x == null || y == null)
+                {
+                    return false;
+                }
+
+                return string.Equals(x.FullName, y.FullName, StringComparison.OrdinalIgnoreCase);
+            }
+
+            public int GetHashCode(AssemblyName obj)
+            {
+                Requires.NotNull(obj, nameof(obj));
+
+                return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.FullName);
+            }
         }
     }
 }

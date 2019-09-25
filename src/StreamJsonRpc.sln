@@ -22,7 +22,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{CEF0F77F-19EB-4C76-A050-854984BB0364}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc.Tests.ExternalAssembly", "StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj", "{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StreamJsonRpc.Tests.ExternalAssembly", "StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj", "{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

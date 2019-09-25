@@ -123,9 +123,14 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal : StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface
+    internal interface IServerInternal : StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface, IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<int> AddAsync(int a, int b);
+    }
+
+    internal interface IServerInternalWithInternalTypesFromOtherAssemblies
+    {
+        Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync();
     }
 
     [Fact]
@@ -341,6 +346,20 @@ public class JsonRpcProxyGenerationTests : TestBase
         // This verifies that we can handle multiple sets of assemblies which we need internal visibility into, as well as that it can track base type interfaces.
         var proxy2 = clientRpc.Attach<IServerInternal>();
         Assert.Equal(3, await proxy2.AddAsync(1, 2).WithCancellation(this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task InternalInterface_WithInternalMembersFromOtherAssemblies()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new ServerOfInternalInterface();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+
+        // Try the first internal interface, which is external to this test assembly
+        var proxy1 = clientRpc.Attach<IServerInternalWithInternalTypesFromOtherAssemblies>();
+        Assert.NotNull(await proxy1.SomeMethodAsync().WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
@@ -690,6 +709,11 @@ public class JsonRpcProxyGenerationTests : TestBase
     internal class ServerOfInternalInterface : IServerInternal
     {
         public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
+
+        public Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync()
+        {
+            return Task.FromResult(new StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType());
+        }
 
         public Task<int> SubtractAsync(int a, int b) => Task.FromResult(a - b);
     }
