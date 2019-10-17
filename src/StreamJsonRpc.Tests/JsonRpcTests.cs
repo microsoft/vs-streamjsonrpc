@@ -2199,7 +2199,6 @@ public abstract class JsonRpcTests : TestBase
             set;
         }
 
-
         [DataMember]
         public IProgress<int> P
         {
