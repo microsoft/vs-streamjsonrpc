@@ -986,7 +986,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(2, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleNonObjectParameter()
     {
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithOneNonObjectParameter), new { x = 2 }, this.TimeoutToken);
@@ -1816,17 +1816,6 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithInvalidProgressParameter(Progress<int> p)
         {
             return 1;
-        }
-
-        public static int MethodWithOnlyOneFuzzyParameter(int fuzzyX)
-        {
-            return fuzzyX * 2;
-        }
-
-        public static int MethodWithTwoFuzzyParameters(int fuzzyX, int fuzzyY)
-        {
-            int sum = fuzzyX + fuzzyY;
-            return sum;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
