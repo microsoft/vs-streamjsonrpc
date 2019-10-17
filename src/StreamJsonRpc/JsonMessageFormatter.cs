@@ -583,17 +583,55 @@ namespace StreamJsonRpc
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object> typedArguments)
             {
-                // Special support for accepting a single JToken instead of all parameters individually.
-                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(JToken) && this.NamedArguments != null)
+                if (parameters.Length == 1 && this.NamedArguments != null)
                 {
-                    var obj = new JObject();
-                    foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                    // Special support for accepting a single JToken instead of all parameters individually.
+                    if (parameters[0].ParameterType == typeof(JToken))
                     {
-                        obj.Add(new JProperty(property.Key, property.Value));
+                        var obj = new JObject();
+                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        {
+                            obj.Add(new JProperty(property.Key, property.Value));
+                        }
+
+                        typedArguments[0] = obj;
+                        return ArgumentMatchResult.Success;
                     }
 
-                    typedArguments[0] = obj;
-                    return ArgumentMatchResult.Success;
+                    // Check if it is constructable with default constructor
+                    if (parameters[0].ParameterType.GetConstructor(Type.EmptyTypes) != null && !parameters[0].ParameterType.IsAbstract)
+                    {
+                        // If the method is expecting only one parameter we should try to create the expected object with the given arguments
+                        var obj = Activator.CreateInstance(parameters[0].ParameterType);
+                        bool match = false;
+
+                        // Loop value-key pairs from arguments
+                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        {
+                            // If argument name matches property name, assign the value to that property
+                            PropertyInfo propertyInfo = parameters[0].ParameterType.GetProperty(property.Key);
+                            JToken value = (JToken)property.Value;
+                            if (propertyInfo != null)
+                            {
+                                propertyInfo.SetValue(obj, value.ToObject(propertyInfo.PropertyType, this.formatter.JsonSerializer));
+                                match = true;
+                            }
+                            else
+                            {
+                                FieldInfo fieldInfo = parameters[0].ParameterType.GetField(property.Key);
+                                if (fieldInfo != null)
+                                {
+                                    fieldInfo.SetValue(obj, value.ToObject(fieldInfo.FieldType, this.formatter.JsonSerializer));
+                                    match = true;
+                                }
+                            }
+                        }
+
+                        typedArguments[0] = obj;
+
+                        // If one of the arguments matched the parameters we return ArgumentMatchResult.Success
+                        return match ? ArgumentMatchResult.Success : base.TryGetTypedArguments(parameters, typedArguments);
+                    }
                 }
 
                 return base.TryGetTypedArguments(parameters, typedArguments);
