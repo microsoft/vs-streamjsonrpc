@@ -99,7 +99,7 @@ public abstract class JsonRpcTests : TestBase
         await helperHandler.WriteAsync(
             new JsonRpcRequest
             {
-                Id = 1,
+                RequestId = new RequestId(1),
                 Method = nameof(Server.MethodThatAccceptsAndReturnsNull),
                 ArgumentsList = new object[] { null },
             },
@@ -1332,7 +1332,7 @@ public abstract class JsonRpcTests : TestBase
 
     /// <summary>
     /// Verifies (with a great deal of help by interactively debugging and freezing a thread) that <see cref="JsonRpc.StartListening"/>
-    /// shouldn't have a race condition with itself and a locally invoked RPC method calling <see cref="JsonRpc.InvokeCoreAsync{TResult}(long?, string, System.Collections.Generic.IReadOnlyList{object}, CancellationToken, bool)"/>.
+    /// shouldn't have a race condition with itself and a locally invoked RPC method calling <see cref="JsonRpc.InvokeCoreAsync{TResult}(RequestId, string, System.Collections.Generic.IReadOnlyList{object}, CancellationToken, bool)"/>.
     /// </summary>
     [Fact]
     public async Task StartListening_ShouldNotAllowIncomingMessageToRaceWithInvokeAsync()

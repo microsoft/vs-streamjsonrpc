@@ -83,6 +83,18 @@ namespace StreamJsonRpc
         private readonly MessageFormatterDuplexPipeTracker duplexPipeTracker = new MessageFormatterDuplexPipeTracker();
 
         /// <summary>
+        /// A value indicating whether a request where <see cref="Protocol.JsonRpcRequest.RequestId"/> is a <see cref="string"/>
+        /// has been transmitted.
+        /// </summary>
+        /// <remarks>
+        /// This is useful to detect whether <see cref="JsonRpc"/> is operating in its default mode of producing
+        /// integer-based values for <see cref="Protocol.JsonRpcRequest.RequestId"/>, which informs us whether we should
+        /// type coerce strings in response messages back to integers to accomodate JSON-RPC servers
+        /// that improperly convert our integers to strings.
+        /// </remarks>
+        private bool observedTransmittedRequestWithStringId;
+
+        /// <summary>
         /// The version of the JSON-RPC protocol being emulated by this instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -289,8 +301,10 @@ namespace StreamJsonRpc
         {
             if (message is IJsonRpcMessageWithId msgWithId && (message is JsonRpcResult || message is JsonRpcError))
             {
-                this.duplexPipeTracker.OnResponseSent(msgWithId.Id, successful: msgWithId is JsonRpcResult);
+                this.duplexPipeTracker.OnResponseSent(msgWithId.RequestId, successful: msgWithId is JsonRpcResult);
             }
+
+            this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
 
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
             this.TokenizeUserData(message);
@@ -339,15 +353,6 @@ namespace StreamJsonRpc
             }
 
             return jtokenArray;
-        }
-
-        private static object GetNormalizedId(JToken idToken)
-        {
-            return
-                idToken?.Type == JTokenType.Integer ? idToken.Value<long>() :
-                idToken?.Type == JTokenType.String ? idToken.Value<string>() :
-                idToken == null ? (object)null :
-                throw new JsonSerializationException("Unexpected type for id property: " + idToken.Type);
         }
 
         private void VerifyProtocolCompliance(bool condition, JToken message, string explanation = null)
@@ -425,9 +430,8 @@ namespace StreamJsonRpc
             {
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
-                    long? requestId = (request.Id != null) ? Convert.ToInt64(request.Id) : (long?)null;
-                    this.formatterProgressTracker.RequestIdBeingSerialized = requestId;
-                    this.duplexPipeTracker.RequestIdBeingSerialized = requestId;
+                    this.formatterProgressTracker.RequestIdBeingSerialized = request.RequestId;
+                    this.duplexPipeTracker.RequestIdBeingSerialized = request.RequestId;
 
                     if (request.ArgumentsList != null)
                     {
@@ -452,8 +456,8 @@ namespace StreamJsonRpc
             }
             finally
             {
-                this.formatterProgressTracker.RequestIdBeingSerialized = null;
-                this.duplexPipeTracker.RequestIdBeingSerialized = null;
+                this.formatterProgressTracker.RequestIdBeingSerialized = default;
+                this.duplexPipeTracker.RequestIdBeingSerialized = default;
             }
         }
 
@@ -481,7 +485,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            JToken id = json["id"];
+            RequestId id = json["id"]?.ToObject<RequestId>() ?? default;
 
             // We leave arguments as JTokens at this point, so that we can try deserializing them
             // to more precise .NET types as required by the method we're invoking.
@@ -503,15 +507,13 @@ namespace StreamJsonRpc
                         args is JArray ? args[0] :
                         null;
 
-                    object progressToken = GetNormalizedId(progressId);
-
                     JToken value =
                         args is JObject ? args["value"] :
                         args is JArray ? args[1] :
                         null;
 
                     MessageFormatterProgressTracker.ProgressParamInformation progressInfo = null;
-                    if (this.formatterProgressTracker.TryGetProgressObject(progressToken, out progressInfo))
+                    if (this.formatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
                     {
                         object typedValue = value.ToObject(progressInfo.ValueType);
                         progressInfo.InvokeReport(typedValue);
@@ -525,7 +527,7 @@ namespace StreamJsonRpc
 
             return new JsonRpcRequest(this)
             {
-                Id = GetNormalizedId(id),
+                RequestId = id,
                 Method = json.Value<string>("method"),
                 Arguments = arguments,
             };
@@ -535,15 +537,16 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            JToken id = json["id"];
+            RequestId id = this.NormalizeId(json["id"].ToObject<RequestId>());
+
             JToken result = json["result"];
 
-            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
-            this.duplexPipeTracker.OnResponseReceived(id.Value<long>(), successful: true);
+            this.formatterProgressTracker.OnResponseReceived(id);
+            this.duplexPipeTracker.OnResponseReceived(id, successful: true);
 
             return new JsonRpcResult(this.JsonSerializer)
             {
-                Id = GetNormalizedId(id),
+                RequestId = id,
                 Result = result,
             };
         }
@@ -552,15 +555,15 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            JToken id = json["id"];
+            RequestId id = this.NormalizeId(json["id"].ToObject<RequestId>());
             JToken error = json["error"];
 
-            this.formatterProgressTracker.OnResponseReceived(id.Value<long>());
-            this.duplexPipeTracker.OnResponseReceived(id.Value<long>(), successful: false);
+            this.formatterProgressTracker.OnResponseReceived(id);
+            this.duplexPipeTracker.OnResponseReceived(id, successful: false);
 
             return new JsonRpcError
             {
-                Id = GetNormalizedId(id),
+                RequestId = id,
                 Error = new JsonRpcError.ErrorDetail
                 {
                     Code = (JsonRpcErrorCode)error.Value<long>("code"),
@@ -568,6 +571,16 @@ namespace StreamJsonRpc
                     Data = error["data"], // leave this as a JToken
                 },
             };
+        }
+
+        private RequestId NormalizeId(RequestId id)
+        {
+            if (!this.observedTransmittedRequestWithStringId && id.String != null && long.TryParse(id.String, out long idAsNumber))
+            {
+                id = new RequestId(idAsNumber);
+            }
+
+            return id;
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
@@ -607,15 +620,15 @@ namespace StreamJsonRpc
                     try
                     {
                         // Deserialization of messages should never occur concurrently for a single instance of a formatter.
-                        Assumes.Null(this.formatter.duplexPipeTracker.RequestIdBeingDeserialized);
-                        this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.Id;
+                        Assumes.True(this.formatter.duplexPipeTracker.RequestIdBeingDeserialized.IsEmpty);
+                        this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.RequestId;
                         try
                         {
                             value = token.ToObject(typeHint, this.formatter.JsonSerializer);
                         }
                         finally
                         {
-                            this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = null;
+                            this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = default;
                         }
 
                         return true;

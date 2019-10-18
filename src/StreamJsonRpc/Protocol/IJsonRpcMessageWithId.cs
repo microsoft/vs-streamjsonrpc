@@ -8,6 +8,6 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets the ID on a message.
         /// </summary>
-        object Id { get; set; }
+        RequestId RequestId { get; set; }
     }
 }

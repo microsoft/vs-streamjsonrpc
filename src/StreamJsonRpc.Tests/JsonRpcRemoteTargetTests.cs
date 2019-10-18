@@ -162,8 +162,8 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     [Fact]
     public async Task InvokeRemoteTargetWithExistingId()
     {
-        var resultLocalTask = this.remoteTarget1.InvokeAsync<int>(1, nameof(RemoteTargetOne.AddTwo), 3, CancellationToken.None);
-        var resultRemoteTask = this.originRpc.InvokeAsync<int>(1, nameof(RemoteTargetOne.AddOneLongRunningAsync), 1, CancellationToken.None);
+        var resultLocalTask = this.remoteTarget1.InvokeAsync<int>(new RequestId(1), nameof(RemoteTargetOne.AddTwo), 3, CancellationToken.None);
+        var resultRemoteTask = this.originRpc.InvokeAsync<int>(new RequestId(1), nameof(RemoteTargetOne.AddOneLongRunningAsync), 1, CancellationToken.None);
 
         await Task.WhenAll(resultLocalTask, resultRemoteTask);
 
@@ -269,7 +269,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
         {
         }
 
-        public Task<T> InvokeAsync<T>(long requestId, string targetName, object argument, CancellationToken token)
+        public Task<T> InvokeAsync<T>(RequestId requestId, string targetName, object argument, CancellationToken token)
         {
             var arguments = new object[] { argument };
             return this.InvokeCoreAsync<T>(requestId, targetName, arguments, token);
