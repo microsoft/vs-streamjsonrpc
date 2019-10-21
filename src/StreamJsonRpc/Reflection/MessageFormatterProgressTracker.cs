@@ -28,12 +28,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Dictionary used to map the outbound request id to their progress id token so that the progress objects are cleaned after getting the final response.
         /// </summary>
-        private readonly Dictionary<long, long> requestProgressMap = new Dictionary<long, long>();
+        private readonly Dictionary<RequestId, long> requestProgressMap = new Dictionary<RequestId, long>();
 
         /// <summary>
         /// Dictionary used to map progress id token to its corresponding <see cref="ProgressParamInformation" /> instance containing the progress object and the necessary fields to report the results.
         /// </summary>
-        private readonly Dictionary<object, ProgressParamInformation> progressMap = new Dictionary<object, ProgressParamInformation>();
+        private readonly Dictionary<long, ProgressParamInformation> progressMap = new Dictionary<long, ProgressParamInformation>();
 
         /// <summary>
         /// Object used to lock the access to <see cref="requestProgressMap"/> and <see cref="progressMap"/>.
@@ -48,7 +48,7 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Gets or Sets the id of the request currently being serialized so the converter can use it to create the request-progress map.
         /// </summary>
-        public long? RequestIdBeingSerialized { get; set; }
+        public RequestId RequestIdBeingSerialized { get; set; }
 
         /// <summary>
         /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
@@ -96,7 +96,7 @@ namespace StreamJsonRpc.Reflection
         {
             Requires.NotNull(value, nameof(value));
 
-            if (this.RequestIdBeingSerialized == null)
+            if (this.RequestIdBeingSerialized.IsEmpty)
             {
                 throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
             }
@@ -104,9 +104,9 @@ namespace StreamJsonRpc.Reflection
             lock (this.progressLock)
             {
                 long progressId = this.nextProgressId++;
-                this.requestProgressMap.Add(this.RequestIdBeingSerialized.Value, progressId);
+                this.requestProgressMap.Add(this.RequestIdBeingSerialized, progressId);
 
-                this.progressMap.Add((object)progressId, new ProgressParamInformation(value));
+                this.progressMap.Add(progressId, new ProgressParamInformation(value));
 
                 return progressId;
             }
@@ -116,7 +116,7 @@ namespace StreamJsonRpc.Reflection
         /// Call this method when a response is received to clear the objects associated with the request and avoid a memory leak.
         /// </summary>
         /// <param name="requestId">The id of the request whose associated objects need to be cleared.</param>
-        public void OnResponseReceived(long requestId)
+        public void OnResponseReceived(RequestId requestId)
         {
             lock (this.progressLock)
             {
@@ -134,7 +134,7 @@ namespace StreamJsonRpc.Reflection
         /// <param name="progressId">The key to obtain the <see cref="ProgressParamInformation"/> object from <see cref="progressMap"/>.</param>
         /// <param name="valueType">Output parameter to store the obtained <see cref="ProgressParamInformation"/> object.</param>
         /// <returns>true if the <see cref="ProgressParamInformation"/> object was found with the specified key; otherwise, false.</returns>
-        public bool TryGetProgressObject(object progressId, out ProgressParamInformation valueType)
+        public bool TryGetProgressObject(long progressId, out ProgressParamInformation valueType)
         {
             lock (this.progressLock)
             {

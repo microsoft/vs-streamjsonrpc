@@ -443,7 +443,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
             result = "pass",
         });
 
-        string result = await invokeTask;
+        string result = await invokeTask.WithCancellation(this.TimeoutToken);
         Assert.Equal("pass", result);
     }
 }
