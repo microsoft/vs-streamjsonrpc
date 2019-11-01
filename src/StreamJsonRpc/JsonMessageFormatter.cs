@@ -598,39 +598,17 @@ namespace StreamJsonRpc
                         return ArgumentMatchResult.Success;
                     }
 
-                    // Check if it is constructable with default constructor
-                    if (parameters[0].ParameterType.GetConstructor(Type.EmptyTypes) != null && !parameters[0].ParameterType.IsAbstract)
+                    // Obtain the JsonRpcMethod attribute info
+                    if (this.formatter.rpc.MethodSupportsSingleParameterObjectDeserialization(this.Method, parameters[0].ParameterType))
                     {
-                        // If the method is expecting only one parameter we should try to create the expected object with the given arguments
-                        var obj = Activator.CreateInstance(parameters[0].ParameterType);
-                        bool match = false;
-
-                        // Loop value-key pairs from arguments
+                        var obj = new JObject();
                         foreach (KeyValuePair<string, object> property in this.NamedArguments)
                         {
-                            // If argument name matches property name, assign the value to that property
-                            PropertyInfo propertyInfo = parameters[0].ParameterType.GetProperty(property.Key);
-                            JToken value = (JToken)property.Value;
-                            if (propertyInfo != null)
-                            {
-                                propertyInfo.SetValue(obj, value.ToObject(propertyInfo.PropertyType, this.formatter.JsonSerializer));
-                                match = true;
-                            }
-                            else
-                            {
-                                FieldInfo fieldInfo = parameters[0].ParameterType.GetField(property.Key);
-                                if (fieldInfo != null)
-                                {
-                                    fieldInfo.SetValue(obj, value.ToObject(fieldInfo.FieldType, this.formatter.JsonSerializer));
-                                    match = true;
-                                }
-                            }
+                            obj.Add(new JProperty(property.Key, property.Value));
                         }
 
-                        typedArguments[0] = obj;
-
-                        // If one of the arguments matched the parameters we return ArgumentMatchResult.Success
-                        return match ? ArgumentMatchResult.Success : base.TryGetTypedArguments(parameters, typedArguments);
+                        typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                        return ArgumentMatchResult.Success;
                     }
                 }
 

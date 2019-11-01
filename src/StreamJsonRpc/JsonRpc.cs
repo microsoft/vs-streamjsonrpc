@@ -1049,6 +1049,32 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Tries to obtain the <see cref="MethodSignatureAndTarget"/> info of a method.
+        /// </summary>
+        internal bool MethodSupportsSingleParameterObjectDeserialization(string methodName, Type parameterType)
+        {
+            // Get method definitions
+            if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget> existingList))
+            {
+                // Check if there is one definition with one parameter of the expected type.
+                if (existingList.Any(m => m.Signature.TotalParamCountExcludingCancellationToken == 1 && m.Signature.Parameters[0].ParameterType == parameterType))
+                {
+                    // Try to obtain the JsonRpcMethod attribute and check if the method supports single parameter object deserialization
+                    MethodSignatureAndTarget methodSignatureAndTarget = existingList.First(m => m.Signature.TotalParamCountExcludingCancellationToken == 1 && m.Signature.Parameters[0].ParameterType == parameterType);
+                    var mapping = new JsonRpc.MethodNameMap(methodSignatureAndTarget.Target.GetType().GetTypeInfo());
+                    JsonRpcMethodAttribute rpcMethod = mapping.FindAttribute(methodSignatureAndTarget.Signature.MethodInfo);
+
+                    if (rpcMethod != null && rpcMethod.UseSingleObjectParameterDeserialization)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Disposes managed and native resources held by this instance.
         /// </summary>
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>

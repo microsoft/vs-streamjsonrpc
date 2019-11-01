@@ -27,16 +27,23 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="JsonRpcMethodAttribute" /> class.
         /// </summary>
         /// <param name="name">Replacement name of a method.</param>
-        public JsonRpcMethodAttribute(string name)
+        /// <param name="useSingleObjectParameterDeserialization">Indicates whether the method supports deserialization for single object parameter.</param>
+        public JsonRpcMethodAttribute(string name, bool useSingleObjectParameterDeserialization = false)
         {
             Requires.NotNullOrWhiteSpace(name, nameof(name));
 
             this.Name = name;
+            this.UseSingleObjectParameterDeserialization = useSingleObjectParameterDeserialization;
         }
 
         /// <summary>
         /// Gets the replacement name of a method.
         /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the method supports deserialization for sinlge object parameter.
+        /// </summary>
+        public bool UseSingleObjectParameterDeserialization { get; }
     }
 }
