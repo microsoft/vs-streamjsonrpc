@@ -16,6 +16,7 @@ StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType) -> object
 StreamJsonRpc.JsonRpc.Attach(System.Type interfaceType, StreamJsonRpc.JsonRpcProxyOptions options) -> object
 StreamJsonRpc.JsonRpc.TraceEvents.ProgressNotificationError = 16 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get -> bool
+StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.set -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose() -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipe(int? token) -> System.IO.Pipelines.IDuplexPipe

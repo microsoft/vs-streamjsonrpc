@@ -41,7 +41,7 @@ StreamJsonRpc.JsonRpc.InvokeAsync<TResult>(string targetName, object argument) -
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string targetName, object argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string targetName, object argument = null) -> System.Threading.Tasks.Task
 StreamJsonRpc.JsonRpcMethodAttribute
-StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name, bool useSingleObjectParameterDeserialization = false) -> void
+StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute(string name) -> void
 StreamJsonRpc.JsonRpcMethodAttribute.Name.get -> string
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Delegate handler) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(string rpcMethodName, System.Reflection.MethodInfo handler, object target) -> void

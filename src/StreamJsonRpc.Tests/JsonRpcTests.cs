@@ -1709,7 +1709,7 @@ public abstract class JsonRpcTests : TestBase
             return x;
         }
 
-        [JsonRpcMethod("test/MethodWithSingleObjectParameter", true)]
+        [JsonRpcMethod("test/MethodWithSingleObjectParameter", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameter(XAndYFields fields)
         {
             return fields.x + fields.y;
@@ -1720,26 +1720,26 @@ public abstract class JsonRpcTests : TestBase
             return fields.x + fields.y;
         }
 
-        [JsonRpcMethod("test/MethodWithSingleObjectParameterVAndW", true)]
+        [JsonRpcMethod("test/MethodWithSingleObjectParameterVAndW", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterVAndW(VAndWFields fields)
         {
             return fields.v + fields.w;
         }
 
-        [JsonRpcMethod("test/MethodWithSingleObjectParameterAndCancellationToken", true)]
+        [JsonRpcMethod("test/MethodWithSingleObjectParameterAndCancellationToken", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
         {
             return fields.x + fields.y;
         }
 
-        [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", true)]
+        [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterWithProgress(XAndYFieldsWithProgress fields)
         {
             fields.p.Report(fields.x + fields.y);
             return fields.x + fields.y;
         }
 
-        [JsonRpcMethod("test/MethodWithObjectAndExtraParameters", true)]
+        [JsonRpcMethod("test/MethodWithObjectAndExtraParameters", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithObjectAndExtraParameters(XAndYFields fields, int anotherParameter)
         {
             return fields.x + fields.y + anotherParameter;
