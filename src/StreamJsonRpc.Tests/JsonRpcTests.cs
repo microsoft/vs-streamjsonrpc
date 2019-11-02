@@ -977,7 +977,7 @@ public abstract class JsonRpcTests : TestBase
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
 
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterAndCancellationToken", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
@@ -1298,6 +1298,22 @@ public abstract class JsonRpcTests : TestBase
         MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
         Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
         this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null);
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeAsync<string>("biz.bar", "foo");
+        Assert.Equal("foo!", result);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_MethodInfo_Object_Attribute()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
+        Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
+        this.serverRpc.AddLocalRpcMethod(methodInfo, null, new JsonRpcMethodAttribute("biz.bar"));
 
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
@@ -1726,7 +1742,7 @@ public abstract class JsonRpcTests : TestBase
             return fields.v + fields.w;
         }
 
-        [JsonRpcMethod("test/MethodWithSingleObjectParameterAndCancellationToken", UseSingleObjectParameterDeserialization = true)]
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
         {
             return fields.x + fields.y;
@@ -2025,7 +2041,7 @@ public abstract class JsonRpcTests : TestBase
             this.ServerMethodReached.Set();
         }
 
-        [JsonRpcMethod("InternalMethodWithAttribute")]
+        [JsonRpcMethod]
         internal void InternalMethodWithAttribute()
         {
             this.ServerMethodReached.Set();

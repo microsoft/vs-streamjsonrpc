@@ -35,8 +35,16 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Gets the replacement name of a method.
+        /// Initializes a new instance of the <see cref="JsonRpcMethodAttribute"/> class.
         /// </summary>
+        public JsonRpcMethodAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Gets the public RPC name by which this method will be invoked.
+        /// </summary>
+        /// <value>May be <c>null</c> if the method's name has not been overridden.</value>
         public string Name { get; }
 
         /// <summary>

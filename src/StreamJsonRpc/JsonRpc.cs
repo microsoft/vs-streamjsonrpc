@@ -737,16 +737,31 @@ namespace StreamJsonRpc
         /// This method may accept parameters from the incoming JSON-RPC message.
         /// </param>
         /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
-        public void AddLocalRpcMethod(string rpcMethodName, MethodInfo handler, object target)
+        public void AddLocalRpcMethod(string rpcMethodName, MethodInfo handler, object target) => this.AddLocalRpcMethod(handler, target, new JsonRpcMethodAttribute(rpcMethodName));
+
+        /// <summary>
+        /// Adds a handler for an RPC method with a given name.
+        /// </summary>
+        /// <param name="handler">
+        /// The method or delegate to invoke when a matching RPC message arrives.
+        /// This method may accept parameters from the incoming JSON-RPC message.
+        /// </param>
+        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        /// <param name="methodRpcSettings">
+        /// A description for how this method should be treated.
+        /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
+        /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
+        /// </param>
+        public void AddLocalRpcMethod(MethodInfo handler, object target, JsonRpcMethodAttribute methodRpcSettings)
         {
-            Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
             Requires.NotNull(handler, nameof(handler));
             Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
 
             this.ThrowIfConfigurationLocked();
+            string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
             lock (this.syncObject)
             {
-                var methodTarget = new MethodSignatureAndTarget(handler, target, attribute: null);
+                var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings);
                 this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget> existingList))
                 {

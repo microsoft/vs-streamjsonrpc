@@ -1,6 +1,8 @@
+StreamJsonRpc.JsonRpc.AddLocalRpcMethod(System.Reflection.MethodInfo handler, object target, StreamJsonRpc.JsonRpcMethodAttribute methodRpcSettings) -> void
 StreamJsonRpc.JsonRpc.GetJsonRpcMethodAttribute(string methodName, System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters) -> StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute() -> void
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get -> bool
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.set -> void
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.get -> StreamJsonRpc.RequestId
