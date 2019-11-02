@@ -611,8 +611,9 @@ namespace StreamJsonRpc
                         return ArgumentMatchResult.Success;
                     }
 
-                    // Obtain the JsonRpcMethod attribute info
-                    if (this.formatter.rpc.MethodSupportsSingleParameterObjectDeserialization(this.Method, parameters[0].ParameterType))
+                    // Support for opt-in to deserializing all named arguments into a single parameter.
+                    JsonRpcMethodAttribute attribute = this.formatter.rpc.GetJsonRpcMethodAttribute(this.Method, parameters);
+                    if (attribute?.UseSingleObjectParameterDeserialization ?? false)
                     {
                         var obj = new JObject();
                         foreach (KeyValuePair<string, object> property in this.NamedArguments)

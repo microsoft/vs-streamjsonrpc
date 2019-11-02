@@ -746,7 +746,7 @@ namespace StreamJsonRpc
             this.ThrowIfConfigurationLocked();
             lock (this.syncObject)
             {
-                var methodTarget = new MethodSignatureAndTarget(handler, target);
+                var methodTarget = new MethodSignatureAndTarget(handler, target, attribute: null);
                 this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget> existingList))
                 {
@@ -762,6 +762,30 @@ namespace StreamJsonRpc
                     this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="JsonRpcMethodAttribute"/> for a previously discovered RPC method, if there is one.
+        /// </summary>
+        /// <param name="methodName">The name of the method for which the attribute is sought.</param>
+        /// <param name="parameters">
+        /// The list of parameters found on the method, as they may be given to <see cref="JsonRpcRequest.TryGetTypedArguments(ReadOnlySpan{ParameterInfo}, Span{object})"/>.
+        /// Note this list may omit some special parameters such as a trailing <see cref="CancellationToken"/>.
+        /// </param>
+        public JsonRpcMethodAttribute GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
+        {
+            if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget> existingList))
+            {
+                foreach (MethodSignatureAndTarget entry in existingList)
+                {
+                    if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
+                    {
+                        return entry.Signature.Attribute;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -1043,32 +1067,6 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Tries to obtain the <see cref="MethodSignatureAndTarget"/> info of a method.
-        /// </summary>
-        internal bool MethodSupportsSingleParameterObjectDeserialization(string methodName, Type parameterType)
-        {
-            // Get method definitions
-            if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget> existingList))
-            {
-                // Check if there is one definition with one parameter of the expected type.
-                if (existingList.Any(m => m.Signature.TotalParamCountExcludingCancellationToken == 1 && m.Signature.Parameters[0].ParameterType == parameterType))
-                {
-                    // Try to obtain the JsonRpcMethod attribute and check if the method supports single parameter object deserialization
-                    MethodSignatureAndTarget methodSignatureAndTarget = existingList.First(m => m.Signature.TotalParamCountExcludingCancellationToken == 1 && m.Signature.Parameters[0].ParameterType == parameterType);
-                    var mapping = new JsonRpc.MethodNameMap(methodSignatureAndTarget.Target.GetType().GetTypeInfo());
-                    JsonRpcMethodAttribute rpcMethod = mapping.FindAttribute(methodSignatureAndTarget.Signature.MethodInfo);
-
-                    if (rpcMethod != null && rpcMethod.UseSingleObjectParameterDeserialization)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// Disposes managed and native resources held by this instance.
         /// </summary>
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
@@ -1301,8 +1299,10 @@ namespace StreamJsonRpc
                         requestMethodToClrMethodNameMap.Add(requestName, method.Name);
                     }
 
+                    JsonRpcMethodAttribute attribute = mapping.FindAttribute(method);
+
                     // Skip this method if its signature matches one from a derived type we have already scanned.
-                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target);
+                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute);
                     if (methodTargetList.Contains(methodTarget))
                     {
                         continue;
@@ -1312,7 +1312,6 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
-                    JsonRpcMethodAttribute attribute = mapping.FindAttribute(method);
                     if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);

@@ -22,13 +22,16 @@ namespace StreamJsonRpc
         /// </summary>
         private ParameterInfo[] parameters;
 
-        internal MethodSignature(MethodInfo methodInfo)
+        internal MethodSignature(MethodInfo methodInfo, JsonRpcMethodAttribute attribute)
         {
             Requires.NotNull(methodInfo, nameof(methodInfo));
             this.MethodInfo = methodInfo;
+            this.Attribute = attribute;
         }
 
         internal MethodInfo MethodInfo { get; }
+
+        internal JsonRpcMethodAttribute Attribute { get; }
 
         internal ParameterInfo[] Parameters => this.parameters ?? (this.parameters = this.MethodInfo.GetParameters() ?? EmptyParameterInfoArray);
 
@@ -111,6 +114,24 @@ namespace StreamJsonRpc
         public override string ToString()
         {
             return this.DebuggerDisplay;
+        }
+
+        internal bool MatchesParametersExcludingCancellationToken(ReadOnlySpan<ParameterInfo> parameters)
+        {
+            if (this.TotalParamCountExcludingCancellationToken == parameters.Length)
+            {
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    if (parameters[i].ParameterType != this.Parameters[i].ParameterType)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool IsCancellationToken(ParameterInfo parameter) => parameter?.ParameterType.Equals(typeof(CancellationToken)) ?? false;
