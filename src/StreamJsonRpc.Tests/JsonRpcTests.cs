@@ -59,6 +59,9 @@ public abstract class JsonRpcTests : TestBase
 
         [JsonRpcMethod("IFaceNameForMethod")]
         int AddWithNameSubstitution(int a, int b);
+
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
+        int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token);
     }
 
     [Fact]
@@ -982,6 +985,15 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [SkippableFact]
+    public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken_InterfaceMethodAttributed()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [SkippableFact]
     public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
@@ -1791,6 +1803,11 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithInvalidProgressParameter(Progress<int> p)
         {
             return 1;
+        }
+
+        public int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
+        {
+            return fields.x + fields.y;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
