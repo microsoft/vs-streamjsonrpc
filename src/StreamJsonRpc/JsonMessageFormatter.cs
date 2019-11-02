@@ -7,6 +7,7 @@ namespace StreamJsonRpc
     using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.IO.Pipelines;
@@ -113,7 +114,7 @@ namespace StreamJsonRpc
         /// This field is used to create the <see cref="IProgress{T}" /> instance that will send the progress notifications when server reports it.
         /// The <see cref="IJsonRpcInstanceContainer.Rpc" /> property helps to ensure that only one <see cref="JsonRpc" /> instance is associated with this formatter.
         /// </remarks>
-        private JsonRpc rpc;
+        private JsonRpc? rpc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
@@ -131,7 +132,7 @@ namespace StreamJsonRpc
         public JsonMessageFormatter(Encoding encoding)
         {
             Requires.NotNull(encoding, nameof(encoding));
-            this.Encoding = encoding;
+            this.encoding = encoding;
 
             this.JsonSerializer = new JsonSerializer()
             {
@@ -191,7 +192,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the <see cref="MultiplexingStream"/> that may be used to establish out of band communication (e.g. marshal <see cref="IDuplexPipe"/> arguments).
         /// </summary>
-        public MultiplexingStream MultiplexingStream
+        public MultiplexingStream? MultiplexingStream
         {
             get => this.duplexPipeTracker.MultiplexingStream;
             set
@@ -355,7 +356,7 @@ namespace StreamJsonRpc
             return jtokenArray;
         }
 
-        private void VerifyProtocolCompliance(bool condition, JToken message, string explanation = null)
+        private void VerifyProtocolCompliance(bool condition, JToken message, string? explanation = null)
         {
             if (!condition)
             {
@@ -363,7 +364,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private Exception CreateProtocolNonComplianceException(JToken message, string explanation = null)
+        private Exception CreateProtocolNonComplianceException(JToken message, string? explanation = null)
         {
             var builder = new StringBuilder();
             builder.AppendFormat(CultureInfo.CurrentCulture, "Unrecognized JSON-RPC {0} message", this.ProtocolVersion);
@@ -466,7 +467,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="value">The value to tokenize.</param>
         /// <returns>The <see cref="JToken"/> instance.</returns>
-        private JToken TokenizeUserData(object value)
+        private JToken TokenizeUserData(object? value)
         {
             if (value is JToken token)
             {
@@ -490,7 +491,7 @@ namespace StreamJsonRpc
             // We leave arguments as JTokens at this point, so that we can try deserializing them
             // to more precise .NET types as required by the method we're invoking.
             JToken args = json["params"];
-            object arguments =
+            object? arguments =
                 args is JObject argsObject ? PartiallyParseNamedArguments(argsObject) :
                 args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
                 null;
@@ -502,26 +503,26 @@ namespace StreamJsonRpc
             {
                 try
                 {
-                    JToken progressId =
+                    JToken? progressId =
                         args is JObject ? args["token"] :
                         args is JArray ? args[0] :
                         null;
 
-                    JToken value =
+                    JToken? value =
                         args is JObject ? args["value"] :
                         args is JArray ? args[1] :
                         null;
 
-                    MessageFormatterProgressTracker.ProgressParamInformation progressInfo = null;
+                    MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
                     if (this.formatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
                     {
-                        object typedValue = value.ToObject(progressInfo.ValueType);
+                        object? typedValue = value?.ToObject(progressInfo.ValueType);
                         progressInfo.InvokeReport(typedValue);
                     }
                 }
                 catch (Exception e)
                 {
-                    this.rpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
+                    this.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
                 }
             }
 
@@ -594,7 +595,7 @@ namespace StreamJsonRpc
                 this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
             }
 
-            public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object> typedArguments)
+            public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
                 if (parameters.Length == 1 && this.NamedArguments != null)
                 {
@@ -612,28 +613,31 @@ namespace StreamJsonRpc
                     }
 
                     // Support for opt-in to deserializing all named arguments into a single parameter.
-                    JsonRpcMethodAttribute attribute = this.formatter.rpc.GetJsonRpcMethodAttribute(this.Method, parameters);
-                    if (attribute?.UseSingleObjectParameterDeserialization ?? false)
+                    if (this.Method != null)
                     {
-                        var obj = new JObject();
-                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        JsonRpcMethodAttribute? attribute = this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters);
+                        if (attribute?.UseSingleObjectParameterDeserialization ?? false)
                         {
-                            obj.Add(new JProperty(property.Key, property.Value));
-                        }
+                            var obj = new JObject();
+                            foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                            {
+                                obj.Add(new JProperty(property.Key, property.Value));
+                            }
 
-                        typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
-                        return ArgumentMatchResult.Success;
+                            typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                            return ArgumentMatchResult.Success;
+                        }
                     }
                 }
 
                 return base.TryGetTypedArguments(parameters, typedArguments);
             }
 
-            public override bool TryGetArgumentByNameOrIndex(string name, int position, Type typeHint, out object value)
+            public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
             {
                 if (base.TryGetArgumentByNameOrIndex(name, position, typeHint, out value))
                 {
-                    var token = (JToken)value;
+                    var token = (JToken?)value;
                     try
                     {
                         // Deserialization of messages should never occur concurrently for a single instance of a formatter.
@@ -641,7 +645,7 @@ namespace StreamJsonRpc
                         this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.RequestId;
                         try
                         {
-                            value = token.ToObject(typeHint, this.formatter.JsonSerializer);
+                            value = token?.ToObject(typeHint, this.formatter.JsonSerializer);
                         }
                         finally
                         {
@@ -673,11 +677,12 @@ namespace StreamJsonRpc
 
             public override T GetResult<T>()
             {
+                Verify.Operation(this.Result != null, "This instance hasn't been initialized with a result yet.");
                 var result = (JToken)this.Result;
                 if (result.Type == JTokenType.Null)
                 {
                     Verify.Operation(!typeof(T).GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(typeof(T)) != null, "null result is not assignable to a value type.");
-                    return default;
+                    return default!;
                 }
 
                 return result.ToObject<T>(this.jsonSerializer);
@@ -712,7 +717,7 @@ namespace StreamJsonRpc
 
             public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.IsSupportedProgressType(objectType);
 
-            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
             }
@@ -738,25 +743,25 @@ namespace StreamJsonRpc
                 return objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>));
             }
 
-            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
             {
                 if (reader.TokenType == JsonToken.Null)
                 {
                     return null;
                 }
 
+                Assumes.NotNull(this.formatter.rpc);
                 JToken token = JToken.Load(reader);
-
                 return this.formatter.formatterProgressTracker.CreateProgress(this.formatter.rpc, token, objectType);
             }
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
             }
         }
 
-        private class DuplexPipeConverter : JsonConverter<IDuplexPipe>
+        private class DuplexPipeConverter : JsonConverter<IDuplexPipe?>
         {
             private readonly JsonMessageFormatter jsonMessageFormatter;
 
@@ -765,20 +770,20 @@ namespace StreamJsonRpc
                 this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
             }
 
-            public override IDuplexPipe ReadJson(JsonReader reader, Type objectType, IDuplexPipe existingValue, bool hasExistingValue, JsonSerializer serializer)
+            public override IDuplexPipe? ReadJson(JsonReader reader, Type objectType, IDuplexPipe? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
                 int? tokenId = JToken.Load(reader).Value<int?>();
                 return this.jsonMessageFormatter.duplexPipeTracker.GetPipe(tokenId);
             }
 
-            public override void WriteJson(JsonWriter writer, IDuplexPipe value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, IDuplexPipe? value, JsonSerializer serializer)
             {
                 var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
                 writer.WriteValue(token);
             }
         }
 
-        private class PipeReaderConverter : JsonConverter<PipeReader>
+        private class PipeReaderConverter : JsonConverter<PipeReader?>
         {
             private readonly JsonMessageFormatter jsonMessageFormatter;
 
@@ -787,20 +792,20 @@ namespace StreamJsonRpc
                 this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
             }
 
-            public override PipeReader ReadJson(JsonReader reader, Type objectType, PipeReader existingValue, bool hasExistingValue, JsonSerializer serializer)
+            public override PipeReader? ReadJson(JsonReader reader, Type objectType, PipeReader? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
                 int? tokenId = JToken.Load(reader).Value<int?>();
                 return this.jsonMessageFormatter.duplexPipeTracker.GetPipeReader(tokenId);
             }
 
-            public override void WriteJson(JsonWriter writer, PipeReader value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, PipeReader? value, JsonSerializer serializer)
             {
                 var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
                 writer.WriteValue(token);
             }
         }
 
-        private class PipeWriterConverter : JsonConverter<PipeWriter>
+        private class PipeWriterConverter : JsonConverter<PipeWriter?>
         {
             private readonly JsonMessageFormatter jsonMessageFormatter;
 
@@ -809,20 +814,20 @@ namespace StreamJsonRpc
                 this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
             }
 
-            public override PipeWriter ReadJson(JsonReader reader, Type objectType, PipeWriter existingValue, bool hasExistingValue, JsonSerializer serializer)
+            public override PipeWriter? ReadJson(JsonReader reader, Type objectType, PipeWriter? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
                 int? tokenId = JToken.Load(reader).Value<int?>();
                 return this.jsonMessageFormatter.duplexPipeTracker.GetPipeWriter(tokenId);
             }
 
-            public override void WriteJson(JsonWriter writer, PipeWriter value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, PipeWriter? value, JsonSerializer serializer)
             {
                 var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value);
                 writer.WriteValue(token);
             }
         }
 
-        private class StreamConverter : JsonConverter<Stream>
+        private class StreamConverter : JsonConverter<Stream?>
         {
             private readonly JsonMessageFormatter jsonMessageFormatter;
 
@@ -831,13 +836,13 @@ namespace StreamJsonRpc
                 this.jsonMessageFormatter = jsonMessageFormatter ?? throw new ArgumentNullException(nameof(jsonMessageFormatter));
             }
 
-            public override Stream ReadJson(JsonReader reader, Type objectType, Stream existingValue, bool hasExistingValue, JsonSerializer serializer)
+            public override Stream? ReadJson(JsonReader reader, Type objectType, Stream? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
                 int? tokenId = JToken.Load(reader).Value<int?>();
                 return this.jsonMessageFormatter.duplexPipeTracker.GetPipe(tokenId)?.AsStream();
             }
 
-            public override void WriteJson(JsonWriter writer, Stream value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, Stream? value, JsonSerializer serializer)
             {
                 var token = this.jsonMessageFormatter.duplexPipeTracker.GetToken(value?.UsePipe());
                 writer.WriteValue(token);

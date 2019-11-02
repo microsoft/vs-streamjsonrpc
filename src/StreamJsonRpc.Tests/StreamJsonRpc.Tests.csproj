@@ -8,6 +8,10 @@
     <CodeAnalysisRuleSet>..\tests.ruleset</CodeAnalysisRuleSet>
     <RootNamespace />
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\StreamJsonRpc\NullabilityAttributes.cs" Link="NullabilityAttributes.cs" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
     <ProjectReference Include="..\StreamJsonRpc\StreamJsonRpc.csproj" />

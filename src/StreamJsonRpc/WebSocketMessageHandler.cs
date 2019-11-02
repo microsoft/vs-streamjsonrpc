@@ -72,7 +72,7 @@ namespace StreamJsonRpc
         public WebSocket WebSocket { get; }
 
         /// <inheritdoc />
-        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
             using (var contentSequenceBuilder = new Sequence<byte>())
             {
@@ -111,8 +111,6 @@ namespace StreamJsonRpc
                 return contentSequenceBuilder.AsReadOnlySequence.Length > 0 ? this.Formatter.Deserialize(contentSequenceBuilder) : null;
             }
         }
-
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
 
         /// <inheritdoc />
         protected override async ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
@@ -158,7 +156,5 @@ namespace StreamJsonRpc
 
         /// <inheritdoc />
         protected override ValueTask FlushAsync(CancellationToken cancellationToken) => default;
-
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
     }
 }

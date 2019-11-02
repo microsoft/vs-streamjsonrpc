@@ -52,7 +52,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the ID if it is a string.
         /// </summary>
-        public string String { get; }
+        public string? String { get; }
 
         /// <summary>
         /// Gets a value indicating whether both the <see cref="Number"/> and <see cref="String"/> properties are uninitialized.
@@ -62,7 +62,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the ID as an object (whether it is a <see cref="long"/>, a <see cref="string"/> or null).
         /// </summary>
-        internal object ObjectValue => (object)this.Number ?? this.String;
+        internal object? ObjectValue => (object?)this.Number ?? this.String;
 
         /// <summary>
         /// Gets the ID if it is a number, or -1.
@@ -73,7 +73,7 @@ namespace StreamJsonRpc
         public bool Equals(RequestId other) => this.Number == other.Number && this.String == other.String;
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is RequestId other && this.Equals(other);
+        public override bool Equals(object? obj) => obj is RequestId other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode() ?? 0;
@@ -81,7 +81,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public override string ToString() => this.Number?.ToString(CultureInfo.InvariantCulture) ?? this.String ?? "null";
 
-        internal static RequestId Parse(object value)
+        internal static RequestId Parse(object? value)
         {
             return
                 value is null ? default :

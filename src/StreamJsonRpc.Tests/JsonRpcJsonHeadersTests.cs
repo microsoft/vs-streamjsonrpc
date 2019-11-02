@@ -175,8 +175,8 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
         // C# dynamic is infamously unstable. If this test ends up being unstable, yet the dump clearly shows the fields are there even though the exception claims it isn't,
         // that's consistent with the instability I've seen before. Switching to using JToken APIs will fix the instability, but it relies on using the JsonMessageFormatter.
-        dynamic data = exception.ErrorData;
-        dynamic myCustomData = data.myCustomData;
+        dynamic? data = exception.ErrorData;
+        dynamic myCustomData = data!.myCustomData;
         string actual = myCustomData;
         Assert.Equal("hi", actual);
     }
@@ -189,7 +189,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 #pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
-        var errorData = ((JToken)exception.ErrorData).ToObject<CommonErrorData>();
+        var errorData = ((JToken?)exception.ErrorData)!.ToObject<CommonErrorData>();
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
@@ -207,7 +207,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     public class ParamsObjectWithCustomNames
     {
         [DataMember(Name = "argument")]
-        public string TheArgument { get; set; }
+        public string? TheArgument { get; set; }
     }
 
     private class StringBase64Converter : JsonConverter

@@ -62,8 +62,8 @@ CRLF +
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        var readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
-        Assert.Equal("test", readContent.Method);
+        var readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent!.Method);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
@@ -77,8 +77,8 @@ CRLF +
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
-        Assert.Equal("test", readContent.Method);
+        readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent!.Method);
     }
 
     [Fact]
@@ -95,8 +95,8 @@ CRLF +
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        var readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
-        Assert.Equal("test", readContent.Method);
+        var readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent!.Method);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
@@ -112,8 +112,8 @@ CRLF +
         this.receivingStream.Flush();
         this.receivingStream.Position = 0;
 
-        readContent = (JsonRpcRequest)await this.handler.ReadAsync(CancellationToken.None);
-        Assert.Equal("test", readContent.Method);
+        readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
+        Assert.Equal("test", readContent!.Method);
     }
 
     [Fact]

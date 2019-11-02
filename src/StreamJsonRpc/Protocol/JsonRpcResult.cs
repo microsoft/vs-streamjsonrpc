@@ -5,6 +5,7 @@ namespace StreamJsonRpc.Protocol
 {
     using System;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Serialization;
     using Newtonsoft.Json.Linq;
 
@@ -19,7 +20,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the value of the result of an invocation, if any.
         /// </summary>
         [DataMember(Name = "result", Order = 1, IsRequired = true, EmitDefaultValue = true)]
-        public object Result { get; set; }
+        public object? Result { get; set; }
 
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
@@ -27,7 +28,7 @@ namespace StreamJsonRpc.Protocol
         /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>
         [Obsolete("Use " + nameof(RequestId) + " instead.")]
         [IgnoreDataMember]
-        public object Id
+        public object? Id
         {
             get => this.RequestId.ObjectValue;
             set => this.RequestId = RequestId.Parse(value);
@@ -53,7 +54,7 @@ namespace StreamJsonRpc.Protocol
         /// Derived types may override this method in order to deserialize the <see cref="Result"/>
         /// such that it can be assignable to <typeparamref name="T"/>.
         /// </remarks>
-        public virtual T GetResult<T>() => (T)this.Result;
+        public virtual T GetResult<T>() => (T)this.Result!;
 
         /// <inheritdoc/>
         public override string ToString()

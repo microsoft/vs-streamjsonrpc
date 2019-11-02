@@ -13,7 +13,7 @@ internal class WrappedStream : Stream
     private bool isConnected;
     private bool isEndReached;
     private bool disposed;
-    private EventHandler disconnectedListeners;
+    private EventHandler? disconnectedListeners;
 
     public WrappedStream(Stream stream)
     {

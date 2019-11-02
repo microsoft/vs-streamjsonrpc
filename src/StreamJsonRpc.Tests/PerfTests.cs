@@ -151,7 +151,9 @@ public class PerfTests
         }
     }
 
+#pragma warning disable SA1414 // Tuple types in signatures should have element names
     private static (Stream, Stream) GetNamedPipes()
+#pragma warning restore SA1414 // Tuple types in signatures should have element names
     {
         string pipeName = Guid.NewGuid().ToString();
         var serverPipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, /*maxConnections*/ 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);

@@ -60,7 +60,7 @@ public class JsonRpcCustomRequestIdTests : InteropTestBase
 
         protected override RequestId CreateNewRequestId()
         {
-            return new RequestId("prefix-" + base.CreateNewRequestId().Number.Value.ToString());
+            return new RequestId("prefix-" + base.CreateNewRequestId().Number);
         }
     }
 }

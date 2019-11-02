@@ -27,9 +27,13 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="JsonRpcMethodAttribute" /> class.
         /// </summary>
         /// <param name="name">Replacement name of a method.</param>
-        public JsonRpcMethodAttribute(string name)
+        public JsonRpcMethodAttribute(string? name)
         {
-            Requires.NotNullOrWhiteSpace(name, nameof(name));
+            if (name == string.Empty)
+            {
+                // We actually allow null, but we don't want to see empty strings.
+                Requires.NotNullOrEmpty(name, nameof(name));
+            }
 
             this.Name = name;
         }
@@ -45,7 +49,7 @@ namespace StreamJsonRpc
         /// Gets the public RPC name by which this method will be invoked.
         /// </summary>
         /// <value>May be <c>null</c> if the method's name has not been overridden.</value>
-        public string Name { get; }
+        public string? Name { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into this method's first parameter.

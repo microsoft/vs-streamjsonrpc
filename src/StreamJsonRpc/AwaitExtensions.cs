@@ -67,7 +67,7 @@ namespace StreamJsonRpc
             public void OnCompleted(Action continuation)
             {
 #pragma warning disable VSTHRD001 // Avoid legacy threading switching APIs
-                this.synchronizationContext.Post(action => ((Action)action).Invoke(), continuation);
+                this.synchronizationContext.Post(action => ((Action)action!).Invoke(), continuation);
 #pragma warning restore VSTHRD001 // Avoid legacy threading switching APIs
             }
         }

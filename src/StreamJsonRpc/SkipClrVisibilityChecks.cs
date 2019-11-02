@@ -31,12 +31,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// The <see cref="AttributeUsageAttribute(AttributeTargets)"/> constructor.
         /// </summary>
-        private static readonly ConstructorInfo AttributeUsageCtor = typeof(AttributeUsageAttribute).GetConstructor(new Type[] { typeof(AttributeTargets) });
+        private static readonly ConstructorInfo AttributeUsageCtor = typeof(AttributeUsageAttribute).GetConstructor(new Type[] { typeof(AttributeTargets) })!;
 
         /// <summary>
         /// The <see cref="AttributeUsageAttribute.AllowMultiple"/> property.
         /// </summary>
-        private static readonly PropertyInfo AttributeUsageAllowMultipleProperty = typeof(AttributeUsageAttribute).GetProperty(nameof(AttributeUsageAttribute.AllowMultiple));
+        private static readonly PropertyInfo AttributeUsageAllowMultipleProperty = typeof(AttributeUsageAttribute).GetProperty(nameof(AttributeUsageAttribute.AllowMultiple))!;
 
         /// <summary>
         /// The assembly builder that is constructing the dynamic assembly.
@@ -57,7 +57,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The constructor on the special attribute to reference for each skipped assembly.
         /// </summary>
-        private ConstructorInfo magicAttributeCtor;
+        private ConstructorInfo? magicAttributeCtor;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SkipClrVisibilityChecks"/> class.
@@ -123,7 +123,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(assemblyName, nameof(assemblyName));
 
-            string assemblyNameArg = assemblyName.Name;
+            string assemblyNameArg = assemblyName.Name!;
             if (this.attributedAssemblyNames.Add(assemblyNameArg))
             {
                 var cab = new CustomAttributeBuilder(this.GetMagicAttributeCtor(), new object[] { assemblyNameArg });
@@ -146,7 +146,7 @@ namespace StreamJsonRpc
 
             if (typeInfo.IsArray)
             {
-                CheckForNonPublicTypes(typeInfo.GetElementType().GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                CheckForNonPublicTypes(typeInfo.GetElementType()!.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
             }
             else
             {
@@ -202,7 +202,7 @@ namespace StreamJsonRpc
                 this.magicAttributeCtor = magicAttribute.GetConstructor(new Type[] { typeof(string) });
             }
 
-            return this.magicAttributeCtor;
+            return this.magicAttributeCtor!;
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ namespace StreamJsonRpc
             il.Emit(OpCodes.Call, AttributeBaseClassCtor);
             il.Emit(OpCodes.Ret);
 
-            return tb.CreateTypeInfo();
+            return tb.CreateTypeInfo()!;
         }
 
         private class AssemblyNameEqualityComparer : IEqualityComparer<AssemblyName>
