@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -111,7 +112,7 @@ public class MessageHeaderTests : TestBase
         var messageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream);
         var rpcClient = new JsonRpc(messageHandler);
         messageHandler.Encoding = Encoding.GetEncoding(encodingName);
-        await rpcClient.NotifyAsync("Foo");
+        await rpcClient.NotifyAsync("Foo").WithCancellation(this.TimeoutToken);
         rpcClient.Dispose();
 
         MemoryStream seekableServerStream = await this.GetSeekableServerStream();
@@ -119,7 +120,7 @@ public class MessageHeaderTests : TestBase
         var reader = new StreamReader(seekableServerStream, Encoding.ASCII);
         var headerLines = new List<string>();
         string line;
-        while ((line = reader.ReadLine()) != string.Empty)
+        while ((line = await reader.ReadLineAsync().WithCancellation(this.TimeoutToken)) != string.Empty)
         {
             headerLines.Add(line);
             bytesRead += line.Length + 2; // + CRLF
@@ -138,14 +139,14 @@ public class MessageHeaderTests : TestBase
         // we need to reposition the stream at the start of the content to create a new StreamReader.
         seekableServerStream.Position = bytesRead;
         reader = new StreamReader(seekableServerStream, Encoding.GetEncoding(encodingName));
-        string json = reader.ReadToEnd();
+        string json = await reader.ReadToEndAsync().WithCancellation(this.TimeoutToken);
         Assert.Equal('{', json[0]);
     }
 
     private async Task<MemoryStream> GetSeekableServerStream()
     {
         var seekableServerStream = new MemoryStream();
-        await this.serverStream.CopyToAsync(seekableServerStream);
+        await this.serverStream.CopyToAsync(seekableServerStream, 4096, this.TimeoutToken);
         seekableServerStream.Position = 0;
         return seekableServerStream;
     }
