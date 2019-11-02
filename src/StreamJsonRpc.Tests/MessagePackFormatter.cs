@@ -58,7 +58,13 @@ namespace StreamJsonRpc
         /// <param name="compress">A value indicating whether to use LZ4 compression.</param>
         public MessagePackFormatter(bool compress)
         {
-            this.options = TypelessContractlessStandardResolver.Options.WithLZ4Compression(useLZ4Compression: compress);
+            var compositeResolver = CompositeResolver.Create(
+                new IMessagePackFormatter[] { new RequestIdFormatter() },
+                new IFormatterResolver[] { TypelessContractlessStandardResolver.Instance });
+
+            this.options = TypelessContractlessStandardResolver.Options
+                .WithResolver(compositeResolver)
+                .WithLZ4Compression(useLZ4Compression: compress);
         }
 
         /// <inheritdoc/>
@@ -132,6 +138,33 @@ namespace StreamJsonRpc
             }
 
             return result;
+        }
+
+        private class RequestIdFormatter : IMessagePackFormatter<RequestId>
+        {
+            public RequestId Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                if (reader.NextMessagePackType == MessagePackType.Integer)
+                {
+                    return new RequestId(reader.ReadInt64());
+                }
+                else
+                {
+                    return new RequestId(reader.ReadString());
+                }
+            }
+
+            public void Serialize(ref MessagePackWriter writer, RequestId value, MessagePackSerializerOptions options)
+            {
+                if (value.Number.HasValue)
+                {
+                    writer.Write(value.Number.Value);
+                }
+                else
+                {
+                    writer.Write(value.String);
+                }
+            }
         }
     }
 }

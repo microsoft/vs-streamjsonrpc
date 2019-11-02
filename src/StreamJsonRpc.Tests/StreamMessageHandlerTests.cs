@@ -186,7 +186,7 @@ public class StreamMessageHandlerTests : TestBase
 
     private static JsonRpcMessage CreateNotifyMessage() => new JsonRpcRequest { Method = "test" };
 
-    private static JsonRpcMessage CreateRequestMessage() => new JsonRpcRequest { Id = 1, Method = "test" };
+    private static JsonRpcMessage CreateRequestMessage() => new JsonRpcRequest { RequestId = new RequestId(1), Method = "test" };
 
     private class DelayedWriter : StreamMessageHandler
     {

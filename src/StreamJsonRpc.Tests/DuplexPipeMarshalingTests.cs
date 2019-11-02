@@ -321,7 +321,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         await clientHandler.WriteAsync(
             new StreamJsonRpc.Protocol.JsonRpcRequest
             {
-                Id = 1,
+                RequestId = new RequestId(1),
                 Method = nameof(ServerWithOverloads.OverloadedMethod),
                 ArgumentsList = new object[] { false, oobChannel.Id, new object() },
             },
