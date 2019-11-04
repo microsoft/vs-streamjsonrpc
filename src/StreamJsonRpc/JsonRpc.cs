@@ -1441,7 +1441,7 @@ namespace StreamJsonRpc
 
             try
             {
-                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.DisconnectedToken))
+                using (CancellationTokenExtensions.CombinedCancellationToken cts = this.DisconnectedToken.CombineWith(cancellationToken))
                 {
                     if (!request.IsResponseExpected)
                     {
