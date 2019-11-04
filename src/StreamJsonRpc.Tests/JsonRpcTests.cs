@@ -59,6 +59,9 @@ public abstract class JsonRpcTests : TestBase
 
         [JsonRpcMethod("IFaceNameForMethod")]
         int AddWithNameSubstitution(int a, int b);
+
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
+        int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token);
     }
 
     [Fact]
@@ -942,11 +945,67 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [SkippableFact]
-    public async Task InvokeWithParameterObject_ClassIncludingProgressProperty()
+    public async Task InvokeWithSingleObjectParameter_SendingExpectedObject()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameter", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithSingleObjectParameter_ServerMethodExpectsObjectButDoesNotSetDeserializationProperty()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterWithoutDeserializationProperty), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithSingleObjectParameter_ServerMethodExpectsObjectButSendingDifferentType()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterVAndW", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+
+        Assert.Equal(0, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithSingleObjectParameter_ServerMethodSetDeserializationPropertyButExpectMoreThanOneParameter()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithObjectAndExtraParameters", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken_InterfaceMethodAttributed()
+    {
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [SkippableFact]
+    public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
 
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new XAndYFieldsWithProgress { x = 2, y = 5, p = new Progress<int>() }, this.TimeoutToken);
+        int report = 0;
+        var progress = new ProgressWithCompletion<int>(n => report += n);
+
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYFieldsWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(7, report);
         Assert.Equal(7, sum);
     }
 
@@ -1251,6 +1310,22 @@ public abstract class JsonRpcTests : TestBase
         MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
         Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
         this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null);
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeAsync<string>("biz.bar", "foo");
+        Assert.Equal("foo!", result);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcMethod_MethodInfo_Object_Attribute()
+    {
+        this.ReinitializeRpcWithoutListening();
+
+        MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(Server.ServerMethod));
+        Assumes.True(methodInfo.IsStatic); // we picked this method because it's static.
+        this.serverRpc.AddLocalRpcMethod(methodInfo, null, new JsonRpcMethodAttribute("biz.bar"));
 
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
@@ -1657,6 +1732,47 @@ public abstract class JsonRpcTests : TestBase
             return x + y;
         }
 
+        public static int MethodWithOneNonObjectParameter(int x)
+        {
+            return x;
+        }
+
+        [JsonRpcMethod("test/MethodWithSingleObjectParameter", UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithSingleObjectParameter(XAndYFields fields)
+        {
+            return fields.x + fields.y;
+        }
+
+        public static int MethodWithSingleObjectParameterWithoutDeserializationProperty(XAndYFields fields)
+        {
+            return fields.x + fields.y;
+        }
+
+        [JsonRpcMethod("test/MethodWithSingleObjectParameterVAndW", UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithSingleObjectParameterVAndW(VAndWFields fields)
+        {
+            return fields.v + fields.w;
+        }
+
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
+        {
+            return fields.x + fields.y;
+        }
+
+        [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithSingleObjectParameterWithProgress(XAndYFieldsWithProgress fields)
+        {
+            fields.p.Report(fields.x + fields.y);
+            return fields.x + fields.y;
+        }
+
+        [JsonRpcMethod("test/MethodWithObjectAndExtraParameters", UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithObjectAndExtraParameters(XAndYFields fields, int anotherParameter)
+        {
+            return fields.x + fields.y + anotherParameter;
+        }
+
         public static int MethodWithProgressParameter(IProgress<int> p)
         {
             p.Report(1);
@@ -1687,6 +1803,11 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithInvalidProgressParameter(Progress<int> p)
         {
             return 1;
+        }
+
+        public int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
+        {
+            return fields.x + fields.y;
         }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
@@ -1937,7 +2058,7 @@ public abstract class JsonRpcTests : TestBase
             this.ServerMethodReached.Set();
         }
 
-        [JsonRpcMethod("InternalMethodWithAttribute")]
+        [JsonRpcMethod]
         internal void InternalMethodWithAttribute()
         {
             this.ServerMethodReached.Set();
@@ -2013,6 +2134,18 @@ public abstract class JsonRpcTests : TestBase
         public int x;
         [DataMember]
         public int y;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
+    [DataContract]
+    public class VAndWFields
+    {
+        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        [DataMember]
+        public int v;
+        [DataMember]
+        public int w;
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 

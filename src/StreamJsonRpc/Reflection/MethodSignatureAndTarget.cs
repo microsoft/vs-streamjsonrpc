@@ -13,11 +13,11 @@ namespace StreamJsonRpc
     [DebuggerDisplay("{DebuggerDisplay}")]
     internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     {
-        public MethodSignatureAndTarget(MethodInfo method, object target)
+        public MethodSignatureAndTarget(MethodInfo method, object target, JsonRpcMethodAttribute attribute)
         {
             Requires.NotNull(method, nameof(method));
 
-            this.Signature = new MethodSignature(method);
+            this.Signature = new MethodSignature(method, attribute);
             this.Target = target;
         }
 

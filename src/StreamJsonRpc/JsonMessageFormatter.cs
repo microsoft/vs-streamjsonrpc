@@ -596,17 +596,34 @@ namespace StreamJsonRpc
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object> typedArguments)
             {
-                // Special support for accepting a single JToken instead of all parameters individually.
-                if (parameters.Length == 1 && parameters[0].ParameterType == typeof(JToken) && this.NamedArguments != null)
+                if (parameters.Length == 1 && this.NamedArguments != null)
                 {
-                    var obj = new JObject();
-                    foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                    // Special support for accepting a single JToken instead of all parameters individually.
+                    if (parameters[0].ParameterType == typeof(JToken))
                     {
-                        obj.Add(new JProperty(property.Key, property.Value));
+                        var obj = new JObject();
+                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        {
+                            obj.Add(new JProperty(property.Key, property.Value));
+                        }
+
+                        typedArguments[0] = obj;
+                        return ArgumentMatchResult.Success;
                     }
 
-                    typedArguments[0] = obj;
-                    return ArgumentMatchResult.Success;
+                    // Support for opt-in to deserializing all named arguments into a single parameter.
+                    JsonRpcMethodAttribute attribute = this.formatter.rpc.GetJsonRpcMethodAttribute(this.Method, parameters);
+                    if (attribute?.UseSingleObjectParameterDeserialization ?? false)
+                    {
+                        var obj = new JObject();
+                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        {
+                            obj.Add(new JProperty(property.Key, property.Value));
+                        }
+
+                        typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                        return ArgumentMatchResult.Success;
+                    }
                 }
 
                 return base.TryGetTypedArguments(parameters, typedArguments);
