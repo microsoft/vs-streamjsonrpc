@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
-        <target state="new">Unable to cast given Type to IProgress&lt;T&gt;</target>
+        <target state="translated">Nie można rzutować danego typu na typ IProgress&lt;T&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
         <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
-        <target state="new">The configuration is locked because this formatter has already been associated with a JsonRpc instance.</target>
+        <target state="translated">Konfiguracja jest zablokowana, ponieważ ten program formatujący został już skojarzony z wystąpieniem JsonRpc.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="MarshaledObjectInResponseOrNotificationError">
         <source>This tracked object should not be part of any response or notification.</source>
-        <target state="new">This tracked object should not be part of any response or notification.</target>
+        <target state="translated">Ten śledzony obiekt nie powinien być częścią żadnej odpowiedzi ani powiadomienia.</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="NotSupportedWithoutMultiplexingStream">
         <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
-        <target state="new">Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</target>
+        <target state="translated">Strumienie/potoki poza pasmem nie są obsługiwane w tej konfiguracji. Czy element MultiplexingStream został ustawiony w programie formatującym?</target>
         <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="RelayAlreadySet">
         <source>Relay connection has already been established.</source>
-        <target state="new">Relay connection has already been established.</target>
+        <target state="translated">Połączenie przekazywania zostało już ustanowione.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
-        <target state="new">Response is in an unexpected format.  Only error and result are supported: {0}</target>
+        <target state="translated">Odpowiedź ma nieoczekiwany format. Obsługiwane są tylko błędy i wyniki: {0}</target>
         <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">

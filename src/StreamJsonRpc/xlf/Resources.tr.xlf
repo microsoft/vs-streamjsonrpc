@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
-        <target state="new">Unable to cast given Type to IProgress&lt;T&gt;</target>
+        <target state="translated">Verilen Tür IProgress&lt;T&gt; olarak atanamıyor</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
         <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
-        <target state="new">The configuration is locked because this formatter has already been associated with a JsonRpc instance.</target>
+        <target state="translated">Bu biçimlendirici bir JsonRpc örneğiyle zaten ilişkili olduğundan yapılandırma kilitli.</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="MarshaledObjectInResponseOrNotificationError">
         <source>This tracked object should not be part of any response or notification.</source>
-        <target state="new">This tracked object should not be part of any response or notification.</target>
+        <target state="translated">Bu izlenen nesne herhangi bir yanıtın veya bildirimin parçası olmamalıdır.</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="NotSupportedWithoutMultiplexingStream">
         <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
-        <target state="new">Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</target>
+        <target state="translated">Bu yapılandırmada bant dışı akışlar/yöneltmeler desteklenmiyor. Biçimlendirici üzerinde bir MultiplexingStream ayarladınız mı?</target>
         <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="RelayAlreadySet">
         <source>Relay connection has already been established.</source>
-        <target state="new">Relay connection has already been established.</target>
+        <target state="translated">Geçiş bağlantısı zaten kuruldu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
-        <target state="new">Response is in an unexpected format.  Only error and result are supported: {0}</target>
+        <target state="translated">Yanıt beklenmeyen bir biçimde. Yalnızca hata ve sonuç desteklenir: {0}</target>
         <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
