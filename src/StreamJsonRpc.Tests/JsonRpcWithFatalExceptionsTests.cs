@@ -176,7 +176,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     [Fact]
     public async Task AggregateExceptionIsNotRemovedFromAsyncMethod()
     {
-        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner)));
+        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner), cancellationToken: this.TimeoutToken));
 
         // The async server method itself strips the second of the InnerExceptions, so we can't recover it here.
         // Since we only get one, we expect the inner exception (of the AggregateException)

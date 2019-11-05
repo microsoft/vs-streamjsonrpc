@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
-        <target state="new">Unable to cast given Type to IProgress&lt;T&gt;</target>
+        <target state="translated">無法將指定的類型轉換為 IProgress&lt;T&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
         <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
-        <target state="new">The configuration is locked because this formatter has already been associated with a JsonRpc instance.</target>
+        <target state="translated">設定已鎖定，因為這個格式器已經與 JsonRpc 執行個體建立關聯。</target>
         <note />
       </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="MarshaledObjectInResponseOrNotificationError">
         <source>This tracked object should not be part of any response or notification.</source>
-        <target state="new">This tracked object should not be part of any response or notification.</target>
+        <target state="translated">追蹤的這個物件不應為任何回應或通知的一部分。</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="NotSupportedWithoutMultiplexingStream">
         <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
-        <target state="new">Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</target>
+        <target state="translated">此設定不支援頻外資料流/管道。要在格式器上設定 MultiplexingStream 嗎?</target>
         <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="RelayAlreadySet">
         <source>Relay connection has already been established.</source>
-        <target state="new">Relay connection has already been established.</target>
+        <target state="translated">已建立轉送連線。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
-        <target state="new">Response is in an unexpected format.  Only error and result are supported: {0}</target>
+        <target state="translated">回應採用了非預期的格式。只支援錯誤和結果: {0}</target>
         <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
