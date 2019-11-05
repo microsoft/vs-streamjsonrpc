@@ -42,7 +42,7 @@ public class JsonRpcClient10InteropTests : InteropTestBase
         {
             id = request["id"],
             result = expectedResult,
-            error = (object)null, // JSON-RPC 1.0 requires that the error property be specified as null in successful responses.
+            error = (object?)null, // JSON-RPC 1.0 requires that the error property be specified as null in successful responses.
         });
         string actualResult = await invokeTask;
         Assert.Equal(expectedResult, actualResult);
@@ -57,7 +57,7 @@ public class JsonRpcClient10InteropTests : InteropTestBase
         this.Send(new
         {
             id = request.id,
-            result = (object)null, // JSON-RPC 1.0 requires that result be specified and null if there is an error.
+            result = (object?)null, // JSON-RPC 1.0 requires that result be specified and null if there is an error.
             error = new { message = expectedErrorMessage },
         });
         var error = await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask);

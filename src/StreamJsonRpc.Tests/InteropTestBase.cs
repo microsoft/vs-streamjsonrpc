@@ -18,7 +18,6 @@ using Xunit.Abstractions;
 public class InteropTestBase : TestBase
 {
     protected readonly DirectMessageHandler messageHandler;
-    protected readonly JsonRpc rpc;
 
     public InteropTestBase(ITestOutputHelper logger, bool serverTest)
         : base(logger)

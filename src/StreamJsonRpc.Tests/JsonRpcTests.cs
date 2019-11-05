@@ -39,7 +39,9 @@ public abstract class JsonRpcTests : TestBase
 
     private const int CustomTaskResult = 100;
 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     public JsonRpcTests(ITestOutputHelper logger)
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         : base(logger)
     {
         TaskCompletionSource<JsonRpc> serverRpcTcs = new TaskCompletionSource<JsonRpc>();
@@ -67,7 +69,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public void Attach_Null_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => JsonRpc.Attach(stream: null));
+        Assert.Throws<ArgumentNullException>(() => JsonRpc.Attach(stream: null!));
         Assert.Throws<ArgumentException>(() => JsonRpc.Attach(sendingStream: null, receivingStream: null));
     }
 
@@ -104,7 +106,7 @@ public abstract class JsonRpcTests : TestBase
             {
                 RequestId = new RequestId(1),
                 Method = nameof(Server.MethodThatAccceptsAndReturnsNull),
-                ArgumentsList = new object[] { null },
+                ArgumentsList = new object?[] { null },
             },
             this.TimeoutToken);
 
@@ -134,7 +136,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public void Ctor_Stream_Null()
     {
-        Assert.Throws<ArgumentNullException>(() => new JsonRpc((Stream)null));
+        Assert.Throws<ArgumentNullException>(() => new JsonRpc((Stream)null!));
     }
 
     /// <summary>
@@ -223,7 +225,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task CanPassNull_NullElementInArgsArray()
     {
-        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object[] { null });
+        var result = await this.clientRpc.InvokeAsync<object>(nameof(Server.MethodThatAccceptsAndReturnsNull), new object?[] { null });
         Assert.Null(result);
         Assert.True(this.server.NullPassed);
     }
@@ -312,7 +314,7 @@ public abstract class JsonRpcTests : TestBase
         var disconnectedEventFired = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
 
         // Subscribe to disconnected event
-        object disconnectedEventSender = null;
+        object? disconnectedEventSender = null;
         this.serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
         {
             disconnectedEventSender = sender;
@@ -1033,7 +1035,7 @@ public abstract class JsonRpcTests : TestBase
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1, streams.Item2);
-        Assert.Throws<ArgumentNullException>(() => rpc.AddLocalRpcTarget(null));
+        Assert.Throws<ArgumentNullException>(() => rpc.AddLocalRpcTarget(null!));
     }
 
     [Fact]
@@ -1163,7 +1165,7 @@ public abstract class JsonRpcTests : TestBase
         const int expectedArg1 = 3;
         int actualArg1 = 0;
         const string expectedArg2 = "hi";
-        string actualArg2 = null;
+        string? actualArg2 = null;
 
         void Callback2(int n, string s)
         {
@@ -1241,7 +1243,7 @@ public abstract class JsonRpcTests : TestBase
         const int expectedArg1 = 3;
         int actualArg1 = 0;
         const string expectedArg2 = "hi";
-        string actualArg2 = null;
+        string? actualArg2 = null;
         const double expectedResult = 0.2;
 
         double Callback2(int n, string s)
@@ -1286,8 +1288,7 @@ public abstract class JsonRpcTests : TestBase
     {
         this.ReinitializeRpcWithoutListening();
 
-        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null));
-        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod(null, new Func<int>(() => 1)));
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null!));
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod(string.Empty, new Func<int>(() => 1)));
     }
 
@@ -1297,8 +1298,7 @@ public abstract class JsonRpcTests : TestBase
         this.ReinitializeRpcWithoutListening();
 
         MethodInfo methodInfo = typeof(Server).GetTypeInfo().DeclaredMethods.First();
-        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null, this.server));
-        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod(null, methodInfo, this.server));
+        Assert.Throws<ArgumentNullException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", null!, this.server));
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod(string.Empty, methodInfo, this.server));
     }
 
@@ -1414,7 +1414,7 @@ public abstract class JsonRpcTests : TestBase
     {
         this.ReinitializeRpcWithoutListening();
 
-        var result = new TaskCompletionSource<object>();
+        var result = new TaskCompletionSource<object?>();
         this.clientRpc.AddLocalRpcMethod("nothing", new Action(() => { }));
         this.serverRpc.AddLocalRpcMethod(
             "race",
@@ -1647,9 +1647,6 @@ public abstract class JsonRpcTests : TestBase
 
         await progress.WaitAsync();
 
-        // Clear progress variable locally
-        progress = null;
-
         return weakRef;
     }
 
@@ -1663,9 +1660,6 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
 
         await progress.WaitAsync();
-
-        // Clear progress variable locally
-        progress = null;
 
         return weakRef;
     }
@@ -1696,7 +1690,7 @@ public abstract class JsonRpcTests : TestBase
 
         public AsyncAutoResetEvent ServerMethodReached { get; } = new AsyncAutoResetEvent();
 
-        public TaskCompletionSource<object> ServerMethodCompleted { get; } = new TaskCompletionSource<object>();
+        public TaskCompletionSource<object?> ServerMethodCompleted { get; } = new TaskCompletionSource<object?>();
 
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
@@ -1763,7 +1757,7 @@ public abstract class JsonRpcTests : TestBase
         [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterWithProgress(XAndYFieldsWithProgress fields)
         {
-            fields.p.Report(fields.x + fields.y);
+            fields.p!.Report(fields.x + fields.y);
             return fields.x + fields.y;
         }
 
@@ -1870,12 +1864,12 @@ public abstract class JsonRpcTests : TestBase
             };
         }
 
-        public object MethodThatAcceptsNothingAndReturnsNull()
+        public object? MethodThatAcceptsNothingAndReturnsNull()
         {
             return null;
         }
 
-        public object MethodThatAccceptsAndReturnsNull(object value)
+        public object? MethodThatAccceptsAndReturnsNull(object value)
         {
             this.NullPassed = value == null;
             return null;
@@ -2095,7 +2089,7 @@ public abstract class JsonRpcTests : TestBase
     public class Foo
     {
         [DataMember(Order = 0, IsRequired = true)]
-        public string Bar { get; set; }
+        public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
         public int Bazz { get; set; }
@@ -2104,7 +2098,7 @@ public abstract class JsonRpcTests : TestBase
     public class UnserializableType
     {
         [JsonIgnore]
-        public string Value { get; set; }
+        public string? Value { get; set; }
     }
 
     public class UnserializableTypeConverter : JsonConverter
@@ -2159,7 +2153,7 @@ public abstract class JsonRpcTests : TestBase
         [DataMember]
         public int y;
         [DataMember]
-        public IProgress<int> p;
+        public IProgress<int>? p;
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 

@@ -95,7 +95,7 @@ public class JsonRpcServerInteropTests : InteropTestBase
         {
             jsonrpc = "2.0",
             method = "EchoString",
-            @params = new object[] { null },
+            @params = new object?[] { null },
             id = 1,
         });
 

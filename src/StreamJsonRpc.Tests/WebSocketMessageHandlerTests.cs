@@ -54,7 +54,7 @@ public class WebSocketMessageHandlerTests : TestBase
     [Fact]
     public void CtorInputValidation()
     {
-        Assert.Throws<ArgumentNullException>(() => new WebSocketMessageHandler(null));
+        Assert.Throws<ArgumentNullException>(() => new WebSocketMessageHandler(null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), -1));
         new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 1);
@@ -99,8 +99,8 @@ public class WebSocketMessageHandlerTests : TestBase
         var msg = this.CreateMessage(BufferSize - 1);
         var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
         this.socket.EnqueueRead(buffer);
-        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg.Method, result.Method);
+        JsonRpcRequest? result = (JsonRpcRequest?)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result!.Method);
     }
 
     [Fact]
@@ -112,8 +112,8 @@ public class WebSocketMessageHandlerTests : TestBase
         var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
         Assumes.True(buffer.Length == BufferSize);
         this.socket.EnqueueRead(buffer);
-        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg.Method, result.Method);
+        JsonRpcRequest? result = (JsonRpcRequest?)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result!.Method);
     }
 
     [Theory]
@@ -124,8 +124,8 @@ public class WebSocketMessageHandlerTests : TestBase
         var msg = this.CreateMessage((int)(BufferSize * 2.5));
         var buffer = encoding.GetBytes(this.formatter.Serialize(msg).ToString(Formatting.None));
         this.socket.EnqueueRead(buffer);
-        JsonRpcRequest result = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(msg.Method, result.Method);
+        JsonRpcRequest? result = (JsonRpcRequest?)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result!.Method);
     }
 
     [Theory]
@@ -213,7 +213,7 @@ public class WebSocketMessageHandlerTests : TestBase
         };
     }
 
-    private async Task<(JsonRpc, WebSocket)> EstablishWebSocket()
+    private async Task<(JsonRpc JsonRpc, WebSocket WebSocket)> EstablishWebSocket()
     {
         IWebHostBuilder webHostBuilder = WebHost.CreateDefaultBuilder(Array.Empty<string>())
             .UseStartup<AspNetStartup>();
@@ -253,7 +253,7 @@ public class WebSocketMessageHandlerTests : TestBase
 
     private class MockWebSocket : WebSocket
     {
-        private Message writingInProgress;
+        private Message? writingInProgress;
 
         public override WebSocketCloseStatus? CloseStatus => throw new NotImplementedException();
 

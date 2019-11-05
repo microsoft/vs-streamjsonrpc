@@ -17,7 +17,7 @@ public class CommonErrorDataTests : TestBase
     [Fact]
     public void Ctor_CopyFrom_Null()
     {
-        Assert.Throws<ArgumentNullException>(() => new CommonErrorData(null));
+        Assert.Throws<ArgumentNullException>(() => new CommonErrorData(null!));
     }
 
     [Fact]

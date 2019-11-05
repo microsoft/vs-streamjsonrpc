@@ -31,7 +31,7 @@ public class DirectMessageHandler : MessageHandlerBase
 
     internal AsyncQueue<JToken> WrittenMessages { get; } = new AsyncQueue<JToken>();
 
-    protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+    protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
         return this.Formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
     }

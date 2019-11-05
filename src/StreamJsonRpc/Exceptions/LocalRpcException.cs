@@ -26,7 +26,7 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="LocalRpcException"/> class.
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception.</param>
-        public LocalRpcException(string message)
+        public LocalRpcException(string? message)
             : base(message)
         {
         }
@@ -36,7 +36,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception.</param>
         /// <param name="inner">The exception that is the cause of the current exception, or a null reference (Nothing in Visual Basic) if no inner exception is specified.</param>
-        public LocalRpcException(string message, Exception inner)
+        public LocalRpcException(string? message, Exception? inner)
                 : base(message, inner)
         {
         }
@@ -44,7 +44,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the value for the error.data property.
         /// </summary>
-        public object ErrorData { get; set; }
+        public object? ErrorData { get; set; }
 
         /// <summary>
         /// Gets or sets the value for the error.code property.

@@ -28,9 +28,9 @@ namespace StreamJsonRpc
 
         private static readonly Type[] EmptyTypes = new Type[0];
         private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
-        private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) });
-        private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) });
-        private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None)).GetMethod;
+        private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
+        private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
+        private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None))!.GetMethod!;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
@@ -39,11 +39,11 @@ namespace StreamJsonRpc
                                                                     where parameters.Length == 3 && parameters.All(p => p.ParameterType.IsGenericParameter || p.ParameterType.GetTypeInfo().ContainsGenericParameters)
                                                                     select method).Single();
 
-        private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform)).GetMethod;
-        private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) });
-        private static readonly MethodInfo EventNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.EventNameTransform)).GetMethod;
-        private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) });
-        private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments)).GetMethod;
+        private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform))!.GetMethod!;
+        private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) })!;
+        private static readonly MethodInfo EventNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.EventNameTransform))!.GetMethod!;
+        private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) })!;
+        private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
 
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -55,7 +55,7 @@ namespace StreamJsonRpc
             Requires.NotNull(serviceInterface, nameof(serviceInterface));
             VerifySupported(serviceInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, serviceInterface);
 
-            TypeInfo generatedType;
+            TypeInfo? generatedType;
 
             lock (BuilderLock)
             {
@@ -91,7 +91,7 @@ namespace StreamJsonRpc
                 var ctorActions = new List<Action<ILGenerator>>();
                 foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredEvents))
                 {
-                    VerifySupported(evt.EventHandlerType.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+                    VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
 
                     // public event EventHandler EventName;
                     EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
@@ -112,7 +112,7 @@ namespace StreamJsonRpc
                     evtBuilder.SetRemoveOnMethod(removeMethod);
 
                     // void OnEventName(EventArgs args)
-                    Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke)).GetParameters()[1].ParameterType;
+                    Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!.GetParameters()[1].ParameterType;
                     MethodBuilder raiseEventMethod = proxyTypeBuilder.DefineMethod(
                         $"On{evt.Name}",
                         MethodAttributes.HideBySig | MethodAttributes.Private,
@@ -122,7 +122,7 @@ namespace StreamJsonRpc
 
                     ctorActions.Add(new Action<ILGenerator>(il =>
                     {
-                        MethodInfo addLocalRpcMethod = typeof(JsonRpc).GetRuntimeMethod(nameof(JsonRpc.AddLocalRpcMethod), new Type[] { typeof(string), typeof(Delegate) });
+                        MethodInfo addLocalRpcMethod = typeof(JsonRpc).GetRuntimeMethod(nameof(JsonRpc.AddLocalRpcMethod), new Type[] { typeof(string), typeof(Delegate) })!;
                         ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
 
                         // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
@@ -187,7 +187,7 @@ namespace StreamJsonRpc
                     il.EmitCall(OpCodes.Callvirt, jsonRpcDisposeMethod, EmptyTypes);
                     il.Emit(OpCodes.Ret);
 
-                    proxyTypeBuilder.DefineMethodOverride(disposeMethod, typeof(IDisposable).GetTypeInfo().GetDeclaredMethod(nameof(IDisposable.Dispose)));
+                    proxyTypeBuilder.DefineMethodOverride(disposeMethod, typeof(IDisposable).GetTypeInfo().GetDeclaredMethod(nameof(IDisposable.Dispose))!);
                 }
 
                 // IJsonRpcClientProxy.JsonRpc property
@@ -211,7 +211,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldfld, jsonRpcField);
                     il.Emit(OpCodes.Ret);
 
-                    proxyTypeBuilder.DefineMethodOverride(jsonRpcPropertyGetter, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredProperty(nameof(IJsonRpcClientProxy.JsonRpc)).GetMethod);
+                    proxyTypeBuilder.DefineMethodOverride(jsonRpcPropertyGetter, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredProperty(nameof(IJsonRpcClientProxy.JsonRpc))!.GetMethod!);
                     jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
                 }
 
@@ -231,7 +231,7 @@ namespace StreamJsonRpc
                 {
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
-                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName);
+                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
                     VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
 
                     ParameterInfo[] methodParameters = method.GetParameters();
@@ -302,7 +302,7 @@ namespace StreamJsonRpc
                         if (returnTypeIsValueTask)
                         {
                             // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
-                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType }));
+                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType })!);
                         }
 
                         il.Emit(OpCodes.Ret);
@@ -349,7 +349,7 @@ namespace StreamJsonRpc
                         if (returnTypeIsValueTask)
                         {
                             // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
-                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType }));
+                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType })!);
                         }
 
                         il.Emit(OpCodes.Ret);
@@ -358,7 +358,7 @@ namespace StreamJsonRpc
                     proxyTypeBuilder.DefineMethodOverride(methodBuilder, method);
                 }
 
-                generatedType = proxyTypeBuilder.CreateTypeInfo();
+                generatedType = proxyTypeBuilder.CreateTypeInfo()!;
                 GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
             }
 
@@ -434,7 +434,7 @@ namespace StreamJsonRpc
             for (int i = 0; i < parameters.Length; i++)
             {
                 parameterTypes[i] = parameters[i].ParameterType;
-                fields[i] = proxyTypeBuilder.DefineField(parameters[i].Name, parameters[i].ParameterType, FieldAttributes.Public | FieldAttributes.InitOnly);
+                fields[i] = proxyTypeBuilder.DefineField(parameters[i].Name!, parameters[i].ParameterType, FieldAttributes.Public | FieldAttributes.InitOnly);
             }
 
             ConstructorBuilder ctor = proxyTypeBuilder.DefineConstructor(
@@ -492,7 +492,7 @@ namespace StreamJsonRpc
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldfld, jsonRpcField);
             il.Emit(OpCodes.Ldarg_1);
-            il.Emit(OpCodes.Callvirt, evtField.FieldType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke)));
+            il.Emit(OpCodes.Callvirt, evtField.FieldType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!);
 
             il.MarkLabel(retLabel);
             il.Emit(OpCodes.Ret);
@@ -549,7 +549,7 @@ namespace StreamJsonRpc
             if (!condition)
             {
                 object[] formattingArgs = new object[1 + otherArgs?.Length ?? 0];
-                formattingArgs[0] = problematicMember is TypeInfo problematicType ? problematicType.FullName : problematicMember.DeclaringType?.FullName + "." + problematicMember.Name;
+                formattingArgs[0] = problematicMember is TypeInfo problematicType ? problematicType.FullName! : problematicMember.DeclaringType?.FullName + "." + problematicMember.Name;
                 if (otherArgs?.Length > 0)
                 {
                     Array.Copy(otherArgs, 0, formattingArgs, 1, otherArgs.Length);

@@ -20,8 +20,6 @@
         /// The options to use when creating the value for <see cref="enqueuedSource"/>.
         /// </summary>
         private const TaskCreationOptions EnqueuedSourceOptions = TaskCreationOptions.RunContinuationsAsynchronously;
-        private static readonly byte[] EmptyByteArray = new byte[0];
-        private static readonly Task CompletedTask = Task.FromResult<object>(null);
 
         /// <summary>
         /// The messages posted by the <see cref="other"/> party,
@@ -32,13 +30,15 @@
         /// <summary>
         /// The stream to write to.
         /// </summary>
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         private FullDuplexStream other;
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
         /// <summary>
         /// The completion source for a Task that completes whenever a message
         /// is enqueued to <see cref="readQueue"/>.
         /// </summary>
-        private TaskCompletionSource<object> enqueuedSource = new TaskCompletionSource<object>(EnqueuedSourceOptions);
+        private TaskCompletionSource<object?> enqueuedSource = new TaskCompletionSource<object?>(EnqueuedSourceOptions);
 
         /// <summary>
         /// Gets or sets a value indicating whether the stream is disposed.
@@ -71,7 +71,7 @@
         /// Gets or sets a delegate that is called just before writing to the stream,
         /// but after the caller's cancellation token has been checked.
         /// </summary>
-        public BeforeWriteToFullDuplexStreamDelegate BeforeWrite { get; set; }
+        public BeforeWriteToFullDuplexStreamDelegate? BeforeWrite { get; set; }
 
         /// <summary>
         /// Creates a pair of streams that can be passed to two parties
@@ -101,10 +101,10 @@
             Requires.Range(offset + count <= buffer.Length, nameof(count));
 
             cancellationToken.ThrowIfCancellationRequested();
-            Message message = null;
+            Message? message = null;
             while (message == null)
             {
-                Task waitTask = null;
+                Task? waitTask = null;
                 lock (this.readQueue)
                 {
                     if (this.readQueue.Count > 0)
@@ -123,7 +123,7 @@
                     {
                         // Arrange to wake up when a new message is posted, or when the caller's CancellationToken is canceled.
                         var wakeUpEarly = new TaskCompletionSource<object>();
-                        using (cancellationToken.Register(state => ((TaskCompletionSource<object>)state).SetResult(null), wakeUpEarly, false))
+                        using (cancellationToken.Register(state => ((TaskCompletionSource<object?>)state).SetResult(null), wakeUpEarly, false))
                         {
                             await Task.WhenAny(waitTask, wakeUpEarly.Task).ConfigureAwait(false);
                         }
@@ -206,7 +206,7 @@
         {
             cancellationToken.ThrowIfCancellationRequested();
             this.Write(buffer, offset, count);
-            return CompletedTask;
+            return Task.CompletedTask;
         }
 
         /// <inheritdoc />
@@ -242,7 +242,7 @@
 
             // Sending an empty buffer is the traditional way to signal
             // that the transmitting stream has closed.
-            this.other.PostMessage(new Message(EmptyByteArray));
+            this.other.PostMessage(new Message(Array.Empty<byte>()));
             base.Dispose(disposing);
         }
 
@@ -254,12 +254,12 @@
         {
             Requires.NotNull(message, nameof(message));
 
-            TaskCompletionSource<object> enqueuedSource;
+            TaskCompletionSource<object?> enqueuedSource;
             lock (this.readQueue)
             {
                 this.readQueue.Add(message);
                 Monitor.PulseAll(this.readQueue);
-                enqueuedSource = Interlocked.Exchange(ref this.enqueuedSource, new TaskCompletionSource<object>(EnqueuedSourceOptions));
+                enqueuedSource = Interlocked.Exchange(ref this.enqueuedSource, new TaskCompletionSource<object?>(EnqueuedSourceOptions));
             }
 
             enqueuedSource.TrySetResult(null);

@@ -5,6 +5,7 @@ namespace StreamJsonRpc.Reflection
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
     using Microsoft;
@@ -64,7 +65,7 @@ namespace StreamJsonRpc.Reflection
                 return objectType;
             }
 
-            Type iProgressOfTType;
+            Type? iProgressOfTType;
             lock (IProgressOfTTypeMap)
             {
                 if (!IProgressOfTTypeMap.TryGetValue(objectType, out iProgressOfTType))
@@ -134,11 +135,11 @@ namespace StreamJsonRpc.Reflection
         /// <param name="progressId">The key to obtain the <see cref="ProgressParamInformation"/> object from <see cref="progressMap"/>.</param>
         /// <param name="valueType">Output parameter to store the obtained <see cref="ProgressParamInformation"/> object.</param>
         /// <returns>true if the <see cref="ProgressParamInformation"/> object was found with the specified key; otherwise, false.</returns>
-        public bool TryGetProgressObject(long progressId, out ProgressParamInformation valueType)
+        public bool TryGetProgressObject(long progressId, [NotNullWhen(true)] out ProgressParamInformation? valueType)
         {
             lock (this.progressLock)
             {
-                if (this.progressMap.TryGetValue(progressId, out ProgressParamInformation progressInfo))
+                if (this.progressMap.TryGetValue(progressId, out ProgressParamInformation? progressInfo))
                 {
                     valueType = progressInfo;
                     return true;
@@ -165,8 +166,12 @@ namespace StreamJsonRpc.Reflection
         /// <param name="valueType">The type that the <see cref="IProgress{T}"/> intance will report.</param>
         public object CreateProgress(JsonRpc rpc, object token, Type valueType)
         {
+            Requires.NotNull(rpc, nameof(rpc));
+            Requires.NotNull(token, nameof(token));
+            Requires.NotNull(valueType, nameof(valueType));
+
             Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
-            return Activator.CreateInstance(progressType, new object[] { rpc, token });
+            return Activator.CreateInstance(progressType, new object[] { rpc, token })!;
         }
 
         /// <summary>
@@ -197,7 +202,7 @@ namespace StreamJsonRpc.Reflection
                 Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
 
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
-                this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType });
+                this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;
                 this.progressObject = progressObject;
             }
 
@@ -210,9 +215,9 @@ namespace StreamJsonRpc.Reflection
             /// Invokes <see cref="reportMethod"/> using the given typed value.
             /// </summary>
             /// <param name="typedValue">The value to be reported.</param>
-            public void InvokeReport(object typedValue)
+            public void InvokeReport(object? typedValue)
             {
-                this.reportMethod.Invoke(this.progressObject, new object[] { typedValue });
+                this.reportMethod.Invoke(this.progressObject, new object?[] { typedValue });
             }
         }
 

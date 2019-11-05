@@ -13,7 +13,7 @@ namespace StreamJsonRpc
     [DebuggerDisplay("{DebuggerDisplay}")]
     internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     {
-        public MethodSignatureAndTarget(MethodInfo method, object target, JsonRpcMethodAttribute attribute)
+        public MethodSignatureAndTarget(MethodInfo method, object? target, JsonRpcMethodAttribute? attribute)
         {
             Requires.NotNull(method, nameof(method));
 
@@ -23,13 +23,13 @@ namespace StreamJsonRpc
 
         public MethodSignature Signature { get; }
 
-        public object Target { get; }
+        public object? Target { get; }
 
         [ExcludeFromCodeCoverage]
         private string DebuggerDisplay => $"{this.Signature} ({this.Target})";
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is MethodSignatureAndTarget other
                 && this.Equals(other);
@@ -45,7 +45,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.Signature.GetHashCode() + RuntimeHelpers.GetHashCode(this.Target);
+            return this.Signature.GetHashCode() + (this.Target != null ? RuntimeHelpers.GetHashCode(this.Target) : 0);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// A wrapper to use for the <see cref="PipeMessageHandler.Writer"/> when we need to count bytes written.
         /// </summary>
-        private PrefixingBufferWriter<byte> prefixingWriter;
+        private PrefixingBufferWriter<byte>? prefixingWriter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LengthHeaderMessageHandler"/> class.
@@ -52,7 +52,7 @@ namespace StreamJsonRpc
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use for message serialization.</param>
-        public LengthHeaderMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
+        public LengthHeaderMessageHandler(PipeWriter? writer, PipeReader? reader, IJsonRpcMessageFormatter formatter)
             : base(writer, reader, formatter)
         {
             Requires.NotNull(formatter, nameof(formatter));
@@ -65,7 +65,7 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public LengthHeaderMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+        public LengthHeaderMessageHandler(Stream? sendingStream, Stream? receivingStream, IJsonRpcMessageFormatter formatter)
             : base(sendingStream, receivingStream, formatter)
         {
             Requires.NotNull(formatter, nameof(formatter));
@@ -73,8 +73,9 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
+            Assumes.NotNull(this.Reader);
             ReadResult readResult = await this.ReadAtLeastAsync(4, allowEmpty: true, cancellationToken).ConfigureAwait(false);
             if (readResult.Buffer.Length == 0)
             {
@@ -91,6 +92,8 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         protected override void Write(JsonRpcMessage content, CancellationToken cancellationToken)
         {
+            Assumes.NotNull(this.Writer);
+
             if (this.prefixingWriter == null)
             {
                 this.prefixingWriter = new PrefixingBufferWriter<byte>(this.Writer, sizeof(int));

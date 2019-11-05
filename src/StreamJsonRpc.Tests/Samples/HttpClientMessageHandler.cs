@@ -27,9 +27,9 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
 {
     private static readonly ReadOnlyCollection<string> AllowedContentTypes = new ReadOnlyCollection<string>(new string[]
     {
-            "application/json-rpc",
-            "application/json",
-            "application/jsonrequest",
+        "application/json-rpc",
+        "application/json",
+        "application/jsonrequest",
     });
 
     /// <summary>
@@ -111,7 +111,7 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
     public IJsonRpcMessageFormatter Formatter { get; }
 
     /// <inheritdoc/>
-    public async ValueTask<JsonRpcMessage> ReadAsync(CancellationToken cancellationToken)
+    public async ValueTask<JsonRpcMessage?> ReadAsync(CancellationToken cancellationToken)
     {
         var response = await this.incomingMessages.DequeueAsync(cancellationToken).ConfigureAwait(false);
 
@@ -184,7 +184,7 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
             }
 
             // The response is expected to be a success code, or an error code with a content-type that we can deserialize.
-            if (response.IsSuccessStatusCode || AllowedContentTypes.Contains(response.Content?.Headers.ContentType.MediaType))
+            if (response.IsSuccessStatusCode || (response.Content?.Headers.ContentType.MediaType is string mediaType && AllowedContentTypes.Contains(mediaType)))
             {
                 // Some requests don't merit response messages, such as notifications in JSON-RPC.
                 // Servers may communicate this with 202 or 204 HTTPS status codes in the response.

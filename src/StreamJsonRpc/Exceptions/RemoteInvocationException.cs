@@ -22,7 +22,7 @@ namespace StreamJsonRpc
         /// <param name="message">The message.</param>
         /// <param name="errorCode">The value of the error.code field in the response.</param>
         /// <param name="errorData">The value of the error.data field in the response.</param>
-        public RemoteInvocationException(string message, int errorCode, object errorData)
+        public RemoteInvocationException(string? message, int errorCode, object? errorData)
             : base(message)
         {
             this.ErrorCode = errorCode;
@@ -58,6 +58,6 @@ namespace StreamJsonRpc
         /// may be a <see cref="JToken"/> or a deserialized object.
         /// Deserializing this or casting this object to <see cref="CommonErrorData"/> <em>may</em> succeed, and be a means to extract useful error information.
         /// </remarks>
-        public object ErrorData { get; }
+        public object? ErrorData { get; }
     }
 }

@@ -32,8 +32,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     {
         var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException)));
 
-        IDictionary<object, object> data = (IDictionary<object, object>)exception.ErrorData;
-        object myCustomData = data["myCustomData"];
+        IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
+        object myCustomData = data!["myCustomData"];
         string actual = (string)myCustomData;
         Assert.Equal("hi", actual);
     }
@@ -46,8 +46,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 #pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
-        var errorData = (CommonErrorData)exception.ErrorData;
-        Assert.NotNull(errorData.StackTrace);
+        var errorData = (CommonErrorData?)exception.ErrorData;
+        Assert.NotNull(errorData!.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 

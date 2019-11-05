@@ -6,6 +6,7 @@ namespace StreamJsonRpc
     using System;
     using System.Buffers;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
     using System.Runtime.Serialization;
@@ -41,7 +42,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
         /// </summary>
-        private JsonRpc rpc;
+        private JsonRpc? rpc;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class
@@ -108,20 +109,21 @@ namespace StreamJsonRpc
         /// doesn't expose a simple way of doing this, so we'd have to emulate it by supporting both
         /// <see cref="DataMemberAttribute.Name"/> and <see cref="KeyAttribute.StringKey"/> handling.
         /// </remarks>
-        private static Dictionary<string, object> GetParamsObjectDictionary(object paramsObject)
+        [return: NotNullIfNotNull("paramsObject")]
+        private static Dictionary<string, object?>? GetParamsObjectDictionary(object? paramsObject)
         {
             if (paramsObject == null)
             {
                 return null;
             }
 
-            if (paramsObject is IReadOnlyDictionary<object, object> dictionary)
+            if (paramsObject is IReadOnlyDictionary<object, object?> dictionary)
             {
                 // Anonymous types are serialized this way.
                 return dictionary.ToDictionary(kv => (string)kv.Key, kv => kv.Value);
             }
 
-            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            var result = new Dictionary<string, object?>(StringComparer.Ordinal);
 
             const BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
             foreach (var property in paramsObject.GetType().GetTypeInfo().GetProperties(bindingFlags))

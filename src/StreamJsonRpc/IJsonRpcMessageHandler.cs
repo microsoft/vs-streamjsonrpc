@@ -8,8 +8,6 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using StreamJsonRpc.Protocol;
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
-
     /// <summary>
     /// The contract for sending and receiving JSON-RPC messages.
     /// </summary>
@@ -42,7 +40,7 @@ namespace StreamJsonRpc
         /// Implementations may assume this method is never called before any async result
         /// from a prior call to this method has completed.
         /// </remarks>
-        ValueTask<JsonRpcMessage> ReadAsync(CancellationToken cancellationToken);
+        ValueTask<JsonRpcMessage?> ReadAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Writes a JSON-RPC message to the transport and flushes.

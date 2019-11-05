@@ -25,6 +25,7 @@ StreamJsonRpc.RequestId.Number.get -> long?
 StreamJsonRpc.RequestId.RequestId(long id) -> void
 StreamJsonRpc.RequestId.RequestId(string id) -> void
 StreamJsonRpc.RequestId.String.get -> string
+override StreamJsonRpc.RemoteMethodNotFoundException.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 override StreamJsonRpc.RequestId.Equals(object obj) -> bool
 override StreamJsonRpc.RequestId.GetHashCode() -> int
 override StreamJsonRpc.RequestId.ToString() -> string

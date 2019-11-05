@@ -25,7 +25,7 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="ConnectionLostException"/> class.
         /// </summary>
         /// <param name="message">The message that describes the error.</param>
-        public ConnectionLostException(string message)
+        public ConnectionLostException(string? message)
             : base(message)
         {
         }
@@ -35,7 +35,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception.</param>
         /// <param name="innerException">The exception that is the cause of the current exception, or a null reference (Nothing in Visual Basic) if no inner exception is specified.</param>
-        public ConnectionLostException(string message, Exception innerException)
+        public ConnectionLostException(string? message, Exception? innerException)
             : base(message, innerException)
         {
         }

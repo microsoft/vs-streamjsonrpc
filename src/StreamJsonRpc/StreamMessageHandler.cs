@@ -31,7 +31,7 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream used to transmit messages. May be null.</param>
         /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        protected StreamMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+        protected StreamMessageHandler(Stream? sendingStream, Stream? receivingStream, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
             Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
@@ -54,12 +54,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the stream used to transmit messages. May be null.
         /// </summary>
-        protected Stream SendingStream { get; }
+        protected Stream? SendingStream { get; }
 
         /// <summary>
         /// Gets the stream used to receive messages. May be null.
         /// </summary>
-        protected Stream ReceivingStream { get; }
+        protected Stream? ReceivingStream { get; }
 
         /// <summary>
         /// Disposes resources allocated by this instance.
@@ -75,15 +75,15 @@ namespace StreamJsonRpc
             }
         }
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
-
         /// <summary>
         /// Calls <see cref="Stream.FlushAsync()"/> on the <see cref="SendingStream"/>,
         /// or equivalent sending stream if using an alternate transport.
         /// </summary>
         /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
-        protected override ValueTask FlushAsync(CancellationToken cancellationToken) => new ValueTask(this.SendingStream.FlushAsync(cancellationToken));
-
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
+        protected override ValueTask FlushAsync(CancellationToken cancellationToken)
+        {
+            Verify.Operation(this.SendingStream != null, "No sending stream.");
+            return new ValueTask(this.SendingStream.FlushAsync(cancellationToken));
+        }
     }
 }

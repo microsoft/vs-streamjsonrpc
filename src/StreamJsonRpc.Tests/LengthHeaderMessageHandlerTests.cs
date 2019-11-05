@@ -24,13 +24,13 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullPipe()
     {
-        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(null, new JsonMessageFormatter()));
+        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(null!, new JsonMessageFormatter()));
     }
 
     [Fact]
     public void Ctor_NullFormatter()
     {
-        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(new MemoryStream().UsePipe(), null));
+        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(new MemoryStream().UsePipe(), null!));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     {
         JsonRpcRequest original = new JsonRpcRequest { Method = "test" };
         await this.handler.WriteAsync(original, this.TimeoutToken);
-        var commuted = (JsonRpcRequest)await this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Equal(original.Method, commuted.Method);
+        var commuted = (JsonRpcRequest?)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(original.Method, commuted!.Method);
     }
 }
