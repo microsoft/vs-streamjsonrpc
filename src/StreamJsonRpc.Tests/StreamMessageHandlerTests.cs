@@ -66,30 +66,30 @@ public class StreamMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public void IsDisposed()
+    public async Task IsDisposed()
     {
         IDisposableObservable observable = this.handler;
         Assert.False(observable.IsDisposed);
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         Assert.True(observable.IsDisposed);
     }
 
     [Fact]
-    public void Dispose_StreamsAreDisposed()
+    public async Task Dispose_StreamsAreDisposed()
     {
         var streams = FullDuplexStream.CreateStreams();
         var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2, new JsonMessageFormatter());
         Assert.False(streams.Item1.IsDisposed);
         Assert.False(streams.Item2.IsDisposed);
-        handler.Dispose();
+        await handler.DisposeAsync();
         Assert.True(streams.Item1.IsDisposed);
         Assert.True(streams.Item2.IsDisposed);
     }
 
     [Fact]
-    public void WriteAsync_ThrowsObjectDisposedException()
+    public async Task WriteAsync_ThrowsObjectDisposedException()
     {
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         ValueTask result = this.handler.WriteAsync(CreateNotifyMessage(), this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
     }
@@ -99,9 +99,9 @@ public class StreamMessageHandlerTests : TestBase
     /// when we first invoke the method, the <see cref="OperationCanceledException"/> is thrown.
     /// </summary>
     [Fact]
-    public void WriteAsync_PreferOperationCanceledException_AtEntry()
+    public async Task WriteAsync_PreferOperationCanceledException_AtEntry()
     {
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync(CreateNotifyMessage(), PrecanceledToken).GetAwaiter().GetResult());
     }
 
@@ -119,7 +119,7 @@ public class StreamMessageHandlerTests : TestBase
         var writeTask = handler.WriteAsync(CreateRequestMessage(), cts.Token);
 
         cts.Cancel();
-        handler.Dispose();
+        await handler.DisposeAsync();
 
         // Unblock writer. It should not throw anything as it is to emulate not recognizing the
         // CancellationToken before completing its work.
@@ -148,9 +148,9 @@ public class StreamMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public void ReadAsync_ThrowsObjectDisposedException()
+    public async Task ReadAsync_ThrowsObjectDisposedException()
     {
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         ValueTask<JsonRpcMessage?> result = this.handler.ReadAsync(this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
@@ -161,9 +161,9 @@ public class StreamMessageHandlerTests : TestBase
     /// when we first invoke the method, the <see cref="OperationCanceledException"/> is thrown.
     /// </summary>
     [Fact]
-    public void ReadAsync_PreferOperationCanceledException_AtEntry()
+    public async Task ReadAsync_PreferOperationCanceledException_AtEntry()
     {
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
 
@@ -179,7 +179,7 @@ public class StreamMessageHandlerTests : TestBase
         var readTask = this.handler.ReadAsync(cts.Token).AsTask();
 
         cts.Cancel();
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask);
     }
@@ -207,7 +207,7 @@ public class StreamMessageHandlerTests : TestBase
         protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref this.WriteCoreCallCount);
-            return new ValueTask(this.WriteBlock.WaitAsync());
+            return new ValueTask(this.WriteBlock.WaitAsync(cancellationToken));
         }
     }
 
