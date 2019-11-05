@@ -168,6 +168,8 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
                 segment.CopyTo(buffer.AsMemory(receivedBytes));
                 receivedBytes += segment.Length;
             }
+
+            pipes.Item1.Input.AdvanceTo(readResult.Buffer.End);
         }
 
         Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
@@ -211,6 +213,8 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
                 segment.CopyTo(buffer.AsMemory(receivedBytes));
                 receivedBytes += segment.Length;
             }
+
+            pipe.Reader.AdvanceTo(readResult.Buffer.End);
         }
 
         Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
