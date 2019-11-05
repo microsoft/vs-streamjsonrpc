@@ -41,6 +41,11 @@ namespace StreamJsonRpc
         private readonly object syncObject = new object();
 
         /// <summary>
+        /// The source for the <see cref="Completion"/> task.
+        /// </summary>
+        private readonly TaskCompletionSource<int> completionSource = new TaskCompletionSource<int>();
+
+        /// <summary>
         /// A value indicating whether the <see cref="ReadAsync(CancellationToken)"/> method is in progress.
         /// </summary>
         private MessageHandlerState state;
@@ -103,6 +108,11 @@ namespace StreamJsonRpc
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
 
         /// <summary>
+        /// Gets a task that completes when this instance has completed disposal.
+        /// </summary>
+        private Task Completion => this.completionSource.Task;
+
+        /// <summary>
         /// Reads a distinct and complete message from the transport, waiting for one if necessary.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the read request.</param>
@@ -142,7 +152,7 @@ namespace StreamJsonRpc
             {
                 if (this.CheckIfDisposalAppropriate(MessageHandlerState.Reading))
                 {
-                    this.Dispose(true);
+                    this.DoDisposeAndCompletion();
                 }
             }
         }
@@ -193,25 +203,17 @@ namespace StreamJsonRpc
             {
                 if (shouldDispose)
                 {
-                    this.Dispose(true);
+                    this.DoDisposeAndCompletion();
                 }
             }
         }
 
+#pragma warning disable VSTHRD002 // We synchronously block, but nothing here should ever require the main thread.
         /// <summary>
         /// Disposes this instance, and cancels any pending read or write operations.
         /// </summary>
-        public void Dispose()
-        {
-            if (!this.disposalTokenSource.IsCancellationRequested)
-            {
-                this.disposalTokenSource.Cancel();
-                if (this.CheckIfDisposalAppropriate())
-                {
-                    this.Dispose(true);
-                }
-            }
-        }
+        public void Dispose() => this.DisposeAsync().GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
 
         /// <summary>
         /// Disposes resources allocated by this instance.
@@ -265,6 +267,28 @@ namespace StreamJsonRpc
         /// </returns>
         protected abstract ValueTask FlushAsync(CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Disposes this instance, and cancels any pending read or write operations.
+        /// </summary>
+        private Task DisposeAsync()
+        {
+            if (!this.disposalTokenSource.IsCancellationRequested)
+            {
+                this.disposalTokenSource.Cancel();
+                if (this.CheckIfDisposalAppropriate())
+                {
+                    this.DoDisposeAndCompletion();
+                }
+                else
+                {
+                    // Wait for completion to actually complete, and re-throw any exceptions.
+                    return this.Completion;
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         private void SetState(MessageHandlerState startingOperation)
         {
             lock (this.syncObject)
@@ -297,6 +321,20 @@ namespace StreamJsonRpc
                 }
 
                 return shouldDispose;
+            }
+        }
+
+        private void DoDisposeAndCompletion()
+        {
+            try
+            {
+                this.Dispose(true);
+                this.completionSource.TrySetResult(0);
+            }
+            catch (Exception ex)
+            {
+                this.completionSource.TrySetException(ex);
+                throw;
             }
         }
     }
