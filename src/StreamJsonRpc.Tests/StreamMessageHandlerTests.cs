@@ -151,7 +151,7 @@ public class StreamMessageHandlerTests : TestBase
     public void ReadAsync_ThrowsObjectDisposedException()
     {
         this.handler.Dispose();
-        ValueTask<JsonRpcMessage> result = this.handler.ReadAsync(this.TimeoutToken);
+        ValueTask<JsonRpcMessage?> result = this.handler.ReadAsync(this.TimeoutToken);
         Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
         Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
     }
@@ -186,7 +186,7 @@ public class StreamMessageHandlerTests : TestBase
 
     private static JsonRpcMessage CreateNotifyMessage() => new JsonRpcRequest { Method = "test" };
 
-    private static JsonRpcMessage CreateRequestMessage() => new JsonRpcRequest { Id = 1, Method = "test" };
+    private static JsonRpcMessage CreateRequestMessage() => new JsonRpcRequest { RequestId = new RequestId(1), Method = "test" };
 
     private class DelayedWriter : StreamMessageHandler
     {
@@ -199,7 +199,7 @@ public class StreamMessageHandlerTests : TestBase
         {
         }
 
-        protected override ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -213,7 +213,7 @@ public class StreamMessageHandlerTests : TestBase
 
     private class MyStreamMessageHandler : StreamMessageHandler
     {
-        public MyStreamMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+        public MyStreamMessageHandler(Stream? sendingStream, Stream? receivingStream, IJsonRpcMessageFormatter formatter)
             : base(sendingStream, receivingStream, formatter)
         {
         }
@@ -222,7 +222,7 @@ public class StreamMessageHandlerTests : TestBase
 
         internal AsyncQueue<JsonRpcMessage> WrittenMessages { get; } = new AsyncQueue<JsonRpcMessage>();
 
-        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
             return await this.MessagesToRead.DequeueAsync(cancellationToken);
         }

@@ -75,7 +75,7 @@ namespace StreamJsonRpc
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
+        public HeaderDelimitedMessageHandler(PipeWriter? writer, PipeReader? reader, IJsonRpcMessageFormatter formatter)
             : base(writer, reader, formatter)
         {
         }
@@ -86,7 +86,7 @@ namespace StreamJsonRpc
         /// <param name="pipe">The duplex pipe to use for exchanging messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
         public HeaderDelimitedMessageHandler(IDuplexPipe pipe, IJsonRpcMessageFormatter formatter)
-            : this(pipe.Output, pipe.Input, formatter)
+            : this(Requires.NotNull(pipe, nameof(pipe)).Output, pipe.Input, formatter)
         {
         }
 
@@ -114,7 +114,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
-        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream)
+        public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream)
             : this(sendingStream, receivingStream, new JsonMessageFormatter())
         {
         }
@@ -125,7 +125,7 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter to use to serialize <see cref="JsonRpcMessage"/> instances.</param>
-        public HeaderDelimitedMessageHandler(Stream sendingStream, Stream receivingStream, IJsonRpcMessageFormatter formatter)
+        public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream, IJsonRpcMessageFormatter formatter)
             : base(sendingStream, receivingStream, formatter)
         {
         }
@@ -171,9 +171,9 @@ namespace StreamJsonRpc
         private IJsonRpcMessageTextFormatter TextFormatter => this.Formatter as IJsonRpcMessageTextFormatter ?? throw this.ThrowNoTextEncoder();
 
         /// <inheritdoc />
-        protected override async ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken)
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            (int? ContentLength, Encoding ContentEncoding)? headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
+            (int? ContentLength, Encoding? ContentEncoding)? headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
             if (!headers.HasValue)
             {
                 // end of stream reached before the next message started.
@@ -193,6 +193,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override void Write(JsonRpcMessage content, CancellationToken cancellationToken)
         {
+            Assumes.NotNull(this.Writer);
             unsafe int WriteHeaderText(string value, Span<byte> memory)
             {
                 fixed (char* pValue = &MemoryMarshal.GetReference(value.AsSpan()))
@@ -265,7 +266,7 @@ namespace StreamJsonRpc
         /// <param name="contentTypeValue">The value of the Content-Type header.</param>
         /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
         [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
-        private static unsafe Encoding ParseEncodingFromContentTypeHeader(ReadOnlySequence<byte> contentTypeValue)
+        private static unsafe Encoding? ParseEncodingFromContentTypeHeader(ReadOnlySequence<byte> contentTypeValue)
         {
             // Protect against blowing the stack since we're using stackalloc below.
             if (contentTypeValue.Length > 200)
@@ -397,7 +398,7 @@ namespace StreamJsonRpc
             return span;
         }
 
-        private async ValueTask<(int? ContentLength, Encoding ContentEncoding)?> ReadHeadersAsync(CancellationToken cancellationToken)
+        private async ValueTask<(int? ContentLength, Encoding? ContentEncoding)?> ReadHeadersAsync(CancellationToken cancellationToken)
         {
             bool IsHeaderName(ReadOnlySequence<byte> buffer, ReadOnlySpan<byte> asciiHeaderName)
             {
@@ -419,8 +420,9 @@ namespace StreamJsonRpc
                 return true;
             }
 
+            Assumes.NotNull(this.Reader);
             int? contentLengthHeaderValue = null;
-            Encoding contentEncoding = null;
+            Encoding? contentEncoding = null;
 
             while (true)
             {

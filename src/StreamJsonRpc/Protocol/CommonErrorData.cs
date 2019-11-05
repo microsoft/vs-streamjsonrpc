@@ -41,19 +41,19 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the type of error (e.g. the full type name of the exception thrown).
         /// </summary>
         [DataMember(Order = 0, Name = "type")]
-        public string TypeName { get; set; }
+        public string? TypeName { get; set; }
 
         /// <summary>
         /// Gets or sets the message associated with this error.
         /// </summary>
         [DataMember(Order = 1, Name = "message")]
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         /// <summary>
         /// Gets or sets the stack trace associated with the error.
         /// </summary>
         [DataMember(Order = 2, Name = "stack")]
-        public string StackTrace { get; set; }
+        public string? StackTrace { get; set; }
 
         /// <summary>
         /// Gets or sets the application error code or HRESULT of the failure.
@@ -65,6 +65,6 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the inner error information, if any.
         /// </summary>
         [DataMember(Order = 4, Name = "inner")]
-        public CommonErrorData Inner { get; set; }
+        public CommonErrorData? Inner { get; set; }
     }
 }

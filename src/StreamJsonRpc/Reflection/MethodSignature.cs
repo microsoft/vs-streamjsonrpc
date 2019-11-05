@@ -20,15 +20,18 @@ namespace StreamJsonRpc
         /// <summary>
         /// Backing field for the lazily initialized <see cref="Parameters"/> property.
         /// </summary>
-        private ParameterInfo[] parameters;
+        private ParameterInfo[]? parameters;
 
-        internal MethodSignature(MethodInfo methodInfo)
+        internal MethodSignature(MethodInfo methodInfo, JsonRpcMethodAttribute? attribute)
         {
             Requires.NotNull(methodInfo, nameof(methodInfo));
             this.MethodInfo = methodInfo;
+            this.Attribute = attribute;
         }
 
         internal MethodInfo MethodInfo { get; }
+
+        internal JsonRpcMethodAttribute? Attribute { get; }
 
         internal ParameterInfo[] Parameters => this.parameters ?? (this.parameters = this.MethodInfo.GetParameters() ?? EmptyParameterInfoArray);
 
@@ -81,7 +84,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is MethodSignature) && ((IEquatable<MethodSignature>)this).Equals((MethodSignature)obj);
         }
@@ -101,7 +104,7 @@ namespace StreamJsonRpc
                 // This will work fine for up to 32 (64 on x64) parameters,
                 // which should be more than enough for the most applications.
                 result = result << shift | result >> (bitCount - shift);
-                result ^= (uint)MethodSignature.TypeNameComparer.GetHashCode(parameter.ParameterType.AssemblyQualifiedName);
+                result ^= (uint)MethodSignature.TypeNameComparer.GetHashCode(parameter.ParameterType.AssemblyQualifiedName!);
             }
 
             return (int)result;
@@ -111,6 +114,24 @@ namespace StreamJsonRpc
         public override string ToString()
         {
             return this.DebuggerDisplay;
+        }
+
+        internal bool MatchesParametersExcludingCancellationToken(ReadOnlySpan<ParameterInfo> parameters)
+        {
+            if (this.TotalParamCountExcludingCancellationToken == parameters.Length)
+            {
+                for (int i = 0; i < parameters.Length; i++)
+                {
+                    if (parameters[i].ParameterType != this.Parameters[i].ParameterType)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private static bool IsCancellationToken(ParameterInfo parameter) => parameter?.ParameterType.Equals(typeof(CancellationToken)) ?? false;

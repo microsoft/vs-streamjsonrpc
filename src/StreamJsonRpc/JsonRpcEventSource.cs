@@ -239,7 +239,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="arguments">A single argument or an array of arguments.</param>
         /// <returns>String representation of first argument only.</returns>
-        internal static string GetArgumentsString(object arguments)
+        internal static string GetArgumentsString(object? arguments)
         {
             if (arguments == null)
             {
@@ -248,7 +248,7 @@ namespace StreamJsonRpc
 
             const int maxLength = 128;
 
-            if (arguments is object[] args)
+            if (arguments is object?[] args)
             {
                 var stringBuilder = new StringBuilder();
                 if (args != null && args.Length > 0)
@@ -267,8 +267,8 @@ namespace StreamJsonRpc
             }
             else
             {
-                string retVal = arguments.ToString();
-                return (retVal.Length > maxLength) ? $"{retVal.Substring(0, maxLength)}...(truncated)" : retVal;
+                string? retVal = arguments.ToString();
+                return (retVal?.Length > maxLength) ? $"{retVal.Substring(0, maxLength)}...(truncated)" : (retVal ?? "(null)");
             }
         }
 

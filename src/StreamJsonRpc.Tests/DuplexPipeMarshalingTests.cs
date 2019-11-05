@@ -28,7 +28,9 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     private JsonRpc clientRpc;
     private MultiplexingStream clientMx;
 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     public DuplexPipeMarshalingTests(ITestOutputHelper logger)
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         : base(logger)
     {
     }
@@ -325,7 +327,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         await clientHandler.WriteAsync(
             new StreamJsonRpc.Protocol.JsonRpcRequest
             {
-                Id = 1,
+                RequestId = new RequestId(1),
                 Method = nameof(ServerWithOverloads.OverloadedMethod),
                 ArgumentsList = new object[] { false, oobChannel.Id, new object() },
             },
@@ -379,7 +381,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AcceptPipeAndChatLater), new object[] { false, pipePair.Item2 }, this.TimeoutToken);
 
-        await WhenAllSucceedOrAnyFault(TwoWayTalkAsync(pipePair.Item1, writeOnOdd: true, this.TimeoutToken), this.server.ChatLaterTask);
+        await WhenAllSucceedOrAnyFault(TwoWayTalkAsync(pipePair.Item1, writeOnOdd: true, this.TimeoutToken), this.server.ChatLaterTask!);
         pipePair.Item1.Output.Complete();
 
         // Verify that the pipe closes when the server completes writing.
@@ -436,7 +438,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     [Fact]
     public async Task ClientSendsNullPipe()
     {
-        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AcceptNullPipe), new object[] { null }, this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AcceptNullPipe), new object?[] { null }, this.TimeoutToken);
     }
 
     /// <summary>
@@ -475,7 +477,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         // It may or may not have already occurred so for test stability, we code our assertion to handle both cases.
         try
         {
-            MultiplexingStream.Channel serverChannel = this.serverMx.AcceptChannel(channelIdOffered.Value);
+            MultiplexingStream.Channel serverChannel = this.serverMx.AcceptChannel(channelIdOffered!.Value);
 
             // The client had not yet canceled the offer. So wait for the client to close the channel now that we've accepted it.
             await serverChannel.Completion.WithCancellation(this.TimeoutToken);
@@ -579,7 +581,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
     private class Server
     {
-        internal Task ChatLaterTask { get; private set; }
+        internal Task? ChatLaterTask { get; private set; }
 
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
         {
@@ -706,7 +708,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
     private class ServerWithIDuplexPipeReturningMethod
     {
-        public IDuplexPipe MethodThatReturnsIDuplexPipe() => null;
+        public IDuplexPipe? MethodThatReturnsIDuplexPipe() => null;
     }
 
     private class OneWayStreamWrapper : Stream

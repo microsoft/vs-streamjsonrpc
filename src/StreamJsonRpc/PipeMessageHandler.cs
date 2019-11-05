@@ -40,7 +40,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Objects that we should dispose when we are disposed. May be null.
         /// </summary>
-        private List<IDisposable> disposables;
+        private List<IDisposable>? disposables;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipeMessageHandler"/> class.
@@ -58,7 +58,7 @@ namespace StreamJsonRpc
         /// <param name="writer">The writer to use for transmitting messages.</param>
         /// <param name="reader">The reader to use for receiving messages.</param>
         /// <param name="formatter">The formatter used to serialize messages.</param>
-        public PipeMessageHandler(PipeWriter writer, PipeReader reader, IJsonRpcMessageFormatter formatter)
+        public PipeMessageHandler(PipeWriter? writer, PipeReader? reader, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
             this.Reader = reader;
@@ -71,7 +71,7 @@ namespace StreamJsonRpc
         /// <param name="writer">The stream to use for transmitting messages.</param>
         /// <param name="reader">The stream to use for receiving messages.</param>
         /// <param name="formatter">The formatter used to serialize messages.</param>
-        public PipeMessageHandler(Stream writer, Stream reader, IJsonRpcMessageFormatter formatter)
+        public PipeMessageHandler(Stream? writer, Stream? reader, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
             // We use Strict reader to avoid max buffer size issues in Pipe (https://github.com/dotnet/corefx/issues/30689)
@@ -100,21 +100,19 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the reader to use for receiving messages.
         /// </summary>
-        protected PipeReader Reader { get; }
+        protected PipeReader? Reader { get; }
 
         /// <summary>
         /// Gets the writer to use for transmitting messages.
         /// </summary>
-        protected PipeWriter Writer { get; }
+        protected PipeWriter? Writer { get; }
 
-#pragma warning disable AvoidAsyncSuffix // Avoid Async suffix
         /// <inheritdoc/>
         protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             this.Write(content, cancellationToken);
             return default;
         }
-#pragma warning restore AvoidAsyncSuffix // Avoid Async suffix
 
         /// <summary>
         /// Writes a message to the pipe.
@@ -155,7 +153,11 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc />
-        protected override async ValueTask FlushAsync(CancellationToken cancellationToken) => await this.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
+        {
+            Verify.Operation(this.Writer != null, "No sending stream.");
+            await this.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         /// <summary>
         /// Reads from the <see cref="Reader"/> until at least a specified number of bytes are available.
@@ -171,6 +173,7 @@ namespace StreamJsonRpc
         /// </exception>
         protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
         {
+            Assumes.NotNull(this.Reader);
             ReadResult readResult = await this.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             while (readResult.Buffer.Length < requiredBytes && !readResult.IsCompleted && !readResult.IsCanceled)
             {
@@ -210,10 +213,11 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>The deserialized message.</returns>
         /// <exception cref="NotSupportedException">Thrown if <paramref name="specificEncoding"/> is non-null and the formatter does not implement the appropriate interface to supply the encoding.</exception>
-        private protected async ValueTask<JsonRpcMessage> DeserializeMessageAsync(int contentLength, Encoding specificEncoding, Encoding defaultEncoding, CancellationToken cancellationToken)
+        private protected async ValueTask<JsonRpcMessage> DeserializeMessageAsync(int contentLength, Encoding? specificEncoding, Encoding? defaultEncoding, CancellationToken cancellationToken)
         {
             Requires.Range(contentLength > 0, nameof(contentLength));
-            Encoding contentEncoding = specificEncoding ?? defaultEncoding;
+            Assumes.NotNull(this.Reader);
+            Encoding? contentEncoding = specificEncoding ?? defaultEncoding;
 
             // Being async during deserialization increases GC pressure,
             // so prefer getting all bytes into a buffer first if the message is a reasonably small size.

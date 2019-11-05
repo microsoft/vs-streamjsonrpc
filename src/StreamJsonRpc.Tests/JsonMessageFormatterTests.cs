@@ -50,7 +50,7 @@ public class JsonMessageFormatterTests : TestBase
     public void ProtocolVersion_RejectsOtherVersions()
     {
         var formatter = new JsonMessageFormatter();
-        Assert.Throws<ArgumentNullException>(() => formatter.ProtocolVersion = null);
+        Assert.Throws<ArgumentNullException>(() => formatter.ProtocolVersion = null!);
         Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(0, 0));
         Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(1, 1));
         Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(2, 1));
@@ -108,7 +108,7 @@ public class JsonMessageFormatterTests : TestBase
         string jsonRequest = @"{""jsonrpc"":""2.0"",""method"":""asdf"",""params"":[""2019-01-29T03:37:28.4433841Z""]}";
         ReadOnlySequence<byte> jsonSequence = new ReadOnlySequence<byte>(formatter.Encoding.GetBytes(jsonRequest));
         var jsonMessage = (JsonRpcRequest)formatter.Deserialize(jsonSequence);
-        Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object value));
+        Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? value));
         Assert.IsType<string>(value);
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }

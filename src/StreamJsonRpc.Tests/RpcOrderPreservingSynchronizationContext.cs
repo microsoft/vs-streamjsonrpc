@@ -24,7 +24,7 @@ internal class RpcOrderPreservingSynchronizationContext : SynchronizationContext
     /// <summary>
     /// Occurs when posted work throws an unhandled exception.
     /// </summary>
-    public event EventHandler<Exception> UnhandledException;
+    public event EventHandler<Exception>? UnhandledException;
 
     public int ExpectedTasksQueued
     {

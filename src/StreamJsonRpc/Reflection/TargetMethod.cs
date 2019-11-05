@@ -18,14 +18,14 @@ namespace StreamJsonRpc
     internal sealed class TargetMethod
     {
         private readonly JsonRpcRequest request;
-        private readonly object target;
-        private readonly MethodSignature signature;
-        private readonly object[] arguments;
+        private readonly object? target;
+        private readonly MethodSignature? signature;
+        private readonly object?[]? arguments;
 
         /// <summary>
         /// A collection of error messages. May be null until the first message is added.
         /// </summary>
-        private HashSet<string> errorMessages;
+        private HashSet<string>? errorMessages;
 
         internal TargetMethod(
             JsonRpcRequest request,
@@ -36,14 +36,14 @@ namespace StreamJsonRpc
 
             this.request = request;
 
-            ArrayPool<object> pool = ArrayPool<object>.Shared;
+            ArrayPool<object?> pool = ArrayPool<object?>.Shared;
             foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
             {
                 int parameterCount = candidateMethod.Signature.Parameters.Length;
-                object[] argumentArray = pool.Rent(parameterCount);
+                object?[] argumentArray = pool.Rent(parameterCount);
                 try
                 {
-                    Span<object> args = argumentArray.AsSpan(0, parameterCount);
+                    Span<object?> args = argumentArray.AsSpan(0, parameterCount);
                     if (this.TryGetArguments(request, candidateMethod.Signature, args))
                     {
                         this.target = candidateMethod.Target;
@@ -61,7 +61,7 @@ namespace StreamJsonRpc
 
         internal bool IsFound => this.signature != null;
 
-        internal bool AcceptsCancellationToken => this.signature.HasCancellationTokenParameter;
+        internal bool AcceptsCancellationToken => this.signature?.HasCancellationTokenParameter ?? false;
 
         internal string LookupErrorMessage
         {
@@ -77,21 +77,22 @@ namespace StreamJsonRpc
             }
         }
 
-        internal Type ReturnType => this.signature?.MethodInfo.ReturnType;
+        internal Type? ReturnType => this.signature?.MethodInfo.ReturnType;
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+            return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
         }
 
-        internal object Invoke(CancellationToken cancellationToken)
+        internal object? Invoke(CancellationToken cancellationToken)
         {
             if (this.signature == null)
             {
                 throw new InvalidOperationException(this.LookupErrorMessage);
             }
 
+            Assumes.NotNull(this.arguments);
             if (cancellationToken.CanBeCanceled && this.AcceptsCancellationToken)
             {
                 this.arguments[this.arguments.Length - 1] = cancellationToken;
@@ -100,7 +101,7 @@ namespace StreamJsonRpc
             return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
         }
 
-        private string GetParameterSignature() => string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name));
+        private string? GetParameterSignature() => this.signature != null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
 
         private void AddErrorMessage(string message)
         {
@@ -112,7 +113,7 @@ namespace StreamJsonRpc
             this.errorMessages.Add(message);
         }
 
-        private bool TryGetArguments(JsonRpcRequest request, MethodSignature method, Span<object> arguments)
+        private bool TryGetArguments(JsonRpcRequest request, MethodSignature method, Span<object?> arguments)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(method, nameof(method));
@@ -127,7 +128,7 @@ namespace StreamJsonRpc
 
             // When there is a CancellationToken parameter, we require that it always be the last parameter.
             Span<ParameterInfo> methodParametersExcludingCancellationToken = method.Parameters.AsSpan(0, method.TotalParamCountExcludingCancellationToken);
-            Span<object> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
+            Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
             if (method.HasCancellationTokenParameter)
             {
                 arguments[arguments.Length - 1] = CancellationToken.None;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -206,13 +207,13 @@ public class TargetObjectEventsTests : TestBase
 
     private class Client
     {
-        internal Action<EventArgs> ServerEventRaised { get; set; }
+        internal Action<EventArgs>? ServerEventRaised { get; set; }
 
-        internal Action<EventArgs> PublicStaticServerEventRaised { get; set; }
+        internal Action<EventArgs>? PublicStaticServerEventRaised { get; set; }
 
-        internal Action<CustomEventArgs> GenericServerEventRaised { get; set; }
+        internal Action<CustomEventArgs>? GenericServerEventRaised { get; set; }
 
-        internal Action<MessageEventArgs<string>> ServerEventWithCustomGenericDelegateAndArgsRaised { get; set; }
+        internal Action<MessageEventArgs<string>>? ServerEventWithCustomGenericDelegateAndArgsRaised { get; set; }
 
         public void ServerEvent(EventArgs args) => this.ServerEventRaised?.Invoke(args);
 
@@ -225,23 +226,24 @@ public class TargetObjectEventsTests : TestBase
 
     private class Server
     {
-        public delegate void MessageReceivedEventHandler<T>(object sender, MessageEventArgs<T> args);
+        public delegate void MessageReceivedEventHandler<T>(object sender, MessageEventArgs<T> args)
+            where T : class;
 
-        public static event EventHandler PublicStaticServerEvent;
+        public static event EventHandler? PublicStaticServerEvent;
 
-        public event EventHandler ServerEvent;
+        public event EventHandler? ServerEvent;
 
-        public event EventHandler<CustomEventArgs> ServerEventWithCustomArgs;
+        public event EventHandler<CustomEventArgs>? ServerEventWithCustomArgs;
 
-        public event MessageReceivedEventHandler<string> ServerEventWithCustomGenericDelegateAndArgs;
+        public event MessageReceivedEventHandler<string>? ServerEventWithCustomGenericDelegateAndArgs;
 
-        private static event EventHandler PrivateStaticServerEvent;
+        private static event EventHandler? PrivateStaticServerEvent;
 
-        private event EventHandler PrivateServerEvent;
+        private event EventHandler? PrivateServerEvent;
 
-        internal EventHandler ServerEventAccessor => this.ServerEvent;
+        internal EventHandler? ServerEventAccessor => this.ServerEvent;
 
-        internal EventHandler<CustomEventArgs> ServerEventWithCustomArgsAccessor => this.ServerEventWithCustomArgs;
+        internal EventHandler<CustomEventArgs>? ServerEventWithCustomArgsAccessor => this.ServerEventWithCustomArgs;
 
         public static void TriggerPublicStaticServerEvent(EventArgs args) => PublicStaticServerEvent?.Invoke(null, args);
 
@@ -277,7 +279,7 @@ public class TargetObjectEventsTests : TestBase
         public delegate int MyDelegate(double d);
 
 #pragma warning disable CS0067 // Unused member (It's here for reflection to discover)
-        public event MyDelegate MyEvent;
+        public event MyDelegate? MyEvent;
 #pragma warning restore CS0067
     }
 
@@ -287,7 +289,8 @@ public class TargetObjectEventsTests : TestBase
     }
 
     private class MessageEventArgs<T> : EventArgs
+        where T : class
     {
-        public T Message { get; set; }
+        public T? Message { get; set; }
     }
 }

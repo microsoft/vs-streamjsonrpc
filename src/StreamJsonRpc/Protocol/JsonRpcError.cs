@@ -3,6 +3,7 @@
 
 namespace StreamJsonRpc.Protocol
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Runtime.Serialization;
@@ -19,26 +20,37 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the detail about the error.
         /// </summary>
         [DataMember(Name = "error", Order = 1, IsRequired = true)]
-        public ErrorDetail Error { get; set; }
+        public ErrorDetail? Error { get; set; }
 
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
         /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>
+        [Obsolete("Use " + nameof(RequestId) + " instead.")]
+        [IgnoreDataMember]
+        public object? Id
+        {
+            get => this.RequestId.ObjectValue;
+            set => this.RequestId = RequestId.Parse(value);
+        }
+
+        /// <summary>
+        /// Gets or sets an identifier established by the client if a response to the request is expected.
+        /// </summary>
         [DataMember(Name = "id", Order = 2, IsRequired = true, EmitDefaultValue = true)]
-        public object Id { get; set; }
+        public RequestId RequestId { get; set; }
 
         /// <summary>
         /// Gets the string to display in the debugger for this instance.
         /// </summary>
-        protected string DebuggerDisplay => $"Error: {this.Error.Code} \"{this.Error.Message}\" ({this.Id})";
+        protected string DebuggerDisplay => $"Error: {this.Error?.Code} \"{this.Error?.Message}\" ({this.RequestId})";
 
         /// <inheritdoc/>
         public override string ToString()
         {
             return new JObject
             {
-                new JProperty("id", this.Id),
+                new JProperty("id", this.RequestId.ObjectValue),
                 new JProperty("error", new JObject
                 {
                     new JProperty("code", this.Error?.Code),
@@ -70,13 +82,13 @@ namespace StreamJsonRpc.Protocol
             /// The message SHOULD be limited to a concise single sentence.
             /// </remarks>
             [DataMember(Name = "message", Order = 1, IsRequired = true)]
-            public string Message { get; set; }
+            public string? Message { get; set; }
 
             /// <summary>
             /// Gets or sets additional data about the error.
             /// </summary>
             [DataMember(Name = "data", Order = 2, IsRequired = false)]
-            public object Data { get; set; }
+            public object? Data { get; set; }
         }
     }
 }

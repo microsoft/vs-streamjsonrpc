@@ -29,7 +29,7 @@ namespace StreamJsonRpc
         /// <param name="description">The description.</param>
         /// <param name="reason">The reason for disconnection.</param>
         /// <param name="exception">The exception.</param>
-        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, Exception exception)
+        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, Exception? exception)
             : this(description, reason, lastMessage: null, exception: exception)
         {
         }
@@ -40,7 +40,7 @@ namespace StreamJsonRpc
         /// <param name="description">The description.</param>
         /// <param name="reason">The reason for disconnection.</param>
         /// <param name="lastMessage">The last message.</param>
-        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken lastMessage)
+        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken? lastMessage)
             : this(description, reason, lastMessage: lastMessage, exception: null)
         {
         }
@@ -52,7 +52,7 @@ namespace StreamJsonRpc
         /// <param name="reason">The reason for disconnection.</param>
         /// <param name="lastMessage">The last message.</param>
         /// <param name="exception">The exception.</param>
-        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken lastMessage, Exception exception)
+        public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken? lastMessage, Exception? exception)
         {
             Requires.NotNullOrWhiteSpace(description, nameof(description));
 
@@ -75,11 +75,11 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the last message.
         /// </summary>
-        public JToken LastMessage { get; }
+        public JToken? LastMessage { get; }
 
         /// <summary>
         /// Gets the exception.
         /// </summary>
-        public Exception Exception { get; }
+        public Exception? Exception { get; }
     }
 }

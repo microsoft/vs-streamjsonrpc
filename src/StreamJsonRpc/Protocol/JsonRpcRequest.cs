@@ -48,7 +48,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the name of the method to be invoked.
         /// </summary>
         [DataMember(Name = "method", Order = 1, IsRequired = true)]
-        public string Method { get; set; }
+        public string? Method { get; set; }
 
         /// <summary>
         /// Gets or sets the arguments to use when invoking the specified <see cref="Method"/>.
@@ -61,26 +61,37 @@ namespace StreamJsonRpc.Protocol
         /// If neither of these, <see cref="ArgumentCount"/> and <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
         /// </value>
         [DataMember(Name = "params", Order = 2, IsRequired = false, EmitDefaultValue = false)]
-        public object Arguments { get; set; }
+        public object? Arguments { get; set; }
 
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
         /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>
+        [Obsolete("Use " + nameof(RequestId) + " instead.")]
+        [IgnoreDataMember]
+        public object? Id
+        {
+            get => this.RequestId.ObjectValue;
+            set => this.RequestId = RequestId.Parse(value);
+        }
+
+        /// <summary>
+        /// Gets or sets an identifier established by the client if a response to the request is expected.
+        /// </summary>
         [DataMember(Name = "id", Order = 3, IsRequired = false, EmitDefaultValue = false)]
-        public object Id { get; set; }
+        public RequestId RequestId { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether a response to this request is expected.
         /// </summary>
         [IgnoreDataMember]
-        public bool IsResponseExpected => this.Id != null;
+        public bool IsResponseExpected => !this.RequestId.IsEmpty;
 
         /// <summary>
         /// Gets a value indicating whether this is a notification, and no response is expected.
         /// </summary>
         [IgnoreDataMember]
-        public bool IsNotification => this.Id == null;
+        public bool IsNotification => this.RequestId.IsEmpty;
 
         /// <summary>
         /// Gets the number of arguments supplied in the request.
@@ -92,7 +103,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the dictionary of named arguments, if applicable.
         /// </summary>
         [IgnoreDataMember]
-        public IReadOnlyDictionary<string, object> NamedArguments
+        public IReadOnlyDictionary<string, object>? NamedArguments
         {
             get => this.Arguments as IReadOnlyDictionary<string, object>;
             set => this.Arguments = value;
@@ -103,7 +114,7 @@ namespace StreamJsonRpc.Protocol
         /// </summary>
         [IgnoreDataMember]
         [Obsolete("Use " + nameof(ArgumentsList) + " instead.")]
-        public object[] ArgumentsArray
+        public object?[]? ArgumentsArray
         {
             get => this.Arguments as object[];
             set => this.Arguments = value;
@@ -113,7 +124,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets a read only list of arguments, if applicable.
         /// </summary>
         [IgnoreDataMember]
-        public IReadOnlyList<object> ArgumentsList
+        public IReadOnlyList<object?>? ArgumentsList
         {
             get => this.Arguments as IReadOnlyList<object>;
             set => this.Arguments = value;
@@ -122,7 +133,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets the string to display in the debugger for this instance.
         /// </summary>
-        protected string DebuggerDisplay => (this.Id != null ? $"Request {this.Id}" : "Notification") + $": {this.Method}({this.Arguments})";
+        protected string DebuggerDisplay => (!this.RequestId.IsEmpty ? $"Request {this.RequestId}" : "Notification") + $": {this.Method}({this.Arguments})";
 
         /// <summary>
         /// Gets the arguments to supply to the method invocation, coerced to types that will satisfy the given list of parameters.
@@ -133,7 +144,7 @@ namespace StreamJsonRpc.Protocol
         /// The length of this span must equal the length of <paramref name="parameters"/>.
         /// </param>
         /// <returns><c>true</c> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <c>false</c> otherwise.</returns>
-        public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object> typedArguments)
+        public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
         {
             Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
 
@@ -151,7 +162,7 @@ namespace StreamJsonRpc.Protocol
             for (int i = 0; i < parameters.Length; i++)
             {
                 ParameterInfo parameter = parameters[i];
-                if (this.TryGetArgumentByNameOrIndex(parameter.Name, i, parameter.ParameterType, out object argument))
+                if (this.TryGetArgumentByNameOrIndex(parameter.Name, i, parameter.ParameterType, out object? argument))
                 {
                     if (argument == null)
                     {
@@ -194,7 +205,7 @@ namespace StreamJsonRpc.Protocol
         /// A derived-type may override this method in order to consider the <paramref name="typeHint"/>
         /// and deserialize the required argument on-demand such that it can satisfy the type requirement.
         /// </remarks>
-        public virtual bool TryGetArgumentByNameOrIndex(string name, int position, Type typeHint, out object value)
+        public virtual bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
             if (this.NamedArguments != null && name != null)
             {
@@ -215,7 +226,7 @@ namespace StreamJsonRpc.Protocol
         {
             return new JObject
             {
-                new JProperty("id", this.Id),
+                new JProperty("id", this.RequestId.ObjectValue),
                 new JProperty("method", this.Method),
             }.ToString(Newtonsoft.Json.Formatting.None);
         }

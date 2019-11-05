@@ -124,7 +124,7 @@ namespace StreamJsonRpc
         /// Implementations may assume this method is never called before any async result
         /// from a prior call to this method has completed.
         /// </remarks>
-        public async ValueTask<JsonRpcMessage> ReadAsync(CancellationToken cancellationToken)
+        public async ValueTask<JsonRpcMessage?> ReadAsync(CancellationToken cancellationToken)
         {
             Verify.Operation(this.CanRead, "No receiving stream.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -133,7 +133,7 @@ namespace StreamJsonRpc
 
             try
             {
-                JsonRpcMessage result = await this.ReadCoreAsync(cancellationToken).ConfigureAwait(false);
+                JsonRpcMessage? result = await this.ReadCoreAsync(cancellationToken).ConfigureAwait(false);
                 return result;
             }
             catch (InvalidOperationException ex) when (cancellationToken.IsCancellationRequested)
@@ -246,7 +246,7 @@ namespace StreamJsonRpc
         /// A null string indicates the stream has ended.
         /// An empty string should never be returned.
         /// </returns>
-        protected abstract ValueTask<JsonRpcMessage> ReadCoreAsync(CancellationToken cancellationToken);
+        protected abstract ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Writes a message.

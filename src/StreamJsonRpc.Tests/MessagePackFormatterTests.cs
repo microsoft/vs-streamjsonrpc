@@ -26,17 +26,17 @@ public class MessagePackFormatterTests : TestBase
     {
         var original = new JsonRpcRequest
         {
-            Id = 5,
+            RequestId = new RequestId(5),
             Method = "test",
             ArgumentsList = new object[] { 5, "hi", new CustomType { Age = 8 } },
         };
 
         var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
+        Assert.Equal(original.RequestId, actual.RequestId);
         Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(original.ArgumentsList[0], actual.ArgumentsList[0]);
-        Assert.Equal(original.ArgumentsList[1], actual.ArgumentsList[1]);
-        Assert.Equal(((CustomType)original.ArgumentsList[2]).Age, ((CustomType)actual.ArgumentsList[2]).Age);
+        Assert.Equal(original.ArgumentsList[0], actual.ArgumentsList?[0]);
+        Assert.Equal(original.ArgumentsList[1], actual.ArgumentsList?[1]);
+        Assert.Equal(((CustomType?)original.ArgumentsList[2])!.Age, ((CustomType?)actual.ArgumentsList![2])!.Age);
     }
 
     [Fact]
@@ -44,13 +44,13 @@ public class MessagePackFormatterTests : TestBase
     {
         var original = new JsonRpcResult
         {
-            Id = 5,
+            RequestId = new RequestId(5),
             Result = new CustomType { Age = 7 },
         };
 
         var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
-        Assert.Equal(((CustomType)original.Result).Age, ((CustomType)actual.Result).Age);
+        Assert.Equal(original.RequestId, actual.RequestId);
+        Assert.Equal(((CustomType?)original.Result)!.Age, ((CustomType?)actual.Result)!.Age);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class MessagePackFormatterTests : TestBase
     {
         var original = new JsonRpcError
         {
-            Id = 5,
+            RequestId = new RequestId(5),
             Error = new JsonRpcError.ErrorDetail
             {
                 Code = JsonRpcErrorCode.InvocationError,
@@ -68,10 +68,10 @@ public class MessagePackFormatterTests : TestBase
         };
 
         var actual = this.Roundtrip(original);
-        Assert.Equal(original.Id, actual.Id);
-        Assert.Equal(original.Error.Code, actual.Error.Code);
+        Assert.Equal(original.RequestId, actual.RequestId);
+        Assert.Equal(original.Error.Code, actual.Error!.Code);
         Assert.Equal(original.Error.Message, actual.Error.Message);
-        Assert.Equal(((CustomType)original.Error.Data).Age, ((CustomType)actual.Error.Data).Age);
+        Assert.Equal(((CustomType)original.Error.Data).Age, ((CustomType?)actual.Error.Data)!.Age);
     }
 
     [Fact]

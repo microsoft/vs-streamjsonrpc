@@ -32,12 +32,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// A map of outbound request IDs to channels that they included.
         /// </summary>
-        private ImmutableDictionary<long, ImmutableList<MultiplexingStream.Channel>> outboundRequestChannelMap = ImmutableDictionary<long, ImmutableList<MultiplexingStream.Channel>>.Empty;
+        private ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>> outboundRequestChannelMap = ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>>.Empty;
 
         /// <summary>
         /// A map of inbound request IDs to channels that they included.
         /// </summary>
-        private ImmutableDictionary<object, ImmutableList<MultiplexingStream.Channel>> inboundRequestChannelMap = ImmutableDictionary<object, ImmutableList<MultiplexingStream.Channel>>.Empty;
+        private ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>> inboundRequestChannelMap = ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>>.Empty;
 
         /// <summary>
         /// The set of channels that have been opened but not yet closed to support outbound requests, keyed by their ID.
@@ -64,12 +64,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Gets or sets the id of the request currently being serialized for use as a key in <see cref="outboundRequestChannelMap"/>.
         /// </summary>
-        public long? RequestIdBeingSerialized { get; set; }
+        public RequestId RequestIdBeingSerialized { get; set; }
 
         /// <summary>
         /// Gets or sets the ID of the request currently being deserialized for use as a key in <see cref="inboundRequestChannelMap"/>.
         /// </summary>
-        public object RequestIdBeingDeserialized { get; set; }
+        public RequestId RequestIdBeingDeserialized { get; set; }
 
         /// <summary>
         /// Gets or sets the multiplexing stream used to create and accept channels.
@@ -77,7 +77,7 @@ namespace StreamJsonRpc.Reflection
         /// <remarks>
         /// If this is <c>null</c>, some public methods will throw <see cref="NotSupportedException"/>.
         /// </remarks>
-        public MultiplexingStream MultiplexingStream { get; set; }
+        public MultiplexingStream? MultiplexingStream { get; set; }
 
         /// <inheritdoc/>
         bool IDisposableObservable.IsDisposed => this.isDisposed;
@@ -89,15 +89,15 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="duplexPipe"/> was <c>null</c>.</returns>
         /// <remarks>
         /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(long, bool)"/>.
+        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public int? GetToken(IDuplexPipe duplexPipe)
+        public int? GetToken(IDuplexPipe? duplexPipe)
         {
             Verify.NotDisposed(this);
 
             MultiplexingStream mxstream = this.GetMultiplexingStreamOrThrow();
-            if (this.RequestIdBeingSerialized is null)
+            if (this.RequestIdBeingSerialized.IsEmpty)
             {
                 throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
             }
@@ -111,7 +111,7 @@ namespace StreamJsonRpc.Reflection
 
             ImmutableInterlocked.AddOrUpdate(
                 ref this.outboundRequestChannelMap,
-                this.RequestIdBeingSerialized.Value,
+                this.RequestIdBeingSerialized,
                 ImmutableList.Create(channel),
                 (key, value) => value.Add(channel));
 
@@ -129,10 +129,10 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="reader"/> was <c>null</c>.</returns>
         /// <remarks>
         /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(long, bool)"/>.
+        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public int? GetToken(PipeReader reader) => this.GetToken(reader != null ? new DuplexPipe(reader) : null);
+        public int? GetToken(PipeReader? reader) => this.GetToken(reader != null ? new DuplexPipe(reader) : null);
 
         /// <summary>
         /// Creates a token to represent a <see cref="PipeWriter"/> as it is transmitted from the client to an RPC server as a method argument.
@@ -141,10 +141,10 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="writer"/> was <c>null</c>.</returns>
         /// <remarks>
         /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(long, bool)"/>.
+        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public int? GetToken(PipeWriter writer) => this.GetToken(writer != null ? new DuplexPipe(writer) : null);
+        public int? GetToken(PipeWriter? writer) => this.GetToken(writer != null ? new DuplexPipe(writer) : null);
 
         /// <summary>
         /// Creates an <see cref="IDuplexPipe"/> from a given token as it is received at the RPC server as a method argument.
@@ -153,7 +153,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="IDuplexPipe"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public IDuplexPipe GetPipe(int? token)
+        public IDuplexPipe? GetPipe(int? token)
         {
             Verify.NotDisposed(this);
 
@@ -163,7 +163,7 @@ namespace StreamJsonRpc.Reflection
                 return null;
             }
 
-            if (this.RequestIdBeingDeserialized is null)
+            if (this.RequestIdBeingDeserialized.IsEmpty)
             {
                 throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
             }
@@ -195,9 +195,9 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="PipeReader"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public PipeReader GetPipeReader(int? token)
+        public PipeReader? GetPipeReader(int? token)
         {
-            IDuplexPipe duplexPipe = this.GetPipe(token);
+            IDuplexPipe? duplexPipe = this.GetPipe(token);
             if (duplexPipe != null)
             {
                 duplexPipe.Output.Complete();
@@ -214,9 +214,9 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="PipeWriter"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
-        public PipeWriter GetPipeWriter(int? token)
+        public PipeWriter? GetPipeWriter(int? token)
         {
-            IDuplexPipe duplexPipe = this.GetPipe(token);
+            IDuplexPipe? duplexPipe = this.GetPipe(token);
             if (duplexPipe != null)
             {
                 duplexPipe.Input.Complete();
@@ -232,7 +232,7 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="requestId">The ID of the request for which a response was sent.</param>
         /// <param name="successful">A value indicating whether the response represents a successful result (i.e. a <see cref="JsonRpcResult"/> instead of an <see cref="JsonRpcError"/>).</param>
-        public void OnResponseSent(object requestId, bool successful)
+        public void OnResponseSent(RequestId requestId, bool successful)
         {
             Verify.NotDisposed(this);
 
@@ -256,7 +256,7 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="requestId">The ID of the request for which a response was received.</param>
         /// <param name="successful">A value indicating whether the response represents a successful result (i.e. a <see cref="JsonRpcResult"/> instead of an <see cref="JsonRpcError"/>).</param>
-        public void OnResponseReceived(long requestId, bool successful)
+        public void OnResponseReceived(RequestId requestId, bool successful)
         {
             Verify.NotDisposed(this);
 

@@ -301,7 +301,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>();
         Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
     }
 
@@ -327,7 +327,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken)ex.ErrorData).ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>();
         Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
         Assert.Equal(-2147467261, commonErrorData.HResult);
     }
@@ -355,7 +355,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        JToken errorDataToken = (JToken)ex.ErrorData;
+        JToken errorDataToken = (JToken)ex.ErrorData!;
         Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
         Assert.Equal(errorData.stack.foo, errorDataToken["stack"].Value<int>("foo"));
     }
@@ -406,7 +406,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         });
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Equal(expectedMessage, ex.Message);
-        Assert.Equal(expectedData, ((JToken)ex.ErrorData)?.Value<string>());
+        Assert.Equal(expectedData, ((JToken?)ex.ErrorData)?.Value<string>());
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
             result = "pass",
         });
 
-        string result = await invokeTask;
+        string result = await invokeTask.WithCancellation(this.TimeoutToken);
         Assert.Equal("pass", result);
     }
 }

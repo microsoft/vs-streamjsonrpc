@@ -14,13 +14,13 @@ namespace StreamJsonRpc
         /// Gets or sets a function that takes the CLR method name and returns the RPC method name.
         /// This method is useful for adding prefixes to all methods, or making them camelCased.
         /// </summary>
-        public Func<string, string> MethodNameTransform { get; set; }
+        public Func<string, string>? MethodNameTransform { get; set; }
 
         /// <summary>
         /// Gets or sets a function that takes the CLR event name and returns the RPC event name used in notification messages.
         /// This method is useful for adding prefixes to all events, or making them camelCased.
         /// </summary>
-        public Func<string, string> EventNameTransform { get; set; }
+        public Func<string, string>? EventNameTransform { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether events raised on the target object

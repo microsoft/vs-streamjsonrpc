@@ -67,7 +67,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamsOnSynchronousMethodException";
         ConnectionLostException exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
+        Assert.Equal(exceptionMessage, this.serverRpc.FaultException!.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
@@ -82,7 +82,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamOnAsyncYieldAndThrowException";
         Exception exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAfterYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
+        Assert.Equal(exceptionMessage, this.serverRpc.FaultException!.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
@@ -97,7 +97,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         var exceptionMessage = "Exception from CloseStreamOnAsyncThrowExceptionAndYield";
         Exception exception = await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsBeforeYield), exceptionMessage));
         Assert.NotNull(exception.StackTrace);
-        Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
+        Assert.Equal(exceptionMessage, this.serverRpc.FaultException!.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
@@ -111,7 +111,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     {
         var exceptionMessage = "Exception from CloseStreamOnAsyncTMethodException";
         await Assert.ThrowsAnyAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatReturnsStringAndThrows), exceptionMessage));
-        Assert.Equal(exceptionMessage, this.serverRpc.FaultException.Message);
+        Assert.Equal(exceptionMessage, this.serverRpc.FaultException!.Message);
         Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
 
         Assert.True(((IDisposableObservable)this.clientMessageHandler).IsDisposed);
@@ -163,7 +163,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             // we expect ConnectionLostException to be thrown locally unless the request was already canceled anyway.
             var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
             Assert.Equal(cts.Token, ex.CancellationToken);
-            Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException.Message);
+            Assert.Equal(Server.ThrowAfterCancellationMessage, this.serverRpc.FaultException!.Message);
             Assert.Equal(1, this.serverRpc.IsFatalExceptionCount);
         }
 
@@ -176,7 +176,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     [Fact]
     public async Task AggregateExceptionIsNotRemovedFromAsyncMethod()
     {
-        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner)));
+        var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodThrowsAggregateExceptionWithTwoInner), cancellationToken: this.TimeoutToken));
 
         // The async server method itself strips the second of the InnerExceptions, so we can't recover it here.
         // Since we only get one, we expect the inner exception (of the AggregateException)
@@ -197,7 +197,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
     public async Task AggregateExceptionIsNotRemovedFromSyncMethod()
     {
         var remoteException = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeAsync(nameof(Server.SyncMethodThrowsAggregateException)));
-        var filterException = (AggregateException)this.serverRpc.FaultException;
+        var filterException = (AggregateException)this.serverRpc.FaultException!;
         Assert.Equal(2, filterException.InnerExceptions.Count);
     }
 
@@ -336,11 +336,11 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
 
     internal class JsonRpcWithFatalExceptions : JsonRpc
     {
-        internal Exception FaultException;
+        internal Exception? FaultException;
 
         internal int IsFatalExceptionCount;
 
-        public JsonRpcWithFatalExceptions(IJsonRpcMessageHandler messageHandler, object target = null)
+        public JsonRpcWithFatalExceptions(IJsonRpcMessageHandler messageHandler, object? target = null)
             : base(messageHandler, target)
         {
             this.IsFatalExceptionCount = 0;

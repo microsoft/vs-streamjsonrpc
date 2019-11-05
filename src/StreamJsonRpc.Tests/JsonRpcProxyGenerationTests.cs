@@ -624,18 +624,18 @@ public class JsonRpcProxyGenerationTests : TestBase
     /// </summary>
     public class CustomNonDerivingEventArgs
     {
-        public string Color { get; set; }
+        public string? Color { get; set; }
     }
 
     internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks
     {
-        public event EventHandler ItHappened;
+        public event EventHandler? ItHappened;
 
-        public event EventHandler<CustomEventArgs> TreeGrown;
+        public event EventHandler<CustomEventArgs>? TreeGrown;
 
-        public event EventHandler<CustomNonDerivingEventArgs> AppleGrown;
+        public event EventHandler<CustomNonDerivingEventArgs>? AppleGrown;
 
-        public event EventHandler<bool> BoolEvent;
+        public event EventHandler<bool>? BoolEvent;
 
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
