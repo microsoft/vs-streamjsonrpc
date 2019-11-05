@@ -64,5 +64,14 @@ namespace StreamJsonRpc.Protocol
                 new JProperty("id", this.RequestId.ObjectValue),
             }.ToString(Newtonsoft.Json.Formatting.None);
         }
+
+        /// <summary>
+        /// Provides a hint for a deferred deserialization of the <see cref="Result"/> value as to the type
+        /// argument that will be used when calling <see cref="GetResult{T}"/> later.
+        /// </summary>
+        /// <param name="resultType">The type that will be used as the generic type argument to <see cref="GetResult{T}"/>.</param>
+        protected internal virtual void SetExpectedResultType(Type resultType)
+        {
+        }
     }
 }

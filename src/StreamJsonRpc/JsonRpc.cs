@@ -1223,7 +1223,7 @@ namespace StreamJsonRpc
                 request.Arguments = arguments ?? EmptyObjectArray;
             }
 
-            JsonRpcMessage? response = await this.InvokeCoreAsync(request, cancellationToken).ConfigureAwait(false);
+            JsonRpcMessage? response = await this.InvokeCoreAsync(request, typeof(TResult), cancellationToken).ConfigureAwait(false);
 
             if (request.IsResponseExpected)
             {
@@ -1441,7 +1441,7 @@ namespace StreamJsonRpc
             return false;
         }
 
-        private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, CancellationToken cancellationToken)
+        private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
         {
             Requires.NotNull(request, nameof(request));
             Assumes.NotNull(request.Method);
@@ -1526,7 +1526,7 @@ namespace StreamJsonRpc
                         }
                     };
 
-                    var callData = new OutstandingCallData(tcs, dispatcher);
+                    var callData = new OutstandingCallData(tcs, dispatcher, expectedResultType);
                     lock (this.dispatcherMapLock)
                     {
                         this.resultDispatcherMap.Add(request.RequestId, callData);
@@ -1631,6 +1631,8 @@ namespace StreamJsonRpc
                         targetMethod = new TargetMethod(request, candidateTargets);
                     }
                 }
+
+                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(request);
 
                 if (targetMethod != null && targetMethod.IsFound)
                 {
@@ -1743,7 +1745,7 @@ namespace StreamJsonRpc
                             }
 
                             CancellationToken token = request.IsResponseExpected ? localMethodCancellationSource!.Token : CancellationToken.None;
-                            remoteResponse = await remoteTarget.InvokeCoreAsync(request, token).ConfigureAwait(false);
+                            remoteResponse = await remoteTarget.InvokeCoreAsync(request, null, token).ConfigureAwait(false);
 
                             if (remoteResponse is JsonRpcError error && error.Error != null)
                             {
@@ -1807,6 +1809,7 @@ namespace StreamJsonRpc
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
+                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(request);
                 JsonRpcError error = this.CreateError(request, ex);
 
                 if (error.Error != null && JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
@@ -2144,6 +2147,13 @@ namespace StreamJsonRpc
 
                     if (data != null)
                     {
+                        if (data.ExpectedResultType != null && rpc is JsonRpcResult resultMessage)
+                        {
+                            resultMessage.SetExpectedResultType(data.ExpectedResultType);
+                        }
+
+                        (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(rpc);
+
                         // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
                         await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                         data.CompletionHandler(rpc);
@@ -2166,6 +2176,10 @@ namespace StreamJsonRpc
 
                 // Fatal error. Raise disconnected event.
                 this.OnJsonRpcDisconnected(eventArgs);
+            }
+            finally
+            {
+                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(rpc);
             }
         }
 
@@ -2400,15 +2414,18 @@ namespace StreamJsonRpc
 
         private class OutstandingCallData
         {
-            internal OutstandingCallData(object taskCompletionSource, Action<JsonRpcMessage?> completionHandler)
+            internal OutstandingCallData(object taskCompletionSource, Action<JsonRpcMessage?> completionHandler, Type? expectedResultType)
             {
                 this.TaskCompletionSource = taskCompletionSource;
                 this.CompletionHandler = completionHandler;
+                this.ExpectedResultType = expectedResultType;
             }
 
             internal object TaskCompletionSource { get; }
 
             internal Action<JsonRpcMessage?> CompletionHandler { get; }
+
+            internal Type? ExpectedResultType { get; }
         }
 
         private class EventReceiver : IDisposable

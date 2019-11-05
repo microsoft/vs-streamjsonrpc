@@ -24,7 +24,7 @@ namespace StreamJsonRpc
     /// An abstract base class for for sending and receiving messages
     /// using <see cref="PipeReader"/> and <see cref="PipeWriter"/>.
     /// </summary>
-    public abstract class PipeMessageHandler : MessageHandlerBase
+    public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBufferManager
     {
         /// <summary>
         /// The largest size of a message to buffer completely before deserialization begins
@@ -36,6 +36,8 @@ namespace StreamJsonRpc
         /// when we call <see cref="PipeReader.AdvanceTo(SequencePosition, SequencePosition)"/> to wait for more data.
         /// </remarks>
         private static readonly long LargeMessageThreshold = new PipeOptions().PauseWriterThreshold;
+
+        private (IJsonRpcMessageBufferManager Message, SequencePosition ConsumedPosition) deserializationReservedBuffer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipeMessageHandler"/> class.
@@ -107,6 +109,17 @@ namespace StreamJsonRpc
         /// Gets the writer to use for transmitting messages.
         /// </summary>
         protected PipeWriter? Writer { get; }
+
+        /// <inheritdoc/>
+        void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+        {
+            if (message != null && this.Reader != null && this.deserializationReservedBuffer.Message == message)
+            {
+                this.deserializationReservedBuffer.Message.DeserializationComplete(message);
+                this.Reader.AdvanceTo(this.deserializationReservedBuffer.ConsumedPosition);
+                this.deserializationReservedBuffer = default;
+            }
+        }
 
         /// <inheritdoc/>
         protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
@@ -220,6 +233,7 @@ namespace StreamJsonRpc
         {
             Requires.Range(contentLength > 0, nameof(contentLength));
             Assumes.NotNull(this.Reader);
+            Assumes.Null(this.deserializationReservedBuffer.Message); // Previous message holds buffers must have been released by now.
             Encoding? contentEncoding = specificEncoding ?? defaultEncoding;
 
             // Being async during deserialization increases GC pressure,
@@ -247,9 +261,10 @@ namespace StreamJsonRpc
                 ReadOnlySequence<byte> contentBuffer = readResult.Buffer.Slice(0, contentLength);
                 try
                 {
+                    JsonRpcMessage message;
                     if (contentEncoding != null && this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
                     {
-                        return textFormatter.Deserialize(contentBuffer, contentEncoding);
+                        message = textFormatter.Deserialize(contentBuffer, contentEncoding);
                     }
                     else
                     {
@@ -258,13 +273,23 @@ namespace StreamJsonRpc
                             this.ThrowNoTextEncoder();
                         }
 
-                        return this.Formatter.Deserialize(contentBuffer);
+                        message = this.Formatter.Deserialize(contentBuffer);
                     }
+
+                    if (message is IJsonRpcMessageBufferManager bufferedMessage)
+                    {
+                        this.deserializationReservedBuffer = (bufferedMessage, contentBuffer.End);
+                    }
+
+                    return message;
                 }
                 finally
                 {
-                    // We're now done reading from the pipe's buffer. We can release it now.
-                    this.Reader.AdvanceTo(contentBuffer.End);
+                    if (this.deserializationReservedBuffer.Message == null)
+                    {
+                        // We're now done reading from the pipe's buffer. We can release it now.
+                        this.Reader.AdvanceTo(contentBuffer.End);
+                    }
                 }
             }
         }

@@ -1,3 +1,5 @@
+StreamJsonRpc.IJsonRpcMessageBufferManager
+StreamJsonRpc.IJsonRpcMessageBufferManager.DeserializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(System.Reflection.MethodInfo handler, object target, StreamJsonRpc.JsonRpcMethodAttribute methodRpcSettings) -> void
 StreamJsonRpc.JsonRpc.GetJsonRpcMethodAttribute(string methodName, System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters) -> StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
@@ -36,3 +38,4 @@ virtual StreamJsonRpc.JsonRpc.CreateNewRequestId() -> StreamJsonRpc.RequestId
 virtual StreamJsonRpc.MessageHandlerBase.DisposeAsync() -> System.Threading.Tasks.Task
 virtual StreamJsonRpc.MessageHandlerBase.DisposeReader() -> void
 virtual StreamJsonRpc.MessageHandlerBase.DisposeWriter() -> void
+virtual StreamJsonRpc.Protocol.JsonRpcResult.SetExpectedResultType(System.Type resultType) -> void

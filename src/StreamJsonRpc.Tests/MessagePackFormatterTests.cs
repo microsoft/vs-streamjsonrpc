@@ -34,9 +34,15 @@ public class MessagePackFormatterTests : TestBase
         var actual = this.Roundtrip(original);
         Assert.Equal(original.RequestId, actual.RequestId);
         Assert.Equal(original.Method, actual.Method);
-        Assert.Equal(original.ArgumentsList[0], actual.ArgumentsList?[0]);
-        Assert.Equal(original.ArgumentsList[1], actual.ArgumentsList?[1]);
-        Assert.Equal(((CustomType?)original.ArgumentsList[2])!.Age, ((CustomType?)actual.ArgumentsList![2])!.Age);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex(null, 0, typeof(int), out object? actualArg0));
+        Assert.Equal(original.ArgumentsList[0], actualArg0);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex(null, 1, typeof(string), out object? actualArg1));
+        Assert.Equal(original.ArgumentsList[1], actualArg1);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex(null, 2, typeof(CustomType), out object? actualArg2));
+        Assert.Equal(((CustomType?)original.ArgumentsList[2])!.Age, ((CustomType)actualArg2!).Age);
     }
 
     [Fact]
@@ -50,7 +56,7 @@ public class MessagePackFormatterTests : TestBase
 
         var actual = this.Roundtrip(original);
         Assert.Equal(original.RequestId, actual.RequestId);
-        Assert.Equal(((CustomType?)original.Result)!.Age, ((CustomType?)actual.Result)!.Age);
+        Assert.Equal(((CustomType?)original.Result)!.Age, actual.GetResult<CustomType>().Age);
     }
 
     [Fact]
