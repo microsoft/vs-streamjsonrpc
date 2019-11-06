@@ -142,8 +142,14 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanCancelOnRemoteTarget()
     {
         var tokenSource = new CancellationTokenSource();
+        RemoteTargetOne.CancellableRemoteOperationEntered.Reset();
         var task = this.originRpc.InvokeWithCancellationAsync<bool>(nameof(RemoteTargetOne.CancellableRemoteOperation), cancellationToken: tokenSource.Token);
+
+        // Don't cancel the token until we've entered the method, since the point is the RPC method receives the notice,
+        // not that we cancel before it's even transmitted.
+        await RemoteTargetOne.CancellableRemoteOperationEntered.WaitAsync(this.TimeoutToken);
         tokenSource.Cancel();
+
         var result = await task;
         Assert.True(result);
     }
@@ -278,6 +284,8 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
 
     public class RemoteTargetOne
     {
+        internal static readonly AsyncManualResetEvent CancellableRemoteOperationEntered = new AsyncManualResetEvent();
+
         private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
 
         public static Task<int> NotificationReceived => notificationTcs.Task;
@@ -305,6 +313,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
 
         public static async Task<bool> CancellableRemoteOperation(CancellationToken token)
         {
+            CancellableRemoteOperationEntered.Set();
             var retryIndex = 0;
             while (retryIndex < 100)
             {

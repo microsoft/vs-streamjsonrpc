@@ -292,6 +292,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
         Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+        Skip.If(IsRunningUnderLiveUnitTest);
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
