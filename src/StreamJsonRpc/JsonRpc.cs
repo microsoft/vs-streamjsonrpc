@@ -1960,18 +1960,37 @@ namespace StreamJsonRpc
                 // Dispose the stream and fault pending requests in the finally block
                 // So this is executed even if Disconnected event handler throws.
                 this.disconnectedSource.Cancel();
-                (this.MessageHandler as IDisposable)?.Dispose();
+
+                Task messageHandlerDisposal = Task.CompletedTask;
+                if (this.MessageHandler is IAsyncDisposable asyncDisposableMessageHandler)
+                {
+                    messageHandlerDisposal = asyncDisposableMessageHandler.DisposeAsync();
+                }
+                else if (this.MessageHandler is IDisposable disposableMessageHandler)
+                {
+                    disposableMessageHandler.Dispose();
+                }
+
                 this.FaultPendingRequests();
 
-                // Ensure the Task we may have returned from Completion is completed.
-                if (eventArgs.Exception != null)
-                {
-                    this.completionSource.TrySetException(eventArgs.Exception);
-                }
-                else
-                {
-                    this.completionSource.TrySetResult(true);
-                }
+                // Ensure the Task we may have returned from Completion is completed,
+                // but not before any asynchronous disposal of our message handler completes.
+                messageHandlerDisposal.ContinueWith(
+                    handlerDisposal =>
+                    {
+                        Exception fault = eventArgs.Exception ?? handlerDisposal.Exception;
+                        if (fault != null)
+                        {
+                            this.completionSource.TrySetException(fault);
+                        }
+                        else
+                        {
+                            this.completionSource.TrySetResult(true);
+                        }
+                    },
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default).Forget();
             }
         }
 

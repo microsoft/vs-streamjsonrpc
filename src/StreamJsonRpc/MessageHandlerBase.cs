@@ -23,7 +23,7 @@ namespace StreamJsonRpc
     /// and may be made from any thread.
     /// The caller must take care to call <see cref="ReadAsync(CancellationToken)"/> sequentially.
     /// </remarks>
-    public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable
+    public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable, IAsyncDisposable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
@@ -41,6 +41,16 @@ namespace StreamJsonRpc
         private readonly object syncObject = new object();
 
         /// <summary>
+        /// A signal that the last read operation has completed.
+        /// </summary>
+        private readonly AsyncManualResetEvent readingCompleted = new AsyncManualResetEvent();
+
+        /// <summary>
+        /// A signal that the last write operation has completed.
+        /// </summary>
+        private readonly AsyncManualResetEvent writingCompleted = new AsyncManualResetEvent();
+
+        /// <summary>
         /// A value indicating whether the <see cref="ReadAsync(CancellationToken)"/> method is in progress.
         /// </summary>
         private MessageHandlerState state;
@@ -53,6 +63,10 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(formatter, nameof(formatter));
             this.Formatter = formatter;
+
+            Task readerDisposal = this.readingCompleted.WaitAsync().ContinueWith((_, s) => ((MessageHandlerBase)s).DisposeReader(), this, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            Task writerDisposal = this.writingCompleted.WaitAsync().ContinueWith((_, s) => ((MessageHandlerBase)s).DisposeWriter(), this, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            this.Completion = Task.WhenAll(readerDisposal, writerDisposal).ContinueWith((_, s) => ((MessageHandlerBase)s).Dispose(true), this, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
 
         [Flags]
@@ -71,12 +85,7 @@ namespace StreamJsonRpc
             /// <summary>
             /// Indicates that the <see cref="ReadAsync(CancellationToken)"/> method is in running.
             /// </summary>
-            Reading = 0x4,
-
-            /// <summary>
-            /// Indicates that the <see cref="Dispose(bool)"/> method has been called.
-            /// </summary>
-            DisposeVirtualMethodInvoked = 0x10,
+            Reading = 0x2,
         }
 
         /// <summary>
@@ -101,6 +110,11 @@ namespace StreamJsonRpc
         /// Gets a token that is canceled when this instance is disposed.
         /// </summary>
         protected CancellationToken DisposalToken => this.disposalTokenSource.Token;
+
+        /// <summary>
+        /// Gets a task that completes when this instance has completed disposal.
+        /// </summary>
+        private Task Completion { get; }
 
         /// <summary>
         /// Reads a distinct and complete message from the transport, waiting for one if necessary.
@@ -140,9 +154,13 @@ namespace StreamJsonRpc
             }
             finally
             {
-                if (this.CheckIfDisposalAppropriate(MessageHandlerState.Reading))
+                lock (this.syncObject)
                 {
-                    this.Dispose(true);
+                    this.state &= ~MessageHandlerState.Reading;
+                    if (this.DisposalToken.IsCancellationRequested)
+                    {
+                        this.readingCompleted.Set();
+                    }
                 }
             }
         }
@@ -165,7 +183,6 @@ namespace StreamJsonRpc
             Verify.Operation(this.CanWrite, "No sending stream.");
             cancellationToken.ThrowIfCancellationRequested();
 
-            bool shouldDispose = false;
             try
             {
                 using (await this.sendingSemaphore.EnterAsync(cancellationToken).ConfigureAwait(false))
@@ -179,7 +196,14 @@ namespace StreamJsonRpc
                     }
                     finally
                     {
-                        shouldDispose = this.CheckIfDisposalAppropriate(MessageHandlerState.Writing);
+                        lock (this.syncObject)
+                        {
+                            this.state &= ~MessageHandlerState.Writing;
+                            if (this.DisposalToken.IsCancellationRequested)
+                            {
+                                this.writingCompleted.Set();
+                            }
+                        }
                     }
                 }
             }
@@ -189,38 +213,54 @@ namespace StreamJsonRpc
                 cancellationToken.ThrowIfCancellationRequested();
                 throw;
             }
-            finally
-            {
-                if (shouldDispose)
-                {
-                    this.Dispose(true);
-                }
-            }
         }
+
+#pragma warning disable VSTHRD002 // We synchronously block, but nothing here should ever require the main thread.
+        /// <summary>
+        /// Disposes this instance, and cancels any pending read or write operations.
+        /// </summary>
+        [Obsolete("Call IAsyncDisposable.DisposeAsync instead.")]
+        public void Dispose() => this.DisposeAsync().GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
 
         /// <summary>
         /// Disposes this instance, and cancels any pending read or write operations.
         /// </summary>
-        public void Dispose()
+        public virtual async Task DisposeAsync()
         {
             if (!this.disposalTokenSource.IsCancellationRequested)
             {
                 this.disposalTokenSource.Cancel();
-                if (this.CheckIfDisposalAppropriate())
+
+                // Kick off disposal of reading and/or writing resources based on whether they're active right now or not.
+                // If they're active, they'll take care of themselves when they finish since we signaled disposal.
+                lock (this.syncObject)
                 {
-                    this.Dispose(true);
+                    if (!this.state.HasFlag(MessageHandlerState.Reading))
+                    {
+                        this.readingCompleted.Set();
+                    }
+
+                    if (!this.state.HasFlag(MessageHandlerState.Writing))
+                    {
+                        this.writingCompleted.Set();
+                    }
                 }
+
+                // Wait for completion to actually complete, and re-throw any exceptions.
+                await this.Completion.ConfigureAwait(false);
+
+                this.Dispose(true);
             }
         }
 
         /// <summary>
-        /// Disposes resources allocated by this instance.
+        /// Disposes resources allocated by this instance that are common to both reading and writing.
         /// </summary>
         /// <param name="disposing"><c>true</c> when being disposed; <c>false</c> when being finalized.</param>
         /// <remarks>
         /// <para>
-        /// This method is guaranteed to not be called until any pending <see cref="WriteCoreAsync(JsonRpcMessage, CancellationToken)"/>
-        /// or <see cref="ReadCoreAsync(CancellationToken)"/> calls have completed.
+        /// This method is called by <see cref="DisposeAsync"/> after both <see cref="DisposeReader"/> and <see cref="DisposeWriter"/> have completed.
         /// </para>
         /// <para>Overrides of this method *should* call the base method as well.</para>
         /// </remarks>
@@ -228,11 +268,31 @@ namespace StreamJsonRpc
         {
             if (disposing)
             {
-                this.sendingSemaphore.Dispose();
                 (this.Formatter as IDisposable)?.Dispose();
-
                 GC.SuppressFinalize(this);
             }
+        }
+
+        /// <summary>
+        /// Disposes resources allocated by this instance that are used for reading (not writing).
+        /// </summary>
+        /// <remarks>
+        /// This method is called by <see cref="MessageHandlerBase"/> after the last read operation has completed.
+        /// </remarks>
+        protected virtual void DisposeReader()
+        {
+        }
+
+        /// <summary>
+        /// Disposes resources allocated by this instance that are used for writing (not reading).
+        /// </summary>
+        /// <remarks>
+        /// This method is called by <see cref="MessageHandlerBase"/> after the last write operation has completed.
+        /// Overrides of this method *should* call the base method as well.
+        /// </remarks>
+        protected virtual void DisposeWriter()
+        {
+            this.sendingSemaphore.Dispose();
         }
 
         /// <summary>
@@ -273,30 +333,6 @@ namespace StreamJsonRpc
                 MessageHandlerState state = this.state;
                 Assumes.False(state.HasFlag(startingOperation));
                 this.state |= startingOperation;
-            }
-        }
-
-        private bool CheckIfDisposalAppropriate(MessageHandlerState completedOperation = MessageHandlerState.None)
-        {
-            lock (this.syncObject)
-            {
-                // Revert the flag of our caller to indicate that writing or reading has finished, if applicable.
-                this.state &= ~completedOperation;
-
-                if (!this.DisposalToken.IsCancellationRequested)
-                {
-                    // Disposal hasn't been requested.
-                    return false;
-                }
-
-                // We should dispose ourselves if we have not done so and if reading and writing are not active.
-                bool shouldDispose = (this.state & (MessageHandlerState.Reading | MessageHandlerState.Writing | MessageHandlerState.DisposeVirtualMethodInvoked)) == MessageHandlerState.None;
-                if (shouldDispose)
-                {
-                    this.state |= MessageHandlerState.DisposeVirtualMethodInvoked;
-                }
-
-                return shouldDispose;
             }
         }
     }

@@ -68,17 +68,26 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 
     [Fact]
-    public void Dispose_DoesNotDisposeSocket()
+    public async Task Dispose_DoesNotDisposeSocket()
     {
-        this.handler.Dispose();
+        await this.handler.DisposeAsync();
         Assert.Equal(0, this.socket.DisposalCount);
     }
 
     [Fact]
     public void Dispose_TwiceDoesNotThrow()
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         this.handler.Dispose();
         this.handler.Dispose();
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public async Task DisposeAsync_TwiceDoesNotThrow()
+    {
+        await this.handler.DisposeAsync();
+        await this.handler.DisposeAsync();
     }
 
     [Fact]
