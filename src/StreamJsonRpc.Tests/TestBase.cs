@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
@@ -16,6 +17,8 @@ public abstract class TestBase : IDisposable
     protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(5);
 
     protected static readonly CancellationToken PrecanceledToken = new CancellationToken(canceled: true);
+
+    protected static readonly bool IsRunningUnderLiveUnitTest = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Microsoft.CodeAnalysis.LiveUnitTesting.Runtime");
 
     private const int GCAllocationAttempts = 10;
 

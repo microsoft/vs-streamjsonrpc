@@ -284,9 +284,9 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
 
     public class RemoteTargetOne
     {
-        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
-
         internal static readonly AsyncManualResetEvent CancellableRemoteOperationEntered = new AsyncManualResetEvent();
+
+        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
 
         public static Task<int> NotificationReceived => notificationTcs.Task;
 
