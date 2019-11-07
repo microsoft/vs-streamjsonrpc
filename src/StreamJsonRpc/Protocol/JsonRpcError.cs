@@ -89,6 +89,26 @@ namespace StreamJsonRpc.Protocol
             /// </summary>
             [DataMember(Name = "data", Order = 2, IsRequired = false)]
             public object? Data { get; set; }
+
+            /// <summary>
+            /// Gets the value of the <see cref="Data"/>, taking into account any possible type coercion.
+            /// </summary>
+            /// <typeparam name="T">The <see cref="Type"/> to coerce the <see cref="Data"/> to.</typeparam>
+            /// <returns>The result.</returns>
+            /// <remarks>
+            /// Derived types may override this method in order to deserialize the <see cref="Data"/>
+            /// such that it can be assignable to <typeparamref name="T"/>.
+            /// </remarks>
+            public virtual T GetData<T>() => (T)this.Data!;
+
+            /// <summary>
+            /// Provides a hint for a deferred deserialization of the <see cref="Data"/> value as to the type
+            /// argument that will be used when calling <see cref="GetData{T}"/> later.
+            /// </summary>
+            /// <param name="dataType">The type that will be used as the generic type argument to <see cref="GetData{T}"/>.</param>
+            protected internal virtual void SetExpectedResultType(Type dataType)
+            {
+            }
         }
     }
 }

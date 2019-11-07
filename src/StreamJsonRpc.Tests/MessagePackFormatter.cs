@@ -57,6 +57,7 @@ namespace StreamJsonRpc
                 ProtocolJsonRpcRequestFormatter.Instance,
                 JsonRpcResultFormatter.Instance,
                 ProtocolJsonRpcResultFormatter.Instance,
+                JsonRpcErrorDetailFormatter.Instance,
             };
             var resolvers = new IFormatterResolver[]
             {
@@ -393,6 +394,39 @@ namespace StreamJsonRpc
             }
         }
 
+        private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
+        {
+            internal static readonly JsonRpcErrorDetailFormatter Instance = new JsonRpcErrorDetailFormatter();
+
+            private JsonRpcErrorDetailFormatter()
+            {
+            }
+
+            public Protocol.JsonRpcError.ErrorDetail Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                int arrayLength = reader.ReadArrayHeader();
+                if (arrayLength != 3)
+                {
+                    throw new IOException("Unexpected length of result.");
+                }
+
+                return new JsonRpcError.ErrorDetail
+                {
+                    Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options),
+                    Message = reader.ReadString(),
+                    MsgPackData = GetSliceForNextToken(ref reader),
+                };
+            }
+
+            public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError.ErrorDetail value, MessagePackSerializerOptions options)
+            {
+                writer.WriteArrayHeader(3);
+                options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Serialize(ref writer, value.Code, options);
+                writer.Write(value.Message);
+                options.Resolver.GetFormatterWithVerify<object?>().Serialize(ref writer, value.Data, options);
+            }
+        }
+
         [DataContract]
         private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
         {
@@ -451,11 +485,45 @@ namespace StreamJsonRpc
 
             protected override void SetExpectedResultType(Type resultType)
             {
-                if (!this.MsgPackResult.IsEmpty)
+                Verify.Operation(!this.MsgPackResult.IsEmpty, "Result is no longer available or has already been deserialized.");
+
+                var reader = new MessagePackReader(this.MsgPackResult);
+                this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, StandardOptions);
+                this.MsgPackResult = default;
+            }
+        }
+
+        [DataContract]
+        private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager
+        {
+            void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+            {
+                Assumes.True(message == this);
+                if (this.Error is ErrorDetail privateDetail)
                 {
-                    var reader = new MessagePackReader(this.MsgPackResult);
-                    this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, StandardOptions);
-                    this.MsgPackResult = default;
+                    privateDetail.MsgPackData = default;
+                }
+            }
+
+            [DataContract]
+            internal new class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
+            {
+                internal ReadOnlySequence<byte> MsgPackData { get; set; }
+
+                public override T GetData<T>()
+                {
+                    return this.MsgPackData.IsEmpty
+                        ? (T)this.Data!
+                        : MessagePackSerializer.Deserialize<T>(this.MsgPackData, StandardOptions);
+                }
+
+                protected override void SetExpectedResultType(Type dataType)
+                {
+                    Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
+
+                    var reader = new MessagePackReader(this.MsgPackData);
+                    this.Data = MessagePackSerializer.Deserialize(dataType, ref reader, StandardOptions);
+                    this.MsgPackData = default;
                 }
             }
         }

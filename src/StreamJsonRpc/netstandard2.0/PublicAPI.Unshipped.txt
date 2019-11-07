@@ -38,4 +38,6 @@ virtual StreamJsonRpc.JsonRpc.CreateNewRequestId() -> StreamJsonRpc.RequestId
 virtual StreamJsonRpc.MessageHandlerBase.DisposeAsync() -> System.Threading.Tasks.Task
 virtual StreamJsonRpc.MessageHandlerBase.DisposeReader() -> void
 virtual StreamJsonRpc.MessageHandlerBase.DisposeWriter() -> void
+virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData<T>() -> T
+virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.SetExpectedResultType(System.Type dataType) -> void
 virtual StreamJsonRpc.Protocol.JsonRpcResult.SetExpectedResultType(System.Type resultType) -> void

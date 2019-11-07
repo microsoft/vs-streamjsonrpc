@@ -22,7 +22,7 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
-    public void JsonRpcRequest_ArgsArray()
+    public void JsonRpcRequest_PositionalArgs()
     {
         var original = new JsonRpcRequest
         {
@@ -43,6 +43,35 @@ public class MessagePackFormatterTests : TestBase
 
         Assert.True(actual.TryGetArgumentByNameOrIndex(null, 2, typeof(CustomType), out object? actualArg2));
         Assert.Equal(((CustomType?)original.ArgumentsList[2])!.Age, ((CustomType)actualArg2!).Age);
+    }
+
+    [Fact]
+    public void JsonRpcRequest_NamedArgs()
+    {
+        var original = new JsonRpcRequest
+        {
+            RequestId = new RequestId(5),
+            Method = "test",
+            NamedArguments = new Dictionary<string, object?>
+            {
+                { "Number", 5 },
+                { "Message", "hi" },
+                { "Custom", new CustomType { Age = 8 } },
+            },
+        };
+
+        var actual = this.Roundtrip(original);
+        Assert.Equal(original.RequestId, actual.RequestId);
+        Assert.Equal(original.Method, actual.Method);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex("Number", -1, typeof(int), out object? actualArg0));
+        Assert.Equal(original.NamedArguments["Number"], actualArg0);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex("Message", -1, typeof(string), out object? actualArg1));
+        Assert.Equal(original.NamedArguments["Message"], actualArg1);
+
+        Assert.True(actual.TryGetArgumentByNameOrIndex("Custom", -1, typeof(CustomType), out object? actualArg2));
+        Assert.Equal(((CustomType?)original.NamedArguments["Custom"])!.Age, ((CustomType)actualArg2!).Age);
     }
 
     [Fact]
@@ -77,7 +106,7 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(original.RequestId, actual.RequestId);
         Assert.Equal(original.Error.Code, actual.Error!.Code);
         Assert.Equal(original.Error.Message, actual.Error.Message);
-        Assert.Equal(((CustomType)original.Error.Data).Age, ((CustomType?)actual.Error.Data)!.Age);
+        Assert.Equal(((CustomType)original.Error.Data).Age, actual.Error.GetData<CustomType>().Age);
     }
 
     [Fact]
