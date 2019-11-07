@@ -565,11 +565,11 @@ namespace StreamJsonRpc
             return new JsonRpcError
             {
                 RequestId = id,
-                Error = new JsonRpcError.ErrorDetail
+                Error = new ErrorDetail(this.JsonSerializer)
                 {
                     Code = (JsonRpcErrorCode)error.Value<long>("code"),
                     Message = error.Value<string>("message"),
-                    Data = error["data"], // leave this as a JToken
+                    Data = error["data"], // leave this as a JToken. We deserialize inside GetData<T>
                 },
             };
         }
@@ -686,6 +686,42 @@ namespace StreamJsonRpc
                 }
 
                 return result.ToObject<T>(this.jsonSerializer);
+            }
+        }
+
+        [DataContract]
+        private class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
+        {
+            private readonly JsonSerializer jsonSerializer;
+
+            internal ErrorDetail(JsonSerializer jsonSerializer)
+            {
+                this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            }
+
+            public override object? GetData(Type dataType)
+            {
+                Requires.NotNull(dataType, nameof(dataType));
+
+                var data = (JToken?)this.Data;
+                if (data?.Type == JTokenType.Null)
+                {
+                    Verify.Operation(!dataType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(dataType) != null, "null result is not assignable to a value type.");
+                    return default!;
+                }
+
+                try
+                {
+                    return data?.ToObject(dataType, this.jsonSerializer);
+                }
+                catch (JsonReaderException)
+                {
+                    return data;
+                }
+                catch (JsonSerializationException)
+                {
+                    return data;
+                }
             }
         }
 

@@ -6,6 +6,7 @@ namespace StreamJsonRpc
     using System;
     using System.Buffers;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
@@ -387,6 +388,7 @@ namespace StreamJsonRpc
             }
         }
 
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
         private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
         {
@@ -425,6 +427,7 @@ namespace StreamJsonRpc
             }
         }
 
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
         private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager
         {
@@ -453,6 +456,7 @@ namespace StreamJsonRpc
             }
         }
 
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
         private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager
         {
@@ -470,14 +474,26 @@ namespace StreamJsonRpc
             {
                 internal ReadOnlySequence<byte> MsgPackData { get; set; }
 
-                public override T GetData<T>()
+                public override object? GetData(Type dataType)
                 {
-                    return this.MsgPackData.IsEmpty
-                        ? (T)this.Data!
-                        : MessagePackSerializer.Deserialize<T>(this.MsgPackData, StandardOptions);
+                    Requires.NotNull(dataType, nameof(dataType));
+                    if (this.MsgPackData.IsEmpty)
+                    {
+                        return this.Data;
+                    }
+
+                    var reader = new MessagePackReader(this.MsgPackData);
+                    try
+                    {
+                        return MessagePackSerializer.Deserialize(dataType, ref reader, StandardOptions);
+                    }
+                    catch (MessagePackSerializationException)
+                    {
+                        return null;
+                    }
                 }
 
-                protected override void SetExpectedResultType(Type dataType)
+                protected override void SetExpectedDataType(Type dataType)
                 {
                     Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
 

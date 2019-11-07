@@ -261,7 +261,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task CanCallAsyncMethodThatThrows()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        Assert.NotNull(exception.ErrorData);
+        Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
     }
 
     [Fact]
@@ -683,7 +683,7 @@ public abstract class JsonRpcTests : TestBase
             await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
-            string result = await invokeTask;
+            string result = await invokeTask.WithCancellation(this.TimeoutToken);
             Assert.Equal("a!", result);
         }
     }
@@ -699,7 +699,7 @@ public abstract class JsonRpcTests : TestBase
             this.server.AllowServerMethodToReturn.Set();
             try
             {
-                await invokeTask;
+                await invokeTask.WithCancellation(this.TimeoutToken);
                 Assert.False(true, "Expected exception not thrown.");
             }
             catch (RemoteInvocationException ex)

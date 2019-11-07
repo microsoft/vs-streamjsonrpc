@@ -1133,6 +1133,21 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Determines the type that the <see cref="JsonRpcError.ErrorDetail.Data"/> object should be deserialized to
+        /// for an incoming <see cref="JsonRpcError"/> message.
+        /// </summary>
+        /// <param name="error">The received error message.</param>
+        /// <returns>
+        /// The type, or <c>null</c> if the type is unknown.
+        /// </returns>
+        /// <remarks>
+        /// The default implementation matches what <see cref="CreateErrorDetails(JsonRpcRequest, Exception)"/> does
+        /// by assuming that the <see cref="JsonRpcError.ErrorDetail.Data"/> object should be deserialized as an instance of <see cref="CommonErrorData"/>.
+        /// However derived types can override this method and use <see cref="JsonRpcError.ErrorDetail.Code"/> or other means to determine the appropriate type.
+        /// </remarks>
+        protected virtual Type? GetErrorDetailsDataType(JsonRpcError error) => typeof(CommonErrorData);
+
+        /// <summary>
         /// Invokes the specified RPC method.
         /// </summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
@@ -1229,7 +1244,7 @@ namespace StreamJsonRpc
             {
                 if (response is JsonRpcError error)
                 {
-                    throw CreateExceptionFromRpcError(error, request.Method);
+                    throw this.CreateExceptionFromRpcError(error, request.Method);
                 }
                 else if (response is JsonRpcResult result)
                 {
@@ -1356,22 +1371,6 @@ namespace StreamJsonRpc
             return requestMethodToDelegateMap;
         }
 
-        private static RemoteRpcException CreateExceptionFromRpcError(JsonRpcError response, string targetName)
-        {
-            Requires.NotNull(response, nameof(response));
-
-            Assumes.NotNull(response.Error);
-            switch (response.Error.Code)
-            {
-                case JsonRpcErrorCode.InvalidParams:
-                case JsonRpcErrorCode.MethodNotFound:
-                    return new RemoteMethodNotFoundException(response.Error.Message, targetName);
-
-                default:
-                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data);
-            }
-        }
-
         private static Exception StripExceptionToInnerException(Exception exception)
         {
             if ((exception is TargetInvocationException || exception is AggregateException) && exception.InnerException is object)
@@ -1439,6 +1438,24 @@ namespace StreamJsonRpc
 
             task = null;
             return false;
+        }
+
+        private RemoteRpcException CreateExceptionFromRpcError(JsonRpcError response, string targetName)
+        {
+            Requires.NotNull(response, nameof(response));
+
+            Assumes.NotNull(response.Error);
+            switch (response.Error.Code)
+            {
+                case JsonRpcErrorCode.InvalidParams:
+                case JsonRpcErrorCode.MethodNotFound:
+                    return new RemoteMethodNotFoundException(response.Error.Message, targetName);
+
+                default:
+                    Type? dataType = this.GetErrorDetailsDataType(response);
+                    object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
+                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
+            }
         }
 
         private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
@@ -2150,6 +2167,14 @@ namespace StreamJsonRpc
                         if (data.ExpectedResultType != null && rpc is JsonRpcResult resultMessage)
                         {
                             resultMessage.SetExpectedResultType(data.ExpectedResultType);
+                        }
+                        else if (rpc is JsonRpcError errorMessage && errorMessage.Error?.Data != null)
+                        {
+                            Type? errorType = this.GetErrorDetailsDataType(errorMessage);
+                            if (errorType != null)
+                            {
+                                errorMessage.Error.SetExpectedDataType(errorType);
+                            }
                         }
 
                         (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(rpc);

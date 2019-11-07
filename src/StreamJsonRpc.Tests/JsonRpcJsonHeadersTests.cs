@@ -189,7 +189,12 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 #pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
+
         var errorData = ((JToken?)exception.ErrorData)!.ToObject<CommonErrorData>();
+        Assert.NotNull(errorData.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
+
+        errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }

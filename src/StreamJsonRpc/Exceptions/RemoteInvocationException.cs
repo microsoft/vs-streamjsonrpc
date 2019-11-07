@@ -32,6 +32,21 @@ namespace StreamJsonRpc
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
+        /// <param name="message">The message.</param>
+        /// <param name="errorCode">The value of the error.code field in the response.</param>
+        /// <param name="errorData">The value of the error.data field in the response.</param>
+        /// <param name="deserializedErrorData">The value of the error.data field in the response, deserialized according to <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.</param>
+        public RemoteInvocationException(string? message, int errorCode, object? errorData, object? deserializedErrorData)
+            : base(message)
+        {
+            this.ErrorCode = errorCode;
+            this.ErrorData = errorData;
+            this.DeserializedErrorData = deserializedErrorData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
+        /// </summary>
         /// <param name="info">Serialization info.</param>
         /// <param name="context">Streaming context.</param>
         protected RemoteInvocationException(
@@ -59,5 +74,14 @@ namespace StreamJsonRpc
         /// Deserializing this or casting this object to <see cref="CommonErrorData"/> <em>may</em> succeed, and be a means to extract useful error information.
         /// </remarks>
         public object? ErrorData { get; }
+
+        /// <summary>
+        /// Gets the <c>error.data</c> value in the error response, if one was provided.
+        /// </summary>
+        /// <remarks>
+        /// The type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
+        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
+        /// </remarks>
+        public object? DeserializedErrorData { get; }
     }
 }
