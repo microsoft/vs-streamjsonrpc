@@ -54,9 +54,7 @@ namespace StreamJsonRpc
                 RequestIdFormatter.Instance,
                 JsonRpcMessageFormatter.Instance,
                 JsonRpcRequestFormatter.Instance,
-                ProtocolJsonRpcRequestFormatter.Instance,
                 JsonRpcResultFormatter.Instance,
-                ProtocolJsonRpcResultFormatter.Instance,
                 JsonRpcErrorDetailFormatter.Instance,
             };
             var resolvers = new IFormatterResolver[]
@@ -228,9 +226,9 @@ namespace StreamJsonRpc
 
                 switch ((MessageSubTypes)reader.ReadInt32())
                 {
-                    case MessageSubTypes.Request: return options.Resolver.GetFormatterWithVerify<JsonRpcRequest>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Result: return options.Resolver.GetFormatterWithVerify<JsonRpcResult>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<JsonRpcError>().Deserialize(ref reader, options);
+                    case MessageSubTypes.Request: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
+                    case MessageSubTypes.Result: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
+                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
                     case MessageSubTypes value: throw new NotSupportedException("Unexpected distinguishing subtype value: " + value);
                 }
             }
@@ -260,7 +258,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private class JsonRpcRequestFormatter : IMessagePackFormatter<JsonRpcRequest>
+        private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
         {
             internal static readonly JsonRpcRequestFormatter Instance = new JsonRpcRequestFormatter();
 
@@ -268,7 +266,7 @@ namespace StreamJsonRpc
             {
             }
 
-            public JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            public Protocol.JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
                 int arrayLength = reader.ReadArrayHeader();
                 if (arrayLength != 4)
@@ -313,25 +311,6 @@ namespace StreamJsonRpc
                 return result;
             }
 
-            public void Serialize(ref MessagePackWriter writer, JsonRpcRequest value, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        private class ProtocolJsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
-        {
-            internal static readonly ProtocolJsonRpcRequestFormatter Instance = new ProtocolJsonRpcRequestFormatter();
-
-            private ProtocolJsonRpcRequestFormatter()
-            {
-            }
-
-            public Protocol.JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
-            }
-
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
                 writer.WriteArrayHeader(4);
@@ -342,7 +321,7 @@ namespace StreamJsonRpc
             }
         }
 
-        private class JsonRpcResultFormatter : IMessagePackFormatter<JsonRpcResult>
+        private class JsonRpcResultFormatter : IMessagePackFormatter<Protocol.JsonRpcResult>
         {
             internal static readonly JsonRpcResultFormatter Instance = new JsonRpcResultFormatter();
 
@@ -350,7 +329,7 @@ namespace StreamJsonRpc
             {
             }
 
-            public JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            public Protocol.JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
                 int arrayLength = reader.ReadArrayHeader();
                 if (arrayLength != 3)
@@ -364,25 +343,6 @@ namespace StreamJsonRpc
                     RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
                     MsgPackResult = GetSliceForNextToken(ref reader),
                 };
-            }
-
-            public void Serialize(ref MessagePackWriter writer, JsonRpcResult value, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        private class ProtocolJsonRpcResultFormatter : IMessagePackFormatter<Protocol.JsonRpcResult>
-        {
-            internal static readonly ProtocolJsonRpcResultFormatter Instance = new ProtocolJsonRpcResultFormatter();
-
-            private ProtocolJsonRpcResultFormatter()
-            {
-            }
-
-            public Protocol.JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcResult value, MessagePackSerializerOptions options)
