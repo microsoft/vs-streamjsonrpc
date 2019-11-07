@@ -38,11 +38,6 @@ namespace StreamJsonRpc
         private static readonly long LargeMessageThreshold = new PipeOptions().PauseWriterThreshold;
 
         /// <summary>
-        /// Objects that we should dispose when we are disposed. May be null.
-        /// </summary>
-        private List<IDisposable> disposables;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="PipeMessageHandler"/> class.
         /// </summary>
         /// <param name="pipe">The reader and writer to use for receiving/transmitting messages.</param>
@@ -79,15 +74,19 @@ namespace StreamJsonRpc
             this.Reader = reader?.UseStrictPipeReader();
             this.Writer = writer?.UsePipeWriter();
 
-            this.disposables = new List<IDisposable>();
-            if (reader != null)
+            // After we've completed writing, only dispose the underlying write stream when we've flushed everything.
+            if (writer != null)
             {
-                this.disposables.Add(reader);
+                Assumes.NotNull(this.Writer);
+                this.Writer.OnReaderCompleted((ex, state) => ((Stream)state).Dispose(), writer);
             }
 
-            if (writer != null && writer != reader)
+            // NamedPipeClientStream.ReadAsync(byte[], int, int, CancellationToken) ignores the CancellationToken except at the entrypoint.
+            // To avoid an async hang there or in similar streams upon disposal, we're going to Dispose the read stream directly.
+            // We only need to do this if the read stream is distinct from the write stream, which is already handled above.
+            if (reader != null && reader != writer)
             {
-                this.disposables.Add(writer);
+                this.DisposalToken.Register(state => ((Stream)state).Dispose(), reader);
             }
         }
 
@@ -136,20 +135,6 @@ namespace StreamJsonRpc
                 this.Reader?.Complete();
                 this.Writer?.Complete();
 
-                if (this.disposables != null)
-                {
-                    // Only dispose the underlying streams (if any) *after* our writer's work has been fully read.
-                    // Otherwise we risk cutting of data that we claimed to have transmitted.
-                    if (this.Writer != null && this.disposables != null)
-                    {
-                        this.Writer.OnReaderCompleted((ex, s) => this.DisposeDisposables(), null);
-                    }
-                    else
-                    {
-                        this.DisposeDisposables();
-                    }
-                }
-
                 base.Dispose(disposing);
             }
         }
@@ -191,6 +176,22 @@ namespace StreamJsonRpc
             }
 
             return readResult;
+        }
+
+        /// <inheritdoc />
+        private protected override void DisposeReader()
+        {
+            this.Reader?.Complete();
+
+            base.DisposeReader();
+        }
+
+        /// <inheritdoc />
+        private protected override void DisposeWriter()
+        {
+            this.Writer?.Complete();
+
+            base.DisposeWriter();
         }
 
         /// <summary>
@@ -265,19 +266,6 @@ namespace StreamJsonRpc
         private protected Exception ThrowNoTextEncoder()
         {
             throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.TextEncoderNotApplicable, this.Formatter.GetType().FullName, typeof(IJsonRpcMessageTextFormatter).FullName));
-        }
-
-        private void DisposeDisposables()
-        {
-            if (this.disposables != null)
-            {
-                foreach (IDisposable disposable in this.disposables)
-                {
-                    disposable?.Dispose();
-                }
-
-                this.disposables = null;
-            }
         }
     }
 }

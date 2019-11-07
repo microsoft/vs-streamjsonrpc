@@ -207,7 +207,7 @@ public class StreamMessageHandlerTests : TestBase
         protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref this.WriteCoreCallCount);
-            return new ValueTask(this.WriteBlock.WaitAsync());
+            return new ValueTask(this.WriteBlock.WaitAsync(cancellationToken));
         }
     }
 
