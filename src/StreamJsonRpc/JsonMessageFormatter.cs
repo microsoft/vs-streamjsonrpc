@@ -603,7 +603,7 @@ namespace StreamJsonRpc
                     if (parameters[0].ParameterType == typeof(JToken))
                     {
                         var obj = new JObject();
-                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        foreach (KeyValuePair<string, object?> property in this.NamedArguments)
                         {
                             obj.Add(new JProperty(property.Key, property.Value));
                         }
@@ -619,7 +619,7 @@ namespace StreamJsonRpc
                         if (attribute?.UseSingleObjectParameterDeserialization ?? false)
                         {
                             var obj = new JObject();
-                            foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                            foreach (KeyValuePair<string, object?> property in this.NamedArguments)
                             {
                                 obj.Add(new JProperty(property.Key, property.Value));
                             }

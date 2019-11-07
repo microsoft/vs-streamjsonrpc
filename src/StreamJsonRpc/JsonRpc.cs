@@ -2255,7 +2255,7 @@ namespace StreamJsonRpc
                     var cancellationMessage = new JsonRpcRequest
                     {
                         Method = CancelRequestSpecialMethod,
-                        NamedArguments = new Dictionary<string, object>
+                        NamedArguments = new Dictionary<string, object?>
                         {
                             { "id", requestId },
                         },

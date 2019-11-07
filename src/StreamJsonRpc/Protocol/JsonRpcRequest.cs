@@ -103,9 +103,9 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the dictionary of named arguments, if applicable.
         /// </summary>
         [IgnoreDataMember]
-        public IReadOnlyDictionary<string, object>? NamedArguments
+        public IReadOnlyDictionary<string, object?>? NamedArguments
         {
-            get => this.Arguments as IReadOnlyDictionary<string, object>;
+            get => this.Arguments as IReadOnlyDictionary<string, object?>;
             set => this.Arguments = value;
         }
 
