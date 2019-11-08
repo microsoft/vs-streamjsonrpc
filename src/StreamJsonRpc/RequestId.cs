@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Diagnostics;
     using System.Globalization;
     using Newtonsoft.Json;
 
@@ -47,11 +48,13 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the ID if it is a number.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public long? Number { get; }
 
         /// <summary>
         /// Gets the ID if it is a string.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public string? String { get; }
 
         /// <summary>
@@ -67,6 +70,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets the ID if it is a number, or -1.
         /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal long NumberIfPossibleForEvent => this.Number ?? -1;
 
         /// <inheritdoc/>

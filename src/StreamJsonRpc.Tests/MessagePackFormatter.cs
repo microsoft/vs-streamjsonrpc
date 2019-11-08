@@ -445,8 +445,9 @@ namespace StreamJsonRpc
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, StandardOptions);
                     return true;
                 }
-                catch (InvalidOperationException) // can be removed when https://github.com/neuecc/MessagePack-CSharp/pull/627 is applied
+                catch (InvalidOperationException)
                 {
+                    // This block can be removed when https://github.com/neuecc/MessagePack-CSharp/pull/627 is applied.
                     value = null;
                     return false;
                 }
