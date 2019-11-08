@@ -36,6 +36,7 @@ namespace StreamJsonRpc
             JsonRpcMessageFormatter.Instance,
             JsonRpcRequestFormatter.Instance,
             JsonRpcResultFormatter.Instance,
+            JsonRpcErrorFormatter.Instance,
             JsonRpcErrorDetailFormatter.Instance,
         });
 
@@ -86,6 +87,17 @@ namespace StreamJsonRpc
                 .WithResolver(this.CreateOverallResolver());
         }
 
+        private interface IJsonRpcMessagePackRetention
+        {
+            /// <summary>
+            /// Gets the original msgpack sequence that was deserialized into this message.
+            /// </summary>
+            /// <remarks>
+            /// The buffer is only retained for a short time. If it has already been cleared, the result of this property is an empty sequence.
+            /// </remarks>
+            ReadOnlySequence<byte> OriginalMessagePack { get; }
+        }
+
         /// <summary>
         /// Gets or sets the resolver to use for user data types.
         /// </summary>
@@ -129,7 +141,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public object GetJsonText(JsonRpcMessage message) => MessagePackSerializer.SerializeToJson(message, this.options);
+        public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.options) : MessagePackSerializer.SerializeToJson(message, this.options);
 
         /// <summary>
         /// Extracts a dictionary of property names and values from the specified params object.
@@ -270,7 +282,7 @@ namespace StreamJsonRpc
                 {
                     case MessageSubTypes.Request: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
                     case MessageSubTypes.Result: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<JsonRpcError>().Deserialize(ref reader, options);
+                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
                     case MessageSubTypes value: throw new NotSupportedException("Unexpected distinguishing subtype value: " + value);
                 }
             }
@@ -318,6 +330,7 @@ namespace StreamJsonRpc
 
                 var result = new JsonRpcRequest(options)
                 {
+                    OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
                     RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
                     Method = reader.ReadString(),
@@ -385,6 +398,7 @@ namespace StreamJsonRpc
 
                 return new JsonRpcResult(options)
                 {
+                    OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
                     RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
                     MsgPackResult = GetSliceForNextToken(ref reader),
@@ -397,6 +411,40 @@ namespace StreamJsonRpc
                 writer.Write(value.Version);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
                 options.Resolver.GetFormatterWithVerify<object?>().Serialize(ref writer, value.Result, options);
+            }
+        }
+
+        private class JsonRpcErrorFormatter : IMessagePackFormatter<Protocol.JsonRpcError>
+        {
+            internal static readonly JsonRpcErrorFormatter Instance = new JsonRpcErrorFormatter();
+
+            private JsonRpcErrorFormatter()
+            {
+            }
+
+            public Protocol.JsonRpcError Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                int arrayLength = reader.ReadArrayHeader();
+                if (arrayLength != 3)
+                {
+                    throw new IOException("Unexpected length of result.");
+                }
+
+                return new JsonRpcError
+                {
+                    OriginalMessagePack = reader.Sequence,
+                    Version = reader.ReadString(),
+                    RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
+                    Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options),
+                };
+            }
+
+            public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError value, MessagePackSerializerOptions options)
+            {
+                writer.WriteArrayHeader(3);
+                writer.Write(value.Version);
+                options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
             }
         }
 
@@ -436,7 +484,7 @@ namespace StreamJsonRpc
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
-        private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
+        private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
             private readonly MessagePackSerializerOptions serializerOptions;
 
@@ -446,6 +494,8 @@ namespace StreamJsonRpc
             }
 
             public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
+
+            public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
 
             internal IReadOnlyDictionary<string, ReadOnlySequence<byte>>? MsgPackNamedArguments { get; set; }
 
@@ -458,6 +508,7 @@ namespace StreamJsonRpc
                 // Clear references to buffers that we are no longer entitled to.
                 this.MsgPackNamedArguments = null;
                 this.MsgPackPositionalArguments = null;
+                this.OriginalMessagePack = default;
             }
 
             public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
@@ -497,7 +548,7 @@ namespace StreamJsonRpc
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
-        private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager
+        private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
             private readonly MessagePackSerializerOptions serializerOptions;
 
@@ -506,12 +557,15 @@ namespace StreamJsonRpc
                 this.serializerOptions = serializerOptions ?? throw new ArgumentNullException(nameof(serializerOptions));
             }
 
+            public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
+
             internal ReadOnlySequence<byte> MsgPackResult { get; set; }
 
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
                 Assumes.True(message == this);
                 this.MsgPackResult = default;
+                this.OriginalMessagePack = default;
             }
 
             public override T GetResult<T>()
@@ -533,8 +587,10 @@ namespace StreamJsonRpc
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
-        private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager
+        private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
+            public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
+
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
                 Assumes.True(message == this);
@@ -542,6 +598,8 @@ namespace StreamJsonRpc
                 {
                     privateDetail.MsgPackData = default;
                 }
+
+                this.OriginalMessagePack = default;
             }
 
             [DataContract]

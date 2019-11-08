@@ -47,7 +47,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets the name of the method to be invoked.
         /// </summary>
-        [DataMember(Name = "method", Order = 1, IsRequired = true)]
+        [DataMember(Name = "method", Order = 2, IsRequired = true)]
         public string? Method { get; set; }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace StreamJsonRpc.Protocol
         /// and the value is the argument, or an array of <see cref="object"/>.
         /// If neither of these, <see cref="ArgumentCount"/> and <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
         /// </value>
-        [DataMember(Name = "params", Order = 2, IsRequired = false, EmitDefaultValue = false)]
+        [DataMember(Name = "params", Order = 3, IsRequired = false, EmitDefaultValue = false)]
         public object? Arguments { get; set; }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
-        [DataMember(Name = "id", Order = 3, IsRequired = false, EmitDefaultValue = false)]
+        [DataMember(Name = "id", Order = 1, IsRequired = false, EmitDefaultValue = false)]
         public RequestId RequestId { get; set; }
 
         /// <summary>

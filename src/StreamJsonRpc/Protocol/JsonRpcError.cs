@@ -20,7 +20,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets the detail about the error.
         /// </summary>
-        [DataMember(Name = "error", Order = 1, IsRequired = true)]
+        [DataMember(Name = "error", Order = 2, IsRequired = true)]
         public ErrorDetail? Error { get; set; }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
-        [DataMember(Name = "id", Order = 2, IsRequired = true, EmitDefaultValue = true)]
+        [DataMember(Name = "id", Order = 1, IsRequired = true, EmitDefaultValue = true)]
         public RequestId RequestId { get; set; }
 
         /// <summary>
