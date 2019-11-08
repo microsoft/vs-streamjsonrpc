@@ -311,6 +311,10 @@ namespace StreamJsonRpc
 
                         result.MsgPackNamedArguments = namedArgs;
                         break;
+                    case MessagePackType.Nil:
+                        result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
+                        reader.ReadNil();
+                        break;
                     case MessagePackType type:
                         throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
                 }
@@ -399,6 +403,8 @@ namespace StreamJsonRpc
         [DataContract]
         private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
         {
+            public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
+
             internal IReadOnlyDictionary<string, ReadOnlySequence<byte>>? MsgPackNamedArguments { get; set; }
 
             internal IReadOnlyList<ReadOnlySequence<byte>>? MsgPackPositionalArguments { get; set; }
@@ -434,8 +440,21 @@ namespace StreamJsonRpc
                 }
 
                 var reader = new MessagePackReader(msgpackArgument);
-                value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, StandardOptions);
-                return true;
+                try
+                {
+                    value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, StandardOptions);
+                    return true;
+                }
+                catch (InvalidOperationException) // can be removed when https://github.com/neuecc/MessagePack-CSharp/pull/627 is applied
+                {
+                    value = null;
+                    return false;
+                }
+                catch (MessagePackSerializationException)
+                {
+                    value = null;
+                    return false;
+                }
             }
         }
 

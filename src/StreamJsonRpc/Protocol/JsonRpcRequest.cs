@@ -97,7 +97,7 @@ namespace StreamJsonRpc.Protocol
         /// Gets the number of arguments supplied in the request.
         /// </summary>
         [IgnoreDataMember]
-        public int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsList?.Count ?? 0;
+        public virtual int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsList?.Count ?? 0;
 
         /// <summary>
         /// Gets or sets the dictionary of named arguments, if applicable.

@@ -2158,6 +2158,7 @@ public abstract class JsonRpcTests : TestBase
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 
+    [DataContract]
     internal class InternalClass
     {
     }
