@@ -2168,7 +2168,7 @@ namespace StreamJsonRpc
                         {
                             resultMessage.SetExpectedResultType(data.ExpectedResultType);
                         }
-                        else if (rpc is JsonRpcError errorMessage && errorMessage.Error?.Data != null)
+                        else if (rpc is JsonRpcError errorMessage && errorMessage.Error != null)
                         {
                             Type? errorType = this.GetErrorDetailsDataType(errorMessage);
                             if (errorType != null)
