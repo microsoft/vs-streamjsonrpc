@@ -113,8 +113,8 @@ public class MessagePackFormatterTests : TestBase
     public async Task BasicJsonRpc()
     {
         var (clientStream, serverStream) = FullDuplexStream.CreatePair();
-        var clientFormatter = new MessagePackFormatter(compress: false);
-        var serverFormatter = new MessagePackFormatter(compress: false);
+        var clientFormatter = new MessagePackFormatter();
+        var serverFormatter = new MessagePackFormatter();
 
         var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(), clientFormatter);
         var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(), serverFormatter);

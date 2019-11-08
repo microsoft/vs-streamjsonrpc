@@ -68,11 +68,10 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class
-        /// with LZ4 compression.
+        /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
         /// </summary>
         public MessagePackFormatter()
-            : this(compress: true)
+            : this(compress: false)
         {
         }
 
@@ -80,8 +79,15 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
         /// </summary>
         /// <param name="compress">A value indicating whether to use LZ4 compression.</param>
-        public MessagePackFormatter(bool compress)
+        private MessagePackFormatter(bool compress)
         {
+            if (compress)
+            {
+                // Before we enable this, we need a way to ensure that the LZ4-expanded buffers stick around long enough for our deferred deserialization.
+                // See https://github.com/neuecc/MessagePack-CSharp/issues/109#issuecomment-551370773
+                throw new NotSupportedException();
+            }
+
             this.options = StandardOptions.WithLZ4Compression(useLZ4Compression: compress);
         }
 
@@ -229,7 +235,7 @@ namespace StreamJsonRpc
                 {
                     case MessageSubTypes.Request: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
                     case MessageSubTypes.Result: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
+                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<JsonRpcError>().Deserialize(ref reader, options);
                     case MessageSubTypes value: throw new NotSupportedException("Unexpected distinguishing subtype value: " + value);
                 }
             }
@@ -371,12 +377,13 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of result.");
                 }
 
-                return new JsonRpcError.ErrorDetail
+                var result = new JsonRpcError.ErrorDetail
                 {
                     Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options),
                     Message = reader.ReadString(),
                     MsgPackData = GetSliceForNextToken(ref reader),
                 };
+                return result;
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError.ErrorDetail value, MessagePackSerializerOptions options)
