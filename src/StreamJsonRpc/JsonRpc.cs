@@ -1649,8 +1649,6 @@ namespace StreamJsonRpc
                     }
                 }
 
-                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(request);
-
                 if (targetMethod != null && targetMethod.IsFound)
                 {
                     // Add cancelation to inboundCancellationSources before yielding to ensure that
@@ -1826,7 +1824,6 @@ namespace StreamJsonRpc
             }
             catch (Exception ex) when (!this.IsFatalException(StripExceptionToInnerException(ex)))
             {
-                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(request);
                 JsonRpcError error = this.CreateError(request, ex);
 
                 if (error.Error != null && JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Warning, System.Diagnostics.Tracing.EventKeywords.None))
@@ -2074,6 +2071,10 @@ namespace StreamJsonRpc
                     }
 
                     this.HandleRpcAsync(protocolMessage).Forget(); // all exceptions are handled internally
+
+                    // We must clear buffers before reading the next message.
+                    // HandleRpcAsync must do whatever deserialization it requires before it yields.
+                    (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(protocolMessage);
                 }
 
                 this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed));
@@ -2177,8 +2178,6 @@ namespace StreamJsonRpc
                             }
                         }
 
-                        (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(rpc);
-
                         // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
                         await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                         data.CompletionHandler(rpc);
@@ -2202,17 +2201,13 @@ namespace StreamJsonRpc
                 // Fatal error. Raise disconnected event.
                 this.OnJsonRpcDisconnected(eventArgs);
             }
-            finally
-            {
-                (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(rpc);
-            }
         }
 
         private async Task HandleCancellationNotificationAsync(JsonRpcRequest request)
         {
             Requires.NotNull(request, nameof(request));
 
-            if (request.TryGetArgumentByNameOrIndex("id", -1, null, out object? idArg))
+            if (request.TryGetArgumentByNameOrIndex("id", -1, typeof(RequestId), out object? idArg))
             {
                 RequestId id = idArg is RequestId requestId ? requestId : RequestId.Parse(idArg);
                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
