@@ -410,10 +410,15 @@ namespace StreamJsonRpc
                 // If anyone asks us for an argument *after* we've been told deserialization is done, there's something very wrong.
                 Assumes.True(this.MsgPackNamedArguments != null || this.MsgPackPositionalArguments != null);
 
-                ReadOnlySequence<byte> msgpackArgument =
-                    this.MsgPackPositionalArguments != null && position >= 0 ? this.MsgPackPositionalArguments[position] :
-                    this.MsgPackNamedArguments != null && name is object ? this.MsgPackNamedArguments[name] :
-                    default;
+                ReadOnlySequence<byte> msgpackArgument = default;
+                if (position >= 0 && this.MsgPackPositionalArguments?.Count > position)
+                {
+                    msgpackArgument = this.MsgPackPositionalArguments[position];
+                }
+                else if (name is object && this.MsgPackNamedArguments != null)
+                {
+                    this.MsgPackNamedArguments.TryGetValue(name, out msgpackArgument);
+                }
 
                 if (msgpackArgument.IsEmpty)
                 {
