@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
@@ -30,7 +31,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     [Fact]
     public async Task ExceptionControllingErrorData()
     {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException)));
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException))).WithCancellation(this.TimeoutToken);
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
         object myCustomData = data!["myCustomData"];
