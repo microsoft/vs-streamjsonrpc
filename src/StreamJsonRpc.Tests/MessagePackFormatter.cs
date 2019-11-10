@@ -30,35 +30,36 @@ namespace StreamJsonRpc
     /// </remarks>
     public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
     {
-        private static readonly ImmutableList<IMessagePackFormatter> BuiltInFormatters = ImmutableList<IMessagePackFormatter>.Empty.AddRange(new IMessagePackFormatter[]
-        {
-            RequestIdFormatter.Instance,
-            JsonRpcMessageFormatter.Instance,
-            JsonRpcRequestFormatter.Instance,
-            JsonRpcResultFormatter.Instance,
-            JsonRpcErrorFormatter.Instance,
-            JsonRpcErrorDetailFormatter.Instance,
-        });
-
         /// <summary>
         /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
         /// </summary>
         private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
 
         /// <summary>
+        /// The options to use for serializing top-level RPC messages.
+        /// </summary>
+        private readonly MessagePackSerializerOptions messageSerializationOptions;
+
+        /// <summary>
+        /// The options to use for serializing user data (e.g. arguments, return values and errors).
+        /// </summary>
+        private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard;
+
+        /// <summary>
+        /// The <see cref="IFormatterResolver"/> that was fed into the <see cref="GetWrappersForUserSuppliedResolver(IFormatterResolver, out MessagePackSerializerOptions, out IMessagePackFormatter{object?})"/> method.
+        /// Backing field for the <see cref="Resolver"/> property.
+        /// </summary>
+        private IFormatterResolver userSuppliedResolver;
+
+        /// <summary>
+        /// The formatter to use when serializing user data that we only see typed as <see cref="object"/>.
+        /// </summary>
+        private IMessagePackFormatter<object?> dynamicObjectTypeFormatterForUserSuppliedResolver;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
         /// </summary>
         private JsonRpc? rpc;
-
-        /// <summary>
-        /// The options to use for serialization.
-        /// </summary>
-        private MessagePackSerializerOptions options;
-
-        /// <summary>
-        /// The user-supplied resolver to use for user data (method arguments, return values and custom errors).
-        /// </summary>
-        private IFormatterResolver? userResolver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
@@ -81,10 +82,16 @@ namespace StreamJsonRpc
                 throw new NotSupportedException();
             }
 
-            // Set up initial options.
-            this.options = MessagePackSerializerOptions.Standard
+            // Set up initial options for our own message types.
+            this.messageSerializationOptions = MessagePackSerializerOptions.Standard
                 .WithLZ4Compression(useLZ4Compression: compress)
-                .WithResolver(this.CreateOverallResolver());
+                .WithResolver(this.CreateTopLevelMessageResolver());
+
+            // Set up default user data resolver.
+            this.userSuppliedResolver = this.GetWrappersForUserSuppliedResolver(
+                StandardResolverAllowPrivate.Instance,
+                out this.userDataSerializationOptions,
+                out this.dynamicObjectTypeFormatterForUserSuppliedResolver);
         }
 
         private interface IJsonRpcMessagePackRetention
@@ -101,13 +108,16 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets or sets the resolver to use for user data types.
         /// </summary>
-        public IFormatterResolver? Resolver
+        public IFormatterResolver Resolver
         {
-            get => this.userResolver;
+            get => this.userSuppliedResolver;
             set
             {
-                this.userResolver = value;
-                this.options = this.options.WithResolver(this.CreateOverallResolver());
+                Requires.NotNull(value, nameof(value));
+                if (value != this.userSuppliedResolver)
+                {
+                    this.userSuppliedResolver = this.GetWrappersForUserSuppliedResolver(value, out this.userDataSerializationOptions, out this.dynamicObjectTypeFormatterForUserSuppliedResolver);
+                }
             }
         }
 
@@ -123,7 +133,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.options);
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -136,12 +146,12 @@ namespace StreamJsonRpc
             }
 
             var writer = new MessagePackWriter(contentBuffer);
-            MessagePackSerializer.Serialize(ref writer, message, this.options);
+            MessagePackSerializer.Serialize(ref writer, message, this.messageSerializationOptions);
             writer.Flush();
         }
 
         /// <inheritdoc/>
-        public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.options) : MessagePackSerializer.SerializeToJson(message, this.options);
+        public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : MessagePackSerializer.SerializeToJson(message, this.messageSerializationOptions);
 
         /// <summary>
         /// Extracts a dictionary of property names and values from the specified params object.
@@ -195,31 +205,47 @@ namespace StreamJsonRpc
             return reader.Sequence.Slice(startingPosition, endingPosition);
         }
 
-        private IFormatterResolver CreateOverallResolver()
+        /// <summary>
+        /// Takes the user-supplied resolver for their data types and prepares the wrapping options
+        /// and the dynamic object wrapper for serialization.
+        /// </summary>
+        /// <param name="resolver">The resolver supplied by the user, or the default.</param>
+        /// <param name="options">Receives the new value for <see cref="userDataSerializationOptions"/> field.</param>
+        /// <param name="dynamicObjectTypeFormatter">Receives the new value for the <see cref="dynamicObjectTypeFormatterForUserSuppliedResolver"/> field.</param>
+        /// <returns>The new value for the <see cref="userSuppliedResolver"/> field. Simply a copy of the <paramref name="resolver"/> reference.</returns>
+        private IFormatterResolver GetWrappersForUserSuppliedResolver(IFormatterResolver resolver, out MessagePackSerializerOptions options, out IMessagePackFormatter<object?> dynamicObjectTypeFormatter)
         {
-            var dynamicObjectResolverFallbackResolvers = new List<IFormatterResolver>
+            var formatters = new IMessagePackFormatter[]
             {
-                CompositeResolver.Create(RequestIdFormatter.Instance),
+                // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
+                RequestIdFormatter.Instance,
             };
-            if (this.userResolver is object)
+            var resolvers = new IFormatterResolver[]
             {
-                dynamicObjectResolverFallbackResolvers.Add(this.userResolver);
-            }
+                resolver,
+            };
+            var userDataResolver = CompositeResolver.Create(formatters, resolvers);
+            options = this.userDataSerializationOptions.WithResolver(userDataResolver);
+            dynamicObjectTypeFormatter = new DynamicObjectTypeFallbackFormatter(this.userDataSerializationOptions.Resolver);
+            return resolver;
+        }
 
-            dynamicObjectResolverFallbackResolvers.Add(StandardResolverAllowPrivate.Instance);
-
-            // The fallback formatter gets all the "object" typed jobs, which is how user data is always typed (at the root of the object graph for each argument or return value).
-            var fallbackFormatter = new DynamicObjectTypeFallbackFormatter(
-                CompositeResolver.Create(Array.Empty<IMessagePackFormatter>(), dynamicObjectResolverFallbackResolvers));
-
+        private IFormatterResolver CreateTopLevelMessageResolver()
+        {
+            var formatters = new IMessagePackFormatter[]
+            {
+                RequestIdFormatter.Instance,
+                JsonRpcMessageFormatter.Instance,
+                new JsonRpcRequestFormatter(this),
+                new JsonRpcResultFormatter(this),
+                JsonRpcErrorFormatter.Instance,
+                new JsonRpcErrorDetailFormatter(this),
+            };
             var resolvers = new IFormatterResolver[]
             {
                 StandardResolverAllowPrivate.Instance,
             };
-
-            var compositeResolver = CompositeResolver.Create(BuiltInFormatters.Add(fallbackFormatter), resolvers);
-
-            return compositeResolver;
+            return CompositeResolver.Create(formatters, resolvers);
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>
@@ -314,10 +340,11 @@ namespace StreamJsonRpc
 
         private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
         {
-            internal static readonly JsonRpcRequestFormatter Instance = new JsonRpcRequestFormatter();
+            private readonly MessagePackFormatter formatter;
 
-            private JsonRpcRequestFormatter()
+            internal JsonRpcRequestFormatter(MessagePackFormatter formatter)
             {
+                this.formatter = formatter;
             }
 
             public Protocol.JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -328,7 +355,7 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of request.");
                 }
 
-                var result = new JsonRpcRequest(options)
+                var result = new JsonRpcRequest(this.formatter.userDataSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
@@ -376,16 +403,37 @@ namespace StreamJsonRpc
                 writer.Write(value.Version);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
                 writer.Write(value.Method);
-                options.Resolver.GetFormatterWithVerify<object?>().Serialize(ref writer, value.Arguments, options);
+                if (value.ArgumentsList != null)
+                {
+                    writer.WriteArrayHeader(value.ArgumentsList.Count);
+                    foreach (var arg in value.ArgumentsList)
+                    {
+                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                    }
+                }
+                else if (value.NamedArguments != null)
+                {
+                    writer.WriteMapHeader(value.NamedArguments.Count);
+                    foreach (var entry in value.NamedArguments)
+                    {
+                        writer.Write(entry.Key);
+                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                    }
+                }
+                else
+                {
+                    writer.WriteNil();
+                }
             }
         }
 
         private class JsonRpcResultFormatter : IMessagePackFormatter<Protocol.JsonRpcResult>
         {
-            internal static readonly JsonRpcResultFormatter Instance = new JsonRpcResultFormatter();
+            private readonly MessagePackFormatter formatter;
 
-            private JsonRpcResultFormatter()
+            internal JsonRpcResultFormatter(MessagePackFormatter formatter)
             {
+                this.formatter = formatter;
             }
 
             public Protocol.JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -396,7 +444,7 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of result.");
                 }
 
-                return new JsonRpcResult(options)
+                return new JsonRpcResult(this.formatter.userDataSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
@@ -450,10 +498,11 @@ namespace StreamJsonRpc
 
         private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
         {
-            internal static readonly JsonRpcErrorDetailFormatter Instance = new JsonRpcErrorDetailFormatter();
+            private readonly MessagePackFormatter formatter;
 
-            private JsonRpcErrorDetailFormatter()
+            internal JsonRpcErrorDetailFormatter(MessagePackFormatter formatter)
             {
+                this.formatter = formatter;
             }
 
             public Protocol.JsonRpcError.ErrorDetail Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -464,7 +513,7 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of result.");
                 }
 
-                var result = new JsonRpcError.ErrorDetail(options)
+                var result = new JsonRpcError.ErrorDetail(this.formatter.userDataSerializationOptions)
                 {
                     Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options),
                     Message = reader.ReadString(),

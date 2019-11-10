@@ -5,6 +5,9 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using StreamJsonRpc;
@@ -135,6 +138,24 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(8, result);
     }
 
+    [Fact]
+    public void Resolver_UserDefinedTypeOnly()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new CustomFormatter());
+        var originalArg = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
+        var originalRequest = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            ArgumentsList = new object[] { originalArg },
+        };
+        var roundtripRequest = this.Roundtrip(originalRequest);
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(null, 0, typeof(TypeRequiringCustomFormatter), out object? roundtripArgObj));
+        var roundtripArg = (TypeRequiringCustomFormatter)roundtripArgObj!;
+        Assert.Equal(originalArg.Prop1, roundtripArg.Prop1);
+        Assert.Equal(originalArg.Prop2, roundtripArg.Prop2);
+    }
+
     private T Roundtrip<T>(T value)
         where T : JsonRpcMessage
     {
@@ -149,6 +170,33 @@ public class MessagePackFormatterTests : TestBase
     {
         [DataMember]
         public int Age { get; set; }
+    }
+
+    private class TypeRequiringCustomFormatter
+    {
+        internal int Prop1 { get; set; }
+
+        internal int Prop2 { get; set; }
+    }
+
+    private class CustomFormatter : IMessagePackFormatter<TypeRequiringCustomFormatter>
+    {
+        public TypeRequiringCustomFormatter Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            Assert.Equal(2, reader.ReadArrayHeader());
+            return new TypeRequiringCustomFormatter
+            {
+                Prop1 = reader.ReadInt32(),
+                Prop2 = reader.ReadInt32(),
+            };
+        }
+
+        public void Serialize(ref MessagePackWriter writer, TypeRequiringCustomFormatter value, MessagePackSerializerOptions options)
+        {
+            writer.WriteArrayHeader(2);
+            writer.Write(value.Prop1);
+            writer.Write(value.Prop2);
+        }
     }
 
     private class Server
