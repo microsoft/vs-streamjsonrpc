@@ -31,6 +31,19 @@ namespace StreamJsonRpc
     public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IDisposable
     {
         /// <summary>
+        /// The constant "jsonrpc".
+        /// </summary>
+        private const string VersionPropertyName = "jsonrpc";
+
+        private const string IdPropertyName = "id";
+
+        private const string MethodPropertyName = "method";
+
+        private const string ResultPropertyName = "result";
+
+        private const string ErrorPropertyName = "error";
+
+        /// <summary>
         /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
         /// </summary>
         private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
@@ -657,15 +670,15 @@ namespace StreamJsonRpc
                 for (int i = 0; i < propertyCount; i++)
                 {
                     string propertyName = readAhead.ReadString();
-                    if (propertyName == "method")
+                    if (propertyName == MethodPropertyName)
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
                     }
-                    else if (propertyName == "result")
+                    else if (propertyName == ResultPropertyName)
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
                     }
-                    else if (propertyName == "error")
+                    else if (propertyName == ErrorPropertyName)
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
                     }
@@ -700,6 +713,8 @@ namespace StreamJsonRpc
 
         private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
         {
+            private const string ParamsPropertyName = "params";
+
             private readonly MessagePackFormatter formatter;
 
             internal JsonRpcRequestFormatter(MessagePackFormatter formatter)
@@ -719,16 +734,16 @@ namespace StreamJsonRpc
                 {
                     switch (reader.ReadString())
                     {
-                        case "jsonrpc":
+                        case VersionPropertyName:
                             result.Version = reader.ReadString();
                             break;
-                        case "id":
+                        case IdPropertyName:
                             result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
                             break;
-                        case "method":
+                        case MethodPropertyName:
                             result.Method = reader.ReadString();
                             break;
-                        case "params":
+                        case ParamsPropertyName:
                             SequencePosition paramsTokenStartPosition = reader.Position;
 
                             // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
@@ -803,16 +818,16 @@ namespace StreamJsonRpc
 
                     writer.WriteMapHeader(4);
 
-                    writer.Write("jsonrpc");
+                    writer.Write(VersionPropertyName);
                     writer.Write(value.Version);
 
-                    writer.Write("id");
+                    writer.Write(IdPropertyName);
                     options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
-                    writer.Write("method");
+                    writer.Write(MethodPropertyName);
                     writer.Write(value.Method);
 
-                    writer.Write("params");
+                    writer.Write(ParamsPropertyName);
                     if (value.ArgumentsList != null)
                     {
                         writer.WriteArrayHeader(value.ArgumentsList.Count);
@@ -864,13 +879,13 @@ namespace StreamJsonRpc
                 {
                     switch (reader.ReadString())
                     {
-                        case "jsonrpc":
+                        case VersionPropertyName:
                             result.Version = reader.ReadString();
                             break;
-                        case "id":
+                        case IdPropertyName:
                             result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
                             break;
-                        case "result":
+                        case ResultPropertyName:
                             result.MsgPackResult = GetSliceForNextToken(ref reader);
                             break;
                     }
@@ -886,13 +901,13 @@ namespace StreamJsonRpc
             {
                 writer.WriteMapHeader(3);
 
-                writer.Write("jsonrpc");
+                writer.Write(VersionPropertyName);
                 writer.Write(value.Version);
 
-                writer.Write("id");
+                writer.Write(IdPropertyName);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
-                writer.Write("result");
+                writer.Write(ResultPropertyName);
                 this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
             }
         }
@@ -918,13 +933,13 @@ namespace StreamJsonRpc
                 {
                     switch (reader.ReadString())
                     {
-                        case "jsonrpc":
+                        case VersionPropertyName:
                             error.Version = reader.ReadString();
                             break;
-                        case "id":
+                        case IdPropertyName:
                             error.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
                             break;
-                        case "error":
+                        case ErrorPropertyName:
                             error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
                             break;
                     }
@@ -940,19 +955,22 @@ namespace StreamJsonRpc
             {
                 writer.WriteMapHeader(3);
 
-                writer.Write("jsonrpc");
+                writer.Write(VersionPropertyName);
                 writer.Write(value.Version);
 
-                writer.Write("id");
+                writer.Write(IdPropertyName);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
-                writer.Write("error");
+                writer.Write(ErrorPropertyName);
                 options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
             }
         }
 
         private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
         {
+            private const string CodePropertyName = "code";
+            private const string MessagePropertyName = "message";
+            private const string DataPropertyName = "data";
             private readonly MessagePackFormatter formatter;
 
             internal JsonRpcErrorDetailFormatter(MessagePackFormatter formatter)
@@ -969,13 +987,13 @@ namespace StreamJsonRpc
                 {
                     switch (reader.ReadString())
                     {
-                        case "code":
+                        case CodePropertyName:
                             result.Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options);
                             break;
-                        case "message":
+                        case MessagePropertyName:
                             result.Message = reader.ReadString();
                             break;
-                        case "data":
+                        case DataPropertyName:
                             result.MsgPackData = GetSliceForNextToken(ref reader);
                             break;
                     }
@@ -988,13 +1006,13 @@ namespace StreamJsonRpc
             {
                 writer.WriteMapHeader(3);
 
-                writer.Write("code");
+                writer.Write(CodePropertyName);
                 options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Serialize(ref writer, value.Code, options);
 
-                writer.Write("message");
+                writer.Write(MessagePropertyName);
                 writer.Write(value.Message);
 
-                writer.Write("data");
+                writer.Write(DataPropertyName);
                 this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
             }
         }
