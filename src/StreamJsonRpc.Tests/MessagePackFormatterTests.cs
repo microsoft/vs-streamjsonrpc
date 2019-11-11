@@ -139,7 +139,7 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
-    public void Resolver_UserDefinedTypeOnly()
+    public void Resolver_RequestArgInArray()
     {
         this.formatter.Resolver = CompositeResolver.Create(new CustomFormatter());
         var originalArg = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
@@ -156,6 +156,115 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(originalArg.Prop2, roundtripArg.Prop2);
     }
 
+    [Fact]
+    public void Resolver_RequestArgInNamedArgs_AnonymousType()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance });
+        var originalArg = new { Prop1 = 3, Prop2 = 5 };
+        var originalRequest = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            Arguments = originalArg,
+        };
+        var roundtripRequest = this.Roundtrip(originalRequest);
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.Prop1), -1, typeof(int), out object? prop1));
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.Prop2), -1, typeof(int), out object? prop2));
+        Assert.Equal(originalArg.Prop1, prop1);
+        Assert.Equal(originalArg.Prop2, prop2);
+    }
+
+    [Fact]
+    public void Resolver_RequestArgInNamedArgs_DataContractObject()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance });
+        var originalArg = new DataContractWithSubsetOfMembersIncluded { ExcludedField = "A", ExcludedProperty = "B", IncludedField = "C", IncludedProperty = "D" };
+        var originalRequest = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            Arguments = originalArg,
+        };
+        var roundtripRequest = this.Roundtrip(originalRequest);
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.ExcludedField), -1, typeof(string), out object? _));
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.ExcludedProperty), -1, typeof(string), out object? _));
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.IncludedField), -1, typeof(string), out object? includedField));
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.IncludedProperty), -1, typeof(string), out object? includedProperty));
+        Assert.Equal(originalArg.IncludedProperty, includedProperty);
+        Assert.Equal(originalArg.IncludedField, includedField);
+    }
+
+    [Fact]
+    public void Resolver_RequestArgInNamedArgs_NonDataContractObject()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance });
+        var originalArg = new NonDataContractWithExcludedMembers { ExcludedField = "A", ExcludedProperty = "B", InternalField = "C", InternalProperty = "D", PublicField = "E", PublicProperty = "F" };
+        var originalRequest = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            Arguments = originalArg,
+        };
+        var roundtripRequest = this.Roundtrip(originalRequest);
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.ExcludedField), -1, typeof(string), out object? _));
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.ExcludedProperty), -1, typeof(string), out object? _));
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.InternalField), -1, typeof(string), out object? _));
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.InternalProperty), -1, typeof(string), out object? _));
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.PublicField), -1, typeof(string), out object? publicField));
+        Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.PublicProperty), -1, typeof(string), out object? publicProperty));
+        Assert.Equal(originalArg.PublicProperty, publicProperty);
+        Assert.Equal(originalArg.PublicField, publicField);
+    }
+
+    [Fact]
+    public void Resolver_RequestArgInNamedArgs_NullObject()
+    {
+        var originalRequest = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            Arguments = null,
+        };
+        var roundtripRequest = this.Roundtrip(originalRequest);
+        Assert.Null(roundtripRequest.Arguments);
+        Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex("AnythingReally", -1, typeof(string), out object? _));
+    }
+
+    [Fact]
+    public void Resolver_Result()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new CustomFormatter());
+        var originalResultValue = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
+        var originalResult = new JsonRpcResult
+        {
+            RequestId = new RequestId(1),
+            Result = originalResultValue,
+        };
+        var roundtripResult = this.Roundtrip(originalResult);
+        var roundtripResultValue = roundtripResult.GetResult<TypeRequiringCustomFormatter>();
+        Assert.Equal(originalResultValue.Prop1, roundtripResultValue.Prop1);
+        Assert.Equal(originalResultValue.Prop2, roundtripResultValue.Prop2);
+    }
+
+    [Fact]
+    public void Resolver_ErrorData()
+    {
+        this.formatter.Resolver = CompositeResolver.Create(new CustomFormatter());
+        var originalErrorData = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
+        var originalError = new JsonRpcError
+        {
+            RequestId = new RequestId(1),
+            Error = new JsonRpcError.ErrorDetail
+            {
+                Data = originalErrorData,
+            },
+        };
+        var roundtripError = this.Roundtrip(originalError);
+        var roundtripErrorData = roundtripError.Error!.GetData<TypeRequiringCustomFormatter>();
+        Assert.Equal(originalErrorData.Prop1, roundtripErrorData.Prop1);
+        Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
+    }
+
     private T Roundtrip<T>(T value)
         where T : JsonRpcMessage
     {
@@ -170,6 +279,37 @@ public class MessagePackFormatterTests : TestBase
     {
         [DataMember]
         public int Age { get; set; }
+    }
+
+    [DataContract]
+    private class DataContractWithSubsetOfMembersIncluded
+    {
+        public string? ExcludedField;
+
+        [DataMember]
+        internal string? IncludedField;
+
+        public string? ExcludedProperty { get; set; }
+
+        [DataMember]
+        internal string? IncludedProperty { get; set; }
+    }
+
+    private class NonDataContractWithExcludedMembers
+    {
+        [IgnoreDataMember]
+        public string? ExcludedField;
+
+        public string? PublicField;
+
+        internal string? InternalField;
+
+        [IgnoreDataMember]
+        public string? ExcludedProperty { get; set; }
+
+        public string? PublicProperty { get; set; }
+
+        internal string? InternalProperty { get; set; }
     }
 
     private class TypeRequiringCustomFormatter

@@ -138,7 +138,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
-            if (message is Protocol.JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object>))
+            if (message is Protocol.JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object?>))
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
                 // the parameters can be matched to the method we're invoking.
@@ -159,39 +159,69 @@ namespace StreamJsonRpc
         /// <param name="paramsObject">The params object.</param>
         /// <returns>A dictionary, or <c>null</c> if <paramref name="paramsObject"/> is null.</returns>
         /// <remarks>
-        /// In its present implementation, this method disregards any renaming attributes that would give
-        /// the properties on the parameter object a different name. The <see cref="MessagePackSerializer"/>
-        /// doesn't expose a simple way of doing this, so we'd have to emulate it by supporting both
-        /// <see cref="DataMemberAttribute.Name"/> and <see cref="KeyAttribute.StringKey"/> handling.
+        /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
         /// </remarks>
         [return: NotNullIfNotNull("paramsObject")]
-        private static Dictionary<string, object?>? GetParamsObjectDictionary(object? paramsObject)
+        private static IReadOnlyDictionary<string, object?>? GetParamsObjectDictionary(object? paramsObject)
         {
             if (paramsObject == null)
             {
                 return null;
             }
 
-            if (paramsObject is IReadOnlyDictionary<object, object?> dictionary)
-            {
-                // Anonymous types are serialized this way.
-                return dictionary.ToDictionary(kv => (string)kv.Key, kv => kv.Value);
-            }
-
             var result = new Dictionary<string, object?>(StringComparer.Ordinal);
 
-            const BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
-            foreach (var property in paramsObject.GetType().GetTypeInfo().GetProperties(bindingFlags))
+            TypeInfo paramsTypeInfo = paramsObject.GetType().GetTypeInfo();
+            bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() != null;
+
+            BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
+            if (isDataContract)
             {
-                if (property.GetMethod != null)
+                bindingFlags |= BindingFlags.NonPublic;
+            }
+
+            bool TryGetSerializationInfo(MemberInfo memberInfo, out string key)
+            {
+                key = memberInfo.Name;
+                if (isDataContract)
                 {
-                    result[property.Name] = property.GetValue(paramsObject);
+                    var dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
+                    if (dataMemberAttribute == null)
+                    {
+                        return false;
+                    }
+
+                    if (!dataMemberAttribute.EmitDefaultValue)
+                    {
+                        throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType.FullName}.{memberInfo.Name}.");
+                    }
+
+                    key = dataMemberAttribute.Name ?? memberInfo.Name;
+                    return true;
+                }
+                else
+                {
+                    return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() == null;
                 }
             }
 
-            foreach (var field in paramsObject.GetType().GetTypeInfo().GetFields(bindingFlags))
+            foreach (var property in paramsTypeInfo.GetProperties(bindingFlags))
             {
-                result[field.Name] = field.GetValue(paramsObject);
+                if (property.GetMethod != null)
+                {
+                    if (TryGetSerializationInfo(property, out string key))
+                    {
+                        result[key] = property.GetValue(paramsObject);
+                    }
+                }
+            }
+
+            foreach (var field in paramsTypeInfo.GetFields(bindingFlags))
+            {
+                if (TryGetSerializationInfo(field, out string key))
+                {
+                    result[key] = field.GetValue(paramsObject);
+                }
             }
 
             return result;
@@ -458,7 +488,7 @@ namespace StreamJsonRpc
                 writer.WriteArrayHeader(3);
                 writer.Write(value.Version);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
-                options.Resolver.GetFormatterWithVerify<object?>().Serialize(ref writer, value.Result, options);
+                this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
             }
         }
 
@@ -527,7 +557,7 @@ namespace StreamJsonRpc
                 writer.WriteArrayHeader(3);
                 options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Serialize(ref writer, value.Code, options);
                 writer.Write(value.Message);
-                options.Resolver.GetFormatterWithVerify<object?>().Serialize(ref writer, value.Data, options);
+                this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
             }
         }
 
