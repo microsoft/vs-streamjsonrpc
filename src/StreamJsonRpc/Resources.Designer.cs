@@ -502,6 +502,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types..
+        /// </summary>
+        internal static string UnrecognizableMessage {
+            get {
+                return ResourceManager.GetString("UnrecognizableMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Incoming JSON-RPC message did not conform to a recognized pattern..
         /// </summary>
         internal static string UnrecognizedIncomingJsonRpc {

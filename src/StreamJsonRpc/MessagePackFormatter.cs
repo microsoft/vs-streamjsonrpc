@@ -85,7 +85,7 @@ namespace StreamJsonRpc
             this.progressFormatterResolver = new JsonProgressFormatterResolver(this);
 
             // Set up default user data resolver.
-            this.SetOptions(StandardResolverAllowPrivate.Options);
+            this.SetMessagePackSerializerOptions(StandardResolverAllowPrivate.Options);
             (this.userDataSerializationOptions, this.dynamicObjectTypeFormatterForUserSuppliedResolver) = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
         }
 
@@ -115,7 +115,7 @@ namespace StreamJsonRpc
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
         /// </summary>
         /// <param name="options">The options to use. Before this call, the options used come from <see cref="StandardResolverAllowPrivate.Options"/>.</param>
-        public void SetOptions(MessagePackSerializerOptions options)
+        public void SetMessagePackSerializerOptions(MessagePackSerializerOptions options)
         {
             Requires.NotNull(options, nameof(options));
 
@@ -439,47 +439,46 @@ namespace StreamJsonRpc
             {
             }
 
-            private enum MessageSubTypes
-            {
-                Request,
-                Result,
-                Error,
-            }
-
             public JsonRpcMessage Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                int count = reader.ReadArrayHeader();
-                if (count != 2)
+                MessagePackReader readAhead = reader;
+                int propertyCount = readAhead.ReadMapHeader();
+                for (int i = 0; i < propertyCount; i++)
                 {
-                    throw new IOException("Unexpected msgpack sequence.");
+                    string propertyName = readAhead.ReadString();
+                    if (propertyName == "method")
+                    {
+                        return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
+                    }
+                    else if (propertyName == "result")
+                    {
+                        return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
+                    }
+                    else if (propertyName == "error")
+                    {
+                        return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
+                    }
+
+                    // Skip over the entire value of this property.
+                    readAhead.Skip();
                 }
 
-                switch ((MessageSubTypes)reader.ReadInt32())
-                {
-                    case MessageSubTypes.Request: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Result: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
-                    case MessageSubTypes.Error: return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
-                    case MessageSubTypes value: throw new NotSupportedException("Unexpected distinguishing subtype value: " + value);
-                }
+                throw new UnrecognizedJsonRpcMessageException();
             }
 
             public void Serialize(ref MessagePackWriter writer, JsonRpcMessage value, MessagePackSerializerOptions options)
             {
                 Requires.NotNull(value, nameof(value));
 
-                writer.WriteArrayHeader(2);
                 switch (value)
                 {
                     case Protocol.JsonRpcRequest request:
-                        writer.Write((int)MessageSubTypes.Request);
                         options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Serialize(ref writer, request, options);
                         break;
                     case Protocol.JsonRpcResult result:
-                        writer.Write((int)MessageSubTypes.Result);
                         options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Serialize(ref writer, result, options);
                         break;
                     case Protocol.JsonRpcError error:
-                        writer.Write((int)MessageSubTypes.Error);
                         options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Serialize(ref writer, error, options);
                         break;
                     default:
@@ -499,49 +498,59 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                int arrayLength = reader.ReadArrayHeader();
-                if (arrayLength != 4)
-                {
-                    throw new IOException("Unexpected length of request.");
-                }
-
                 var result = new JsonRpcRequest(this.formatter.userDataSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
-                    Version = reader.ReadString(),
-                    RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
-                    Method = reader.ReadString(),
                 };
 
-                // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
-                switch (reader.NextMessagePackType)
+                int propertyCount = reader.ReadMapHeader();
+                for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
-                    case MessagePackType.Array:
-                        var positionalArgs = new ReadOnlySequence<byte>[reader.ReadArrayHeader()];
-                        for (int i = 0; i < positionalArgs.Length; i++)
-                        {
-                            positionalArgs[i] = GetSliceForNextToken(ref reader);
-                        }
+                    switch (reader.ReadString())
+                    {
+                        case "jsonrpc":
+                            result.Version = reader.ReadString();
+                            break;
+                        case "id":
+                            result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                            break;
+                        case "method":
+                            result.Method = reader.ReadString();
+                            break;
+                        case "params":
+                            // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
+                            switch (reader.NextMessagePackType)
+                            {
+                                case MessagePackType.Array:
+                                    var positionalArgs = new ReadOnlySequence<byte>[reader.ReadArrayHeader()];
+                                    for (int i = 0; i < positionalArgs.Length; i++)
+                                    {
+                                        positionalArgs[i] = GetSliceForNextToken(ref reader);
+                                    }
 
-                        result.MsgPackPositionalArguments = positionalArgs;
-                        break;
-                    case MessagePackType.Map:
-                        int namedArgsCount = reader.ReadMapHeader();
-                        var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
-                        for (int i = 0; i < namedArgsCount; i++)
-                        {
-                            string propertyName = reader.ReadString();
-                            namedArgs.Add(propertyName, GetSliceForNextToken(ref reader));
-                        }
+                                    result.MsgPackPositionalArguments = positionalArgs;
+                                    break;
+                                case MessagePackType.Map:
+                                    int namedArgsCount = reader.ReadMapHeader();
+                                    var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
+                                    for (int i = 0; i < namedArgsCount; i++)
+                                    {
+                                        string propertyName = reader.ReadString();
+                                        namedArgs.Add(propertyName, GetSliceForNextToken(ref reader));
+                                    }
 
-                        result.MsgPackNamedArguments = namedArgs;
-                        break;
-                    case MessagePackType.Nil:
-                        result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
-                        reader.ReadNil();
-                        break;
-                    case MessagePackType type:
-                        throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
+                                    result.MsgPackNamedArguments = namedArgs;
+                                    break;
+                                case MessagePackType.Nil:
+                                    result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
+                                    reader.ReadNil();
+                                    break;
+                                case MessagePackType type:
+                                    throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
+                            }
+
+                            break;
+                    }
                 }
 
                 // If method is $/progress, get the progress instance from the dictionary and call Report
@@ -576,10 +585,18 @@ namespace StreamJsonRpc
                 {
                     this.formatter.formatterProgressTracker.RequestIdBeingSerialized = value.RequestId;
 
-                    writer.WriteArrayHeader(4);
+                    writer.WriteMapHeader(4);
+
+                    writer.Write("jsonrpc");
                     writer.Write(value.Version);
+
+                    writer.Write("id");
                     options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+
+                    writer.Write("method");
                     writer.Write(value.Method);
+
+                    writer.Write("params");
                     if (value.ArgumentsList != null)
                     {
                         writer.WriteArrayHeader(value.ArgumentsList.Count);
@@ -620,19 +637,27 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                int arrayLength = reader.ReadArrayHeader();
-                if (arrayLength != 3)
-                {
-                    throw new IOException("Unexpected length of result.");
-                }
-
                 var result = new JsonRpcResult(this.formatter.userDataSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
-                    Version = reader.ReadString(),
-                    RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
-                    MsgPackResult = GetSliceForNextToken(ref reader),
                 };
+
+                int propertyCount = reader.ReadMapHeader();
+                for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
+                {
+                    switch (reader.ReadString())
+                    {
+                        case "jsonrpc":
+                            result.Version = reader.ReadString();
+                            break;
+                        case "id":
+                            result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                            break;
+                        case "result":
+                            result.MsgPackResult = GetSliceForNextToken(ref reader);
+                            break;
+                    }
+                }
 
                 this.formatter.formatterProgressTracker.OnResponseReceived(result.RequestId);
 
@@ -641,9 +666,15 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcResult value, MessagePackSerializerOptions options)
             {
-                writer.WriteArrayHeader(3);
+                writer.WriteMapHeader(3);
+
+                writer.Write("jsonrpc");
                 writer.Write(value.Version);
+
+                writer.Write("id");
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+
+                writer.Write("result");
                 this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
             }
         }
@@ -659,19 +690,27 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcError Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                int arrayLength = reader.ReadArrayHeader();
-                if (arrayLength != 3)
-                {
-                    throw new IOException("Unexpected length of result.");
-                }
-
                 var error = new JsonRpcError
                 {
                     OriginalMessagePack = reader.Sequence,
-                    Version = reader.ReadString(),
-                    RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
-                    Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options),
                 };
+
+                int propertyCount = reader.ReadMapHeader();
+                for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
+                {
+                    switch (reader.ReadString())
+                    {
+                        case "jsonrpc":
+                            error.Version = reader.ReadString();
+                            break;
+                        case "id":
+                            error.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                            break;
+                        case "error":
+                            error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
+                            break;
+                    }
+                }
 
                 this.formatter.formatterProgressTracker.OnResponseReceived(error.RequestId);
 
@@ -680,9 +719,15 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError value, MessagePackSerializerOptions options)
             {
-                writer.WriteArrayHeader(3);
+                writer.WriteMapHeader(3);
+
+                writer.Write("jsonrpc");
                 writer.Write(value.Version);
+
+                writer.Write("id");
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+
+                writer.Write("error");
                 options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
             }
         }
@@ -698,26 +743,39 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcError.ErrorDetail Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                int arrayLength = reader.ReadArrayHeader();
-                if (arrayLength != 3)
+                var result = new JsonRpcError.ErrorDetail(this.formatter.userDataSerializationOptions);
+
+                int propertyCount = reader.ReadMapHeader();
+                for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
                 {
-                    throw new IOException("Unexpected length of result.");
+                    switch (reader.ReadString())
+                    {
+                        case "code":
+                            result.Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options);
+                            break;
+                        case "message":
+                            result.Message = reader.ReadString();
+                            break;
+                        case "data":
+                            result.MsgPackData = GetSliceForNextToken(ref reader);
+                            break;
+                    }
                 }
 
-                var result = new JsonRpcError.ErrorDetail(this.formatter.userDataSerializationOptions)
-                {
-                    Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options),
-                    Message = reader.ReadString(),
-                    MsgPackData = GetSliceForNextToken(ref reader),
-                };
                 return result;
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError.ErrorDetail value, MessagePackSerializerOptions options)
             {
-                writer.WriteArrayHeader(3);
+                writer.WriteMapHeader(3);
+
+                writer.Write("code");
                 options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Serialize(ref writer, value.Code, options);
+
+                writer.Write("message");
                 writer.Write(value.Message);
+
+                writer.Write("data");
                 this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
             }
         }

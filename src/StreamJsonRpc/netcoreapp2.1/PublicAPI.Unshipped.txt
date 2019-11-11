@@ -12,7 +12,7 @@ StreamJsonRpc.MessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<b
 StreamJsonRpc.MessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
 StreamJsonRpc.MessagePackFormatter.MessagePackFormatter() -> void
 StreamJsonRpc.MessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
-StreamJsonRpc.MessagePackFormatter.SetOptions(MessagePack.MessagePackSerializerOptions options) -> void
+StreamJsonRpc.MessagePackFormatter.SetMessagePackSerializerOptions(MessagePack.MessagePackSerializerOptions options) -> void
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData<T>() -> T
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.set -> void
@@ -36,6 +36,11 @@ StreamJsonRpc.RequestId.Number.get -> long?
 StreamJsonRpc.RequestId.RequestId(long id) -> void
 StreamJsonRpc.RequestId.RequestId(string id) -> void
 StreamJsonRpc.RequestId.String.get -> string
+StreamJsonRpc.UnrecognizedJsonRpcMessageException
+StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException() -> void
+StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
+StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(string message) -> void
+StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(string message, System.Exception innerException) -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeReader() -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeWriter() -> void
 override StreamJsonRpc.RemoteMethodNotFoundException.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void

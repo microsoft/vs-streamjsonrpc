@@ -6,7 +6,7 @@ namespace StreamJsonRpc
     using System;
 
     /// <summary>
-    /// Base exception class for any exception that happens while receiving an JSON RPC communication.
+    /// Base exception class for any exception that happens while receiving an JSON-RPC communication.
     /// </summary>
     [System.Serializable]
     public abstract class RemoteRpcException : Exception

@@ -141,7 +141,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInArray()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalArg = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -159,7 +159,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_AnonymousType()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -177,7 +177,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_DataContractObject()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new DataContractWithSubsetOfMembersIncluded { ExcludedField = "A", ExcludedProperty = "B", IncludedField = "C", IncludedProperty = "D" };
         var originalRequest = new JsonRpcRequest
         {
@@ -197,7 +197,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_NonDataContractObject()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new NonDataContractWithExcludedMembers { ExcludedField = "A", ExcludedProperty = "B", InternalField = "C", InternalProperty = "D", PublicField = "E", PublicProperty = "F" };
         var originalRequest = new JsonRpcRequest
         {
@@ -233,7 +233,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_Result()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalResultValue = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalResult = new JsonRpcResult
         {
@@ -249,7 +249,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_ErrorData()
     {
-        this.formatter.SetOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalErrorData = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalError = new JsonRpcError
         {
