@@ -7,6 +7,12 @@ StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, strin
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute() -> void
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get -> bool
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.set -> void
+StreamJsonRpc.MessagePackFormatter
+StreamJsonRpc.MessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.MessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
+StreamJsonRpc.MessagePackFormatter.MessagePackFormatter() -> void
+StreamJsonRpc.MessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
+StreamJsonRpc.MessagePackFormatter.SetOptions(MessagePack.MessagePackSerializerOptions options) -> void
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData<T>() -> T
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.set -> void

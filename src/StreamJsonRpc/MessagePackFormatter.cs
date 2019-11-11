@@ -46,15 +46,9 @@ namespace StreamJsonRpc
         private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard;
 
         /// <summary>
-        /// The <see cref="IFormatterResolver"/> that was fed into the <see cref="GetWrappersForUserSuppliedResolver(IFormatterResolver, out MessagePackSerializerOptions, out IMessagePackFormatter{object?})"/> method.
-        /// Backing field for the <see cref="Resolver"/> property.
-        /// </summary>
-        private IFormatterResolver userSuppliedResolver;
-
-        /// <summary>
         /// The formatter to use when serializing user data that we only see typed as <see cref="object"/>.
         /// </summary>
-        private IMessagePackFormatter<object?> dynamicObjectTypeFormatterForUserSuppliedResolver;
+        private DynamicObjectTypeFallbackFormatter dynamicObjectTypeFormatterForUserSuppliedResolver;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
@@ -91,10 +85,8 @@ namespace StreamJsonRpc
             this.progressFormatterResolver = new JsonProgressFormatterResolver(this);
 
             // Set up default user data resolver.
-            this.userSuppliedResolver = this.GetWrappersForUserSuppliedResolver(
-                StandardResolverAllowPrivate.Instance,
-                out this.userDataSerializationOptions,
-                out this.dynamicObjectTypeFormatterForUserSuppliedResolver);
+            this.SetOptions(StandardResolverAllowPrivate.Options);
+            (this.userDataSerializationOptions, this.dynamicObjectTypeFormatterForUserSuppliedResolver) = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
         }
 
         private interface IJsonRpcMessagePackRetention
@@ -108,22 +100,6 @@ namespace StreamJsonRpc
             ReadOnlySequence<byte> OriginalMessagePack { get; }
         }
 
-        /// <summary>
-        /// Gets or sets the resolver to use for user data types.
-        /// </summary>
-        public IFormatterResolver Resolver
-        {
-            get => this.userSuppliedResolver;
-            set
-            {
-                Requires.NotNull(value, nameof(value));
-                if (value != this.userSuppliedResolver)
-                {
-                    this.userSuppliedResolver = this.GetWrappersForUserSuppliedResolver(value, out this.userDataSerializationOptions, out this.dynamicObjectTypeFormatterForUserSuppliedResolver);
-                }
-            }
-        }
-
         /// <inheritdoc/>
         JsonRpc IJsonRpcInstanceContainer.Rpc
         {
@@ -133,6 +109,17 @@ namespace StreamJsonRpc
 
                 this.rpc = value;
             }
+        }
+
+        /// <summary>
+        /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
+        /// </summary>
+        /// <param name="options">The options to use. Before this call, the options used come from <see cref="StandardResolverAllowPrivate.Options"/>.</param>
+        public void SetOptions(MessagePackSerializerOptions options)
+        {
+            Requires.NotNull(options, nameof(options));
+
+            (this.userDataSerializationOptions, this.dynamicObjectTypeFormatterForUserSuppliedResolver) = this.MassageUserDataOptions(options);
         }
 
         /// <inheritdoc/>
@@ -188,7 +175,7 @@ namespace StreamJsonRpc
                 key = memberInfo.Name;
                 if (isDataContract)
                 {
-                    var dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
+                    DataMemberAttribute dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
                     if (dataMemberAttribute == null)
                     {
                         return false;
@@ -208,7 +195,7 @@ namespace StreamJsonRpc
                 }
             }
 
-            foreach (var property in paramsTypeInfo.GetProperties(bindingFlags))
+            foreach (PropertyInfo property in paramsTypeInfo.GetProperties(bindingFlags))
             {
                 if (property.GetMethod != null)
                 {
@@ -219,7 +206,7 @@ namespace StreamJsonRpc
                 }
             }
 
-            foreach (var field in paramsTypeInfo.GetFields(bindingFlags))
+            foreach (FieldInfo field in paramsTypeInfo.GetFields(bindingFlags))
             {
                 if (TryGetSerializationInfo(field, out string key))
                 {
@@ -232,9 +219,9 @@ namespace StreamJsonRpc
 
         private static ReadOnlySequence<byte> GetSliceForNextToken(ref MessagePackReader reader)
         {
-            var startingPosition = reader.Position;
+            SequencePosition startingPosition = reader.Position;
             reader.Skip();
-            var endingPosition = reader.Position;
+            SequencePosition endingPosition = reader.Position;
             return reader.Sequence.Slice(startingPosition, endingPosition);
         }
 
@@ -242,11 +229,9 @@ namespace StreamJsonRpc
         /// Takes the user-supplied resolver for their data types and prepares the wrapping options
         /// and the dynamic object wrapper for serialization.
         /// </summary>
-        /// <param name="resolver">The resolver supplied by the user, or the default.</param>
-        /// <param name="options">Receives the new value for <see cref="userDataSerializationOptions"/> field.</param>
-        /// <param name="dynamicObjectTypeFormatter">Receives the new value for the <see cref="dynamicObjectTypeFormatterForUserSuppliedResolver"/> field.</param>
-        /// <returns>The new value for the <see cref="userSuppliedResolver"/> field. Simply a copy of the <paramref name="resolver"/> reference.</returns>
-        private IFormatterResolver GetWrappersForUserSuppliedResolver(IFormatterResolver resolver, out MessagePackSerializerOptions options, out IMessagePackFormatter<object?> dynamicObjectTypeFormatter)
+        /// <param name="userSuppliedOptions">The options for user data that is supplied by the user (or the default).</param>
+        /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
+        private (MessagePackSerializerOptions UserDataOptions, DynamicObjectTypeFallbackFormatter DynamicObjectTypeFormatter) MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
             var formatters = new IMessagePackFormatter[]
             {
@@ -258,15 +243,18 @@ namespace StreamJsonRpc
             };
             var resolvers = new IFormatterResolver[]
             {
-                resolver,
+                userSuppliedOptions.Resolver,
 
                 // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
                 this.progressFormatterResolver,
             };
-            var userDataResolver = CompositeResolver.Create(formatters, resolvers);
-            options = this.userDataSerializationOptions.WithResolver(userDataResolver);
-            dynamicObjectTypeFormatter = new DynamicObjectTypeFallbackFormatter(this.userDataSerializationOptions.Resolver);
-            return resolver;
+            IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
+
+            MessagePackSerializerOptions userDataOptions = userSuppliedOptions
+                .WithLZ4Compression(false) // If/when we support LZ4 compression, it will be at the message level -- not the user-data level.
+                .WithResolver(userDataResolver);
+
+            return (userDataOptions, new DynamicObjectTypeFallbackFormatter(userDataResolver));
         }
 
         private IFormatterResolver CreateTopLevelMessageResolver()
@@ -603,7 +591,7 @@ namespace StreamJsonRpc
                     else if (value.NamedArguments != null)
                     {
                         writer.WriteMapHeader(value.NamedArguments.Count);
-                        foreach (var entry in value.NamedArguments)
+                        foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
                         {
                             writer.Write(entry.Key);
                             this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
@@ -833,7 +821,7 @@ namespace StreamJsonRpc
                     : MessagePackSerializer.Deserialize<T>(this.MsgPackResult, this.serializerOptions);
             }
 
-            protected override void SetExpectedResultType(Type resultType)
+            protected internal override void SetExpectedResultType(Type resultType)
             {
                 Verify.Operation(!this.MsgPackResult.IsEmpty, "Result is no longer available or has already been deserialized.");
 
@@ -899,7 +887,7 @@ namespace StreamJsonRpc
                     }
                 }
 
-                protected override void SetExpectedDataType(Type dataType)
+                protected internal override void SetExpectedDataType(Type dataType)
                 {
                     Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
 
