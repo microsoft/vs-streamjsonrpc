@@ -760,7 +760,7 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                object progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
                 writer.WriteValue(progressId);
             }
         }

@@ -6,11 +6,9 @@ namespace StreamJsonRpc
     using System;
     using System.Buffers;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
-    using System.Linq;
     using System.Reflection;
     using System.Runtime.Serialization;
     using MessagePack;
@@ -39,6 +37,8 @@ namespace StreamJsonRpc
         /// The options to use for serializing top-level RPC messages.
         /// </summary>
         private readonly MessagePackSerializerOptions messageSerializationOptions;
+
+        private readonly JsonProgressFormatterResolver progressFormatterResolver;
 
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
@@ -86,6 +86,9 @@ namespace StreamJsonRpc
             this.messageSerializationOptions = MessagePackSerializerOptions.Standard
                 .WithLZ4Compression(useLZ4Compression: compress)
                 .WithResolver(this.CreateTopLevelMessageResolver());
+
+            // Create the specialized formatters/resolvers that we will inject into the chain for user data.
+            this.progressFormatterResolver = new JsonProgressFormatterResolver(this);
 
             // Set up default user data resolver.
             this.userSuppliedResolver = this.GetWrappersForUserSuppliedResolver(
@@ -249,10 +252,16 @@ namespace StreamJsonRpc
             {
                 // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
                 RequestIdFormatter.Instance,
+
+                // We preset this one because for some protocols like IProgress<T>, tokens are passed in that we must relay exactly back to the client as an argument.
+                RawMessagePackFormatter.Instance,
             };
             var resolvers = new IFormatterResolver[]
             {
                 resolver,
+
+                // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
+                this.progressFormatterResolver,
             };
             var userDataResolver = CompositeResolver.Create(formatters, resolvers);
             options = this.userDataSerializationOptions.WithResolver(userDataResolver);
@@ -268,7 +277,7 @@ namespace StreamJsonRpc
                 JsonRpcMessageFormatter.Instance,
                 new JsonRpcRequestFormatter(this),
                 new JsonRpcResultFormatter(this),
-                JsonRpcErrorFormatter.Instance,
+                new JsonRpcErrorFormatter(this),
                 new JsonRpcErrorDetailFormatter(this),
             };
             var resolvers = new IFormatterResolver[]
@@ -276,6 +285,25 @@ namespace StreamJsonRpc
                 StandardResolverAllowPrivate.Instance,
             };
             return CompositeResolver.Create(formatters, resolvers);
+        }
+
+        private struct RawMessagePack
+        {
+            private readonly ReadOnlySequence<byte> raw;
+
+            private RawMessagePack(ReadOnlySequence<byte> raw)
+            {
+                this.raw = raw;
+            }
+
+            internal static RawMessagePack ReadRaw(ref MessagePackReader reader)
+            {
+                SequencePosition initialPosition = reader.Position;
+                reader.Skip();
+                return new RawMessagePack(reader.Sequence.Slice(initialPosition, reader.Position));
+            }
+
+            internal void WriteRaw(ref MessagePackWriter writer) => writer.WriteRaw(this.raw);
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>
@@ -307,6 +335,110 @@ namespace StreamJsonRpc
                 else
                 {
                     writer.Write(value.String);
+                }
+            }
+        }
+
+        private class RawMessagePackFormatter : IMessagePackFormatter<RawMessagePack>
+        {
+            internal static readonly RawMessagePackFormatter Instance = new RawMessagePackFormatter();
+
+            private RawMessagePackFormatter()
+            {
+            }
+
+            public RawMessagePack Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                return RawMessagePack.ReadRaw(ref reader);
+            }
+
+            public void Serialize(ref MessagePackWriter writer, RawMessagePack value, MessagePackSerializerOptions options)
+            {
+                value.WriteRaw(ref writer);
+            }
+        }
+
+        private class JsonProgressFormatterResolver : IFormatterResolver
+        {
+            private readonly MessagePackFormatter mainFormatter;
+
+            private readonly Dictionary<Type, object> progressFormatters = new Dictionary<Type, object>();
+
+            internal JsonProgressFormatterResolver(MessagePackFormatter formatter)
+            {
+                this.mainFormatter = formatter;
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>()
+            {
+                lock (this.progressFormatters)
+                {
+                    if (!this.progressFormatters.TryGetValue(typeof(T), out object? formatter))
+                    {
+                        if (typeof(T).IsConstructedGenericType && typeof(T).GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
+                        {
+                            formatter = new JsonProgressServerFormatter<T>(this.mainFormatter);
+                        }
+                        else if (MessageFormatterProgressTracker.IsSupportedProgressType(typeof(T)))
+                        {
+                            formatter = new JsonProgressClientFormatter<T>(this.mainFormatter);
+                        }
+
+                        this.progressFormatters.Add(typeof(T), formatter);
+                    }
+
+                    return (IMessagePackFormatter<T>)formatter;
+                }
+            }
+
+            private class JsonProgressClientFormatter<TClass> : IMessagePackFormatter<TClass>
+            {
+                private readonly MessagePackFormatter formatter;
+
+                internal JsonProgressClientFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    throw new NotSupportedException("This formatter only serializes IProgress<T> instances.");
+                }
+
+                public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
+                {
+                    // The resolver should not have selected this formatter for a null value.
+                    Assumes.True(value is object);
+
+                    long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                    writer.Write(progressId);
+                }
+            }
+
+            private class JsonProgressServerFormatter<TClass> : IMessagePackFormatter<TClass>
+            {
+                private readonly MessagePackFormatter formatter;
+
+                internal JsonProgressServerFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return default!;
+                    }
+
+                    Assumes.NotNull(this.formatter.rpc);
+                    RawMessagePack token = RawMessagePack.ReadRaw(ref reader);
+                    return (TClass)this.formatter.formatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass));
+                }
+
+                public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
+                {
+                    throw new NotSupportedException("This formatter only deserializes IProgress<T> instances.");
                 }
             }
         }
@@ -424,35 +556,67 @@ namespace StreamJsonRpc
                         throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
                 }
 
+                // If method is $/progress, get the progress instance from the dictionary and call Report
+                if (string.Equals(result.Method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        if (result.TryGetArgumentByNameOrIndex("token", 0, typeof(long), out object? tokenObject) && tokenObject is long progressId)
+                        {
+                            MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
+                            if (this.formatter.formatterProgressTracker.TryGetProgressObject(progressId, out progressInfo))
+                            {
+                                if (result.TryGetArgumentByNameOrIndex("value", 1, progressInfo.ValueType, out object? value))
+                                {
+                                    progressInfo.InvokeReport(value);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        this.formatter.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
+                    }
+                }
+
                 return result;
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                writer.WriteArrayHeader(4);
-                writer.Write(value.Version);
-                options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
-                writer.Write(value.Method);
-                if (value.ArgumentsList != null)
+                try
                 {
-                    writer.WriteArrayHeader(value.ArgumentsList.Count);
-                    foreach (var arg in value.ArgumentsList)
+                    this.formatter.formatterProgressTracker.RequestIdBeingSerialized = value.RequestId;
+
+                    writer.WriteArrayHeader(4);
+                    writer.Write(value.Version);
+                    options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                    writer.Write(value.Method);
+                    if (value.ArgumentsList != null)
                     {
-                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                        writer.WriteArrayHeader(value.ArgumentsList.Count);
+                        foreach (var arg in value.ArgumentsList)
+                        {
+                            this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                        }
+                    }
+                    else if (value.NamedArguments != null)
+                    {
+                        writer.WriteMapHeader(value.NamedArguments.Count);
+                        foreach (var entry in value.NamedArguments)
+                        {
+                            writer.Write(entry.Key);
+                            this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                        }
+                    }
+                    else
+                    {
+                        writer.WriteNil();
                     }
                 }
-                else if (value.NamedArguments != null)
+                finally
                 {
-                    writer.WriteMapHeader(value.NamedArguments.Count);
-                    foreach (var entry in value.NamedArguments)
-                    {
-                        writer.Write(entry.Key);
-                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
-                    }
-                }
-                else
-                {
-                    writer.WriteNil();
+                    this.formatter.formatterProgressTracker.RequestIdBeingSerialized = default;
                 }
             }
         }
@@ -474,13 +638,17 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of result.");
                 }
 
-                return new JsonRpcResult(this.formatter.userDataSerializationOptions)
+                var result = new JsonRpcResult(this.formatter.userDataSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
                     RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
                     MsgPackResult = GetSliceForNextToken(ref reader),
                 };
+
+                this.formatter.formatterProgressTracker.OnResponseReceived(result.RequestId);
+
+                return result;
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcResult value, MessagePackSerializerOptions options)
@@ -494,10 +662,11 @@ namespace StreamJsonRpc
 
         private class JsonRpcErrorFormatter : IMessagePackFormatter<Protocol.JsonRpcError>
         {
-            internal static readonly JsonRpcErrorFormatter Instance = new JsonRpcErrorFormatter();
+            private readonly MessagePackFormatter formatter;
 
-            private JsonRpcErrorFormatter()
+            internal JsonRpcErrorFormatter(MessagePackFormatter formatter)
             {
+                this.formatter = formatter;
             }
 
             public Protocol.JsonRpcError Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -508,13 +677,17 @@ namespace StreamJsonRpc
                     throw new IOException("Unexpected length of result.");
                 }
 
-                return new JsonRpcError
+                var error = new JsonRpcError
                 {
                     OriginalMessagePack = reader.Sequence,
                     Version = reader.ReadString(),
                     RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options),
                     Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options),
                 };
+
+                this.formatter.formatterProgressTracker.OnResponseReceived(error.RequestId);
+
+                return error;
             }
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError value, MessagePackSerializerOptions options)
@@ -616,6 +789,12 @@ namespace StreamJsonRpc
                 {
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.serializerOptions);
                     return true;
+                }
+                catch (NotSupportedException)
+                {
+                    // This block can be removed after https://github.com/neuecc/MessagePack-CSharp/pull/633 is applied.
+                    value = null;
+                    return false;
                 }
                 catch (MessagePackSerializationException)
                 {

@@ -291,17 +291,15 @@ public abstract class JsonRpcTests : TestBase
     [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
         Skip.If(IsRunningUnderLiveUnitTest);
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task NotifyWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
         WeakReference weakRef = await this.NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
@@ -861,11 +859,9 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(12, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameter()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
-
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
@@ -877,11 +873,9 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(1, result);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
-
         int report1 = 0;
         ProgressWithCompletion<int> progress1 = new ProgressWithCompletion<int>(n => report1 = n);
 
@@ -904,22 +898,18 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(3, report3);
     }
 
-    [SkippableFact]
-    public async Task InvokeWithParameterObject_InvalidParamMethod()
+    [Fact]
+    public async Task InvokeWithParameterObject_Progress_InvalidParamMethod()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
-
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
-
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
 
@@ -931,11 +921,9 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
-
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
 
@@ -999,7 +987,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "IProgress<T> serialization is not supported for MessagePack");
+        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
 
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => report += n);
