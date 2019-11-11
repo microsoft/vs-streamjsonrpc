@@ -75,8 +75,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         this.InitializeFormattersAndHandlers();
 
-        var serverHandler = new HeaderDelimitedMessageHandler(rpcServerStream, this.serverMessageFormatter);
-        var clientHandler = new HeaderDelimitedMessageHandler(rpcClientStream, this.clientMessageFormatter);
+        var serverHandler = new LengthHeaderMessageHandler(rpcServerStream, this.serverMessageFormatter);
+        var clientHandler = new LengthHeaderMessageHandler(rpcClientStream, this.clientMessageFormatter);
 
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);

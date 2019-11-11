@@ -6,7 +6,7 @@ namespace StreamJsonRpc.Reflection
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO.Pipelines;
     using System.Threading;
     using System.Threading.Tasks;
@@ -92,6 +92,7 @@ namespace StreamJsonRpc.Reflection
         /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public int? GetToken(IDuplexPipe? duplexPipe)
         {
             Verify.NotDisposed(this);
@@ -132,6 +133,7 @@ namespace StreamJsonRpc.Reflection
         /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public int? GetToken(PipeReader? reader) => this.GetToken(reader != null ? new DuplexPipe(reader) : null);
 
         /// <summary>
@@ -144,6 +146,7 @@ namespace StreamJsonRpc.Reflection
         /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
         /// </remarks>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public int? GetToken(PipeWriter? writer) => this.GetToken(writer != null ? new DuplexPipe(writer) : null);
 
         /// <summary>
@@ -153,6 +156,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="IDuplexPipe"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public IDuplexPipe? GetPipe(int? token)
         {
             Verify.NotDisposed(this);
@@ -195,6 +199,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="PipeReader"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public PipeReader? GetPipeReader(int? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);
@@ -214,6 +219,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The <see cref="PipeWriter"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        [return: NotNullIfNotNull("token")]
         public PipeWriter? GetPipeWriter(int? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);

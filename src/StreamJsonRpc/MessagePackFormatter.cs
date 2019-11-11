@@ -9,12 +9,14 @@ namespace StreamJsonRpc
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
+    using System.IO.Pipelines;
     using System.Reflection;
     using System.Runtime.Serialization;
     using MessagePack;
     using MessagePack.Formatters;
     using MessagePack.Resolvers;
     using Microsoft;
+    using Nerdbank.Streams;
     using StreamJsonRpc.Protocol;
     using StreamJsonRpc.Reflection;
 
@@ -26,7 +28,7 @@ namespace StreamJsonRpc
     /// The README on that project site describes use cases and its performance compared to alternative
     /// .NET MessagePack implementations and this one appears to be the best by far.
     /// </remarks>
-    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer
+    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IDisposable
     {
         /// <summary>
         /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
@@ -34,11 +36,18 @@ namespace StreamJsonRpc
         private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
 
         /// <summary>
+        /// The helper for marshaling pipes as RPC method arguments.
+        /// </summary>
+        private readonly MessageFormatterDuplexPipeTracker duplexPipeTracker = new MessageFormatterDuplexPipeTracker();
+
+        /// <summary>
         /// The options to use for serializing top-level RPC messages.
         /// </summary>
         private readonly MessagePackSerializerOptions messageSerializationOptions;
 
-        private readonly JsonProgressFormatterResolver progressFormatterResolver;
+        private readonly ProgressFormatterResolver progressFormatterResolver;
+
+        private readonly PipeFormatterResolver pipeFormatterResolver;
 
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
@@ -82,7 +91,8 @@ namespace StreamJsonRpc
                 .WithResolver(this.CreateTopLevelMessageResolver());
 
             // Create the specialized formatters/resolvers that we will inject into the chain for user data.
-            this.progressFormatterResolver = new JsonProgressFormatterResolver(this);
+            this.progressFormatterResolver = new ProgressFormatterResolver(this);
+            this.pipeFormatterResolver = new PipeFormatterResolver(this);
 
             // Set up default user data resolver.
             this.SetMessagePackSerializerOptions(StandardResolverAllowPrivate.Options);
@@ -112,6 +122,19 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets or sets the <see cref="MultiplexingStream"/> that may be used to establish out of band communication (e.g. marshal <see cref="IDuplexPipe"/> arguments).
+        /// </summary>
+        public MultiplexingStream? MultiplexingStream
+        {
+            get => this.duplexPipeTracker.MultiplexingStream;
+            set
+            {
+                Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
+                this.duplexPipeTracker.MultiplexingStream = value;
+            }
+        }
+
+        /// <summary>
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
         /// </summary>
         /// <param name="options">The options to use. Before this call, the options used come from <see cref="StandardResolverAllowPrivate.Options"/>.</param>
@@ -128,6 +151,11 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
+            if (message is IJsonRpcMessageWithId msgWithId && (message is Protocol.JsonRpcResult || message is Protocol.JsonRpcError))
+            {
+                this.duplexPipeTracker.OnResponseSent(msgWithId.RequestId, successful: msgWithId is Protocol.JsonRpcResult);
+            }
+
             if (message is Protocol.JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object?>))
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
@@ -142,6 +170,12 @@ namespace StreamJsonRpc
 
         /// <inheritdoc/>
         public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : MessagePackSerializer.SerializeToJson(message, this.messageSerializationOptions);
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.duplexPipeTracker.Dispose();
+        }
 
         /// <summary>
         /// Extracts a dictionary of property names and values from the specified params object.
@@ -247,6 +281,7 @@ namespace StreamJsonRpc
 
                 // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
                 this.progressFormatterResolver,
+                this.pipeFormatterResolver,
             };
             IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
 
@@ -346,13 +381,13 @@ namespace StreamJsonRpc
             }
         }
 
-        private class JsonProgressFormatterResolver : IFormatterResolver
+        private class ProgressFormatterResolver : IFormatterResolver
         {
             private readonly MessagePackFormatter mainFormatter;
 
-            private readonly Dictionary<Type, object> progressFormatters = new Dictionary<Type, object>();
+            private readonly Dictionary<Type, IMessagePackFormatter?> progressFormatters = new Dictionary<Type, IMessagePackFormatter?>();
 
-            internal JsonProgressFormatterResolver(MessagePackFormatter formatter)
+            internal ProgressFormatterResolver(MessagePackFormatter formatter)
             {
                 this.mainFormatter = formatter;
             }
@@ -361,33 +396,34 @@ namespace StreamJsonRpc
             {
                 lock (this.progressFormatters)
                 {
-                    if (!this.progressFormatters.TryGetValue(typeof(T), out object? formatter))
+                    if (!this.progressFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
                     {
                         if (typeof(T).IsConstructedGenericType && typeof(T).GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
                         {
-                            formatter = new JsonProgressServerFormatter<T>(this.mainFormatter);
+                            formatter = new ProgressServerFormatter<T>(this.mainFormatter);
                         }
                         else if (MessageFormatterProgressTracker.IsSupportedProgressType(typeof(T)))
                         {
-                            formatter = new JsonProgressClientFormatter<T>(this.mainFormatter);
+                            formatter = new ProgressClientFormatter<T>(this.mainFormatter);
                         }
 
                         this.progressFormatters.Add(typeof(T), formatter);
                     }
 
-                    return (IMessagePackFormatter<T>)formatter;
+                    return (IMessagePackFormatter<T>?)formatter;
                 }
             }
 
-            private class JsonProgressClientFormatter<TClass> : IMessagePackFormatter<TClass>
+            private class ProgressClientFormatter<TClass> : IMessagePackFormatter<TClass>
             {
                 private readonly MessagePackFormatter formatter;
 
-                internal JsonProgressClientFormatter(MessagePackFormatter formatter)
+                internal ProgressClientFormatter(MessagePackFormatter formatter)
                 {
                     this.formatter = formatter;
                 }
 
+                [return: MaybeNull]
                 public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
                 {
                     throw new NotSupportedException("This formatter only serializes IProgress<T> instances.");
@@ -403,15 +439,16 @@ namespace StreamJsonRpc
                 }
             }
 
-            private class JsonProgressServerFormatter<TClass> : IMessagePackFormatter<TClass>
+            private class ProgressServerFormatter<TClass> : IMessagePackFormatter<TClass>
             {
                 private readonly MessagePackFormatter formatter;
 
-                internal JsonProgressServerFormatter(MessagePackFormatter formatter)
+                internal ProgressServerFormatter(MessagePackFormatter formatter)
                 {
                     this.formatter = formatter;
                 }
 
+                [return: MaybeNull]
                 public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
                 {
                     if (reader.TryReadNil())
@@ -427,6 +464,180 @@ namespace StreamJsonRpc
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
                 {
                     throw new NotSupportedException("This formatter only deserializes IProgress<T> instances.");
+                }
+            }
+        }
+
+        private class PipeFormatterResolver : IFormatterResolver
+        {
+            private readonly MessagePackFormatter mainFormatter;
+
+            private readonly Dictionary<Type, IMessagePackFormatter?> pipeFormatters = new Dictionary<Type, IMessagePackFormatter?>();
+
+            internal PipeFormatterResolver(MessagePackFormatter formatter)
+            {
+                this.mainFormatter = formatter;
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>()
+            {
+                lock (this.pipeFormatters)
+                {
+                    if (!this.pipeFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
+                    {
+                        if (typeof(IDuplexPipe).IsAssignableFrom(typeof(T)))
+                        {
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(DuplexPipeFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                        }
+                        else if (typeof(PipeReader).IsAssignableFrom(typeof(T)))
+                        {
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeReaderFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                        }
+                        else if (typeof(PipeWriter).IsAssignableFrom(typeof(T)))
+                        {
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeWriterFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                        }
+                        else if (typeof(Stream).IsAssignableFrom(typeof(T)))
+                        {
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(StreamFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                        }
+
+                        this.pipeFormatters.Add(typeof(T), formatter);
+                    }
+
+                    return (IMessagePackFormatter<T>?)formatter;
+                }
+            }
+
+            private class DuplexPipeFormatter<T> : IMessagePackFormatter<T?>
+                where T : class, IDuplexPipe
+            {
+                private readonly MessagePackFormatter formatter;
+
+                public DuplexPipeFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return null;
+                    }
+
+                    return (T)this.formatter.duplexPipeTracker.GetPipe(reader.ReadInt32());
+                }
+
+                public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+                {
+                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    {
+                        writer.Write(token);
+                    }
+                    else
+                    {
+                        writer.WriteNil();
+                    }
+                }
+            }
+
+            private class PipeReaderFormatter<T> : IMessagePackFormatter<T?>
+                where T : PipeReader
+            {
+                private readonly MessagePackFormatter formatter;
+
+                public PipeReaderFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return null;
+                    }
+
+                    return (T)this.formatter.duplexPipeTracker.GetPipeReader(reader.ReadInt32());
+                }
+
+                public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+                {
+                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    {
+                        writer.Write(token);
+                    }
+                    else
+                    {
+                        writer.WriteNil();
+                    }
+                }
+            }
+
+            private class PipeWriterFormatter<T> : IMessagePackFormatter<T?>
+                where T : PipeWriter
+            {
+                private readonly MessagePackFormatter formatter;
+
+                public PipeWriterFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return null;
+                    }
+
+                    return (T)this.formatter.duplexPipeTracker.GetPipeWriter(reader.ReadInt32());
+                }
+
+                public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+                {
+                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    {
+                        writer.Write(token);
+                    }
+                    else
+                    {
+                        writer.WriteNil();
+                    }
+                }
+            }
+
+            private class StreamFormatter<T> : IMessagePackFormatter<T?>
+                where T : Stream
+            {
+                private readonly MessagePackFormatter formatter;
+
+                public StreamFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
+                public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return null;
+                    }
+
+                    return (T)this.formatter.duplexPipeTracker.GetPipe(reader.ReadInt32()).AsStream();
+                }
+
+                public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+                {
+                    if (this.formatter.duplexPipeTracker.GetToken(value?.UsePipe()) is { } token)
+                    {
+                        writer.Write(token);
+                    }
+                    else
+                    {
+                        writer.WriteNil();
+                    }
                 }
             }
         }
@@ -498,7 +709,7 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcRequest Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                var result = new JsonRpcRequest(this.formatter.userDataSerializationOptions)
+                var result = new JsonRpcRequest(this.formatter)
                 {
                     OriginalMessagePack = reader.Sequence,
                 };
@@ -584,6 +795,7 @@ namespace StreamJsonRpc
                 try
                 {
                     this.formatter.formatterProgressTracker.RequestIdBeingSerialized = value.RequestId;
+                    this.formatter.duplexPipeTracker.RequestIdBeingSerialized = value.RequestId;
 
                     writer.WriteMapHeader(4);
 
@@ -622,6 +834,7 @@ namespace StreamJsonRpc
                 finally
                 {
                     this.formatter.formatterProgressTracker.RequestIdBeingSerialized = default;
+                    this.formatter.duplexPipeTracker.RequestIdBeingSerialized = default;
                 }
             }
         }
@@ -660,6 +873,7 @@ namespace StreamJsonRpc
                 }
 
                 this.formatter.formatterProgressTracker.OnResponseReceived(result.RequestId);
+                this.formatter.duplexPipeTracker.OnResponseReceived(result.RequestId, successful: true);
 
                 return result;
             }
@@ -713,6 +927,7 @@ namespace StreamJsonRpc
                 }
 
                 this.formatter.formatterProgressTracker.OnResponseReceived(error.RequestId);
+                this.formatter.duplexPipeTracker.OnResponseReceived(error.RequestId, successful: false);
 
                 return error;
             }
@@ -784,11 +999,11 @@ namespace StreamJsonRpc
         [DataContract]
         private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
-            private readonly MessagePackSerializerOptions serializerOptions;
+            private readonly MessagePackFormatter formatter;
 
-            internal JsonRpcRequest(MessagePackSerializerOptions serializerOptions)
+            internal JsonRpcRequest(MessagePackFormatter formatter)
             {
-                this.serializerOptions = serializerOptions ?? throw new ArgumentNullException(nameof(serializerOptions));
+                this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
             }
 
             public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
@@ -833,7 +1048,11 @@ namespace StreamJsonRpc
                 var reader = new MessagePackReader(msgpackArgument);
                 try
                 {
-                    value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.serializerOptions);
+                    // Deserialization of messages should never occur concurrently for a single instance of a formatter.
+                    Assumes.True(this.formatter.duplexPipeTracker.RequestIdBeingDeserialized.IsEmpty);
+                    this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.RequestId;
+
+                    value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
                     return true;
                 }
                 catch (NotSupportedException)
@@ -846,6 +1065,10 @@ namespace StreamJsonRpc
                 {
                     value = null;
                     return false;
+                }
+                finally
+                {
+                    this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = default;
                 }
             }
         }

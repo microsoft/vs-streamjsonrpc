@@ -9,8 +9,11 @@ StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.set -> void
 StreamJsonRpc.MessagePackFormatter
 StreamJsonRpc.MessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
+StreamJsonRpc.MessagePackFormatter.Dispose() -> void
 StreamJsonRpc.MessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage message) -> object
 StreamJsonRpc.MessagePackFormatter.MessagePackFormatter() -> void
+StreamJsonRpc.MessagePackFormatter.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream
+StreamJsonRpc.MessagePackFormatter.MultiplexingStream.set -> void
 StreamJsonRpc.MessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.MessagePackFormatter.SetMessagePackSerializerOptions(MessagePack.MessagePackSerializerOptions options) -> void
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData<T>() -> T
