@@ -729,6 +729,8 @@ namespace StreamJsonRpc
                             result.Method = reader.ReadString();
                             break;
                         case "params":
+                            SequencePosition paramsTokenStartPosition = reader.Position;
+
                             // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
                             switch (reader.NextMessagePackType)
                             {
@@ -759,6 +761,8 @@ namespace StreamJsonRpc
                                 case MessagePackType type:
                                     throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
                             }
+
+                            result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
 
                             break;
                     }
@@ -1010,6 +1014,8 @@ namespace StreamJsonRpc
 
             public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
 
+            internal ReadOnlySequence<byte> MsgPackArguments { get; set; }
+
             internal IReadOnlyDictionary<string, ReadOnlySequence<byte>>? MsgPackNamedArguments { get; set; }
 
             internal IReadOnlyList<ReadOnlySequence<byte>>? MsgPackPositionalArguments { get; set; }
@@ -1021,7 +1027,38 @@ namespace StreamJsonRpc
                 // Clear references to buffers that we are no longer entitled to.
                 this.MsgPackNamedArguments = null;
                 this.MsgPackPositionalArguments = null;
+                this.MsgPackArguments = default;
                 this.OriginalMessagePack = default;
+            }
+
+            public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
+            {
+                if (parameters.Length == 1 && this.MsgPackNamedArguments != null)
+                {
+                    Assumes.NotNull(this.Method);
+
+                    JsonRpcMethodAttribute? attribute = this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters);
+                    if (attribute?.UseSingleObjectParameterDeserialization ?? false)
+                    {
+                        var reader = new MessagePackReader(this.MsgPackArguments);
+                        try
+                        {
+                            typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
+                            return ArgumentMatchResult.Success;
+                        }
+                        catch (NotSupportedException)
+                        {
+                            // This block can be removed after https://github.com/neuecc/MessagePack-CSharp/pull/633 is applied.
+                            return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                        }
+                        catch (MessagePackSerializationException)
+                        {
+                            return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                        }
+                    }
+                }
+
+                return base.TryGetTypedArguments(parameters, typedArguments);
             }
 
             public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)

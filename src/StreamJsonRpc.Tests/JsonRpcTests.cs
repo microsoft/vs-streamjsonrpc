@@ -935,11 +935,9 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(12, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObject()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
-
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameter", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
@@ -950,11 +948,9 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterWithoutDeserializationProperty), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_ServerMethodExpectsObjectButSendingDifferentType()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
-
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterVAndW", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
 
         Assert.Equal(0, sum);
@@ -966,29 +962,23 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithObjectAndExtraParameters", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
-
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken_InterfaceMethodAttributed()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
-
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
-        Skip.If(this.clientMessageFormatter is MessagePackFormatter, "Single object deserialization is not supported for MessagePack");
-
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => report += n);
 
