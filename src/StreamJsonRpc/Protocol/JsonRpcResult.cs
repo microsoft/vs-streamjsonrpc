@@ -19,7 +19,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets the value of the result of an invocation, if any.
         /// </summary>
-        [DataMember(Name = "result", Order = 1, IsRequired = true, EmitDefaultValue = true)]
+        [DataMember(Name = "result", Order = 2, IsRequired = true, EmitDefaultValue = true)]
         public object? Result { get; set; }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace StreamJsonRpc.Protocol
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
-        [DataMember(Name = "id", Order = 2, IsRequired = true)]
+        [DataMember(Name = "id", Order = 1, IsRequired = true)]
         public RequestId RequestId { get; set; }
 
         /// <summary>
@@ -63,6 +63,15 @@ namespace StreamJsonRpc.Protocol
             {
                 new JProperty("id", this.RequestId.ObjectValue),
             }.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        /// <summary>
+        /// Provides a hint for a deferred deserialization of the <see cref="Result"/> value as to the type
+        /// argument that will be used when calling <see cref="GetResult{T}"/> later.
+        /// </summary>
+        /// <param name="resultType">The type that will be used as the generic type argument to <see cref="GetResult{T}"/>.</param>
+        protected internal virtual void SetExpectedResultType(Type resultType)
+        {
         }
     }
 }

@@ -71,31 +71,33 @@ so that it can be used with an `IJsonRpcMessageHandler` such as `HeaderDelimited
 text encoding to use at the transport level.
 Interop with other parties is most likely with a UTF-8 text encoding of JSON-RPC messages.
 
-StreamJsonRpc includes just one `IJsonRpcMessageFormatter` implementation:
+StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
 
 1. `JsonMessageFormatter` - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
-    The text encoding is configurable via a proeprty. All RPC method parameters and return types must be serializable
-    by Newtonsoft.Json. You can leverage `JsonConverter` and add your custom converters via attributes or by
+    The text encoding is configurable via a property.
+    All RPC method parameters and return types must be serializable by Newtonsoft.Json.
+    You can leverage `JsonConverter` and add your custom converters via attributes or by
     contributing them to the `JsonMessageFormatter.JsonSerializer.Converters` collection.
+
+1. `MessagePackFormatter` - Uses the [MessagePack-CSharp][MessagePackLibrary] library to serialize each
+    JSON-RPC message using the very fast and compact binary [MessagePack format][MessagePackFormat].
+    All RPC method parameters and return types must be serializable by `IMessagePackFormatter<T>`.
+    You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
+    See alternative formatters below.
 
 ### Alternative formatters
 
 For performance reasons when both parties can agree, it may be appropriate to switch out the textual JSON
  representation for something that can be serialized faster and/or in a more compact format.
 
-The [MessagePack](https://msgpack.org/) protocol is a fast, binary serialization format that resembles the
+The [MessagePack format][MessagePackFormat] is a fast, binary serialization format that resembles the
 structure of JSON. It can be used as a substitute for JSON when both parties agree on the protocol for
 significant wins in terms of performance and payload size.
 
-We recommend the [MessagePack for C#](https://www.nuget.org/packages/messagepack) implementation of MessagePack
-because of its incredibly high serialization speed and more compact message sizes.
+Utilizing `MessagePack` for exchanging JSON-RPC messages is incredibly easy.
+Check out the `BasicJsonRpc` method in our [MessagePackFormatterTests][MessagePackUsage] class.
 
-Utilizing `MessagePack` for exchanging JSON-RPC messages is incredibly easy. Check out our sample
-[MessagePackFormatter][MessagePackFormatter] and a small [set of unit tests][MessagePackUsage] that demonstrate
-its usage. While the sample defines the `IJsonRpcMessageFormatter`-derived type that is implemented in terms of
-MessagePack, this class is not included in the StreamJsonRpc library, but you can use the sample as a starting
-point for using MessagePack with StreamJsonRpc in your application today.
-
-[MessagePackFormatter]: ../src/StreamJsonRpc.Tests/MessagePackFormatter.cs
+[MessagePackLibrary]: https://github.com/neuecc/MessagePack-CSharp
 [MessagePackUsage]: ../src/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
+[MessagePackFormat]: https://msgpack.org/
 [spec]: https://www.jsonrpc.org/specification

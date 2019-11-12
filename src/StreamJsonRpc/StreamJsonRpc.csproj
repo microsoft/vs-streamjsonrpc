@@ -16,6 +16,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MessagePack" Version="2.0.221-beta" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.0.221-beta" PrivateAssets="all" />
     <!-- <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.4" PrivateAssets="all" /> -->
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.4.16" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.4.16" />

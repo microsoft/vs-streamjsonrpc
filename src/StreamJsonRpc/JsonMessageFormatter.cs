@@ -565,11 +565,11 @@ namespace StreamJsonRpc
             return new JsonRpcError
             {
                 RequestId = id,
-                Error = new JsonRpcError.ErrorDetail
+                Error = new ErrorDetail(this.JsonSerializer)
                 {
                     Code = (JsonRpcErrorCode)error.Value<long>("code"),
                     Message = error.Value<string>("message"),
-                    Data = error["data"], // leave this as a JToken
+                    Data = error["data"], // leave this as a JToken. We deserialize inside GetData<T>
                 },
             };
         }
@@ -603,7 +603,7 @@ namespace StreamJsonRpc
                     if (parameters[0].ParameterType == typeof(JToken))
                     {
                         var obj = new JObject();
-                        foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                        foreach (KeyValuePair<string, object?> property in this.NamedArguments)
                         {
                             obj.Add(new JProperty(property.Key, property.Value));
                         }
@@ -619,7 +619,7 @@ namespace StreamJsonRpc
                         if (attribute?.UseSingleObjectParameterDeserialization ?? false)
                         {
                             var obj = new JObject();
-                            foreach (KeyValuePair<string, object> property in this.NamedArguments)
+                            foreach (KeyValuePair<string, object?> property in this.NamedArguments)
                             {
                                 obj.Add(new JProperty(property.Key, property.Value));
                             }
@@ -689,6 +689,42 @@ namespace StreamJsonRpc
             }
         }
 
+        [DataContract]
+        private class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
+        {
+            private readonly JsonSerializer jsonSerializer;
+
+            internal ErrorDetail(JsonSerializer jsonSerializer)
+            {
+                this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            }
+
+            public override object? GetData(Type dataType)
+            {
+                Requires.NotNull(dataType, nameof(dataType));
+
+                var data = (JToken?)this.Data;
+                if (data?.Type == JTokenType.Null)
+                {
+                    Verify.Operation(!dataType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(dataType) != null, "null result is not assignable to a value type.");
+                    return default!;
+                }
+
+                try
+                {
+                    return data?.ToObject(dataType, this.jsonSerializer);
+                }
+                catch (JsonReaderException)
+                {
+                    return data;
+                }
+                catch (JsonSerializationException)
+                {
+                    return data;
+                }
+            }
+        }
+
         /// <summary>
         /// Adapts the .NET <see cref="ArrayPool{T}" /> to Newtonsoft.Json's <see cref="IArrayPool{T}" /> interface.
         /// </summary>
@@ -724,7 +760,7 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
-                object progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
                 writer.WriteValue(progressId);
             }
         }

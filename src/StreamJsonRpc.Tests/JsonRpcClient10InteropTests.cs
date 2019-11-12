@@ -52,11 +52,11 @@ public class JsonRpcClient10InteropTests : InteropTestBase
     public async Task ClientRecognizesErrorWithNullResult()
     {
         var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test");
-        dynamic request = await this.ReceiveAsync();
+        JToken request = await this.ReceiveAsync();
         const string expectedErrorMessage = "some result";
         this.Send(new
         {
-            id = request.id,
+            id = request["id"],
             result = (object?)null, // JSON-RPC 1.0 requires that result be specified and null if there is an error.
             error = new { message = expectedErrorMessage },
         });

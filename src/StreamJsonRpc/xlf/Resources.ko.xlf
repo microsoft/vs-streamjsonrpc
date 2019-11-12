@@ -112,6 +112,11 @@
         <target state="translated">JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류 발생: {0}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="UnrecognizableMessage">
+        <source>Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</source>
+        <target state="new">Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
         <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
         <target state="translated">들어오는 JSON-RPC 메시지가 인식되는 패턴과 일치하지 않습니다.</target>

@@ -16,17 +16,19 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
+public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 {
+    protected readonly Server server = new Server();
+    protected JsonRpc serverRpc;
+    protected IJsonRpcMessageFormatter serverMessageFormatter;
+    protected MultiplexingStream serverMx;
+
+    protected JsonRpc clientRpc;
+    protected IJsonRpcMessageFormatter clientMessageFormatter;
+    protected MultiplexingStream clientMx;
+
     private const string ExpectedFileName = "somefile.jpg";
     private static readonly byte[] MemoryBuffer = Enumerable.Range(1, 50).Select(i => (byte)i).ToArray();
-
-    private readonly Server server = new Server();
-    private JsonRpc serverRpc;
-    private MultiplexingStream serverMx;
-
-    private JsonRpc clientRpc;
-    private MultiplexingStream clientMx;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     public DuplexPipeMarshalingTests(ITestOutputHelper logger)
@@ -71,11 +73,10 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         MultiplexingStream.Channel rpcServerStream = rpcStreams[0];
         MultiplexingStream.Channel rpcClientStream = rpcStreams[1];
 
-        var serverFormatter = new JsonMessageFormatter { MultiplexingStream = this.serverMx };
-        var clientFormatter = new JsonMessageFormatter { MultiplexingStream = this.clientMx };
+        this.InitializeFormattersAndHandlers();
 
-        var serverHandler = new HeaderDelimitedMessageHandler(rpcServerStream, serverFormatter);
-        var clientHandler = new HeaderDelimitedMessageHandler(rpcClientStream, clientFormatter);
+        var serverHandler = new LengthHeaderMessageHandler(rpcServerStream, this.serverMessageFormatter);
+        var clientHandler = new LengthHeaderMessageHandler(rpcClientStream, this.clientMessageFormatter);
 
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
@@ -507,6 +508,8 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         pipePair.Item1.Input.Complete();
     }
 
+    protected abstract void InitializeFormattersAndHandlers();
+
     private static async Task TwoWayTalkAsync(IDuplexPipe pipe, bool writeOnOdd, CancellationToken cancellationToken)
     {
         for (int i = 0; i < 10; i++)
@@ -562,7 +565,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         Assert.True(isDisposed());
     }
 
-    private class ServerWithOverloads
+    protected class ServerWithOverloads
     {
         public void OverloadedMethod(bool foo, IDuplexPipe pipe, int[] values)
         {
@@ -579,7 +582,7 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         public void OverloadedMethod(bool foo, int value, string[] values) => Assert.NotNull(values);
     }
 
-    private class Server
+    protected class Server
     {
         internal Task? ChatLaterTask { get; private set; }
 
@@ -706,12 +709,12 @@ public class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
     }
 
-    private class ServerWithIDuplexPipeReturningMethod
+    protected class ServerWithIDuplexPipeReturningMethod
     {
         public IDuplexPipe? MethodThatReturnsIDuplexPipe() => null;
     }
 
-    private class OneWayStreamWrapper : Stream
+    protected class OneWayStreamWrapper : Stream
     {
         private readonly Stream innerStream;
         private readonly bool canRead;
