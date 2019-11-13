@@ -51,7 +51,7 @@ namespace StreamJsonRpc
         private readonly AsyncManualResetEvent writingCompleted = new AsyncManualResetEvent();
 
         /// <summary>
-        /// A value indicating whether the <see cref="ReadAsync(CancellationToken)"/> method is in progress.
+        /// A value indicating whether the <see cref="ReadAsync(CancellationToken)"/> and/or <see cref="WriteAsync(JsonRpcMessage, CancellationToken)"/> methods are in progress.
         /// </summary>
         private MessageHandlerState state;
 
