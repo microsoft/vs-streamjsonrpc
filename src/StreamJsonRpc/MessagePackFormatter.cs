@@ -177,7 +177,7 @@ namespace StreamJsonRpc
             }
 
             var writer = new MessagePackWriter(contentBuffer);
-            MessagePackSerializer.Serialize(ref writer, message, this.messageSerializationOptions);
+            this.messageSerializationOptions.Resolver.GetFormatterWithVerify<JsonRpcMessage>().Serialize(ref writer, message, this.messageSerializationOptions);
             writer.Flush();
         }
 
