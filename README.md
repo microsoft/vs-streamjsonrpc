@@ -22,9 +22,7 @@ Learn about the use cases for JSON-RPC and how to use this library from our [doc
 
 ## Supported platforms
 
-* .NET 4.6
-* .NET Standard 1.6
-* .NET Standard 2.0
+* .NET Standard 2.0 (e.g. .NET Framework 4.7.2, .NET Core 2.1+)
 
 ## Compatibility
 
