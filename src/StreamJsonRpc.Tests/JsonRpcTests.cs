@@ -288,6 +288,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [SkippableFact]
+    [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
