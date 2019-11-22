@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="UnrecognizableMessage">
         <source>Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</source>
-        <target state="new">Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</target>
+        <target state="translated">無法將內送郵件辨識為其中一種 JSON-RPC 2.0 定義的訊息類型。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
