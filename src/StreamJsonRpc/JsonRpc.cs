@@ -1626,6 +1626,7 @@ namespace StreamJsonRpc
             Requires.Argument(request.Method != null, nameof(request), "Method must be set.");
 
             CancellationTokenSource? localMethodCancellationSource = null;
+            CancellationTokenRegistration disconnectedRegistration = default;
             try
             {
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
@@ -1634,10 +1635,17 @@ namespace StreamJsonRpc
                 CancellationToken cancellationToken = CancellationToken.None;
                 if (request.IsResponseExpected)
                 {
-                    localMethodCancellationSource = this.CancelLocallyInvokedMethodsWhenConnectionIsClosed
-                        ? CancellationTokenSource.CreateLinkedTokenSource(this.DisconnectedToken)
-                        : new CancellationTokenSource();
+                    localMethodCancellationSource = new CancellationTokenSource();
                     cancellationToken = localMethodCancellationSource.Token;
+
+                    if (this.CancelLocallyInvokedMethodsWhenConnectionIsClosed)
+                    {
+                        // We do NOT use CancellationTokenSource.CreateLinkedToken because that link is unbreakable,
+                        // and we need to break the link (but without disposing the CTS we created) at the conclusion of this method.
+                        // Disposing the CTS causes .NET Framework (in its default configuration) to throw when CancellationToken.Register is called later,
+                        // which causes problems with some long-lived server methods such as those that return IAsyncEnumerable<T>.
+                        disconnectedRegistration = this.DisconnectedToken.Register(state => ((CancellationTokenSource)state).Cancel(), localMethodCancellationSource);
+                    }
                 }
 
                 TargetMethod? targetMethod = null;
@@ -1842,9 +1850,9 @@ namespace StreamJsonRpc
                         this.inboundCancellationSources.Remove(request.RequestId);
                     }
 
-                    // Be sure to dispose the CTS because it may be linked to our long-lived disposal token
+                    // Be sure to dispose the link to the local method token we created in case it is linked to our long-lived disposal token
                     // and otherwise cause a memory leak.
-                    localMethodCancellationSource.Dispose();
+                    disconnectedRegistration.Dispose();
                 }
             }
         }
