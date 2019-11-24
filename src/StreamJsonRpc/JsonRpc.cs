@@ -1987,7 +1987,7 @@ namespace StreamJsonRpc
                 this.disconnectedSource.Cancel();
 
                 Task messageHandlerDisposal = Task.CompletedTask;
-                if (this.MessageHandler is IAsyncDisposable asyncDisposableMessageHandler)
+                if (this.MessageHandler is Microsoft.VisualStudio.Threading.IAsyncDisposable asyncDisposableMessageHandler)
                 {
                     messageHandlerDisposal = asyncDisposableMessageHandler.DisposeAsync();
                 }

@@ -307,4 +307,7 @@
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
   </data>
+  <data name="UsableOnceOnly" xml:space="preserve">
+    <value>This method may only be called once and already has been.</value>
+  </data>
 </root>

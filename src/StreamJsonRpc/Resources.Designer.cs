@@ -563,5 +563,14 @@ namespace StreamJsonRpc {
                 return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This method may only be called once and already has been..
+        /// </summary>
+        internal static string UsableOnceOnly {
+            get {
+                return ResourceManager.GetString("UsableOnceOnly", resourceCulture);
+            }
+        }
     }
 }

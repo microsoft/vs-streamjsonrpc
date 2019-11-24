@@ -210,7 +210,7 @@ namespace StreamJsonRpc.Reflection
             /// <summary>
             /// Gets the token associated with this progress object.
             /// </summary>
-            internal long Token { get; }
+            public long Token { get; }
 
             /// <summary>
             /// Invokes <see cref="reportMethod"/> using the given typed value.

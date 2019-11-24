@@ -282,6 +282,11 @@
         <target state="translated">JSON RPC メッセージの書き込み時のエラー: {0}: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="UsableOnceOnly">
+        <source>This method may only be called once and already has been.</source>
+        <target state="new">This method may only be called once and already has been.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

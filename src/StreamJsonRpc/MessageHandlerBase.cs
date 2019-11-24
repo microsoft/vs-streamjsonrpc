@@ -4,9 +4,6 @@
 namespace StreamJsonRpc
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
@@ -23,7 +20,7 @@ namespace StreamJsonRpc
     /// and may be made from any thread.
     /// The caller must take care to call <see cref="ReadAsync(CancellationToken)"/> sequentially.
     /// </remarks>
-    public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable, IAsyncDisposable
+    public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable, Microsoft.VisualStudio.Threading.IAsyncDisposable
     {
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.

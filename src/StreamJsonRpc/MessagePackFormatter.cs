@@ -60,7 +60,11 @@ namespace StreamJsonRpc
 
         private readonly ProgressFormatterResolver progressFormatterResolver;
 
+        private readonly AsyncEnumerableFormatterResolver asyncEnumerableFormatterResolver;
+
         private readonly PipeFormatterResolver pipeFormatterResolver;
+
+        private MessageFormatterEnumerableTracker? enumerableTracker;
 
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
@@ -105,6 +109,7 @@ namespace StreamJsonRpc
 
             // Create the specialized formatters/resolvers that we will inject into the chain for user data.
             this.progressFormatterResolver = new ProgressFormatterResolver(this);
+            this.asyncEnumerableFormatterResolver = new AsyncEnumerableFormatterResolver(this);
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
 
             // Set up default user data resolver.
@@ -131,6 +136,11 @@ namespace StreamJsonRpc
                 Verify.Operation(this.rpc == null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
 
                 this.rpc = value;
+
+                if (value != null)
+                {
+                    this.enumerableTracker = new MessageFormatterEnumerableTracker(value);
+                }
             }
         }
 
@@ -294,6 +304,7 @@ namespace StreamJsonRpc
 
                 // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
                 this.progressFormatterResolver,
+                this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
             };
             IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
@@ -519,6 +530,113 @@ namespace StreamJsonRpc
                     {
                         long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
                         writer.Write(progressId);
+                    }
+                }
+            }
+        }
+
+        private class AsyncEnumerableFormatterResolver : IFormatterResolver
+        {
+            private readonly MessagePackFormatter mainFormatter;
+
+            private readonly Dictionary<Type, IMessagePackFormatter?> enumerableFormatters = new Dictionary<Type, IMessagePackFormatter?>();
+
+            internal AsyncEnumerableFormatterResolver(MessagePackFormatter formatter)
+            {
+                this.mainFormatter = formatter;
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>()
+            {
+                lock (this.enumerableFormatters)
+                {
+                    if (!this.enumerableFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
+                    {
+                        if (TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)))
+                        {
+                            formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(PreciseTypeFormatter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]), new object[] { this.mainFormatter });
+                        }
+                        else if (TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is { } iface)
+                        {
+                            formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(GeneratorFormatter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]), new object[] { this.mainFormatter });
+                        }
+
+                        this.enumerableFormatters.Add(typeof(T), formatter);
+                    }
+
+                    return (IMessagePackFormatter<T>?)formatter;
+                }
+            }
+
+            /// <summary>
+            /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>
+            /// or an <see cref="IAsyncEnumerable{T}"/> into an enumeration token.
+            /// </summary>
+            private class PreciseTypeFormatter<T> : IMessagePackFormatter<IAsyncEnumerable<T>?>
+            {
+                private MessagePackFormatter mainFormatter;
+
+                public PreciseTypeFormatter(MessagePackFormatter mainFormatter)
+                {
+                    this.mainFormatter = mainFormatter;
+                }
+
+                public IAsyncEnumerable<T>? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return default;
+                    }
+
+                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
+                    RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
+                    return this.mainFormatter.enumerableTracker.CreateEnumerableProxy<T>(token);
+                }
+
+                public void Serialize(ref MessagePackWriter writer, IAsyncEnumerable<T>? value, MessagePackSerializerOptions options)
+                {
+                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
+                    if (value is null)
+                    {
+                        writer.WriteNil();
+                    }
+                    else
+                    {
+                        long token = this.mainFormatter.enumerableTracker.GetToken<T>(value);
+                        writer.Write(token);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
+            /// </summary>
+            private class GeneratorFormatter<TClass, TElement> : IMessagePackFormatter<TClass>
+                where TClass : IAsyncEnumerable<TElement>
+            {
+                private MessagePackFormatter mainFormatter;
+
+                public GeneratorFormatter(MessagePackFormatter mainFormatter)
+                {
+                    this.mainFormatter = mainFormatter;
+                }
+
+                public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    throw new NotSupportedException();
+                }
+
+                public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
+                {
+                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
+                    if (value is null)
+                    {
+                        writer.WriteNil();
+                    }
+                    else
+                    {
+                        long token = this.mainFormatter.enumerableTracker.GetToken<TElement>(value);
+                        writer.Write(token);
                     }
                 }
             }
