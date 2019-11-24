@@ -5,8 +5,8 @@ namespace StreamJsonRpc.Reflection
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
-    using System.Linq;
     using System.Reflection;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
@@ -22,14 +22,9 @@ namespace StreamJsonRpc.Reflection
         public const string ProgressRequestSpecialMethod = "$/progress";
 
         /// <summary>
-        /// Dictionary to record the calculation made in <see cref="FindIProgressOfT"/> to obtain the <see cref="IProgress{T}"/> type from a given <see cref="Type"/>.
+        /// Dictionary used to map the outbound request id to their progress info so that the progress objects are cleaned after getting the final response.
         /// </summary>
-        private static readonly Dictionary<Type, Type> IProgressOfTTypeMap = new Dictionary<Type, Type>();
-
-        /// <summary>
-        /// Dictionary used to map the outbound request id to their progress id token so that the progress objects are cleaned after getting the final response.
-        /// </summary>
-        private readonly Dictionary<RequestId, long> requestProgressMap = new Dictionary<RequestId, long>();
+        private readonly Dictionary<RequestId, ImmutableList<ProgressParamInformation>> requestProgressMap = new Dictionary<RequestId, ImmutableList<ProgressParamInformation>>();
 
         /// <summary>
         /// Dictionary used to map progress id token to its corresponding <see cref="ProgressParamInformation" /> instance containing the progress object and the necessary fields to report the results.
@@ -56,37 +51,14 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
         /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <c>null</c>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-        public static Type FindIProgressOfT(Type objectType)
-        {
-            Requires.NotNull(objectType, nameof(objectType));
-
-            if (objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
-            {
-                return objectType;
-            }
-
-            Type? iProgressOfTType;
-            lock (IProgressOfTTypeMap)
-            {
-                if (!IProgressOfTTypeMap.TryGetValue(objectType, out iProgressOfTType))
-                {
-                    iProgressOfTType = objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == typeof(IProgress<>));
-                    IProgressOfTTypeMap.Add(objectType, iProgressOfTType);
-                }
-            }
-
-            return iProgressOfTType;
-        }
+        public static Type? FindIProgressOfT(Type objectType) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
 
         /// <summary>
         /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
         /// </summary>
         /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
         /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
-        public static bool IsSupportedProgressType(Type objectType)
-        {
-            return FindIProgressOfT(objectType) != null;
-        }
+        public static bool IsSupportedProgressType(Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
 
         /// <summary>
         /// Gets a <see cref="long"/> type token to use as replacement of an <see cref="object"/> implementing <see cref="IProgress{T}"/> in the JSON message.
@@ -104,12 +76,31 @@ namespace StreamJsonRpc.Reflection
 
             lock (this.progressLock)
             {
-                long progressId = this.nextProgressId++;
-                this.requestProgressMap.Add(this.RequestIdBeingSerialized, progressId);
+                // Check whether we're being asked to tokenize a Progress<T> object for a second time (this can happen due to message logging).
+                if (this.requestProgressMap.TryGetValue(this.RequestIdBeingSerialized, out ImmutableList<ProgressParamInformation>? progressInfos))
+                {
+                    foreach (ProgressParamInformation info in progressInfos)
+                    {
+                        if (info.Contains(value))
+                        {
+                            return info.Token;
+                        }
+                    }
+                }
+                else
+                {
+                    progressInfos = ImmutableList<ProgressParamInformation>.Empty;
+                }
 
-                this.progressMap.Add(progressId, new ProgressParamInformation(value));
+                long progressToken = this.nextProgressId++;
+                var progressInfo = new ProgressParamInformation(value, progressToken);
 
-                return progressId;
+                progressInfos = progressInfos.Add(progressInfo);
+                this.requestProgressMap[this.RequestIdBeingSerialized] = progressInfos;
+
+                this.progressMap.Add(progressToken, progressInfo);
+
+                return progressToken;
             }
         }
 
@@ -121,10 +112,13 @@ namespace StreamJsonRpc.Reflection
         {
             lock (this.progressLock)
             {
-                if (this.requestProgressMap.TryGetValue(requestId, out long progressId))
+                if (this.requestProgressMap.TryGetValue(requestId, out ImmutableList<ProgressParamInformation>? progressInfos))
                 {
                     this.requestProgressMap.Remove(requestId);
-                    this.progressMap.Remove(progressId);
+                    foreach (ProgressParamInformation progressInfo in progressInfos)
+                    {
+                        this.progressMap.Remove(progressInfo.Token);
+                    }
                 }
             }
         }
@@ -193,23 +187,30 @@ namespace StreamJsonRpc.Reflection
             /// Initializes a new instance of the <see cref="ProgressParamInformation"/> class.
             /// </summary>
             /// <param name="progressObject">The object implementing <see cref="IProgress{T}"/>.</param>
-            public ProgressParamInformation(object progressObject)
+            /// <param name="token">The token associated with this progress object.</param>
+            internal ProgressParamInformation(object progressObject, long token)
             {
                 Requires.NotNull(progressObject, nameof(progressObject));
 
-                Type iProgressOfTType = FindIProgressOfT(progressObject.GetType());
+                Type? iProgressOfTType = FindIProgressOfT(progressObject.GetType());
 
                 Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
 
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
                 this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;
                 this.progressObject = progressObject;
+                this.Token = token;
             }
 
             /// <summary>
             /// Gets the actual <see cref="Type"/> reported by <see cref="IProgress{T}"/>.
             /// </summary>
             public Type ValueType { get; }
+
+            /// <summary>
+            /// Gets the token associated with this progress object.
+            /// </summary>
+            internal long Token { get; }
 
             /// <summary>
             /// Invokes <see cref="reportMethod"/> using the given typed value.
@@ -219,6 +220,8 @@ namespace StreamJsonRpc.Reflection
             {
                 this.reportMethod.Invoke(this.progressObject, new object?[] { typedValue });
             }
+
+            internal bool Contains(object progressObject) => this.progressObject == progressObject;
         }
 
         /// <summary>
