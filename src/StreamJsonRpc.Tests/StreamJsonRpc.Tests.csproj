@@ -11,6 +11,10 @@
 
   <ItemGroup>
     <Compile Include="..\StreamJsonRpc\NullabilityAttributes.cs" Link="NullabilityAttributes.cs" />
+    <Compile Update="DuplexPipeMarshalingJsonTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
+    <Compile Update="DuplexPipeMarshalingMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
+    <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
