@@ -15,6 +15,8 @@
     <Compile Update="DuplexPipeMarshalingMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="AsyncEnumerableJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
+    <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
@@ -25,6 +27,7 @@
     <PackageReference Include="MicroBuild.NonShipping" Version="$(MicroBuildPackageVersion)" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="Microsoft.VisualStudio.Validation" Version="15.5.31" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />

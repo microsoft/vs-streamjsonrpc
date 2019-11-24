@@ -11,15 +11,14 @@ namespace StreamJsonRpc
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.ComponentModel;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
-    using System.Security;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
+    using Microsoft.VisualStudio.Threading;
 
     internal static class ProxyGeneration
     {
@@ -231,8 +230,14 @@ namespace StreamJsonRpc
                 {
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
-                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
+                    bool returnTypeIsIAsyncEnumerable = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
+                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
                     VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
+
+                    bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
+                    Type? invokeResultTypeArgument = hasReturnValue
+                        ? (returnTypeIsIAsyncEnumerable ? method.ReturnType : method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
+                        : null;
 
                     ParameterInfo[] methodParameters = method.GetParameters();
                     MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
@@ -260,7 +265,6 @@ namespace StreamJsonRpc
                     ParameterInfo cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
                     int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter != null ? 1 : 0);
                     VerifySupported(cancellationTokenParameter == null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
-                    bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
 
                     // if (this.options.ServerRequiresNamedArguments) {
                     il.Emit(OpCodes.Ldarg_0);
@@ -285,8 +289,8 @@ namespace StreamJsonRpc
                             il.Emit(OpCodes.Ldnull);
                         }
 
-                        MethodInfo invokingMethod = hasReturnValue
-                            ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
+                        MethodInfo invokingMethod = invokeResultTypeArgument != null
+                            ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument)
                             : invokeWithParameterObjectAsyncOfTaskMethodInfo;
                         if (cancellationTokenParameter != null)
                         {
@@ -299,11 +303,7 @@ namespace StreamJsonRpc
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
 
-                        if (returnTypeIsValueTask)
-                        {
-                            // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
-                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType })!);
-                        }
+                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod);
 
                         il.Emit(OpCodes.Ret);
                     }
@@ -339,18 +339,14 @@ namespace StreamJsonRpc
                         }
 
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                        if (hasReturnValue)
+                        if (invokeResultTypeArgument != null)
                         {
-                            invokingMethod = invokingMethod.MakeGenericMethod(method.ReturnType.GetTypeInfo().GenericTypeArguments[0]);
+                            invokingMethod = invokingMethod.MakeGenericMethod(invokeResultTypeArgument);
                         }
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
 
-                        if (returnTypeIsValueTask)
-                        {
-                            // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
-                            il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType })!);
-                        }
+                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod);
 
                         il.Emit(OpCodes.Ret);
                     }
@@ -360,14 +356,38 @@ namespace StreamJsonRpc
 
                 generatedType = proxyTypeBuilder.CreateTypeInfo()!;
                 GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
-            }
 
 #if SaveAssembly
-            AssemblyBuilder.Save(ProxyModuleBuilder.ScopeName);
-            System.IO.File.Move(ProxyModuleBuilder.ScopeName, ProxyModuleBuilder.ScopeName + ".dll");
+                ((AssemblyBuilder)proxyModuleBuilder.Assembly).Save(proxyModuleBuilder.ScopeName);
+                System.IO.File.Move(proxyModuleBuilder.ScopeName, proxyModuleBuilder.ScopeName + ".dll");
 #endif
+            }
 
             return generatedType;
+        }
+
+        /// <summary>
+        /// Converts the value on the stack to one compatible with the method's return type.
+        /// </summary>
+        /// <param name="method">The interface method that we're generating code for.</param>
+        /// <param name="returnTypeIsValueTask"><c>true</c> if the return type is <see cref="ValueTask"/> or <see cref="ValueTask{TResult}"/>; <c>false</c> otherwise.</param>
+        /// <param name="returnTypeIsIAsyncEnumerable"><c>true</c> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <c>false</c> otherwise.</param>
+        /// <param name="il">The IL emitter for the method.</param>
+        /// <param name="invokingMethod">The Invoke method on <see cref="JsonRpc"/> that IL was just emitted to invoke.</param>
+        private static void AdaptReturnType(MethodInfo method, bool returnTypeIsValueTask, bool returnTypeIsIAsyncEnumerable, ILGenerator il, MethodInfo invokingMethod)
+        {
+            if (returnTypeIsValueTask)
+            {
+                // We must convert the Task or Task<T> returned from JsonRpc into a ValueTask or ValueTask<T>
+                il.Emit(OpCodes.Newobj, method.ReturnType.GetTypeInfo().GetConstructor(new Type[] { invokingMethod.ReturnType })!);
+            }
+            else if (returnTypeIsIAsyncEnumerable)
+            {
+                // We must convert the Task<IAsyncEnumerable<T>> to IAsyncEnumerable<T>
+                Type proxyEnumerableType = typeof(AsyncEnumerableProxy<>).MakeGenericType(method.ReturnType.GenericTypeArguments[0]);
+                ConstructorInfo ctor = proxyEnumerableType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
+                il.Emit(OpCodes.Newobj, ctor);
+            }
         }
 
         /// <summary>
@@ -384,7 +404,8 @@ namespace StreamJsonRpc
             // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
             // The CLR will not honor any additions to that set once the first generated type is closed.
             // We maintain a dictionary to point at dynamic modules based on the set of skip visiblity check assemblies they were generated with.
-            ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType);
+            ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType)
+                .Add(typeof(ProxyGeneration).Assembly.GetName());
             foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
             {
                 if (existingSet.SkipVisibilitySet.IsSupersetOf(skipVisibilityCheckAssemblies))
@@ -566,6 +587,66 @@ namespace StreamJsonRpc
 
             IEnumerable<T> result = oneInterfaceQuery(interfaceType);
             return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
+        }
+
+        /// <summary>
+        /// A synthesized <see cref="IAsyncEnumerable{T}"/> that makes a promise for such a value look like the actual value.
+        /// </summary>
+        /// <typeparam name="T">The type of element produced by the enumerable.</typeparam>
+        private class AsyncEnumerableProxy<T> : IAsyncEnumerable<T>
+        {
+            private readonly Task<IAsyncEnumerable<T>> enumerableTask;
+
+            internal AsyncEnumerableProxy(Task<IAsyncEnumerable<T>> enumerableTask)
+            {
+                this.enumerableTask = enumerableTask ?? throw new ArgumentNullException(nameof(enumerableTask));
+            }
+
+            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+            {
+                return new AsyncEnumeratorProxy(this.enumerableTask, cancellationToken);
+            }
+
+            private class AsyncEnumeratorProxy : IAsyncEnumerator<T>
+            {
+                private readonly AsyncLazy<IAsyncEnumerator<T>> enumeratorLazy;
+
+                internal AsyncEnumeratorProxy(Task<IAsyncEnumerable<T>> enumerableTask, CancellationToken cancellationToken)
+                {
+                    this.enumeratorLazy = new AsyncLazy<IAsyncEnumerator<T>>(
+                        async () =>
+                        {
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks
+                            IAsyncEnumerable<T> enumerable = await enumerableTask.ConfigureAwait(false);
+#pragma warning restore VSTHRD003 // Avoid awaiting foreign Tasks
+                            return enumerable.GetAsyncEnumerator(cancellationToken);
+                        },
+                        joinableTaskFactory: null);
+                }
+
+                public T Current
+                {
+                    get
+                    {
+                        Verify.Operation(this.enumeratorLazy.IsValueFactoryCompleted, "Await MoveNextAsync first.");
+                        return this.enumeratorLazy.GetValue().Current;
+                    }
+                }
+
+                public async ValueTask<bool> MoveNextAsync()
+                {
+                    IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                    return await enumerator.MoveNextAsync().ConfigureAwait(false);
+                }
+
+                public async ValueTask DisposeAsync()
+                {
+                    // Even if we haven't been asked for the iterator yet, the server has (or soon may), so we must acquire it
+                    // and dispose of it so that we don't incur a memory leak on the server.
+                    IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                    await enumerator.DisposeAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 }
