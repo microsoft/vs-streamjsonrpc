@@ -992,6 +992,65 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithArrayParameters_SendingWithProgressProperty()
+    {
+        int report = 0;
+        var progress = new ProgressWithCompletion<int>(n => report += n);
+
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYFieldsWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(1, report);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
+    {
+        int report = 0;
+        var progress = new ProgressWithCompletion<int>(n => report += n);
+
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5, p = progress } }, this.TimeoutToken);
+
+        await progress.WaitAsync();
+
+        Assert.Equal(1, report);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithArrayParameters_SendingWithNullProgressProperty()
+    {
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYFieldsWithProgress { x = 2, y = 5 } }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
+    {
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
+        Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task Invoke_MultipleProgressArguments()
+    {
+        bool progress1Reported = false;
+        bool progress2Reported = false;
+
+        var progress1 = new ProgressWithCompletion<int>(n => progress1Reported = true);
+        var progress2 = new ProgressWithCompletion<int>(n => progress2Reported = true);
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithMultipleProgressParameters), new object[] { progress1, progress2 }, this.TimeoutToken);
+
+        await progress1.WaitAsync(this.TimeoutToken);
+        Assert.True(progress1Reported);
+        await progress2.WaitAsync(this.TimeoutToken);
+        Assert.True(progress2Reported);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
@@ -1737,7 +1796,7 @@ public abstract class JsonRpcTests : TestBase
         [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
         public static int MethodWithSingleObjectParameterWithProgress(XAndYFieldsWithProgress fields)
         {
-            fields.p!.Report(fields.x + fields.y);
+            fields.p?.Report(fields.x + fields.y);
             return fields.x + fields.y;
         }
 
@@ -1761,22 +1820,22 @@ public abstract class JsonRpcTests : TestBase
             return sum;
         }
 
-        public static int MethodWithProgressArrayParameter(params IProgress<int>[] progressArray)
-        {
-            int report = 0;
-
-            foreach (IProgress<int> progress in progressArray)
-            {
-                report++;
-                progress.Report(report);
-            }
-
-            return 0;
-        }
-
         public static int MethodWithInvalidProgressParameter(Progress<int> p)
         {
             return 1;
+        }
+
+        public int MethodWithParameterContainingIProgress(XAndYFieldsWithProgress p)
+        {
+            int sum = p.x + p.y;
+            p.p?.Report(1);
+            return sum;
+        }
+
+        public void MethodWithMultipleProgressParameters(IProgress<int> progress1, IProgress<int> progress2)
+        {
+            progress1.Report(1);
+            progress2.Report(2);
         }
 
         public int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
@@ -2134,6 +2193,20 @@ public abstract class JsonRpcTests : TestBase
         public int y;
         [DataMember]
         public IProgress<int>? p;
+#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+    }
+
+    [DataContract]
+    public class StrongTypedProgressType
+    {
+        // We disable SA1307 because we have to match the members of XAndYFieldsWithProgress exactly.
+#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        [DataMember]
+        public int x;
+        [DataMember]
+        public int y;
+        [DataMember]
+        public ProgressWithCompletion<int>? p;
 #pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
     }
 

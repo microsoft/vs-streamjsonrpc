@@ -331,7 +331,6 @@ StreamJsonRpc.Reflection.MessageFormatterProgressTracker.GetTokenForProgress(obj
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.MessageFormatterProgressTracker() -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.InvokeReport(object typedValue) -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ProgressParamInformation(object progressObject) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.ValueType.get -> System.Type
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialized.set -> void
 const StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressRequestSpecialMethod = "$/progress" -> string

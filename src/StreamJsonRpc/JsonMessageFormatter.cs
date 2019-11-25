@@ -742,6 +742,9 @@ namespace StreamJsonRpc
             public void Return(T[] array) => this.arrayPool.Return(array);
         }
 
+        /// <summary>
+        /// Converts an instance of <see cref="IProgress{T}"/> to a progress token.
+        /// </summary>
         private class JsonProgressClientConverter : JsonConverter
         {
             private readonly JsonMessageFormatter formatter;
@@ -765,6 +768,9 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// Converts a progress token to an <see cref="IProgress{T}"/>.
+        /// </summary>
         private class JsonProgressServerConverter : JsonConverter
         {
             private readonly JsonMessageFormatter formatter;

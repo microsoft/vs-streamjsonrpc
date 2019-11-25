@@ -325,21 +325,47 @@ namespace StreamJsonRpc
 
         private struct RawMessagePack
         {
-            private readonly ReadOnlySequence<byte> raw;
+            private readonly ReadOnlySequence<byte> rawSequence;
+
+            private readonly ReadOnlyMemory<byte> rawMemory;
 
             private RawMessagePack(ReadOnlySequence<byte> raw)
             {
-                this.raw = raw;
+                this.rawSequence = raw;
+                this.rawMemory = default;
             }
 
-            internal static RawMessagePack ReadRaw(ref MessagePackReader reader)
+            private RawMessagePack(ReadOnlyMemory<byte> raw)
+            {
+                this.rawSequence = default;
+                this.rawMemory = raw;
+            }
+
+            /// <summary>
+            /// Reads one raw messagepack token.
+            /// </summary>
+            /// <param name="reader">The reader to use.</param>
+            /// <param name="copy"><c>true</c> if the token must outlive the lifetime of the reader's underlying buffer; <c>false</c> otherwise.</param>
+            /// <returns>The raw messagepack slice.</returns>
+            internal static RawMessagePack ReadRaw(ref MessagePackReader reader, bool copy)
             {
                 SequencePosition initialPosition = reader.Position;
                 reader.Skip();
-                return new RawMessagePack(reader.Sequence.Slice(initialPosition, reader.Position));
+                ReadOnlySequence<byte> slice = reader.Sequence.Slice(initialPosition, reader.Position);
+                return copy ? new RawMessagePack(slice.ToArray()) : new RawMessagePack(slice);
             }
 
-            internal void WriteRaw(ref MessagePackWriter writer) => writer.WriteRaw(this.raw);
+            internal void WriteRaw(ref MessagePackWriter writer)
+            {
+                if (this.rawSequence.IsEmpty)
+                {
+                    writer.WriteRaw(this.rawMemory.Span);
+                }
+                else
+                {
+                    writer.WriteRaw(this.rawSequence);
+                }
+            }
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>
@@ -385,7 +411,7 @@ namespace StreamJsonRpc
 
             public RawMessagePack Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                return RawMessagePack.ReadRaw(ref reader);
+                return RawMessagePack.ReadRaw(ref reader, copy: false);
             }
 
             public void Serialize(ref MessagePackWriter writer, RawMessagePack value, MessagePackSerializerOptions options)
@@ -413,7 +439,7 @@ namespace StreamJsonRpc
                     {
                         if (typeof(T).IsConstructedGenericType && typeof(T).GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
                         {
-                            formatter = new ProgressServerFormatter<T>(this.mainFormatter);
+                            formatter = new PreciseTypeFormatter<T>(this.mainFormatter);
                         }
                         else if (MessageFormatterProgressTracker.IsSupportedProgressType(typeof(T)))
                         {
@@ -427,6 +453,9 @@ namespace StreamJsonRpc
                 }
             }
 
+            /// <summary>
+            /// Converts an instance of <see cref="IProgress{T}"/> to a progress token.
+            /// </summary>
             private class ProgressClientFormatter<TClass> : IMessagePackFormatter<TClass>
             {
                 private readonly MessagePackFormatter formatter;
@@ -436,7 +465,6 @@ namespace StreamJsonRpc
                     this.formatter = formatter;
                 }
 
-                [return: MaybeNull]
                 public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
                 {
                     throw new NotSupportedException("This formatter only serializes IProgress<T> instances.");
@@ -444,19 +472,26 @@ namespace StreamJsonRpc
 
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
                 {
-                    // The resolver should not have selected this formatter for a null value.
-                    Assumes.True(value is object);
-
-                    long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
-                    writer.Write(progressId);
+                    if (value is null)
+                    {
+                        writer.WriteNil();
+                    }
+                    else
+                    {
+                        long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                        writer.Write(progressId);
+                    }
                 }
             }
 
-            private class ProgressServerFormatter<TClass> : IMessagePackFormatter<TClass>
+            /// <summary>
+            /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
+            /// </summary>
+            private class PreciseTypeFormatter<TClass> : IMessagePackFormatter<TClass>
             {
                 private readonly MessagePackFormatter formatter;
 
-                internal ProgressServerFormatter(MessagePackFormatter formatter)
+                internal PreciseTypeFormatter(MessagePackFormatter formatter)
                 {
                     this.formatter = formatter;
                 }
@@ -470,13 +505,21 @@ namespace StreamJsonRpc
                     }
 
                     Assumes.NotNull(this.formatter.rpc);
-                    RawMessagePack token = RawMessagePack.ReadRaw(ref reader);
+                    RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
                     return (TClass)this.formatter.formatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass));
                 }
 
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
                 {
-                    throw new NotSupportedException("This formatter only deserializes IProgress<T> instances.");
+                    if (value is null)
+                    {
+                        writer.WriteNil();
+                    }
+                    else
+                    {
+                        long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                        writer.Write(progressId);
+                    }
                 }
             }
         }
