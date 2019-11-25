@@ -2122,10 +2122,10 @@ namespace StreamJsonRpc
                         {
                             await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
                         }
-                        catch (OperationCanceledException)
+                        catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
                         {
                         }
-                        catch (ObjectDisposedException)
+                        catch (ObjectDisposedException) when (this.IsDisposed)
                         {
                         }
                         catch (Exception exception)
