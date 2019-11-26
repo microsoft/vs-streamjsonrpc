@@ -1,5 +1,3 @@
-StreamJsonRpc.IJsonRpcMessageBufferManager
-StreamJsonRpc.IJsonRpcMessageBufferManager.DeserializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(System.Reflection.MethodInfo handler, object target, StreamJsonRpc.JsonRpcMethodAttribute methodRpcSettings) -> void
 StreamJsonRpc.JsonRpc.GetJsonRpcMethodAttribute(string methodName, System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters) -> StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
@@ -23,6 +21,8 @@ StreamJsonRpc.Protocol.JsonRpcRequest.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcRequest.RequestId.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.set -> void
+StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager
+StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager.DeserializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseReceived(StreamJsonRpc.RequestId requestId, bool successful) -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseSent(StreamJsonRpc.RequestId requestId, bool successful) -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingDeserialized.get -> StreamJsonRpc.RequestId

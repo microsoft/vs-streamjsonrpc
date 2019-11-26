@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using Microsoft.VisualStudio.Threading;
     using Newtonsoft.Json;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
