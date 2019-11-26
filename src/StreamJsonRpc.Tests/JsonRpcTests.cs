@@ -1051,6 +1051,24 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task CustomSerializedType_WorksWithConverter()
+    {
+        var result = await this.clientRpc.InvokeAsync<CustomSerializedType>(nameof(this.server.RepeatSpecialType), new CustomSerializedType { Value = "a" });
+        Assert.Equal("a!", result.Value);
+    }
+
+    [Fact]
+    public async Task ProgressOfT_WithCustomSerializedTypeArgument()
+    {
+        const string ExpectedResult = "hi!";
+        string? actualResult = null;
+        var progress = new ProgressWithCompletion<CustomSerializedType>(v => actualResult = v.Value);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.RepeatSpecialType_ViaProgress), new object?[] { ExpectedResult.TrimEnd('!'), progress }, this.TimeoutToken);
+        await progress.WaitAsync(this.TimeoutToken);
+        Assert.Equal(ExpectedResult, actualResult);
+    }
+
+    [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsArray()
     {
         string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter));
@@ -1919,9 +1937,14 @@ public abstract class JsonRpcTests : TestBase
             this.notificationTcs.SetResult(arg);
         }
 
-        public UnserializableType RepeatSpecialType(UnserializableType value)
+        public CustomSerializedType RepeatSpecialType(CustomSerializedType value)
         {
-            return new UnserializableType { Value = value.Value + "!" };
+            return new CustomSerializedType { Value = value.Value + "!" };
+        }
+
+        public void RepeatSpecialType_ViaProgress(string value, IProgress<CustomSerializedType> progress)
+        {
+            progress?.Report(new CustomSerializedType { Value = value + "!" });
         }
 
         public string ExpectEncodedA(string arg)
@@ -2134,28 +2157,12 @@ public abstract class JsonRpcTests : TestBase
         public int Bazz { get; set; }
     }
 
-    public class UnserializableType
+    public class CustomSerializedType
     {
+        // Ignore this so default serializers will drop it, proving that custom serializers were used if the value propagates.
         [JsonIgnore]
+        [IgnoreDataMember]
         public string? Value { get; set; }
-    }
-
-    public class UnserializableTypeConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType) => objectType == typeof(UnserializableType);
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            return new UnserializableType
-            {
-                Value = (string)reader.Value,
-            };
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            writer.WriteValue(((UnserializableType)value).Value);
-        }
     }
 
     [DataContract]

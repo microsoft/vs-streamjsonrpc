@@ -6,6 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
@@ -57,7 +60,27 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         this.serverMessageFormatter = new MessagePackFormatter();
         this.clientMessageFormatter = new MessagePackFormatter();
 
+        var options = MessagePackSerializerOptions.Standard
+            .WithResolver(CompositeResolver.Create(
+                new IMessagePackFormatter[] { new UnserializableTypeFormatter() },
+                new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
+        ((MessagePackFormatter)this.serverMessageFormatter).SetMessagePackSerializerOptions(options);
+        ((MessagePackFormatter)this.clientMessageFormatter).SetMessagePackSerializerOptions(options);
+
         this.serverMessageHandler = new LengthHeaderMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
         this.clientMessageHandler = new LengthHeaderMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+    }
+
+    private class UnserializableTypeFormatter : IMessagePackFormatter<CustomSerializedType>
+    {
+        public CustomSerializedType Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            return new CustomSerializedType { Value = reader.ReadString() };
+        }
+
+        public void Serialize(ref MessagePackWriter writer, CustomSerializedType value, MessagePackSerializerOptions options)
+        {
+            writer.Write(value?.Value);
+        }
     }
 }
