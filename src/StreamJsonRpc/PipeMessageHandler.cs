@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Linq;
     using Newtonsoft.Json.Serialization;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// An abstract base class for for sending and receiving messages
