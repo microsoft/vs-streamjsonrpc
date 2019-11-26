@@ -37,6 +37,11 @@
         <target state="translated">JSON RPC 不得为 null。</target>
         <note />
       </trans-unit>
+      <trans-unit id="MarshaledObjectInNotificationError">
+        <source>This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</source>
+        <target state="new">This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MarshaledObjectInResponseOrNotificationError">
         <source>This tracked object should not be part of any response or notification.</source>
         <target state="translated">此跟踪对象不应是任何响应或通知的一部分。</target>
@@ -111,6 +116,11 @@
         <source>Unexpected error processing JSON-RPC message: {0}</source>
         <target state="translated">处理 JSON-RPC 消息时出现意外错误: {0}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="UnknownTokenToMarshaledObject">
+        <source>This remote object no longer exists.</source>
+        <target state="new">This remote object no longer exists.</target>
+        <note />
       </trans-unit>
       <trans-unit id="UnrecognizableMessage">
         <source>Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</source>
@@ -281,6 +291,11 @@
         <source>Error writing JSON RPC Message: {0}: {1}</source>
         <target state="translated">写入 JSON RPC 消息时出错: {0}: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="UsableOnceOnly">
+        <source>This method may only be called once and already has been.</source>
+        <target state="new">This method may only be called once and already has been.</target>
+        <note />
       </trans-unit>
     </body>
   </file>

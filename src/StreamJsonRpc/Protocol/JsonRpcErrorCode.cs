@@ -17,6 +17,11 @@ namespace StreamJsonRpc.Protocol
         InvocationError = -32000,
 
         /// <summary>
+        /// Indicates a request was made to a remotely marshaled object that never existed or has already been disposed of.
+        /// </summary>
+        NoMarshaledObjectFound = -32001,
+
+        /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
         /// </summary>
         ParseError = -32700,

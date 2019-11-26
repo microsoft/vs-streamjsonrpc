@@ -241,6 +241,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This tracked object cannot be included in a notification. Only messages including an &quot;id&quot; property are supported..
+        /// </summary>
+        internal static string MarshaledObjectInNotificationError {
+            get {
+                return ResourceManager.GetString("MarshaledObjectInNotificationError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This tracked object should not be part of any response or notification..
         /// </summary>
         internal static string MarshaledObjectInResponseOrNotificationError {
@@ -502,6 +511,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This remote object no longer exists..
+        /// </summary>
+        internal static string UnknownTokenToMarshaledObject {
+            get {
+                return ResourceManager.GetString("UnknownTokenToMarshaledObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types..
         /// </summary>
         internal static string UnrecognizableMessage {
@@ -561,6 +579,15 @@ namespace StreamJsonRpc {
         internal static string UnsupportedPropertiesOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This method may only be called once and already has been..
+        /// </summary>
+        internal static string UsableOnceOnly {
+            get {
+                return ResourceManager.GetString("UsableOnceOnly", resourceCulture);
             }
         }
     }

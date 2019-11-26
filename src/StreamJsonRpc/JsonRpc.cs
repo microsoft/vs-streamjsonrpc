@@ -24,7 +24,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public class JsonRpc : IDisposableObservable
+    public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
@@ -132,6 +132,10 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext? synchronizationContext;
 
+        private EventHandler<JsonRpcFormatterCallbackEventArgs>? requestTransmissionAborted;
+        private EventHandler<JsonRpcFormatterCallbackEventArgs>? resultReceived;
+        private EventHandler<JsonRpcFormatterCallbackEventArgs>? errorReceived;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
         /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
@@ -233,6 +237,24 @@ namespace StreamJsonRpc
             {
                 this.DisconnectedPrivate -= value;
             }
+        }
+
+        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
+        {
+            add => this.requestTransmissionAborted += value;
+            remove => this.requestTransmissionAborted -= value;
+        }
+
+        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.ResultReceived
+        {
+            add => this.resultReceived += value;
+            remove => this.resultReceived -= value;
+        }
+
+        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.ErrorReceived
+        {
+            add => this.errorReceived += value;
+            remove => this.errorReceived -= value;
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs>? DisconnectedPrivate;
@@ -1273,6 +1295,30 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Raises the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
+        /// </summary>
+        /// <param name="request">The request whose transmission could not be completed.</param>
+        protected virtual void OnRequestTransmissionAborted(JsonRpcRequest request)
+        {
+            if (!request.RequestId.IsEmpty)
+            {
+                this.requestTransmissionAborted?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(request));
+            }
+        }
+
+        /// <summary>
+        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResultReceived"/> event.
+        /// </summary>
+        /// <param name="result">The result that was received.</param>
+        protected virtual void OnResultReceived(JsonRpcResult result) => this.resultReceived?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(result));
+
+        /// <summary>
+        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ErrorReceived"/> event.
+        /// </summary>
+        /// <param name="error">The error that was received.</param>
+        protected virtual void OnErrorReceived(JsonRpcError error) => this.errorReceived?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(error));
+
+        /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
         /// <param name="target">Object to reflect over and analyze its methods.</param>
@@ -1581,6 +1627,11 @@ namespace StreamJsonRpc
             catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
                 throw new ConnectionLostException(Resources.ConnectionDropped, ex);
+            }
+            catch (Exception)
+            {
+                this.OnRequestTransmissionAborted(request);
+                throw;
             }
         }
 
@@ -1988,7 +2039,7 @@ namespace StreamJsonRpc
                 this.disconnectedSource.Cancel();
 
                 Task messageHandlerDisposal = Task.CompletedTask;
-                if (this.MessageHandler is IAsyncDisposable asyncDisposableMessageHandler)
+                if (this.MessageHandler is Microsoft.VisualStudio.Threading.IAsyncDisposable asyncDisposableMessageHandler)
                 {
                     messageHandlerDisposal = asyncDisposableMessageHandler.DisposeAsync();
                 }
@@ -2151,6 +2202,17 @@ namespace StreamJsonRpc
                 }
                 else if (rpc is IJsonRpcMessageWithId resultOrError)
                 {
+                    JsonRpcResult? result = resultOrError as JsonRpcResult;
+                    JsonRpcError? error = resultOrError as JsonRpcError;
+                    if (result != null)
+                    {
+                        this.OnResultReceived(result);
+                    }
+                    else if (error != null)
+                    {
+                        this.OnErrorReceived(error);
+                    }
+
                     OutstandingCallData? data = null;
                     lock (this.dispatcherMapLock)
                     {
@@ -2162,11 +2224,11 @@ namespace StreamJsonRpc
 
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
                     {
-                        if (resultOrError is JsonRpcResult result)
+                        if (result != null)
                         {
                             this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.RequestId);
                         }
-                        else if (resultOrError is JsonRpcError error && error.Error is object)
+                        else if (error?.Error is object)
                         {
                             this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.RequestId, error.Error.Code, error.Error.Message);
                         }

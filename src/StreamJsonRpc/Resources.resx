@@ -185,6 +185,9 @@
   <data name="JsonRpcCannotBeNull" xml:space="preserve">
     <value>JSON RPC must not be null.</value>
   </data>
+  <data name="MarshaledObjectInNotificationError" xml:space="preserve">
+    <value>This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</value>
+  </data>
   <data name="MarshaledObjectInResponseOrNotificationError" xml:space="preserve">
     <value>This tracked object should not be part of any response or notification.</value>
   </data>
@@ -284,6 +287,9 @@
     <value>Unexpected token '{0}' while parsing header.</value>
     <comment>{0} is the token, which is typically a single character.</comment>
   </data>
+  <data name="UnknownTokenToMarshaledObject" xml:space="preserve">
+    <value>This remote object no longer exists.</value>
+  </data>
   <data name="UnrecognizableMessage" xml:space="preserve">
     <value>Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.</value>
   </data>
@@ -306,5 +312,8 @@
   </data>
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
+  </data>
+  <data name="UsableOnceOnly" xml:space="preserve">
+    <value>This method may only be called once and already has been.</value>
   </data>
 </root>

@@ -7,7 +7,6 @@ namespace StreamJsonRpc
     using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.IO.Pipelines;
@@ -31,7 +30,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
-    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcInstanceContainer, IDisposable
+    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -82,6 +81,23 @@ namespace StreamJsonRpc
         /// The helper for marshaling pipes as RPC method arguments.
         /// </summary>
         private readonly MessageFormatterDuplexPipeTracker duplexPipeTracker = new MessageFormatterDuplexPipeTracker();
+
+        private MessageFormatterEnumerableTracker? enumerableTracker;
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingMessageWithId"/> property.
+        /// </summary>
+        private RequestId serializingMessageWithId;
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterState.DeserializingMessageWithId"/> property.
+        /// </summary>
+        private RequestId deserializingMessageWithId;
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingRequest"/> property.
+        /// </summary>
+        private bool serializingRequest;
 
         /// <summary>
         /// A value indicating whether a request where <see cref="Protocol.JsonRpcRequest.RequestId"/> is a <see cref="string"/>
@@ -142,6 +158,8 @@ namespace StreamJsonRpc
                 {
                     new JsonProgressServerConverter(this),
                     new JsonProgressClientConverter(this),
+                    new AsyncEnumerableConsumerConverter(this),
+                    new AsyncEnumerableGeneratorConverter(this),
                     new DuplexPipeConverter(this),
                     new PipeReaderConverter(this),
                     new PipeWriterConverter(this),
@@ -209,8 +227,22 @@ namespace StreamJsonRpc
             {
                 Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
                 this.rpc = value;
+
+                if (value != null)
+                {
+                    this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
+                }
             }
         }
+
+        /// <inheritdoc/>
+        RequestId IJsonRpcFormatterState.SerializingMessageWithId => this.serializingMessageWithId;
+
+        /// <inheritdoc/>
+        RequestId IJsonRpcFormatterState.DeserializingMessageWithId => this.deserializingMessageWithId;
+
+        /// <inheritdoc/>
+        bool IJsonRpcFormatterState.SerializingRequest => this.serializingRequest;
 
         /// <inheritdoc/>
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
@@ -429,8 +461,10 @@ namespace StreamJsonRpc
         {
             try
             {
+                this.serializingMessageWithId = jsonRpcMessage is IJsonRpcMessageWithId msgWithId ? msgWithId.RequestId : default;
                 if (jsonRpcMessage is Protocol.JsonRpcRequest request)
                 {
+                    this.serializingRequest = true;
                     this.formatterProgressTracker.RequestIdBeingSerialized = request.RequestId;
                     this.duplexPipeTracker.RequestIdBeingSerialized = request.RequestId;
 
@@ -457,6 +491,8 @@ namespace StreamJsonRpc
             }
             finally
             {
+                this.serializingMessageWithId = default;
+                this.serializingRequest = false;
                 this.formatterProgressTracker.RequestIdBeingSerialized = default;
                 this.duplexPipeTracker.RequestIdBeingSerialized = default;
             }
@@ -641,7 +677,8 @@ namespace StreamJsonRpc
                     try
                     {
                         // Deserialization of messages should never occur concurrently for a single instance of a formatter.
-                        Assumes.True(this.formatter.duplexPipeTracker.RequestIdBeingDeserialized.IsEmpty);
+                        Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
+                        this.formatter.deserializingMessageWithId = this.RequestId;
                         this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.RequestId;
                         try
                         {
@@ -649,6 +686,7 @@ namespace StreamJsonRpc
                         }
                         finally
                         {
+                            this.formatter.deserializingMessageWithId = default;
                             this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = default;
                         }
 
@@ -800,6 +838,66 @@ namespace StreamJsonRpc
             public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
+        private class AsyncEnumerableConsumerConverter : JsonConverter
+        {
+            private JsonMessageFormatter formatter;
+
+            internal AsyncEnumerableConsumerConverter(JsonMessageFormatter jsonMessageFormatter)
+            {
+                this.formatter = jsonMessageFormatter;
+            }
+
+            public override bool CanConvert(Type objectType) => this.formatter.enumerableTracker != null && MessageFormatterEnumerableTracker.CanDeserialize(objectType);
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                if (reader.TokenType == JsonToken.Null)
+                {
+                    return null;
+                }
+
+                Assumes.NotNull(this.formatter.enumerableTracker);
+                JToken token = JToken.Load(reader);
+                return this.formatter.enumerableTracker.CreateEnumerableProxy(objectType, token);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
+        /// </summary>
+        private class AsyncEnumerableGeneratorConverter : JsonConverter
+        {
+            private JsonMessageFormatter formatter;
+
+            internal AsyncEnumerableGeneratorConverter(JsonMessageFormatter jsonMessageFormatter)
+            {
+                this.formatter = jsonMessageFormatter;
+            }
+
+            public override bool CanConvert(Type objectType) => this.formatter.enumerableTracker != null && MessageFormatterEnumerableTracker.CanSerialize(objectType);
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                Assumes.NotNull(this.formatter.enumerableTracker);
+
+                long token = this.formatter.enumerableTracker.GetToken(value);
+                writer.WriteValue(token);
             }
         }
 
