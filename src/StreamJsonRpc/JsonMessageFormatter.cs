@@ -516,7 +516,7 @@ namespace StreamJsonRpc
                     MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
                     if (this.formatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
                     {
-                        object? typedValue = value?.ToObject(progressInfo.ValueType);
+                        object? typedValue = value?.ToObject(progressInfo.ValueType, this.JsonSerializer);
                         progressInfo.InvokeReport(typedValue);
                     }
                 }
