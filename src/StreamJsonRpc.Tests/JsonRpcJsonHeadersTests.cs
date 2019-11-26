@@ -24,18 +24,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task UnserializableTypeWorksWithConverter()
-    {
-        var clientMessageFormatter = (JsonMessageFormatter)this.clientMessageFormatter;
-        var serverMessageFormatter = (JsonMessageFormatter)this.serverMessageFormatter;
-
-        clientMessageFormatter.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
-        serverMessageFormatter.JsonSerializer.Converters.Add(new UnserializableTypeConverter());
-        var result = await this.clientRpc.InvokeAsync<UnserializableType>(nameof(this.server.RepeatSpecialType), new UnserializableType { Value = "a" });
-        Assert.Equal("a!", result.Value);
-    }
-
-    [Fact]
     public async Task CustomJsonConvertersAreNotAppliedToBaseMessage()
     {
         var clientMessageFormatter = (JsonMessageFormatter)this.clientMessageFormatter;
@@ -201,8 +189,8 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
     protected override void InitializeFormattersAndHandlers()
     {
-        this.serverMessageFormatter = new JsonMessageFormatter();
-        this.clientMessageFormatter = new JsonMessageFormatter();
+        this.clientMessageFormatter = new JsonMessageFormatter { JsonSerializer = { Converters = { new UnserializableTypeConverter() } } };
+        this.serverMessageFormatter = new JsonMessageFormatter { JsonSerializer = { Converters = { new UnserializableTypeConverter() } } };
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
         this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
@@ -213,6 +201,24 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     {
         [DataMember(Name = "argument")]
         public string? TheArgument { get; set; }
+    }
+
+    private class UnserializableTypeConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(CustomSerializedType);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            return new CustomSerializedType
+            {
+                Value = (string)reader.Value,
+            };
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            writer.WriteValue(((CustomSerializedType)value).Value);
+        }
     }
 
     private class StringBase64Converter : JsonConverter
