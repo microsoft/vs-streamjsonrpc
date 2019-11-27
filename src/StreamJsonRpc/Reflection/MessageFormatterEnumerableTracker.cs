@@ -51,18 +51,20 @@ namespace StreamJsonRpc.Reflection
         /// <param name="formatterState">The formatter that owns this tracker.</param>
         public MessageFormatterEnumerableTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
         {
-            this.jsonRpc = jsonRpc ?? throw new ArgumentNullException(nameof(jsonRpc));
-            this.formatterState = formatterState ?? throw new ArgumentNullException(nameof(formatterState));
+            Requires.NotNull(jsonRpc, nameof(jsonRpc));
+            Requires.NotNull(formatterState, nameof(formatterState));
 
-            this.jsonRpc.AddLocalRpcMethod(NextMethodName, new Func<long, CancellationToken, ValueTask<object>>(this.OnNextAsync));
-            this.jsonRpc.AddLocalRpcMethod(DisposeMethodName, new Func<long, ValueTask>(this.OnDisposeAsync));
+            this.jsonRpc = jsonRpc;
+            this.formatterState = formatterState;
+
+            jsonRpc.AddLocalRpcMethod(NextMethodName, new Func<long, CancellationToken, ValueTask<object>>(this.OnNextAsync));
+            jsonRpc.AddLocalRpcMethod(DisposeMethodName, new Func<long, ValueTask>(this.OnDisposeAsync));
             this.formatterState = formatterState;
 
             // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
-            IJsonRpcFormatterCallbacks callbacks = this.jsonRpc;
-            callbacks.RequestTransmissionAborted += this.JsonRpc_RequestTransmissionAborted;
-            callbacks.ResultReceived += this.JsonRpc_ResultReceived;
-            callbacks.ErrorReceived += this.JsonRpc_ErrorReceived;
+            IJsonRpcFormatterCallbacks callbacks = jsonRpc;
+            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
+            callbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
         }
 
         private interface IGeneratingEnumeratorTracker : System.IAsyncDisposable
@@ -206,28 +208,7 @@ namespace StreamJsonRpc.Reflection
             return generator.DisposeAsync();
         }
 
-        /// <summary>
-        /// Handles the <see cref="IJsonRpcFormatterCallbacks.ResultReceived"/> event.
-        /// </summary>
-        /// <param name="sender">The <see cref="JsonRpc"/> instance that raised the event.</param>
-        /// <param name="e">The event args.</param>
-        private void JsonRpc_ResultReceived(object sender, JsonRpcFormatterCallbackEventArgs e) => this.CleanUpResources(e.RequestId, error: false);
-
-        /// <summary>
-        /// Handles the <see cref="IJsonRpcFormatterCallbacks.ErrorReceived"/> event.
-        /// </summary>
-        /// <param name="sender">The <see cref="JsonRpc"/> instance that raised the event.</param>
-        /// <param name="e">The event args.</param>
-        private void JsonRpc_ErrorReceived(object sender, JsonRpcFormatterCallbackEventArgs e) => this.CleanUpResources(e.RequestId, error: true);
-
-        /// <summary>
-        /// Handles the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
-        /// </summary>
-        /// <param name="sender">The <see cref="JsonRpc"/> instance that raised the event.</param>
-        /// <param name="e">The event args.</param>
-        private void JsonRpc_RequestTransmissionAborted(object sender, JsonRpcFormatterCallbackEventArgs e) => this.CleanUpResources(e.RequestId, error: true);
-
-        private void CleanUpResources(RequestId requestId, bool error)
+        private void CleanUpResources(RequestId requestId)
         {
             lock (this.syncObject)
             {

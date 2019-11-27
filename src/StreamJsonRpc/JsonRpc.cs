@@ -132,9 +132,20 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext? synchronizationContext;
 
-        private EventHandler<JsonRpcFormatterCallbackEventArgs>? requestTransmissionAborted;
-        private EventHandler<JsonRpcFormatterCallbackEventArgs>? resultReceived;
-        private EventHandler<JsonRpcFormatterCallbackEventArgs>? errorReceived;
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
+        /// </summary>
+        private EventHandler<JsonRpcMessageEventArgs>? requestTransmissionAborted;
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.ResponseReceived"/> event.
+        /// </summary>
+        private EventHandler<JsonRpcResponseEventArgs>? responseReceived;
+
+        /// <summary>
+        /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.ResponseSent"/> event.
+        /// </summary>
+        private EventHandler<JsonRpcResponseEventArgs>? responseSent;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
@@ -239,22 +250,25 @@ namespace StreamJsonRpc
             }
         }
 
-        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
+        /// <inheritdoc/>
+        event EventHandler<JsonRpcMessageEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
         {
             add => this.requestTransmissionAborted += value;
             remove => this.requestTransmissionAborted -= value;
         }
 
-        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.ResultReceived
+        /// <inheritdoc/>
+        event EventHandler<JsonRpcResponseEventArgs> IJsonRpcFormatterCallbacks.ResponseReceived
         {
-            add => this.resultReceived += value;
-            remove => this.resultReceived -= value;
+            add => this.responseReceived += value;
+            remove => this.responseReceived -= value;
         }
 
-        event EventHandler<JsonRpcFormatterCallbackEventArgs> IJsonRpcFormatterCallbacks.ErrorReceived
+        /// <inheritdoc/>
+        event EventHandler<JsonRpcResponseEventArgs> IJsonRpcFormatterCallbacks.ResponseSent
         {
-            add => this.errorReceived += value;
-            remove => this.errorReceived -= value;
+            add => this.responseSent += value;
+            remove => this.responseSent -= value;
         }
 
         private event EventHandler<JsonRpcDisconnectedEventArgs>? DisconnectedPrivate;
@@ -1302,21 +1316,21 @@ namespace StreamJsonRpc
         {
             if (!request.RequestId.IsEmpty)
             {
-                this.requestTransmissionAborted?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(request));
+                this.requestTransmissionAborted?.Invoke(this, new JsonRpcMessageEventArgs(request));
             }
         }
 
         /// <summary>
-        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResultReceived"/> event.
+        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseReceived"/> event.
         /// </summary>
-        /// <param name="result">The result that was received.</param>
-        protected virtual void OnResultReceived(JsonRpcResult result) => this.resultReceived?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(result));
+        /// <param name="response">The result or error that was received.</param>
+        protected virtual void OnResponseReceived(JsonRpcMessage response) => this.responseReceived?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
 
         /// <summary>
-        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ErrorReceived"/> event.
+        /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseSent"/> event.
         /// </summary>
-        /// <param name="error">The error that was received.</param>
-        protected virtual void OnErrorReceived(JsonRpcError error) => this.errorReceived?.Invoke(this, new JsonRpcFormatterCallbackEventArgs(error));
+        /// <param name="response">The result or error that was sent.</param>
+        protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
 
         /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
@@ -2181,6 +2195,7 @@ namespace StreamJsonRpc
                         try
                         {
                             await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                            this.OnResponseSent(result);
                         }
                         catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
                         {
@@ -2202,16 +2217,9 @@ namespace StreamJsonRpc
                 }
                 else if (rpc is IJsonRpcMessageWithId resultOrError)
                 {
+                    this.OnResponseReceived(rpc);
                     JsonRpcResult? result = resultOrError as JsonRpcResult;
                     JsonRpcError? error = resultOrError as JsonRpcError;
-                    if (result != null)
-                    {
-                        this.OnResultReceived(result);
-                    }
-                    else if (error != null)
-                    {
-                        this.OnErrorReceived(error);
-                    }
 
                     OutstandingCallData? data = null;
                     lock (this.dispatcherMapLock)

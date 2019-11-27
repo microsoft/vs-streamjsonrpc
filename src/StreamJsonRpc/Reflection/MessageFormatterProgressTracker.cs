@@ -37,14 +37,36 @@ namespace StreamJsonRpc.Reflection
         private readonly object progressLock = new object();
 
         /// <summary>
+        /// State from the formatter that owns this tracker.
+        /// </summary>
+        private readonly IJsonRpcFormatterState formatterState;
+
+        /// <summary>
         /// Gets or sets the the next id value to assign as token for the progress objects.
         /// </summary>
         private long nextProgressId;
 
         /// <summary>
-        /// Gets or Sets the id of the request currently being serialized so the converter can use it to create the request-progress map.
+        /// Initializes a new instance of the <see cref="MessageFormatterProgressTracker"/> class.
         /// </summary>
-        public RequestId RequestIdBeingSerialized { get; set; }
+        /// <param name="jsonRpc">The <see cref="JsonRpc"/> object that ultimately owns this tracker.</param>
+        /// <param name="formatterState">The formatter that owns this tracker.</param>
+        public MessageFormatterProgressTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
+        {
+            Requires.NotNull(jsonRpc, nameof(jsonRpc));
+            Requires.NotNull(formatterState, nameof(formatterState));
+
+            this.formatterState = formatterState;
+
+            IJsonRpcFormatterCallbacks callbacks = jsonRpc;
+            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
+            callbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
+        }
+
+        /// <summary>
+        /// Gets the id of the request currently being serialized so the converter can use it to create the request-progress map.
+        /// </summary>
+        private RequestId RequestIdBeingSerialized => this.formatterState.SerializingRequest ? this.formatterState.SerializingMessageWithId : default;
 
         /// <summary>
         /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
@@ -105,25 +127,6 @@ namespace StreamJsonRpc.Reflection
         }
 
         /// <summary>
-        /// Call this method when a response is received to clear the objects associated with the request and avoid a memory leak.
-        /// </summary>
-        /// <param name="requestId">The id of the request whose associated objects need to be cleared.</param>
-        public void OnResponseReceived(RequestId requestId)
-        {
-            lock (this.progressLock)
-            {
-                if (this.requestProgressMap.TryGetValue(requestId, out ImmutableList<ProgressParamInformation>? progressInfos))
-                {
-                    this.requestProgressMap.Remove(requestId);
-                    foreach (ProgressParamInformation progressInfo in progressInfos)
-                    {
-                        this.progressMap.Remove(progressInfo.Token);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Gets the <see cref="ProgressParamInformation"/> object associated with the given progress id.
         /// </summary>
         /// <param name="progressId">The key to obtain the <see cref="ProgressParamInformation"/> object from <see cref="progressMap"/>.</param>
@@ -166,6 +169,21 @@ namespace StreamJsonRpc.Reflection
 
             Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
             return Activator.CreateInstance(progressType, new object[] { rpc, token })!;
+        }
+
+        private void CleanUpResources(RequestId requestId)
+        {
+            lock (this.progressLock)
+            {
+                if (this.requestProgressMap.TryGetValue(requestId, out ImmutableList<ProgressParamInformation>? progressInfos))
+                {
+                    this.requestProgressMap.Remove(requestId);
+                    foreach (ProgressParamInformation progressInfo in progressInfos)
+                    {
+                        this.progressMap.Remove(progressInfo.Token);
+                    }
+                }
+            }
         }
 
         /// <summary>
