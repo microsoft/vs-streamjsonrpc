@@ -30,6 +30,11 @@ namespace StreamJsonRpc.Reflection
     public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     {
         /// <summary>
+        /// The formatter that owns this tracker.
+        /// </summary>
+        private readonly IJsonRpcFormatterState formatterState;
+
+        /// <summary>
         /// A map of outbound request IDs to channels that they included.
         /// </summary>
         private ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>> outboundRequestChannelMap = ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>>.Empty;
@@ -57,19 +62,21 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Initializes a new instance of the <see cref="MessageFormatterDuplexPipeTracker"/> class.
         /// </summary>
-        public MessageFormatterDuplexPipeTracker()
+        /// <param name="jsonRpc">The <see cref="JsonRpc"/> instance that may be used to send or receive RPC messages related to <see cref="IAsyncEnumerable{T}"/>.</param>
+        /// <param name="formatterState">The formatter that owns this tracker.</param>
+        public MessageFormatterDuplexPipeTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
         {
+            Requires.NotNull(jsonRpc, nameof(jsonRpc));
+            Requires.NotNull(formatterState, nameof(formatterState));
+
+            this.formatterState = formatterState;
+
+            // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
+            IJsonRpcFormatterCallbacks callbacks = jsonRpc;
+            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
+            callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+            callbacks.ResponseSent += (s, e) => this.CleanUpInboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
         }
-
-        /// <summary>
-        /// Gets or sets the id of the request currently being serialized for use as a key in <see cref="outboundRequestChannelMap"/>.
-        /// </summary>
-        public RequestId RequestIdBeingSerialized { get; set; }
-
-        /// <summary>
-        /// Gets or sets the ID of the request currently being deserialized for use as a key in <see cref="inboundRequestChannelMap"/>.
-        /// </summary>
-        public RequestId RequestIdBeingDeserialized { get; set; }
 
         /// <summary>
         /// Gets or sets the multiplexing stream used to create and accept channels.
@@ -83,15 +90,21 @@ namespace StreamJsonRpc.Reflection
         bool IDisposableObservable.IsDisposed => this.isDisposed;
 
         /// <summary>
+        /// Gets the id of the request currently being serialized for use as a key in <see cref="outboundRequestChannelMap"/>.
+        /// </summary>
+        private RequestId RequestIdBeingSerialized => this.formatterState.SerializingRequest ? this.formatterState.SerializingMessageWithId : default;
+
+        /// <summary>
+        /// Gets the ID of the request currently being deserialized for use as a key in <see cref="inboundRequestChannelMap"/>.
+        /// </summary>
+        private RequestId RequestIdBeingDeserialized => this.formatterState.DeserializingMessageWithId;
+
+        /// <summary>
         /// Creates a token to represent an <see cref="IDuplexPipe"/> as it is transmitted from the client to an RPC server as a method argument.
         /// </summary>
         /// <param name="duplexPipe">The client pipe that is to be shared with the RPC server. May be null.</param>
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="duplexPipe"/> was <c>null</c>.</returns>
-        /// <remarks>
-        /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
-        /// </remarks>
-        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("duplexPipe")]
         public int? GetToken(IDuplexPipe? duplexPipe)
         {
@@ -128,11 +141,7 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="reader">The client pipe that is to be shared with the RPC server. May be null.</param>
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="reader"/> was <c>null</c>.</returns>
-        /// <remarks>
-        /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
-        /// </remarks>
-        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("reader")]
         public int? GetToken(PipeReader? reader) => this.GetToken(reader != null ? new DuplexPipe(reader) : null);
 
@@ -141,11 +150,7 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="writer">The client pipe that is to be shared with the RPC server. May be null.</param>
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="writer"/> was <c>null</c>.</returns>
-        /// <remarks>
-        /// This method should only be called while serializing requests that include an ID (i.e. requests for which we expect a response).
-        /// When the response is received, a call should always be made to <see cref="OnResponseReceived(RequestId, bool)"/>.
-        /// </remarks>
-        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
+        /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("writer")]
         public int? GetToken(PipeWriter? writer) => this.GetToken(writer != null ? new DuplexPipe(writer) : null);
 
@@ -232,54 +237,6 @@ namespace StreamJsonRpc.Reflection
             return null;
         }
 
-        /// <summary>
-        /// Notifies this tracker when a response to any request is sent
-        /// so that appropriate channel and state cleanup can take place.
-        /// </summary>
-        /// <param name="requestId">The ID of the request for which a response was sent.</param>
-        /// <param name="successful">A value indicating whether the response represents a successful result (i.e. a <see cref="JsonRpcResult"/> instead of an <see cref="JsonRpcError"/>).</param>
-        public void OnResponseSent(RequestId requestId, bool successful)
-        {
-            Verify.NotDisposed(this);
-
-            if (ImmutableInterlocked.TryRemove(ref this.inboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
-            {
-                // Only kill the channels if the server threw an error.
-                // Successful responses make it the responsibility of the client/server to terminate the pipe.
-                if (!successful)
-                {
-                    foreach (MultiplexingStream.Channel channel in channels)
-                    {
-                        channel.Dispose();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Notifies this tracker when a response to any request is received
-        /// so that appropriate channel and state cleanup can take place.
-        /// </summary>
-        /// <param name="requestId">The ID of the request for which a response was received.</param>
-        /// <param name="successful">A value indicating whether the response represents a successful result (i.e. a <see cref="JsonRpcResult"/> instead of an <see cref="JsonRpcError"/>).</param>
-        public void OnResponseReceived(RequestId requestId, bool successful)
-        {
-            Verify.NotDisposed(this);
-
-            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
-            {
-                // Only kill the channels if the server threw an error.
-                // Successful responses make it the responsibility of the client/server to terminate the pipe.
-                if (!successful)
-                {
-                    foreach (MultiplexingStream.Channel channel in channels)
-                    {
-                        channel.Dispose();
-                    }
-                }
-            }
-        }
-
         /// <inheritdoc/>
         public void Dispose()
         {
@@ -299,6 +256,48 @@ namespace StreamJsonRpc.Reflection
             foreach (KeyValuePair<int, MultiplexingStream.Channel> entry in openOutboundChannels)
             {
                 entry.Value.Dispose();
+            }
+        }
+
+        private void CleanUpInboundResources(RequestId requestId, bool successful)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (ImmutableInterlocked.TryRemove(ref this.inboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
+            {
+                // Only kill the channels if the server threw an error.
+                // Successful responses make it the responsibility of the client/server to terminate the pipe.
+                if (!successful)
+                {
+                    foreach (MultiplexingStream.Channel channel in channels)
+                    {
+                        channel.Dispose();
+                    }
+                }
+            }
+        }
+
+        private void CleanUpOutboundResources(RequestId requestId, bool successful)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
+            {
+                // Only kill the channels if the server threw an error.
+                // Successful responses make it the responsibility of the client/server to terminate the pipe.
+                if (!successful)
+                {
+                    foreach (MultiplexingStream.Channel channel in channels)
+                    {
+                        channel.Dispose();
+                    }
+                }
             }
         }
 

@@ -44,16 +44,6 @@ namespace StreamJsonRpc
         private const string ErrorPropertyName = "error";
 
         /// <summary>
-        /// <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
-        /// </summary>
-        private readonly MessageFormatterProgressTracker formatterProgressTracker = new MessageFormatterProgressTracker();
-
-        /// <summary>
-        /// The helper for marshaling pipes as RPC method arguments.
-        /// </summary>
-        private readonly MessageFormatterDuplexPipeTracker duplexPipeTracker = new MessageFormatterDuplexPipeTracker();
-
-        /// <summary>
         /// The options to use for serializing top-level RPC messages.
         /// </summary>
         private readonly MessagePackSerializerOptions messageSerializationOptions;
@@ -64,6 +54,24 @@ namespace StreamJsonRpc
 
         private readonly PipeFormatterResolver pipeFormatterResolver;
 
+        /// <summary>
+        /// Backing field for the <see cref="MultiplexingStream"/> property.
+        /// </summary>
+        private MultiplexingStream? multiplexingStream;
+
+        /// <summary>
+        /// The <see cref="MessageFormatterProgressTracker"/> we use to support <see cref="IProgress{T}"/> method arguments.
+        /// </summary>
+        private MessageFormatterProgressTracker? formatterProgressTracker;
+
+        /// <summary>
+        /// The helper for marshaling pipes as RPC method arguments.
+        /// </summary>
+        private MessageFormatterDuplexPipeTracker? duplexPipeTracker;
+
+        /// <summary>
+        /// The tracker we use to support transmission of <see cref="IAsyncEnumerable{T}"/> types.
+        /// </summary>
         private MessageFormatterEnumerableTracker? enumerableTracker;
 
         /// <summary>
@@ -154,6 +162,8 @@ namespace StreamJsonRpc
 
                 if (value != null)
                 {
+                    this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
+                    this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
                     this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
                 }
             }
@@ -164,11 +174,11 @@ namespace StreamJsonRpc
         /// </summary>
         public MultiplexingStream? MultiplexingStream
         {
-            get => this.duplexPipeTracker.MultiplexingStream;
+            get => this.multiplexingStream;
             set
             {
                 Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
-                this.duplexPipeTracker.MultiplexingStream = value;
+                this.multiplexingStream = value;
             }
         }
 
@@ -180,6 +190,42 @@ namespace StreamJsonRpc
 
         /// <inheritdoc/>
         bool IJsonRpcFormatterState.SerializingRequest => this.serializingRequest;
+
+        /// <summary>
+        /// Gets the <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
+        /// </summary>
+        private MessageFormatterProgressTracker FormatterProgressTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.formatterProgressTracker); // This should have been set in the Rpc property setter.
+                return this.formatterProgressTracker;
+            }
+        }
+
+        /// <summary>
+        /// Gets the helper for marshaling pipes as RPC method arguments.
+        /// </summary>
+        private MessageFormatterDuplexPipeTracker DuplexPipeTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.duplexPipeTracker); // This should have been set in the Rpc property setter.
+                return this.duplexPipeTracker;
+            }
+        }
+
+        /// <summary>
+        /// Gets the helper for marshaling <see cref="IAsyncEnumerable{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterEnumerableTracker EnumerableTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.enumerableTracker); // This should have been set in the Rpc property setter.
+                return this.enumerableTracker;
+            }
+        }
 
         /// <summary>
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
@@ -198,11 +244,6 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
-            if (message is IJsonRpcMessageWithId msgWithId && (message is Protocol.JsonRpcResult || message is Protocol.JsonRpcError))
-            {
-                this.duplexPipeTracker.OnResponseSent(msgWithId.RequestId, successful: msgWithId is Protocol.JsonRpcResult);
-            }
-
             if (message is Protocol.JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object?>))
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
@@ -221,7 +262,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.duplexPipeTracker.Dispose();
+            this.duplexPipeTracker?.Dispose();
         }
 
         /// <summary>
@@ -513,7 +554,7 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                        long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value);
                         writer.Write(progressId);
                     }
                 }
@@ -541,7 +582,7 @@ namespace StreamJsonRpc
 
                     Assumes.NotNull(this.formatter.rpc);
                     RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                    return (TClass)this.formatter.formatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass));
+                    return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass));
                 }
 
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
@@ -552,7 +593,7 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        long progressId = this.formatter.formatterProgressTracker.GetTokenForProgress(value);
+                        long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value);
                         writer.Write(progressId);
                     }
                 }
@@ -724,12 +765,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.duplexPipeTracker.GetPipe(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -757,12 +798,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.duplexPipeTracker.GetPipeReader(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeReader(reader.ReadInt32());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -790,12 +831,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.duplexPipeTracker.GetPipeWriter(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadInt32());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.duplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -823,12 +864,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.duplexPipeTracker.GetPipe(reader.ReadInt32()).AsStream();
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32()).AsStream();
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.duplexPipeTracker.GetToken(value?.UsePipe()) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetToken(value?.UsePipe()) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -987,7 +1028,7 @@ namespace StreamJsonRpc
                         if (result.TryGetArgumentByNameOrIndex("token", 0, typeof(long), out object? tokenObject) && tokenObject is long progressId)
                         {
                             MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
-                            if (this.formatter.formatterProgressTracker.TryGetProgressObject(progressId, out progressInfo))
+                            if (this.formatter.FormatterProgressTracker.TryGetProgressObject(progressId, out progressInfo))
                             {
                                 if (result.TryGetArgumentByNameOrIndex("value", 1, progressInfo.ValueType, out object? value))
                                 {
@@ -1007,49 +1048,38 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                try
+                writer.WriteMapHeader(4);
+
+                writer.Write(VersionPropertyName);
+                writer.Write(value.Version);
+
+                writer.Write(IdPropertyName);
+                options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+
+                writer.Write(MethodPropertyName);
+                writer.Write(value.Method);
+
+                writer.Write(ParamsPropertyName);
+                if (value.ArgumentsList != null)
                 {
-                    this.formatter.formatterProgressTracker.RequestIdBeingSerialized = value.RequestId;
-                    this.formatter.duplexPipeTracker.RequestIdBeingSerialized = value.RequestId;
-
-                    writer.WriteMapHeader(4);
-
-                    writer.Write(VersionPropertyName);
-                    writer.Write(value.Version);
-
-                    writer.Write(IdPropertyName);
-                    options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
-
-                    writer.Write(MethodPropertyName);
-                    writer.Write(value.Method);
-
-                    writer.Write(ParamsPropertyName);
-                    if (value.ArgumentsList != null)
+                    writer.WriteArrayHeader(value.ArgumentsList.Count);
+                    foreach (var arg in value.ArgumentsList)
                     {
-                        writer.WriteArrayHeader(value.ArgumentsList.Count);
-                        foreach (var arg in value.ArgumentsList)
-                        {
-                            this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
-                        }
-                    }
-                    else if (value.NamedArguments != null)
-                    {
-                        writer.WriteMapHeader(value.NamedArguments.Count);
-                        foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
-                        {
-                            writer.Write(entry.Key);
-                            this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
-                        }
-                    }
-                    else
-                    {
-                        writer.WriteNil();
+                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
                     }
                 }
-                finally
+                else if (value.NamedArguments != null)
                 {
-                    this.formatter.formatterProgressTracker.RequestIdBeingSerialized = default;
-                    this.formatter.duplexPipeTracker.RequestIdBeingSerialized = default;
+                    writer.WriteMapHeader(value.NamedArguments.Count);
+                    foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
+                    {
+                        writer.Write(entry.Key);
+                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                    }
+                }
+                else
+                {
+                    writer.WriteNil();
                 }
             }
         }
@@ -1086,9 +1116,6 @@ namespace StreamJsonRpc
                             break;
                     }
                 }
-
-                this.formatter.formatterProgressTracker.OnResponseReceived(result.RequestId);
-                this.formatter.duplexPipeTracker.OnResponseReceived(result.RequestId, successful: true);
 
                 return result;
             }
@@ -1140,9 +1167,6 @@ namespace StreamJsonRpc
                             break;
                     }
                 }
-
-                this.formatter.formatterProgressTracker.OnResponseReceived(error.RequestId);
-                this.formatter.duplexPipeTracker.OnResponseReceived(error.RequestId, successful: false);
 
                 return error;
             }
@@ -1302,7 +1326,6 @@ namespace StreamJsonRpc
                     // Deserialization of messages should never occur concurrently for a single instance of a formatter.
                     Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
                     this.formatter.deserializingMessageWithId = this.RequestId;
-                    this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = this.RequestId;
 
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
                     return true;
@@ -1321,7 +1344,6 @@ namespace StreamJsonRpc
                 finally
                 {
                     this.formatter.deserializingMessageWithId = default;
-                    this.formatter.duplexPipeTracker.RequestIdBeingDeserialized = default;
                 }
             }
         }

@@ -30,31 +30,30 @@ StreamJsonRpc.Protocol.JsonRpcRequest.RequestId.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.set -> void
 StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks
-StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.ErrorReceived -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs>
-StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.RequestTransmissionAborted -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs>
-StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.ResultReceived -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs>
+StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.RequestTransmissionAborted -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcMessageEventArgs>
+StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.ResponseReceived -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcResponseEventArgs>
+StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.ResponseSent -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcResponseEventArgs>
 StreamJsonRpc.Reflection.IJsonRpcFormatterState
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.DeserializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.SerializingRequest.get -> bool
 StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager
 StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager.DeserializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
-StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs
-StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs.JsonRpcFormatterCallbackEventArgs(StreamJsonRpc.RequestId requestId) -> void
-StreamJsonRpc.Reflection.JsonRpcFormatterCallbackEventArgs.RequestId.get -> StreamJsonRpc.RequestId
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseReceived(StreamJsonRpc.RequestId requestId, bool successful) -> void
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.OnResponseSent(StreamJsonRpc.RequestId requestId, bool successful) -> void
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingDeserialized.get -> StreamJsonRpc.RequestId
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.RequestIdBeingSerialized.get -> StreamJsonRpc.RequestId
+StreamJsonRpc.Reflection.JsonRpcMessageEventArgs
+StreamJsonRpc.Reflection.JsonRpcMessageEventArgs.JsonRpcMessageEventArgs(StreamJsonRpc.RequestId requestId) -> void
+StreamJsonRpc.Reflection.JsonRpcMessageEventArgs.RequestId.get -> StreamJsonRpc.RequestId
+StreamJsonRpc.Reflection.JsonRpcResponseEventArgs
+StreamJsonRpc.Reflection.JsonRpcResponseEventArgs.IsSuccessfulResponse.get -> bool
+StreamJsonRpc.Reflection.JsonRpcResponseEventArgs.JsonRpcResponseEventArgs(StreamJsonRpc.RequestId requestId, bool isSuccessfulResponse) -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MessageFormatterDuplexPipeTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CreateEnumerableProxy(System.Type enumeratedType, object handle) -> object
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CreateEnumerableProxy<T>(object handle) -> System.Collections.Generic.IAsyncEnumerable<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.GetToken(object enumerable) -> long
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.GetToken<T>(System.Collections.Generic.IAsyncEnumerable<T> enumerable) -> long
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.MessageFormatterEnumerableTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.OnResponseReceived(StreamJsonRpc.RequestId requestId) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.MessageFormatterProgressTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation.Token.get -> long
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.RequestIdBeingSerialized.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.TryGetProgressObject(long progressId, out StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressParamInformation valueType) -> bool
 StreamJsonRpc.RemoteInvocationException.DeserializedErrorData.get -> object
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string message, int errorCode, object errorData, object deserializedErrorData) -> void
@@ -84,9 +83,9 @@ static StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CanSerialize(S
 static StreamJsonRpc.RequestId.NotSpecified.get -> StreamJsonRpc.RequestId
 virtual StreamJsonRpc.JsonRpc.CreateNewRequestId() -> StreamJsonRpc.RequestId
 virtual StreamJsonRpc.JsonRpc.GetErrorDetailsDataType(StreamJsonRpc.Protocol.JsonRpcError error) -> System.Type
-virtual StreamJsonRpc.JsonRpc.OnErrorReceived(StreamJsonRpc.Protocol.JsonRpcError error) -> void
 virtual StreamJsonRpc.JsonRpc.OnRequestTransmissionAborted(StreamJsonRpc.Protocol.JsonRpcRequest request) -> void
-virtual StreamJsonRpc.JsonRpc.OnResultReceived(StreamJsonRpc.Protocol.JsonRpcResult result) -> void
+virtual StreamJsonRpc.JsonRpc.OnResponseReceived(StreamJsonRpc.Protocol.JsonRpcMessage response) -> void
+virtual StreamJsonRpc.JsonRpc.OnResponseSent(StreamJsonRpc.Protocol.JsonRpcMessage response) -> void
 virtual StreamJsonRpc.MessageHandlerBase.DisposeAsync() -> System.Threading.Tasks.Task
 virtual StreamJsonRpc.MessageHandlerBase.DisposeReader() -> void
 virtual StreamJsonRpc.MessageHandlerBase.DisposeWriter() -> void
