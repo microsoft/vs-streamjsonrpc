@@ -81,7 +81,7 @@ stages:
         packagesToPush: $(Agent.TempDirectory)/VSInsertion-Windows/*.nupkg
         publishVstsFeed: 97a41293-2972-4f48-8c0e-05493ae82010 # VS feed
         allowPackageConflicts: true
-    - task: ms-vseng.MicroBuildShipTasks.55100717-a81d-45ea-a363-b8fe3ec375ad.MicroBuildInsertVsPayload@1
+    - task: MicroBuildInsertVsPayload@3
       displayName: Insert VS Payload
       inputs:
         SkipCreatePR: true
