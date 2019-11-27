@@ -45,7 +45,6 @@ stages:
     pool: VSEng-RMPool
     variables:
       InsertPayloadName: vs-streamjsonrpc
-      InsertRevisionFiles: src/SetupPackages/CoreIde/Connected/core/revision.txt
       InsertTopicBranch: team/VS-IDE/vs-StreamJsonRpc-OptProf-run-$(Build.BuildId)
     steps:
     - checkout: none # We don't need source from our own repo
