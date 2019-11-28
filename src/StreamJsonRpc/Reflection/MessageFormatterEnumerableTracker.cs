@@ -25,11 +25,23 @@ namespace StreamJsonRpc.Reflection
     /// </summary>
     public class MessageFormatterEnumerableTracker
     {
-        private const string DisposeMethodName = "$/enumerator/dispose";
-        private const string NextMethodName = "$/enumerator/next";
+        /// <summary>
+        /// The name of the string property that carries the handle for the enumerable.
+        /// </summary>
+        public const string TokenPropertyName = "token";
 
-        private static readonly MethodInfo GetTokenOpenGenericMethod = typeof(MessageFormatterEnumerableTracker).GetRuntimeMethods().First(m => m.Name == nameof(GetToken) && m.IsGenericMethod);
-        private static readonly MethodInfo CreateEnumerableProxyOpenGenericMethod = typeof(MessageFormatterEnumerableTracker).GetRuntimeMethods().First(m => m.Name == nameof(CreateEnumerableProxy) && m.IsGenericMethod);
+        /// <summary>
+        /// The name of the JSON array property that contains the values.
+        /// </summary>
+        public const string ValuesPropertyName = "values";
+
+        /// <summary>
+        /// The name of the boolean property that indicates whether the last value has been returned to the consumer.
+        /// </summary>
+        private const string FinishedPropertyName = "finished";
+
+        private const string NextMethodName = "$/enumerator/next";
+        private const string DisposeMethodName = "$/enumerator/abort";
 
         /// <summary>
         /// Dictionary used to map the outbound request id to their progress info so that the progress objects are cleaned after getting the final response.
@@ -69,11 +81,6 @@ namespace StreamJsonRpc.Reflection
 
         private interface IGeneratingEnumeratorTracker : System.IAsyncDisposable
         {
-            /// <summary>
-            /// Gets a value indicating whether the consumer has actually acknowledged the enumerable by requesting the first value.
-            /// </summary>
-            bool HasEnumerationStarted { get; }
-
             ValueTask<object> GetNextValuesAsync(CancellationToken cancellationToken);
         }
 
@@ -120,33 +127,10 @@ namespace StreamJsonRpc.Reflection
                 }
 
                 this.generatorTokensByRequestId[this.formatterState.SerializingMessageWithId] = tokens.Add(handle);
-                this.generatorsByToken.Add(handle, new GeneratingEnumeratorTracker<T>(enumerable, settings: enumerable.GetJsonRpcSettings()));
+                this.generatorsByToken.Add(handle, new GeneratingEnumeratorTracker<T>(this, handle, enumerable, settings: enumerable.GetJsonRpcSettings()));
             }
 
             return handle;
-        }
-
-        /// <summary>
-        /// Used by the generator to assign a handle to the given <see cref="IAsyncEnumerable{T}"/>.
-        /// </summary>
-        /// <param name="enumerable">The enumerable to assign a handle to.</param>
-        /// <returns>The handle that was assigned.</returns>
-        public long GetToken(object enumerable)
-        {
-            Requires.NotNull(enumerable, nameof(enumerable));
-            Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(enumerable.GetType());
-            Requires.Argument(iface != null, nameof(enumerable), message: null);
-
-            MethodInfo closedGenericMethod = GetTokenOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
-            try
-            {
-                return (long)closedGenericMethod.Invoke(this, new object[] { enumerable });
-            }
-            catch (TargetInvocationException ex)
-            {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                throw Assumes.NotReachable();
-            }
         }
 
         /// <summary>
@@ -154,28 +138,12 @@ namespace StreamJsonRpc.Reflection
         /// and gets all its values from a remote generator.
         /// </summary>
         /// <typeparam name="T">The type of value that is produced by the enumerable.</typeparam>
-        /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator.</param>
+        /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator. May be <c>null</c> to indicate there will be no more values.</param>
+        /// <param name="prefetchedItems">The list of items that are included with the enumerable handle.</param>
         /// <returns>The enumerator.</returns>
-        public IAsyncEnumerable<T> CreateEnumerableProxy<T>(object handle)
+        public IAsyncEnumerable<T> CreateEnumerableProxy<T>(object? handle, IReadOnlyList<T>? prefetchedItems)
         {
-            return new AsyncEnumerableProxy<T>(this.jsonRpc, handle);
-        }
-
-        /// <summary>
-        /// Used by the consumer to construct a proxy that implements <see cref="IAsyncEnumerable{T}"/>
-        /// and gets all its values from a remote generator.
-        /// </summary>
-        /// <param name="enumeratedType">The type of value that is produced by the enumerable.</param>
-        /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator.</param>
-        /// <returns>The enumerator.</returns>
-        public object CreateEnumerableProxy(Type enumeratedType, object handle)
-        {
-            Requires.NotNull(enumeratedType, nameof(enumeratedType));
-            Requires.NotNull(handle, nameof(handle));
-
-            Requires.Argument(CanDeserialize(enumeratedType), nameof(enumeratedType), message: null);
-            MethodInfo closedGenericMethod = CreateEnumerableProxyOpenGenericMethod.MakeGenericMethod(enumeratedType.GenericTypeArguments[0]);
-            return closedGenericMethod.Invoke(this, new object[] { handle });
+            return new AsyncEnumerableProxy<T>(this.jsonRpc, handle, prefetchedItems);
         }
 
         private ValueTask<object> OnNextAsync(long token, CancellationToken cancellationToken)
@@ -199,7 +167,7 @@ namespace StreamJsonRpc.Reflection
             {
                 if (!this.generatorsByToken.TryGetValue(token, out generator))
                 {
-                    return default;
+                    throw new LocalRpcException(Resources.UnknownTokenToMarshaledObject) { ErrorCode = (int)JsonRpcErrorCode.NoMarshaledObjectFound };
                 }
 
                 this.generatorsByToken.Remove(token);
@@ -230,104 +198,123 @@ namespace StreamJsonRpc.Reflection
 
             private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
-            private readonly BufferBlock<T>? prefetchedElements;
+            private readonly BufferBlock<T>? readAheadElements;
 
-            internal GeneratingEnumeratorTracker(IAsyncEnumerable<T> enumerable, JsonRpcEnumerableSettings settings)
+            private readonly MessageFormatterEnumerableTracker tracker;
+
+            private readonly long token;
+
+            internal GeneratingEnumeratorTracker(MessageFormatterEnumerableTracker tracker, long token, IAsyncEnumerable<T> enumerable, JsonRpcEnumerableSettings settings)
             {
+                this.tracker = tracker;
+                this.token = token;
                 this.enumerator = enumerable.GetAsyncEnumerator(this.cancellationTokenSource.Token);
                 this.Settings = settings;
 
                 if (settings.MaxReadAhead > 0)
                 {
-                    this.prefetchedElements = new BufferBlock<T>(new DataflowBlockOptions { BoundedCapacity = settings.MaxReadAhead, EnsureOrdered = true });
-                    this.PrefetchAsync().Forget(); // exceptions fault the buffer block
+                    this.readAheadElements = new BufferBlock<T>(new DataflowBlockOptions { BoundedCapacity = settings.MaxReadAhead, EnsureOrdered = true });
+                    this.ReadAheadAsync().Forget(); // exceptions fault the buffer block
                 }
             }
-
-            public bool HasEnumerationStarted { get; private set; }
 
             internal JsonRpcEnumerableSettings Settings { get; }
 
             public async ValueTask<object> GetNextValuesAsync(CancellationToken cancellationToken)
             {
-                this.HasEnumerationStarted = true;
-                using (cancellationToken.Register(state => ((CancellationTokenSource)state).Cancel(), this.cancellationTokenSource))
+                try
                 {
-                    cancellationToken = this.cancellationTokenSource.Token;
-                    bool finished = false;
-                    var results = new List<T>(this.Settings.MinBatchSize);
-                    if (this.prefetchedElements != null)
+                    using (cancellationToken.Register(state => ((CancellationTokenSource)state).Cancel(), this.cancellationTokenSource))
                     {
-                        // Fetch at least the min batch size and at most the number that has been cached up to this point (or until we hit the end of the sequence).
-                        // We snap the number of cached elements up front because as we dequeue, we create capacity to store more and we don't want to
-                        // collect and return more than MaxReadAhead.
-                        int cachedOnEntry = this.prefetchedElements.Count;
-                        for (int i = 0; !this.prefetchedElements.Completion.IsCompleted && (i < this.Settings.MinBatchSize || (cachedOnEntry - results.Count > 0)); i++)
+                        cancellationToken = this.cancellationTokenSource.Token;
+                        bool finished = false;
+                        var results = new List<T>(this.Settings.MinBatchSize);
+                        if (this.readAheadElements != null)
                         {
-                            try
+                            // Fetch at least the min batch size and at most the number that has been cached up to this point (or until we hit the end of the sequence).
+                            // We snap the number of cached elements up front because as we dequeue, we create capacity to store more and we don't want to
+                            // collect and return more than MaxReadAhead.
+                            int cachedOnEntry = this.readAheadElements.Count;
+                            for (int i = 0; !this.readAheadElements.Completion.IsCompleted && (i < this.Settings.MinBatchSize || (cachedOnEntry - results.Count > 0)); i++)
                             {
-                                T element = await this.prefetchedElements.ReceiveAsync(cancellationToken).ConfigureAwait(false);
-                                results.Add(element);
+                                try
+                                {
+                                    T element = await this.readAheadElements.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+                                    results.Add(element);
+                                }
+                                catch (InvalidOperationException) when (this.readAheadElements.Completion.IsCompleted)
+                                {
+                                    // Race condition. The sequence is over.
+                                    finished = true;
+                                    break;
+                                }
                             }
-                            catch (InvalidOperationException) when (this.prefetchedElements.Completion.IsCompleted)
+
+                            if (this.readAheadElements.Completion.IsCompleted)
                             {
-                                // Race condition. The sequence is over.
+                                // Rethrow any exceptions.
+                                await this.readAheadElements.Completion.ConfigureAwait(false);
                                 finished = true;
-                                break;
                             }
                         }
-
-                        if (this.prefetchedElements.Completion.IsCompleted)
+                        else
                         {
-                            // Rethrow any exceptions.
-                            await this.prefetchedElements.Completion.ConfigureAwait(false);
-                            finished = true;
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < this.Settings.MinBatchSize; i++)
-                        {
-                            if (!await this.enumerator.MoveNextAsync().ConfigureAwait(false))
+                            for (int i = 0; i < this.Settings.MinBatchSize; i++)
                             {
-                                finished = true;
-                                break;
+                                if (!await this.enumerator.MoveNextAsync().ConfigureAwait(false))
+                                {
+                                    finished = true;
+                                    break;
+                                }
+
+                                results.Add(this.enumerator.Current);
                             }
-
-                            results.Add(this.enumerator.Current);
                         }
-                    }
 
-                    return new EnumeratorResults<T>
-                    {
-                        Finished = finished,
-                        Values = results,
-                    };
+                        if (finished)
+                        {
+                            // Clean up all resources since we don't expect the client to send a dispose notification
+                            // since finishing the enumeration implicitly should dispose of it.
+                            await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
+                        }
+
+                        return new EnumeratorResults<T>
+                        {
+                            Finished = finished,
+                            Values = results,
+                        };
+                    }
+                }
+                catch
+                {
+                    // An error is considered fatal to the enumerable, so clean up everything.
+                    await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
+                    throw;
                 }
             }
 
             public ValueTask DisposeAsync()
             {
                 this.cancellationTokenSource.Cancel();
-                this.prefetchedElements?.Complete();
+                this.readAheadElements?.Complete();
                 return this.enumerator.DisposeAsync();
             }
 
-            private async Task PrefetchAsync()
+            private async Task ReadAheadAsync()
             {
-                Assumes.NotNull(this.prefetchedElements);
+                Assumes.NotNull(this.readAheadElements);
                 try
                 {
                     while (await this.enumerator.MoveNextAsync().ConfigureAwait(false))
                     {
-                        await this.prefetchedElements.SendAsync(this.enumerator.Current, this.cancellationTokenSource.Token).ConfigureAwait(false);
+                        await this.readAheadElements.SendAsync(this.enumerator.Current, this.cancellationTokenSource.Token).ConfigureAwait(false);
                     }
 
-                    this.prefetchedElements.Complete();
+                    this.readAheadElements.Complete();
                 }
                 catch (Exception ex)
                 {
-                    ITargetBlock<T> target = this.prefetchedElements;
+                    ITargetBlock<T> target = this.readAheadElements;
                     target.Fault(ex);
                 }
             }
@@ -340,130 +327,159 @@ namespace StreamJsonRpc.Reflection
         private class AsyncEnumerableProxy<T> : IAsyncEnumerable<T>
         {
             private readonly JsonRpc jsonRpc;
+            private readonly bool finished;
             private object? handle;
+            private bool enumeratorAcquired;
+            private IReadOnlyList<T>? prefetchedItems;
 
-            internal AsyncEnumerableProxy(JsonRpc jsonRpc, object handle)
+            internal AsyncEnumerableProxy(JsonRpc jsonRpc, object? handle, IReadOnlyList<T>? prefetchedItems)
             {
                 this.jsonRpc = jsonRpc;
                 this.handle = handle;
+                this.prefetchedItems = prefetchedItems;
+                this.finished = handle == null;
             }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
             {
-                object handle = this.handle ?? throw new InvalidOperationException(Resources.UsableOnceOnly);
-                this.handle = null;
-                return new AsyncEnumeratorProxy<T>(this.jsonRpc, handle, cancellationToken);
-            }
-        }
-
-        /// <summary>
-        /// Provides the <see cref="IAsyncEnumerator{T}"/> instance that is used by a consumer.
-        /// </summary>
-        /// <typeparam name="T">The type of value produced by the enumerator.</typeparam>
-        private class AsyncEnumeratorProxy<T> : IAsyncEnumerator<T>
-        {
-            private readonly JsonRpc jsonRpc;
-            private readonly CancellationToken cancellationToken;
-            private readonly object?[] nextOrDisposeArguments;
-
-            /// <summary>
-            /// A sequence of values that have already been received from the generator but not yet consumed.
-            /// </summary>
-            private Sequence<T> localCachedValues = new Sequence<T>();
-
-            /// <summary>
-            /// A value indicating whether the generator has reported that no more values will be forthcoming.
-            /// </summary>
-            private bool generatorReportsFinished;
-
-            private bool disposed;
-
-            internal AsyncEnumeratorProxy(JsonRpc jsonRpc, object handle, CancellationToken cancellationToken)
-            {
-                this.jsonRpc = jsonRpc;
-                this.nextOrDisposeArguments = new object?[] { handle };
-                this.cancellationToken = cancellationToken;
+                Verify.Operation(!this.enumeratorAcquired, Resources.CannotBeCalledAfterGetAsyncEnumerator);
+                this.enumeratorAcquired = true;
+                var result = new AsyncEnumeratorProxy(this, this.handle, this.prefetchedItems, this.finished, cancellationToken);
+                this.prefetchedItems = null;
+                return result;
             }
 
-            public T Current
+            /// <summary>
+            /// Provides the <see cref="IAsyncEnumerator{T}"/> instance that is used by a consumer.
+            /// </summary>
+            private class AsyncEnumeratorProxy : IAsyncEnumerator<T>
             {
-                get
+                private readonly AsyncEnumerableProxy<T> owner;
+                private readonly CancellationToken cancellationToken;
+                private readonly object[]? nextOrDisposeArguments;
+
+                /// <summary>
+                /// A sequence of values that have already been received from the generator but not yet consumed.
+                /// </summary>
+                private Sequence<T> localCachedValues = new Sequence<T>();
+
+                /// <summary>
+                /// A value indicating whether the generator has reported that no more values will be forthcoming.
+                /// </summary>
+                private bool generatorReportsFinished;
+
+                private bool moveNextCalled;
+
+                private bool disposed;
+
+                internal AsyncEnumeratorProxy(AsyncEnumerableProxy<T> owner, object? handle, IReadOnlyList<T>? prefetchedItems, bool finished, CancellationToken cancellationToken)
                 {
-                    Verify.NotDisposed(!this.disposed, this);
-                    if (this.localCachedValues.Length == 0)
+                    this.owner = owner;
+                    this.nextOrDisposeArguments = handle != null ? new object[] { handle } : null;
+                    this.cancellationToken = cancellationToken;
+
+                    if (prefetchedItems != null)
                     {
-                        throw new InvalidOperationException("Call " + nameof(this.MoveNextAsync) + " first and confirm it returns true first.");
+                        Write(this.localCachedValues, prefetchedItems);
                     }
 
-                    return this.localCachedValues.AsReadOnlySequence.First.Span[0];
-                }
-            }
-
-            public async ValueTask DisposeAsync()
-            {
-                if (!this.disposed)
-                {
-                    this.disposed = true;
-
-                    // Recycle buffers
-                    this.localCachedValues.Reset();
-
-                    // Notify server.
-                    await this.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments).ConfigureAwait(false);
-                }
-            }
-
-            public async ValueTask<bool> MoveNextAsync()
-            {
-                Verify.NotDisposed(!this.disposed, this);
-
-                // Consume one locally cached value, if we have one.
-                if (this.localCachedValues.Length > 0)
-                {
-                    this.localCachedValues.AdvanceTo(this.localCachedValues.AsReadOnlySequence.GetPosition(1));
+                    this.generatorReportsFinished = finished;
                 }
 
-                if (this.localCachedValues.Length == 0 && !this.generatorReportsFinished)
+                public T Current
                 {
-                    // Fetch more values
-                    try
+                    get
                     {
-                        EnumeratorResults<T> results = await this.jsonRpc.InvokeWithCancellationAsync<EnumeratorResults<T>>(NextMethodName, this.nextOrDisposeArguments, this.cancellationToken).ConfigureAwait(false);
-                        if (results.Values != null)
+                        Verify.NotDisposed(!this.disposed, this);
+                        if (this.localCachedValues.Length == 0)
                         {
-                            Write(this.localCachedValues, results.Values);
+                            throw new InvalidOperationException("Call " + nameof(this.MoveNextAsync) + " first and confirm it returns true first.");
                         }
 
-                        this.generatorReportsFinished = results.Finished;
-                    }
-                    catch (RemoteInvocationException ex) when (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
-                    {
-                        throw new InvalidOperationException(ex.Message, ex);
+                        return this.localCachedValues.AsReadOnlySequence.First.Span[0];
                     }
                 }
 
-                return this.localCachedValues.Length > 0;
-            }
-
-            private static void Write(IBufferWriter<T> writer, IReadOnlyList<T> values)
-            {
-                Span<T> span = writer.GetSpan(values.Count);
-                for (int i = 0; i < values.Count; i++)
+                public async ValueTask DisposeAsync()
                 {
-                    span[i] = values[i];
+                    if (!this.disposed)
+                    {
+                        this.disposed = true;
+
+                        // Recycle buffers
+                        this.localCachedValues.Reset();
+
+                        // Notify server if it wasn't already finished.
+                        if (!this.generatorReportsFinished)
+                        {
+                            await this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments).ConfigureAwait(false);
+                        }
+                    }
                 }
 
-                writer.Advance(values.Count);
+                public async ValueTask<bool> MoveNextAsync()
+                {
+                    Verify.NotDisposed(!this.disposed, this);
+
+                    // Consume one locally cached value, if we have one.
+                    if (this.localCachedValues.Length > 0)
+                    {
+                        if (this.moveNextCalled)
+                        {
+                            this.localCachedValues.AdvanceTo(this.localCachedValues.AsReadOnlySequence.GetPosition(1));
+                        }
+                        else
+                        {
+                            // Don't consume one the first time we're called if we have an initial set of values.
+                            this.moveNextCalled = true;
+                            return true;
+                        }
+                    }
+
+                    this.moveNextCalled = true;
+
+                    if (this.localCachedValues.Length == 0 && !this.generatorReportsFinished)
+                    {
+                        // Fetch more values
+                        try
+                        {
+                            EnumeratorResults<T> results = await this.owner.jsonRpc.InvokeWithCancellationAsync<EnumeratorResults<T>>(NextMethodName, this.nextOrDisposeArguments, this.cancellationToken).ConfigureAwait(false);
+                            if (results.Values != null)
+                            {
+                                Write(this.localCachedValues, results.Values);
+                            }
+
+                            this.generatorReportsFinished = results.Finished;
+                        }
+                        catch (RemoteInvocationException ex) when (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                        {
+                            throw new InvalidOperationException(ex.Message, ex);
+                        }
+                    }
+
+                    return this.localCachedValues.Length > 0;
+                }
+
+                private static void Write(IBufferWriter<T> writer, IReadOnlyList<T> values)
+                {
+                    Span<T> span = writer.GetSpan(values.Count);
+                    for (int i = 0; i < values.Count; i++)
+                    {
+                        span[i] = values[i];
+                    }
+
+                    writer.Advance(values.Count);
+                }
             }
         }
 
         [DataContract]
         private class EnumeratorResults<T>
         {
-            [DataMember(Name = "values", Order = 0)]
+            [DataMember(Name = ValuesPropertyName, Order = 0)]
             internal IReadOnlyList<T>? Values { get; set; }
 
-            [DataMember(Name = "finished", Order = 1)]
+            [DataMember(Name = FinishedPropertyName, Order = 1)]
             internal bool Finished { get; set; }
         }
     }

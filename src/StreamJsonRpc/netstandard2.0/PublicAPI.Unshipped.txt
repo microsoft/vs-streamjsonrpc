@@ -47,9 +47,7 @@ StreamJsonRpc.Reflection.JsonRpcResponseEventArgs.IsSuccessfulResponse.get -> bo
 StreamJsonRpc.Reflection.JsonRpcResponseEventArgs.JsonRpcResponseEventArgs(StreamJsonRpc.RequestId requestId, bool isSuccessfulResponse) -> void
 StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.MessageFormatterDuplexPipeTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker
-StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CreateEnumerableProxy(System.Type enumeratedType, object handle) -> object
-StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CreateEnumerableProxy<T>(object handle) -> System.Collections.Generic.IAsyncEnumerable<T>
-StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.GetToken(object enumerable) -> long
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CreateEnumerableProxy<T>(object handle, System.Collections.Generic.IReadOnlyList<T> prefetchedItems) -> System.Collections.Generic.IAsyncEnumerable<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.GetToken<T>(System.Collections.Generic.IAsyncEnumerable<T> enumerable) -> long
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.MessageFormatterEnumerableTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.MessageFormatterProgressTracker(StreamJsonRpc.JsonRpc jsonRpc, StreamJsonRpc.Reflection.IJsonRpcFormatterState formatterState) -> void
@@ -69,6 +67,8 @@ StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageExce
 StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(string message) -> void
 StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(string message, System.Exception innerException) -> void
+const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.TokenPropertyName = "token" -> string
+const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.ValuesPropertyName = "values" -> string
 override StreamJsonRpc.PipeMessageHandler.DisposeReader() -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeWriter() -> void
 override StreamJsonRpc.RemoteMethodNotFoundException.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
@@ -77,7 +77,10 @@ override StreamJsonRpc.RequestId.GetHashCode() -> int
 override StreamJsonRpc.RequestId.ToString() -> string
 static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collections.Generic.IEnumerable<T> enumerable) -> System.Collections.Generic.IAsyncEnumerable<T>
 static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collections.Generic.IEnumerable<T> enumerable, StreamJsonRpc.JsonRpcEnumerableSettings settings) -> System.Collections.Generic.IAsyncEnumerable<T>
+static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collections.Generic.IEnumerable<T> enumerable, StreamJsonRpc.JsonRpcEnumerableSettings settings, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<T>
+static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collections.Generic.IEnumerable<T> enumerable, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<T>
 static StreamJsonRpc.JsonRpcExtensions.WithJsonRpcSettings<T>(this System.Collections.Generic.IAsyncEnumerable<T> enumerable, StreamJsonRpc.JsonRpcEnumerableSettings settings) -> System.Collections.Generic.IAsyncEnumerable<T>
+static StreamJsonRpc.JsonRpcExtensions.WithPrefetchAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> enumerable, int count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IAsyncEnumerable<T>>
 static StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CanDeserialize(System.Type objectType) -> bool
 static StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CanSerialize(System.Type objectType) -> bool
 static StreamJsonRpc.RequestId.NotSpecified.get -> StreamJsonRpc.RequestId

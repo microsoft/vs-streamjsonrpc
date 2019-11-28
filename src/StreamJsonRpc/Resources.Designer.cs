@@ -79,6 +79,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This cannot be done after GetAsyncEnumerator has already been called..
+        /// </summary>
+        internal static string CannotBeCalledAfterGetAsyncEnumerator {
+            get {
+                return ResourceManager.GetString("CannotBeCalledAfterGetAsyncEnumerator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &quot;{0}&quot; is not an interface..
         /// </summary>
         internal static string ClientProxyTypeArgumentMustBeAnInterface {
@@ -129,6 +138,15 @@ namespace StreamJsonRpc {
         internal static string DroppingRequestDueToNoTargetObject {
             get {
                 return ResourceManager.GetString("DroppingRequestDueToNoTargetObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This enumeration has already prefetched elements once..
+        /// </summary>
+        internal static string ElementsAlreadyPrefetched {
+            get {
+                return ResourceManager.GetString("ElementsAlreadyPrefetched", resourceCulture);
             }
         }
         
@@ -579,15 +597,6 @@ namespace StreamJsonRpc {
         internal static string UnsupportedPropertiesOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to This method may only be called once and already has been..
-        /// </summary>
-        internal static string UsableOnceOnly {
-            get {
-                return ResourceManager.GetString("UsableOnceOnly", resourceCulture);
             }
         }
     }
