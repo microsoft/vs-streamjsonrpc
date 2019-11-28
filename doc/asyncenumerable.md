@@ -41,7 +41,7 @@ Notice how it is not necessary (or desirable) to wrap the resulting `IAsyncEnume
 C# 8 lets you consume such an async enumerable using `await foreach`:
 
 ```cs
-await foreach (int number in this.clientProxy.GenerateNumbersAsync(token))
+await foreach (int number in this.clientProxy.GenerateNumbersAsync(token).WithCancellation(token))
 {
     Console.WriteLine(number);
 }
@@ -49,6 +49,9 @@ await foreach (int number in this.clientProxy.GenerateNumbersAsync(token))
 
 All the foregoing is simple C# 8 async enumerable syntax and use cases.
 StreamJsonRpc lets you use this natural syntax over an RPC connection.
+
+We pass `token` in once to the method that calls to the RPC server, and again to the `WithCancellation`
+extension method so that the token is applied to each iteration of the loop over the enumerable.
 
 A remoted `IAsyncEnumerable<T>` can only be enumerated once.
 Calling `IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken)` more than once will

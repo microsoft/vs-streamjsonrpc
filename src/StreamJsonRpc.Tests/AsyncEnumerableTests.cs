@@ -291,6 +291,28 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [Theory]
     [PairwiseData]
+    public async Task Cancellation_AfterFirstMoveNext_NaturalForEach(bool useProxy)
+    {
+        IAsyncEnumerable<int> enumerable = useProxy
+            ? this.clientProxy.Value.GetNumbersAsync(this.TimeoutToken)
+            : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersAsync), cancellationToken: this.TimeoutToken);
+
+        int iterations = 0;
+        await Assert.ThrowsAsync<OperationCanceledException>(async delegate
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+            await foreach (var item in enumerable.WithCancellation(cts.Token))
+            {
+                iterations++;
+                cts.Cancel();
+            }
+        });
+
+        Assert.Equal(1, iterations);
+    }
+
+    [Theory]
+    [PairwiseData]
     public async Task Cancellation_DuringLongRunningServerMoveNext(bool useProxy)
     {
         IAsyncEnumerable<int> enumerable = useProxy
