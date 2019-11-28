@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System.IO;
     using System.IO.Pipelines;
     using System.Reflection;
+    using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
     using MessagePack;
     using MessagePack.Formatters;
@@ -1330,12 +1331,6 @@ namespace StreamJsonRpc
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
                     return true;
                 }
-                catch (NotSupportedException)
-                {
-                    // This block can be removed after https://github.com/neuecc/MessagePack-CSharp/pull/633 is applied.
-                    value = null;
-                    return false;
-                }
                 catch (MessagePackSerializationException)
                 {
                     value = null;
@@ -1353,6 +1348,8 @@ namespace StreamJsonRpc
         private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
             private readonly MessagePackSerializerOptions serializerOptions;
+
+            private Exception? resultDeserializationException;
 
             internal JsonRpcResult(MessagePackSerializerOptions serializerOptions)
             {
@@ -1372,6 +1369,11 @@ namespace StreamJsonRpc
 
             public override T GetResult<T>()
             {
+                if (this.resultDeserializationException != null)
+                {
+                    ExceptionDispatchInfo.Capture(this.resultDeserializationException).Throw();
+                }
+
                 return this.MsgPackResult.IsEmpty
                     ? (T)this.Result!
                     : MessagePackSerializer.Deserialize<T>(this.MsgPackResult, this.serializerOptions);
@@ -1382,8 +1384,16 @@ namespace StreamJsonRpc
                 Verify.Operation(!this.MsgPackResult.IsEmpty, "Result is no longer available or has already been deserialized.");
 
                 var reader = new MessagePackReader(this.MsgPackResult);
-                this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, this.serializerOptions);
-                this.MsgPackResult = default;
+                try
+                {
+                    this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, this.serializerOptions);
+                    this.MsgPackResult = default;
+                }
+                catch (MessagePackSerializationException ex)
+                {
+                    // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
+                    this.resultDeserializationException = ex;
+                }
             }
         }
 

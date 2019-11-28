@@ -2163,6 +2163,7 @@ namespace StreamJsonRpc
         private async Task HandleRpcAsync(JsonRpcMessage rpc)
         {
             Requires.NotNull(rpc, nameof(rpc));
+            OutstandingCallData? data = null;
             try
             {
                 if (rpc is JsonRpcRequest request)
@@ -2221,7 +2222,6 @@ namespace StreamJsonRpc
                     JsonRpcResult? result = resultOrError as JsonRpcResult;
                     JsonRpcError? error = resultOrError as JsonRpcError;
 
-                    OutstandingCallData? data = null;
                     lock (this.dispatcherMapLock)
                     {
                         if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
@@ -2260,6 +2260,7 @@ namespace StreamJsonRpc
                         // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
                         await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                         data.CompletionHandler(rpc);
+                        data = null; // avoid invoking again if we throw later
                     }
                 }
                 else
@@ -2279,6 +2280,9 @@ namespace StreamJsonRpc
 
                 // Fatal error. Raise disconnected event.
                 this.OnJsonRpcDisconnected(eventArgs);
+
+                // If we extracted this callback from the collection already, take care to complete it to avoid hanging our client.
+                data?.CompletionHandler(null);
             }
         }
 
