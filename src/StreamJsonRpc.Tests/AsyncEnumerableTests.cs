@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -49,11 +50,15 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     protected interface IServer
     {
+        IAsyncEnumerable<int> GetValuesFromEnumeratedSourceAsync(CancellationToken cancellationToken);
+
         IAsyncEnumerable<int> GetNumbersInBatchesAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersWithReadAheadAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersAsync(CancellationToken cancellationToken);
+
+        IAsyncEnumerable<int> GetNumbersNoCancellationAsync();
 
         IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync(CancellationToken cancellationToken);
 
@@ -118,6 +123,20 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<int> enumerable = useProxy
             ? this.clientProxy.Value.GetNumbersAsync(this.TimeoutToken)
             : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersAsync), cancellationToken: this.TimeoutToken);
+        await foreach (int number in enumerable)
+        {
+            realizedValuesCount++;
+            this.Logger.WriteLine(number.ToString(CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal(Server.ValuesReturnedByEnumerables, realizedValuesCount);
+    }
+
+    [Fact]
+    public async Task GetIAsyncEnumerableAsReturnType_WithProxy_NoCancellation()
+    {
+        int realizedValuesCount = 0;
+        IAsyncEnumerable<int> enumerable = this.clientProxy.Value.GetNumbersNoCancellationAsync();
         await foreach (int number in enumerable)
         {
             realizedValuesCount++;
@@ -289,24 +308,40 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
     }
 
-    [Theory]
-    [PairwiseData]
-    public async Task Cancellation_AfterFirstMoveNext_NaturalForEach(bool useProxy)
+    [Fact]
+    public async Task Cancellation_AfterFirstMoveNext_NaturalForEach_Proxy()
     {
-        IAsyncEnumerable<int> enumerable = useProxy
-            ? this.clientProxy.Value.GetNumbersAsync(this.TimeoutToken)
-            : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersAsync), cancellationToken: this.TimeoutToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+        IAsyncEnumerable<int> enumerable = this.clientProxy.Value.GetNumbersAsync(cts.Token);
 
         int iterations = 0;
         await Assert.ThrowsAsync<OperationCanceledException>(async delegate
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+            await foreach (var item in enumerable)
+            {
+                iterations++;
+                cts.Cancel();
+            }
+        }).WithCancellation(this.TimeoutToken);
+
+        Assert.Equal(1, iterations);
+    }
+
+    [Fact]
+    public async Task Cancellation_AfterFirstMoveNext_NaturalForEach_NoProxy()
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+        var enumerable = await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersAsync), cancellationToken: cts.Token);
+
+        int iterations = 0;
+        await Assert.ThrowsAsync<OperationCanceledException>(async delegate
+        {
             await foreach (var item in enumerable.WithCancellation(cts.Token))
             {
                 iterations++;
                 cts.Cancel();
             }
-        });
+        }).WithCancellation(this.TimeoutToken);
 
         Assert.Equal(1, iterations);
     }
@@ -424,6 +459,14 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn).WithCancellation(this.TimeoutToken);
     }
 
+    [SkippableFact]
+    [Trait("GC", "")]
+    public async Task ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod()
+    {
+        WeakReference enumerable = await this.ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod_Helper();
+        AssertCollectedObject(enumerable);
+    }
+
     [Theory]
     [InlineData(1, 0, 2, Server.ValuesReturnedByEnumerables)]
     [InlineData(2, 2, 2, Server.ValuesReturnedByEnumerables)]
@@ -500,6 +543,28 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         return result;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod_Helper()
+    {
+        this.server.EnumeratedSource = ImmutableList.Create(1, 2, 3);
+        WeakReference weakReferenceToSource = new WeakReference(this.server.EnumeratedSource);
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+
+        // Start up th emethod and get the first item.
+        var enumerable = this.clientProxy.Value.GetValuesFromEnumeratedSourceAsync(cts.Token);
+        var enumerator = enumerable.GetAsyncEnumerator(cts.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+
+        // Now remove the only strong reference to the source object other than what would be captured by the async iterator method.
+        this.server.EnumeratedSource = this.server.EnumeratedSource.Clear();
+
+        // Now array for the server method to be canceled
+        cts.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
+
+        return weakReferenceToSource;
+    }
+
     protected class Server : IServer
     {
         /// <summary>
@@ -524,11 +589,25 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public AsyncManualResetEvent ValueGenerated { get; } = new AsyncManualResetEvent();
 
+        public ImmutableList<int> EnumeratedSource { get; set; } = ImmutableList<int>.Empty;
+
+        public async IAsyncEnumerable<int> GetValuesFromEnumeratedSourceAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            foreach (var item in this.EnumeratedSource)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Yield();
+                yield return item;
+            }
+        }
+
         public IAsyncEnumerable<int> GetNumbersInBatchesAsync(CancellationToken cancellationToken)
             => this.GetNumbersAsync(cancellationToken).WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = MinBatchSize });
 
         public IAsyncEnumerable<int> GetNumbersWithReadAheadAsync(CancellationToken cancellationToken)
             => this.GetNumbersAsync(cancellationToken).WithJsonRpcSettings(new JsonRpcEnumerableSettings { MaxReadAhead = MaxReadAhead, MinBatchSize = MinBatchSize });
+
+        public IAsyncEnumerable<int> GetNumbersNoCancellationAsync() => this.GetNumbersAsync(CancellationToken.None);
 
         public async IAsyncEnumerable<int> GetNumbersAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
