@@ -95,11 +95,6 @@ namespace StreamJsonRpc
         private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard;
 
         /// <summary>
-        /// The formatter to use when serializing user data that we only see typed as <see cref="object"/>.
-        /// </summary>
-        private DynamicObjectTypeFallbackFormatter dynamicObjectTypeFormatterForUserSuppliedResolver;
-
-        /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
         /// </summary>
         private JsonRpc? rpc;
@@ -108,26 +103,9 @@ namespace StreamJsonRpc
         /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
         /// </summary>
         public MessagePackFormatter()
-            : this(compress: false)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
-        /// </summary>
-        /// <param name="compress">A value indicating whether to use LZ4 compression.</param>
-        private MessagePackFormatter(bool compress)
-        {
-            if (compress)
-            {
-                // Before we enable this, we need a way to ensure that the LZ4-expanded buffers stick around long enough for our deferred deserialization.
-                // See https://github.com/neuecc/MessagePack-CSharp/issues/109#issuecomment-551370773
-                throw new NotSupportedException();
-            }
-
             // Set up initial options for our own message types.
             this.messageSerializationOptions = MessagePackSerializerOptions.Standard
-                .WithLZ4Compression(useLZ4Compression: compress)
                 .WithResolver(this.CreateTopLevelMessageResolver());
 
             // Create the specialized formatters/resolvers that we will inject into the chain for user data.
@@ -136,8 +114,7 @@ namespace StreamJsonRpc
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
 
             // Set up default user data resolver.
-            this.SetMessagePackSerializerOptions(StandardResolverAllowPrivate.Options);
-            (this.userDataSerializationOptions, this.dynamicObjectTypeFormatterForUserSuppliedResolver) = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
+            this.userDataSerializationOptions = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
         }
 
         private interface IJsonRpcMessagePackRetention
@@ -235,7 +212,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(options, nameof(options));
 
-            (this.userDataSerializationOptions, this.dynamicObjectTypeFormatterForUserSuppliedResolver) = this.MassageUserDataOptions(options);
+            this.userDataSerializationOptions = this.MassageUserDataOptions(options);
         }
 
         /// <inheritdoc/>
@@ -353,7 +330,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="userSuppliedOptions">The options for user data that is supplied by the user (or the default).</param>
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
-        private (MessagePackSerializerOptions UserDataOptions, DynamicObjectTypeFallbackFormatter DynamicObjectTypeFormatter) MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
+        private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
             var formatters = new IMessagePackFormatter[]
             {
@@ -375,10 +352,10 @@ namespace StreamJsonRpc
             IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
 
             MessagePackSerializerOptions userDataOptions = userSuppliedOptions
-                .WithLZ4Compression(false) // If/when we support LZ4 compression, it will be at the message level -- not the user-data level.
+                .WithCompression(MessagePackCompression.None) // If/when we support LZ4 compression, it will be at the message level -- not the user-data level.
                 .WithResolver(userDataResolver);
 
-            return (userDataOptions, new DynamicObjectTypeFallbackFormatter(userDataResolver));
+            return userDataOptions;
         }
 
         private IFormatterResolver CreateTopLevelMessageResolver()
@@ -1060,12 +1037,13 @@ namespace StreamJsonRpc
                 writer.Write(value.Method);
 
                 writer.Write(ParamsPropertyName);
+
                 if (value.ArgumentsList != null)
                 {
                     writer.WriteArrayHeader(value.ArgumentsList.Count);
                     foreach (var arg in value.ArgumentsList)
                     {
-                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                        DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
                     }
                 }
                 else if (value.NamedArguments != null)
@@ -1074,7 +1052,7 @@ namespace StreamJsonRpc
                     foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
                     {
                         writer.Write(entry.Key);
-                        this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                        DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
                     }
                 }
                 else
@@ -1131,7 +1109,7 @@ namespace StreamJsonRpc
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
                 writer.Write(ResultPropertyName);
-                this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
+                DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
             }
         }
 
@@ -1233,7 +1211,7 @@ namespace StreamJsonRpc
                 writer.Write(value.Message);
 
                 writer.Write(DataPropertyName);
-                this.formatter.dynamicObjectTypeFormatterForUserSuppliedResolver.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
+                DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
             }
         }
 
