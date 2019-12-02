@@ -25,6 +25,8 @@ variables:
   value: Release
 - name: BuildPlatform
   value: Any CPU
+- name: NUGET_PACKAGES
+  value: $(Agent.TempDirectory)/.nuget/packages
 - name: push_to_ci
   value: true
 - name: PublicRelease
