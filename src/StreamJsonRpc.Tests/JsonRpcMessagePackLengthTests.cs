@@ -62,7 +62,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         var options = MessagePackSerializerOptions.Standard
             .WithResolver(CompositeResolver.Create(
-                new IMessagePackFormatter[] { new UnserializableTypeFormatter() },
+                new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter() },
                 new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
         ((MessagePackFormatter)this.serverMessageFormatter).SetMessagePackSerializerOptions(options);
         ((MessagePackFormatter)this.clientMessageFormatter).SetMessagePackSerializerOptions(options);
@@ -81,6 +81,19 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         public void Serialize(ref MessagePackWriter writer, CustomSerializedType value, MessagePackSerializerOptions options)
         {
             writer.Write(value?.Value);
+        }
+    }
+
+    private class TypeThrowsWhenDeserializedFormatter : IMessagePackFormatter<TypeThrowsWhenDeserialized>
+    {
+        public TypeThrowsWhenDeserialized Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            throw new Exception("This exception is meant to be thrown.");
+        }
+
+        public void Serialize(ref MessagePackWriter writer, TypeThrowsWhenDeserialized value, MessagePackSerializerOptions options)
+        {
+            writer.WriteArrayHeader(0);
         }
     }
 }

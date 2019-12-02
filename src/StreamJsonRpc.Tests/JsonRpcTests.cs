@@ -1629,6 +1629,12 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethod), "Fail"));
     }
 
+    [Fact]
+    public async Task ReturnTypeThrowsOnDeserialization()
+    {
+        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -1860,6 +1866,8 @@ public abstract class JsonRpcTests : TestBase
         {
             return fields.x + fields.y;
         }
+
+        public TypeThrowsWhenDeserialized GetTypeThrowsWhenDeserialized() => new TypeThrowsWhenDeserialized();
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
 
@@ -2163,6 +2171,10 @@ public abstract class JsonRpcTests : TestBase
         [JsonIgnore]
         [IgnoreDataMember]
         public string? Value { get; set; }
+    }
+
+    public class TypeThrowsWhenDeserialized
+    {
     }
 
     [DataContract]

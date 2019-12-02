@@ -189,8 +189,28 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
     protected override void InitializeFormattersAndHandlers()
     {
-        this.clientMessageFormatter = new JsonMessageFormatter { JsonSerializer = { Converters = { new UnserializableTypeConverter() } } };
-        this.serverMessageFormatter = new JsonMessageFormatter { JsonSerializer = { Converters = { new UnserializableTypeConverter() } } };
+        this.clientMessageFormatter = new JsonMessageFormatter
+        {
+            JsonSerializer =
+            {
+                Converters =
+                {
+                    new UnserializableTypeConverter(),
+                    new TypeThrowsWhenDeserializedConverter(),
+                },
+            },
+        };
+        this.serverMessageFormatter = new JsonMessageFormatter
+        {
+            JsonSerializer =
+            {
+                Converters =
+                {
+                    new UnserializableTypeConverter(),
+                    new TypeThrowsWhenDeserializedConverter(),
+                },
+            },
+        };
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
         this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
@@ -218,6 +238,20 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             writer.WriteValue(((CustomSerializedType)value).Value);
+        }
+    }
+
+    private class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
+    {
+        public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            throw new Exception("This exception is meant to be thrown.");
+        }
+
+        public override void WriteJson(JsonWriter writer, TypeThrowsWhenDeserialized value, JsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+            writer.WriteEndObject();
         }
     }
 
