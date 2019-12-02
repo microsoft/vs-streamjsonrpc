@@ -417,6 +417,8 @@ namespace StreamJsonRpc
                 this.rawMemory = raw;
             }
 
+            internal bool IsDefault => this.rawMemory.IsEmpty && this.rawSequence.IsEmpty;
+
             /// <summary>
             /// Reads one raw messagepack token.
             /// </summary>
@@ -653,23 +655,68 @@ namespace StreamJsonRpc
                         return default;
                     }
 
-                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
-                    RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                    return this.mainFormatter.enumerableTracker.CreateEnumerableProxy<T>(token);
+                    RawMessagePack token = default;
+                    IReadOnlyList<T>? initialElements = null;
+                    int propertyCount = reader.ReadMapHeader();
+                    for (int i = 0; i < propertyCount; i++)
+                    {
+                        switch (reader.ReadString())
+                        {
+                            case MessageFormatterEnumerableTracker.TokenPropertyName:
+                                token = RawMessagePack.ReadRaw(ref reader, copy: true);
+                                break;
+                            case MessageFormatterEnumerableTracker.ValuesPropertyName:
+                                initialElements = options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Deserialize(ref reader, options);
+                                break;
+                        }
+                    }
+
+                    return this.mainFormatter.EnumerableTracker.CreateEnumerableProxy<T>(token.IsDefault ? null : (object)token, initialElements);
                 }
 
                 public void Serialize(ref MessagePackWriter writer, IAsyncEnumerable<T>? value, MessagePackSerializerOptions options)
                 {
-                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
+                    Serialize_Shared(this.mainFormatter, ref writer, value, options);
+                }
+
+                internal static MessagePackWriter Serialize_Shared(MessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, MessagePackSerializerOptions options)
+                {
                     if (value is null)
                     {
                         writer.WriteNil();
                     }
                     else
                     {
-                        long token = this.mainFormatter.enumerableTracker.GetToken<T>(value);
-                        writer.Write(token);
+                        (IReadOnlyList<T> Elements, bool Finished) prefetched = value.TearOffPrefetchedElements();
+                        long token = mainFormatter.EnumerableTracker.GetToken(value);
+
+                        int propertyCount = 0;
+                        if (prefetched.Elements.Count > 0)
+                        {
+                            propertyCount++;
+                        }
+
+                        if (!prefetched.Finished)
+                        {
+                            propertyCount++;
+                        }
+
+                        writer.WriteMapHeader(propertyCount);
+
+                        if (!prefetched.Finished)
+                        {
+                            writer.Write(MessageFormatterEnumerableTracker.TokenPropertyName);
+                            writer.Write(token);
+                        }
+
+                        if (prefetched.Elements.Count > 0)
+                        {
+                            writer.Write(MessageFormatterEnumerableTracker.ValuesPropertyName);
+                            options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Serialize(ref writer, prefetched.Elements, options);
+                        }
                     }
+
+                    return writer;
                 }
             }
 
@@ -693,16 +740,7 @@ namespace StreamJsonRpc
 
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
                 {
-                    Assumes.NotNull(this.mainFormatter.enumerableTracker);
-                    if (value is null)
-                    {
-                        writer.WriteNil();
-                    }
-                    else
-                    {
-                        long token = this.mainFormatter.enumerableTracker.GetToken<TElement>(value);
-                        writer.Write(token);
-                    }
+                    writer = PreciseTypeFormatter<TElement>.Serialize_Shared(this.mainFormatter, ref writer, value, options);
                 }
             }
         }

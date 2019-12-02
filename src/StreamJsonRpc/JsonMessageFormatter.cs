@@ -12,6 +12,7 @@ namespace StreamJsonRpc
     using System.IO.Pipelines;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
     using System.Text;
     using System.Threading;
@@ -401,6 +402,11 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
+        /// <devremarks>
+        /// Do *NOT* change this to simply forward to <see cref="Serialize(JsonRpcMessage)"/> since that
+        /// mutates the <see cref="JsonRpcMessage"/> itself by tokenizing arguments as if we were going to transmit them
+        /// which BREAKS argument parsing for incoming named argument messages such as $/cancelRequest.
+        /// </devremarks>
         public object GetJsonText(JsonRpcMessage message) => JToken.FromObject(message);
 
         /// <inheritdoc/>
@@ -875,6 +881,8 @@ namespace StreamJsonRpc
         /// </summary>
         private class AsyncEnumerableConsumerConverter : JsonConverter
         {
+            private static readonly MethodInfo ReadJsonOpenGenericMethod = typeof(AsyncEnumerableConsumerConverter).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Single(m => m.Name == nameof(ReadJson) && m.IsGenericMethod);
+
             private JsonMessageFormatter formatter;
 
             internal AsyncEnumerableConsumerConverter(JsonMessageFormatter jsonMessageFormatter)
@@ -891,13 +899,32 @@ namespace StreamJsonRpc
                     return null;
                 }
 
-                JToken token = JToken.Load(reader);
-                return this.formatter.EnumerableTracker.CreateEnumerableProxy(objectType, token);
+                Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(objectType);
+                Assumes.NotNull(iface);
+                MethodInfo genericMethod = ReadJsonOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
+                try
+                {
+                    return genericMethod.Invoke(this, new object?[] { reader, serializer });
+                }
+                catch (TargetInvocationException ex)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    throw Assumes.NotReachable();
+                }
             }
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
+            }
+
+            private IAsyncEnumerable<T> ReadJson<T>(JsonReader reader, JsonSerializer serializer)
+            {
+                JToken enumJToken = JToken.Load(reader);
+                JToken handle = enumJToken[MessageFormatterEnumerableTracker.TokenPropertyName];
+                IReadOnlyList<T>? prefetchedItems = enumJToken[MessageFormatterEnumerableTracker.ValuesPropertyName]?.ToObject<IReadOnlyList<T>>(serializer);
+
+                return this.formatter.EnumerableTracker.CreateEnumerableProxy(handle, prefetchedItems);
             }
         }
 
@@ -906,6 +933,8 @@ namespace StreamJsonRpc
         /// </summary>
         private class AsyncEnumerableGeneratorConverter : JsonConverter
         {
+            private static readonly MethodInfo WriteJsonOpenGenericMethod = typeof(AsyncEnumerableGeneratorConverter).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name == nameof(WriteJson) && m.IsGenericMethod);
+
             private JsonMessageFormatter formatter;
 
             internal AsyncEnumerableGeneratorConverter(JsonMessageFormatter jsonMessageFormatter)
@@ -922,8 +951,39 @@ namespace StreamJsonRpc
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
+                Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(value.GetType());
+                Assumes.NotNull(iface);
+                MethodInfo genericMethod = WriteJsonOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
+                try
+                {
+                    genericMethod.Invoke(this, new object?[] { writer, value, serializer });
+                }
+                catch (TargetInvocationException ex)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    throw Assumes.NotReachable();
+                }
+            }
+
+            private void WriteJson<T>(JsonWriter writer, IAsyncEnumerable<T> value, JsonSerializer serializer)
+            {
+                (IReadOnlyList<T> Elements, bool Finished) prefetched = value.TearOffPrefetchedElements();
                 long token = this.formatter.EnumerableTracker.GetToken(value);
-                writer.WriteValue(token);
+                writer.WriteStartObject();
+
+                if (!prefetched.Finished)
+                {
+                    writer.WritePropertyName(MessageFormatterEnumerableTracker.TokenPropertyName);
+                    writer.WriteValue(token);
+                }
+
+                if (prefetched.Elements.Count > 0)
+                {
+                    writer.WritePropertyName(MessageFormatterEnumerableTracker.ValuesPropertyName);
+                    serializer.Serialize(writer, prefetched.Elements);
+                }
+
+                writer.WriteEndObject();
             }
         }
 

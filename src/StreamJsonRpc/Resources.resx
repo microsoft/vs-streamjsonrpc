@@ -123,6 +123,9 @@
   <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
     <value>A CancellationToken is only allowed as the last parameter.</value>
   </data>
+  <data name="CannotBeCalledAfterGetAsyncEnumerator" xml:space="preserve">
+    <value>This cannot be done after GetAsyncEnumerator has already been called.</value>
+  </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" is not an interface.</value>
   </data>
@@ -143,6 +146,9 @@
   <data name="DroppingRequestDueToNoTargetObject" xml:space="preserve">
     <value>Got a request to execute '{0}' but have no callback object. Dropping the request.</value>
     <comment>{0} is the method name to execute.</comment>
+  </data>
+  <data name="ElementsAlreadyPrefetched" xml:space="preserve">
+    <value>This enumeration has already prefetched elements once.</value>
   </data>
   <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
     <value>Error writing JSON RPC Message: {0}: {1}</value>
@@ -312,8 +318,5 @@
   </data>
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
-  </data>
-  <data name="UsableOnceOnly" xml:space="preserve">
-    <value>This method may only be called once and already has been.</value>
   </data>
 </root>

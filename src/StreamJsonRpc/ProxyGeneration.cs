@@ -303,7 +303,7 @@ namespace StreamJsonRpc
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
 
-                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod);
+                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
 
                         il.Emit(OpCodes.Ret);
                     }
@@ -346,7 +346,7 @@ namespace StreamJsonRpc
 
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
 
-                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod);
+                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
 
                         il.Emit(OpCodes.Ret);
                     }
@@ -374,7 +374,8 @@ namespace StreamJsonRpc
         /// <param name="returnTypeIsIAsyncEnumerable"><c>true</c> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <c>false</c> otherwise.</param>
         /// <param name="il">The IL emitter for the method.</param>
         /// <param name="invokingMethod">The Invoke method on <see cref="JsonRpc"/> that IL was just emitted to invoke.</param>
-        private static void AdaptReturnType(MethodInfo method, bool returnTypeIsValueTask, bool returnTypeIsIAsyncEnumerable, ILGenerator il, MethodInfo invokingMethod)
+        /// <param name="cancellationTokenParameter">The <see cref="CancellationToken"/> parameter in the proxy method, if there is one.</param>
+        private static void AdaptReturnType(MethodInfo method, bool returnTypeIsValueTask, bool returnTypeIsIAsyncEnumerable, ILGenerator il, MethodInfo invokingMethod, ParameterInfo? cancellationTokenParameter)
         {
             if (returnTypeIsValueTask)
             {
@@ -384,6 +385,19 @@ namespace StreamJsonRpc
             else if (returnTypeIsIAsyncEnumerable)
             {
                 // We must convert the Task<IAsyncEnumerable<T>> to IAsyncEnumerable<T>
+                // Push a CancellationToken to the stack as well. Use the one this method was given if available, otherwise push CancellationToken.None.
+                if (cancellationTokenParameter != null)
+                {
+                    il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
+                }
+                else
+                {
+                    LocalBuilder local = il.DeclareLocal(typeof(CancellationToken));
+                    il.Emit(OpCodes.Ldloca, local);
+                    il.Emit(OpCodes.Initobj, typeof(CancellationToken));
+                    il.Emit(OpCodes.Ldloc, local);
+                }
+
                 Type proxyEnumerableType = typeof(AsyncEnumerableProxy<>).MakeGenericType(method.ReturnType.GenericTypeArguments[0]);
                 ConstructorInfo ctor = proxyEnumerableType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
                 il.Emit(OpCodes.Newobj, ctor);
@@ -596,15 +610,17 @@ namespace StreamJsonRpc
         private class AsyncEnumerableProxy<T> : IAsyncEnumerable<T>
         {
             private readonly Task<IAsyncEnumerable<T>> enumerableTask;
+            private readonly CancellationToken defaultCancellationToken;
 
-            internal AsyncEnumerableProxy(Task<IAsyncEnumerable<T>> enumerableTask)
+            internal AsyncEnumerableProxy(Task<IAsyncEnumerable<T>> enumerableTask, CancellationToken defaultCancellationToken)
             {
                 this.enumerableTask = enumerableTask ?? throw new ArgumentNullException(nameof(enumerableTask));
+                this.defaultCancellationToken = defaultCancellationToken;
             }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
             {
-                return new AsyncEnumeratorProxy(this.enumerableTask, cancellationToken);
+                return new AsyncEnumeratorProxy(this.enumerableTask, cancellationToken.CanBeCanceled ? cancellationToken : this.defaultCancellationToken);
             }
 
             private class AsyncEnumeratorProxy : IAsyncEnumerator<T>

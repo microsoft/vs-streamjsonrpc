@@ -7,10 +7,20 @@
         <target state="translated">Parametr readable i writable jsou null.</target>
         <note />
       </trans-unit>
+      <trans-unit id="CannotBeCalledAfterGetAsyncEnumerator">
+        <source>This cannot be done after GetAsyncEnumerator has already been called.</source>
+        <target state="new">This cannot be done after GetAsyncEnumerator has already been called.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
         <source>Got a request to execute '{0}' but have no callback object. Dropping the request.</source>
         <target state="translated">Byla přijata žádost o provedení {0}, ale chybí objekt zpětného volání. Žádost se ruší.</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name to execute.</note>
+      </trans-unit>
+      <trans-unit id="ElementsAlreadyPrefetched">
+        <source>This enumeration has already prefetched elements once.</source>
+        <target state="new">This enumeration has already prefetched elements once.</target>
+        <note />
       </trans-unit>
       <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
         <source>Error writing JSON RPC Result: {0}: {1}</source>
@@ -291,11 +301,6 @@
         <source>Error writing JSON RPC Message: {0}: {1}</source>
         <target state="translated">Chyba při zápisu zprávy JSON RPC: {0}: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
-      </trans-unit>
-      <trans-unit id="UsableOnceOnly">
-        <source>This method may only be called once and already has been.</source>
-        <target state="new">This method may only be called once and already has been.</target>
-        <note />
       </trans-unit>
     </body>
   </file>
