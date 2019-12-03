@@ -40,4 +40,10 @@
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json" Link="stylecop.json" />
   </ItemGroup>
+
+  <Target Name="PrepareReleaseNotes" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+    <PropertyGroup>
+      <PackageReleaseNotes>https://github.com/microsoft/vs-streamjsonrpc/releases/tag/v$(Version)</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
 </Project>
