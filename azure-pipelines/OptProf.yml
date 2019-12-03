@@ -5,7 +5,7 @@ schedules:
   displayName: Weekly OptProf run
   branches:
     include:
-    - v2.1
+    - v2.2
     - master
   always: true # we must keep data fresh since optimizationdata drops are purged after 30 days
 
@@ -25,6 +25,8 @@ variables:
   value: Release
 - name: BuildPlatform
   value: Any CPU
+- name: NUGET_PACKAGES
+  value: $(Agent.TempDirectory)/.nuget/packages
 - name: push_to_ci
   value: true
 - name: PublicRelease
