@@ -15,6 +15,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 [Trait("Category", "SkipWhenLiveUnitTesting")] // very slow test
+[Trait("FailsOnMono", "true")]
 public class PerfTests
 {
     private readonly ITestOutputHelper logger;
