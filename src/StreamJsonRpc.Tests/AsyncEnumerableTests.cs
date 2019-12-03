@@ -433,6 +433,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [SkippableFact]
     [Trait("GC", "")]
+    [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization_Helper();
@@ -441,6 +442,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [SkippableFact]
     [Trait("GC", "")]
+    [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ReleasedWhenIgnoredBySuccessfulRpcCall()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ReleasedWhenIgnoredBySuccessfulRpcCall_Helper();
@@ -449,6 +451,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [SkippableFact]
     [Trait("GC", "")]
+    [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ForciblyDisposedAndReleasedWhenNotDisposedWithinRpcCall()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ForciblyDisposedAndReleasedWhenNotDisposedWithinRpcCall_Helper();

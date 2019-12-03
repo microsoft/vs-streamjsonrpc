@@ -290,6 +290,7 @@ public abstract class JsonRpcTests : TestBase
     [SkippableFact]
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
+    [Trait("FailsOnMono", "true")]
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
         Skip.If(IsRunningUnderLiveUnitTest);
@@ -299,6 +300,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Trait("FailsOnMono", "true")]
     public async Task NotifyWithProgressParameter_NoMemoryLeakConfirm()
     {
         WeakReference weakRef = await this.NotifyAsyncWithProgressParameter_NoMemoryLeakConfirm_Helper();
