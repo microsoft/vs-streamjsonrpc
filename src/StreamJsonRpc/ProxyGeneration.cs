@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
+    using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
     internal static class ProxyGeneration
     {
@@ -398,9 +399,10 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldloc, local);
                 }
 
-                Type proxyEnumerableType = typeof(AsyncEnumerableProxy<>).MakeGenericType(method.ReturnType.GenericTypeArguments[0]);
-                ConstructorInfo ctor = proxyEnumerableType.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Single();
-                il.Emit(OpCodes.Newobj, ctor);
+#pragma warning disable CS0618
+                MethodInfo createProxyEnumerableMethod = typeof(CodeGenHelpers).GetMethod(nameof(CodeGenHelpers.CreateAsyncEnumerableProxy), BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]);
+#pragma warning restore CS0618
+                il.Emit(OpCodes.Call, createProxyEnumerableMethod);
             }
         }
 
@@ -607,7 +609,7 @@ namespace StreamJsonRpc
         /// A synthesized <see cref="IAsyncEnumerable{T}"/> that makes a promise for such a value look like the actual value.
         /// </summary>
         /// <typeparam name="T">The type of element produced by the enumerable.</typeparam>
-        private class AsyncEnumerableProxy<T> : IAsyncEnumerable<T>
+        internal class AsyncEnumerableProxy<T> : IAsyncEnumerable<T>
         {
             private readonly Task<IAsyncEnumerable<T>> enumerableTask;
             private readonly CancellationToken defaultCancellationToken;

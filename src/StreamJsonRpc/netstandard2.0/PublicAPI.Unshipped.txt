@@ -29,6 +29,7 @@ StreamJsonRpc.Protocol.JsonRpcRequest.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcRequest.RequestId.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcResult.RequestId.set -> void
+StreamJsonRpc.Reflection.CodeGenHelpers
 StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks
 StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.RequestTransmissionAborted -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcMessageEventArgs>
 StreamJsonRpc.Reflection.IJsonRpcFormatterCallbacks.ResponseReceived -> System.EventHandler<StreamJsonRpc.Reflection.JsonRpcResponseEventArgs>
@@ -81,6 +82,7 @@ static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collecti
 static StreamJsonRpc.JsonRpcExtensions.AsAsyncEnumerable<T>(this System.Collections.Generic.IEnumerable<T> enumerable, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<T>
 static StreamJsonRpc.JsonRpcExtensions.WithJsonRpcSettings<T>(this System.Collections.Generic.IAsyncEnumerable<T> enumerable, StreamJsonRpc.JsonRpcEnumerableSettings settings) -> System.Collections.Generic.IAsyncEnumerable<T>
 static StreamJsonRpc.JsonRpcExtensions.WithPrefetchAsync<T>(this System.Collections.Generic.IAsyncEnumerable<T> enumerable, int count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IAsyncEnumerable<T>>
+static StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy<T>(System.Threading.Tasks.Task<System.Collections.Generic.IAsyncEnumerable<T>> enumerableTask, System.Threading.CancellationToken defaultCancellationToken) -> System.Collections.Generic.IAsyncEnumerable<T>
 static StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CanDeserialize(System.Type objectType) -> bool
 static StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.CanSerialize(System.Type objectType) -> bool
 static StreamJsonRpc.RequestId.NotSpecified.get -> StreamJsonRpc.RequestId
