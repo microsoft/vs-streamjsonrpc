@@ -26,6 +26,10 @@ using Xunit.Abstractions;
 
 public abstract class JsonRpcTests : TestBase
 {
+#pragma warning disable SA1310 // Field names should not contain underscore
+    protected const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
+#pragma warning restore SA1310 // Field names should not contain underscore
+
     protected readonly Server server;
     protected Nerdbank.FullDuplexStream serverStream;
     protected JsonRpc serverRpc;
@@ -1635,6 +1639,17 @@ public abstract class JsonRpcTests : TestBase
     public async Task ReturnTypeThrowsOnDeserialization()
     {
         await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task CanPassExceptionFromServer_DeserializedErrorData()
+    {
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
+        Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
+
+        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.NotNull(errorData.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
     protected override void Dispose(bool disposing)

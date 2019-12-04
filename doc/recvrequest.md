@@ -24,7 +24,7 @@ RPC server methods may:
 
 **Important notes**:
 
-1. When an RPC-invoked server method throws an exception, StreamJsonRpc will handle the exception and (when applicable) send an error response to the client with a description of the failure.
+1. When an RPC-invoked server method throws an exception, StreamJsonRpc will handle the exception and (when applicable) send an error response to the client with a description of the failure. [Learn more about this and how to customize error handling behavior](exceptions.md).
 1. RPC servers may be invoked multiple times concurrently to keep up with incoming client requests.
 
 [Learn more about writing resilient servers](resiliency.md).

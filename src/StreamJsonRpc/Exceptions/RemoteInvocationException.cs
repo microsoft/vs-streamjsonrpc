@@ -71,7 +71,8 @@ namespace StreamJsonRpc
         /// <remarks>
         /// Depending on the <see cref="IJsonRpcMessageFormatter"/> used, the value of this property, if any,
         /// may be a <see cref="JToken"/> or a deserialized object.
-        /// Deserializing this or casting this object to <see cref="CommonErrorData"/> <em>may</em> succeed, and be a means to extract useful error information.
+        /// If a deserialized object, the type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
+        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
         /// </remarks>
         public object? ErrorData { get; }
 
