@@ -4,6 +4,8 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.IO;
+    using System.Text;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
@@ -83,5 +85,55 @@ namespace StreamJsonRpc
         /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
         /// </remarks>
         public object? DeserializedErrorData { get; }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            string result = base.ToString();
+
+            if (this.DeserializedErrorData is CommonErrorData errorData)
+            {
+                var builder = new StringBuilder(result);
+                builder.AppendLine();
+                builder.AppendLine("RPC server exception:");
+                builder.AppendLine($"{errorData.TypeName}: {errorData.Message}");
+                if (errorData.Inner is object)
+                {
+                    ContributeInnerExceptionDetails(builder, errorData.Inner);
+                }
+
+                ContributeStackTrace(builder, errorData);
+                result = builder.ToString();
+            }
+
+            return result;
+        }
+
+        private static void ContributeInnerExceptionDetails(StringBuilder builder, CommonErrorData errorData)
+        {
+            builder.AppendLine($" ---> {errorData.TypeName}: {errorData.Message}");
+            if (errorData.Inner is object)
+            {
+                ContributeInnerExceptionDetails(builder, errorData.Inner);
+            }
+
+            ContributeStackTrace(builder, errorData);
+
+            builder.AppendLine("   --- End of inner exception stack trace ---");
+        }
+
+        private static void ContributeStackTrace(StringBuilder builder, CommonErrorData errorData)
+        {
+            if (errorData.StackTrace != null)
+            {
+                using (var sr = new StringReader(errorData.StackTrace))
+                {
+                    while (sr.ReadLine() is string line)
+                    {
+                        builder.AppendLine($"   {line}");
+                    }
+                }
+            }
+        }
     }
 }

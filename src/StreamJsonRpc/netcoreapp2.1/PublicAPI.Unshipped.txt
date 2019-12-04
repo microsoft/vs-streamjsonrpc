@@ -72,6 +72,7 @@ const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.TokenPropertyNa
 const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.ValuesPropertyName = "values" -> string
 override StreamJsonRpc.PipeMessageHandler.DisposeReader() -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeWriter() -> void
+override StreamJsonRpc.RemoteInvocationException.ToString() -> string
 override StreamJsonRpc.RemoteMethodNotFoundException.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
 override StreamJsonRpc.RequestId.Equals(object obj) -> bool
 override StreamJsonRpc.RequestId.GetHashCode() -> int
