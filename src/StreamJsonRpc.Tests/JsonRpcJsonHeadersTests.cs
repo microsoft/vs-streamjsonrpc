@@ -170,19 +170,14 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task CanPassExceptionFromServer()
+    public async Task CanPassExceptionFromServer_ErrorData()
     {
-#pragma warning disable SA1139 // Use literal suffix notation instead of casting
-        const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
-#pragma warning restore SA1139 // Use literal suffix notation instead of casting
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
 
-        var errorData = ((JToken?)exception.ErrorData)!.ToObject<CommonErrorData>();
-        Assert.NotNull(errorData.StackTrace);
-        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
-
-        errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        var errorDataJToken = (JToken?)exception.ErrorData;
+        Assert.NotNull(errorDataJToken);
+        var errorData = errorDataJToken!.ToObject<CommonErrorData>();
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }

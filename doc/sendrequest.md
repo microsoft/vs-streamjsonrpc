@@ -162,3 +162,10 @@ Terminating the connection is done by calling the proxy's `IDisposable.Dispose()
 ```
 
 [Learn more about dynamically generated proxies](dynamicproxy.md).
+
+## Exception handling
+
+RPC methods may throw exceptions.
+The RPC client should be prepared to handle these exceptions.
+
+[Learn more about throwing and handling exceptions](exceptions.md).
