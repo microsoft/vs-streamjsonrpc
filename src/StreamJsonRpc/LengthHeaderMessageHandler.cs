@@ -3,18 +3,15 @@
 
 namespace StreamJsonRpc
 {
-    using System;
     using System.Buffers;
-    using System.Collections.Generic;
     using System.IO;
     using System.IO.Pipelines;
-    using System.Runtime.InteropServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
     using Nerdbank.Streams;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// A minimal header for each message that simply declares content length.
@@ -30,9 +27,9 @@ namespace StreamJsonRpc
         private readonly IJsonRpcMessageFormatter formatter;
 
         /// <summary>
-        /// A wrapper to use for the <see cref="PipeMessageHandler.Writer"/> when we need to count bytes written.
+        /// The <see cref="IBufferWriter{T}"/> sent to the <see cref="formatter"/> to write the message.
         /// </summary>
-        private PrefixingBufferWriter<byte>? prefixingWriter;
+        private readonly Sequence<byte> contentSequenceBuilder = new Sequence<byte>(ArrayPool<byte>.Shared);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LengthHeaderMessageHandler"/> class.
@@ -94,17 +91,29 @@ namespace StreamJsonRpc
         {
             Assumes.NotNull(this.Writer);
 
-            if (this.prefixingWriter == null)
+            try
             {
-                this.prefixingWriter = new PrefixingBufferWriter<byte>(this.Writer, sizeof(int));
+                // Write out the actual message content.
+                this.formatter.Serialize(this.contentSequenceBuilder, content);
+                ReadOnlySequence<byte> contentSequence = this.contentSequenceBuilder.AsReadOnlySequence;
+
+                // Some formatters (e.g. MessagePackFormatter) needs the encoded form in order to produce JSON for tracing.
+                // Other formatters (e.g. JsonMessageFormatter) would prefer to do its own tracing while it still has a JToken.
+                // We only help the formatters that need the byte-encoded form here. The rest can do it themselves.
+                if (this.Formatter is IJsonRpcFormatterTracingCallbacks tracer)
+                {
+                    tracer.OnSerializationComplete(content, contentSequence);
+                }
+
+                // Now go back and fill in the header with the actual content length.
+                Utilities.Write(this.Writer.GetSpan(sizeof(int)), checked((int)contentSequence.Length));
+                this.Writer.Advance(sizeof(int));
+                contentSequence.CopyTo(this.Writer);
             }
-
-            // Write out the actual message content, counting all written bytes.
-            this.formatter.Serialize(this.prefixingWriter, content);
-
-            // Now go back and fill in the header with the actual content length.
-            Utilities.Write(this.prefixingWriter.Prefix.Span, checked((int)this.prefixingWriter.Length));
-            this.prefixingWriter.Commit();
+            finally
+            {
+                this.contentSequenceBuilder.Reset();
+            }
         }
     }
 }

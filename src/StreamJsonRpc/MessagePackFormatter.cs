@@ -29,7 +29,7 @@ namespace StreamJsonRpc
     /// The README on that project site describes use cases and its performance compared to alternative
     /// .NET MessagePack implementations and this one appears to be the best by far.
     /// </remarks>
-    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IDisposable
+    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcFormatterTracingCallbacks, IDisposable
     {
         /// <summary>
         /// The constant "jsonrpc".
@@ -217,7 +217,15 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
+        public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
+        {
+            JsonRpcMessage message = MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
+
+            IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+            tracingCallbacks?.OnMessageDeserialized(message, new ToStringHelper(contentBuffer, this.messageSerializationOptions));
+
+            return message;
+        }
 
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
@@ -235,7 +243,13 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : MessagePackSerializer.SerializeToJson(message, this.messageSerializationOptions);
+        public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : throw new NotSupportedException();
+
+        void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
+        {
+            IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+            tracingCallbacks?.OnMessageSerialized(message, new ToStringHelper(encodedMessage, this.messageSerializationOptions));
+        }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -422,6 +436,20 @@ namespace StreamJsonRpc
                     writer.WriteRaw(this.rawSequence);
                 }
             }
+        }
+
+        private class ToStringHelper
+        {
+            private readonly ReadOnlySequence<byte> encodedMessage;
+            private readonly MessagePackSerializerOptions options;
+
+            internal ToStringHelper(ReadOnlySequence<byte> encodedMessage, MessagePackSerializerOptions options)
+            {
+                this.encodedMessage = encodedMessage;
+                this.options = options;
+            }
+
+            public override string ToString() => MessagePackSerializer.ConvertToJson(this.encodedMessage, this.options);
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>

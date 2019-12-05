@@ -3,8 +3,10 @@
 
 namespace StreamJsonRpc
 {
+    using System;
     using System.Buffers;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// An interface that offers <see cref="JsonRpcMessage"/> serialization to and from a sequence of bytes.
@@ -30,6 +32,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="message">The message to be traced.</param>
         /// <returns>Any object whose <see cref="object.ToString()"/> method will produce a human-readable JSON string, suitable for tracing.</returns>
+        [Obsolete("Tracing is now done via the " + nameof(IJsonRpcTracingCallbacks) + " and " + nameof(IJsonRpcFormatterTracingCallbacks) + " interfaces. Formatters may throw NotSupportedException from this method.")]
         object GetJsonText(JsonRpcMessage message);
     }
 }
