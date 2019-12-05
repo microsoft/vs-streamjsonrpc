@@ -234,15 +234,13 @@ namespace StreamJsonRpc
         {
             set
             {
+                Requires.NotNull(value, nameof(value));
                 Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
                 this.rpc = value;
 
-                if (value != null)
-                {
-                    this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
-                    this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
-                    this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
-                }
+                this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
+                this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
+                this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
             }
         }
 
@@ -300,7 +298,12 @@ namespace StreamJsonRpc
             Requires.NotNull(encoding, nameof(encoding));
 
             JToken json = this.ReadJToken(contentBuffer, encoding);
-            return this.Deserialize(json);
+            JsonRpcMessage message = this.Deserialize(json);
+
+            IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+            tracingCallbacks?.OnMessageDeserialized(message, json);
+
+            return message;
         }
 
         /// <inheritdoc/>
@@ -313,7 +316,12 @@ namespace StreamJsonRpc
             {
                 this.ConfigureJsonTextReader(jsonReader);
                 JToken json = await JToken.ReadFromAsync(jsonReader, cancellationToken).ConfigureAwait(false);
-                return this.Deserialize(json);
+                JsonRpcMessage message = this.Deserialize(json);
+
+                IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+                tracingCallbacks?.OnMessageDeserialized(message, json);
+
+                return message;
             }
         }
 
@@ -324,6 +332,9 @@ namespace StreamJsonRpc
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
             JToken json = this.Serialize(message);
+
+            IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+            tracingCallbacks?.OnMessageSerialized(message, json);
 
             this.WriteJToken(contentBuffer, json);
         }
@@ -407,7 +418,7 @@ namespace StreamJsonRpc
         /// mutates the <see cref="JsonRpcMessage"/> itself by tokenizing arguments as if we were going to transmit them
         /// which BREAKS argument parsing for incoming named argument messages such as $/cancelRequest.
         /// </devremarks>
-        public object GetJsonText(JsonRpcMessage message) => JToken.FromObject(message);
+        public object GetJsonText(JsonRpcMessage message) => throw new NotSupportedException();
 
         /// <inheritdoc/>
         public void Dispose()

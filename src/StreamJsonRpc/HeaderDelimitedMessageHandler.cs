@@ -17,9 +17,8 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Nerdbank.Streams;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Adds headers before each text message transmitted over a stream.
@@ -209,6 +208,15 @@ namespace StreamJsonRpc
             {
                 this.Formatter.Serialize(this.contentSequenceBuilder, content);
                 ReadOnlySequence<byte> contentSequence = this.contentSequenceBuilder.AsReadOnlySequence;
+
+                // Some formatters (e.g. MessagePackFormatter) needs the encoded form in order to produce JSON for tracing.
+                // Other formatters (e.g. JsonMessageFormatter) would prefer to do its own tracing while it still has a JToken.
+                // We only help the formatters that need the byte-encoded form here. The rest can do it themselves.
+                if (this.Formatter is IJsonRpcFormatterTracingCallbacks tracer)
+                {
+                    tracer.OnSerializationComplete(content, this.contentSequenceBuilder);
+                }
+
                 Memory<byte> headerMemory = this.Writer.GetMemory(1024);
                 int bytesWritten = 0;
 

@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Collections.ObjectModel;
@@ -24,7 +25,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
     /// </summary>
-    public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks
+    public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private const string CancelRequestSpecialMethod = "$/cancelRequest";
@@ -1111,6 +1112,32 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, CancellationToken.None, isParameterObject: true);
         }
 
+        void IJsonRpcTracingCallbacks.OnMessageSerialized(JsonRpcMessage message, object encodedMessage)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageSent, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", encodedMessage);
+            }
+        }
+
+        void IJsonRpcTracingCallbacks.OnMessageDeserialized(JsonRpcMessage message, object encodedMessage)
+        {
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageReceived, message);
+            }
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", encodedMessage);
+            }
+        }
+
         /// <summary>
         /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
@@ -2124,8 +2151,6 @@ namespace StreamJsonRpc
                             this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.ReachedEndOfStream, DisconnectedReason.RemotePartyTerminated));
                             return;
                         }
-
-                        this.TraceMessageReceived(protocolMessage);
                     }
                     catch (OperationCanceledException)
                     {
@@ -2384,49 +2409,10 @@ namespace StreamJsonRpc
             }
         }
 
-        private void TraceMessageSent(JsonRpcMessage message)
-        {
-            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-            {
-                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageSent, message);
-            }
-
-            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
-            {
-                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageSent, "Sent: {0}", this.GetMessageJson(message));
-            }
-        }
-
-        private void TraceMessageReceived(JsonRpcMessage message)
-        {
-            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-            {
-                this.TraceSource.TraceData(TraceEventType.Information, (int)TraceEvents.MessageReceived, message);
-            }
-
-            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
-            {
-                this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", this.GetMessageJson(message));
-            }
-        }
-
-        private object GetMessageJson(JsonRpcMessage message)
-        {
-            try
-            {
-                return this.MessageHandler.Formatter.GetJsonText(message);
-            }
-            catch (Exception ex)
-            {
-                return $"<JSON representation not available: {ex.Message}>";
-            }
-        }
-
         private async ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
         {
             try
             {
-                this.TraceMessageSent(message);
                 bool etwEnabled = JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None);
                 if (etwEnabled)
                 {

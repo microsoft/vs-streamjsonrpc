@@ -58,5 +58,21 @@ namespace StreamJsonRpc
             buffer[2] = (byte)(value >> 8);
             buffer[3] = (byte)value;
         }
+
+        /// <summary>
+        /// Copies a <see cref="ReadOnlySequence{T}"/> to an <see cref="IBufferWriter{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of element to copy.</typeparam>
+        /// <param name="sequence">The sequence to read from.</param>
+        /// <param name="writer">The target to write to.</param>
+        internal static void CopyTo<T>(this in ReadOnlySequence<T> sequence, IBufferWriter<T> writer)
+        {
+            Requires.NotNull(writer, nameof(writer));
+
+            foreach (ReadOnlyMemory<T> segment in sequence)
+            {
+                writer.Write(segment.Span);
+            }
+        }
     }
 }

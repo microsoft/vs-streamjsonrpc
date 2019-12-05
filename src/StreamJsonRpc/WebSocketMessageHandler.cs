@@ -5,17 +5,14 @@ namespace StreamJsonRpc
 {
     using System;
     using System.Buffers;
-    using System.IO;
     using System.Net.WebSockets;
     using System.Runtime.InteropServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
     using Nerdbank.Streams;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// A message handler for the <see cref="JsonRpc"/> class
@@ -122,6 +119,15 @@ namespace StreamJsonRpc
                 WebSocketMessageType messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
                 this.Formatter.Serialize(contentSequenceBuilder, content);
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // Some formatters (e.g. MessagePackFormatter) needs the encoded form in order to produce JSON for tracing.
+                // Other formatters (e.g. JsonMessageFormatter) would prefer to do its own tracing while it still has a JToken.
+                // We only help the formatters that need the byte-encoded form here. The rest can do it themselves.
+                if (this.Formatter is IJsonRpcFormatterTracingCallbacks tracer)
+                {
+                    tracer.OnSerializationComplete(content, contentSequenceBuilder);
+                }
+
                 int bytesCopied = 0;
                 ReadOnlySequence<byte> contentSequence = contentSequenceBuilder.AsReadOnlySequence;
                 foreach (ReadOnlyMemory<byte> memory in contentSequence)

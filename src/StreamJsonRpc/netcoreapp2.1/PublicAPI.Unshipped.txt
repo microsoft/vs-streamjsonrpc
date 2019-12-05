@@ -38,8 +38,13 @@ StreamJsonRpc.Reflection.IJsonRpcFormatterState
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.DeserializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Reflection.IJsonRpcFormatterState.SerializingRequest.get -> bool
+StreamJsonRpc.Reflection.IJsonRpcFormatterTracingCallbacks
+StreamJsonRpc.Reflection.IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message, System.Buffers.ReadOnlySequence<byte> encodedMessage) -> void
 StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager
 StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager.DeserializationComplete(StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
+StreamJsonRpc.Reflection.IJsonRpcTracingCallbacks
+StreamJsonRpc.Reflection.IJsonRpcTracingCallbacks.OnMessageDeserialized(StreamJsonRpc.Protocol.JsonRpcMessage message, object encodedMessage) -> void
+StreamJsonRpc.Reflection.IJsonRpcTracingCallbacks.OnMessageSerialized(StreamJsonRpc.Protocol.JsonRpcMessage message, object encodedMessage) -> void
 StreamJsonRpc.Reflection.JsonRpcMessageEventArgs
 StreamJsonRpc.Reflection.JsonRpcMessageEventArgs.JsonRpcMessageEventArgs(StreamJsonRpc.RequestId requestId) -> void
 StreamJsonRpc.Reflection.JsonRpcMessageEventArgs.RequestId.get -> StreamJsonRpc.RequestId
