@@ -274,7 +274,9 @@ namespace StreamJsonRpc
         /// <summary>
         /// Disposes this instance, and cancels any pending read or write operations.
         /// </summary>
-        private protected virtual async Task DisposeAsync()
+#pragma warning disable SA1202 // Elements should be ordered by access - keep change minimal for v2.2 servicing.
+        internal virtual async Task DisposeAsync()
+#pragma warning restore SA1202 // Elements should be ordered by access
         {
             if (!this.disposalTokenSource.IsCancellationRequested)
             {
