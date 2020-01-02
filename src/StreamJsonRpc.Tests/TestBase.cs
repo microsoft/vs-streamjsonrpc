@@ -3,7 +3,9 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
@@ -64,6 +66,15 @@ public abstract class TestBase : IDisposable
         }
 
         return resultTcs.Task;
+    }
+
+    protected static T BinaryFormatterRoundtrip<T>(T original)
+    {
+        var bf = new BinaryFormatter();
+        var ms = new MemoryStream();
+        bf.Serialize(ms, original);
+        ms.Position = 0;
+        return (T)bf.Deserialize(ms);
     }
 
     protected virtual void Dispose(bool disposing)

@@ -144,6 +144,7 @@ namespace StreamJsonRpc.Protocol
         /// The length of this span must equal the length of <paramref name="parameters"/>.
         /// </param>
         /// <returns><c>true</c> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <c>false</c> otherwise.</returns>
+        /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
         public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
         {
             Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
@@ -205,6 +206,7 @@ namespace StreamJsonRpc.Protocol
         /// A derived-type may override this method in order to consider the <paramref name="typeHint"/>
         /// and deserialize the required argument on-demand such that it can satisfy the type requirement.
         /// </remarks>
+        /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
         public virtual bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
             if (this.NamedArguments != null && name != null)

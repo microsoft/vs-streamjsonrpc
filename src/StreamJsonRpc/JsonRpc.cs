@@ -1543,15 +1543,15 @@ namespace StreamJsonRpc
             Requires.NotNull(response, nameof(response));
 
             Assumes.NotNull(response.Error);
+            Type? dataType = this.GetErrorDetailsDataType(response);
+            object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
             switch (response.Error.Code)
             {
                 case JsonRpcErrorCode.InvalidParams:
                 case JsonRpcErrorCode.MethodNotFound:
-                    return new RemoteMethodNotFoundException(response.Error.Message, targetName);
+                    return new RemoteMethodNotFoundException(response.Error.Message, targetName, response.Error.Code, response.Error.Data, deserializedData);
 
                 default:
-                    Type? dataType = this.GetErrorDetailsDataType(response);
-                    object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
                     return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
             }
         }
@@ -1928,6 +1928,7 @@ namespace StreamJsonRpc
                             {
                                 Code = JsonRpcErrorCode.InvalidParams,
                                 Message = targetMethod.LookupErrorMessage,
+                                Data = targetMethod.ArgumentDeserializationFailures is object ? new CommonErrorData(targetMethod.ArgumentDeserializationFailures) : null,
                             },
                         };
                     }

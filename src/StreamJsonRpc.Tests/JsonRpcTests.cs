@@ -1644,7 +1644,11 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task MethodArgThrowsOnDeserialization()
     {
-        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithArgThatFailsToDeserialize), new object[] { new TypeThrowsWhenDeserialized() }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+        var ex = await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithArgThatFailsToDeserialize), new object[] { new TypeThrowsWhenDeserialized() }, this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        var expectedErrorMessage = CreateExceptionToBeThrownByDeserializer().Message;
+        Assert.Equal(JsonRpcErrorCode.InvalidParams, ex.ErrorCode);
+        var data = Assert.IsType<CommonErrorData>(ex.DeserializedErrorData);
+        Assert.Contains(FlattenCommonErrorData(data), d => d.Message?.Contains(expectedErrorMessage) ?? false);
     }
 
     [Fact]
@@ -1657,6 +1661,8 @@ public abstract class JsonRpcTests : TestBase
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
+
+    protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
     {
@@ -1696,6 +1702,15 @@ public abstract class JsonRpcTests : TestBase
         string header = $"Content-Length: {json.Length}\r\n\r\n";
         byte[] buffer = Encoding.ASCII.GetBytes(header + json);
         receivingStream.Write(buffer, 0, buffer.Length);
+    }
+
+    private static IEnumerable<CommonErrorData> FlattenCommonErrorData(CommonErrorData? errorData)
+    {
+        while (errorData is object)
+        {
+            yield return errorData;
+            errorData = errorData.Inner;
+        }
     }
 
     private void ReinitializeRpcWithoutListening()

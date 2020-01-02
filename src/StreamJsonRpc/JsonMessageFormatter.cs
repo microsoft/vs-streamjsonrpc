@@ -745,7 +745,7 @@ namespace StreamJsonRpc
                             this.formatter.rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
                         }
 
-                        return false;
+                        throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
                     }
                 }
 
