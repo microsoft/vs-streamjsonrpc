@@ -59,7 +59,7 @@ public class CommonErrorDataTests : TestBase
 
         Assert.Equal(template.GetType().FullName, errorData.TypeName);
         Assert.Equal(template.Message, errorData.Message);
-        Assert.Equal(template.InnerException.GetType().FullName, errorData.Inner?.TypeName);
+        Assert.Equal(template.InnerException!.GetType().FullName, errorData.Inner?.TypeName);
         Assert.Equal(template.InnerException.Message, errorData.Inner?.Message);
     }
 

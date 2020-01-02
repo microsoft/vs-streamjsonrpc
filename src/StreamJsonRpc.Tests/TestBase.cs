@@ -60,7 +60,7 @@ public abstract class TestBase : IDisposable
         Task.WhenAll(tasks).ApplyResultTo(resultTcs);
         foreach (Task task in tasks)
         {
-            task.ContinueWith((failedTask, state) => ((TaskCompletionSource<object>)state).TrySetException(failedTask.Exception), resultTcs, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default).Forget();
+            task.ContinueWith((failedTask, state) => ((TaskCompletionSource<object>)state!).TrySetException(failedTask.Exception!), resultTcs, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default).Forget();
         }
 
         return resultTcs.Task;
