@@ -145,7 +145,7 @@ public class WebSocketMessageHandlerTests : TestBase
         var msg = this.CreateMessage(BufferSize - 1);
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
-        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
+        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array!, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
         Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
@@ -157,7 +157,7 @@ public class WebSocketMessageHandlerTests : TestBase
         var msg = this.CreateMessage(BufferSize);
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
-        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
+        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array!, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
         Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
@@ -169,7 +169,7 @@ public class WebSocketMessageHandlerTests : TestBase
         var msg = this.CreateMessage((int)(BufferSize * 2.5));
         await this.handler.WriteAsync(msg, this.TimeoutToken);
         var writtenBuffer = this.socket.WrittenQueue.Dequeue();
-        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
+        string writtenString = encoding.GetString(writtenBuffer.Buffer.Array!, writtenBuffer.Buffer.Offset, writtenBuffer.Buffer.Count);
         Assert.Equal(this.formatter.Serialize(msg).ToString(Formatting.None), writtenString);
     }
 
@@ -293,7 +293,7 @@ public class WebSocketMessageHandlerTests : TestBase
         {
             var input = this.ReadQueue.Peek();
             int bytesToCopy = Math.Min(input.Buffer.Count, output.Count);
-            Buffer.BlockCopy(input.Buffer.Array, input.Buffer.Offset, output.Array, output.Offset, bytesToCopy);
+            Buffer.BlockCopy(input.Buffer.Array!, input.Buffer.Offset, output.Array!, output.Offset, bytesToCopy);
             bool finishedMessage = bytesToCopy == input.Buffer.Count;
             if (finishedMessage)
             {
@@ -301,7 +301,7 @@ public class WebSocketMessageHandlerTests : TestBase
             }
             else
             {
-                input.Buffer = new ArraySegment<byte>(input.Buffer.Array, input.Buffer.Offset + bytesToCopy, input.Buffer.Count - bytesToCopy);
+                input.Buffer = new ArraySegment<byte>(input.Buffer.Array!, input.Buffer.Offset + bytesToCopy, input.Buffer.Count - bytesToCopy);
             }
 
             var result = new WebSocketReceiveResult(
@@ -318,14 +318,14 @@ public class WebSocketMessageHandlerTests : TestBase
             if (this.writingInProgress == null)
             {
                 var bufferCopy = new byte[input.Count];
-                Buffer.BlockCopy(input.Array, input.Offset, bufferCopy, 0, input.Count);
+                Buffer.BlockCopy(input.Array!, input.Offset, bufferCopy, 0, input.Count);
                 this.writingInProgress = new Message { Buffer = new ArraySegment<byte>(bufferCopy) };
             }
             else
             {
-                var bufferCopy = this.writingInProgress.Buffer.Array;
+                byte[] bufferCopy = this.writingInProgress.Buffer.Array!;
                 Array.Resize(ref bufferCopy, bufferCopy.Length + input.Count);
-                Buffer.BlockCopy(input.Array, input.Offset, bufferCopy, this.writingInProgress.Buffer.Count, input.Count);
+                Buffer.BlockCopy(input.Array!, input.Offset, bufferCopy, this.writingInProgress.Buffer.Count, input.Count);
                 this.writingInProgress.Buffer = new ArraySegment<byte>(bufferCopy);
             }
 

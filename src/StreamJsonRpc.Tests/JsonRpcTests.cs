@@ -321,7 +321,7 @@ public abstract class JsonRpcTests : TestBase
 
         // Subscribe to disconnected event
         object? disconnectedEventSender = null;
-        this.serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
+        this.serverRpc.Disconnected += (object? sender, JsonRpcDisconnectedEventArgs e) =>
         {
             disconnectedEventSender = sender;
             disconnectedEventFired.SetResult(e);
@@ -344,7 +344,7 @@ public abstract class JsonRpcTests : TestBase
 
         // Confirm that an event handler added after disconnection also gets raised.
         disconnectedEventFired = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
-        this.serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
+        this.serverRpc.Disconnected += (object? sender, JsonRpcDisconnectedEventArgs e) =>
         {
             disconnectedEventSender = sender;
             disconnectedEventFired.SetResult(e);
@@ -2272,12 +2272,12 @@ public abstract class JsonRpcTests : TestBase
         /// </summary>
         internal bool RunningInContext => this.runningInContext.Value > 0;
 
-        public override void Send(SendOrPostCallback d, object state)
+        public override void Send(SendOrPostCallback d, object? state)
         {
             throw new NotImplementedException();
         }
 
-        public override void Post(SendOrPostCallback d, object state)
+        public override void Post(SendOrPostCallback d, object? state)
         {
             Task.Run(() =>
             {
@@ -2304,7 +2304,7 @@ public abstract class JsonRpcTests : TestBase
 
         internal long PostCalls => Interlocked.Read(ref this.postCalls);
 
-        public override void Post(SendOrPostCallback d, object state)
+        public override void Post(SendOrPostCallback d, object? state)
         {
             Interlocked.Increment(ref this.postCalls);
             this.PostInvoked.Set();

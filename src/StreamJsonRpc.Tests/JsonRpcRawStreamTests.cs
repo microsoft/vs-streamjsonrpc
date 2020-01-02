@@ -42,7 +42,7 @@ public class JsonRpcRawStreamTests : TestBase
             // Subscribe to disconnected event on json rpc
             var disconnectedEventFired = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
             object? disconnectedEventSender = null;
-            serverRpc.Disconnected += (object sender, JsonRpcDisconnectedEventArgs e) =>
+            serverRpc.Disconnected += (object? sender, JsonRpcDisconnectedEventArgs e) =>
             {
                 // The stream must not be disposed when the Disconnected even fires
                 Assert.True(serverStream.IsConnected);

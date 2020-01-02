@@ -8,7 +8,7 @@ internal class RpcOrderPreservingSynchronizationContext : SynchronizationContext
     /// <summary>
     /// The queue of work to execute.
     /// </summary>
-    private readonly AsyncQueue<(SendOrPostCallback, object)> queue = new AsyncQueue<(SendOrPostCallback, object)>();
+    private readonly AsyncQueue<(SendOrPostCallback, object?)> queue = new AsyncQueue<(SendOrPostCallback, object?)>();
 
     private AsyncManualResetEvent postQueueFilled = new AsyncManualResetEvent(false);
 
@@ -33,7 +33,7 @@ internal class RpcOrderPreservingSynchronizationContext : SynchronizationContext
     }
 
     /// <inheritdoc />
-    public override void Post(SendOrPostCallback d, object state)
+    public override void Post(SendOrPostCallback d, object? state)
     {
         this.queue.Enqueue((d, state));
 
@@ -49,7 +49,7 @@ internal class RpcOrderPreservingSynchronizationContext : SynchronizationContext
     /// </summary>
     /// <param name="d">The delegate to invoke.</param>
     /// <param name="state">State to pass to the delegate.</param>
-    public override void Send(SendOrPostCallback d, object state) => throw new NotSupportedException();
+    public override void Send(SendOrPostCallback d, object? state) => throw new NotSupportedException();
 
     /// <summary>
     /// Throws <see cref="NotSupportedException"/>.

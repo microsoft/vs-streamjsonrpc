@@ -42,7 +42,7 @@ public class MessageHeaderTests : TestBase
         MemoryStream seekableServerStream = await this.GetSeekableServerStream();
         var sr = new StreamReader(seekableServerStream, Encoding.ASCII, false);
         var headers = new Dictionary<string, string>();
-        string header;
+        string? header;
         var headerRegEx = new Regex("(.+?): (.+)");
         int bytesRead = 0;
         while ((header = sr.ReadLine())?.Length > 0)

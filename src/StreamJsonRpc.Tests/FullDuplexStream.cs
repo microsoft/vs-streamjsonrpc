@@ -122,8 +122,8 @@
                     if (cancellationToken.CanBeCanceled)
                     {
                         // Arrange to wake up when a new message is posted, or when the caller's CancellationToken is canceled.
-                        var wakeUpEarly = new TaskCompletionSource<object>();
-                        using (cancellationToken.Register(state => ((TaskCompletionSource<object?>)state).SetResult(null), wakeUpEarly, false))
+                        var wakeUpEarly = new TaskCompletionSource<object?>();
+                        using (cancellationToken.Register(state => ((TaskCompletionSource<object?>)state!).SetResult(null), wakeUpEarly, false))
                         {
                             await Task.WhenAny(waitTask, wakeUpEarly.Task).ConfigureAwait(false);
                         }
