@@ -373,6 +373,16 @@ namespace StreamJsonRpc
             /// An exception occurred when reading the $/progress notification.
             /// </summary>
             ProgressNotificationError,
+
+            /// <summary>
+            /// An incoming RPC call included an argument that failed to deserialize to the type on a candidate target method's proposed matching parameter.
+            /// </summary>
+            /// <remarks>
+            /// This may not represent a fatal error. When there are multiple overloads to choose from,
+            /// choosing the overload to invoke involves attempts to deserialize arguments to the types dictated by each overload's parameters.
+            /// Thus a failure recorded in this event may be followed by a successful deserialization to another parameter type and invocation of a different overload.
+            /// </remarks>
+            MethodArgumentDeserializationFailure,
         }
 
         /// <summary>

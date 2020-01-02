@@ -32,6 +32,11 @@
         <target state="translated">Error al deserializar '{0}' de JSON RPC entrante: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON RPC, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="FailureDeserializingRpcArgument">
+        <source>Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</source>
+        <target state="new">Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</target>
+        <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
+      </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
         <target state="translated">No se puede convertir el tipo dado en IProgress&lt;T&gt;</target>

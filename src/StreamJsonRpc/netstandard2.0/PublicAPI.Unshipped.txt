@@ -2,6 +2,7 @@ StreamJsonRpc.JsonRpc.AddLocalRpcMethod(System.Reflection.MethodInfo handler, ob
 StreamJsonRpc.JsonRpc.GetJsonRpcMethodAttribute(string methodName, System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters) -> StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpc.TraceEvents.MethodArgumentDeserializationFailure = 17 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpcEnumerableSettings
 StreamJsonRpc.JsonRpcEnumerableSettings.JsonRpcEnumerableSettings() -> void
 StreamJsonRpc.JsonRpcEnumerableSettings.MaxReadAhead.get -> int

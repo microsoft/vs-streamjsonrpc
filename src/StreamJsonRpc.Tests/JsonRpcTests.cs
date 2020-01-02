@@ -1642,6 +1642,12 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task MethodArgThrowsOnDeserialization()
+    {
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithArgThatFailsToDeserialize), new object[] { new TypeThrowsWhenDeserialized() }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task CanPassExceptionFromServer_DeserializedErrorData()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
@@ -1885,6 +1891,10 @@ public abstract class JsonRpcTests : TestBase
         }
 
         public TypeThrowsWhenDeserialized GetTypeThrowsWhenDeserialized() => new TypeThrowsWhenDeserialized();
+
+        public void MethodWithArgThatFailsToDeserialize(TypeThrowsWhenDeserialized arg1)
+        {
+        }
 
         public int? MethodReturnsNullableInt(int a) => a > 0 ? (int?)a : null;
 
