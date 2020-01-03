@@ -738,9 +738,14 @@ namespace StreamJsonRpc
 
                         return true;
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        return false;
+                        if (this.formatter.rpc?.TraceSource.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
+                        {
+                            this.formatter.rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
+                        }
+
+                        throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
                     }
                 }
 

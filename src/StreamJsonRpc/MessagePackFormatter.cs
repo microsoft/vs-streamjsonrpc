@@ -1329,11 +1329,6 @@ namespace StreamJsonRpc
                             typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
                             return ArgumentMatchResult.Success;
                         }
-                        catch (NotSupportedException)
-                        {
-                            // This block can be removed after https://github.com/neuecc/MessagePack-CSharp/pull/633 is applied.
-                            return ArgumentMatchResult.ParameterArgumentTypeMismatch;
-                        }
                         catch (MessagePackSerializationException)
                         {
                             return ArgumentMatchResult.ParameterArgumentTypeMismatch;
@@ -1375,10 +1370,14 @@ namespace StreamJsonRpc
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
                     return true;
                 }
-                catch (MessagePackSerializationException)
+                catch (MessagePackSerializationException ex)
                 {
-                    value = null;
-                    return false;
+                    if (this.formatter.rpc?.TraceSource.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
+                    {
+                        this.formatter.rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
+                    }
+
+                    throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
                 }
                 finally
                 {

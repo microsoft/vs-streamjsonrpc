@@ -86,7 +86,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     {
         public TypeThrowsWhenDeserialized Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
-            throw new Exception("This exception is meant to be thrown.");
+            throw CreateExceptionToBeThrownByDeserializer();
         }
 
         public void Serialize(ref MessagePackWriter writer, TypeThrowsWhenDeserialized value, MessagePackSerializerOptions options)

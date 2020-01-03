@@ -37,6 +37,7 @@ namespace StreamJsonRpc
             this.request = request;
 
             ArrayPool<object?> pool = ArrayPool<object?>.Shared;
+            List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
             foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
             {
                 int parameterCount = candidateMethod.Signature.Parameters.Length;
@@ -52,12 +53,28 @@ namespace StreamJsonRpc
                         break;
                     }
                 }
+                catch (RpcArgumentDeserializationException ex)
+                {
+                    argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
+                    argumentDeserializationExceptions.Add(ex);
+                    this.AddErrorMessage(ex.Message);
+                }
                 finally
                 {
                     pool.Return(argumentArray, clearArray: true);
                 }
             }
+
+            if (argumentDeserializationExceptions is object)
+            {
+                this.ArgumentDeserializationFailures = new AggregateException(argumentDeserializationExceptions);
+            }
         }
+
+        /// <summary>
+        /// Gets all the exceptions thrown while trying to deserialize arguments to candidate parameter types.
+        /// </summary>
+        internal AggregateException? ArgumentDeserializationFailures { get; }
 
         internal bool IsFound => this.signature != null;
 

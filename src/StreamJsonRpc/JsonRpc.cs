@@ -373,6 +373,16 @@ namespace StreamJsonRpc
             /// An exception occurred when reading the $/progress notification.
             /// </summary>
             ProgressNotificationError,
+
+            /// <summary>
+            /// An incoming RPC call included an argument that failed to deserialize to the type on a candidate target method's proposed matching parameter.
+            /// </summary>
+            /// <remarks>
+            /// This may not represent a fatal error. When there are multiple overloads to choose from,
+            /// choosing the overload to invoke involves attempts to deserialize arguments to the types dictated by each overload's parameters.
+            /// Thus a failure recorded in this event may be followed by a successful deserialization to another parameter type and invocation of a different overload.
+            /// </remarks>
+            MethodArgumentDeserializationFailure,
         }
 
         /// <summary>
@@ -1533,15 +1543,15 @@ namespace StreamJsonRpc
             Requires.NotNull(response, nameof(response));
 
             Assumes.NotNull(response.Error);
+            Type? dataType = this.GetErrorDetailsDataType(response);
+            object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
             switch (response.Error.Code)
             {
                 case JsonRpcErrorCode.InvalidParams:
                 case JsonRpcErrorCode.MethodNotFound:
-                    return new RemoteMethodNotFoundException(response.Error.Message, targetName);
+                    return new RemoteMethodNotFoundException(response.Error.Message, targetName, response.Error.Code, response.Error.Data, deserializedData);
 
                 default:
-                    Type? dataType = this.GetErrorDetailsDataType(response);
-                    object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
                     return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
             }
         }
@@ -1918,6 +1928,7 @@ namespace StreamJsonRpc
                             {
                                 Code = JsonRpcErrorCode.InvalidParams,
                                 Message = targetMethod.LookupErrorMessage,
+                                Data = targetMethod.ArgumentDeserializationFailures is object ? new CommonErrorData(targetMethod.ArgumentDeserializationFailures) : null,
                             },
                         };
                     }

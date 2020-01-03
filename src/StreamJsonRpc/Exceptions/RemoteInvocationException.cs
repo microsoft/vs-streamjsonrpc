@@ -5,6 +5,7 @@ namespace StreamJsonRpc
 {
     using System;
     using System.IO;
+    using System.Runtime.Serialization;
     using System.Text;
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
@@ -15,7 +16,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// The details of the target method exception can be found on the <see cref="ErrorCode"/> and <see cref="ErrorData"/> properties.
     /// </remarks>
-    [System.Serializable]
+    [Serializable]
     public class RemoteInvocationException : RemoteRpcException
     {
         /// <summary>
@@ -51,11 +52,10 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="info">Serialization info.</param>
         /// <param name="context">Streaming context.</param>
-        protected RemoteInvocationException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context)
+        protected RemoteInvocationException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
+            this.ErrorCode = info.GetInt32(nameof(this.ErrorCode));
         }
 
         /// <summary>
@@ -108,6 +108,13 @@ namespace StreamJsonRpc
             }
 
             return result;
+        }
+
+        /// <inheritdoc/>
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+            info.AddValue(nameof(this.ErrorCode), this.ErrorCode);
         }
 
         private static void ContributeInnerExceptionDetails(StringBuilder builder, CommonErrorData errorData)

@@ -178,6 +178,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deserializing JSON-RPC argument with name &quot;{0}&quot; and position {1} to type &quot;{2}&quot; failed: {3}.
+        /// </summary>
+        internal static string FailureDeserializingRpcArgument {
+            get {
+                return ResourceManager.GetString("FailureDeserializingRpcArgument", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A fatal exception was thrown from the server method {0}: {1}.
         /// </summary>
         internal static string FatalExceptionWasThrown {

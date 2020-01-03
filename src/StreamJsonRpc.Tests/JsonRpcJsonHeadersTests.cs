@@ -240,7 +240,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     {
         public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            throw new Exception("This exception is meant to be thrown.");
+            throw CreateExceptionToBeThrownByDeserializer();
         }
 
         public override void WriteJson(JsonWriter writer, TypeThrowsWhenDeserialized value, JsonSerializer serializer)
