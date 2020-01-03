@@ -7,7 +7,7 @@ steps:
     ShouldSkipOptimize: $(ShouldSkipOptimize)
   displayName: Install OptProf Plugin
 
-- task: MicroBuildSigningPlugin@1
+- task: MicroBuildSigningPlugin@2
   inputs:
     signType: $(SignType)
     zipSources: false
