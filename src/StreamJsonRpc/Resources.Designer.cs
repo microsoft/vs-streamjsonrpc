@@ -151,6 +151,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The value {0} is not among the recognized or supported members of the enum type..
+        /// </summary>
+        internal static string EnumValueNotRecognized {
+            get {
+                return ResourceManager.GetString("EnumValueNotRecognized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error writing JSON RPC Message: {0}: {1}.
         /// </summary>
         internal static string ErrorWritingJsonRpcMessage {

@@ -22,6 +22,16 @@ StreamJsonRpc.MessagePackFormatter.MultiplexingStream.get -> Nerdbank.Streams.Mu
 StreamJsonRpc.MessagePackFormatter.MultiplexingStream.set -> void
 StreamJsonRpc.MessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte> contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage message) -> void
 StreamJsonRpc.MessagePackFormatter.SetMessagePackSerializerOptions(MessagePack.MessagePackSerializerOptions options) -> void
+StreamJsonRpc.NewLineDelimitedMessageHandler
+StreamJsonRpc.NewLineDelimitedMessageHandler.Formatter.get -> StreamJsonRpc.IJsonRpcMessageTextFormatter
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLine.get -> StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLine.set -> void
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineDelimitedMessageHandler(System.IO.Pipelines.IDuplexPipe pipe, StreamJsonRpc.IJsonRpcMessageTextFormatter formatter) -> void
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineDelimitedMessageHandler(System.IO.Pipelines.PipeWriter writer, System.IO.Pipelines.PipeReader reader, StreamJsonRpc.IJsonRpcMessageTextFormatter formatter) -> void
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineDelimitedMessageHandler(System.IO.Stream writer, System.IO.Stream reader, StreamJsonRpc.IJsonRpcMessageTextFormatter formatter) -> void
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle.CrLf = 1 -> StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle
+StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle.Lf = 0 -> StreamJsonRpc.NewLineDelimitedMessageHandler.NewLineStyle
 StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData<T>() -> T
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.JsonRpcError.RequestId.set -> void
@@ -87,6 +97,8 @@ StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageExce
 StreamJsonRpc.UnrecognizedJsonRpcMessageException.UnrecognizedJsonRpcMessageException(string message, System.Exception innerException) -> void
 const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.TokenPropertyName = "token" -> string
 const StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.ValuesPropertyName = "values" -> string
+override StreamJsonRpc.NewLineDelimitedMessageHandler.ReadCoreAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage>
+override StreamJsonRpc.NewLineDelimitedMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage content, System.Threading.CancellationToken cancellationToken) -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeReader() -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeWriter() -> void
 override StreamJsonRpc.RemoteInvocationException.GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) -> void
