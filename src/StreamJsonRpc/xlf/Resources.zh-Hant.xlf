@@ -22,6 +22,11 @@
         <target state="new">This enumeration has already prefetched elements once.</target>
         <note />
       </trans-unit>
+      <trans-unit id="EnumValueNotRecognized">
+        <source>The value {0} is not among the recognized or supported members of the enum type.</source>
+        <target state="new">The value {0} is not among the recognized or supported members of the enum type.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
         <source>Error writing JSON RPC Result: {0}: {1}</source>
         <target state="translated">寫入 JSON RPC 結果時發生錯誤: {0}: {1}</target>
