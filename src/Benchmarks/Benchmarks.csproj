@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.2;net472</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net472</TargetFrameworks>
     <CodeAnalysisRuleSet>..\tests.ruleset</CodeAnalysisRuleSet>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>false</IsPackable>
