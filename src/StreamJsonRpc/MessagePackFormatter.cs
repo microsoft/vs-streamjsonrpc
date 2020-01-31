@@ -93,7 +93,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
         /// </summary>
-        private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard;
+        private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData);
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
@@ -107,6 +107,7 @@ namespace StreamJsonRpc
         {
             // Set up initial options for our own message types.
             this.messageSerializationOptions = MessagePackSerializerOptions.Standard
+                .WithSecurity(MessagePackSecurity.UntrustedData)
                 .WithResolver(this.CreateTopLevelMessageResolver());
 
             // Create the specialized formatters/resolvers that we will inject into the chain for user data.
@@ -208,7 +209,10 @@ namespace StreamJsonRpc
         /// <summary>
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
         /// </summary>
-        /// <param name="options">The options to use. Before this call, the options used come from <see cref="StandardResolverAllowPrivate.Options"/>.</param>
+        /// <param name="options">
+        /// The options to use. Before this call, the options used come from <see cref="MessagePackSerializerOptions.Standard"/>
+        /// modified to use the <see cref="MessagePackSecurity.UntrustedData"/> security setting.
+        /// </param>
         public void SetMessagePackSerializerOptions(MessagePackSerializerOptions options)
         {
             Requires.NotNull(options, nameof(options));
@@ -661,6 +665,7 @@ namespace StreamJsonRpc
                         return default;
                     }
 
+                    options.Security.DepthStep(ref reader);
                     RawMessagePack token = default;
                     IReadOnlyList<T>? initialElements = null;
                     int propertyCount = reader.ReadMapHeader();
@@ -677,6 +682,7 @@ namespace StreamJsonRpc
                         }
                     }
 
+                    reader.Depth--;
                     return this.mainFormatter.EnumerableTracker.CreateEnumerableProxy<T>(token.IsDefault ? null : (object)token, initialElements);
                 }
 
@@ -936,7 +942,7 @@ namespace StreamJsonRpc
 
             public JsonRpcMessage Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                MessagePackReader readAhead = reader;
+                MessagePackReader readAhead = reader.CreatePeekReader();
                 int propertyCount = readAhead.ReadMapHeader();
                 for (int i = 0; i < propertyCount; i++)
                 {
@@ -1010,6 +1016,7 @@ namespace StreamJsonRpc
                     OriginalMessagePack = reader.Sequence,
                 };
 
+                options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
@@ -1087,6 +1094,7 @@ namespace StreamJsonRpc
                     }
                 }
 
+                reader.Depth--;
                 return result;
             }
 
@@ -1145,6 +1153,7 @@ namespace StreamJsonRpc
                     OriginalMessagePack = reader.Sequence,
                 };
 
+                options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
@@ -1162,6 +1171,7 @@ namespace StreamJsonRpc
                     }
                 }
 
+                reader.Depth--;
                 return result;
             }
 
@@ -1196,6 +1206,7 @@ namespace StreamJsonRpc
                     OriginalMessagePack = reader.Sequence,
                 };
 
+                options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
                 {
@@ -1213,6 +1224,7 @@ namespace StreamJsonRpc
                     }
                 }
 
+                reader.Depth--;
                 return error;
             }
 
@@ -1247,6 +1259,7 @@ namespace StreamJsonRpc
             {
                 var result = new JsonRpcError.ErrorDetail(this.formatter.userDataSerializationOptions);
 
+                options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
                 {
@@ -1264,6 +1277,7 @@ namespace StreamJsonRpc
                     }
                 }
 
+                reader.Depth--;
                 return result;
             }
 

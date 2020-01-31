@@ -150,6 +150,9 @@
   <data name="ElementsAlreadyPrefetched" xml:space="preserve">
     <value>This enumeration has already prefetched elements once.</value>
   </data>
+  <data name="EnumValueNotRecognized" xml:space="preserve">
+    <value>The value {0} is not among the recognized or supported members of the enum type.</value>
+  </data>
   <data name="ErrorWritingJsonRpcMessage" xml:space="preserve">
     <value>Error writing JSON RPC Message: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>

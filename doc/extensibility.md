@@ -47,6 +47,9 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
 1. `LengthHeaderMessageHandler` - This prepends a big endian 32-bit integer to each message to describe the length
    of the message. This handler works with .NET `Stream` and the new pipelines API. This handler is the fastest
    handler for those transports.
+1. `NewLineDelimitedMessageHandler` - This appends each JSON-RPC message with `\r\n` or `\n`.
+   It should only be used with UTF-8 text-based formatters that do not emit new line characters as part of the JSON.
+   This handler works with .NET `Stream` and the new pipelines API.
 1. `WebSocketMessageHandler` - This is designed specifically for `WebSocket`, which has implicit message boundaries
    as part of the web socket protocol. As such, no header is added. Each message is transmitted as a single web socket
    message.
