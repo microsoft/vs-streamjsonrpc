@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using Xunit;
@@ -119,9 +120,10 @@ public class MessageHeaderTests : TestBase
         int bytesRead = 0;
         var reader = new StreamReader(seekableServerStream, Encoding.ASCII);
         var headerLines = new List<string>();
-        string line;
+        string? line;
         while ((line = await reader.ReadLineAsync().WithCancellation(this.TimeoutToken)) != string.Empty)
         {
+            Assumes.NotNull(line);
             headerLines.Add(line);
             bytesRead += line.Length + 2; // + CRLF
         }
