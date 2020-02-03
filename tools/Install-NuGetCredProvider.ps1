@@ -4,11 +4,15 @@
     from https://github.com/microsoft/artifacts-credprovider
     to assist in authenticating to Azure Artifact feeds in interactive development
     or unattended build agents.
+.PARAMETER Force
+    Forces install of the CredProvider plugin even if one already exists. This is useful to upgrade an older version.
 .PARAMETER AccessToken
     An optional access token for authenticating to Azure Artifacts authenticated feeds.
 #>
 [CmdletBinding()]
 Param (
+    [Parameter()]
+    [switch]$Force,
     [Parameter()]
     [string]$AccessToken
 )
@@ -35,14 +39,14 @@ if ($IsMacOS -or $IsLinux) {
     chmod u+x $installerScript
 }
 
-& $installerScript
+& $installerScript -Force:$Force
 
 if ($AccessToken) {
     $endpoints = @()
 
     $nugetConfig = [xml](Get-Content -Path "$PSScriptRoot\..\nuget.config")
 
-    $nugetConfig.configuration.packageSources.add |? { $_.value -match '^https://pkgs\.dev\.azure\.com/' } |% {
+    $nugetConfig.configuration.packageSources.add |? { ($_.value -match '^https://pkgs\.dev\.azure\.com/') -or ($_.value -match '^https://[\w\-]+\.pkgs\.visualstudio\.com/') } |% {
         $endpoint = New-Object -TypeName PSObject
         Add-Member -InputObject $endpoint -MemberType NoteProperty -Name endpoint -Value $_.value
         Add-Member -InputObject $endpoint -MemberType NoteProperty -Name username -Value ado
