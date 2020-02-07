@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="CannotBeCalledAfterGetAsyncEnumerator">
         <source>This cannot be done after GetAsyncEnumerator has already been called.</source>
-        <target state="new">This cannot be done after GetAsyncEnumerator has already been called.</target>
+        <target state="translated">Nie można tego zrobić po wykonaniu operacji GetAsyncEnumerator.</target>
         <note />
       </trans-unit>
       <trans-unit id="DroppingRequestDueToNoTargetObject" translate="yes" xml:space="preserve">
@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="ElementsAlreadyPrefetched">
         <source>This enumeration has already prefetched elements once.</source>
-        <target state="new">This enumeration has already prefetched elements once.</target>
+        <target state="translated">W tym wyliczeniu wybrano już elementy.</target>
         <note />
       </trans-unit>
       <trans-unit id="EnumValueNotRecognized">
         <source>The value {0} is not among the recognized or supported members of the enum type.</source>
-        <target state="new">The value {0} is not among the recognized or supported members of the enum type.</target>
+        <target state="translated">Wartość {0} nie należy do rozpoznawanych ani obsługiwanych składowych typu wyliczeniowego.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorWritingJsonRpcResult" translate="yes" xml:space="preserve">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="FailureDeserializingRpcArgument">
         <source>Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</source>
-        <target state="new">Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</target>
+        <target state="translated">Deserializowanie argumentu JSON-RPC o nazwie „{0}” i pozycji {1} do typu „{2}” nie powiodło się: {3}</target>
         <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="MarshaledObjectInNotificationError">
         <source>This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</source>
-        <target state="new">This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</target>
+        <target state="translated">Tego śledzonego obiektu nie można uwzględnić w powiadomieniu. Obsługiwane są tylko komunikaty zawierające właściwość „id”.</target>
         <note />
       </trans-unit>
       <trans-unit id="MarshaledObjectInResponseOrNotificationError">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="UnknownTokenToMarshaledObject">
         <source>This remote object no longer exists.</source>
-        <target state="new">This remote object no longer exists.</target>
+        <target state="translated">Ten obiekt zdalny już nie istnieje.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnrecognizableMessage">
