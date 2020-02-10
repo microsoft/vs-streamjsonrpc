@@ -10,7 +10,6 @@
 
 namespace StreamJsonRpc {
     using System;
-    using System.Reflection;
     
     
     /// <summary>
@@ -20,7 +19,7 @@ namespace StreamJsonRpc {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -40,7 +39,7 @@ namespace StreamJsonRpc {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).GetTypeInfo().Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("StreamJsonRpc.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -116,11 +115,29 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The JSON-RPC connection with the remote party was lost before the request could complete..
+        /// </summary>
+        internal static string ConnectionDropped {
+            get {
+                return ResourceManager.GetString("ConnectionDropped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Got a request to execute &apos;{0}&apos; but have no callback object. Dropping the request..
         /// </summary>
         internal static string DroppingRequestDueToNoTargetObject {
             get {
                 return ResourceManager.GetString("DroppingRequestDueToNoTargetObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error writing JSON RPC Message: {0}: {1}.
+        /// </summary>
+        internal static string ErrorWritingJsonRpcMessage {
+            get {
+                return ResourceManager.GetString("ErrorWritingJsonRpcMessage", resourceCulture);
             }
         }
         
@@ -157,6 +174,24 @@ namespace StreamJsonRpc {
         internal static string FillBufferFirst {
             get {
                 return ResourceManager.GetString("FillBufferFirst", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to cast given Type to IProgress&lt;T&gt;.
+        /// </summary>
+        internal static string FindIProgressOfTError {
+            get {
+                return ResourceManager.GetString("FindIProgressOfTError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration is locked because this formatter has already been associated with a JsonRpc instance..
+        /// </summary>
+        internal static string FormatterConfigurationLockedAfterJsonRpcAssigned {
+            get {
+                return ResourceManager.GetString("FormatterConfigurationLockedAfterJsonRpcAssigned", resourceCulture);
             }
         }
         
@@ -206,6 +241,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This tracked object should not be part of any response or notification..
+        /// </summary>
+        internal static string MarshaledObjectInResponseOrNotificationError {
+            get {
+                return ResourceManager.GetString("MarshaledObjectInResponseOrNotificationError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} has ref or out parameter(s), which is not supported.
         /// </summary>
         internal static string MethodHasRefOrOutParameters {
@@ -224,7 +268,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} parameters are not compatible with the request: {1}.
+        ///   Looks up a localized string similar to {0} parameters are not compatible with the arguments provided in the request..
         /// </summary>
         internal static string MethodParametersNotCompatible {
             get {
@@ -260,11 +304,29 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?.
+        /// </summary>
+        internal static string NotSupportedWithoutMultiplexingStream {
+            get {
+                return ResourceManager.GetString("NotSupportedWithoutMultiplexingStream", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Parameter is not in the form of a single object.
         /// </summary>
         internal static string ParameterNotObject {
             get {
                 return ResourceManager.GetString("ParameterNotObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0..
+        /// </summary>
+        internal static string ParameterObjectsNotSupportedInJsonRpc10 {
+            get {
+                return ResourceManager.GetString("ParameterObjectsNotSupportedInJsonRpc10", resourceCulture);
             }
         }
         
@@ -296,11 +358,38 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Relay connection has already been established..
+        /// </summary>
+        internal static string RelayAlreadySet {
+            get {
+                return ResourceManager.GetString("RelayAlreadySet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An argument was not supplied for a required parameter..
+        /// </summary>
+        internal static string RequiredArgumentMissing {
+            get {
+                return ResourceManager.GetString("RequiredArgumentMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Response is not error..
         /// </summary>
         internal static string ResponseIsNotError {
             get {
                 return ResourceManager.GetString("ResponseIsNotError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Response is in an unexpected format.  Only error and result are supported: {0}.
+        /// </summary>
+        internal static string ResponseUnexpectedFormat {
+            get {
+                return ResourceManager.GetString("ResponseUnexpectedFormat", resourceCulture);
             }
         }
         
@@ -377,6 +466,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Text encoding is not supported because the formatter &quot;{0}&quot; does not implement &quot;{1}&quot;..
+        /// </summary>
+        internal static string TextEncoderNotApplicable {
+            get {
+                return ResourceManager.GetString("TextEncoderNotApplicable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to find method &apos;{0}/{1}&apos; on {2} for the following reasons: {3}.
         /// </summary>
         internal static string UnableToFindMethod {
@@ -386,7 +484,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unexpected error processing JSON RPC &apos;{0}&apos;: {1}.
+        ///   Looks up a localized string similar to Unexpected error processing JSON-RPC message: {0}.
         /// </summary>
         internal static string UnexpectedErrorProcessingJsonRpc {
             get {
@@ -404,7 +502,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unrecognized incoming JSON RPC &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Incoming JSON-RPC message did not conform to a recognized pattern..
         /// </summary>
         internal static string UnrecognizedIncomingJsonRpc {
             get {
@@ -427,6 +525,15 @@ namespace StreamJsonRpc {
         internal static string UnsupportedGenericMethodsOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedGenericMethodsOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}.
+        /// </summary>
+        internal static string UnsupportedJsonRpcProtocolVersion {
+            get {
+                return ResourceManager.GetString("UnsupportedJsonRpcProtocolVersion", resourceCulture);
             }
         }
         

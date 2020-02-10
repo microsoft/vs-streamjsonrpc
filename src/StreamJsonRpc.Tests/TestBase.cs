@@ -2,12 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -27,6 +25,7 @@ public abstract class TestBase : IDisposable
     {
         this.Logger = logger;
         this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
+        this.timeoutTokenSource.Token.Register(() => this.Logger.WriteLine($"TEST TIMEOUT: {nameof(TestBase)}.{nameof(this.TimeoutToken)} has been canceled due to the test exceeding the {TestTimeout} time limit."));
     }
 
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
@@ -45,6 +44,23 @@ public abstract class TestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    protected static Task WhenAllSucceedOrAnyFault(params Task[] tasks)
+    {
+        if (tasks.Length == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        var resultTcs = new TaskCompletionSource<object>();
+        Task.WhenAll(tasks).ApplyResultTo(resultTcs);
+        foreach (Task task in tasks)
+        {
+            task.ContinueWith((failedTask, state) => ((TaskCompletionSource<object>)state).TrySetException(failedTask.Exception), resultTcs, CancellationToken.None, TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default).Forget();
+        }
+
+        return resultTcs.Task;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -61,7 +77,7 @@ public abstract class TestBase : IDisposable
     /// <param name="iterations">The number of times to invoke <paramref name="scenario"/> in a row before measuring average memory impact.</param>
     /// <param name="allowedAttempts">The number of times the (scenario * iterations) loop repeats with a failing result before ultimately giving up.</param>
     /// <returns>A task that captures the result of the operation.</returns>
-    protected async Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = GCAllocationAttempts)
+    protected virtual async Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = GCAllocationAttempts)
     {
         // prime the pump
         for (int i = 0; i < 3; i++)

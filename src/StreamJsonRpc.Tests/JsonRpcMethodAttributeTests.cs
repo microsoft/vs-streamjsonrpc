@@ -107,11 +107,13 @@ public class JsonRpcMethodAttributeTests : TestBase
         Assert.Equal("string: mystring int: 1", await this.server.NotificationReceived);
     }
 
+    [Fact]
     public async Task CannotCallWithIncorrectSpelling()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("teST/InvokeTestmeTHod"));
     }
 
+    [Fact]
     public async Task CannotCallInvokeClrMethodNameWhenAttributeDefined()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("GetString", "two"));
@@ -119,12 +121,14 @@ public class JsonRpcMethodAttributeTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<string>("GetStringAsync", "three"));
     }
 
+    [Fact]
     public async Task CanCallWithAttributeNameDefinedOnClrMethodsThatEndWithAsync()
     {
         string asyncResult = await this.clientRpc.InvokeAsync<string>("async/GetString", "one");
         Assert.Equal("async one", asyncResult);
     }
 
+    [Fact]
     public async Task CallingClrMethodsThatHaveAttributeDefinedDoesNotAttemptToMatchImpliedAsync()
     {
         string asyncResult = await this.clientRpc.InvokeAsync<string>("InvokeVirtualMethod", "four");

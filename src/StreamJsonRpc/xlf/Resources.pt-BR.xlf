@@ -22,9 +22,24 @@
         <target state="translated">Falha ao desserializar o RPC de JSON de entrada '{0}': {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON RPC, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="FindIProgressOfTError">
+        <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
+        <target state="translated">Não é possível converter o Tipo fornecido em IProgress&lt;T&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
+        <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
+        <target state="translated">A configuração está bloqueada porque este formatador já foi associado a uma instância de JsonRpc.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">O RPC de JSON não deve ser nulo.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MarshaledObjectInResponseOrNotificationError">
+        <source>This tracked object should not be part of any response or notification.</source>
+        <target state="translated">Esse objeto rastreado não deve fazer parte de nenhuma resposta ou notificação.</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -38,9 +53,14 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
       </trans-unit>
       <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
-        <source>{0} parameters are not compatible with the request: {1}</source>
-        <target state="translated">Os parâmetros de {0} não são compatíveis com s solicitação: {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+        <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+        <target state="translated">Os parâmetros {0} não são compatíveis com os argumentos fornecidos na solicitação.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+      </trans-unit>
+      <trans-unit id="NotSupportedWithoutMultiplexingStream">
+        <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
+        <target state="translated">Não há suporte para fluxos ou pipes fora de banda nesta configuração. Você definiu um MultiplexingStream no formatador?</target>
+        <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
         <source>Reached end of stream.</source>
@@ -52,10 +72,20 @@
         <target state="translated">Falha na leitura de RPC de JSON do fluxo com {0}: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="RelayAlreadySet">
+        <source>Relay connection has already been established.</source>
+        <target state="translated">A conexão de retransmissão já foi estabelecida.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
         <source>Response is not error.</source>
         <target state="translated">A resposta não é um erro.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResponseUnexpectedFormat">
+        <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
+        <target state="translated">A resposta está em um formato inesperado. Há suporte somente para erro e resultado: {0}</target>
+        <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
         <source>Stream has been disposed</source>
@@ -78,14 +108,14 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
       </trans-unit>
       <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unexpected error processing JSON RPC '{0}': {1}</source>
-        <target state="translated">Erro inesperado ao processar a RPC JSON '{0}': {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
+        <source>Unexpected error processing JSON-RPC message: {0}</source>
+        <target state="translated">Erro inesperado ao processar a mensagem JSON-RPC: {0}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
       <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unrecognized incoming JSON RPC '{0}'</source>
-        <target state="translated">RPC JSON de entrada '{0}' não reconhecida</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
+        <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
+        <target state="translated">A mensagem JSON-RPC de entrada não estava em conformidade com um padrão reconhecido.</target>
+        <note />
       </trans-unit>
       <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
         <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -212,10 +242,40 @@
         <target state="translated">"{0}" não é uma interface.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+        <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+        <target state="translated">Não há suporte para a codificação de texto, pois o formatador "{0}" não implementa "{1}".</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+      </trans-unit>
+      <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
+        <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
+        <target state="translated">A conexão JSON-RPC com a parte remota foi perdida antes que a solicitação pudesse ser concluída.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+        <source>An argument was not supplied for a required parameter.</source>
+        <target state="translated">Um argumento não foi fornecido para um parâmetro necessário.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
         <source>A CancellationToken is only allowed as the last parameter.</source>
         <target state="translated">Um Token de Cancelamento é permitido somente como o último parâmetro.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+        <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+        <target state="translated">Versão {0} do protocolo JSON-RPC sem suporte. As versões do protocolo com suporte são: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+      </trans-unit>
+      <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+        <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+        <target state="translated">O JSON-RPC 1.0 não é compatível com argumentos nomeados (parâmetros passados dentro de um objeto). Use argumentos posicionais (matrizes de parâmetros) ou defina a versão do protocolo para 2.0.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+        <source>Error writing JSON RPC Message: {0}: {1}</source>
+        <target state="translated">Erro ao gravar a Mensagem da RPC do JSON: {0}: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
     </body>
   </file>

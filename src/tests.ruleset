@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Microsoft Managed Recommended Rules" Description="These rules focus on the most critical problems in your code, including potential security holes, application crashes, and other important logic and design errors. It is recommended to include this rule set in any custom rule set you create for your projects." ToolsVersion="10.0">
+  <Include Path="shipping.ruleset" Action="Default" />
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+    <Rule Id="AD0001" Action="None" />
+    <Rule Id="SA1130" Action="Hidden" />
+    <Rule Id="SA1401" Action="None" />
+    <Rule Id="SA1600" Action="None" />
+    <Rule Id="SA1615" Action="None" />
+    <Rule Id="SX1309S" Action="None" />
+    <Rule Id="SX1309" Action="None" />
+    <Rule Id="SA1652" Action="None" />
+    <Rule Id="SA1633" Action="Hidden" />
+    <Rule Id="SA1634" Action="Hidden" />
+    <Rule Id="SA1635" Action="Hidden" />
+    <Rule Id="SA1636" Action="Hidden" />
+    <Rule Id="SA1637" Action="Hidden" />
+    <Rule Id="SA1638" Action="Hidden" />
+    <Rule Id="SA1639" Action="Hidden" />
+    <Rule Id="SA1640" Action="Hidden" />
+    <Rule Id="SA1641" Action="Hidden" />
+    <Rule Id="SA1601" Action="None" />
+  </Rules>
+  <Rules AnalyzerId="Microsoft.VisualStudio.Threading.Analyzers" RuleNamespace="Microsoft.VisualStudio.Threading.Analyzers">
+    <Rule Id="VSTHRD200" Action="Hidden" />
+    <Rule Id="VSTHRD002" Action="Hidden" />
+    <Rule Id="VSTHRD103" Action="Hidden" />
+  </Rules>
+</RuleSet>

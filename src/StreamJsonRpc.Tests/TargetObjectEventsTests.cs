@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ public class TargetObjectEventsTests : TestBase
     public TargetObjectEventsTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.server = new Server();
+        this.server = new ServerDerived();
         this.client = new Client();
 
         var streams = FullDuplexStream.CreateStreams();
@@ -32,6 +33,12 @@ public class TargetObjectEventsTests : TestBase
 
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
         this.clientRpc = JsonRpc.Attach(this.clientStream, this.client);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
     [Theory]
@@ -84,6 +91,17 @@ public class TargetObjectEventsTests : TestBase
         this.server.TriggerGenericEvent(expectedArgs);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.Equal(expectedArgs.Seeds, actualArgs.Seeds);
+    }
+
+    [Fact]
+    public async Task CustomDelegateServerEventRaisesCallback()
+    {
+        var tcs = new TaskCompletionSource<MessageEventArgs<string>>();
+        var expectedArgs = new MessageEventArgs<string> { Message = "a" };
+        this.client.ServerEventWithCustomGenericDelegateAndArgsRaised = args => tcs.SetResult(args);
+        this.server.TriggerServerEventWithCustomGenericDelegateAndArgs(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs.Message, actualArgs.Message);
     }
 
     /// <summary>
@@ -194,20 +212,28 @@ public class TargetObjectEventsTests : TestBase
 
         internal Action<CustomEventArgs> GenericServerEventRaised { get; set; }
 
+        internal Action<MessageEventArgs<string>> ServerEventWithCustomGenericDelegateAndArgsRaised { get; set; }
+
         public void ServerEvent(EventArgs args) => this.ServerEventRaised?.Invoke(args);
 
         public void PublicStaticServerEvent(EventArgs args) => this.PublicStaticServerEventRaised?.Invoke(args);
 
         public void ServerEventWithCustomArgs(CustomEventArgs args) => this.GenericServerEventRaised?.Invoke(args);
+
+        public void ServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgsRaised?.Invoke(args);
     }
 
     private class Server
     {
+        public delegate void MessageReceivedEventHandler<T>(object sender, MessageEventArgs<T> args);
+
         public static event EventHandler PublicStaticServerEvent;
 
         public event EventHandler ServerEvent;
 
         public event EventHandler<CustomEventArgs> ServerEventWithCustomArgs;
+
+        public event MessageReceivedEventHandler<string> ServerEventWithCustomGenericDelegateAndArgs;
 
         private static event EventHandler PrivateStaticServerEvent;
 
@@ -229,6 +255,8 @@ public class TargetObjectEventsTests : TestBase
             this.OnServerEventWithCustomArgs(args);
         }
 
+        public void TriggerServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.OnServerEventWithCustomGenericDelegateAndArgs(args);
+
         protected static void OnPrivateStaticServerEvent(EventArgs args) => PrivateStaticServerEvent?.Invoke(null, args);
 
         protected virtual void OnServerEvent(EventArgs args) => this.ServerEvent?.Invoke(this, args);
@@ -236,6 +264,12 @@ public class TargetObjectEventsTests : TestBase
         protected virtual void OnServerEventWithCustomArgs(CustomEventArgs args) => this.ServerEventWithCustomArgs?.Invoke(this, args);
 
         protected virtual void OnPrivateServerEvent(EventArgs args) => this.PrivateServerEvent?.Invoke(this, args);
+
+        protected virtual void OnServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgs?.Invoke(this, args);
+    }
+
+    private class ServerDerived : Server
+    {
     }
 
     private class ServerWithIncompatibleEvents
@@ -250,5 +284,10 @@ public class TargetObjectEventsTests : TestBase
     private class CustomEventArgs : EventArgs
     {
         public int Seeds { get; set; }
+    }
+
+    private class MessageEventArgs<T> : EventArgs
+    {
+        public T Message { get; set; }
     }
 }

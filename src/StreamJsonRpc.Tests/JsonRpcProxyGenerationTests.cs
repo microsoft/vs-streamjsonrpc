@@ -96,6 +96,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
+    public interface IServerWithValueTasks
+    {
+        ValueTask DoSomethingValueAsync();
+
+        ValueTask<int> AddValueAsync(int a, int b);
+    }
+
     public interface IServerWithNonTaskReturnTypes
     {
         int Add(int a, int b);
@@ -116,9 +123,23 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal
+    internal interface IServerInternal : StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface, IServerInternalWithInternalTypesFromOtherAssemblies
     {
-        Task AddAsync(int a, int b);
+        Task<int> AddAsync(int a, int b);
+    }
+
+    internal interface IServerInternalWithInternalTypesFromOtherAssemblies
+    {
+        Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync();
+    }
+
+    [Fact]
+    public void Attach_NonGeneric()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1);
+        var clientRpc = (IServerDerived)rpc.Attach(typeof(IServerDerived));
+        Assert.IsType(this.clientRpc.GetType(), clientRpc);
     }
 
     [Fact]
@@ -155,11 +176,18 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void ImplementsIDisposable()
+    public async Task ImplementsIDisposable()
     {
         var disposableClient = (IDisposable)this.clientRpc;
         disposableClient.Dispose();
-        Assert.True(this.clientStream.IsDisposed);
+
+        // There is an async delay in disposal of the clientStream when pipes are involved.
+        // Tolerate that while verifying that it does eventually close.
+        while (!this.clientStream.IsDisposed)
+        {
+            await Task.Delay(1);
+            this.TimeoutToken.ThrowIfCancellationRequested();
+        }
     }
 
     [Fact]
@@ -290,7 +318,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void InstanceProxiesDoNotImplementIDisposable()
+    public void InstanceProxiesImplementIJsonRpcClientProxy()
     {
         var streams = FullDuplexStream.CreateStreams();
         var server = new Server();
@@ -298,24 +326,47 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
-        Assert.IsNotType(typeof(IDisposable), client1);
+        Assert.Same(clientRpc, ((IJsonRpcClientProxy)client1).JsonRpc);
     }
 
     [Fact]
-    public void InternalInterface()
+    public async Task InternalInterface()
     {
-        // When implementing internal interfaces work, fill out this test to actually invoke it.
         var streams = FullDuplexStream.CreateStreams();
-        Assert.Throws<TypeLoadException>(() => JsonRpc.Attach<IServerInternal>(streams.Item1));
+        var server = new ServerOfInternalInterface();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+
+        // Try the first internal interface, which is external to this test assembly
+        var proxy1 = clientRpc.Attach<StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface>();
+        Assert.Equal(-1, await proxy1.SubtractAsync(1, 2).WithCancellation(this.TimeoutToken));
+
+        // Now create a proxy for another interface that is internal within this assembly, but derives from the external assembly's internal interface.
+        // This verifies that we can handle multiple sets of assemblies which we need internal visibility into, as well as that it can track base type interfaces.
+        var proxy2 = clientRpc.Attach<IServerInternal>();
+        Assert.Equal(3, await proxy2.AddAsync(1, 2).WithCancellation(this.TimeoutToken));
     }
 
-#if NET452 || NET461 || NETCOREAPP2_0
+    [Fact]
+    public async Task InternalInterface_WithInternalMembersFromOtherAssemblies()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new ServerOfInternalInterface();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+
+        // Try the first internal interface, which is external to this test assembly
+        var proxy1 = clientRpc.Attach<IServerInternalWithInternalTypesFromOtherAssemblies>();
+        Assert.NotNull(await proxy1.SomeMethodAsync().WithCancellation(this.TimeoutToken));
+    }
+
     [Fact]
     public async Task RPCMethodNameSubstitution()
     {
         Assert.Equal("ANDREW", await this.clientRpc.ARoseByAsync("andrew"));
     }
-#endif
 
     [Fact]
     public async Task RPCMethodNameSubstitutionByOptions()
@@ -340,10 +391,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         Assert.Equal("Hi!", await clientRpcWithCamelCase.SayHiAsync()); // "sayHiAsync"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
-#if NET452 || NET461 || NETCOREAPP2_0 // skip attribute-based renames where not supported
         Assert.Equal("ANDREW", await clientRpcWithCamelCase.ARoseByAsync("andrew")); // "anotherName"
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
-#endif
 
         // Prepare the server to *ALSO* accept method names with a prefix.
         this.serverRpc.AllowModificationWhileListening = true;
@@ -351,9 +400,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         // Retry with our second client proxy to send messages which the server should now accept.
         Assert.Equal("Hi!", await clientRpcWithPrefix.SayHiAsync()); // "ns.SayHiAsync"
-#if NET452 || NET461 || NETCOREAPP2_0 // skip attribute-based renames where not supported
         Assert.Equal("ANDREW", await clientRpcWithPrefix.ARoseByAsync("andrew")); // "ns.AnotherName"
-#endif
     }
 
     [Fact]
@@ -538,6 +585,29 @@ public class JsonRpcProxyGenerationTests : TestBase
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
     }
 
+    [Fact]
+    public async Task ValueTaskOfTReturningMethod()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
+        int sum = await clientRpc.AddValueAsync(1, 2);
+        Assert.Equal(3, sum);
+    }
+
+    [Fact]
+    public async Task ValueTaskReturningMethod()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
+        await clientRpc.DoSomethingValueAsync();
+    }
+
     public class EmptyClass
     {
     }
@@ -557,7 +627,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public string Color { get; set; }
     }
 
-    internal class Server : IServerDerived, IServer2, IServer3
+    internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks
     {
         public event EventHandler ItHappened;
 
@@ -623,6 +693,10 @@ public class JsonRpcProxyGenerationTests : TestBase
             return sum;
         }
 
+        public ValueTask DoSomethingValueAsync() => default;
+
+        public ValueTask<int> AddValueAsync(int a, int b) => new ValueTask<int>(a + b);
+
         internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
 
         internal void OnTreeGrown(CustomEventArgs args) => this.TreeGrown?.Invoke(this, args);
@@ -630,5 +704,17 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
 
         internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
+    }
+
+    internal class ServerOfInternalInterface : IServerInternal
+    {
+        public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
+
+        public Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync()
+        {
+            return Task.FromResult(new StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType());
+        }
+
+        public Task<int> SubtractAsync(int a, int b) => Task.FromResult(a - b);
     }
 }

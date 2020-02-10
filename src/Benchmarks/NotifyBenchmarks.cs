@@ -16,7 +16,7 @@ namespace Benchmarks
 
         public NotifyBenchmarks()
         {
-            this.clientRpc = new JsonRpc(Stream.Null, Stream.Null);
+            this.clientRpc = new JsonRpc(Stream.Null);
         }
 
         /// <summary>

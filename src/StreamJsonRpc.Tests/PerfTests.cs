@@ -15,6 +15,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 [Trait("Category", "SkipWhenLiveUnitTesting")] // very slow test
+[Trait("FailsOnMono", "true")]
 public class PerfTests
 {
     private readonly ITestOutputHelper logger;
@@ -74,11 +75,16 @@ public class PerfTests
     public async Task BurstNotifyMessages(Stream serverStream, Stream clientStream)
     {
         var notifyServer = new NotifyServer();
-        using (JsonRpc.Attach(serverStream, notifyServer))
-        using (var client = JsonRpc.Attach(clientStream))
+        using (var serverRpc = JsonRpc.Attach(serverStream, notifyServer))
+        using (var clientRpc = JsonRpc.Attach(clientStream))
         {
+            serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
+            clientRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
+            serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.logger));
+            clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.logger));
+
             // warmup
-            await client.InvokeAsync("NoOp");
+            await clientRpc.InvokeAsync("NoOp");
 
             const int maxIterations = 10000;
             var notifyTasks = new List<Task>(maxIterations);
@@ -86,7 +92,7 @@ public class PerfTests
             int i;
             for (i = 0; i < maxIterations; i++)
             {
-                notifyTasks.Add(client.NotifyAsync("NoOp"));
+                notifyTasks.Add(clientRpc.NotifyAsync("NoOp"));
 
                 if (timer.ElapsedMilliseconds > 2000 && i > 0)
                 {
@@ -111,11 +117,16 @@ public class PerfTests
     public async Task BurstInvokeMessages(Stream serverStream, Stream clientStream)
     {
         var server = new Server();
-        using (JsonRpc.Attach(serverStream, server))
-        using (var client = JsonRpc.Attach(clientStream))
+        using (var serverRpc = JsonRpc.Attach(serverStream, server))
+        using (var clientRpc = JsonRpc.Attach(clientStream))
         {
+            serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
+            clientRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
+            serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.logger));
+            clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.logger));
+
             // warmup
-            await client.InvokeAsync("NoOp");
+            await clientRpc.InvokeAsync("NoOp");
 
             const int maxIterations = 10000;
             var invokeTasks = new List<Task>(maxIterations);
@@ -123,7 +134,7 @@ public class PerfTests
             int i;
             for (i = 0; i < maxIterations; i++)
             {
-                invokeTasks.Add(client.InvokeAsync("NoOp"));
+                invokeTasks.Add(clientRpc.InvokeAsync("NoOp"));
 
                 if (timer.ElapsedMilliseconds > 2000 && i > 0)
                 {

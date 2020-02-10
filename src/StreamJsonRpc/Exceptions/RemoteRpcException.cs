@@ -8,9 +8,7 @@ namespace StreamJsonRpc
     /// <summary>
     /// Base exception class for any exception that happens while receiving an JSON RPC communication.
     /// </summary>
-#if SERIALIZABLE_EXCEPTIONS
     [System.Serializable]
-#endif
     public abstract class RemoteRpcException : Exception
     {
         /// <summary>
@@ -32,7 +30,6 @@ namespace StreamJsonRpc
         {
         }
 
-#if SERIALIZABLE_EXCEPTIONS
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteRpcException"/> class.
         /// </summary>
@@ -44,6 +41,5 @@ namespace StreamJsonRpc
             : base(info, context)
         {
         }
-#endif
     }
 }

@@ -22,9 +22,24 @@
         <target state="translated">들어오는 JSON RPC '{0}'을(를) 역직렬화하는 데 실패:{1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the JSON RPC, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="FindIProgressOfTError">
+        <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
+        <target state="translated">지정된 형식을 IProgress로 캐스팅할 수 없음&lt;T&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FormatterConfigurationLockedAfterJsonRpcAssigned">
+        <source>The configuration is locked because this formatter has already been associated with a JsonRpc instance.</source>
+        <target state="translated">이 포맷터가 이미 JsonRpc 인스턴스와 연결되어 있기 때문에 구성이 잠겼습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">JSON RPC는 null이면 안 됩니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MarshaledObjectInResponseOrNotificationError">
+        <source>This tracked object should not be part of any response or notification.</source>
+        <target state="translated">이 추적된 개체는 응답 또는 알림의 일부일 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="MethodHasRefOrOutParameters" translate="yes" xml:space="preserve">
@@ -38,9 +53,14 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the method parameter count, {2} is the request parameter count.</note>
       </trans-unit>
       <trans-unit id="MethodParametersNotCompatible" translate="yes" xml:space="preserve">
-        <source>{0} parameters are not compatible with the request: {1}</source>
-        <target state="translated">{0} 매개 변수가 다음 요청과 호환되지 않습니다. {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature, {1} is the error message.</note>
+        <source>{0} parameters are not compatible with the arguments provided in the request.</source>
+        <target state="translated">{0} 매개 변수는 요청에 제공된 인수와 호환되지 않습니다.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method signature.</note>
+      </trans-unit>
+      <trans-unit id="NotSupportedWithoutMultiplexingStream">
+        <source>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</source>
+        <target state="translated">이 구성에서는 대역 외 스트림/파이프가 지원되지 않습니다. 포맷터에 MultiplexingStream을 설정하셨습니까?</target>
+        <note />
       </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
         <source>Reached end of stream.</source>
@@ -52,10 +72,20 @@
         <target state="translated">{0}(으)로 인해 스트림에서 JSON RPC 읽기 실패:{1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="RelayAlreadySet">
+        <source>Relay connection has already been established.</source>
+        <target state="translated">릴레이 연결이 이미 설정되었습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
         <source>Response is not error.</source>
         <target state="translated">응답은 오류가 아닙니다.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ResponseUnexpectedFormat">
+        <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
+        <target state="translated">예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됨: {0}</target>
+        <note>{0} is the response message.</note>
       </trans-unit>
       <trans-unit id="StreamDisposed" translate="yes" xml:space="preserve">
         <source>Stream has been disposed</source>
@@ -78,14 +108,14 @@
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</note>
       </trans-unit>
       <trans-unit id="UnexpectedErrorProcessingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unexpected error processing JSON RPC '{0}': {1}</source>
-        <target state="translated">JSON RPC '{0}'을(를) 처리하는 동안 예기치 않은 오류가 발생했습니다. {1}</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json, {1} is the exception message.</note>
+        <source>Unexpected error processing JSON-RPC message: {0}</source>
+        <target state="translated">JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류 발생: {0}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
       <trans-unit id="UnrecognizedIncomingJsonRpc" translate="yes" xml:space="preserve">
-        <source>Unrecognized incoming JSON RPC '{0}'</source>
-        <target state="translated">들어오는 JSON RPC '{0}'을(를) 인식할 수 없습니다.</target>
-        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the json.</note>
+        <source>Incoming JSON-RPC message did not conform to a recognized pattern.</source>
+        <target state="translated">들어오는 JSON-RPC 메시지가 인식되는 패턴과 일치하지 않습니다.</target>
+        <note />
       </trans-unit>
       <trans-unit id="HeaderContentLengthNotParseable" translate="yes" xml:space="preserve">
         <source>Failed parsing Content-Length header into a positive integer.</source>
@@ -212,10 +242,40 @@
         <target state="translated">"{0}"은(는) 인터페이스가 아닙니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TextEncoderNotApplicable" translate="yes" xml:space="preserve">
+        <source>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</source>
+        <target state="translated">포맷터 "{0}"이(가) "{1}"을(를) 구현하지 않기 때문에 텍스트 인코딩이 지원되지 않습니다.</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} and {1} are CLR type names.</note>
+      </trans-unit>
+      <trans-unit id="ConnectionDropped" translate="yes" xml:space="preserve">
+        <source>The JSON-RPC connection with the remote party was lost before the request could complete.</source>
+        <target state="translated">요청을 완료하기 전에 원격 대상과 JSON-RPC 연결이 끊어졌습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredArgumentMissing" translate="yes" xml:space="preserve">
+        <source>An argument was not supplied for a required parameter.</source>
+        <target state="translated">필수 매개 변수에 인수가 제공되지 않았습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CancellationTokenMustBeLastParameter" translate="yes" xml:space="preserve">
         <source>A CancellationToken is only allowed as the last parameter.</source>
         <target state="translated">CancellationToken은 마지막 매개 변수로만 허용됩니다.</target>
         <note />
+      </trans-unit>
+      <trans-unit id="UnsupportedJsonRpcProtocolVersion" translate="yes" xml:space="preserve">
+        <source>Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}</source>
+        <target state="translated">JSON-RPC 프로토콜 버전 {0}은(는) 지원되지 않습니다. 지원되는 프로토콜 버전: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is a version formatted as 1.2.3.4. {1} is a list of such versions, comma separated.</note>
+      </trans-unit>
+      <trans-unit id="ParameterObjectsNotSupportedInJsonRpc10" translate="yes" xml:space="preserve">
+        <source>JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.</source>
+        <target state="translated">JSON-RPC 1.0은 명명된 인수(개체 내에서 전달된 매개 변수)를 지원하지 않습니다. 위치 인수(매개 변수 배열)를 사용하거나 프로토콜 버전을 2.0으로 설정하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ErrorWritingJsonRpcMessage" translate="yes" xml:space="preserve">
+        <source>Error writing JSON RPC Message: {0}: {1}</source>
+        <target state="translated">JSON RPC 메시지를 쓰는 동안 오류 발생: {0}: {1}</target>
+        <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
       </trans-unit>
     </body>
   </file>

@@ -29,21 +29,6 @@ public class JsonRpcServerInteropTests : InteropTestBase
     }
 
     [Fact]
-    public async Task ServerAcceptsObjectForMessageId()
-    {
-        dynamic response = await this.RequestAsync(new
-        {
-            jsonrpc = "2.0",
-            method = "EchoInt",
-            @params = new[] { 5 },
-            id = new { a = "b" },
-        });
-
-        Assert.Equal(5, (int)response.result);
-        Assert.Equal("b", (string)response.id.a);
-    }
-
-    [Fact]
     public async Task ServerAcceptsNumberForMessageId()
     {
         dynamic response = await this.RequestAsync(new
@@ -74,18 +59,33 @@ public class JsonRpcServerInteropTests : InteropTestBase
     }
 
     [Fact]
-    public async Task ServerAcceptsEmptyObjectForMessageId()
+    public async Task ServerAcceptsNumberForProgressId()
     {
-        var response = await this.RequestAsync(new
+        dynamic response = await this.RequestAsync(new
         {
             jsonrpc = "2.0",
-            method = "EchoInt",
+            method = "EchoSuccessWithProgressParam",
             @params = new[] { 5 },
-            id = new { },
+            id = "abc",
         });
 
-        Assert.Equal(5, (int)response["result"]);
-        Assert.Equal(0, response["id"].Count());
+        // If the response is returned without error it means the server succeded on using the token to create the JsonProgress instance
+        Assert.Equal("Success!", (string)response.result);
+    }
+
+    [Fact]
+    public async Task ServerAcceptsStringForProgressId()
+    {
+        dynamic response = await this.RequestAsync(new
+        {
+            jsonrpc = "2.0",
+            method = "EchoSuccessWithProgressParam",
+            @params = new[] { "Token" },
+            id = "abc",
+        });
+
+        // If the response is returned without error it means the server succeded on using the token to create the JsonProgress instance
+        Assert.Equal("Success!", (string)response.result);
     }
 
     [Fact]
@@ -109,5 +109,7 @@ public class JsonRpcServerInteropTests : InteropTestBase
         public int EchoInt(int value) => value;
 
         public string EchoString(string value) => value;
+
+        public string EchoSuccessWithProgressParam(IProgress<int> progress) => "Success!";
     }
 }

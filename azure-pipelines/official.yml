@@ -1,8 +1,14 @@
 trigger:
   branches:
-    include: ["master", "v*", "*_validate"]
+    include:
+    - master
+    - 'v*'
+    - 'validate/*'
   paths:
-    exclude: ["doc", "*.md"]
+    exclude:
+    - doc/
+    - '*.md'
+    - .vscode/
 
 variables:
   TreatWarningsAsErrors: true
@@ -10,9 +16,10 @@ variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   BuildPlatform: Any CPU
+  push_to_ci: true
+  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
 
 jobs:
-- job: Windows
-  pool: VSEng-MicroBuildVS2017
-  steps:
-  - template: build.yml
+- template: build.yml
+  parameters:
+    windowsPool: VSEng-MicroBuildVS2019

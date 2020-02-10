@@ -19,7 +19,7 @@
         /// <summary>
         /// The options to use when creating the value for <see cref="enqueuedSource"/>.
         /// </summary>
-        private const TaskCreationOptions EnqueuedSourceOptions = TaskCreationOptions.None;
+        private const TaskCreationOptions EnqueuedSourceOptions = TaskCreationOptions.RunContinuationsAsynchronously;
         private static readonly byte[] EmptyByteArray = new byte[0];
         private static readonly Task CompletedTask = Task.FromResult<object>(null);
 
@@ -41,7 +41,7 @@
         private TaskCompletionSource<object> enqueuedSource = new TaskCompletionSource<object>(EnqueuedSourceOptions);
 
         /// <summary>
-        /// Gets or sets a value indicating whether the stream is disposed
+        /// Gets or sets a value indicating whether the stream is disposed.
         /// </summary>
         public bool IsDisposed { get; set; }
 
