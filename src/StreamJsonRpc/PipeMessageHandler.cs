@@ -142,18 +142,6 @@ namespace StreamJsonRpc
         protected abstract void Write(JsonRpcMessage content, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                this.Reader?.Complete();
-                this.Writer?.Complete();
-
-                base.Dispose(disposing);
-            }
-        }
-
-        /// <inheritdoc />
         protected override void DisposeReader()
         {
             this.Reader?.Complete();
