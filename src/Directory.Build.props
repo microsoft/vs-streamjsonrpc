@@ -22,7 +22,7 @@
     <PackageProjectUrl>https://github.com/Microsoft/vs-streamjsonrpc</PackageProjectUrl>
     <PackageIconUrl>https://aka.ms/VsExtensibilityIcon</PackageIconUrl>
 
-    <MicroBuildPackageVersion>2.0.55</MicroBuildPackageVersion>
+    <MicroBuildPackageVersion>2.0.61</MicroBuildPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
