@@ -508,6 +508,83 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         pipePair.Item1.Input.Complete();
     }
 
+    [Fact]
+    public async Task StreamClosesDeterministically()
+    {
+        Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var monitoredStream = new MonitoringStream(new OneWayStreamWrapper(streams.Item1, canWrite: true));
+        var disposedEvent = new AsyncManualResetEvent();
+        monitoredStream.Disposed += (s, e) => disposedEvent.Set();
+
+        bool writing = false;
+        monitoredStream.WillWrite += (s, e) =>
+        {
+            Assert.False(writing);
+            writing = true;
+            this.Logger.WriteLine("Writing {0} bytes.", e.Count);
+        };
+        monitoredStream.WillWriteByte += (s, e) =>
+        {
+            Assert.False(writing);
+            writing = true;
+            this.Logger.WriteLine("Writing 1 byte.");
+        };
+        monitoredStream.WillWriteMemory += (s, e) =>
+        {
+            Assert.False(writing);
+            writing = true;
+            this.Logger.WriteLine("Writing {0} bytes.", e.Length);
+        };
+        monitoredStream.WillWriteSpan += (s, e) =>
+        {
+            Assert.False(writing);
+            writing = true;
+            this.Logger.WriteLine("Writing {0} bytes.", e.Length);
+        };
+        monitoredStream.DidWrite += (s, e) =>
+        {
+            Assert.True(writing);
+            writing = false;
+            this.Logger.WriteLine("Wrote {0} bytes.", e.Count);
+        };
+        monitoredStream.DidWriteByte += (s, e) =>
+        {
+            Assert.True(writing);
+            writing = false;
+            this.Logger.WriteLine("Wrote 1 byte.");
+        };
+        monitoredStream.DidWriteMemory += (s, e) =>
+        {
+            Assert.True(writing);
+            writing = false;
+            this.Logger.WriteLine("Wrote {0} bytes.", e.Length);
+        };
+        monitoredStream.DidWriteSpan += (s, e) =>
+        {
+            Assert.True(writing);
+            writing = false;
+            this.Logger.WriteLine("Wrote {0} bytes.", e.Length);
+        };
+
+        try
+        {
+            await this.clientRpc.InvokeWithCancellationAsync(
+                nameof(Server.AcceptWritableStream),
+                new object[] { monitoredStream, MemoryBuffer.Length },
+                this.TimeoutToken);
+            this.Logger.WriteLine("RPC call completed.");
+        }
+        catch (Exception ex) when (!(ex is RemoteInvocationException))
+        {
+            // The only failure case where the stream will be closed automatically is if it came in as an error response from the server.
+            monitoredStream.Dispose();
+            throw;
+        }
+
+        await disposedEvent.WaitAsync(this.TimeoutToken);
+        this.Logger.WriteLine("Stream disposed.");
+    }
+
     protected abstract void InitializeFormattersAndHandlers();
 
     private static async Task TwoWayTalkAsync(IDuplexPipe pipe, bool writeOnOdd, CancellationToken cancellationToken)
@@ -661,6 +738,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         public async Task AcceptWritableStream(Stream content, int lengthToWrite, CancellationToken cancellationToken)
         {
+            Requires.Range(lengthToWrite <= MemoryBuffer.Length, nameof(lengthToWrite));
             const int ChunkSize = 5;
             int writtenBytes = 0;
             while (writtenBytes < lengthToWrite)
