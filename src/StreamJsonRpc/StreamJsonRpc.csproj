@@ -22,7 +22,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.4.45" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.4.45" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.0.0" PrivateAssets="compile" />
-    <PackageReference Include="Nerdbank.Streams" Version="2.4.57" />
+    <PackageReference Include="Nerdbank.Streams" Version="2.4.60" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="2.9.7" PrivateAssets="all" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
