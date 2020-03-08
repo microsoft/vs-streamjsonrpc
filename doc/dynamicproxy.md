@@ -17,7 +17,7 @@ A proxy can only be dynamically generated for an interface that meets these requ
 1. No properties
 1. No generic methods
 1. All methods return `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`
-1. All events are typed with `EventHandler` or `EventHandler<T>`
+1. All events are typed with `EventHandler` or `EventHandler<T>`. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in `EventHandler<T>`.
 1. Methods *may* accept a `CancellationToken` as the last parameter.
 
 ## Async methods and generated proxies
