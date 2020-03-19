@@ -116,7 +116,7 @@ namespace StreamJsonRpc
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
 
             // Set up default user data resolver.
-            this.userDataSerializationOptions = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
+            this.userDataSerializationOptions = this.MessageUserDataOptions(StandardResolverAllowPrivate.Options);
         }
 
         private interface IJsonRpcMessagePackRetention
@@ -217,7 +217,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(options, nameof(options));
 
-            this.userDataSerializationOptions = this.MassageUserDataOptions(options);
+            this.userDataSerializationOptions = this.MessageUserDataOptions(options);
         }
 
         /// <inheritdoc/>
@@ -349,7 +349,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="userSuppliedOptions">The options for user data that is supplied by the user (or the default).</param>
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
-        private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
+        private MessagePackSerializerOptions MessageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
             var formatters = new IMessagePackFormatter[]
             {
