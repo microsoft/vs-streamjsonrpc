@@ -196,9 +196,11 @@ namespace StreamJsonRpc
             unsafe int WriteHeaderText(string value, Span<byte> memory)
             {
                 fixed (char* pValue = &MemoryMarshal.GetReference(value.AsSpan()))
-                fixed (byte* pMemory = &MemoryMarshal.GetReference(memory))
                 {
-                    return HeaderEncoding.GetBytes(pValue, value.Length, pMemory, memory.Length);
+                    fixed (byte* pMemory = &MemoryMarshal.GetReference(memory))
+                    {
+                        return HeaderEncoding.GetBytes(pValue, value.Length, pMemory, memory.Length);
+                    }
                 }
             }
 

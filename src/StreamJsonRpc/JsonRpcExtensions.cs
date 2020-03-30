@@ -15,6 +15,7 @@ namespace StreamJsonRpc
     /// </summary>
     public static class JsonRpcExtensions
     {
+#pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         /// <summary>
         /// Decorates an <see cref="IAsyncEnumerable{T}"/> with settings that customize how StreamJsonRpc will send its items to the remote party.
         /// </summary>
@@ -100,6 +101,7 @@ namespace StreamJsonRpc
             await rpcEnumerable.PrefetchAsync(count, cancellationToken).ConfigureAwait(false);
             return rpcEnumerable;
         }
+#pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
 
         /// <summary>
         /// Extracts the <see cref="JsonRpcEnumerableSettings"/> from an <see cref="IAsyncEnumerable{T}"/>
