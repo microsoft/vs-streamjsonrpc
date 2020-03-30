@@ -934,7 +934,9 @@ namespace StreamJsonRpc
                 throw new NotSupportedException();
             }
 
+#pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
             private IAsyncEnumerable<T> ReadJson<T>(JsonReader reader, JsonSerializer serializer)
+#pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
             {
                 JToken enumJToken = JToken.Load(reader);
                 JToken handle = enumJToken[MessageFormatterEnumerableTracker.TokenPropertyName];

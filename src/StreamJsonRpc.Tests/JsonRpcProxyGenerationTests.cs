@@ -654,13 +654,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task IncrementAsync()
         {
             this.Counter++;
-            return TplExtensions.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public Task Dispose()
         {
             this.Counter--;
-            return TplExtensions.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task HeavyWorkAsync(CancellationToken cancellationToken)

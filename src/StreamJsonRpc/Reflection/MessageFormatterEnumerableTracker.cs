@@ -141,7 +141,9 @@ namespace StreamJsonRpc.Reflection
         /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator. May be <c>null</c> to indicate there will be no more values.</param>
         /// <param name="prefetchedItems">The list of items that are included with the enumerable handle.</param>
         /// <returns>The enumerator.</returns>
+#pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         public IAsyncEnumerable<T> CreateEnumerableProxy<T>(object? handle, IReadOnlyList<T>? prefetchedItems)
+#pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         {
             return new AsyncEnumerableProxy<T>(this.jsonRpc, handle, prefetchedItems);
         }

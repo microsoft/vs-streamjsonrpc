@@ -283,7 +283,7 @@ public class WebSocketMessageHandlerTests : TestBase
 
         public override void Abort() => throw new NotImplementedException();
 
-        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => TplExtensions.CompletedTask;
+        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) => throw new NotImplementedException();
 
@@ -335,7 +335,7 @@ public class WebSocketMessageHandlerTests : TestBase
                 this.writingInProgress = null;
             }
 
-            return TplExtensions.CompletedTask;
+            return Task.CompletedTask;
         }
 
         internal void EnqueueRead(byte[] buffer)

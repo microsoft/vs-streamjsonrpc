@@ -1507,7 +1507,9 @@ namespace StreamJsonRpc
             taskOfTTypeInfo = null;
             return false;
 
+#pragma warning disable CS8762 // https://github.com/dotnet/roslyn/issues/41673
             bool IsTaskOfTOrValueTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && (typeInfo.GetGenericTypeDefinition() == typeof(Task<>) || typeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>));
+#pragma warning restore CS8762 // https://github.com/dotnet/roslyn/issues/41673
         }
 
         /// <summary>

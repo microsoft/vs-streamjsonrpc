@@ -17,7 +17,9 @@ namespace StreamJsonRpc.Reflection
     [Obsolete("This class is only for invoking from dynamically generated code.")]
     public static class CodeGenHelpers
     {
+#pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         /// <inheritdoc cref="ProxyGeneration.AsyncEnumerableProxy{T}"/>
         public static IAsyncEnumerable<T> CreateAsyncEnumerableProxy<T>(Task<IAsyncEnumerable<T>> enumerableTask, CancellationToken defaultCancellationToken) => new ProxyGeneration.AsyncEnumerableProxy<T>(enumerableTask, defaultCancellationToken);
+#pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
     }
 }
