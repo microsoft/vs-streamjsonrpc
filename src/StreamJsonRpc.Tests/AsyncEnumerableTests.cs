@@ -251,7 +251,9 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     [PairwiseData]
     public async Task PassInIAsyncEnumerableAsArgument(bool useProxy)
     {
+#pragma warning disable CS8425 // Async-iterator member has one or more parameters of type 'CancellationToken' but none of them is decorated with the 'EnumeratorCancellation' attribute, so the cancellation token parameter from the generated 'IAsyncEnumerable<>.GetAsyncEnumerator' will be unconsumed
         async IAsyncEnumerable<int> Generator(CancellationToken cancellationToken)
+#pragma warning restore CS8425 // Async-iterator member has one or more parameters of type 'CancellationToken' but none of them is decorated with the 'EnumeratorCancellation' attribute, so the cancellation token parameter from the generated 'IAsyncEnumerable<>.GetAsyncEnumerator' will be unconsumed
         {
             for (int i = 1; i <= Server.ValuesReturnedByEnumerables; i++)
             {
