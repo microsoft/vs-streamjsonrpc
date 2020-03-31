@@ -1,3 +1,7 @@
+StreamJsonRpc.JsonRpc.Abandoned -> System.EventHandler<StreamJsonRpc.JsonRpc.AbandonedConnectionEventArgs>
+StreamJsonRpc.JsonRpc.AbandonedConnectionEventArgs
+StreamJsonRpc.JsonRpc.AbandonedConnectionEventArgs.OwnerStackTrace.get -> System.Diagnostics.StackTrace
+StreamJsonRpc.JsonRpc.AbandonedConnectionEventArgs.ProxyType.get -> System.Type
 StreamJsonRpc.JsonRpc.AddLocalRpcMethod(System.Reflection.MethodInfo handler, object target, StreamJsonRpc.JsonRpcMethodAttribute methodRpcSettings) -> void
 StreamJsonRpc.JsonRpc.GetJsonRpcMethodAttribute(string methodName, System.ReadOnlySpan<System.Reflection.ParameterInfo> parameters) -> StreamJsonRpc.JsonRpcMethodAttribute
 StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>

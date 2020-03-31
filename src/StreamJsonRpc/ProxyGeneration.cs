@@ -11,6 +11,7 @@ namespace StreamJsonRpc
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
@@ -44,6 +45,11 @@ namespace StreamJsonRpc
         private static readonly MethodInfo EventNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.EventNameTransform))!.GetMethod!;
         private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) })!;
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
+        private static readonly MethodInfo ObjectFinalizeMethod = typeof(object).GetTypeInfo().GetDeclaredMethod("Finalize");
+        private static readonly MethodInfo NotifyAbandonedProxyMethod = typeof(JsonRpc).GetTypeInfo().GetDeclaredMethod(nameof(JsonRpc.NotifyAbandonedProxy));
+        private static readonly MethodInfo GetCurrentDomainMethod = typeof(AppDomain).GetTypeInfo().GetDeclaredProperty(nameof(AppDomain.CurrentDomain)).GetMethod;
+        private static readonly MethodInfo IsFinalizingForUnloadMethod = typeof(AppDomain).GetTypeInfo().GetDeclaredMethod(nameof(AppDomain.IsFinalizingForUnload));
+        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetTypeInfo().GetDeclaredMethod(nameof(Type.GetTypeFromHandle));
 
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -84,6 +90,7 @@ namespace StreamJsonRpc
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
                 FieldBuilder jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 FieldBuilder optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
+                FieldBuilder ownerField = proxyTypeBuilder.DefineField("owner", typeof(StackTrace), fieldAttributes);
 
                 VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
@@ -144,12 +151,12 @@ namespace StreamJsonRpc
                     }));
                 }
 
-                // .ctor(JsonRpc, JsonRpcProxyOptions)
+                // .ctor(JsonRpc, JsonRpcProxyOptions, StackTrace)
                 {
                     ConstructorBuilder ctor = proxyTypeBuilder.DefineConstructor(
                         MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                         CallingConventions.Standard,
-                        new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions) });
+                        new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions), typeof(StackTrace) });
                     ILGenerator il = ctor.GetILGenerator();
 
                     // : base()
@@ -165,6 +172,11 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg_2);
                     il.Emit(OpCodes.Stfld, optionsField);
+
+                    // this.owner = owner;
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldarg_3);
+                    il.Emit(OpCodes.Stfld, ownerField);
 
                     // Emit IL that supports events.
                     foreach (Action<ILGenerator> action in ctorActions)
@@ -185,9 +197,60 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldfld, jsonRpcField);
                     MethodInfo jsonRpcDisposeMethod = typeof(JsonRpc).GetTypeInfo().GetDeclaredMethods(nameof(JsonRpc.Dispose)).Single(m => m.GetParameters().Length == 0);
                     il.EmitCall(OpCodes.Callvirt, jsonRpcDisposeMethod, EmptyTypes);
+
+                    // GC.SuppressFinalize(this);
+                    il.Emit(OpCodes.Ldarg_0);
+                    MethodInfo suppressFinalize = typeof(GC).GetTypeInfo().GetDeclaredMethod(nameof(GC.SuppressFinalize));
+                    il.EmitCall(OpCodes.Call, suppressFinalize, EmptyTypes);
+
                     il.Emit(OpCodes.Ret);
 
                     proxyTypeBuilder.DefineMethodOverride(disposeMethod, typeof(IDisposable).GetTypeInfo().GetDeclaredMethod(nameof(IDisposable.Dispose))!);
+                }
+
+                // Finalizer (for abandoned connection detection)
+                {
+                    MethodBuilder finalizeMethod = proxyTypeBuilder.DefineMethod("Finalize", MethodAttributes.Family | MethodAttributes.HideBySig | MethodAttributes.Virtual);
+                    ILGenerator il = finalizeMethod.GetILGenerator();
+
+                    Label endTryLabel = il.DefineLabel();
+
+                    // try {
+                    il.BeginExceptionBlock();
+
+                    // We must not dereference any other objects when the AppDomain is being unloaded
+                    // since there's no guarantee at that point that references are valid.
+                    // if (!AppDomain.CurrentDomain.IsFinalizingForUnload()) {
+                    il.Emit(OpCodes.Call, GetCurrentDomainMethod);
+                    il.Emit(OpCodes.Callvirt, IsFinalizingForUnloadMethod);
+                    il.Emit(OpCodes.Brtrue_S, endTryLabel);
+                    {
+                        // this.rpc.NotifyAbandonedProxy(this.owner, typeof(ProxyType));
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldfld, jsonRpcField);
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldfld, ownerField);
+                        il.Emit(OpCodes.Ldtoken, serviceInterface);
+                        il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
+                        il.EmitCall(OpCodes.Callvirt, NotifyAbandonedProxyMethod, EmptyTypes);
+                    }
+
+                    il.MarkLabel(endTryLabel);
+
+                    // } finally {
+                    il.BeginFinallyBlock();
+                    {
+                        // base.Finalize();
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Call, ObjectFinalizeMethod);
+                    }
+
+                    // } // finally
+                    il.EndExceptionBlock();
+
+                    il.Emit(OpCodes.Ret);
+
+                    proxyTypeBuilder.DefineMethodOverride(finalizeMethod, ObjectFinalizeMethod);
                 }
 
                 // IJsonRpcClientProxy.JsonRpc property

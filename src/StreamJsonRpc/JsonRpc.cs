@@ -223,7 +223,7 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Raised when the underlying stream is disconnected.
+        /// Occurs when the underlying stream is disconnected.
         /// </summary>
         public event EventHandler<JsonRpcDisconnectedEventArgs>? Disconnected
         {
@@ -250,6 +250,17 @@ namespace StreamJsonRpc
                 this.DisconnectedPrivate -= value;
             }
         }
+
+        /// <summary>
+        /// Occurs when this <see cref="JsonRpc"/> instance or generated proxies are finalized without having been disposed of first.
+        /// </summary>
+        /// <remarks>
+        /// Applications should hook this event before handing out JSON-RPC connections or proxies in order to monitor
+        /// leaked resources.
+        /// Garbage collection is *not* sufficient since the I/O associated with JSON-RPC connections pin the references.
+        /// Only explicit disposal will release the resources.
+        /// </remarks>
+        public event EventHandler<AbandonedConnectionEventArgs>? Abandoned;
 
         /// <inheritdoc/>
         event EventHandler<JsonRpcMessageEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
@@ -570,9 +581,8 @@ namespace StreamJsonRpc
         public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
             where T : class
         {
-            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(sendingStream, receivingStream);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default)!;
+            T proxy = (T)rpc.CreateProxy(typeof(T), null);
             rpc.StartListening();
             return proxy;
         }
@@ -607,9 +617,8 @@ namespace StreamJsonRpc
         public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options)
             where T : class
         {
-            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(handler);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default)!;
+            T proxy = (T)rpc.CreateProxy(typeof(T), options);
             rpc.StartListening();
             return proxy;
         }
@@ -622,7 +631,7 @@ namespace StreamJsonRpc
         public T Attach<T>()
             where T : class
         {
-            return this.Attach<T>(null);
+            return (T)this.CreateProxy(typeof(T), null);
         }
 
         /// <summary>
@@ -634,9 +643,7 @@ namespace StreamJsonRpc
         public T Attach<T>(JsonRpcProxyOptions? options)
             where T : class
         {
-            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
-            return proxy;
+            return (T)this.CreateProxy(typeof(T), options);
         }
 
         /// <summary>
@@ -655,9 +662,7 @@ namespace StreamJsonRpc
         public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
         {
             Requires.NotNull(interfaceType, nameof(interfaceType));
-            TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo());
-            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
-            return proxy;
+            return this.CreateProxy(interfaceType, options);
         }
 
         /// <summary>
@@ -1158,6 +1163,19 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Invoked by generated proxies when they are finalized instead of disposed.
+        /// </summary>
+        /// <param name="ownerStackTrace">The stack trace of the allocating owner of the abandoned object.</param>
+        /// <param name="proxyType">The RPC interface that the proxy implemented, if applicable.</param>
+        internal void NotifyAbandonedProxy(StackTrace? ownerStackTrace, Type? proxyType)
+        {
+            if (!this.IsDisposed)
+            {
+                this.Abandoned?.Invoke(this, new AbandonedConnectionEventArgs(ownerStackTrace, proxyType));
+            }
+        }
+
+        /// <summary>
         /// Disposes managed and native resources held by this instance.
         /// </summary>
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
@@ -1536,6 +1554,18 @@ namespace StreamJsonRpc
 
             task = null;
             return false;
+        }
+
+        private object CreateProxy(Type interfaceType, JsonRpcProxyOptions? options)
+        {
+            TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo());
+
+            // Only capture a stack trace if the owner has already indicated interest in tracking abandoned instances.
+            StackTrace? owner = this.Abandoned != null ? new StackTrace(2) : null;
+
+            object? proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, owner);
+            Assumes.NotNull(proxy);
+            return proxy;
         }
 
         private RemoteRpcException CreateExceptionFromRpcError(JsonRpcError response, string targetName)
@@ -2461,6 +2491,33 @@ namespace StreamJsonRpc
         private void ThrowIfConfigurationLocked()
         {
             Verify.Operation(!this.HasListeningStarted || this.AllowModificationWhileListening, Resources.MustNotBeListening);
+        }
+
+        /// <summary>
+        /// Describes an abandoned <see cref="JsonRpc"/> instance of generated proxy.
+        /// </summary>
+        public class AbandonedConnectionEventArgs
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AbandonedConnectionEventArgs"/> class.
+            /// </summary>
+            /// <param name="ownerStackTrace">The stack trace of the allocating owner of the abandoned object.</param>
+            /// <param name="proxyType">The RPC interface that the proxy implemented, if applicable.</param>
+            internal AbandonedConnectionEventArgs(StackTrace? ownerStackTrace, Type? proxyType)
+            {
+                this.OwnerStackTrace = ownerStackTrace;
+                this.ProxyType = proxyType;
+            }
+
+            /// <summary>
+            /// Gets the stack trace of the allocating owner of the abandoned object.
+            /// </summary>
+            public StackTrace? OwnerStackTrace { get; }
+
+            /// <summary>
+            /// Gets the RPC interface that the proxy implemented, if applicable.
+            /// </summary>
+            public Type? ProxyType { get; }
         }
 
         internal class MethodNameMap

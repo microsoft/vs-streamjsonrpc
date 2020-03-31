@@ -3,6 +3,9 @@
 
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
@@ -606,6 +609,98 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
         await clientRpc.DoSomethingValueAsync();
+    }
+
+    /// <summary>
+    /// Verifies that an RPC proxy that is abandoned can be detected and properly blamed.
+    /// </summary>
+    /// <remarks>
+    /// Abandoned proxies keep the connection active, which leaks resources.
+    /// All proxies should be explicitly disposed of when no longer in use.
+    /// </remarks>
+    [Fact]
+    public void ProxyAbandonmentIsReported()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        JsonRpc.Attach(streams.Item2, server);
+
+        var tracker = ProxyAbandonmentIsReported_Helper(streams.Item1);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+
+        // Verify that the front-facing client proxy itself can be collected.
+        Assert.False(tracker.Weak.IsAlive);
+
+        // Verify that running the Finalizer caused a record regarding the abandoned proxy.
+        Assert.True(tracker.Notification.IsCompleted);
+
+        Assert.Same(tracker.JsonRpc, tracker.Notification.Result.JsonRpc);
+        Assert.Same(typeof(IServerWithValueTasks), tracker.Notification.Result.Args.ProxyType);
+
+        // Verify that the callstack of the owner was captured:
+        var testMethod = MethodBase.GetCurrentMethod();
+        Assert.Contains(testMethod, tracker.Notification.Result.Args.OwnerStackTrace?.GetFrames().Select(f => f?.GetMethod()));
+    }
+
+    [Fact]
+    public void ProxyAbandonment_WhenJsonRpcIsDisposed()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        JsonRpc.Attach(streams.Item2, server);
+
+        var tracker = ProxyAbandonmentIsReported_Helper(streams.Item1, disposeJsonRpc: true);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+
+        // Verify that the front-facing client proxy itself can be collected.
+        Assert.False(tracker.Weak.IsAlive);
+
+        // Verify that no abandonment event was raised, since JsonRpc.Dispose() should satisfy it.
+        Assert.False(tracker.Notification.IsCompleted);
+    }
+
+    [Fact]
+    public void ProxyAbandonment_WhenProxyIsDisposed()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        JsonRpc.Attach(streams.Item2, server);
+
+        var tracker = ProxyAbandonmentIsReported_Helper(streams.Item1, disposeProxy: true);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+
+        // Verify that the front-facing client proxy itself can be collected.
+        Assert.False(tracker.Weak.IsAlive);
+
+        // Verify that no abandonment event was raised, since proxy.Dispose() should satisfy it.
+        Assert.False(tracker.Notification.IsCompleted);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (WeakReference Weak, JsonRpc JsonRpc, Task<(JsonRpc JsonRpc, JsonRpc.AbandonedConnectionEventArgs Args)> Notification) ProxyAbandonmentIsReported_Helper(Stream stream, bool disposeJsonRpc = false, bool disposeProxy = false)
+    {
+        var abandonedSource = new TaskCompletionSource<(JsonRpc JsonRpc, JsonRpc.AbandonedConnectionEventArgs Args)>();
+        var jsonRpc = new JsonRpc(stream);
+        jsonRpc.Abandoned += (s, e) => abandonedSource.SetResult(((JsonRpc)s!, e));
+        var clientRpc = jsonRpc.Attach<IServerWithValueTasks>();
+        jsonRpc.StartListening();
+
+        // For tests that want to dispose JsonRpc, be sure to do it *before* the client proxy may be collected.
+        if (disposeJsonRpc)
+        {
+            jsonRpc.Dispose();
+            GC.KeepAlive(clientRpc);
+        }
+
+        if (disposeProxy)
+        {
+            ((IDisposable)clientRpc).Dispose();
+        }
+
+        return (new WeakReference(clientRpc), jsonRpc, abandonedSource.Task);
     }
 
     public class EmptyClass
