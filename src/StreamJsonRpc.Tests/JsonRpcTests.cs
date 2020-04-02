@@ -657,6 +657,16 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithParameterObjectAsync_CanCallCancellableMethodImplementedSynchronously()
+    {
+        using var cts = new CancellationTokenSource();
+        Task invocationTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.SyncMethodWithCancellation), new { waitForCancellation = true }, cancellationToken: cts.Token);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        cts.Cancel();
+        await Assert.ThrowsAsync<TaskCanceledException>(() => invocationTask);
+    }
+
+    [Fact]
     public async Task InvokeAsync_PassArgsAsNonArrayList()
     {
         var args = new List<object> { 1, 2 };
@@ -2015,6 +2025,19 @@ public abstract class JsonRpcTests : TestBase
         {
             await Task.Yield();
             return 5;
+        }
+
+        public void SyncMethodWithCancellation(bool waitForCancellation, CancellationToken cancellationToken)
+        {
+            this.ServerMethodReached.Set();
+            if (waitForCancellation)
+            {
+                var mres = new ManualResetEventSlim();
+                cancellationToken.Register(() => mres.Set());
+                mres.Wait();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         public void SyncMethodWaitsToReturn()

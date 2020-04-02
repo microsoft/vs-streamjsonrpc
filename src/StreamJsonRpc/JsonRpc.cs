@@ -1469,6 +1469,19 @@ namespace StreamJsonRpc
             return requestMethodToDelegateMap;
         }
 
+        private static JsonRpcError CreateCancellationResponse(JsonRpcRequest request)
+        {
+            return new JsonRpcError
+            {
+                RequestId = request.RequestId,
+                Error = new JsonRpcError.ErrorDetail
+                {
+                    Code = JsonRpcErrorCode.RequestCanceled,
+                    Message = Resources.TaskWasCancelled,
+                },
+            };
+        }
+
         private static Exception StripExceptionToInnerException(Exception exception)
         {
             if ((exception is TargetInvocationException || exception is AggregateException) && exception.InnerException is object)
@@ -1798,7 +1811,15 @@ namespace StreamJsonRpc
                     //            This is crucial to the guarantee that method invocation order is preserved from client to server
                     //            when a single-threaded SynchronizationContext is applied.
                     await this.SynchronizationContextOrDefault;
-                    object? result = targetMethod.Invoke(cancellationToken);
+                    object? result;
+                    try
+                    {
+                        result = targetMethod.Invoke(cancellationToken);
+                    }
+                    catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+                    {
+                        return CreateCancellationResponse(request);
+                    }
 
                     if (TryGetTaskFromValueTask(result, out Task? resultTask))
                     {
@@ -1990,15 +2011,7 @@ namespace StreamJsonRpc
             }
             else if (t.IsCanceled)
             {
-                result = new JsonRpcError
-                {
-                    RequestId = request.RequestId,
-                    Error = new JsonRpcError.ErrorDetail
-                    {
-                        Code = JsonRpcErrorCode.RequestCanceled,
-                        Message = Resources.TaskWasCancelled,
-                    },
-                };
+                result = CreateCancellationResponse(request);
             }
             else
             {
