@@ -27,5 +27,17 @@ namespace StreamJsonRpc
         /// Gets or sets the minimum number of elements to obtain from the generator before sending a batch of values to the consumer.
         /// </summary>
         public int MinBatchSize { get; set; } = 1;
+
+        /// <summary>
+        /// Gets or sets the number of elements that should be precomputed and provided in the initial JSON-RPC message
+        /// so the receiving party does not neet to request the initial few elements.
+        /// </summary>
+        /// <remarks>
+        /// <para>This should only be used for <see cref="IAsyncEnumerable{T}"/> objects returned directly from an RPC method.</para>
+        /// <para>To prefetch items for <see cref="IAsyncEnumerable{T}"/> objects used as arguments to an RPC method
+        /// or within an object graph of a returned value, use the <see cref="JsonRpcExtensions.WithPrefetchAsync{T}(IAsyncEnumerable{T}, int, System.Threading.CancellationToken)"/> extension method
+        /// instead and leave this value at 0.</para>
+        /// </remarks>
+        public int Prefetch { get; set; }
     }
 }
