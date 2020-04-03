@@ -9,6 +9,8 @@ StreamJsonRpc.JsonRpcEnumerableSettings.MaxReadAhead.get -> int
 StreamJsonRpc.JsonRpcEnumerableSettings.MaxReadAhead.set -> void
 StreamJsonRpc.JsonRpcEnumerableSettings.MinBatchSize.get -> int
 StreamJsonRpc.JsonRpcEnumerableSettings.MinBatchSize.set -> void
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
 StreamJsonRpc.JsonRpcExtensions
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute() -> void
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get -> bool

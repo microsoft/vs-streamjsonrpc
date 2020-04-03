@@ -15,6 +15,17 @@ namespace StreamJsonRpc
     /// </summary>
     public static class JsonRpcExtensions
     {
+        /// <summary>
+        /// A non-generic interface implemented by <see cref="RpcEnumerable{T}"/>
+        /// so that non-generic callers can initiate a prefetch if necessary.
+        /// </summary>
+        private interface IRpcEnumerable
+        {
+            JsonRpcEnumerableSettings Settings { get; }
+
+            Task PrefetchAsync(int count, CancellationToken cancellationToken);
+        }
+
 #pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         /// <summary>
         /// Decorates an <see cref="IAsyncEnumerable{T}"/> with settings that customize how StreamJsonRpc will send its items to the remote party.
@@ -121,6 +132,27 @@ namespace StreamJsonRpc
             return (enumerable as RpcEnumerable<T>)?.Settings ?? JsonRpcEnumerableSettings.DefaultSettings;
         }
 
+        /// <summary>
+        /// Executes the pre-fetch of values for an <see cref="IAsyncEnumerable{T}"/> object if
+        /// prefetch is set with the <see cref="JsonRpcEnumerableSettings.Prefetch"/> property.
+        /// </summary>
+        /// <param name="possibleEnumerable">An object which might represent an <see cref="IAsyncEnumerable{T}"/>.</param>
+        /// <param name="cancellationToken">A token to cancel prefetching.</param>
+        /// <returns>A task that tracks completion of the prefetch operation.</returns>
+        internal static Task PrefetchIfApplicableAsync(object? possibleEnumerable, CancellationToken cancellationToken)
+        {
+            if (possibleEnumerable is IRpcEnumerable enumerable)
+            {
+                if (enumerable.Settings?.Prefetch > 0)
+                {
+                    // TODO: What if the async iterator method throws? (think OCE or other)
+                    return enumerable.PrefetchAsync(enumerable.Settings.Prefetch, cancellationToken);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         internal static (IReadOnlyList<T> Elements, bool Finished) TearOffPrefetchedElements<T>(this IAsyncEnumerable<T> enumerable)
         {
             Requires.NotNull(enumerable, nameof(enumerable));
@@ -130,7 +162,7 @@ namespace StreamJsonRpc
 
         private static RpcEnumerable<T> GetRpcEnumerable<T>(IAsyncEnumerable<T> enumerable) => enumerable as RpcEnumerable<T> ?? new RpcEnumerable<T>(enumerable);
 
-        private class RpcEnumerable<T> : IAsyncEnumerable<T>
+        private class RpcEnumerable<T> : IAsyncEnumerable<T>, IRpcEnumerable
         {
             private readonly RpcEnumerator innerEnumerator;
 
@@ -141,7 +173,13 @@ namespace StreamJsonRpc
                 this.innerEnumerator = new RpcEnumerator(enumerable);
             }
 
-            internal JsonRpcEnumerableSettings Settings { get; set; } = JsonRpcEnumerableSettings.DefaultSettings;
+            public JsonRpcEnumerableSettings Settings { get; internal set; } = JsonRpcEnumerableSettings.DefaultSettings;
+
+            public Task PrefetchAsync(int count, CancellationToken cancellationToken)
+            {
+                Verify.Operation(!this.enumeratorRequested, Resources.CannotBeCalledAfterGetAsyncEnumerator);
+                return this.innerEnumerator.PrefetchAsync(count, cancellationToken);
+            }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
             {
@@ -151,12 +189,6 @@ namespace StreamJsonRpc
             }
 
             internal (IReadOnlyList<T> Elements, bool Finished) TearOffPrefetchedElements() => this.innerEnumerator.TearOffPrefetchedElements();
-
-            internal Task PrefetchAsync(int count, CancellationToken cancellationToken)
-            {
-                Verify.Operation(!this.enumeratorRequested, Resources.CannotBeCalledAfterGetAsyncEnumerator);
-                return this.innerEnumerator.PrefetchAsync(count, cancellationToken);
-            }
 
             private class RpcEnumerator : IAsyncEnumerator<T>
             {
