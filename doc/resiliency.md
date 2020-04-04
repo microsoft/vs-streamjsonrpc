@@ -96,11 +96,39 @@ the client originally sent them. This happens naturally if the client sends only
 awaiting the result before making the next request.
 
 If the client sends a stream of requests at a time, and expects you to process them strictly in-order,
-you should use a custom `SynchronizationContext` that will only dispatch one call at a time, and use only
+you should apply a `SynchronizationContext`-derived instance that will only dispatch one call at a time, and use only
 synchronous server methods (no *awaits*).
+The `Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext` is a good option for this,
+and can be applied like this:
 
-A possible improvement to handling message ordering is being [considered via the JSON-RPC request batching spec](https://github.com/Microsoft/vs-streamjsonrpc/issues/134), which would allow concurrency except where clients
-explicitly constrain a list of requests for sequential execution.
+```cs
+var jsonRpc = new JsonRpc(stream);
+jsonRpc.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
+jsonRpc.AddLocalRpcTarget(this);
+jsonRpc.StartListening();
+```
+
+At this point, incoming JSON-RPC requests will be dispatched to the threadpool one-at-a-time,
+in the order the requests were made.
+
+Suppose two requests are received to invoke RPC server methods `Op1Async()` and `Op2Async()`,
+in that order but close together.
+The `SynchronizationContext` applied above will ensure that `Op1Async()` is invoked first.
+When `Op1Async` hits its first yielding `await`, `Op2Async` will be invoked.
+
+What happens next depends on the `sticky` argument passed to the `NonConcurrentSynchronizationContext` constructor.
+
+**When `sticky: true`**, anytime `Op1Async` and `Op2Async` hit a yielding await the default behavior will be
+to resume on this same non-concurrent `SynchronizationContext` when whatever they are awaiting is done.
+This means that although `Op1Async` and `Op2Async` may take turns executing as they each repeatedly yield until they each complete,
+they will never actually run *concurrently* with each other.
+
+**When `sticky: false`**, the first time an async method hits a yielding await it will resume on the threadpool
+when whatever it is waiting on is done. Its continuation may now run concurrently with other code such as another RPC method.
+
+When a yielding await uses `.ConfigureAwait(false)`, it takes that async method off the `SynchronizationContext`
+at which point code execution will happen on the threadpool, concurrently with any other code.
+The `sticky` value has no effect on concurrency of code that uses `.ConfigureAwait(false)`.
 
 ## Fatal exceptions
 
