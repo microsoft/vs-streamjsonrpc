@@ -29,11 +29,11 @@ which is fundamentally asynchronous.
 
 ### Dispose patterns
 
-The RPC interface may derive from `IDisposable` or `IAsyncDisposable` and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
-When these interfaces are derived from, the generated proxy implements the dispose method(s) by calling `JsonRpc.Dispose()`, which closes the connection.
-These interface implementations *never* result in an RPC call to a `Dispose` or `DisposeAsync` method on the server. The server should notice the dropped connection when the client was disposed and dispose the server object if necessary.
+The generated proxy *always* implements `IDisposable`, where `IDisposable.Dispose()` simply calls `JsonRpc.Dispose()`.
+This interface method call does *not* send a "Dispose" RPC method call to the server.
+The server should notice the dropped connection when the client was disposed and dispose the server object if necessary.
 
-Even when the RPC interface does *not* derive from `IDisposable` the generated proxy always implements that interface anyway. Deriving the RPC interface from it simply removes the need for the proxy owner to cast the proxy to `IDisposable` before calling `Dispose`.
+The RPC interface may derive from `IDisposable` and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
 
 ### Server-side concerns
 

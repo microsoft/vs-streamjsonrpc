@@ -46,11 +46,6 @@ namespace StreamJsonRpc
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
 
         private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
-        private static readonly MethodInfo SystemDisposeAsyncMethod = typeof(System.IAsyncDisposable).GetMethod(nameof(System.IAsyncDisposable.DisposeAsync));
-        private static readonly MethodInfo VsThreadingDisposeAsyncMethod = typeof(Microsoft.VisualStudio.Threading.IAsyncDisposable).GetMethod(nameof(Microsoft.VisualStudio.Threading.IAsyncDisposable.DisposeAsync));
-        private static readonly MethodInfo TaskCompletedTaskPropertyGetter = typeof(Task).GetProperty(nameof(Task.CompletedTask)).GetMethod;
-        private static readonly MethodInfo TaskFromExceptionMethod = typeof(Task).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(m => m.Name == nameof(Task.FromException) && !m.IsGenericMethod);
-        private static readonly ConstructorInfo NewValueTaskFromTaskCtor = typeof(ValueTask).GetConstructor(new Type[] { typeof(Task) });
 
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -229,16 +224,6 @@ namespace StreamJsonRpc
                         // This is unconditionally implemented earlier.
                         continue;
                     }
-                    else if (Equals(SystemDisposeAsyncMethod, method))
-                    {
-                        ImplementSystemDisposeAsyncMethod(proxyTypeBuilder, jsonRpcField);
-                        continue;
-                    }
-                    else if (Equals(VsThreadingDisposeAsyncMethod, method))
-                    {
-                        ImplementVsThreadingDisposeAsyncMethod(proxyTypeBuilder, jsonRpcField);
-                        continue;
-                    }
 
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
@@ -395,91 +380,6 @@ namespace StreamJsonRpc
             il.Emit(OpCodes.Ret);
 
             proxyTypeBuilder.DefineMethodOverride(methodBuilder, DisposeMethod);
-        }
-
-        private static void ImplementSystemDisposeAsyncMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField)
-        {
-            MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
-                SystemDisposeAsyncMethod.Name,
-                MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                SystemDisposeAsyncMethod.ReturnType,
-                Type.EmptyTypes);
-            ILGenerator il = methodBuilder.GetILGenerator();
-
-            // ValueTask result;
-            LocalBuilder resultLocal = il.DeclareLocal(typeof(ValueTask));
-
-            // try {
-            il.BeginExceptionBlock();
-            {
-                // this.rpc.Dispose();
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, jsonRpcField);
-                il.Emit(OpCodes.Callvirt, DisposeMethod);
-
-                // result = default(ValueTask);
-                il.Emit(OpCodes.Ldloca_S, resultLocal);
-                il.Emit(OpCodes.Initobj, typeof(ValueTask));
-            }
-
-            // } catch (Exception ex) {
-            il.BeginCatchBlock(typeof(Exception));
-            {
-                // result = new ValueTask(Task.FromException(ex));
-                il.Emit(OpCodes.Call, TaskFromExceptionMethod);
-                il.Emit(OpCodes.Newobj, NewValueTaskFromTaskCtor);
-                il.Emit(OpCodes.Stloc_0);
-            }
-
-            il.EndExceptionBlock();
-
-            // return result;
-            il.Emit(OpCodes.Ldloc_0);
-            il.Emit(OpCodes.Ret);
-
-            proxyTypeBuilder.DefineMethodOverride(methodBuilder, SystemDisposeAsyncMethod);
-        }
-
-        private static void ImplementVsThreadingDisposeAsyncMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField)
-        {
-            MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
-                VsThreadingDisposeAsyncMethod.Name,
-                MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                VsThreadingDisposeAsyncMethod.ReturnType,
-                Type.EmptyTypes);
-            ILGenerator il = methodBuilder.GetILGenerator();
-
-            // Task result;
-            il.DeclareLocal(typeof(Task));
-
-            // try {
-            il.BeginExceptionBlock();
-            {
-                // this.rpc.Dispose();
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, jsonRpcField);
-                il.Emit(OpCodes.Callvirt, DisposeMethod);
-
-                // result = Task.CompletedTask;
-                il.Emit(OpCodes.Call, TaskCompletedTaskPropertyGetter);
-                il.Emit(OpCodes.Stloc_0);
-            }
-
-            // } catch (Exception ex) {
-            il.BeginCatchBlock(typeof(Exception));
-            {
-                // result = Task.FromException(ex);
-                il.Emit(OpCodes.Call, TaskFromExceptionMethod);
-                il.Emit(OpCodes.Stloc_0);
-            }
-
-            il.EndExceptionBlock();
-
-            // return result;
-            il.Emit(OpCodes.Ldloc_0);
-            il.Emit(OpCodes.Ret);
-
-            proxyTypeBuilder.DefineMethodOverride(methodBuilder, VsThreadingDisposeAsyncMethod);
         }
 
         /// <summary>
