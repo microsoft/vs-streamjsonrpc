@@ -774,41 +774,6 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
     }
 
-    internal class DisposableServer2 : Server2, IDisposable
-    {
-        private readonly AsyncManualResetEvent disposedEvent = new AsyncManualResetEvent();
-
-        internal Task Disposal => this.disposedEvent.WaitAsync();
-
-        public void Dispose() => this.disposedEvent.Set();
-    }
-
-    internal class SystemAsyncDisposableServer2 : Server2, System.IAsyncDisposable
-    {
-        private readonly AsyncManualResetEvent disposedEvent = new AsyncManualResetEvent();
-
-        internal Task Disposal => this.disposedEvent.WaitAsync();
-
-        public ValueTask DisposeAsync()
-        {
-            this.disposedEvent.Set();
-            return default;
-        }
-    }
-
-    internal class VsThreadingAsyncDisposableServer2 : Server2, Microsoft.VisualStudio.Threading.IAsyncDisposable
-    {
-        private readonly AsyncManualResetEvent disposedEvent = new AsyncManualResetEvent();
-
-        internal Task Disposal => this.disposedEvent.WaitAsync();
-
-        public Task DisposeAsync()
-        {
-            this.disposedEvent.Set();
-            return Task.CompletedTask;
-        }
-    }
-
     internal class ServerOfInternalInterface : IServerInternal
     {
         public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
