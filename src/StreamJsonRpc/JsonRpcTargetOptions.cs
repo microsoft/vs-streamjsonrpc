@@ -44,9 +44,14 @@ namespace StreamJsonRpc
         /// when the connection with the remote party is lost.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The target object may implement <see cref="System.IAsyncDisposable"/>,
         /// <see cref="Microsoft.VisualStudio.Threading.IAsyncDisposable"/> or <see cref="IDisposable"/>.
         /// The first implemented interface from this list is the one whose dispose method will be invoked.
+        /// </para>
+        /// <para>
+        /// Exceptions thrown from the dispose method will be aggregated into <see cref="JsonRpc.Completion"/>.
+        /// </para>
         /// </remarks>
         public bool DisposeOnDisconnect { get; set; }
 

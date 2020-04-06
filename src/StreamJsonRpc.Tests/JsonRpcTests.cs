@@ -1699,48 +1699,93 @@ public abstract class JsonRpcTests : TestBase
         Assert.False(server.IsDisposed);
     }
 
-    [Fact]
-    public async Task DisposeOnDisconnect_SystemDisposable()
+    [Theory]
+    [CombinatorialData]
+    public async Task DisposeOnDisconnect_SystemDisposable(bool throwFromDispose)
     {
         var streams = FullDuplexStream.CreatePair();
         var server = new DisposableServer();
+        if (throwFromDispose)
+        {
+            server.ExceptionToThrowFromDisposal = new InvalidOperationException();
+        }
+
         var serverRpc = new JsonRpc(streams.Item2);
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
         Assert.False(server.IsDisposed);
         streams.Item1.Dispose();
-        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        if (throwFromDispose)
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => serverRpc.Completion).WithCancellation(this.TimeoutToken);
+            Assert.Same(server.ExceptionToThrowFromDisposal, ex);
+        }
+        else
+        {
+            await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        }
+
         Assert.True(server.IsDisposed);
     }
 
-    [Fact]
-    public async Task DisposeOnDisconnect_SystemAsyncDisposable()
+    [Theory]
+    [CombinatorialData]
+    public async Task DisposeOnDisconnect_SystemAsyncDisposable(bool throwFromDispose)
     {
         var streams = FullDuplexStream.CreatePair();
         var server = new SystemAsyncDisposableServer();
+        if (throwFromDispose)
+        {
+            server.ExceptionToThrowFromDisposal = new InvalidOperationException();
+        }
+
         var serverRpc = new JsonRpc(streams.Item2);
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
         Assert.False(server.IsDisposed);
         streams.Item1.Dispose();
-        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        if (throwFromDispose)
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => serverRpc.Completion).WithCancellation(this.TimeoutToken);
+            Assert.Same(server.ExceptionToThrowFromDisposal, ex);
+        }
+        else
+        {
+            await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        }
+
         Assert.True(server.IsDisposed);
     }
 
-    [Fact]
-    public async Task DisposeOnDisconnect_VsThreadingAsyncDisposable()
+    [Theory]
+    [CombinatorialData]
+    public async Task DisposeOnDisconnect_VsThreadingAsyncDisposable(bool throwFromDispose)
     {
         var streams = FullDuplexStream.CreatePair();
         var server = new VsThreadingAsyncDisposableServer();
+        if (throwFromDispose)
+        {
+            server.ExceptionToThrowFromDisposal = new InvalidOperationException();
+        }
+
         var serverRpc = new JsonRpc(streams.Item2);
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
         Assert.False(server.IsDisposed);
         streams.Item1.Dispose();
-        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        if (throwFromDispose)
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => serverRpc.Completion).WithCancellation(this.TimeoutToken);
+            Assert.Same(server.ExceptionToThrowFromDisposal, ex);
+        }
+        else
+        {
+            await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        }
+
         Assert.True(server.IsDisposed);
     }
 
@@ -2278,16 +2323,32 @@ public abstract class JsonRpcTests : TestBase
     {
         internal bool IsDisposed { get; private set; }
 
-        public void Dispose() => this.IsDisposed = true;
+        internal Exception? ExceptionToThrowFromDisposal { get; set; }
+
+        public void Dispose()
+        {
+            this.IsDisposed = true;
+            if (this.ExceptionToThrowFromDisposal is object)
+            {
+                throw this.ExceptionToThrowFromDisposal;
+            }
+        }
     }
 
     public class SystemAsyncDisposableServer : System.IAsyncDisposable
     {
         internal bool IsDisposed { get; private set; }
 
+        internal Exception? ExceptionToThrowFromDisposal { get; set; }
+
         public ValueTask DisposeAsync()
         {
             this.IsDisposed = true;
+            if (this.ExceptionToThrowFromDisposal is object)
+            {
+                throw this.ExceptionToThrowFromDisposal;
+            }
+
             return default;
         }
     }
@@ -2296,9 +2357,16 @@ public abstract class JsonRpcTests : TestBase
     {
         internal bool IsDisposed { get; private set; }
 
+        internal Exception? ExceptionToThrowFromDisposal { get; set; }
+
         public Task DisposeAsync()
         {
             this.IsDisposed = true;
+            if (this.ExceptionToThrowFromDisposal is object)
+            {
+                throw this.ExceptionToThrowFromDisposal;
+            }
+
             return Task.CompletedTask;
         }
     }
