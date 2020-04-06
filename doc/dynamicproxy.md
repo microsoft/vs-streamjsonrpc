@@ -16,7 +16,8 @@ A proxy can only be dynamically generated for an interface that meets these requ
 1. Is public
 1. No properties
 1. No generic methods
-1. All methods return `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`
+1. All methods return `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`.
+   One exception to this is the RPC interface may derive from `IDisposable` (which declares the `void` returning `Dispose` method).
 1. All events are typed with `EventHandler` or `EventHandler<T>`. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in `EventHandler<T>`.
 1. Methods *may* accept a `CancellationToken` as the last parameter.
 
@@ -25,6 +26,14 @@ A proxy can only be dynamically generated for an interface that meets these requ
 An interface used to generate a dynamic client proxy must return `Task` or `Task<T>` from all methods.
 This allows the client proxy to be generated with asynchronous methods as appropriate for JSON-RPC (and IPC in general)
 which is fundamentally asynchronous.
+
+### Dispose patterns
+
+The RPC interface may derive from `IDisposable` or `IAsyncDisposable` and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
+When these interfaces are derived from, the generated proxy implements the dispose method(s) by calling `JsonRpc.Dispose()`, which closes the connection.
+These interface implementations *never* result in an RPC call to a `Dispose` or `DisposeAsync` method on the server. The server should notice the dropped connection when the client was disposed and dispose the server object if necessary.
+
+Even when the RPC interface does *not* derive from `IDisposable` the generated proxy always implements that interface anyway. Deriving the RPC interface from it simply removes the need for the proxy owner to cast the proxy to `IDisposable` before calling `Dispose`.
 
 ### Server-side concerns
 
