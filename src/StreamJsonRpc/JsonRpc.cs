@@ -739,6 +739,23 @@ namespace StreamJsonRpc
                         }
                     }
                 }
+
+                if (options.DisposeOnDisconnect)
+                {
+                    // Arrange to dispose of the target when the connection is closed.
+                    if (target is System.IAsyncDisposable asyncDisposableTarget)
+                    {
+                        this.Disconnected += (s, e) => asyncDisposableTarget.DisposeAsync();
+                    }
+                    else if (target is Microsoft.VisualStudio.Threading.IAsyncDisposable vsAsyncDisposableTarget)
+                    {
+                        this.Disconnected += (s, e) => vsAsyncDisposableTarget.DisposeAsync();
+                    }
+                    else if (target is IDisposable disposableTarget)
+                    {
+                        this.Disconnected += (s, e) => disposableTarget.Dispose();
+                    }
+                }
             }
         }
 
