@@ -13,6 +13,8 @@ StreamJsonRpc.JsonRpcExtensions
 StreamJsonRpc.JsonRpcMethodAttribute.JsonRpcMethodAttribute() -> void
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.get -> bool
 StreamJsonRpc.JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization.set -> void
+StreamJsonRpc.JsonRpcTargetOptions.DisposeOnDisconnect.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.DisposeOnDisconnect.set -> void
 StreamJsonRpc.MessagePackFormatter
 StreamJsonRpc.MessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage
 StreamJsonRpc.MessagePackFormatter.Dispose() -> void

@@ -116,6 +116,11 @@ namespace StreamJsonRpc
         private JsonRpcDisconnectedEventArgs? disconnectedEventArgs;
 
         /// <summary>
+        /// A lazily-initialized list of objects to dispose of when the JSON-RPC connection drops.
+        /// </summary>
+        private List<object>? localTargetObjectsToDispose;
+
+        /// <summary>
         /// Backing field for the <see cref="TraceSource"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -738,6 +743,16 @@ namespace StreamJsonRpc
                             }
                         }
                     }
+                }
+
+                if (options.DisposeOnDisconnect)
+                {
+                    if (this.localTargetObjectsToDispose is null)
+                    {
+                        this.localTargetObjectsToDispose = new List<object>();
+                    }
+
+                    this.localTargetObjectsToDispose.Add(target);
                 }
             }
         }
@@ -2105,36 +2120,80 @@ namespace StreamJsonRpc
                 // So this is executed even if Disconnected event handler throws.
                 this.disconnectedSource.Cancel();
 
-                Task messageHandlerDisposal = Task.CompletedTask;
-                if (this.MessageHandler is Microsoft.VisualStudio.Threading.IAsyncDisposable asyncDisposableMessageHandler)
-                {
-                    messageHandlerDisposal = asyncDisposableMessageHandler.DisposeAsync();
-                }
-                else if (this.MessageHandler is IDisposable disposableMessageHandler)
-                {
-                    disposableMessageHandler.Dispose();
-                }
+                this.JsonRpcDisconnectedShutdownAsync(eventArgs).Forget();
+            }
+        }
 
-                this.FaultPendingRequests();
+        private async Task JsonRpcDisconnectedShutdownAsync(JsonRpcDisconnectedEventArgs eventArgs)
+        {
+            Task messageHandlerDisposal = Task.CompletedTask;
+            if (this.MessageHandler is Microsoft.VisualStudio.Threading.IAsyncDisposable asyncDisposableMessageHandler)
+            {
+                messageHandlerDisposal = asyncDisposableMessageHandler.DisposeAsync();
+            }
+            else if (this.MessageHandler is IDisposable disposableMessageHandler)
+            {
+                disposableMessageHandler.Dispose();
+            }
 
-                // Ensure the Task we may have returned from Completion is completed,
-                // but not before any asynchronous disposal of our message handler completes.
-                messageHandlerDisposal.ContinueWith(
-                    handlerDisposal =>
+            this.FaultPendingRequests();
+
+            var exceptions = new List<Exception>();
+            if (eventArgs.Exception is object)
+            {
+                exceptions.Add(eventArgs.Exception);
+            }
+
+            if (this.localTargetObjectsToDispose is object)
+            {
+                foreach (object target in this.localTargetObjectsToDispose)
+                {
+                    // We're calling Dispose on the target objects, so switch to the user-supplied SyncContext for those target objects.
+                    await this.SynchronizationContextOrDefault;
+
+                    try
                     {
-                        Exception fault = eventArgs.Exception ?? handlerDisposal.Exception;
-                        if (fault != null)
+                        // Arrange to dispose of the target when the connection is closed.
+                        if (target is System.IAsyncDisposable asyncDisposableTarget)
                         {
-                            this.completionSource.TrySetException(fault);
+                            await asyncDisposableTarget.DisposeAsync().ConfigureAwait(false);
                         }
-                        else
+                        else if (target is Microsoft.VisualStudio.Threading.IAsyncDisposable vsAsyncDisposableTarget)
                         {
-                            this.completionSource.TrySetResult(true);
+                            await vsAsyncDisposableTarget.DisposeAsync().ConfigureAwait(false);
                         }
-                    },
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default).Forget();
+                        else if (target is IDisposable disposableTarget)
+                        {
+                            disposableTarget.Dispose();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Add(ex);
+                    }
+                }
+
+                await TaskScheduler.Default;
+            }
+
+            // Ensure the Task we may have returned from Completion is completed,
+            // but not before any asynchronous disposal of our message handler completes.
+            try
+            {
+                await messageHandlerDisposal.ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+
+            if (exceptions.Count > 0)
+            {
+                this.completionSource.TrySetException(exceptions.Count > 1 ? new AggregateException(exceptions) : exceptions[0]);
+            }
+            else
+            {
+                this.completionSource.TrySetResult(true);
             }
         }
 
