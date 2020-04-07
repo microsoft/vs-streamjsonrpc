@@ -45,6 +45,8 @@ namespace StreamJsonRpc
         private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) })!;
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
 
+        private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
+
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
         /// </summary>
@@ -175,20 +177,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ret);
                 }
 
-                // IDisposable.Dispose()
-                {
-                    MethodBuilder disposeMethod = proxyTypeBuilder.DefineMethod(nameof(IDisposable.Dispose), MethodAttributes.Private | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual);
-                    ILGenerator il = disposeMethod.GetILGenerator();
-
-                    // this.rpc.Dispose();
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, jsonRpcField);
-                    MethodInfo jsonRpcDisposeMethod = typeof(JsonRpc).GetTypeInfo().GetDeclaredMethods(nameof(JsonRpc.Dispose)).Single(m => m.GetParameters().Length == 0);
-                    il.EmitCall(OpCodes.Callvirt, jsonRpcDisposeMethod, EmptyTypes);
-                    il.Emit(OpCodes.Ret);
-
-                    proxyTypeBuilder.DefineMethodOverride(disposeMethod, typeof(IDisposable).GetTypeInfo().GetDeclaredMethod(nameof(IDisposable.Dispose))!);
-                }
+                ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField);
 
                 // IJsonRpcClientProxy.JsonRpc property
                 {
@@ -229,6 +218,13 @@ namespace StreamJsonRpc
 
                 foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
+                    // Check for specially supported methods from derived interfaces.
+                    if (Equals(DisposeMethod, method))
+                    {
+                        // This is unconditionally implemented earlier.
+                        continue;
+                    }
+
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
                     bool returnTypeIsIAsyncEnumerable = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
@@ -365,6 +361,25 @@ namespace StreamJsonRpc
             }
 
             return generatedType;
+        }
+
+        private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField)
+        {
+            MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
+                DisposeMethod.Name,
+                MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+                DisposeMethod.ReturnType,
+                Type.EmptyTypes);
+            ILGenerator il = methodBuilder.GetILGenerator();
+
+            // this.rpc.Dispose();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, jsonRpcField);
+            il.Emit(OpCodes.Callvirt, DisposeMethod);
+
+            il.Emit(OpCodes.Ret);
+
+            proxyTypeBuilder.DefineMethodOverride(methodBuilder, DisposeMethod);
         }
 
         /// <summary>
