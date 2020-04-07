@@ -509,6 +509,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
+    [Trait("TestCategory", "FailsInCloudTest")] // https://github.com/microsoft/vs-streamjsonrpc/issues/427
     public async Task StreamClosesDeterministically()
     {
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
