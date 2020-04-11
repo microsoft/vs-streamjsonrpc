@@ -1434,6 +1434,11 @@ namespace StreamJsonRpc
 
                     JsonRpcMethodAttribute? attribute = mapping.FindAttribute(method);
 
+                    if (attribute == null && options.UseSingleObjectParameterDeserialization)
+                    {
+                        attribute = new JsonRpcMethodAttribute(null) { UseSingleObjectParameterDeserialization = true };
+                    }
+
                     // Skip this method if its signature matches one from a derived type we have already scanned.
                     MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute);
                     if (methodTargetList.Contains(methodTarget))
@@ -1445,7 +1450,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
-                    if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
+                    if (attribute?.Name == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
                         if (!candidateAliases.ContainsKey(nonAsyncMethodName))
