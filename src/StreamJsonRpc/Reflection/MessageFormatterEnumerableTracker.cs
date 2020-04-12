@@ -446,6 +446,11 @@ namespace StreamJsonRpc.Reflection
                         try
                         {
                             EnumeratorResults<T> results = await this.owner.jsonRpc.InvokeWithCancellationAsync<EnumeratorResults<T>>(NextMethodName, this.nextOrDisposeArguments, this.cancellationToken).ConfigureAwait(false);
+                            if (!results.Finished && results.Values?.Count == 0)
+                            {
+                                throw new UnexpectedEmptyEnumerableResponseException("The RPC server responded with an empty list of additional values for an incomplete list.");
+                            }
+
                             if (results.Values != null)
                             {
                                 Write(this.localCachedValues, results.Values);
