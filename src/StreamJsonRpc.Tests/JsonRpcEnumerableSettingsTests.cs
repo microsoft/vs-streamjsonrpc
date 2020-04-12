@@ -22,12 +22,26 @@ public class JsonRpcEnumerableSettingsTests
     }
 
     [Fact]
+    public void Prefetch_Default()
+    {
+        Assert.Equal(0, this.settings.Prefetch);
+    }
+
+    [Fact]
     public void MinBatchSize_AcceptsOnlyPositiveIntegers()
     {
         this.settings.MinBatchSize = 1;
         this.settings.MinBatchSize = 10;
         Assert.Throws<ArgumentOutOfRangeException>(() => this.settings.MinBatchSize = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => this.settings.MinBatchSize = -1);
+    }
+
+    [Fact]
+    public void Prefetch_AcceptsOnlyNonNegativeIntegers()
+    {
+        this.settings.Prefetch = 10;
+        this.settings.Prefetch = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => this.settings.Prefetch = -1);
     }
 
     [Fact]

@@ -30,6 +30,11 @@ namespace StreamJsonRpc
         private int maxReadAhead;
 
         /// <summary>
+        /// Backing field for the <see cref="Prefetch"/> property.
+        /// </summary>
+        private int prefetch;
+
+        /// <summary>
         /// Gets or sets the maximum number of elements to read ahead and cache from the generator in anticipation of the consumer requesting those values.
         /// </summary>
         /// <value>This value must be a non-negative number.</value>
@@ -67,6 +72,14 @@ namespace StreamJsonRpc
         /// or within an object graph of a returned value, use the <see cref="JsonRpcExtensions.WithPrefetchAsync{T}(IAsyncEnumerable{T}, int, System.Threading.CancellationToken)"/> extension method
         /// instead and leave this value at 0.</para>
         /// </remarks>
-        public int Prefetch { get; set; }
+        public int Prefetch
+        {
+            get => this.prefetch;
+            set
+            {
+                Requires.Range(value >= 0, nameof(value), Resources.NonNegativeIntegerRequired);
+                this.prefetch = value;
+            }
+        }
     }
 }
