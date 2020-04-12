@@ -446,6 +446,11 @@ namespace StreamJsonRpc.Reflection
                         try
                         {
                             EnumeratorResults<T> results = await this.owner.jsonRpc.InvokeWithCancellationAsync<EnumeratorResults<T>>(NextMethodName, this.nextOrDisposeArguments, this.cancellationToken).ConfigureAwait(false);
+                            if (!results.Finished && results.Values?.Count == 0)
+                            {
+                                throw new UnexpectedEmptyEnumerableResponseException("The RPC server responded with an empty list of additional values for an incomplete list.");
+                            }
+
                             if (results.Values != null)
                             {
                                 Write(this.localCachedValues, results.Values);
@@ -453,9 +458,17 @@ namespace StreamJsonRpc.Reflection
 
                             this.generatorReportsFinished = results.Finished;
                         }
-                        catch (RemoteInvocationException ex) when (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                        catch (RemoteInvocationException ex)
                         {
-                            throw new InvalidOperationException(ex.Message, ex);
+                            // Avoid spending a message asking the server to dispose of the marshalled enumerator since they threw an exception at us.
+                            this.generatorReportsFinished = true;
+
+                            if (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                            {
+                                throw new InvalidOperationException(ex.Message, ex);
+                            }
+
+                            throw;
                         }
                     }
 
