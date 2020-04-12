@@ -73,18 +73,6 @@ namespace StreamJsonRpc
         private readonly Action<object> cancelPendingOutboundRequestAction;
 
         /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskOfTResult(JsonRpcRequest, Task)"/> method.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskOfTResultDelegate;
-
-        /// <summary>
-        /// A delegate for the <see cref="HandleInvocationTaskResult(JsonRpcRequest, Task)"/> method.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly Func<Task, object, JsonRpcMessage> handleInvocationTaskResultDelegate;
-
-        /// <summary>
         /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
         /// </summary>
         private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
@@ -221,8 +209,6 @@ namespace StreamJsonRpc
             }
 
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
-            this.handleInvocationTaskOfTResultDelegate = (t, request) => this.HandleInvocationTaskOfTResult((JsonRpcRequest)request, t);
-            this.handleInvocationTaskResultDelegate = (t, request) => this.HandleInvocationTaskResult((JsonRpcRequest)request, t);
 
             this.MessageHandler = messageHandler;
         }
@@ -1448,6 +1434,11 @@ namespace StreamJsonRpc
 
                     JsonRpcMethodAttribute? attribute = mapping.FindAttribute(method);
 
+                    if (attribute == null && options.UseSingleObjectParameterDeserialization)
+                    {
+                        attribute = new JsonRpcMethodAttribute(null) { UseSingleObjectParameterDeserialization = true };
+                    }
+
                     // Skip this method if its signature matches one from a derived type we have already scanned.
                     MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute);
                     if (methodTargetList.Contains(methodTarget))
@@ -1459,7 +1450,7 @@ namespace StreamJsonRpc
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
-                    if (attribute == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
+                    if (attribute?.Name == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
                         if (!candidateAliases.ContainsKey(nonAsyncMethodName))
@@ -1523,7 +1514,9 @@ namespace StreamJsonRpc
             TypeInfo? taskTypeInfoLocal = taskTypeInfo;
             while (taskTypeInfoLocal != null)
             {
-                if (IsTaskOfTOrValueTaskOfT(taskTypeInfoLocal))
+                bool isTaskOfTOrValueTaskOfT = taskTypeInfoLocal.IsGenericType &&
+                    (taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(Task<>) || taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(ValueTask<>));
+                if (isTaskOfTOrValueTaskOfT)
                 {
                     taskOfTTypeInfo = taskTypeInfoLocal;
                     return true;
@@ -1534,10 +1527,6 @@ namespace StreamJsonRpc
 
             taskOfTTypeInfo = null;
             return false;
-
-#pragma warning disable CS8762 // https://github.com/dotnet/roslyn/issues/41673
-            bool IsTaskOfTOrValueTaskOfT(TypeInfo typeInfo) => typeInfo.IsGenericType && (typeInfo.GetGenericTypeDefinition() == typeof(Task<>) || typeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>));
-#pragma warning restore CS8762 // https://github.com/dotnet/roslyn/issues/41673
         }
 
         /// <summary>
@@ -1836,6 +1825,7 @@ namespace StreamJsonRpc
                         return CreateCancellationResponse(request);
                     }
 
+                    // Convert ValueTask to Task or ValueTask<T> to Task<T>
                     if (TryGetTaskFromValueTask(result, out Task? resultTask))
                     {
                         result = resultTask;
@@ -1848,6 +1838,15 @@ namespace StreamJsonRpc
                             JsonRpcEventSource.Instance.SendingResult(request.RequestId.NumberIfPossibleForEvent);
                         }
 
+                        try
+                        {
+                            await this.ProcessResultBeforeSerializingAsync(result, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return CreateCancellationResponse(request);
+                        }
+
                         return new JsonRpcResult
                         {
                             RequestId = request.RequestId,
@@ -1855,20 +1854,16 @@ namespace StreamJsonRpc
                         };
                     }
 
+                    // Avoid another first chance exception from re-throwing here. We'll handle faults in our HandleInvocationTask* methods below.
+                    await resultingTask.NoThrowAwaitable(false);
+
                     // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
                     // Checking on the runtime result object itself is problematic because .NET / C# implements
                     // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                     // the VoidTaskResult internal struct as a meaningful result.
-                    Func<Task, object, JsonRpcMessage> continuationDelegate = TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
-                        ? this.handleInvocationTaskOfTResultDelegate
-                        : this.handleInvocationTaskResultDelegate;
-
-                    return await resultingTask.ContinueWith(
-                        continuationDelegate!,
-                        request,
-                        CancellationToken.None,
-                        TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default).ConfigureAwait(false);
+                    return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
+                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
+                        : this.HandleInvocationTaskResult(request, resultingTask);
                 }
                 else
                 {
@@ -2054,15 +2049,14 @@ namespace StreamJsonRpc
             return result;
         }
 
-        private JsonRpcMessage HandleInvocationTaskOfTResult(JsonRpcRequest request, Task t)
+        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
         {
-            JsonRpcMessage message = this.HandleInvocationTaskResult(request, t);
+            // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
+            Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
 
-            if (message is JsonRpcResult resultMessage)
+            object? result = null;
+            if (t.Status == TaskStatus.RanToCompletion)
             {
-                // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
-                Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
-
                 // If t is a Task<SomeType>, it will have Result property.
                 // If t is just a Task, there is no Result property on it.
                 // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
@@ -2075,10 +2069,32 @@ namespace StreamJsonRpc
 
                 PropertyInfo? resultProperty = taskOfTTypeInfo.GetDeclaredProperty(ResultPropertyName);
                 Assumes.NotNull(resultProperty);
-                resultMessage.Result = resultProperty.GetValue(t);
+                result = resultProperty.GetValue(t);
+
+                // Transfer the ultimate success/failure result of the operation from the original successful method to the post-processing step.
+                t = this.ProcessResultBeforeSerializingAsync(result, cancellationToken);
+                await t.NoThrowAwaitable(false);
+            }
+
+            JsonRpcMessage message = this.HandleInvocationTaskResult(request, t);
+            if (message is JsonRpcResult resultMessage)
+            {
+                resultMessage.Result = result;
             }
 
             return message;
+        }
+
+        /// <summary>
+        /// Perform any special processing on the result of an RPC method before serializing it for transmission to the RPC client.
+        /// </summary>
+        /// <param name="result">The result from the RPC method.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>A task that completes when processing the result is complete. The returned Task *may* transition to a <see cref="TaskStatus.Faulted"/> state.</returns>
+        private Task ProcessResultBeforeSerializingAsync(object? result, CancellationToken cancellationToken)
+        {
+            // If result is a prefetching IAsyncEnumerable<T>, prefetch now.
+            return JsonRpcExtensions.PrefetchIfApplicableAsync(result, cancellationToken);
         }
 
         private void OnJsonRpcDisconnected(JsonRpcDisconnectedEventArgs eventArgs)

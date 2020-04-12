@@ -66,6 +66,10 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         Task<IAsyncEnumerable<int>> WaitTillCanceledBeforeFirstItemWithPrefetchAsync(CancellationToken cancellationToken);
 
+        IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAsync(CancellationToken cancellationToken);
+
+        Task<IAsyncEnumerable<int>> WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAndTaskWrapperAsync(CancellationToken cancellationToken);
+
         Task<CompoundEnumerableResult> GetNumbersAndMetadataAsync(CancellationToken cancellationToken);
 
         Task PassInNumbersAsync(IAsyncEnumerable<int> numbers, CancellationToken cancellationToken);
@@ -365,12 +369,23 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [Theory]
     [PairwiseData]
-    public async Task Cancellation_DuringLongRunningServerBeforeReturning(bool useProxy, bool prefetch)
+    public async Task Cancellation_DuringLongRunningServerBeforeReturning(bool useProxy, [CombinatorialValues(0, 1, 2, 3)] int prefetchStrategy)
     {
         var cts = new CancellationTokenSource();
+        string rpcMethodName =
+            prefetchStrategy == 0 ? nameof(Server.WaitTillCanceledBeforeReturningAsync) :
+            prefetchStrategy == 1 ? nameof(Server.WaitTillCanceledBeforeFirstItemWithPrefetchAsync) :
+            prefetchStrategy == 2 ? nameof(Server.WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAsync) :
+            prefetchStrategy == 3 ? nameof(Server.WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAndTaskWrapperAsync) :
+            throw new ArgumentOutOfRangeException(nameof(prefetchStrategy));
+
         Task<IAsyncEnumerable<int>> enumerable = useProxy
-            ? (prefetch ? this.clientProxy.Value.WaitTillCanceledBeforeFirstItemWithPrefetchAsync(cts.Token) : this.clientProxy.Value.WaitTillCanceledBeforeReturningAsync(cts.Token))
-            : this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(prefetch ? nameof(Server.WaitTillCanceledBeforeFirstItemWithPrefetchAsync) : nameof(Server.WaitTillCanceledBeforeReturningAsync), cancellationToken: cts.Token);
+            ? (prefetchStrategy == 0 ? this.clientProxy.Value.WaitTillCanceledBeforeReturningAsync(cts.Token) :
+               prefetchStrategy == 1 ? this.clientProxy.Value.WaitTillCanceledBeforeFirstItemWithPrefetchAsync(cts.Token) :
+               prefetchStrategy == 2 ? Task.FromResult(this.clientProxy.Value.WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAsync(cts.Token)) :
+               prefetchStrategy == 3 ? this.clientProxy.Value.WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAndTaskWrapperAsync(cts.Token) :
+               throw new ArgumentOutOfRangeException(nameof(prefetchStrategy)))
+            : this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(rpcMethodName, cancellationToken: cts.Token);
 
         // Make sure the method has been invoked first.
         await this.server.MethodEntered.WaitAsync(this.TimeoutToken);
@@ -379,7 +394,15 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         cts.Cancel();
 
         // Verify that it does throw OCE. Or timeout and fail the test if it doesn't.
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerable).WithCancellation(this.TimeoutToken);
+        if (prefetchStrategy == 2 && useProxy)
+        {
+            // In this strategy, we just wrapped up the IAsyncEnumerable in a pre-completed task, so we won't observe cancellation until we start enumerating.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await (await enumerable).GetAsyncEnumerator().MoveNextAsync()).WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerable).WithCancellation(this.TimeoutToken);
+        }
     }
 
     [Fact]
@@ -486,6 +509,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         int enumerated = 0;
         await foreach (var item in proxy.GetNumbersParameterizedAsync(minBatchSize, maxReadAhead, prefetch, totalCount, endWithException: false, this.TimeoutToken).WithCancellation(this.TimeoutToken))
         {
+            Assert.True(this.server.ActuallyGeneratedValueCount >= Math.Min(totalCount, prefetch), $"Prefetch: {prefetch}, ActuallyGeneratedValueCount: {this.server.ActuallyGeneratedValueCount}");
             Assert.Equal(++enumerated, item);
         }
 
@@ -648,11 +672,10 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             }
         }
 
-        public async ValueTask<IAsyncEnumerable<int>> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken)
+        public IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken)
         {
-            return await this.GetNumbersAsync(totalCount, endWithException, cancellationToken)
-                .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = batchSize, MaxReadAhead = readAhead })
-                .WithPrefetchAsync(prefetch, cancellationToken);
+            return this.GetNumbersAsync(totalCount, endWithException, cancellationToken)
+                .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = batchSize, MaxReadAhead = readAhead, Prefetch = prefetch });
         }
 
         public async IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -667,6 +690,20 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             this.MethodEntered.Set();
             return await this.WaitTillCanceledBeforeFirstItemAsync(cancellationToken)
                 .WithPrefetchAsync(1, cancellationToken);
+        }
+
+        public IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAsync(CancellationToken cancellationToken)
+        {
+            this.MethodEntered.Set();
+            return this.WaitTillCanceledBeforeFirstItemAsync(cancellationToken)
+                .WithJsonRpcSettings(new JsonRpcEnumerableSettings { Prefetch = 1 });
+        }
+
+        public Task<IAsyncEnumerable<int>> WaitTillCanceledBeforeFirstItemUsingPrefetchSettingAndTaskWrapperAsync(CancellationToken cancellationToken)
+        {
+            this.MethodEntered.Set();
+            return Task.FromResult(this.WaitTillCanceledBeforeFirstItemAsync(cancellationToken)
+                .WithJsonRpcSettings(new JsonRpcEnumerableSettings { Prefetch = 1 }));
         }
 
         public Task<IAsyncEnumerable<int>> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken)

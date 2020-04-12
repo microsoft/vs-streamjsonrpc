@@ -68,6 +68,8 @@ public abstract class JsonRpcTests : TestBase
 
         [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
         int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token);
+
+        int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields);
     }
 
     [Fact]
@@ -471,6 +473,20 @@ public abstract class JsonRpcTests : TestBase
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodThatMayEndIn));
         Assert.Equal(5, result);
+    }
+
+    [Fact]
+    public async Task CanCallMethodWithAttributeOmittingAsyncSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>("MethodWithAttributeThatEndsIn");
+        Assert.Equal(6, result);
+    }
+
+    [Fact]
+    public async Task CanCallMethodWithAttributeWithoutOmittingAsyncSuffix()
+    {
+        int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithAttributeThatEndsInAsync));
+        Assert.Equal(6, result);
     }
 
     [Fact]
@@ -991,6 +1007,17 @@ public abstract class JsonRpcTests : TestBase
     {
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_UseSingleObjectParameterDeserialization()
+    {
+        var streams = FullDuplexStream.CreatePair();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
+        rpc.StartListening();
+
+        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYFields { x = 1, y = 2 }));
     }
 
     [Fact]
@@ -2032,6 +2059,11 @@ public abstract class JsonRpcTests : TestBase
             return fields.x + fields.y;
         }
 
+        public int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields)
+        {
+            return fields.x + fields.y;
+        }
+
         public TypeThrowsWhenDeserialized GetTypeThrowsWhenDeserialized() => new TypeThrowsWhenDeserialized();
 
         public void MethodWithArgThatFailsToDeserialize(TypeThrowsWhenDeserialized arg1)
@@ -2265,6 +2297,12 @@ public abstract class JsonRpcTests : TestBase
         public Task<int> MethodThatMayEndIn()
         {
             return Task.FromResult(5);
+        }
+
+        [JsonRpcMethod]
+        public Task<int> MethodWithAttributeThatEndsInAsync()
+        {
+            return Task.FromResult(6);
         }
 
         public int OverloadedMethod(Foo foo)

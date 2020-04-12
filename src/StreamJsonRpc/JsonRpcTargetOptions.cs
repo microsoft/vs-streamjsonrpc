@@ -40,6 +40,11 @@ namespace StreamJsonRpc
         public bool AllowNonPublicInvocation { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into the RPC method's first parameter.
+        /// </summary>
+        public bool UseSingleObjectParameterDeserialization { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether to dispose of the target object
         /// when the connection with the remote party is lost.
         /// </summary>

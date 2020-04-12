@@ -1,0 +1,4 @@
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
+StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.set -> void

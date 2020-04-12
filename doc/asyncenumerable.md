@@ -156,6 +156,18 @@ public class JsonRpcEnumerableSettings
     /// Gets or sets the minimum number of elements to obtain from the generator before sending a batch of values to the consumer.
     /// </summary>
     public int MinBatchSize { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the number of elements that should be precomputed and provided in the initial JSON-RPC message
+    /// so the receiving party does not neet to request the initial few elements.
+    /// </summary>
+    /// <remarks>
+    /// <para>This should only be used for <see cref="IAsyncEnumerable{T}"/> objects returned directly from an RPC method.</para>
+    /// <para>To prefetch items for <see cref="IAsyncEnumerable{T}"/> objects used as arguments to an RPC method
+    /// or within an object graph of a returned value, use the <see cref="JsonRpcExtensions.WithPrefetchAsync{T}(IAsyncEnumerable{T}, int, System.Threading.CancellationToken)"/> extension method
+    /// instead and leave this value at 0.</para>
+    /// </remarks>
+    public int Prefetch { get; set; }
 }
 ```
 
@@ -194,22 +206,35 @@ the sequence is finished, and `MaxReadAhead` is how many values may be produced 
 of the next request from the client for more values.
 
 As the prefetch feature requires an asynchronous operation itself to fill a cache of items for transmission
-to the receiver, it is not merely a setting but a separate extension method: `WithPrefetchAsync`.
-It can be composed with `WithJsonRpcSettings` in either order, but it's syntactically simplest to add last
-since it is an async method:
+to the receiver, there are a couple of options.
+Let's first look at the case of returning an `IAsyncEnumerable<T>` from an RPC method.
+The most convenient way to do this is with the `JsonRpcEnumerableSettings.Prefetch` property:
 
 ```cs
-public async ValueTask<IAsyncEnumerable<int>> GenerateNumbersAsync(CancellationToken cancellationToken)
+public IAsyncEnumerable<int> GenerateNumbersAsync(CancellationToken cancellationToken)
 {
-    return await this.GenerateNumbersCoreAsync(cancellationToken)
-        .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = 10 })
-        .WithPrefetchAsync(count: 20, cancellationToken);
+    return this.GenerateNumbersCoreAsync(cancellationToken)
+        .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = 3, Prefetch = 10 });
 }
 ```
 
-Please refer to the section on RPC interfaces below for a discussion on the return type of the above method.
+Notice how using the `JsonRpcEnumerableSettings.Prefetch` property allows us to directly return
+the result of the `WithJsonRpcSettings` extension method, without having to *await* anything.
 
-The state machine and any cached values are released from the generator when the `IAsyncEnumerator<T>` is disposed.
+In another scenario you might need to prepare an `IAsyncEnumerable<T>` with prefetch for use
+in an RPC *argument* (instead of a return value) or perhaps *inside* of a complex return value object.
+In either of these cases, the `JsonRpcEnumerableSettings.Prefetch` property is ignored.
+You must use the `WithPrefetchAsync` extension method instead:
+
+```cs
+await jsonRpc.InvokeAsync(
+    "Some method",
+    await this.GenerateNumbersCoreAsync(cancellationToken)
+        .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = 3 })
+        .WithPrefetchAsync(count: 20, cancellationToken));
+```
+
+In all the above use cases, the state machine and any cached values are released from the generator when the `IAsyncEnumerator<T>` is disposed.
 
 Customized settings must be applied at the *generator* side. They are ignored if applied to the consumer side.
 If the consumer is better positioned to determine the value of these settings, it may pass the values for
@@ -273,16 +298,15 @@ private async IAsyncEnumerable<int> GetNumbersCoreAsync([EnumeratorCancellation]
 ```
 
 The above isn't too inconvenient, but it is a bit of extra work. It still can implement the same interface that is shared with the client.
-But it gets more complicated when adding `WithPrefetchAsync`, since now the wrapper method itself contains an `await`.
-It cannot simply return `IAsyncEnumerable<int>` since it is not using `yield return` but rather it's returning a specially-decorated
-`IAsyncEnumerable<T>` instance.
-So instead, we have to use `async ValueTask<IAsyncEnumerable<T>>` as the return type:
+Avoid using `WithPrefetchAsync` in the wrapper method since then the wrapper method itself contains an `await`
+and it must not be an `async` method itself.
+Instead we use `JsonRpcEnumerableSettings.Prefetch`:
 
 ```cs
-public async ValueTask<IAsyncEnumerable<int>> GetNumbersAsync(CancellationToken cancellationToken)
+public IAsyncEnumerable<int> GetNumbersAsync(CancellationToken cancellationToken)
 {
-    return await this.GetNumbersCoreAsync(cancellationToken)
-        .WithPrefetchAsync(10);
+    return this.GetNumbersCoreAsync(cancellationToken)
+        .WithJsonRpcSettings(new JsonRpcEnumerableSettings { Prefetch = 10 });
 }
 
 private async IAsyncEnumerable<int> GetNumbersCoreAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -295,33 +319,6 @@ private async IAsyncEnumerable<int> GetNumbersCoreAsync([EnumeratorCancellation]
     }
 }
 ```
-
-But now we've changed the method signature of the primary method that JSON-RPC will invoke and we can't implement the C# interface
-as it was originally. We can change the interface to also return `ValueTask<IAsyncEnumerable<int>>` but then that changes
-the client's calling pattern to add an extra *await* (the one after `in`):
-
-```cs
-await foreach(var item in await serverProxy.GetNumbersAsync(cancellationToken))
-{
-    //
-}
-```
-
-That's a little more awkward to write. If we want to preserve the original consuming syntax, we can:
-
-1. Keep the interface as simply returning `IAsyncEnumerable<T>`.
-1. Stop implementing the interface on the server class itself.
-1. Change the server method to return `async ValueTask<IAsyncEnumerable<int>>` as required for `WithPrefetchAsync`.
-
-This is a trade-off between convenience in maintaining and verifying the JSON-RPC server actually satisfies
-the required interface vs. the client writing the most natural C# `await foreach` code.
-
-Note that while the proxy generator requires that _all_ methods return either `Task{<T>}`, `ValueTask{<T>}` or
-`IAsyncEnumerable<T>`, the server class itself can return any type, and StreamJsonRpc will ultimately
-make it appear to the client to be asynchronous. For example a server method can return `int` while the client
-proxy interface is written as if the server method returned `Task<int>` and it will work just fine.
-This is why the interface method can return `IAsyncEnumerable<int>` while the server class method can actually
-return `ValueTask<IAsyncEnumerable<int>>` without there being a problem.
 
 ## Resource leaks concerns
 
