@@ -458,9 +458,17 @@ namespace StreamJsonRpc.Reflection
 
                             this.generatorReportsFinished = results.Finished;
                         }
-                        catch (RemoteInvocationException ex) when (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                        catch (RemoteInvocationException ex)
                         {
-                            throw new InvalidOperationException(ex.Message, ex);
+                            // Avoid spending a message asking the server to dispose of the marshalled enumerator since they threw an exception at us.
+                            this.generatorReportsFinished = true;
+
+                            if (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                            {
+                                throw new InvalidOperationException(ex.Message, ex);
+                            }
+
+                            throw;
                         }
                     }
 
