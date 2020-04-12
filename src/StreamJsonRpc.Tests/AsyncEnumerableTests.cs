@@ -87,9 +87,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
 
-        // Don't use Verbose as it has nasty side-effects leading to test failures, which we need to fix!
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
