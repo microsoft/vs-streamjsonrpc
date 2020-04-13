@@ -20,7 +20,4 @@ variables:
   NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
 
 jobs:
-# - template: azure-pipelines/build.yml
-- template: azure-pipelines/richnav.yml
-  parameters:
-    windowsPool: VSEng-MicroBuildVS2019
+- template: azure-pipelines/build.yml
