@@ -23,4 +23,4 @@ jobs:
 - template: azure-pipelines/build.yml
 - template: azure-pipelines/richnav.yml
   parameters:
-    windowsPool: VSEng-MicroBuildVS2019
+    windowsPool: Hosted Windows 2019 with VS2019
