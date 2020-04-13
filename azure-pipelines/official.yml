@@ -23,3 +23,6 @@ jobs:
 - template: build.yml
   parameters:
     windowsPool: VSEng-MicroBuildVS2019
+- template: richnav.yml
+  parameters:
+    windowsPool: VSEng-MicroBuildVS2019
