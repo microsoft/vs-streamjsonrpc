@@ -9,6 +9,7 @@ jobs:
     inputs:
       packageType: sdk
       version: 2.1.503
+  - template: install-dependencies.yml
   - task: RichCodeNavIndexer@0
     displayName: RichCodeNav Upload
     inputs:
