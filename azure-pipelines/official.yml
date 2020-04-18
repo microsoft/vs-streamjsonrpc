@@ -10,6 +10,17 @@ trigger:
     - '*.md'
     - .vscode/
 
+parameters:
+- name: SignType
+  displayName: Sign type
+  type: string
+  default: Test
+  values: [ 'Test', 'Real' ]
+- name: ShouldSkipOptimize
+  displayName: Skip OptProf optimization
+  type: boolean
+  default: false
+
 variables:
   TreatWarningsAsErrors: true
   UpdateXlfOnBuild: false # force build breaks if xlf files aren't updated on dev box with resx changes
@@ -23,3 +34,5 @@ jobs:
 - template: build.yml
   parameters:
     windowsPool: VSEng-MicroBuildVS2019
+    SignType: ${{ parameters.SignType }}
+    ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
