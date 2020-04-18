@@ -4,6 +4,17 @@ trigger:
   paths:
     exclude: ["doc", "*.md"]
 
+parameters:
+- name: SignType
+  displayName: Sign type
+  type: string
+  default: Test
+  values: [ 'Test', 'Real' ]
+- name: ShouldSkipOptimize
+  displayName: Skip OptProf optimization
+  type: boolean
+  default: false
+
 variables:
   TreatWarningsAsErrors: true
   UpdateXlfOnBuild: false # force build breaks if xlf files aren't updated on dev box with resx changes
@@ -16,3 +27,6 @@ jobs:
   pool: VSEng-MicroBuildVS2017
   steps:
   - template: build.yml
+    parameters:
+      SignType: ${{ parameters.SignType }}
+      ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}

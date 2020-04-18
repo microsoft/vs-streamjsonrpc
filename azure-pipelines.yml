@@ -21,6 +21,9 @@ jobs:
   pool: Hosted VS2017
   steps:
   - template: azure-pipelines/build.yml
+    parameters:
+      SignType:
+      ShouldSkipOptimize:
 
 - job: Linux
   pool:
