@@ -41,6 +41,8 @@ stages:
   - template: build.yml
     parameters:
       windowsPool: VSEng-MicroBuildVS2019
+      SignType: test
+      ShouldSkipOptimize: true
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
