@@ -8,6 +8,8 @@ namespace StreamJsonRpc.Reflection
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
 
@@ -267,7 +269,12 @@ namespace StreamJsonRpc.Reflection
             /// <param name="value">The typed value that will be send in the notification to be reported by the original <see cref="IProgress{T}"/> instance.</param>
             public void Report(T value)
             {
-                this.rpc.NotifyAsync(ProgressRequestSpecialMethod, this.token, value).Forget();
+                this.rpc.NotifyAsync(ProgressRequestSpecialMethod, this.token, value).ContinueWith(
+                    (t, s) => ((JsonRpc)s).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception.InnerException ?? t.Exception),
+                    this.rpc,
+                    CancellationToken.None,
+                    TaskContinuationOptions.OnlyOnFaulted,
+                    TaskScheduler.Default).Forget();
             }
         }
     }

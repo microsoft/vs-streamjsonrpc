@@ -361,7 +361,7 @@ namespace StreamJsonRpc
             LocalContractViolation,
 
             /// <summary>
-            /// An exception occurred when reading the $/progress notification.
+            /// An exception occurred when reading or writing the $/progress notification.
             /// </summary>
             ProgressNotificationError,
 

@@ -35,11 +35,13 @@ public abstract class JsonRpcTests : TestBase
     protected JsonRpc serverRpc;
     protected IJsonRpcMessageHandler serverMessageHandler;
     protected IJsonRpcMessageFormatter serverMessageFormatter;
+    protected CollectingTraceListener serverTraces;
 
     protected Nerdbank.FullDuplexStream clientStream;
     protected JsonRpc clientRpc;
     protected IJsonRpcMessageHandler clientMessageHandler;
     protected IJsonRpcMessageFormatter clientMessageFormatter;
+    protected CollectingTraceListener clientTraces;
 
     private const int CustomTaskResult = 100;
 
@@ -938,6 +940,19 @@ public abstract class JsonRpcTests : TestBase
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task ReportProgressWithUnserializableData_LeavesTraceEvidence()
+    {
+        var progress = new Progress<TypeThrowsWhenSerialized>();
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithUnserializableProgressType), new object[] { progress }, cancellationToken: this.TimeoutToken);
+
+        // Verify that the trace explains what went wrong with the original exception message.
+        while (!this.serverTraces.Messages.Any(m => m.Contains("Can't touch this")))
+        {
+            await this.serverTraces.MessageReceived.WaitAsync(this.TimeoutToken);
+        }
     }
 
     [Fact]
@@ -1883,6 +1898,9 @@ public abstract class JsonRpcTests : TestBase
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
+        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
+        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
     }
 
     private void StartListening()
@@ -2034,6 +2052,11 @@ public abstract class JsonRpcTests : TestBase
             p.Report(x);
             p.Report(y);
             return sum;
+        }
+
+        public static void MethodWithUnserializableProgressType(IProgress<TypeThrowsWhenSerialized> progress)
+        {
+            progress.Report(new TypeThrowsWhenSerialized());
         }
 
         public static int MethodWithInvalidProgressParameter(Progress<int> p)
@@ -2443,6 +2466,17 @@ public abstract class JsonRpcTests : TestBase
         [JsonIgnore]
         [IgnoreDataMember]
         public string? Value { get; set; }
+    }
+
+    [DataContract]
+    public class TypeThrowsWhenSerialized
+    {
+        [DataMember]
+        public string Property
+        {
+            get => throw new Exception("Can't touch this.");
+            set => throw new NotImplementedException();
+        }
     }
 
     public class TypeThrowsWhenDeserialized
