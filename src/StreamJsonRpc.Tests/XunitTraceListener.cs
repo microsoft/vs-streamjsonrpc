@@ -1,12 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
 using Xunit.Abstractions;
 
 internal class XunitTraceListener : TraceListener
@@ -28,7 +22,8 @@ internal class XunitTraceListener : TraceListener
     {
         if (!this.disposed)
         {
-            this.logger.WriteLine(this.lineInProgress.ToString() + message);
+            this.lineInProgress.Append(message);
+            this.logger.WriteLine(this.lineInProgress.ToString());
             this.lineInProgress.Clear();
         }
     }
