@@ -144,6 +144,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override void DisposeReader()
         {
+            this.deserializationReservedBuffer = default;
             this.Reader?.Complete();
 
             base.DisposeReader();
