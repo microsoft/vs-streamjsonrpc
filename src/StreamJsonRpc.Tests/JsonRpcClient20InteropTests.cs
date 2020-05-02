@@ -446,4 +446,29 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         string result = await invokeTask.WithCancellation(this.TimeoutToken);
         Assert.Equal("pass", result);
     }
+
+    [Fact]
+    public async Task ServerSendsErrorResponseWithoutRequest()
+    {
+        // This represents an invalid JSON-RPC communication, because errors are not supposed to be sent except in response to a prior request.
+        // But in order to document how JsonRpc responds to it, we test it here.
+        var args = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
+        this.clientRpc.Disconnected += (s, e) => args.SetResult(e);
+
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            error = new
+            {
+                code = -1,
+                message = "Some message",
+            },
+            id = (object?)null,
+        });
+
+        // Verify that the connection drops.
+        await this.clientRpc.Completion.WithCancellation(this.TimeoutToken);
+        var eventArgs = await args.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(DisconnectedReason.RemoteProtocolViolation, eventArgs.Reason);
+    }
 }

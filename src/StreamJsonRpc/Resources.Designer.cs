@@ -538,6 +538,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A response was received without a request having been sent..
+        /// </summary>
+        internal static string UnexpectedResponseWithNoMatchingRequest {
+            get {
+                return ResourceManager.GetString("UnexpectedResponseWithNoMatchingRequest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unexpected token &apos;{0}&apos; while parsing header..
         /// </summary>
         internal static string UnexpectedTokenReadingHeader {

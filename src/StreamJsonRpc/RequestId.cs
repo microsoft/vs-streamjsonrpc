@@ -6,6 +6,7 @@ namespace StreamJsonRpc
     using System;
     using System.Diagnostics;
     using System.Globalization;
+    using Microsoft;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -22,16 +23,18 @@ namespace StreamJsonRpc
         {
             this.Number = id;
             this.String = null;
+            this.IsNull = false;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RequestId"/> struct.
         /// </summary>
         /// <param name="id">The ID of the request.</param>
-        public RequestId(string id)
+        public RequestId(string? id)
         {
             this.String = id;
             this.Number = null;
+            this.IsNull = id is null;
         }
 
         /// <summary>
@@ -39,11 +42,10 @@ namespace StreamJsonRpc
         /// </summary>
         public static RequestId NotSpecified => default;
 
-        /////// <summary>
-        /////// Creates a <see cref="RequestId"/> based on a <see cref="long"/> ID.
-        /////// </summary>
-        /////// <param name="id">The request ID.</param>
-        ////public static implicit operator RequestId(long id) => new RequestId(id);
+        /// <summary>
+        /// Gets the special value for an explicitly specified <c>null</c> request ID.
+        /// </summary>
+        public static RequestId Null => new RequestId(null);
 
         /// <summary>
         /// Gets the ID if it is a number.
@@ -58,9 +60,15 @@ namespace StreamJsonRpc
         public string? String { get; }
 
         /// <summary>
-        /// Gets a value indicating whether both the <see cref="Number"/> and <see cref="String"/> properties are uninitialized.
+        /// Gets a value indicating whether this request ID is explicitly specified as the special "null" value.
         /// </summary>
-        public bool IsEmpty => this.Number is null && this.String is null;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public bool IsNull { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the request ID was not specified (i.e. no string, number or null was given).
+        /// </summary>
+        public bool IsEmpty => this.Number is null && this.String is null && !this.IsNull;
 
         /// <summary>
         /// Gets the ID as an object (whether it is a <see cref="long"/>, a <see cref="string"/> or null).
@@ -74,7 +82,7 @@ namespace StreamJsonRpc
         internal long NumberIfPossibleForEvent => this.Number ?? -1;
 
         /// <inheritdoc/>
-        public bool Equals(RequestId other) => this.Number == other.Number && this.String == other.String;
+        public bool Equals(RequestId other) => this.Number == other.Number && this.String == other.String && this.IsNull == other.IsNull;
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is RequestId other && this.Equals(other);
@@ -83,7 +91,7 @@ namespace StreamJsonRpc
         public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode() ?? 0;
 
         /// <inheritdoc/>
-        public override string ToString() => this.Number?.ToString(CultureInfo.InvariantCulture) ?? this.String ?? "null";
+        public override string ToString() => this.Number?.ToString(CultureInfo.InvariantCulture) ?? this.String ?? (this.IsNull ? "(null)" : "(not specified)");
 
         internal static RequestId Parse(object? value)
         {
