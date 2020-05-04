@@ -25,7 +25,7 @@ steps:
     arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true
     testRunTitle: net472-$(Agent.JobName)
     workingDirectory: src
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+  condition: and(ne(variables['OptProf'], 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - task: DotNetCoreCLI@2
   displayName: dotnet test -f netcoreapp2.1
@@ -34,6 +34,7 @@ steps:
     arguments: --no-build -c $(BuildConfiguration) -f netcoreapp2.1 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true
     testRunTitle: netcoreapp2.1-$(Agent.JobName)
     workingDirectory: src
+  condition: ne(variables['OptProf'], 'true')
 
 - task: DotNetCoreCLI@2
   displayName: dotnet test -f netcoreapp3.1
@@ -42,6 +43,7 @@ steps:
     arguments: --no-build -c $(BuildConfiguration) -f netcoreapp3.1 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true
     testRunTitle: netcoreapp3.1-$(Agent.JobName)
     workingDirectory: src
+  condition: ne(variables['OptProf'], 'true')
 
 - powershell: mono $(NUGET_PACKAGES)/xunit.runner.console/2.4.1/tools/net472/xunit.console.exe bin/StreamJsonRpc.Tests/$(BuildConfiguration)/net472/StreamJsonRpc.Tests.dll -vsts -notrait "TestCategory=FailsInCloudTest" -notrait "FailsOnMono=true"
   displayName: Run tests on mono
