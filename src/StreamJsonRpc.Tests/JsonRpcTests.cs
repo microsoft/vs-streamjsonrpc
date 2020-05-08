@@ -128,7 +128,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
     {
-        var sendingStream = new HalfDuplexStream();
+        var sendingStream = new SimplexStream();
         var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
 
         // Sending notifications is fine, as it's an outbound-only communication.
