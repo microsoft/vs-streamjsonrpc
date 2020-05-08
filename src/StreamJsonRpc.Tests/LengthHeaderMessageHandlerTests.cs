@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 public class LengthHeaderMessageHandlerTests : TestBase
 {
-    private HalfDuplexStream halfDuplexStream = new HalfDuplexStream();
+    private SimplexStream halfDuplexStream = new SimplexStream();
     private LengthHeaderMessageHandler handler;
 
     public LengthHeaderMessageHandlerTests(ITestOutputHelper logger)
