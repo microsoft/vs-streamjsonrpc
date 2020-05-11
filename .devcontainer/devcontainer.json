@@ -1,0 +1,23 @@
+{
+	"name": "vs-streamjsonrpc",
+	"dockerFile": "Dockerfile",
+
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"terminal.integrated.shell.linux": "/usr/bin/pwsh"
+	},
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-azure-devops.azure-pipelines",
+		"ms-dotnettools.csharp",
+		"k--kato.docomment",
+		"editorconfig.editorconfig",
+		"pflannery.vscode-versionlens",
+		"davidanson.vscode-markdownlint",
+		"ms-azuretools.vscode-docker",
+		"eamodio.gitlens"
+	],
+
+	"postCreateCommand": "./init.ps1 -InstallLocality Machine"
+}
