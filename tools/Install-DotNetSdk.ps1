@@ -23,7 +23,7 @@ Param (
 )
 
 $DotNetInstallScriptRoot = "$PSScriptRoot/../obj/tools"
-if (!(Test-Path $DotNetInstallScriptRoot)) { New-Item -ItemType Directory -Path $DotNetInstallScriptRoot | Out-Null }
+if (!(Test-Path $DotNetInstallScriptRoot)) { New-Item -ItemType Directory -Path $DotNetInstallScriptRoot -WhatIf:$false | Out-Null }
 $DotNetInstallScriptRoot = Resolve-Path $DotNetInstallScriptRoot
 
 # Look up actual required .NET Core SDK version from global.json
@@ -31,7 +31,7 @@ $sdkVersion = & "$PSScriptRoot/../azure-pipelines/variables/DotNetSdkVersion.ps1
 
 # Search for all .NET Core runtime versions referenced from MSBuild projects and arrange to install them.
 $runtimeVersions = @()
-Get-ChildItem "$PSScriptRoot\..\src\*.*proj" -Recurse |% {
+Get-ChildItem "$PSScriptRoot\..\src\*.*proj","$PSScriptRoot\..\Directory.Build.props" -Recurse |% {
     $projXml = [xml](Get-Content -Path $_)
     $targetFrameworks = $projXml.Project.PropertyGroup.TargetFramework
     if (!$targetFrameworks) {
@@ -83,25 +83,6 @@ Function Install-DotNet($Version, [switch]$Runtime) {
     }
 }
 
-if ($InstallLocality -eq 'machine') {
-    if ($IsMacOS -or $IsLinux) {
-        Write-Error "Installing the .NET Core SDK or runtime at a machine-wide location is only supported by this script on Windows."
-        exit 1
-    }
-
-    if ($PSCmdlet.ShouldProcess(".NET Core SDK $sdkVersion", "Install")) {
-        Install-DotNet -Version $sdkVersion
-    }
-
-    $runtimeVersions |% {
-        if ($PSCmdlet.ShouldProcess(".NET Core runtime $_", "Install")) {
-            Install-DotNet -Version $_ -Runtime
-        }
-    }
-
-    return
-}
-
 $switches = @(
     '-Architecture','x64'
 )
@@ -110,7 +91,23 @@ $envVars = @{
     'DOTNET_SKIP_FIRST_TIME_EXPERIENCE' = 'true';
 }
 
-if ($InstallLocality -eq 'repo') {
+if ($InstallLocality -eq 'machine') {
+    if ($IsWindows) {
+        if ($PSCmdlet.ShouldProcess(".NET Core SDK $sdkVersion", "Install")) {
+            Install-DotNet -Version $sdkVersion
+        }
+
+        $runtimeVersions | Get-Unique |% {
+            if ($PSCmdlet.ShouldProcess(".NET Core runtime $_", "Install")) {
+                Install-DotNet -Version $_ -Runtime
+            }
+        }
+
+        return
+    } else {
+        $DotNetInstallDir = '/usr/share/dotnet'
+    }
+} elseif ($InstallLocality -eq 'repo') {
     $DotNetInstallDir = "$DotNetInstallScriptRoot/.dotnet"
 } elseif ($env:AGENT_TOOLSDIRECTORY) {
     $DotNetInstallDir = "$env:AGENT_TOOLSDIRECTORY/dotnet"
