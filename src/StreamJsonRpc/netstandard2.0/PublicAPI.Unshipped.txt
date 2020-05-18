@@ -1,4 +1,7 @@
+StreamJsonRpc.DisconnectedReason.RemoteProtocolViolation = 6 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.set -> void
+StreamJsonRpc.RequestId.IsNull.get -> bool
+static StreamJsonRpc.RequestId.Null.get -> StreamJsonRpc.RequestId

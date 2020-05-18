@@ -1102,13 +1102,16 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(4);
+                writer.WriteMapHeader(value.RequestId.IsEmpty ? 3 : 4);
 
                 writer.Write(VersionPropertyName);
                 writer.Write(value.Version);
 
-                writer.Write(IdPropertyName);
-                options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                if (!value.RequestId.IsEmpty)
+                {
+                    writer.Write(IdPropertyName);
+                    options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                }
 
                 writer.Write(MethodPropertyName);
                 writer.Write(value.Method);

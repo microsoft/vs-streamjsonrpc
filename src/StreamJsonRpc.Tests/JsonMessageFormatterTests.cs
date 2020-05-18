@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
@@ -136,6 +137,24 @@ public class JsonMessageFormatterTests : TestBase
 
         formatter.MultiplexingStream = null;
         Assert.Null(formatter.MultiplexingStream);
+    }
+
+    [Fact]
+    public void ServerReturnsErrorWithNullId()
+    {
+        var formatter = new JsonMessageFormatter();
+        JsonRpcMessage? message = formatter.Deserialize(JObject.FromObject(new
+        {
+            jsonrpc = "2.0",
+            error = new
+            {
+                code = -1,
+                message = "Some message",
+            },
+            id = (object?)null,
+        }));
+        var error = Assert.IsAssignableFrom<JsonRpcError>(message);
+        Assert.True(error.RequestId.IsNull);
     }
 
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)

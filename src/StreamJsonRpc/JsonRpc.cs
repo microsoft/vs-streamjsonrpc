@@ -2368,7 +2368,7 @@ namespace StreamJsonRpc
                         }
                     }
 
-                    if (data != null)
+                    if (data is object)
                     {
                         if (data.ExpectedResultType != null && rpc is JsonRpcResult resultMessage)
                         {
@@ -2387,6 +2387,13 @@ namespace StreamJsonRpc
                         await TaskScheduler.Default.SwitchTo(alwaysYield: true);
                         data.CompletionHandler(rpc);
                         data = null; // avoid invoking again if we throw later
+                    }
+                    else
+                    {
+                        // Unexpected "response" to no request we have a record of. Raise disconnected event.
+                        this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
+                            Resources.UnexpectedResponseWithNoMatchingRequest,
+                            DisconnectedReason.RemoteProtocolViolation));
                     }
                 }
                 else

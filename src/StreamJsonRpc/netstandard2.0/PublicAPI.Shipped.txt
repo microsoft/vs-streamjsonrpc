@@ -417,7 +417,7 @@ StreamJsonRpc.RequestId.Equals(StreamJsonRpc.RequestId other) -> bool
 StreamJsonRpc.RequestId.IsEmpty.get -> bool
 StreamJsonRpc.RequestId.Number.get -> long?
 StreamJsonRpc.RequestId.RequestId(long id) -> void
-StreamJsonRpc.RequestId.RequestId(string! id) -> void
+StreamJsonRpc.RequestId.RequestId(string? id) -> void
 StreamJsonRpc.RequestId.String.get -> string?
 StreamJsonRpc.RpcArgumentDeserializationException
 StreamJsonRpc.RpcArgumentDeserializationException.ArgumentName.get -> string?
