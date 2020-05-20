@@ -1611,6 +1611,38 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task DispatchCompletion_RepeatedlyRefreshesDuringConnection()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+            Task request = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            Assert.False(this.serverRpc.DispatchCompletion.IsCompleted);
+            this.server.AllowServerMethodToReturn.Set();
+            await request;
+            Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+        }
+
+        this.clientRpc.Dispose();
+        await this.serverRpc.Completion;
+        Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+    }
+
+    [Fact]
+    public async Task DispatchCompletion_DispatchesLingerAfterDisconnect()
+    {
+        Task request = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        this.clientRpc.Dispose();
+        await this.serverRpc.Completion;
+
+        Assert.False(this.serverRpc.DispatchCompletion.IsCompleted);
+        this.server.AllowServerMethodToReturn.Set();
+        await this.serverRpc.DispatchCompletion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task MultipleSyncMethodsExecuteConcurrentlyOnServer()
     {
         var invocation1 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
