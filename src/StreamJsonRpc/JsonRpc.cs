@@ -90,6 +90,12 @@ namespace StreamJsonRpc
         private readonly TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>();
 
         /// <summary>
+        /// Backing field for the <see cref="DispatchCompletion"/> property.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly AsyncManualResetEvent dispatchCompletionSource = new AsyncManualResetEvent(initialState: true);
+
+        /// <summary>
         /// List of remote RPC targets to call if connection should be relayed.
         /// </summary>
         private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
@@ -101,6 +107,7 @@ namespace StreamJsonRpc
 
         private Task? readLinesTask;
         private long nextId = 1;
+        private int requestsInDispatchCount;
         private JsonRpcDisconnectedEventArgs? disconnectedEventArgs;
 
         /// <summary>
@@ -399,8 +406,14 @@ namespace StreamJsonRpc
         /// whether by error, disposal or the stream closing.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The returned <see cref="Task"/> may transition to a faulted state
         /// for exceptions fatal to the protocol or this instance.
+        /// </para>
+        /// <para>
+        /// When local RPC target objects or methods have been added, those methods may still be running from prior RPC requests
+        /// when this property completes. Track their completion with the <see cref="DispatchCompletion"/> property.
+        /// </para>
         /// </remarks>
         public Task Completion
         {
@@ -409,6 +422,16 @@ namespace StreamJsonRpc
                 return this.completionSource.Task;
             }
         }
+
+        /// <summary>
+        /// Gets a <see cref="Task"/> that completes when no local target methods are executing from an RPC call.
+        /// </summary>
+        /// <remarks>
+        /// If the JSON-RPC connection is still active when retrieving this property's value, the returned <see cref="Task"/> will complete
+        /// when no local dispatches are in progress, even if the connection is still active.
+        /// Retrieving the property after a previously obtained <see cref="Task"/> has completed will result in a new, incomplete <see cref="Task"/> if incoming requests are currently in dispatch.
+        /// </remarks>
+        public Task DispatchCompletion => this.dispatchCompletionSource.WaitAsync();
 
         /// <summary>
         /// Gets or sets a value indicating whether configuration of this instance
@@ -2315,7 +2338,29 @@ namespace StreamJsonRpc
                         return;
                     }
 
-                    JsonRpcMessage result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
+                    JsonRpcMessage result;
+                    lock (this.syncObject)
+                    {
+                        if (this.requestsInDispatchCount++ == 0)
+                        {
+                            this.dispatchCompletionSource.Reset();
+                        }
+                    }
+
+                    try
+                    {
+                        result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        lock (this.syncObject)
+                        {
+                            if (--this.requestsInDispatchCount == 0)
+                            {
+                                this.dispatchCompletionSource.Set();
+                            }
+                        }
+                    }
 
                     if (request.IsResponseExpected && !this.IsDisposed)
                     {
