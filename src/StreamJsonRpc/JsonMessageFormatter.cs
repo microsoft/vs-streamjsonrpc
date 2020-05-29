@@ -664,6 +664,7 @@ namespace StreamJsonRpc
             {
                 throw this.CreateProtocolNonComplianceException(json, "\"id\" property missing.");
             }
+
             RequestId id = this.NormalizeId(idToken.ToObject<RequestId>());
             return id;
         }
