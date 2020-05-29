@@ -628,8 +628,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            RequestId id = this.NormalizeId(json["id"].ToObject<RequestId>());
-
+            RequestId id = this.ExtractRequestId(json);
             JToken result = json["result"];
 
             return new JsonRpcResult(this.JsonSerializer)
@@ -643,7 +642,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            RequestId id = this.NormalizeId(json["id"].ToObject<RequestId>());
+            RequestId id = this.ExtractRequestId(json);
             JToken error = json["error"];
 
             return new JsonRpcError
@@ -656,6 +655,17 @@ namespace StreamJsonRpc
                     Data = error["data"], // leave this as a JToken. We deserialize inside GetData<T>
                 },
             };
+        }
+
+        private RequestId ExtractRequestId(JToken json)
+        {
+            JToken idToken = json["id"];
+            if (idToken == null)
+            {
+                throw this.CreateProtocolNonComplianceException(json, "\"id\" property missing.");
+            }
+            RequestId id = this.NormalizeId(idToken.ToObject<RequestId>());
+            return id;
         }
 
         private RequestId NormalizeId(RequestId id)
