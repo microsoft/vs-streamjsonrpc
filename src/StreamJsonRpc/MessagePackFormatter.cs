@@ -679,6 +679,9 @@ namespace StreamJsonRpc
                             case MessageFormatterEnumerableTracker.ValuesPropertyName:
                                 initialElements = options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Deserialize(ref reader, options);
                                 break;
+                            default:
+                                reader.Skip();
+                                break;
                         }
                     }
 
@@ -1068,6 +1071,9 @@ namespace StreamJsonRpc
                             result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
 
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1168,6 +1174,9 @@ namespace StreamJsonRpc
                         case ResultPropertyName:
                             result.MsgPackResult = GetSliceForNextToken(ref reader);
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1221,6 +1230,9 @@ namespace StreamJsonRpc
                         case ErrorPropertyName:
                             error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1273,6 +1285,9 @@ namespace StreamJsonRpc
                             break;
                         case DataPropertyName:
                             result.MsgPackData = GetSliceForNextToken(ref reader);
+                            break;
+                        default:
+                            reader.Skip();
                             break;
                     }
                 }
