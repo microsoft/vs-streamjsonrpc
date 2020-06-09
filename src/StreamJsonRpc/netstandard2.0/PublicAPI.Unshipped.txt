@@ -1,5 +1,6 @@
 StreamJsonRpc.DisconnectedReason.RemoteProtocolViolation = 6 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.JsonRpc.DispatchCompletion.get -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.TraceEvents.TransmissionFailed = 18 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.get -> bool

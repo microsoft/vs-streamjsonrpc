@@ -381,6 +381,11 @@ namespace StreamJsonRpc
             /// Thus a failure recorded in this event may be followed by a successful deserialization to another parameter type and invocation of a different overload.
             /// </remarks>
             MethodArgumentDeserializationFailure,
+
+            /// <summary>
+            /// An outgoing RPC message was not sent due to an exception, possibly a serialization failure.
+            /// </summary>
+            TransmissionFailed,
         }
 
         /// <summary>
@@ -1721,11 +1726,6 @@ namespace StreamJsonRpc
             {
                 throw new ConnectionLostException(Resources.ConnectionDropped, ex);
             }
-            catch (Exception)
-            {
-                this.OnRequestTransmissionAborted(request);
-                throw;
-            }
         }
 
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
@@ -2590,6 +2590,12 @@ namespace StreamJsonRpc
 
                     // Fatal error. Raise disconnected event.
                     this.OnJsonRpcDisconnected(e);
+                }
+
+                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                if (message is JsonRpcRequest request)
+                {
+                    this.OnRequestTransmissionAborted(request);
                 }
 
                 throw;
