@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
@@ -303,6 +304,65 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task ServerMethodThatReturnsPipeAsObjectFailsOnReturn()
     {
         await Assert.ThrowsAnyAsync<RemoteRpcException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPipeAsObject), new object[0], this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task ServerMethodThatReturnsAStream()
+    {
+        byte[] buffer = new byte[1200];
+        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsAStream));
+
+        int s = await result.ReadAsync(buffer, 0, buffer.Length);
+        string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
+
+        Assert.Equal("Streamed bits!", returnedContent);
+    }
+
+    /// <summary>
+    /// Verify that an inner stream also gets it's own multiplexing channel.
+    /// </summary>
+    [Fact]
+    public async Task ServerMethodThatReturnsCustomTypeWithStream()
+    {
+        byte[] buffer = new byte[1200];
+        Stream result = await this.clientRpc.InvokeAsync<OneWayStreamWrapper>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
+
+        int s = await result.ReadAsync(buffer, 0, buffer.Length);
+        string returnedContent = Encoding.UTF8.GetString(buffer);
+
+        Assert.Equal("Streamed bits!", returnedContent);
+    }
+
+    [Fact]
+    public async Task ServerMethodThatReturnsStreamCanBeClosed()
+    {
+        byte[] buffer = new byte[1200];
+        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
+
+        result.Dispose();
+
+        await this.AssertStreamClosesAsync(result);
+    }
+
+    [Fact]
+    public async Task ClientCanRequestStreamAndDropIt()
+    {
+        // client can request a stream and not consume it, leading to a leaked resource if not handled properly.
+
+        //await this.clientRpc.InvokeAsync(nameof(Server.));
+        // check that the stream is disposed.
+    }
+
+    [Fact]
+    public async Task ClientCanRequestStreamAndDropItAndGetsDisposed()
+    {
+        //await this.clientRpc.InvokeAsync(nameof(Server.));
+    }
+
+    [Fact]
+    public async Task ServerThrowsOnStreamRequestFromNotification()
+    {
+        //await this.clientRpc.InvokeAsync<Stream>(nameof(Server.));
     }
 
     /// <summary>
@@ -786,6 +846,37 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         public Task RejectCall(IDuplexPipe pipe) => Task.FromException(new InvalidOperationException("Expected test exception."));
 
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
+
+        public Stream ServerMethodThatReturnsAStream()
+        {
+            var streamPair = FullDuplexStream.CreatePair();
+            var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
+
+            streamPair.Item1.Write(bytes, 0, bytes.Length);
+            streamPair.Item1.Flush();
+
+            return streamPair.Item2;
+        }
+
+        public Stream ServerMethodThatReturnsCustomTypeWithStream()
+        {
+            var innerStream = new SimplexStream();
+            var stream = new OneWayStreamWrapper(innerStream, true, true);
+
+            innerStream.Write(Encoding.UTF8.GetBytes("Streamed bits!"));
+
+            return stream;
+        }
+
+        public async Task<Stream> ServerMethodThatReturnsTwoWayStream(CancellationToken cancellationToken)
+        {
+            (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
+
+            Task twoWayCom = TwoWayTalkAsync(streamPair.Item1, writeOnOdd: true, cancellationToken);
+            await twoWayCom.WithCancellation(cancellationToken); // rethrow any exceptions.
+
+            return streamPair.Item2;
+        }
     }
 
     protected class ServerWithIDuplexPipeReturningMethod
