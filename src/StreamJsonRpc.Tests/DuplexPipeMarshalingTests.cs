@@ -301,16 +301,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
-    public async Task ServerMethodThatReturnsPipeAsObjectFailsOnReturn()
-    {
-        await Assert.ThrowsAnyAsync<RemoteRpcException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPipeAsObject), new object[0], this.TimeoutToken));
-    }
-
-    [Fact]
     public async Task ServerMethodThatReturnsAStream()
     {
-        byte[] buffer = new byte[1200];
-        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsAStream));
+        byte[] buffer = new byte[16];
+        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsTwoWayStream));
 
         int s = await result.ReadAsync(buffer, 0, buffer.Length);
         string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
@@ -325,19 +319,19 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task ServerMethodThatReturnsCustomTypeWithStream()
     {
         byte[] buffer = new byte[1200];
-        Stream result = await this.clientRpc.InvokeAsync<OneWayStreamWrapper>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
+        StreamContainingClass result = await this.clientRpc.InvokeAsync<StreamContainingClass>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
 
-        int s = await result.ReadAsync(buffer, 0, buffer.Length);
+        int s = await result.InnerStream.ReadAsync(buffer, 0, buffer.Length);
         string returnedContent = Encoding.UTF8.GetString(buffer);
 
-        Assert.Equal("Streamed bits!", returnedContent);
+        Assert.Equal("More streamed bits!", returnedContent);
     }
 
     [Fact]
     public async Task ServerMethodThatReturnsStreamCanBeClosed()
     {
         byte[] buffer = new byte[1200];
-        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
+        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsTwoWayStream));
 
         result.Dispose();
 
@@ -347,22 +341,14 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     [Fact]
     public async Task ClientCanRequestStreamAndDropIt()
     {
-        // client can request a stream and not consume it, leading to a leaked resource if not handled properly.
-
-        //await this.clientRpc.InvokeAsync(nameof(Server.));
-        // check that the stream is disposed.
-    }
-
-    [Fact]
-    public async Task ClientCanRequestStreamAndDropItAndGetsDisposed()
-    {
-        //await this.clientRpc.InvokeAsync(nameof(Server.));
+        byte[] buffer = new byte[1200];
+        await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
     }
 
     [Fact]
     public async Task ServerThrowsOnStreamRequestFromNotification()
     {
-        //await this.clientRpc.InvokeAsync<Stream>(nameof(Server.));
+        
     }
 
     /// <summary>
@@ -847,7 +833,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
 
-        public Stream ServerMethodThatReturnsAStream()
+        public Stream ServerMethodThatReturnsTwoWayStream()
         {
             var streamPair = FullDuplexStream.CreatePair();
             var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
@@ -858,24 +844,17 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             return streamPair.Item2;
         }
 
-        public Stream ServerMethodThatReturnsCustomTypeWithStream()
+        public StreamContainingClass ServerMethodThatReturnsCustomTypeWithStream()
         {
-            var innerStream = new SimplexStream();
-            var stream = new OneWayStreamWrapper(innerStream, true, true);
+            var streamPair = FullDuplexStream.CreatePair();
+            var stream = new StreamContainingClass(streamPair.Item2);
 
-            innerStream.Write(Encoding.UTF8.GetBytes("Streamed bits!"));
+            var bytes = Encoding.UTF8.GetBytes("More streamed bits!");
+
+            streamPair.Item1.Write(bytes, 0, bytes.Length);
+            streamPair.Item1.Flush();
 
             return stream;
-        }
-
-        public async Task<Stream> ServerMethodThatReturnsTwoWayStream(CancellationToken cancellationToken)
-        {
-            (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
-
-            Task twoWayCom = TwoWayTalkAsync(streamPair.Item1, writeOnOdd: true, cancellationToken);
-            await twoWayCom.WithCancellation(cancellationToken); // rethrow any exceptions.
-
-            return streamPair.Item2;
         }
     }
 
@@ -986,5 +965,17 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
                 this.innerStream.Dispose();
             }
         }
+    }
+
+    protected class StreamContainingClass
+    {
+        private Stream innerStream;
+
+        public StreamContainingClass(Stream inner)
+        {
+            this.innerStream = inner;
+        }
+
+        public Stream InnerStream => this.innerStream;
     }
 }
