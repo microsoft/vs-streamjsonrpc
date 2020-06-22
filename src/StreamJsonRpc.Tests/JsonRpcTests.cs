@@ -956,6 +956,18 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NotifyAsync_LeavesTraceEvidenceOnFailure()
+    {
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("DoesNotMatter", new TypeThrowsWhenSerialized()));
+
+        // Verify that the trace explains what went wrong with the original exception message.
+        while (!this.clientTraces.Messages.Any(m => m.Contains("Can't touch this")))
+        {
+            await this.clientTraces.MessageReceived.WaitAsync(this.TimeoutToken);
+        }
+    }
+
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
         int report = 0;
