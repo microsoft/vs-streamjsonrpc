@@ -348,7 +348,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     [Fact]
     public async Task ServerThrowsOnStreamRequestFromNotification()
     {
-        
+        await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
     }
 
     /// <summary>
