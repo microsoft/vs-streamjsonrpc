@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -322,7 +323,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         StreamContainingClass result = await this.clientRpc.InvokeAsync<StreamContainingClass>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
 
         int s = await result.InnerStream.ReadAsync(buffer, 0, buffer.Length);
-        string returnedContent = Encoding.UTF8.GetString(buffer);
+        string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
 
         Assert.Equal("More streamed bits!", returnedContent);
     }
@@ -335,7 +336,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         result.Dispose();
 
-        await this.AssertStreamClosesAsync(result);
+        // this.server
     }
 
     [Fact]
@@ -343,11 +344,15 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         byte[] buffer = new byte[1200];
         await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
+
+        // how to track if stream is disposed? Custom stream type that notifies when disposed? 
+        // How to know if it's disposed after connection terminated?
     }
 
     [Fact]
     public async Task ServerThrowsOnStreamRequestFromNotification()
     {
+        // this.clientMx.ChannelOffered +=
         await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
     }
 
@@ -967,13 +972,15 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         }
     }
 
+    [DataContract]
     protected class StreamContainingClass
     {
+        [DataMember]
         private Stream innerStream;
 
-        public StreamContainingClass(Stream inner)
+        public StreamContainingClass(Stream innerStream)
         {
-            this.innerStream = inner;
+            this.innerStream = innerStream;
         }
 
         public Stream InnerStream => this.innerStream;
