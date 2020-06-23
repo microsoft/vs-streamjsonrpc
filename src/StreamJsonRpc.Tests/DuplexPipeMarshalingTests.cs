@@ -294,20 +294,13 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         await this.AssertStreamClosesAsync(duplexStream.Item2);
     }
 
-    [Fact(Skip = "This would require JsonRpc to hard-code understanding of formatter tricks, or more design work.")]
-    public void ServerMethodThatReturnsIDuplexPipeIsRejected()
-    {
-        this.serverRpc.AllowModificationWhileListening = true;
-        Assert.Throws<NotSupportedException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithIDuplexPipeReturningMethod()));
-    }
-
     [Fact]
-    public async Task ServerMethodThatReturnsAStream()
+    public async Task ServerMethodThatReturnsDuplexPipe()
     {
-        byte[] buffer = new byte[16];
+        byte[] buffer = new byte[32];
         Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsTwoWayStream));
 
-        int s = await result.ReadAsync(buffer, 0, buffer.Length);
+        int s = await result.ReadAsync(buffer, 0, buffer.Length, this.TimeoutToken);
         string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
 
         Assert.Equal("Streamed bits!", returnedContent);
@@ -317,43 +310,43 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     /// Verify that an inner stream also gets it's own multiplexing channel.
     /// </summary>
     [Fact]
-    public async Task ServerMethodThatReturnsCustomTypeWithStream()
+    public async Task ServerMethodThatReturnsCustomTypeWithInnerStream()
     {
-        byte[] buffer = new byte[1200];
+        byte[] buffer = new byte[32];
         StreamContainingClass result = await this.clientRpc.InvokeAsync<StreamContainingClass>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
 
-        int s = await result.InnerStream.ReadAsync(buffer, 0, buffer.Length);
+        int s = await result.InnerStream.ReadAsync(buffer, 0, buffer.Length, this.TimeoutToken);
         string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
 
         Assert.Equal("More streamed bits!", returnedContent);
     }
 
-    [Fact]
-    public async Task ServerMethodThatReturnsStreamCanBeClosed()
-    {
-        byte[] buffer = new byte[1200];
-        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsTwoWayStream));
-
-        result.Dispose();
-
-        // this.server
-    }
-
+    /// <summary>
+    /// Verify that when a user requests a stream and doesn't consume it, we dispose of it on the server.
+    /// </summary>
     [Fact]
     public async Task ClientCanRequestStreamAndDropIt()
     {
-        byte[] buffer = new byte[1200];
-        await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
+        byte[] buffer = new byte[32];
+        await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsAndDisposesStream));
 
-        // how to track if stream is disposed? Custom stream type that notifies when disposed? 
-        // How to know if it's disposed after connection terminated?
+        this.serverRpc.Dispose();
+
+        await WhenAllSucceedOrAnyFault(this.server.StreamDisposedTask!);
     }
 
     [Fact]
-    public async Task ServerThrowsOnStreamRequestFromNotification()
+    public async Task ServerDoesNotCreateMxChannelForStreamNotification()
     {
-        // this.clientMx.ChannelOffered +=
+        TaskCompletionSource<object> channelCreatedTask = new TaskCompletionSource<object>();
+        this.clientMx.ChannelOffered += delegate (object sender, MultiplexingStream.ChannelOfferEventArgs args)
+        {
+            channelCreatedTask.SetException(new TaskCanceledException());
+        };
+
         await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
+
+        await Assert.ThrowsAsync<TimeoutException>(async () => await channelCreatedTask.Task.WithTimeout(ExpectedTimeout));
     }
 
     /// <summary>
@@ -715,6 +708,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         internal Task? ChatLaterTask { get; private set; }
 
+        internal Task? StreamDisposedTask { get; private set; }
+
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
         {
             Assert.Equal(ExpectedFileName, fileName);
@@ -858,6 +853,15 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
             streamPair.Item1.Write(bytes, 0, bytes.Length);
             streamPair.Item1.Flush();
+
+            return stream;
+        }
+
+        public Stream ServerMethodThatReturnsAndDisposesStream()
+        {
+            var stream = new SimplexStream();
+
+            this.StreamDisposedTask = Task.Run(() => stream.Dispose());
 
             return stream;
         }
