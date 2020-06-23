@@ -13,7 +13,6 @@ namespace StreamJsonRpc.Reflection
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
-    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Assists <see cref="IJsonRpcMessageFormatter"/> implementations with supporting marshaling <see cref="IDuplexPipe"/> over JSON-RPC.
