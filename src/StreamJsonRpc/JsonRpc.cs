@@ -1870,6 +1870,17 @@ namespace StreamJsonRpc
                             return CreateCancellationResponse(request);
                         }
 
+                        // Dispose of the result if it was requested via a notification and is a stream.
+                        if (!request.IsResponseExpected && result is Stream stream)
+                        {
+                            stream.Dispose();
+
+                            this.TraceSource.TraceEvent(TraceEventType.Warning,
+                                                        (int)TraceEvents.RequestReceived,
+                                                        "Received notification for method \"{0}\", which returned a stream. Streams are not supported for notifications and has been automatically disposed.",
+                                                        request.Method);
+                        }
+
                         return new JsonRpcResult
                         {
                             RequestId = request.RequestId,
