@@ -295,30 +295,47 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
-    public async Task ServerMethodThatReturnsDuplexPipe()
+    public async Task ServerMethodThatReturnsStream()
     {
-        byte[] buffer = new byte[32];
-        Stream result = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsTwoWayStream));
-
-        int s = await result.ReadAsync(buffer, 0, buffer.Length, this.TimeoutToken);
-        string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
+        StreamReader result = new StreamReader(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsStream)));
+        string returnedContent = await result.ReadToEndAsync().ConfigureAwait(false);
 
         Assert.Equal("Streamed bits!", returnedContent);
+
+        result.Dispose();
+    }
+
+    [Fact]
+    public async Task ClientCanWriteAndReadFromTwoWayStream()
+    {
+        var remoteStream = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatWritesAndReadsFromTwoWayStream));
+
+        var readOnlyStream = new StreamReader(remoteStream);
+        var writeOnlyStream = new StreamWriter(remoteStream);
+
+        // Read server message
+        string serverReply = await readOnlyStream.ReadToEndAsync().ConfigureAwait(false);
+        Assert.Equal("Streamed bits!", serverReply);
+
+        // Verify server received client response
+        await writeOnlyStream.WriteAsync("Returned bits").ConfigureAwait(false);
+        await WhenAllSucceedOrAnyFault(this.server.StreamDisposedTask!);
+
+        remoteStream.Dispose();
     }
 
     /// <summary>
-    /// Verify that an inner stream also gets it's own multiplexing channel.
+    /// Verify that an inner stream also gets its own multiplexing channel.
     /// </summary>
     [Fact]
     public async Task ServerMethodThatReturnsCustomTypeWithInnerStream()
     {
-        byte[] buffer = new byte[32];
         StreamContainingClass result = await this.clientRpc.InvokeAsync<StreamContainingClass>(nameof(Server.ServerMethodThatReturnsCustomTypeWithStream));
-
-        int s = await result.InnerStream.ReadAsync(buffer, 0, buffer.Length, this.TimeoutToken);
-        string returnedContent = Encoding.UTF8.GetString(buffer, 0, s);
+        var returnedContent = await new StreamReader(result.InnerStream).ReadToEndAsync();
 
         Assert.Equal("More streamed bits!", returnedContent);
+
+        result.InnerStream.Dispose();
     }
 
     /// <summary>
@@ -339,12 +356,12 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task ServerDoesNotCreateMxChannelForStreamNotification()
     {
         TaskCompletionSource<object> channelCreatedTask = new TaskCompletionSource<object>();
-        this.clientMx.ChannelOffered += delegate (object sender, MultiplexingStream.ChannelOfferEventArgs args)
+        this.clientMx.ChannelOffered += delegate(object sender, MultiplexingStream.ChannelOfferEventArgs args)
         {
             channelCreatedTask.SetException(new TaskCanceledException());
         };
 
-        await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsTwoWayStream));
+        await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsStream));
 
         await Assert.ThrowsAsync<TimeoutException>(async () => await channelCreatedTask.Task.WithTimeout(ExpectedTimeout));
     }
@@ -710,6 +727,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         internal Task? StreamDisposedTask { get; private set; }
 
+        internal Task? StreamFromClientRead { get; private set; }
+
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
         {
             Assert.Equal(ExpectedFileName, fileName);
@@ -833,13 +852,34 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
 
-        public Stream ServerMethodThatReturnsTwoWayStream()
+        public Stream ServerMethodThatReturnsStream()
+        {
+            var stream = new MemoryStream();
+            var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
+
+            stream.Write(bytes, 0, bytes.Length);
+            stream.Position = 0;
+
+            return stream;
+        }
+
+        public async Task<Stream> ServerMethodThatWritesAndReadsFromTwoWayStream()
         {
             var streamPair = FullDuplexStream.CreatePair();
             var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
 
-            streamPair.Item1.Write(bytes, 0, bytes.Length);
-            streamPair.Item1.Flush();
+            await streamPair.Item1.WriteAsync(bytes, 0, bytes.Length, UnexpectedTimeoutToken);
+            await streamPair.Item1.FlushAsync().ConfigureAwait(false);
+
+            this.StreamFromClientRead = Task.Run(async () =>
+            {
+                var reader = new StreamReader(streamPair.Item1);
+                var reply = await reader.ReadToEndAsync();
+
+                Assert.Equal("Returned bytes", reply);
+
+                streamPair.Item1.Dispose();
+            });
 
             return streamPair.Item2;
         }
@@ -853,6 +893,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
             streamPair.Item1.Write(bytes, 0, bytes.Length);
             streamPair.Item1.Flush();
+
+            // Dispose of the stream to notify the receiving side that no more content will be sent
+            streamPair.Item1.Dispose();
 
             return stream;
         }
