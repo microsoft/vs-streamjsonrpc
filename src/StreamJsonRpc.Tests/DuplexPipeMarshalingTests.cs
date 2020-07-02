@@ -309,12 +309,13 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task ClientCanWriteAndReadFromTwoWayStream()
     {
         var remoteStream = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatWritesAndReadsFromTwoWayStream));
+        Assumes.Present(remoteStream);
 
         var readOnlyStream = new StreamReader(remoteStream);
         var writeOnlyStream = new StreamWriter(remoteStream);
 
         // Read server message
-        string serverReply = await readOnlyStream.ReadLineAsync().ConfigureAwait(false);
+        var serverReply = await readOnlyStream.ReadLineAsync().ConfigureAwait(false);
         Assert.Equal("Streamed bits!", serverReply);
 
         // Verify server received client response
@@ -371,17 +372,20 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         Assert.True(this.server.StreamToDispose?.Disposed);
         Assert.False(this.server.StreamToDispose?.IsEndReached);
-
     }
 
     [Fact]
     public async Task ServerDoesNotCreateMxChannelForStreamNotification()
     {
         TaskCompletionSource<object> channelCreatedTask = new TaskCompletionSource<object>();
-        this.clientMx.ChannelOffered += delegate(object sender, MultiplexingStream.ChannelOfferEventArgs args)
+
+        if (this.clientMx != null)
         {
-            channelCreatedTask.SetException(new TaskCanceledException());
-        };
+            this.clientMx.ChannelOffered += delegate(object sender, MultiplexingStream.ChannelOfferEventArgs args)
+            {
+                channelCreatedTask.SetException(new TaskCanceledException());
+            };
+        }
 
         await this.clientRpc.NotifyAsync(nameof(Server.ServerMethodThatReturnsStream));
 
