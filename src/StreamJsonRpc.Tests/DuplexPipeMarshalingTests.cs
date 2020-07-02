@@ -341,17 +341,37 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     /// <summary>
-    /// Verify that when a user requests a stream and doesn't consume it, we dispose of it on the server.
+    /// Verify that when a user requests a stream and we disconnect, we still dispose of both streams.
     /// </summary>
     [Fact]
-    public async Task ClientCanRequestStreamAndDropIt()
+    public async Task StreamsAreDisposedWhenDisconnected()
     {
-        byte[] buffer = new byte[32];
-        await this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsAndDisposesStream));
+        // Wrap the client stream to exposed disconnected events.
+        var clientStream = new WrappedStream(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsAndSavesTwoWayStream)));
 
+        var serverStreamDisconnected = new TaskCompletionSource<object?>();
+        var clientStreamDisconnected = new TaskCompletionSource<object?>();
+
+        // Subscribe to disconnected event.
+        if (this.server.StreamToDispose != null)
+        {
+            this.server.StreamToDispose.Disconnected += (sender, args) => serverStreamDisconnected.SetResult(null);
+        }
+
+        clientStream.Disconnected += (sender, args) => clientStreamDisconnected.SetResult(null);
+
+        // Close the RPC connection and validate both streams were disposed.
         this.serverRpc.Dispose();
 
-        await WhenAllSucceedOrAnyFault(this.server.StreamDisposedTask!);
+        await serverStreamDisconnected.Task.WithCancellation(this.TimeoutToken);
+        await clientStreamDisconnected.Task.WithCancellation(this.TimeoutToken);
+
+        Assert.True(clientStream.Disposed);
+        Assert.False(clientStream.IsEndReached);
+
+        Assert.True(this.server.StreamToDispose?.Disposed);
+        Assert.False(this.server.StreamToDispose?.IsEndReached);
+
     }
 
     [Fact]
@@ -727,9 +747,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         internal Task? ChatLaterTask { get; private set; }
 
-        internal Task? StreamDisposedTask { get; private set; }
-
         internal Task? StreamFromClientRead { get; private set; }
+
+        internal WrappedStream? StreamToDispose { get; private set; }
 
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
         {
@@ -903,13 +923,13 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             return stream;
         }
 
-        public Stream ServerMethodThatReturnsAndDisposesStream()
+        public Stream ServerMethodThatReturnsAndSavesTwoWayStream()
         {
-            var stream = new SimplexStream();
+            var streamPair = FullDuplexStream.CreatePair();
 
-            this.StreamDisposedTask = Task.Run(() => stream.Dispose());
+            this.StreamToDispose = new WrappedStream(streamPair.Item1);
 
-            return stream;
+            return streamPair.Item2;
         }
     }
 
