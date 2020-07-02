@@ -12,6 +12,7 @@ namespace StreamJsonRpc
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
+    using System.IO.Pipelines;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
@@ -1870,15 +1871,28 @@ namespace StreamJsonRpc
                             return CreateCancellationResponse(request);
                         }
 
-                        // Dispose of the result if it was requested via a notification and is a stream.
+                        // Dispose of the result if it was requested via a notification.
                         if (!request.IsResponseExpected && result is Stream stream)
                         {
                             stream.Dispose();
 
-                            this.TraceSource.TraceEvent(TraceEventType.Warning,
-                                                        (int)TraceEvents.RequestReceived,
-                                                        "Received notification for method \"{0}\", which returned a stream. Streams are not supported for notifications and has been automatically disposed.",
-                                                        request.Method);
+                            this.TraceSource.TraceEvent(
+                                TraceEventType.Warning,
+                                (int)TraceEvents.RequestReceived,
+                                "Received notification for method \"{0}\", which returned a stream. Streams are not supported for notifications and has been automatically disposed.",
+                                request.Method);
+                        }
+
+                        if (!request.IsResponseExpected && result is IDuplexPipe pipe)
+                        {
+                            await pipe.Output.CompleteAsync().ConfigureAwait(false);
+                            await pipe.Input.CompleteAsync().ConfigureAwait(false);
+
+                            this.TraceSource.TraceEvent(
+                                TraceEventType.Warning,
+                                (int)TraceEvents.RequestReceived,
+                                "Received notification for method \"{0}\", which returned a pipe. Pipes are not supported for notifications and has been automatically disposed.",
+                                request.Method);
                         }
 
                         return new JsonRpcResult
