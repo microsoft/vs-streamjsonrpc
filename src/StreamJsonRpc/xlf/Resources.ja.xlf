@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="UnexpectedResponseWithNoMatchingRequest">
         <source>A response was received without a request having been sent.</source>
-        <target state="new">A response was received without a request having been sent.</target>
+        <target state="translated">応答を受信しましたが、要求は送信されていません。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnknownTokenToMarshaledObject">
