@@ -314,12 +314,14 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         var writeOnlyStream = new StreamWriter(remoteStream);
 
         // Read server message
-        string serverReply = await readOnlyStream.ReadToEndAsync().ConfigureAwait(false);
+        string serverReply = await readOnlyStream.ReadLineAsync().ConfigureAwait(false);
         Assert.Equal("Streamed bits!", serverReply);
 
         // Verify server received client response
-        await writeOnlyStream.WriteAsync("Returned bits").ConfigureAwait(false);
-        await WhenAllSucceedOrAnyFault(this.server.StreamDisposedTask!);
+        await writeOnlyStream.WriteLineAsync("Returned bits").ConfigureAwait(false);
+
+        this.server.StreamFromClientRead?.RunSynchronously();
+        await WhenAllSucceedOrAnyFault(this.server.StreamFromClientRead!);
 
         remoteStream.Dispose();
     }
@@ -866,15 +868,16 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         public async Task<Stream> ServerMethodThatWritesAndReadsFromTwoWayStream()
         {
             var streamPair = FullDuplexStream.CreatePair();
-            var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
 
-            await streamPair.Item1.WriteAsync(bytes, 0, bytes.Length, UnexpectedTimeoutToken);
-            await streamPair.Item1.FlushAsync().ConfigureAwait(false);
+            var writeOnlyStream = new StreamWriter(streamPair.Item1);
+            var reader = new StreamReader(streamPair.Item1);
 
-            this.StreamFromClientRead = Task.Run(async () =>
+            await writeOnlyStream.WriteLineAsync("Streamed bits!").ConfigureAwait(false);
+            await writeOnlyStream.FlushAsync().ConfigureAwait(false);
+
+            this.StreamFromClientRead = new Task(async () =>
             {
-                var reader = new StreamReader(streamPair.Item1);
-                var reply = await reader.ReadToEndAsync();
+                var reply = await reader.ReadLineAsync();
 
                 Assert.Equal("Returned bytes", reply);
 
