@@ -112,7 +112,7 @@ namespace StreamJsonRpc.Reflection
             MultiplexingStream mxstream = this.GetMultiplexingStreamOrThrow();
             if (this.formatterState.SerializingMessageWithId.IsEmpty)
             {
-                throw new NotSupportedException(Resources.MarshaledObjectInNotificationError); // MarshaledObjectInNotificationError
+                throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
             }
 
             if (duplexPipe is null)
