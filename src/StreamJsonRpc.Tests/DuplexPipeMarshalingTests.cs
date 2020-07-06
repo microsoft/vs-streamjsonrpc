@@ -381,7 +381,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         if (this.clientMx != null)
         {
-            this.clientMx.ChannelOffered += delegate(object sender, MultiplexingStream.ChannelOfferEventArgs args)
+            this.clientMx.ChannelOffered += (sender, args) =>
             {
                 channelCreatedTask.SetException(new TaskCanceledException());
             };
