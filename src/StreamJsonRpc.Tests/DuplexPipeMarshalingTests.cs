@@ -381,7 +381,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         if (this.clientMx != null)
         {
-            this.clientMx.ChannelOffered += (sender, args) =>
+            this.clientMx.ChannelOffered += (object? sender, MultiplexingStream.ChannelOfferEventArgs args) =>
             {
                 channelCreatedTask.SetException(new TaskCanceledException());
             };
@@ -932,6 +932,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             var streamPair = FullDuplexStream.CreatePair();
 
             this.StreamToDispose = new WrappedStream(streamPair.Item1);
+
+            byte[] buffer = Encoding.UTF8.GetBytes("Bytes!");
+
+            this.StreamToDispose.WriteAsync(buffer, 0, buffer.Length);
 
             return streamPair.Item2;
         }
