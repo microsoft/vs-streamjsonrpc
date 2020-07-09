@@ -1,4 +1,4 @@
- steps:
+steps:
 
  ### Check for checked in credentials.
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
