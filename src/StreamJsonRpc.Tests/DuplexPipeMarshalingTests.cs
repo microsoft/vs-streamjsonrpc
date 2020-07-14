@@ -341,37 +341,47 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         result.InnerStream.Dispose();
     }
 
-    /// <summary>
-    /// Verify that when a user requests a stream and we disconnect, we still dispose of both streams.
-    /// </summary>
     [Fact]
-    public async Task StreamsAreDisposedWhenDisconnected()
+    public async Task ServerStreamIsDisposedWhenClientDisconnects_DuplexStream()
     {
-        // Wrap the client stream to exposed disconnected events.
-        var clientStream = new WrappedStream(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsAndSavesTwoWayStream)));
+        await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesTwoWayStream));
+    }
 
-        var serverStreamDisconnected = new TaskCompletionSource<object?>();
-        var clientStreamDisconnected = new TaskCompletionSource<object?>();
+    [Fact]
+    public async Task ServerStreamIsDisposedWhenClientDisconnects_TwoWayWithEnd()
+    {
+        await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesTwoWayMemoryStream));
+    }
 
-        // Subscribe to disconnected event.
-        if (this.server.StreamToDispose != null)
+    [Fact]
+    public async Task ServerStreamIsDisposedWhenClientDisconnects_WriteOnlyMemoryStream()
+    {
+        await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesWriteOnlyMemoryStream));
+    }
+
+    [Fact]
+    public async Task ServerStreamIsDisposedWhenClientDisconnects_ReadOnlyNetworkStream()
+    {
+        await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesReadOnlyNetworkStream));
+    }
+
+    [Fact]
+    public async Task ServerStreamIsDisposedWhenClientDisconnects_WriteOnlyNetworkStream()
+    {
+        await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesWriteOnlyNetworkStream));
+    }
+
+    [Fact]
+    public async Task ServerStreamIsDisposedAfterDraining_ReadOnlyMemoryStream()
+    {
+        var clientStream = await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsAndSavesReadOnlyMemoryStream));
+        Assumes.Present(this.server.ReturnedStream);
+        var serverStreamDisposal = new AsyncManualResetEvent();
+        this.server.ReturnedStream.Disposed += (s, e) => serverStreamDisposal.Set();
+        if (this.server.ReturnedStream.CanRead || this.server.ReturnedStream.CanWrite) // i.e. if not already disposed
         {
-            this.server.StreamToDispose.Disconnected += (sender, args) => serverStreamDisconnected.SetResult(null);
+            await serverStreamDisposal.WaitAsync(this.TimeoutToken);
         }
-
-        clientStream.Disconnected += (sender, args) => clientStreamDisconnected.SetResult(null);
-
-        // Close the RPC connection and validate both streams were disposed.
-        this.serverRpc.Dispose();
-
-        await serverStreamDisconnected.Task.WithCancellation(this.TimeoutToken);
-        await clientStreamDisconnected.Task.WithCancellation(this.TimeoutToken);
-
-        Assert.True(clientStream.Disposed);
-        Assert.False(clientStream.IsEndReached);
-
-        Assert.True(this.server.StreamToDispose?.Disposed);
-        Assert.False(this.server.StreamToDispose?.IsEndReached);
     }
 
     [Fact]
@@ -730,6 +740,22 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         Assert.True(isDisposed());
     }
 
+    private async Task ServerStreamIsDisposedWhenClientDisconnects(string rpcMethodName)
+    {
+        // Wrap the client stream to exposed disconnected events.
+        var clientStream = await this.clientRpc.InvokeAsync<Stream>(rpcMethodName);
+        Assumes.Present(this.server.ReturnedStream);
+        var serverStreamDisposal = new AsyncManualResetEvent();
+        this.server.ReturnedStream.Disposed += (s, e) => serverStreamDisposal.Set();
+        Assert.True(this.server.ReturnedStream.CanRead || this.server.ReturnedStream.CanWrite, "Server stream is already disposed of, before client disconnected.");
+
+        // Close the RPC connection.
+        this.clientRpc.Dispose();
+
+        // The server stream should be disposed.
+        await serverStreamDisposal.WaitAsync(this.TimeoutToken);
+    }
+
     protected class ServerWithOverloads
     {
         public void OverloadedMethod(bool foo, IDuplexPipe pipe, int[] values)
@@ -753,7 +779,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         internal Task? StreamFromClientRead { get; private set; }
 
-        internal WrappedStream? StreamToDispose { get; private set; }
+        internal MonitoringStream? ReturnedStream { get; private set; }
 
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
         {
@@ -927,18 +953,17 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             return stream;
         }
 
-        public Stream ServerMethodThatReturnsAndSavesTwoWayStream()
-        {
-            var streamPair = FullDuplexStream.CreatePair();
+        public Stream ServerMethodThatReturnsAndSavesTwoWayStream() => this.ReturnedStream = new MonitoringStream(FullDuplexStream.CreatePair().Item1);
 
-            this.StreamToDispose = new WrappedStream(streamPair.Item1);
+        public Stream ServerMethodThatReturnsAndSavesTwoWayMemoryStream() => this.ReturnedStream = new MonitoringStream(new MemoryStream());
 
-            byte[] buffer = Encoding.UTF8.GetBytes("Bytes!");
+        public Stream ServerMethodThatReturnsAndSavesReadOnlyMemoryStream() => this.ReturnedStream = new MonitoringStream(new OneWayStreamWrapper(new MemoryStream(), canRead: true));
 
-            this.StreamToDispose.WriteAsync(buffer, 0, buffer.Length);
+        public Stream ServerMethodThatReturnsAndSavesWriteOnlyMemoryStream() => this.ReturnedStream = new MonitoringStream(new OneWayStreamWrapper(new MemoryStream(), canWrite: true));
 
-            return streamPair.Item2;
-        }
+        public Stream ServerMethodThatReturnsAndSavesReadOnlyNetworkStream() => this.ReturnedStream = new MonitoringStream(new OneWayStreamWrapper(FullDuplexStream.CreatePair().Item1, canRead: true));
+
+        public Stream ServerMethodThatReturnsAndSavesWriteOnlyNetworkStream() => this.ReturnedStream = new MonitoringStream(new OneWayStreamWrapper(FullDuplexStream.CreatePair().Item1, canWrite: true));
     }
 
     protected class ServerWithIDuplexPipeReturningMethod
