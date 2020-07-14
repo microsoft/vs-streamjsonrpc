@@ -242,7 +242,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Signal that a message has been transmitted with the size.
         /// </summary>
-        /// <param name="size">Size of the payload</param>.
+        /// <param name="size">Size of the payload.</param>.
         [Event(TransmisionCompletedSizeEvent, Task = Tasks.MessageTransmission, Opcode = EventOpcode.Stop, Level = EventLevel.Informational)]
         public void TransmissionCompletedSize(long size)
         {
