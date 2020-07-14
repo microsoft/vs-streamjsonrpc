@@ -297,12 +297,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     [Fact]
     public async Task ServerMethodThatReturnsStream()
     {
-        StreamReader result = new StreamReader(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsStream)));
+        using StreamReader result = new StreamReader(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsStream)));
         string returnedContent = await result.ReadToEndAsync().ConfigureAwait(false);
-
         Assert.Equal("Streamed bits!", returnedContent);
-
-        result.Dispose();
     }
 
     [Fact]
@@ -321,8 +318,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         // Verify server received client response
         await writeOnlyStream.WriteLineAsync("Returned bits").ConfigureAwait(false);
 
-        this.server.StreamFromClientRead?.RunSynchronously();
-        await WhenAllSucceedOrAnyFault(this.server.StreamFromClientRead!);
+        Assumes.NotNull(this.server.ChatLaterTask);
+        this.server.ChatLaterTask.RunSynchronously();
+        await WhenAllSucceedOrAnyFault(this.server.ChatLaterTask!);
 
         remoteStream.Dispose();
     }
@@ -378,7 +376,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         Assumes.Present(this.server.ReturnedStream);
         var serverStreamDisposal = new AsyncManualResetEvent();
         this.server.ReturnedStream.Disposed += (s, e) => serverStreamDisposal.Set();
-        if (this.server.ReturnedStream.CanRead || this.server.ReturnedStream.CanWrite) // i.e. if not already disposed
+
+        // The stream *might* already be disposed of by the time our event handler was added.
+        // So only wait for the event if we can confirm that the stream is still alive.
+        if (this.server.ReturnedStream.CanRead || this.server.ReturnedStream.CanWrite)
         {
             await serverStreamDisposal.WaitAsync(this.TimeoutToken);
         }
@@ -777,8 +778,6 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         internal Task? ChatLaterTask { get; private set; }
 
-        internal Task? StreamFromClientRead { get; private set; }
-
         internal MonitoringStream? ReturnedStream { get; private set; }
 
         public async Task<long> AcceptReadablePipe(string fileName, IDuplexPipe content, CancellationToken cancellationToken)
@@ -904,16 +903,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
 
-        public Stream ServerMethodThatReturnsStream()
-        {
-            var stream = new MemoryStream();
-            var bytes = Encoding.UTF8.GetBytes("Streamed bits!");
-
-            stream.Write(bytes, 0, bytes.Length);
-            stream.Position = 0;
-
-            return stream;
-        }
+        public Stream ServerMethodThatReturnsStream() => new MemoryStream(Encoding.UTF8.GetBytes("Streamed bits!"));
 
         public async Task<Stream> ServerMethodThatWritesAndReadsFromTwoWayStream()
         {
@@ -925,7 +915,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             await writeOnlyStream.WriteLineAsync("Streamed bits!").ConfigureAwait(false);
             await writeOnlyStream.FlushAsync().ConfigureAwait(false);
 
-            this.StreamFromClientRead = new Task(async () =>
+            this.ChatLaterTask = new Task(async () =>
             {
                 var reply = await reader.ReadLineAsync();
 
