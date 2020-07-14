@@ -89,7 +89,7 @@ namespace StreamJsonRpc
         private const int TransmissionCompletedEvent = 31;
 
         /// <summary>
-        /// The event ID for the <see cref="TransmissionCompletedSize"/>
+        /// The event ID for the <see cref="TransmissionCompletedSize"/>.
         /// </summary>
         private const int TransmisionCompletedSizeEvent = 32;
 
@@ -242,7 +242,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Signal that a message has been transmitted with the size.
         /// </summary>
-        /// <param name="size"></param>
+        /// <param name="size">Size of the payload</param>
         [Event(TransmisionCompletedSizeEvent, Task = Tasks.MessageTransmission, Opcode = EventOpcode.Stop, Level = EventLevel.Informational)]
         public void TransmissionCompletedSize(long size)
         {
