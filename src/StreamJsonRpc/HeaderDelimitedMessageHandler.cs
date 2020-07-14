@@ -263,6 +263,11 @@ namespace StreamJsonRpc
                 Memory<byte> contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
                 contentSequence.CopyTo(contentMemory.Span);
                 this.Writer.Advance((int)contentSequence.Length);
+
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.TransmissionCompletedSize(contentSequence.Length);
+                }
             }
             finally
             {

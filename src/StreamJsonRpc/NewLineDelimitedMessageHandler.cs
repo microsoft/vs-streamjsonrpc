@@ -113,6 +113,11 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
             this.Formatter.Serialize(this.Writer, content);
             this.Writer.Write(this.newLineBytes.Span);
+
+            if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+            {
+                JsonRpcEventSource.Instance.TransmissionCompletedSize(this.newLineBytes.Length);
+            }
         }
 
         /// <inheritdoc/>
