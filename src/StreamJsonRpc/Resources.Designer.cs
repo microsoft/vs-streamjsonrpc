@@ -520,6 +520,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The length of this list must equal the length of the arguments list..
+        /// </summary>
+        internal static string TypedArgumentsLengthMismatch {
+            get {
+                return ResourceManager.GetString("TypedArgumentsLengthMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to find method &apos;{0}/{1}&apos; on {2} for the following reasons: {3}.
         /// </summary>
         internal static string UnableToFindMethod {

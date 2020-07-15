@@ -288,6 +288,9 @@
     <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>
     <comment>{0} and {1} are CLR type names.</comment>
   </data>
+  <data name="TypedArgumentsLengthMismatch" xml:space="preserve">
+    <value>The length of this list must equal the length of the arguments list.</value>
+  </data>
   <data name="UnableToFindMethod" xml:space="preserve">
     <value>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</value>
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>

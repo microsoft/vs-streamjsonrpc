@@ -1369,9 +1369,7 @@ namespace StreamJsonRpc
                 object? argument = arguments;
                 if (arguments != null)
                 {
-#pragma warning disable SA1011 // Closing square brackets should be spaced correctly: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/issues/3052
                     if (arguments.Count != 1 || arguments[0] == null || !arguments[0]!.GetType().GetTypeInfo().IsClass)
-#pragma warning restore SA1011 // Closing square brackets should be spaced correctly
                     {
                         throw new ArgumentException(Resources.ParameterNotObject);
                     }
@@ -1384,6 +1382,12 @@ namespace StreamJsonRpc
             else
             {
                 request.Arguments = arguments ?? EmptyObjectArray;
+
+                if (argumentDeclaredTypes is object)
+                {
+                    Requires.Argument(argumentDeclaredTypes.Count == arguments?.Count, nameof(argumentDeclaredTypes), Resources.TypedArgumentsLengthMismatch);
+                    request.ArgumentListDeclaredTypes = argumentDeclaredTypes;
+                }
             }
 
             JsonRpcMessage? response = await this.InvokeCoreAsync(request, typeof(TResult), cancellationToken).ConfigureAwait(false);
@@ -1924,6 +1928,7 @@ namespace StreamJsonRpc
                         {
                             RequestId = request.RequestId,
                             Result = result,
+                            ResultDeclaredType = targetMethod.ReturnType,
                         };
                     }
 
@@ -1935,7 +1940,7 @@ namespace StreamJsonRpc
                     // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                     // the VoidTaskResult internal struct as a meaningful result.
                     return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
-                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
+                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, targetMethod.ReturnType.GetTypeInfo(), cancellationToken).ConfigureAwait(false)
                         : this.HandleInvocationTaskResult(request, resultingTask);
                 }
                 else
@@ -2122,12 +2127,13 @@ namespace StreamJsonRpc
             return result;
         }
 
-        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
+        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, TypeInfo declaredReturnType, CancellationToken cancellationToken)
         {
             // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
             Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
 
             object? result = null;
+            Type? declaredResultType = null;
             if (t.Status == TaskStatus.RanToCompletion)
             {
                 // If t is a Task<SomeType>, it will have Result property.
@@ -2142,6 +2148,7 @@ namespace StreamJsonRpc
 
                 PropertyInfo? resultProperty = taskOfTTypeInfo.GetDeclaredProperty(ResultPropertyName);
                 Assumes.NotNull(resultProperty);
+                declaredResultType = resultProperty.PropertyType;
                 result = resultProperty.GetValue(t);
 
                 // Transfer the ultimate success/failure result of the operation from the original successful method to the post-processing step.
@@ -2153,6 +2160,7 @@ namespace StreamJsonRpc
             if (message is JsonRpcResult resultMessage)
             {
                 resultMessage.Result = result;
+                resultMessage.ResultDeclaredType = declaredResultType;
             }
 
             return message;

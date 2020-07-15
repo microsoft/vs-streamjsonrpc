@@ -32,6 +32,7 @@ namespace StreamJsonRpc
         private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None))!.GetMethod!;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
+        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetRuntimeMethod(nameof(Type.GetTypeFromHandle), new Type[] { typeof(RuntimeTypeHandle) });
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
                                                                     where method.Name == nameof(Interlocked.CompareExchange)
@@ -204,13 +205,9 @@ namespace StreamJsonRpc
                     jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
                 }
 
-                MethodInfo[] invokeAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeAsync) && m.GetParameters()[1].ParameterType == typeof(object[])).ToArray();
-                MethodInfo invokeAsyncOfTaskMethodInfo = invokeAsyncMethodInfos.Single(m => !m.IsGenericMethod);
-                MethodInfo invokeAsyncOfTaskOfTMethodInfo = invokeAsyncMethodInfos.Single(m => m.IsGenericMethod);
-
                 IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
-                MethodInfo invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
-                MethodInfo invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 3);
+                MethodInfo invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 4);
+                MethodInfo invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 4);
 
                 IEnumerable<MethodInfo> invokeWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithParameterObjectAsync));
                 MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod);
@@ -332,23 +329,25 @@ namespace StreamJsonRpc
                             }
                         }
 
-                        MethodInfo invokingMethod;
+                        // The third argument is a Type[] describing each parameter type.
+                        LoadParameterTypeArrayField(proxyTypeBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), il);
+
                         if (cancellationTokenParameter != null)
                         {
                             il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
-                            invokingMethod = hasReturnValue ? invokeWithCancellationAsyncOfTaskOfTMethodInfo : invokeWithCancellationAsyncOfTaskMethodInfo;
                         }
                         else
                         {
-                            invokingMethod = hasReturnValue ? invokeAsyncOfTaskOfTMethodInfo : invokeAsyncOfTaskMethodInfo;
+                            LocalBuilder ct = il.DeclareLocal(typeof(CancellationToken));
+                            il.Emit(OpCodes.Ldloca_S, ct);
+                            il.Emit(OpCodes.Initobj, typeof(CancellationToken));
+                            il.Emit(OpCodes.Ldloc_S, ct);
                         }
 
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                        if (invokeResultTypeArgument != null)
-                        {
-                            invokingMethod = invokingMethod.MakeGenericMethod(invokeResultTypeArgument);
-                        }
-
+                        MethodInfo invokingMethod = invokeResultTypeArgument is object
+                            ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument)
+                            : invokeWithCancellationAsyncOfTaskMethodInfo;
                         il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
 
                         AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
@@ -364,11 +363,57 @@ namespace StreamJsonRpc
 
 #if SaveAssembly
                 ((AssemblyBuilder)proxyModuleBuilder.Assembly).Save(proxyModuleBuilder.ScopeName);
+                System.IO.File.Delete(proxyModuleBuilder.ScopeName + ".dll");
                 System.IO.File.Move(proxyModuleBuilder.ScopeName, proxyModuleBuilder.ScopeName + ".dll");
 #endif
             }
 
             return generatedType;
+        }
+
+        private static void LoadParameterTypeArrayField(TypeBuilder proxyTypeBuilder, ParameterInfo[] parameterInfos, ILGenerator il)
+        {
+            if (parameterInfos.Length == 0)
+            {
+                // No need for a field when the array would be empty.
+                il.Emit(OpCodes.Ldnull);
+                return;
+            }
+
+            // Create a reusable Type[] with each of the parameters in the RPC method (excluding the cancellation token)
+            string fieldName = Guid.NewGuid().ToString("n");
+            FieldBuilder field = proxyTypeBuilder.DefineField(
+                fieldName,
+                typeof(Type[]),
+                FieldAttributes.Static | FieldAttributes.Private);
+
+            Label skipInitLabel = il.DefineLabel();
+
+            // Load the Type[] field, and skip initializing it if it's non-null.
+            il.Emit(OpCodes.Ldsfld, field);
+            il.Emit(OpCodes.Dup); // keep a copy on the stack after the test in case it's non-null.
+            il.Emit(OpCodes.Brtrue_S, skipInitLabel);
+
+            // Initialize the field.
+            il.Emit(OpCodes.Pop); // pop off the extra null.
+            il.Emit(OpCodes.Ldc_I4, parameterInfos.Length);
+            il.Emit(OpCodes.Newarr, typeof(Type));
+
+            // Populate the array.
+            for (int i = 0; i < parameterInfos.Length; i++)
+            {
+                il.Emit(OpCodes.Dup); // Keep the array on the stack after we use it.
+                il.Emit(OpCodes.Ldc_I4, i);
+                il.Emit(OpCodes.Ldtoken, parameterInfos[i].ParameterType);
+                il.Emit(OpCodes.Call, GetTypeFromHandleMethod);
+                il.Emit(OpCodes.Stelem_Ref);
+            }
+
+            // Store the array in the field, while keeping a copy on the stack for the argument.
+            il.Emit(OpCodes.Dup);
+            il.Emit(OpCodes.Stsfld, field);
+
+            il.MarkLabel(skipInitLabel);
         }
 
         private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField)
