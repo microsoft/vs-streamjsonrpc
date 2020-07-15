@@ -128,7 +128,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
     {
-        var sendingStream = new HalfDuplexStream();
+        var sendingStream = new SimplexStream();
         var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
 
         // Sending notifications is fine, as it's an outbound-only communication.
@@ -956,6 +956,18 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NotifyAsync_LeavesTraceEvidenceOnFailure()
+    {
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("DoesNotMatter", new TypeThrowsWhenSerialized()));
+
+        // Verify that the trace explains what went wrong with the original exception message.
+        while (!this.clientTraces.Messages.Any(m => m.Contains("Can't touch this")))
+        {
+            await this.clientTraces.MessageReceived.WaitAsync(this.TimeoutToken);
+        }
+    }
+
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
         int report = 0;
@@ -1608,6 +1620,38 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc.Dispose();
         await completion.WithTimeout(UnexpectedTimeout);
         Assert.Same(completion, this.serverRpc.Completion);
+    }
+
+    [Fact]
+    public async Task DispatchCompletion_RepeatedlyRefreshesDuringConnection()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+            Task request = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+            await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+            Assert.False(this.serverRpc.DispatchCompletion.IsCompleted);
+            this.server.AllowServerMethodToReturn.Set();
+            await request;
+            Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+        }
+
+        this.clientRpc.Dispose();
+        await this.serverRpc.Completion;
+        Assert.True(this.serverRpc.DispatchCompletion.IsCompleted);
+    }
+
+    [Fact]
+    public async Task DispatchCompletion_DispatchesLingerAfterDisconnect()
+    {
+        Task request = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        this.clientRpc.Dispose();
+        await this.serverRpc.Completion;
+
+        Assert.False(this.serverRpc.DispatchCompletion.IsCompleted);
+        this.server.AllowServerMethodToReturn.Set();
+        await this.serverRpc.DispatchCompletion.WithCancellation(this.TimeoutToken);
     }
 
     [Fact]

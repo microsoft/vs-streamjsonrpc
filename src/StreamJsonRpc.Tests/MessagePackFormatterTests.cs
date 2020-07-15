@@ -265,6 +265,66 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
     }
 
+    [Fact]
+    public void CanDeserializeWithExtraProperty_JsonRpcRequest()
+    {
+        var dynamic = new
+        {
+            jsonrpc = "2.0",
+            method = "something",
+            extra = (object?)null,
+            @params = new object[] { "hi" },
+        };
+        var request = this.Read<JsonRpcRequest>(dynamic);
+        Assert.Equal(dynamic.jsonrpc, request.Version);
+        Assert.Equal(dynamic.method, request.Method);
+        Assert.Equal(dynamic.@params.Length, request.ArgumentCount);
+        Assert.True(request.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg));
+        Assert.Equal(dynamic.@params[0], arg);
+    }
+
+    [Fact]
+    public void CanDeserializeWithExtraProperty_JsonRpcResult()
+    {
+        var dynamic = new
+        {
+            jsonrpc = "2.0",
+            id = 2,
+            extra = (object?)null,
+            result = "hi",
+        };
+        var request = this.Read<JsonRpcResult>(dynamic);
+        Assert.Equal(dynamic.jsonrpc, request.Version);
+        Assert.Equal(dynamic.id, request.RequestId.Number);
+        Assert.Equal(dynamic.result, request.GetResult<string>());
+    }
+
+    [Fact]
+    public void CanDeserializeWithExtraProperty_JsonRpcError()
+    {
+        var dynamic = new
+        {
+            jsonrpc = "2.0",
+            id = 2,
+            extra = (object?)null,
+            error = new { extra = 2, code = 5 },
+        };
+        var request = this.Read<JsonRpcError>(dynamic);
+        Assert.Equal(dynamic.jsonrpc, request.Version);
+        Assert.Equal(dynamic.id, request.RequestId.Number);
+        Assert.Equal(dynamic.error.code, (int?)request.Error?.Code);
+    }
+
+    private T Read<T>(object anonymousObject)
+        where T : JsonRpcMessage
+    {
+        var sequence = new Sequence<byte>();
+        var writer = new MessagePackWriter(sequence);
+        MessagePackSerializer.Serialize(ref writer, anonymousObject, MessagePackSerializerOptions.Standard);
+        writer.Flush();
+        return (T)this.formatter.Deserialize(sequence);
+    }
+
     private T Roundtrip<T>(T value)
         where T : JsonRpcMessage
     {

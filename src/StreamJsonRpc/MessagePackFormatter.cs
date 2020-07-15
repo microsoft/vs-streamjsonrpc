@@ -729,6 +729,9 @@ namespace StreamJsonRpc
                             case MessageFormatterEnumerableTracker.ValuesPropertyName:
                                 initialElements = options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Deserialize(ref reader, options);
                                 break;
+                            default:
+                                reader.Skip();
+                                break;
                         }
                     }
 
@@ -1118,6 +1121,9 @@ namespace StreamJsonRpc
                             result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
 
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1150,13 +1156,16 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(4);
+                writer.WriteMapHeader(value.RequestId.IsEmpty ? 3 : 4);
 
                 writer.Write(VersionPropertyName);
                 writer.Write(value.Version);
 
-                writer.Write(IdPropertyName);
-                options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                if (!value.RequestId.IsEmpty)
+                {
+                    writer.Write(IdPropertyName);
+                    options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
+                }
 
                 writer.Write(MethodPropertyName);
                 writer.Write(value.Method);
@@ -1233,6 +1242,9 @@ namespace StreamJsonRpc
                         case ResultPropertyName:
                             result.MsgPackResult = GetSliceForNextToken(ref reader);
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1293,6 +1305,9 @@ namespace StreamJsonRpc
                         case ErrorPropertyName:
                             error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
                             break;
+                        default:
+                            reader.Skip();
+                            break;
                     }
                 }
 
@@ -1345,6 +1360,9 @@ namespace StreamJsonRpc
                             break;
                         case DataPropertyName:
                             result.MsgPackData = GetSliceForNextToken(ref reader);
+                            break;
+                        default:
+                            reader.Skip();
                             break;
                     }
                 }

@@ -109,11 +109,11 @@ and returning `IAsyncEnumerable<T>` are valid options. To choose, review these d
 
 | Area | `IProgress<T>` | `IAsyncEnumerable<T>` |
 |--|--|--|
-| Pattern | Typically an optional argument for a caller to pass into a method and is used to get details on how the operation is progressing so that a human operator gets visual feedback on a long-running operation. | Typically used as a required argument or return type to provide data that the caller is expected to process to be functionally complete.
+| Pattern | Typically an optional argument for a caller to pass into a method and is used to get details on how the operation is progressing so that a human operator gets visual feedback on a long-running operation. Updates should be occasional and small to avoid flooding the server's transmit queue. | Typically used as a required argument or return type to provide data that the caller is expected to process to be functionally complete.
 | Placement | Parameter or member of object used as a parameter. | Parameter, return type, or member of an object used as one.
 | Lifetime | Works until the RPC method has completed, or the connection drops. | Works until disposed, or the connection drops.
 | Resource leak risk | Resources are automatically released at the completion of the RPC method. | Resources leak unless the `IAsyncEnumerator<T>.DisposeAsync()` method is consistently called.
-| Push vs. pull | Uses a "push" model where the callee sets the pace of updates. The client can only stop these updates by cancelling the original request. | Uses a "pull" model, so the server only calculates and sends data as the client needs it. The client can pause or even break out of enumeration at any time.
+| Push vs. pull | Uses a "push" model where the callee sets the pace of updates. The client can only stop these updates by canceling the original request, but all previously queued progress messages are still transmitted, which *may* be a large backlog that temporarily blocks the server from sending any other messages including responses and cancellation acknowledgements. | Uses a "pull" model, so the server only calculates and sends data as the client needs it. The client can pause or even break out of enumeration at any time.
 | Chattiness | Sends each report in its own message. | Supports batching values together.
 | Server utilization | Server never waits for client before continuing its work. | Server only computes values when client asks for them, or when configured to "read ahead" for faster response times to client.
 

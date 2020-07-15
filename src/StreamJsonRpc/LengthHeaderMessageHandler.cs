@@ -109,6 +109,11 @@ namespace StreamJsonRpc
                 Utilities.Write(this.Writer.GetSpan(sizeof(int)), checked((int)contentSequence.Length));
                 this.Writer.Advance(sizeof(int));
                 contentSequence.CopyTo(this.Writer);
+
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.TransmissionCompletedSize(contentSequence.Length);
+                }
             }
             finally
             {

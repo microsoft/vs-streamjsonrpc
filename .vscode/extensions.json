@@ -9,7 +9,9 @@
 		"k--kato.docomment",
 		"editorconfig.editorconfig",
 		"pflannery.vscode-versionlens",
-		"davidanson.vscode-markdownlint"
+		"davidanson.vscode-markdownlint",
+		"ms-azuretools.vscode-docker",
+		"eamodio.gitlens"
 	],
 	// List of extensions recommended by VS Code that should not be recommended for users of this workspace.
 	"unwantedRecommendations": [

@@ -88,6 +88,10 @@ StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
     You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
     See alternative formatters below.
 
+When authoring a custom `IJsonRpcMessageFormatter` implementation, consider supporting the [exotic types](exotic_types.md) that require formatter participation.
+We have helper classes to make this straightforward.
+Refer to the source code from our built-in formatters to see how to use these helper classes.
+
 ### Alternative formatters
 
 For performance reasons when both parties can agree, it may be appropriate to switch out the textual JSON

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
@@ -136,6 +137,57 @@ public class JsonMessageFormatterTests : TestBase
 
         formatter.MultiplexingStream = null;
         Assert.Null(formatter.MultiplexingStream);
+    }
+
+    [Fact]
+    public void ServerReturnsErrorWithNullId()
+    {
+        var formatter = new JsonMessageFormatter();
+        JsonRpcMessage? message = formatter.Deserialize(JObject.FromObject(new
+        {
+            jsonrpc = "2.0",
+            error = new
+            {
+                code = -1,
+                message = "Some message",
+            },
+            id = (object?)null,
+        }));
+        var error = Assert.IsAssignableFrom<JsonRpcError>(message);
+        Assert.True(error.RequestId.IsNull);
+    }
+
+    [Fact]
+    public void DeserializingResultWithMissingIdFails()
+    {
+        var formatter = new JsonMessageFormatter();
+        var resultWithNoId = JObject.FromObject(new
+        {
+            jsonrpc = "2.0",
+            result = new
+            {
+                asdf = "abc",
+            },
+        });
+        var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(resultWithNoId)).InnerException?.Message;
+        Assert.Contains("\"id\" property missing.", message);
+    }
+
+    [Fact]
+    public void DeserializingErrorWithMissingIdFails()
+    {
+        var formatter = new JsonMessageFormatter();
+        var errorWithNoId = JObject.FromObject(new
+        {
+            jsonrpc = "2.0",
+            error = new
+            {
+                code = -1,
+                message = "Some message",
+            },
+        });
+        var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(errorWithNoId)).InnerException?.Message;
+        Assert.Contains("\"id\" property missing.", message);
     }
 
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)

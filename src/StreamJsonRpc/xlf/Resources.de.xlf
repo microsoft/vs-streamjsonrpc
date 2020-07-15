@@ -142,6 +142,11 @@
         <target state="translated">Unerwarteter Fehler beim Verarbeiten der JSON-RPC-Nachricht: {0}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="UnexpectedResponseWithNoMatchingRequest">
+        <source>A response was received without a request having been sent.</source>
+        <target state="translated">Es wurde eine Antwort empfangen, ohne dass eine Anforderung gesendet wurde.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownTokenToMarshaledObject">
         <source>This remote object no longer exists.</source>
         <target state="translated">Dieses Remoteobjekt ist nicht mehr vorhanden.</target>

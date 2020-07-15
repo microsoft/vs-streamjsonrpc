@@ -12,10 +12,7 @@ The rest of our documentation are organized around use case.
 1. [Test your code](testing.md)
 1. [Write resilient code](resiliency.md)
 1. [Remote Targets](remotetargets.md)
-1. Passing around
-   1. [`Stream`/`IDuplexPipe`](oob_streams.md)
-   1. [`IProgress<T>`](progresssupport.md)
-   1. [`IAsyncEnumerable<T>`](asyncenumerable.md)
+1. [Pass certain special types in arguments or return values](exotic_types.md)
 1. [Troubleshoot](troubleshooting.md)
 
 See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes

@@ -37,5 +37,10 @@ namespace StreamJsonRpc
         /// An extensibility point was leveraged locally and broke the contract.
         /// </summary>
         LocalContractViolation,
+
+        /// <summary>
+        /// The remote party violated the JSON-RPC protocol.
+        /// </summary>
+        RemoteProtocolViolation,
     }
 }

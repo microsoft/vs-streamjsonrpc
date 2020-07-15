@@ -142,6 +142,11 @@
         <target state="translated">JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류 발생: {0}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception message.</note>
       </trans-unit>
+      <trans-unit id="UnexpectedResponseWithNoMatchingRequest">
+        <source>A response was received without a request having been sent.</source>
+        <target state="translated">요청을 보내지 않았는데 응답을 받았습니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnknownTokenToMarshaledObject">
         <source>This remote object no longer exists.</source>
         <target state="translated">이 원격 개체는 더 이상 없습니다.</target>

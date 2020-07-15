@@ -62,7 +62,9 @@ public class JsonRpcRawStreamTests : TestBase
             Assert.NotNull(args);
             Assert.NotNull(args.Description);
             Assert.Equal(DisconnectedReason.ParseError, args.Reason);
+#pragma warning disable CS0612 // Type or member is obsolete
             Assert.Null(args.LastMessage);
+#pragma warning restore CS0612 // Type or member is obsolete
             Assert.NotNull(args.Exception);
 
             // Server must dispose the stream now

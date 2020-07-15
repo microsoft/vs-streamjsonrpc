@@ -299,6 +299,9 @@
     <value>Unexpected error processing JSON-RPC message: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
+  <data name="UnexpectedResponseWithNoMatchingRequest" xml:space="preserve">
+    <value>A response was received without a request having been sent.</value>
+  </data>
   <data name="UnexpectedTokenReadingHeader" xml:space="preserve">
     <value>Unexpected token '{0}' while parsing header.</value>
     <comment>{0} is the token, which is typically a single character.</comment>

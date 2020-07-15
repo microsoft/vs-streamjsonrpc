@@ -32,11 +32,13 @@ variables:
 - name: PublicRelease
   value: false # avoid using nice version since we're building a preliminary/unoptimized package
 - name: SignType
-  value: test
+  value: real
 - group: Library.Template
 
 stages:
 - stage: Library
+  variables:
+    OptProf: true
   jobs:
   - template: build.yml
     parameters:
