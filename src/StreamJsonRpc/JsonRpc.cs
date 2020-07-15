@@ -1039,9 +1039,39 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         {
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, cancellationToken);
+        }
+
+        /// <summary>
+        /// Invoke a method on the server.
+        /// </summary>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
+        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <returns>A task that completes when the server method executes.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
+        public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type> argumentDeclaredTypes, CancellationToken cancellationToken)
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
+        {
+            return this.InvokeWithCancellationAsync<object>(targetName, arguments, argumentDeclaredTypes, cancellationToken);
         }
 
         /// <summary>
@@ -1065,9 +1095,41 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         {
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, cancellationToken);
+        }
+
+        /// <summary>
+        /// Invoke a method on the server and get back the result.
+        /// </summary>
+        /// <typeparam name="TResult">Type of the method result.</typeparam>
+        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
+        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="argumentDeclaredTypes">
+        /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
+        /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
+        /// </param>
+        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <returns>A task that completes when the server method executes and returns the result.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
+        /// or in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Result task fails with this exception if the server method throws an exception,
+        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
+        {
+            return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, argumentDeclaredTypes, cancellationToken, isParameterObject: false);
         }
 
         /// <summary>
@@ -1269,6 +1331,12 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<TResult>(id.HasValue ? new RequestId(id.Value) : default, targetName, arguments, cancellationToken, isParameterObject);
         }
 
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken, bool)"/>
+        protected Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+        {
+            return this.InvokeCoreAsync<TResult>(id, targetName, arguments, null, cancellationToken, isParameterObject);
+        }
+
         /// <summary>
         /// Invokes the specified RPC method.
         /// </summary>
@@ -1276,10 +1344,15 @@ namespace StreamJsonRpc
         /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
         /// <param name="targetName">Name of the method to invoke.</param>
         /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
+        /// <param name="argumentDeclaredTypes">
+        /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
+        /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
+        /// This value is ignored when <paramref name="isParameterObject"/> is true.
+        /// </param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-        protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+        protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? argumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 

@@ -23,6 +23,15 @@ namespace StreamJsonRpc.Protocol
         public object? Result { get; set; }
 
         /// <summary>
+        /// Gets or sets the declared type of the return value.
+        /// </summary>
+        /// <remarks>
+        /// This value is not serialized, but is used by the RPC server to assist in serialization where necessary.
+        /// </remarks>
+        [IgnoreDataMember]
+        public Type? ResultDeclaredType { get; set; }
+
+        /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.
         /// </summary>
         /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>

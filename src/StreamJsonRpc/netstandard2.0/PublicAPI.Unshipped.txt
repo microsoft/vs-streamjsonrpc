@@ -1,4 +1,13 @@
+StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Collections.Generic.IReadOnlyList<System.Type> argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>
+StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Collections.Generic.IReadOnlyList<System.Type> argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task
+StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string targetName, System.Collections.Generic.IReadOnlyList<object> arguments, System.Collections.Generic.IReadOnlyList<System.Type> argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
 StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
 StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type>
+StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.get -> System.Collections.Generic.IReadOnlyDictionary<string, System.Type>
+StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.set -> void
+StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.get -> System.Type
+StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
