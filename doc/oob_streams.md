@@ -45,12 +45,9 @@ public async Task TakeLargeFileAsync(IDuplexPipe pipe)
 The server may also reply with stream or pipe:
 
 ```cs
-public async Task<Stream> SendLargeFileAsync()
-{
-   // Open a stream on the server-side and forward it to the client.
-   var stream = new FileStream("pathToServerFile", FileMode.Open);
-
-   return stream;
+public Stream GetFile(string path) {
+    // Validate that the client should be granted access to the requested file.
+    return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
 }
 ```
 
