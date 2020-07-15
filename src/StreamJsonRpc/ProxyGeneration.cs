@@ -308,20 +308,28 @@ namespace StreamJsonRpc
                     // The second argument is an array of arguments for the RPC method.
                     il.MarkLabel(positionalArgsLabel);
                     {
-                        il.Emit(OpCodes.Ldc_I4, argumentCountExcludingCancellationToken);
-                        il.Emit(OpCodes.Newarr, typeof(object));
-
-                        for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                        if (argumentCountExcludingCancellationToken == 0)
                         {
-                            il.Emit(OpCodes.Dup); // duplicate the array on the stack
-                            il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
-                            il.Emit(OpCodes.Ldarg, i + 1); // push the associated argument
-                            if (methodParameters[i].ParameterType.GetTypeInfo().IsValueType)
-                            {
-                                il.Emit(OpCodes.Box, methodParameters[i].ParameterType); // box if the argument is a value type
-                            }
+                            // No args, so avoid creating an array.
+                            il.Emit(OpCodes.Ldnull);
+                        }
+                        else
+                        {
+                            il.Emit(OpCodes.Ldc_I4, argumentCountExcludingCancellationToken);
+                            il.Emit(OpCodes.Newarr, typeof(object));
 
-                            il.Emit(OpCodes.Stelem_Ref); // set the array element.
+                            for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                            {
+                                il.Emit(OpCodes.Dup); // duplicate the array on the stack
+                                il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
+                                il.Emit(OpCodes.Ldarg, i + 1); // push the associated argument
+                                if (methodParameters[i].ParameterType.GetTypeInfo().IsValueType)
+                                {
+                                    il.Emit(OpCodes.Box, methodParameters[i].ParameterType); // box if the argument is a value type
+                                }
+
+                                il.Emit(OpCodes.Stelem_Ref); // set the array element.
+                            }
                         }
 
                         MethodInfo invokingMethod;
