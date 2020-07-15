@@ -791,12 +791,13 @@ public abstract class JsonRpcTests : TestBase
             Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "a" }, cts.Token);
             await clientMessageHandler.FlushEntered.WaitAsync(this.TimeoutToken);
             cts.Cancel();
-            clientMessageHandler.AllowFlushAsyncExit.Set();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => invokeTask);
+            clientMessageHandler.AllowFlushAsyncExit.Set(); // initial message
+            clientMessageHandler.AllowFlushAsyncExit.Set(); // cancellation message
+            await invokeTask.WithCancellation(this.TimeoutToken);
 
-            clientMessageHandler.AllowFlushAsyncExit.Set();
-            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "a" }, this.TimeoutToken);
-            Assert.Equal("a!", result);
+            clientMessageHandler.AllowFlushAsyncExit.Set(); // next message
+            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "b" }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+            Assert.Equal("b!", result);
         }
     }
 
