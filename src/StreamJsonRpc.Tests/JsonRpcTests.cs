@@ -60,6 +60,19 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    protected interface IControlledFlushHandler : IJsonRpcMessageHandler
+    {
+        /// <summary>
+        /// Gets an event that is raised when <see cref="MessageHandlerBase.FlushAsync(CancellationToken)"/> is invoked.
+        /// </summary>
+        AsyncAutoResetEvent FlushEntered { get; }
+
+        /// <summary>
+        /// Gets an event that must be set before <see cref="MessageHandlerBase.FlushAsync(CancellationToken)"/> is allowed to return.
+        /// </summary>
+        AsyncAutoResetEvent AllowFlushAsyncExit { get; }
+    }
+
     private interface IServer
     {
         [JsonRpcMethod("AnotherName")]
@@ -760,6 +773,30 @@ public abstract class JsonRpcTests : TestBase
             this.server.AllowServerMethodToReturn.Set();
             await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
             cts.Cancel();
+        }
+    }
+
+    [Fact]
+    public async Task InvokeThenCancelToken_BetweenWriteAndFlush()
+    {
+        this.ReinitializeRpcWithoutListening(controlledFlushingClient: true);
+        var clientMessageHandler = (IControlledFlushHandler)this.clientMessageHandler;
+
+        this.clientRpc.StartListening();
+        this.serverRpc.StartListening();
+
+        using (var cts = new CancellationTokenSource())
+        {
+            this.server.AllowServerMethodToReturn.Set();
+            Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "a" }, cts.Token);
+            await clientMessageHandler.FlushEntered.WaitAsync(this.TimeoutToken);
+            cts.Cancel();
+            clientMessageHandler.AllowFlushAsyncExit.Set();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => invokeTask);
+
+            clientMessageHandler.AllowFlushAsyncExit.Set();
+            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "a" }, this.TimeoutToken);
+            Assert.Equal("a!", result);
         }
     }
 
@@ -1895,7 +1932,7 @@ public abstract class JsonRpcTests : TestBase
         base.Dispose(disposing);
     }
 
-    protected abstract void InitializeFormattersAndHandlers();
+    protected abstract void InitializeFormattersAndHandlers(bool controlledFlushingClient = false);
 
     protected override Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = 10)
     {
@@ -1926,13 +1963,13 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    private void ReinitializeRpcWithoutListening()
+    private void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false)
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.InitializeFormattersAndHandlers();
+        this.InitializeFormattersAndHandlers(controlledFlushingClient);
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
