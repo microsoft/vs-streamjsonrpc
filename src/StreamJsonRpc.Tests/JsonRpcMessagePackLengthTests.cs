@@ -116,6 +116,58 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     /// Verifies that the type information associated with named parameters is used for proper serialization of union types.
     /// </summary>
     [Fact]
+    public async Task UnionType_NamedParameter_NoReturnValue_UntypedDictionary()
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        await this.clientRpc.InvokeWithParameterObjectAsync(
+            nameof(MessagePackServer.AcceptUnionTypeAsync),
+            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
+            this.TimeoutToken);
+        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+
+        // Exercise the non-init path by repeating
+        await this.clientRpc.InvokeWithParameterObjectAsync(
+            nameof(MessagePackServer.AcceptUnionTypeAsync),
+            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
+            this.TimeoutToken);
+        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+    }
+
+    /// <summary>
+    /// Verifies that the type information associated with named parameters is used for proper serialization of union types.
+    /// </summary>
+    [Fact]
+    public async Task UnionType_NamedParameter_AndReturnValue_UntypedDictionary()
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
+            nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
+            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
+            this.TimeoutToken);
+        Assert.Equal(typeof(UnionDerivedClass).Name, result);
+        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+
+        // Exercise the non-init path by repeating
+        result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
+            nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
+            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
+            this.TimeoutToken);
+        Assert.Equal(typeof(UnionDerivedClass).Name, result);
+        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+    }
+
+    /// <summary>
+    /// Verifies that the type information associated with named parameters is used for proper serialization of union types.
+    /// </summary>
+    [Fact]
     public async Task UnionType_NamedParameter_NoReturnValue()
     {
         var server = new MessagePackServer();

@@ -1,6 +1,5 @@
 StreamJsonRpc.DisconnectedReason.RemoteProtocolViolation = 6 -> StreamJsonRpc.DisconnectedReason
 StreamJsonRpc.JsonRpc.DispatchCompletion.get -> System.Threading.Tasks.Task!
-StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>!
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>! argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
 StreamJsonRpc.JsonRpc.TraceEvents.TransmissionFailed = 18 -> StreamJsonRpc.JsonRpc.TraceEvents

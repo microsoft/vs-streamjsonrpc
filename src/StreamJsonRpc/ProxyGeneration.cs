@@ -210,8 +210,8 @@ namespace StreamJsonRpc
                 MethodInfo invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 4);
 
                 IEnumerable<MethodInfo> invokeWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithParameterObjectAsync));
-                MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod);
-                MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod);
+                MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
+                MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 3);
 
                 foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
@@ -338,10 +338,7 @@ namespace StreamJsonRpc
                         }
                         else
                         {
-                            LocalBuilder ct = il.DeclareLocal(typeof(CancellationToken));
-                            il.Emit(OpCodes.Ldloca_S, ct);
-                            il.Emit(OpCodes.Initobj, typeof(CancellationToken));
-                            il.Emit(OpCodes.Ldloc_S, ct);
+                            il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
                         }
 
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
