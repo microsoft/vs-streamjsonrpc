@@ -23,7 +23,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     {
     }
 
-    private interface IMessagePackServer
+    internal interface IMessagePackServer
     {
         Task<UnionBaseClass> ReturnUnionTypeAsync(CancellationToken cancellationToken);
 
