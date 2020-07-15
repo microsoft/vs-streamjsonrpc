@@ -92,9 +92,7 @@ $envVars = @{
 }
 
 if ($InstallLocality -eq 'machine') {
-    if ($IsMacOS -or $IsLinux) {
-        $DotNetInstallDir = '/usr/share/dotnet'
-    } else {
+    if ($IsWindows) {
         if ($PSCmdlet.ShouldProcess(".NET Core SDK $sdkVersion", "Install")) {
             Install-DotNet -Version $sdkVersion
         }
@@ -106,6 +104,8 @@ if ($InstallLocality -eq 'machine') {
         }
 
         return
+    } else {
+        $DotNetInstallDir = '/usr/share/dotnet'
     }
 } elseif ($InstallLocality -eq 'repo') {
     $DotNetInstallDir = "$DotNetInstallScriptRoot/.dotnet"
