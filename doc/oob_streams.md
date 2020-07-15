@@ -47,14 +47,10 @@ The server may also reply with stream or pipe:
 ```cs
 public async Task<Stream> SendLargeFileAsync()
 {
-   var streamPair = FullDuplexPipe.CreatePair();
-   
-   // Use streamPair.Item1
+   // Open a stream on the server-side and forward it to the client.
+   var stream = new FileStream("pathToServerFile", FileMode.Open);
 
-   // Dispose of the stream to notify the client we are done sending data
-   streamPair.Item1.Dispose();
-
-   return streamPair.Item2;
+   return stream;
 }
 ```
 
