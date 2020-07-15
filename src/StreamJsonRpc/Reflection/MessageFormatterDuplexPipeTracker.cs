@@ -7,6 +7,7 @@ namespace StreamJsonRpc.Reflection
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
+    using System.IO;
     using System.IO.Pipelines;
     using System.Threading;
     using System.Threading.Tasks;
@@ -112,6 +113,9 @@ namespace StreamJsonRpc.Reflection
             MultiplexingStream mxstream = this.GetMultiplexingStreamOrThrow();
             if (this.formatterState.SerializingMessageWithId.IsEmpty)
             {
+                duplexPipe?.Output.Complete();
+                duplexPipe?.Input.Complete();
+
                 throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
             }
 
