@@ -7,13 +7,13 @@ namespace StreamJsonRpc.Reflection
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
+    using System.IO;
     using System.IO.Pipelines;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
-    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Assists <see cref="IJsonRpcMessageFormatter"/> implementations with supporting marshaling <see cref="IDuplexPipe"/> over JSON-RPC.
@@ -111,9 +111,12 @@ namespace StreamJsonRpc.Reflection
             Verify.NotDisposed(this);
 
             MultiplexingStream mxstream = this.GetMultiplexingStreamOrThrow();
-            if (this.RequestIdBeingSerialized.IsEmpty)
+            if (this.formatterState.SerializingMessageWithId.IsEmpty)
             {
-                throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
+                duplexPipe?.Output.Complete();
+                duplexPipe?.Input.Complete();
+
+                throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
             }
 
             if (duplexPipe is null)
@@ -123,11 +126,14 @@ namespace StreamJsonRpc.Reflection
 
             MultiplexingStream.Channel channel = mxstream.CreateChannel(new MultiplexingStream.ChannelOptions { ExistingPipe = duplexPipe });
 
-            ImmutableInterlocked.AddOrUpdate(
-                ref this.outboundRequestChannelMap,
-                this.RequestIdBeingSerialized,
-                ImmutableList.Create(channel),
-                (key, value) => value.Add(channel));
+            if (!this.RequestIdBeingSerialized.IsEmpty)
+            {
+                ImmutableInterlocked.AddOrUpdate(
+                    ref this.outboundRequestChannelMap,
+                    this.RequestIdBeingSerialized,
+                    ImmutableList.Create(channel),
+                    (key, value) => value.Add(channel));
+            }
 
             // Track open channels to assist in diagnosing abandoned channels.
             ImmutableInterlocked.TryAdd(ref this.openOutboundChannels, channel.Id, channel);
@@ -172,22 +178,19 @@ namespace StreamJsonRpc.Reflection
                 return null;
             }
 
-            if (this.RequestIdBeingDeserialized.IsEmpty)
-            {
-                throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
-            }
-
             // In the case of multiple overloads, we might be called to convert a channel's token more than once.
             // But we can only accept the channel once, so look up in a dictionary to see if we've already done this.
             if (!this.openInboundChannels.TryGetValue(token.Value, out MultiplexingStream.Channel channel))
             {
                 channel = mxstream.AcceptChannel(token.Value);
-
-                ImmutableInterlocked.AddOrUpdate(
-                    ref this.inboundRequestChannelMap,
-                    this.RequestIdBeingDeserialized,
-                    ImmutableList.Create(channel),
-                    (key, value) => value.Add(channel));
+                if (!this.RequestIdBeingDeserialized.IsEmpty)
+                {
+                    ImmutableInterlocked.AddOrUpdate(
+                        ref this.inboundRequestChannelMap,
+                        this.RequestIdBeingDeserialized,
+                        ImmutableList.Create(channel),
+                        (key, value) => value.Add(channel));
+                }
 
                 // Track open channels to assist in diagnosing abandoned channels and handling multiple overloads.
                 ImmutableInterlocked.TryAdd(ref this.openInboundChannels, channel.Id, channel);

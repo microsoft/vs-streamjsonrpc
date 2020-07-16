@@ -170,6 +170,7 @@ namespace StreamJsonRpc
         /// <returns>A task that represents the asynchronous operation.</returns>
         /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <c>false</c>.</exception>
         /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before message transmission begins.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed before or during transmission.</exception>
         /// <remarks>
         /// Implementations should expect this method to be invoked concurrently
         /// and use a queue to preserve message order as they are transmitted one at a time.
@@ -189,7 +190,18 @@ namespace StreamJsonRpc
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         await this.WriteCoreAsync(content, cancellationToken).ConfigureAwait(false);
-                        await this.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                        // When flushing, do NOT honor the caller's CancellationToken since the writing is done
+                        // and we must not throw OperationCanceledException back at them as if we hadn't transmitted it.
+                        // But *do* cancel flushing if we're being disposed.
+                        try
+                        {
+                            await this.FlushAsync(this.DisposalToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException ex) when (ex.CancellationToken == this.DisposalToken)
+                        {
+                            throw new ObjectDisposedException(this.GetType().FullName, ex);
+                        }
                     }
                     finally
                     {
