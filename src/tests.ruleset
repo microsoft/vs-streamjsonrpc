@@ -25,5 +25,9 @@
     <Rule Id="VSTHRD200" Action="Hidden" />
     <Rule Id="VSTHRD002" Action="Hidden" />
     <Rule Id="VSTHRD103" Action="Hidden" />
+    <Rule Id="VSTHRD003" Action="None" />
+    <Rule Id="VSTHRD111" Action="None" />
+    <Rule Id="VSTHRD012" Action="None" />
+    <Rule Id="VSTHRD001" Action="None" />
   </Rules>
 </RuleSet>

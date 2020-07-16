@@ -2623,7 +2623,7 @@ public abstract class JsonRpcTests : TestBase
                 {
                     this.runningInContext.Value--;
                 }
-            });
+            }).Forget();
         }
     }
 
