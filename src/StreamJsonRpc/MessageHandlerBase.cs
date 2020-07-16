@@ -198,7 +198,7 @@ namespace StreamJsonRpc
                         {
                             await this.FlushAsync(this.DisposalToken).ConfigureAwait(false);
                         }
-                        catch (OperationCanceledException ex) when (ex.CancellationToken == this.DisposalToken)
+                        catch (OperationCanceledException ex) when (this.DisposalToken.IsCancellationRequested)
                         {
                             throw new ObjectDisposedException(this.GetType().FullName, ex);
                         }
