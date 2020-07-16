@@ -127,6 +127,11 @@
         <target state="translated">La tarea se canceló.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TypedArgumentsLengthMismatch">
+        <source>The length of this list must equal the length of the arguments list.</source>
+        <target state="new">The length of this list must equal the length of the arguments list.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
         <source>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</source>
         <target state="translated">No se puede encontrar el método '{0}/{1}' en {2} por las siguientes razones: {3}</target>

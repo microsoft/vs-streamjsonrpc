@@ -110,6 +110,19 @@ namespace StreamJsonRpc.Protocol
         }
 
         /// <summary>
+        /// Gets or sets a dictionary of <see cref="Type"/> objects indexed by the property name that describe how each element in <see cref="NamedArguments"/> is expected by the server to be typed.
+        /// If specified, this must have exactly the same size as <see cref="NamedArguments"/> and contain no <c>null</c> values.
+        /// </summary>
+        /// <remarks>
+        /// This property is *not* serialized into the JSON-RPC message.
+        /// On the client-side of an RPC call it comes from the declared property types in the parameter object.
+        /// On the server-side of the RPC call it comes from the types of each parameter on the invoked RPC method.
+        /// This list is used for purposes of aiding the <see cref="IJsonRpcMessageFormatter"/> in serialization.
+        /// </remarks>
+        [IgnoreDataMember]
+        public IReadOnlyDictionary<string, Type>? NamedArgumentDeclaredTypes { get; set; }
+
+        /// <summary>
         /// Gets or sets an array of arguments, if applicable.
         /// </summary>
         [IgnoreDataMember]
@@ -129,6 +142,21 @@ namespace StreamJsonRpc.Protocol
             get => this.Arguments as IReadOnlyList<object>;
             set => this.Arguments = value;
         }
+
+        /// <summary>
+        /// Gets or sets a list of <see cref="Type"/> objects that describe how each element in <see cref="ArgumentsList"/> is expected by the server to be typed.
+        /// If specified, this must have exactly the same length as <see cref="ArgumentsList"/> and contain no <c>null</c> elements.
+        /// </summary>
+        /// <remarks>
+        /// This property is *not* serialized into the JSON-RPC message.
+        /// On the client-side of an RPC call it comes from the typed arguments supplied to the
+        /// <see cref="JsonRpc.InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}, IReadOnlyList{Type}, System.Threading.CancellationToken)"/>
+        /// method.
+        /// On the server-side of the RPC call it comes from the types of each parameter on the invoked RPC method.
+        /// This list is used for purposes of aiding the <see cref="IJsonRpcMessageFormatter"/> in serialization.
+        /// </remarks>
+        [IgnoreDataMember]
+        public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
         /// <summary>
         /// Gets the string to display in the debugger for this instance.

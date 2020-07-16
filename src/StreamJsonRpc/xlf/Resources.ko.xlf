@@ -127,6 +127,11 @@
         <target state="translated">작업이 취소되었습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TypedArgumentsLengthMismatch">
+        <source>The length of this list must equal the length of the arguments list.</source>
+        <target state="new">The length of this list must equal the length of the arguments list.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
         <source>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</source>
         <target state="translated">{2}에서 '{0}/{1}' 메서드를 다음과 같은 이유로 찾을 수 없음:{3}</target>

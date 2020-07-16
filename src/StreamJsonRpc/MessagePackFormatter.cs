@@ -45,6 +45,14 @@ namespace StreamJsonRpc
         private const string ErrorPropertyName = "error";
 
         /// <summary>
+        /// A cache of property names to declared property types, indexed by their containing parameter object type.
+        /// </summary>
+        /// <remarks>
+        /// All access to this field should be while holding a lock on this member's value.
+        /// </remarks>
+        private static readonly Dictionary<Type, IReadOnlyDictionary<string, Type>> ParameterObjectPropertyTypes = new Dictionary<Type, IReadOnlyDictionary<string, Type>>();
+
+        /// <summary>
         /// The options to use for serializing top-level RPC messages.
         /// </summary>
         private readonly MessagePackSerializerOptions messageSerializationOptions;
@@ -238,7 +246,11 @@ namespace StreamJsonRpc
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
                 // the parameters can be matched to the method we're invoking.
-                request.Arguments = GetParamsObjectDictionary(request.Arguments);
+                if (GetParamsObjectDictionary(request.Arguments) is { } namedArgs)
+                {
+                    request.Arguments = namedArgs.ArgumentValues;
+                    request.NamedArgumentDeclaredTypes = namedArgs.ArgumentTypes;
+                }
             }
 
             var writer = new MessagePackWriter(contentBuffer);
@@ -265,17 +277,28 @@ namespace StreamJsonRpc
         /// Extracts a dictionary of property names and values from the specified params object.
         /// </summary>
         /// <param name="paramsObject">The params object.</param>
-        /// <returns>A dictionary, or <c>null</c> if <paramref name="paramsObject"/> is null.</returns>
+        /// <returns>A dictionary of argument values and another of declared argument types, or <c>null</c> if <paramref name="paramsObject"/> is null.</returns>
         /// <remarks>
         /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
         /// </remarks>
         [return: NotNullIfNotNull("paramsObject")]
-        private static IReadOnlyDictionary<string, object?>? GetParamsObjectDictionary(object? paramsObject)
+        private static (IReadOnlyDictionary<string, object?> ArgumentValues, IReadOnlyDictionary<string, Type> ArgumentTypes)? GetParamsObjectDictionary(object? paramsObject)
         {
             if (paramsObject == null)
             {
-                return null;
+                return default;
             }
+
+            // Look up the argument types dictionary if we saved it before.
+            Type paramsObjectType = paramsObject.GetType();
+            IReadOnlyDictionary<string, Type>? argumentTypes;
+            lock (ParameterObjectPropertyTypes)
+            {
+                ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out argumentTypes);
+            }
+
+            // If we couldn't find a previously created argument types dictionary, create a mutable one that we'll build this time.
+            Dictionary<string, Type>? mutableArgumentTypes = argumentTypes is null ? new Dictionary<string, Type>() : null;
 
             var result = new Dictionary<string, object?>(StringComparer.Ordinal);
 
@@ -320,6 +343,10 @@ namespace StreamJsonRpc
                     if (TryGetSerializationInfo(property, out string key))
                     {
                         result[key] = property.GetValue(paramsObject);
+                        if (mutableArgumentTypes is object)
+                        {
+                            mutableArgumentTypes[key] = property.PropertyType;
+                        }
                     }
                 }
             }
@@ -329,10 +356,31 @@ namespace StreamJsonRpc
                 if (TryGetSerializationInfo(field, out string key))
                 {
                     result[key] = field.GetValue(paramsObject);
+                    if (mutableArgumentTypes is object)
+                    {
+                        mutableArgumentTypes[key] = field.FieldType;
+                    }
                 }
             }
 
-            return result;
+            // If we assembled the argument types dictionary this time, save it for next time.
+            if (mutableArgumentTypes is object)
+            {
+                lock (ParameterObjectPropertyTypes)
+                {
+                    if (ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out IReadOnlyDictionary<string, Type>? lostRace))
+                    {
+                        // Of the two, pick the winner to use ourselves so we consolidate on one and allow the GC to collect the loser sooner.
+                        argumentTypes = lostRace;
+                    }
+                    else
+                    {
+                        ParameterObjectPropertyTypes.Add(paramsObjectType, argumentTypes = mutableArgumentTypes);
+                    }
+                }
+            }
+
+            return (result, argumentTypes!);
         }
 
         private static ReadOnlySequence<byte> GetSliceForNextToken(ref MessagePackReader reader)
@@ -1127,9 +1175,17 @@ namespace StreamJsonRpc
                 if (value.ArgumentsList != null)
                 {
                     writer.WriteArrayHeader(value.ArgumentsList.Count);
-                    foreach (var arg in value.ArgumentsList)
+                    for (int i = 0; i < value.ArgumentsList.Count; i++)
                     {
-                        DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                        object? arg = value.ArgumentsList[i];
+                        if (value.ArgumentListDeclaredTypes is object)
+                        {
+                            MessagePackSerializer.Serialize(value.ArgumentListDeclaredTypes[i], ref writer, arg, this.formatter.userDataSerializationOptions);
+                        }
+                        else
+                        {
+                            DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, arg, this.formatter.userDataSerializationOptions);
+                        }
                     }
                 }
                 else if (value.NamedArguments != null)
@@ -1138,7 +1194,14 @@ namespace StreamJsonRpc
                     foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
                     {
                         writer.Write(entry.Key);
-                        DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                        if (value.NamedArgumentDeclaredTypes?[entry.Key] is Type argType)
+                        {
+                            MessagePackSerializer.Serialize(argType, ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                        }
+                        else
+                        {
+                            DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, entry.Value, this.formatter.userDataSerializationOptions);
+                        }
                     }
                 }
                 else
@@ -1200,7 +1263,14 @@ namespace StreamJsonRpc
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
                 writer.Write(ResultPropertyName);
-                DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
+                if (value.ResultDeclaredType is object && value.ResultDeclaredType != typeof(void))
+                {
+                    MessagePackSerializer.Serialize(value.ResultDeclaredType, ref writer, value.Result, this.formatter.userDataSerializationOptions);
+                }
+                else
+                {
+                    DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
+                }
             }
         }
 
