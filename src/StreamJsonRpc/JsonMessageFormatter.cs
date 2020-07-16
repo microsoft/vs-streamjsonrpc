@@ -163,6 +163,7 @@ namespace StreamJsonRpc
             {
                 NullValueHandling = NullValueHandling.Ignore,
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+                DateParseHandling = DateParseHandling.None,
                 Converters =
                 {
                     new JsonProgressServerConverter(this),
