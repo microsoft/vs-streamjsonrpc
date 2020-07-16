@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
@@ -53,7 +53,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    protected override void InitializeFormattersAndHandlers()
+    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.serverMessageFormatter = new MessagePackFormatter();
         this.clientMessageFormatter = new MessagePackFormatter();
@@ -66,7 +66,9 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         ((MessagePackFormatter)this.clientMessageFormatter).SetMessagePackSerializerOptions(options);
 
         this.serverMessageHandler = new LengthHeaderMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = new LengthHeaderMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        this.clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
+            : new LengthHeaderMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
     }
 
     private class UnserializableTypeFormatter : IMessagePackFormatter<CustomSerializedType>
@@ -92,6 +94,25 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         public void Serialize(ref MessagePackWriter writer, TypeThrowsWhenDeserialized value, MessagePackSerializerOptions options)
         {
             writer.WriteArrayHeader(0);
+        }
+    }
+
+    private class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler
+    {
+        public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
+            : base(stream, stream, formatter)
+        {
+        }
+
+        public AsyncAutoResetEvent FlushEntered { get; } = new AsyncAutoResetEvent();
+
+        public AsyncManualResetEvent AllowFlushAsyncExit { get; } = new AsyncManualResetEvent();
+
+        protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
+        {
+            this.FlushEntered.Set();
+            await this.AllowFlushAsyncExit.WaitAsync();
+            await base.FlushAsync(cancellationToken);
         }
     }
 }

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -182,7 +182,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    protected override void InitializeFormattersAndHandlers()
+    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.clientMessageFormatter = new JsonMessageFormatter
         {
@@ -208,7 +208,9 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         };
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        this.clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
+            : new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
     }
 
     [DataContract]
@@ -265,6 +267,25 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
             var stringValue = (string)value;
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue));
             writer.WriteValue(encoded);
+        }
+    }
+
+    private class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
+    {
+        public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
+            : base(stream, formatter)
+        {
+        }
+
+        public AsyncAutoResetEvent FlushEntered { get; } = new AsyncAutoResetEvent();
+
+        public AsyncManualResetEvent AllowFlushAsyncExit { get; } = new AsyncManualResetEvent();
+
+        protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
+        {
+            this.FlushEntered.Set();
+            await this.AllowFlushAsyncExit.WaitAsync();
+            await base.FlushAsync(cancellationToken);
         }
     }
 }
