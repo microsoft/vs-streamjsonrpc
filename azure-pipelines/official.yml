@@ -165,6 +165,7 @@ stages:
       runOnce:
         deploy:
           steps:
+          - download: none
           - task: GitHubRelease@1
             displayName: GitHub release (create)
             inputs:
