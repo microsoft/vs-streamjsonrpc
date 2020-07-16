@@ -103,7 +103,7 @@ public class JsonMessageFormatterTests : TestBase
     {
         var formatter = new JsonMessageFormatter()
         {
-            JsonSerializer = { DateParseHandling = DateParseHandling.None },
+            JsonSerializer = { DateParseHandling = DateParseHandling.DateTime },
         };
 
         string jsonRequest = @"{""jsonrpc"":""2.0"",""method"":""asdf"",""params"":[""2019-01-29T03:37:28.4433841Z""]}";
@@ -111,7 +111,9 @@ public class JsonMessageFormatterTests : TestBase
         var jsonMessage = (JsonRpcRequest)formatter.Deserialize(jsonSequence);
         Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? value));
         Assert.IsType<string>(value);
-        Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
+
+        // Verify that Newtonsoft.JSON rewrote the string to some other representation.
+        Assert.NotEqual("2019-01-29T03:37:28.4433841Z", value);
     }
 
     /// <summary>
@@ -188,6 +190,24 @@ public class JsonMessageFormatterTests : TestBase
         });
         var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(errorWithNoId)).InnerException?.Message;
         Assert.Contains("\"id\" property missing.", message);
+    }
+
+    /// <summary>
+    /// Verifies that we 'fix' the Newtonsoft.Json default date parsing behavior so that <see href="https://github.com/JamesNK/Newtonsoft.Json/issues/862">strings aren't arbitrarily changed</see>.
+    /// </summary>
+    [Fact]
+    public void DateParseHandling_Default()
+    {
+        var formatter = new JsonMessageFormatter();
+        Assert.Equal(DateParseHandling.None, formatter.JsonSerializer.DateParseHandling);
+
+        // Verify that the behavior matches the setting.
+        string jsonRequest = @"{""jsonrpc"":""2.0"",""method"":""asdf"",""params"":[""2019-01-29T03:37:28.4433841Z""]}";
+        ReadOnlySequence<byte> jsonSequence = new ReadOnlySequence<byte>(formatter.Encoding.GetBytes(jsonRequest));
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(jsonSequence);
+        Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? value));
+        Assert.IsType<string>(value);
+        Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }
 
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
