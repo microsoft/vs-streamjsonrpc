@@ -316,11 +316,11 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         Assert.Equal("Streamed bits!", serverReply);
 
         // Verify server received client response
-        await writeOnlyStream.WriteLineAsync("Returned bits").ConfigureAwait(false);
+        await writeOnlyStream.WriteLineAsync("Returned bytes").ConfigureAwait(false);
+        await writeOnlyStream.FlushAsync().WithCancellation(this.TimeoutToken);
 
         Assumes.NotNull(this.server.ChatLaterTask);
-        this.server.ChatLaterTask.RunSynchronously();
-        await WhenAllSucceedOrAnyFault(this.server.ChatLaterTask!);
+        await this.server.ChatLaterTask.WithCancellation(this.TimeoutToken);
 
         remoteStream.Dispose();
     }
@@ -915,7 +915,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             await writeOnlyStream.WriteLineAsync("Streamed bits!").ConfigureAwait(false);
             await writeOnlyStream.FlushAsync().ConfigureAwait(false);
 
-            this.ChatLaterTask = new Task(async () =>
+            this.ChatLaterTask = Task.Run(async () =>
             {
                 var reply = await reader.ReadLineAsync();
 
