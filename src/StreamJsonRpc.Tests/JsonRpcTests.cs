@@ -70,7 +70,7 @@ public abstract class JsonRpcTests : TestBase
         /// <summary>
         /// Gets an event that must be set before <see cref="MessageHandlerBase.FlushAsync(CancellationToken)"/> is allowed to return.
         /// </summary>
-        AsyncAutoResetEvent AllowFlushAsyncExit { get; }
+        AsyncManualResetEvent AllowFlushAsyncExit { get; }
     }
 
     private interface IServer
@@ -791,11 +791,9 @@ public abstract class JsonRpcTests : TestBase
             Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "a" }, cts.Token);
             await clientMessageHandler.FlushEntered.WaitAsync(this.TimeoutToken);
             cts.Cancel();
-            clientMessageHandler.AllowFlushAsyncExit.Set(); // initial message
-            clientMessageHandler.AllowFlushAsyncExit.Set(); // cancellation message
+            clientMessageHandler.AllowFlushAsyncExit.Set();
             await invokeTask.WithCancellation(this.TimeoutToken);
 
-            clientMessageHandler.AllowFlushAsyncExit.Set(); // next message
             string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new[] { "b" }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
             Assert.Equal("b!", result);
         }
