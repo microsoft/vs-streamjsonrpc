@@ -40,7 +40,7 @@ stages:
 
 - stage: symbol_archive
   displayName: Symbol archival
-  condition: eq('${{ parameters.SignType }}', 'Real')
+  condition: and(succeeded(), eq('${{ parameters.SignType }}', 'Real'))
   dependsOn: build
   jobs:
   - job: archive
