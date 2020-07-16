@@ -279,7 +279,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
         public AsyncAutoResetEvent FlushEntered { get; } = new AsyncAutoResetEvent();
 
-        public AsyncAutoResetEvent AllowFlushAsyncExit { get; } = new AsyncAutoResetEvent();
+        public AsyncManualResetEvent AllowFlushAsyncExit { get; } = new AsyncManualResetEvent();
 
         protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
         {
