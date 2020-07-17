@@ -1,13 +1,11 @@
 steps:
 
  ### Check for checked in credentials.
-- task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+- task: CredScan@3
   displayName: 'Run CredScan'
-  inputs:
-    debugMode: false
 
  ### Run PoliCheck to check for disallowed terms. targetType: F indicates we're searching files and folders.
-- task: securedevelopmentteam.vss-secure-development-tools.build-task-policheck.PoliCheck@1
+- task: PoliCheck@1
   displayName: 'Run PoliCheck'
   inputs:
     targetType: F
