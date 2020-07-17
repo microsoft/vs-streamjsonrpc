@@ -186,7 +186,14 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            return await this.DeserializeMessageAsync(contentLength, headers.Value.ContentEncoding, DefaultContentEncoding, cancellationToken).ConfigureAwait(false);
+            JsonRpcMessage message = await this.DeserializeMessageAsync(contentLength, headers.Value.ContentEncoding, DefaultContentEncoding, cancellationToken).ConfigureAwait(false);
+
+            if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+            {
+                JsonRpcEventSource.Instance.HandlerReceived(contentLength);
+            }
+
+            return message;
         }
 
         /// <inheritdoc />
@@ -266,7 +273,7 @@ namespace StreamJsonRpc
 
                 if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
                 {
-                    JsonRpcEventSource.Instance.TransmissionCompletedSize(contentSequence.Length);
+                    JsonRpcEventSource.Instance.HandlerTransmitted(contentSequence.Length);
                 }
             }
             finally

@@ -89,9 +89,14 @@ namespace StreamJsonRpc
         private const int TransmissionCompletedEvent = 31;
 
         /// <summary>
-        /// The event ID for the <see cref="TransmissionCompletedSize"/>.
+        /// The event ID for the <see cref="HandlerTransmitted"/>.
         /// </summary>
-        private const int TransmisionCompletedSizeEvent = 32;
+        private const int MessageHandlerTransmittedEvent = 32;
+
+        /// <summary>
+        /// The event ID for the <see cref="HandlerReceived"/>.
+        /// </summary>
+        private const int MessageHandlerReceivedEvent = 33;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpcEventSource"/> class.
@@ -240,13 +245,23 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Signal that a message has been transmitted with the size.
+        /// Signal that an <see cref="IJsonRpcMessageHandler"/> has transmitted a message.
         /// </summary>
         /// <param name="size">Size of the payload.</param>.
-        [Event(TransmisionCompletedSizeEvent, Task = Tasks.MessageTransmission, Opcode = EventOpcode.Stop, Level = EventLevel.Informational)]
-        public void TransmissionCompletedSize(long size)
+        [Event(MessageHandlerTransmittedEvent, Task = Tasks.MessageHandler, Opcode = EventOpcode.Send, Level = EventLevel.Informational)]
+        public void HandlerTransmitted(long size)
         {
-            this.WriteEvent(TransmisionCompletedSizeEvent, size);
+            this.WriteEvent(MessageHandlerTransmittedEvent, size);
+        }
+
+        /// <summary>
+        /// Signal that an <see cref="IJsonRpcMessageHandler"/> has received a message.
+        /// </summary>
+        /// <param name="size">Size of the payload.</param>.
+        [Event(MessageHandlerReceivedEvent, Task = Tasks.MessageHandler, Opcode = EventOpcode.Receive, Level = EventLevel.Informational)]
+        public void HandlerReceived(long size)
+        {
+            this.WriteEvent(MessageHandlerReceivedEvent, size);
         }
 
         /// <summary>
@@ -299,6 +314,7 @@ namespace StreamJsonRpc
             public const EventTask MessageTransmission = (EventTask)3;
             public const EventTask Cancellation = (EventTask)4;
             public const EventTask Notification = (EventTask)5;
+            public const EventTask MessageHandler = (EventTask)6;
         }
 
         /// <summary>
