@@ -89,6 +89,7 @@ namespace StreamJsonRpc.Protocol
             /// Gets or sets additional data about the error.
             /// </summary>
             [DataMember(Name = "data", Order = 2, IsRequired = false)]
+            [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
             public object? Data { get; set; }
 
             /// <summary>
