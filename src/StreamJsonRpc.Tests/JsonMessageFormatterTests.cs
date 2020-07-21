@@ -160,6 +160,26 @@ public class JsonMessageFormatterTests : TestBase
     }
 
     [Fact]
+    public void ErrorResponseOmitsNullDataField()
+    {
+        var formatter = new JsonMessageFormatter();
+        JToken jtoken = formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error" } });
+        this.Logger.WriteLine(jtoken.ToString(Formatting.Indented));
+        Assert.Equal((int)JsonRpcErrorCode.InternalError, jtoken["error"]["code"]);
+        Assert.Null(jtoken["error"]["data"]); // we're testing for an undefined field -- not a field with a null value.
+    }
+
+    [Fact]
+    public void ErrorResponseIncludesNonNullDataField()
+    {
+        var formatter = new JsonMessageFormatter();
+        JToken jtoken = formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error", Data = new { more = "info" } } });
+        this.Logger.WriteLine(jtoken.ToString(Formatting.Indented));
+        Assert.Equal((int)JsonRpcErrorCode.InternalError, jtoken["error"]["code"]);
+        Assert.Equal("info", jtoken["error"]["data"].Value<string>("more"));
+    }
+
+    [Fact]
     public void DeserializingResultWithMissingIdFails()
     {
         var formatter = new JsonMessageFormatter();
