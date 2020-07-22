@@ -101,7 +101,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
         /// </summary>
-        private MessagePackSerializerOptions userDataSerializationOptions = MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData);
+        private MessagePackSerializerOptions userDataSerializationOptions;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
@@ -124,7 +124,7 @@ namespace StreamJsonRpc
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
 
             // Set up default user data resolver.
-            this.userDataSerializationOptions = this.MassageUserDataOptions(StandardResolverAllowPrivate.Options);
+            this.userDataSerializationOptions = this.MassageUserDataOptions(DefaultUserDataSerializationOptions);
         }
 
         private interface IJsonRpcMessagePackRetention
@@ -137,6 +137,17 @@ namespace StreamJsonRpc
             /// </remarks>
             ReadOnlySequence<byte> OriginalMessagePack { get; }
         }
+
+        /// <summary>
+        /// Gets the default <see cref="MessagePackSerializerOptions"/> used for user data (arguments, return values and errors) in RPC calls
+        /// prior to any call to <see cref="SetMessagePackSerializerOptions(MessagePackSerializerOptions)"/>.
+        /// </summary>
+        /// <value>
+        /// This is <see cref="StandardResolverAllowPrivate.Options"/>
+        /// modified to use the <see cref="MessagePackSecurity.UntrustedData"/> security setting.
+        /// </value>
+        public static MessagePackSerializerOptions DefaultUserDataSerializationOptions { get; } = StandardResolverAllowPrivate.Options
+            .WithSecurity(MessagePackSecurity.UntrustedData);
 
         /// <inheritdoc/>
         JsonRpc IJsonRpcInstanceContainer.Rpc
@@ -218,8 +229,7 @@ namespace StreamJsonRpc
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
         /// </summary>
         /// <param name="options">
-        /// The options to use. Before this call, the options used come from <see cref="MessagePackSerializerOptions.Standard"/>
-        /// modified to use the <see cref="MessagePackSecurity.UntrustedData"/> security setting.
+        /// The options to use. Before this call, the options used come from <see cref="DefaultUserDataSerializationOptions"/>.
         /// </param>
         public void SetMessagePackSerializerOptions(MessagePackSerializerOptions options)
         {

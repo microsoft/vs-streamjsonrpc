@@ -14,4 +14,5 @@ StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.get -> System.Type?
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
 StreamJsonRpc.RequestId.IsNull.get -> bool
+static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
 static StreamJsonRpc.RequestId.Null.get -> StreamJsonRpc.RequestId
