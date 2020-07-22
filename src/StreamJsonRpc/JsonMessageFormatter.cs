@@ -174,6 +174,7 @@ namespace StreamJsonRpc
                     new PipeReaderConverter(this),
                     new PipeWriterConverter(this),
                     new StreamConverter(this),
+                    new ExceptionConverter(this),
                 },
             };
         }
@@ -1102,6 +1103,127 @@ namespace StreamJsonRpc
             {
                 var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value?.UsePipe());
                 writer.WriteValue(token);
+            }
+        }
+
+        private class JsonConverterFormatter : IFormatterConverter
+        {
+            private readonly JsonSerializer serializer;
+
+            internal JsonConverterFormatter(JsonSerializer serializer)
+            {
+                this.serializer = serializer;
+            }
+
+            public object Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer);
+
+            public object Convert(object value, TypeCode typeCode)
+            {
+                return typeCode switch
+                {
+                    TypeCode.Object => ((JToken)value).ToObject(typeof(object), this.serializer),
+                    _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
+                };
+            }
+
+            public bool ToBoolean(object value) => ((JToken)value).ToObject<bool>(this.serializer);
+
+            public byte ToByte(object value) => ((JToken)value).ToObject<byte>(this.serializer);
+
+            public char ToChar(object value) => ((JToken)value).ToObject<char>(this.serializer);
+
+            public DateTime ToDateTime(object value) => ((JToken)value).ToObject<DateTime>(this.serializer);
+
+            public decimal ToDecimal(object value) => ((JToken)value).ToObject<decimal>(this.serializer);
+
+            public double ToDouble(object value) => ((JToken)value).ToObject<double>(this.serializer);
+
+            public short ToInt16(object value) => ((JToken)value).ToObject<short>(this.serializer);
+
+            public int ToInt32(object value) => ((JToken)value).ToObject<int>(this.serializer);
+
+            public long ToInt64(object value) => ((JToken)value).ToObject<long>(this.serializer);
+
+            public sbyte ToSByte(object value) => ((JToken)value).ToObject<sbyte>(this.serializer);
+
+            public float ToSingle(object value) => ((JToken)value).ToObject<float>(this.serializer);
+
+            public string ToString(object value) => ((JToken)value).ToObject<string>(this.serializer);
+
+            public ushort ToUInt16(object value) => ((JToken)value).ToObject<ushort>(this.serializer);
+
+            public uint ToUInt32(object value) => ((JToken)value).ToObject<uint>(this.serializer);
+
+            public ulong ToUInt64(object value) => ((JToken)value).ToObject<ulong>(this.serializer);
+        }
+
+        private class ExceptionConverter : JsonConverter<Exception?>
+        {
+            private readonly JsonMessageFormatter formatter;
+
+            internal ExceptionConverter(JsonMessageFormatter formatter)
+            {
+                this.formatter = formatter;
+            }
+
+            public override Exception? ReadJson(JsonReader reader, Type objectType, Exception? existingValue, bool hasExistingValue, JsonSerializer serializer)
+            {
+                if (reader.TokenType == JsonToken.Null)
+                {
+                    return null;
+                }
+
+                if (reader.TokenType != JsonToken.StartObject)
+                {
+                    throw new InvalidOperationException("Expected a StartObject token.");
+                }
+
+                SerializationInfo? info = new SerializationInfo(objectType, new JsonConverterFormatter(serializer));
+                while (reader.Read())
+                {
+                    if (reader.TokenType == JsonToken.EndObject)
+                    {
+                        break;
+                    }
+
+                    if (reader.TokenType == JsonToken.PropertyName)
+                    {
+                        string name = (string)reader.Value;
+                        if (!reader.Read())
+                        {
+                            throw new EndOfStreamException();
+                        }
+
+                        JToken? value = reader.TokenType == JsonToken.Null ? null : JToken.Load(reader);
+                        info.AddValue(name, value);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Expected PropertyName token but encountered: " + reader.TokenType);
+                    }
+                }
+
+                return ExceptionSerializationHelpers.Deserialize<Exception>(info, this.formatter.rpc?.TraceSource);
+            }
+
+            public override void WriteJson(JsonWriter writer, Exception? value, JsonSerializer serializer)
+            {
+                if (value is null)
+                {
+                    writer.WriteNull();
+                    return;
+                }
+
+                SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(serializer));
+                ExceptionSerializationHelpers.Serialize(value, info);
+                writer.WriteStartObject();
+                foreach (SerializationEntry element in info)
+                {
+                    writer.WritePropertyName(element.Name);
+                    serializer.Serialize(writer, element.Value);
+                }
+
+                writer.WriteEndObject();
             }
         }
     }

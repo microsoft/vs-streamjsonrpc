@@ -1911,6 +1911,65 @@ public abstract class JsonRpcTests : TestBase
         Assert.True(server.IsDisposed);
     }
 
+    [Fact]
+    public async Task SerializableExceptions()
+    {
+        // Create a full exception with inner exceptions. We have to throw so that its stacktrace is initialized.
+        Exception? exceptionToSend;
+        try
+        {
+            try
+            {
+                throw new InvalidOperationException("IOE test exception")
+                {
+                    Data =
+                    {
+                        { "someKey", "someValue" },
+                    },
+                };
+            }
+            catch (InvalidOperationException inner)
+            {
+                throw new FileNotFoundException("FNF test exception", inner);
+            }
+        }
+        catch (FileNotFoundException outer)
+        {
+            exceptionToSend = outer;
+        }
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+        AssertExceptionEquality(exceptionToSend, this.server.ReceivedException);
+    }
+
+    [Fact]
+    public async Task SerializableExceptions_NonExistant()
+    {
+        // Synthesize an exception message that refers to an exception type that does not exist.
+        var exceptionToSend = new LyingException("lying message");
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+        AssertExceptionEquality(exceptionToSend, this.server.ReceivedException, compareType: false);
+
+        // Verify that the base exception type was created.
+        Assert.IsType<Exception>(this.server.ReceivedException);
+    }
+
+    [Fact]
+    public async Task SerializableExceptions_Null()
+    {
+        // Set this to a non-null value so when we assert null we know the RPC server method was in fact invoked.
+        this.server.ReceivedException = new InvalidOperationException();
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new object?[] { null }, new[] { typeof(Exception) }, this.TimeoutToken);
+        Assert.Null(this.server.ReceivedException);
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -1940,6 +1999,29 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.TraceSource.Switch.Level = SourceLevels.Error;
 
         return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
+    }
+
+    private static void AssertExceptionEquality(Exception? expected, Exception? actual, bool compareType = true)
+    {
+        Assert.Equal(expected is null, actual is null);
+        if (expected is null || actual is null)
+        {
+            return;
+        }
+
+        Assert.Equal(expected.Message, actual.Message);
+        Assert.Equal(expected.Data, actual.Data);
+        Assert.Equal(expected.HResult, actual.HResult);
+        Assert.Equal(expected.Source, actual.Source);
+        Assert.Equal(expected.HelpLink, actual.HelpLink);
+        Assert.Equal(expected.StackTrace, actual.StackTrace);
+
+        if (compareType)
+        {
+            Assert.Equal(expected.GetType(), actual.GetType());
+        }
+
+        AssertExceptionEquality(expected.InnerException, actual.InnerException);
     }
 
     private static void SendObject(Stream receivingStream, object jsonObject)
@@ -2048,6 +2130,8 @@ public abstract class JsonRpcTests : TestBase
         public Task<string> NotificationReceived => this.notificationTcs.Task;
 
         public bool DelayAsyncMethodWithCancellation { get; set; }
+
+        internal Exception? ReceivedException { get; set; }
 
         public static string ServerMethod(string argument)
         {
@@ -2440,6 +2524,11 @@ public abstract class JsonRpcTests : TestBase
             throw new LocalRpcException { ErrorCode = 2, ErrorData = new { myCustomData = "hi" } };
         }
 
+        public void SendException(Exception? ex)
+        {
+            this.ReceivedException = ex;
+        }
+
         internal void InternalMethod()
         {
             this.ServerMethodReached.Set();
@@ -2694,6 +2783,32 @@ public abstract class JsonRpcTests : TestBase
             }
 
             base.Serialize(bufferWriter, message);
+        }
+    }
+
+    [Serializable]
+    private class LyingException : Exception
+    {
+        public LyingException(string message)
+            : base(message)
+        {
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            // Arrange to change the ClassName value.
+            var scratch = new SerializationInfo(info.ObjectType, new FormatterConverter());
+            base.GetObjectData(scratch, context);
+
+            foreach (var entry in scratch)
+            {
+                if (entry.Name != "ClassName")
+                {
+                    info.AddValue(entry.Name, entry.Value, entry.ObjectType);
+                }
+            }
+
+            info.AddValue("ClassName", "My.NonExistentException");
         }
     }
 }

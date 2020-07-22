@@ -10,6 +10,7 @@ namespace StreamJsonRpc
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.IO.Pipelines;
+    using System.Linq;
     using System.Reflection;
     using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
@@ -101,7 +102,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
         /// </summary>
-        private MessagePackSerializerOptions userDataSerializationOptions;
+        private CustomMessagePackSerializerOptions userDataSerializationOptions;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
@@ -407,7 +408,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="userSuppliedOptions">The options for user data that is supplied by the user (or the default).</param>
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
-        private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
+        private CustomMessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
             var formatters = new IMessagePackFormatter[]
             {
@@ -425,6 +426,9 @@ namespace StreamJsonRpc
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
+
+                // Add resolvers to make types serializable that we expect to be serializable.
+                MessagePackExceptionResolver.Instance,
             };
             IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
 
@@ -432,7 +436,7 @@ namespace StreamJsonRpc
                 .WithCompression(MessagePackCompression.None) // If/when we support LZ4 compression, it will be at the message level -- not the user-data level.
                 .WithResolver(userDataResolver);
 
-            return userDataOptions;
+            return new CustomMessagePackSerializerOptions(userDataOptions, this);
         }
 
         private IFormatterResolver CreateTopLevelMessageResolver()
@@ -498,6 +502,90 @@ namespace StreamJsonRpc
                     writer.WriteRaw(this.rawSequence);
                 }
             }
+
+            internal object Deserialize(Type type, MessagePackSerializerOptions options)
+            {
+                return this.rawSequence.IsEmpty
+                    ? MessagePackSerializer.Deserialize(type, this.rawMemory, options)
+                    : MessagePackSerializer.Deserialize(type, this.rawSequence, options);
+            }
+
+            internal T Deserialize<T>(MessagePackSerializerOptions options)
+            {
+                return this.rawSequence.IsEmpty
+                    ? MessagePackSerializer.Deserialize<T>(this.rawMemory, options)
+                    : MessagePackSerializer.Deserialize<T>(this.rawSequence, options);
+            }
+        }
+
+        private class CustomMessagePackSerializerOptions : MessagePackSerializerOptions
+        {
+            internal CustomMessagePackSerializerOptions(CustomMessagePackSerializerOptions copyFrom)
+                : base(copyFrom)
+            {
+                this.MessagePackFormatter = copyFrom.MessagePackFormatter;
+            }
+
+            internal CustomMessagePackSerializerOptions(MessagePackSerializerOptions copyFrom, MessagePackFormatter formatter)
+                : base(copyFrom)
+            {
+                this.MessagePackFormatter = formatter;
+            }
+
+            internal MessagePackFormatter MessagePackFormatter { get; }
+
+            protected override MessagePackSerializerOptions Clone() => new CustomMessagePackSerializerOptions(this);
+        }
+
+        private class MessagePackFormatterConverter : IFormatterConverter
+        {
+            private readonly MessagePackSerializerOptions options;
+
+            internal MessagePackFormatterConverter(MessagePackSerializerOptions options)
+            {
+                this.options = options;
+            }
+
+            public object Convert(object value, Type type) => ((RawMessagePack)value).Deserialize(type, this.options);
+
+            public object Convert(object value, TypeCode typeCode)
+            {
+                return typeCode switch
+                {
+                    TypeCode.Object => ((RawMessagePack)value).Deserialize<object>(this.options),
+                    _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
+                };
+            }
+
+            public bool ToBoolean(object value) => ((RawMessagePack)value).Deserialize<bool>(this.options);
+
+            public byte ToByte(object value) => ((RawMessagePack)value).Deserialize<byte>(this.options);
+
+            public char ToChar(object value) => ((RawMessagePack)value).Deserialize<char>(this.options);
+
+            public DateTime ToDateTime(object value) => ((RawMessagePack)value).Deserialize<DateTime>(this.options);
+
+            public decimal ToDecimal(object value) => ((RawMessagePack)value).Deserialize<decimal>(this.options);
+
+            public double ToDouble(object value) => ((RawMessagePack)value).Deserialize<double>(this.options);
+
+            public short ToInt16(object value) => ((RawMessagePack)value).Deserialize<short>(this.options);
+
+            public int ToInt32(object value) => ((RawMessagePack)value).Deserialize<int>(this.options);
+
+            public long ToInt64(object value) => ((RawMessagePack)value).Deserialize<long>(this.options);
+
+            public sbyte ToSByte(object value) => ((RawMessagePack)value).Deserialize<sbyte>(this.options);
+
+            public float ToSingle(object value) => ((RawMessagePack)value).Deserialize<float>(this.options);
+
+            public string ToString(object value) => ((RawMessagePack)value).Deserialize<string>(this.options);
+
+            public ushort ToUInt16(object value) => ((RawMessagePack)value).Deserialize<ushort>(this.options);
+
+            public uint ToUInt32(object value) => ((RawMessagePack)value).Deserialize<uint>(this.options);
+
+            public ulong ToUInt64(object value) => ((RawMessagePack)value).Deserialize<ulong>(this.options);
         }
 
         private class ToStringHelper
@@ -992,6 +1080,85 @@ namespace StreamJsonRpc
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Manages serialization of any <see cref="Exception"/>-derived type that follows standard <see cref="SerializableAttribute"/> rules.
+        /// </summary>
+        /// <remarks>
+        /// A serializable class will:
+        /// 1. Derive from <see cref="Exception"/>
+        /// 2. Be attributed with <see cref="SerializableAttribute"/>
+        /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
+        /// </remarks>
+        private class MessagePackExceptionResolver : IFormatterResolver
+        {
+            internal static readonly MessagePackExceptionResolver Instance = new MessagePackExceptionResolver();
+
+            private MessagePackExceptionResolver()
+            {
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>() => Cache<T>.Formatter;
+
+            private static class Cache<T>
+            {
+                internal static readonly IMessagePackFormatter<T>? Formatter;
+
+                static Cache()
+                {
+                    if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
+                    {
+                        Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)));
+                    }
+                }
+            }
+
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
+            private class ExceptionFormatter<T> : IMessagePackFormatter<T>
+                where T : Exception
+            {
+                [return: MaybeNull]
+                public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+                {
+                    if (reader.TryReadNil())
+                    {
+                        return null;
+                    }
+
+                    var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
+                    int memberCount = reader.ReadMapHeader();
+                    for (int i = 0; i < memberCount; i++)
+                    {
+                        string name = reader.ReadString();
+                        object value = RawMessagePack.ReadRaw(ref reader, false);
+                        info.AddValue(name, value);
+                    }
+
+                    var customOptions = options as CustomMessagePackSerializerOptions;
+                    Report.If(customOptions is null, "Unexpected options type.");
+                    return ExceptionSerializationHelpers.Deserialize<T>(info, customOptions?.MessagePackFormatter.rpc?.TraceSource);
+                }
+
+                public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+                {
+                    if (value is null)
+                    {
+                        writer.WriteNil();
+                        return;
+                    }
+
+                    var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
+                    ExceptionSerializationHelpers.Serialize(value, info);
+                    writer.WriteMapHeader(info.MemberCount);
+                    foreach (SerializationEntry element in info)
+                    {
+                        writer.Write(element.Name);
+                        MessagePackSerializer.Serialize(element.ObjectType, ref writer, element.Value, options);
+                    }
+                }
+            }
+#pragma warning restore
         }
 
         private class JsonRpcMessageFormatter : IMessagePackFormatter<JsonRpcMessage>
