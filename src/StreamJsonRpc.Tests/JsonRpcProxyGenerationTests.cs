@@ -51,6 +51,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         Task IncrementAsync();
 
+        ValueTask<bool> ManyParameters(int p1, int p2, int p3, int p4, int p5, int p6, int p7, int p8, int p9, int p10, CancellationToken cancellationToken);
+
         Task Dispose();
     }
 
@@ -717,6 +719,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         public ValueTask DoSomethingValueAsync() => default;
 
         public ValueTask<int> AddValueAsync(int a, int b) => new ValueTask<int>(a + b);
+
+        public ValueTask<bool> ManyParameters(int p1, int p2, int p3, int p4, int p5, int p6, int p7, int p8, int p9, int p10, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
         internal void OnItHappened(EventArgs args) => this.ItHappened?.Invoke(this, args);
 

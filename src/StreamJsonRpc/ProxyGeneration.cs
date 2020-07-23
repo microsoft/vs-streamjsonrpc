@@ -264,7 +264,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, optionsField);
                     il.EmitCall(OpCodes.Callvirt, ServerRequiresNamedArgumentsPropertyGetter, null);
-                    il.Emit(OpCodes.Brfalse_S, positionalArgsLabel);
+                    il.Emit(OpCodes.Brfalse, positionalArgsLabel);
 
                     // The second argument is a single parameter object.
                     {
@@ -392,7 +392,7 @@ namespace StreamJsonRpc
             // Load the Type[] field, and skip initializing it if it's non-null.
             il.Emit(OpCodes.Ldsfld, field);
             il.Emit(OpCodes.Dup); // keep a copy on the stack after the test in case it's non-null.
-            il.Emit(OpCodes.Brtrue_S, skipInitLabel);
+            il.Emit(OpCodes.Brtrue, skipInitLabel);
 
             // Initialize the field.
             il.Emit(OpCodes.Pop); // pop off the extra null.
