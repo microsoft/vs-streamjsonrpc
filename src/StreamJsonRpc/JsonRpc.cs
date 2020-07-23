@@ -386,6 +386,11 @@ namespace StreamJsonRpc
             /// An outgoing RPC message was not sent due to an exception, possibly a serialization failure.
             /// </summary>
             TransmissionFailed,
+
+            /// <summary>
+            /// An incoming <see cref="Exception"/> cannot be deserialized to its original type because the type could not be loaded.
+            /// </summary>
+            ExceptionTypeNotFound,
         }
 
         /// <summary>
