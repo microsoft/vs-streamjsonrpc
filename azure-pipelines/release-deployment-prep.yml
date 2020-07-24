@@ -1,9 +1,9 @@
 steps:
-- download: current
+- download: CI
   artifact: Variables-Windows
   displayName: Download Variables-Windows artifact
 - task: PowerShell@2
   displayName: Set VSTS variables based on artifacts
   inputs:
     targetType: filePath
-    filePath: $(Pipeline.Workspace)/Variables-Windows/_pipelines.ps1
+    filePath: $(Pipeline.Workspace)/CI/Variables-Windows/_pipelines.ps1
