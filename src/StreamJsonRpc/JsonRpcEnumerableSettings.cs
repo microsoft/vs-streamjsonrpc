@@ -4,6 +4,7 @@
 namespace StreamJsonRpc
 {
     using System.Collections.Generic;
+    using Microsoft;
 
     /// <summary>
     /// Provides customizations on performance characteristics of an <see cref="IAsyncEnumerable{T}"/> that is passed over JSON-RPC.
@@ -19,13 +20,41 @@ namespace StreamJsonRpc
         internal static readonly JsonRpcEnumerableSettings DefaultSettings = new JsonRpcEnumerableSettings();
 
         /// <summary>
+        /// Backing field for the <see cref="MinBatchSize"/> property.
+        /// </summary>
+        private int minBatchSize = 1;
+
+        /// <summary>
+        /// Backing field for the <see cref="MaxReadAhead"/> property.
+        /// </summary>
+        private int maxReadAhead;
+
+        /// <summary>
         /// Gets or sets the maximum number of elements to read ahead and cache from the generator in anticipation of the consumer requesting those values.
         /// </summary>
-        public int MaxReadAhead { get; set; }
+        /// <value>This value must be a non-negative number.</value>
+        public int MaxReadAhead
+        {
+            get => this.maxReadAhead;
+            set
+            {
+                Requires.Range(value >= 0, nameof(value), Resources.NonNegativeIntegerRequired);
+                this.maxReadAhead = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the minimum number of elements to obtain from the generator before sending a batch of values to the consumer.
         /// </summary>
-        public int MinBatchSize { get; set; } = 1;
+        /// <value>This must be a positive integer.</value>
+        public int MinBatchSize
+        {
+            get => this.minBatchSize;
+            set
+            {
+                Requires.Range(value > 0, nameof(value), Resources.PositiveIntegerRequired);
+                this.minBatchSize = value;
+            }
+        }
     }
 }

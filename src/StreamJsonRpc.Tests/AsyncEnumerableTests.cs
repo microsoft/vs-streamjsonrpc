@@ -45,7 +45,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     {
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
 
-        IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, CancellationToken cancellationToken);
+        IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
     }
 
     protected interface IServer
@@ -87,9 +87,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
 
-        // Don't use Verbose as it has nasty side-effects leading to test failures, which we need to fix!
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -251,7 +250,9 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     [PairwiseData]
     public async Task PassInIAsyncEnumerableAsArgument(bool useProxy)
     {
+#pragma warning disable CS8425 // Async-iterator member has one or more parameters of type 'CancellationToken' but none of them is decorated with the 'EnumeratorCancellation' attribute, so the cancellation token parameter from the generated 'IAsyncEnumerable<>.GetAsyncEnumerator' will be unconsumed
         async IAsyncEnumerable<int> Generator(CancellationToken cancellationToken)
+#pragma warning restore CS8425 // Async-iterator member has one or more parameters of type 'CancellationToken' but none of them is decorated with the 'EnumeratorCancellation' attribute, so the cancellation token parameter from the generated 'IAsyncEnumerable<>.GetAsyncEnumerator' will be unconsumed
         {
             for (int i = 1; i <= Server.ValuesReturnedByEnumerables; i++)
             {
@@ -483,12 +484,30 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     {
         var proxy = this.clientRpc.Attach<IServer2>();
         int enumerated = 0;
-        await foreach (var item in proxy.GetNumbersParameterizedAsync(minBatchSize, maxReadAhead, prefetch, totalCount, this.TimeoutToken).WithCancellation(this.TimeoutToken))
+        await foreach (var item in proxy.GetNumbersParameterizedAsync(minBatchSize, maxReadAhead, prefetch, totalCount, endWithException: false, this.TimeoutToken).WithCancellation(this.TimeoutToken))
         {
             Assert.Equal(++enumerated, item);
         }
 
         Assert.Equal(totalCount, enumerated);
+    }
+
+    [Theory]
+    [InlineData(1, 0, 0, 2)] // no special features
+    [InlineData(1, 0, 3, 2)] // throw during prefetch
+    [InlineData(3, 0, 0, 2)] // throw during the first batch
+    [InlineData(2, 0, 0, 3)] // throw during the second batch
+    public async Task AsyncIteratorThrows(int minBatchSize, int maxReadAhead, int prefetch, int throwAfter)
+    {
+        var proxy = this.clientRpc.Attach<IServer2>();
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(async delegate
+        {
+            await foreach (int i in proxy.GetNumbersParameterizedAsync(minBatchSize, maxReadAhead, prefetch, throwAfter, endWithException: true, this.TimeoutToken))
+            {
+                this.Logger.WriteLine("Observed item: " + i);
+            }
+        });
+        Assert.Equal(Server.FailByDesignExceptionMessage, ex.Message);
     }
 
     protected abstract void InitializeFormattersAndHandlers();
@@ -580,6 +599,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public const int MaxReadAhead = 4;
 
+        internal const string FailByDesignExceptionMessage = "Fail by design";
+
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
         public AsyncManualResetEvent MethodExited { get; } = new AsyncManualResetEvent();
@@ -616,7 +637,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         {
             try
             {
-                await foreach (var item in this.GetNumbersAsync(ValuesReturnedByEnumerables, cancellationToken))
+                await foreach (var item in this.GetNumbersAsync(ValuesReturnedByEnumerables, endWithException: false, cancellationToken))
                 {
                     yield return item;
                 }
@@ -627,9 +648,9 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             }
         }
 
-        public async ValueTask<IAsyncEnumerable<int>> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, CancellationToken cancellationToken)
+        public async ValueTask<IAsyncEnumerable<int>> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken)
         {
-            return await this.GetNumbersAsync(totalCount, cancellationToken)
+            return await this.GetNumbersAsync(totalCount, endWithException, cancellationToken)
                 .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = batchSize, MaxReadAhead = readAhead })
                 .WithPrefetchAsync(prefetch, cancellationToken);
         }
@@ -691,7 +712,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             });
         }
 
-        private async IAsyncEnumerable<int> GetNumbersAsync(int totalCount, [EnumeratorCancellation] CancellationToken cancellationToken)
+        private async IAsyncEnumerable<int> GetNumbersAsync(int totalCount, bool endWithException, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             for (int i = 1; i <= totalCount; i++)
             {
@@ -700,6 +721,11 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
                 this.ActuallyGeneratedValueCount++;
                 this.ValueGenerated.PulseAll();
                 yield return i;
+            }
+
+            if (endWithException)
+            {
+                throw new InvalidOperationException(FailByDesignExceptionMessage);
             }
         }
     }

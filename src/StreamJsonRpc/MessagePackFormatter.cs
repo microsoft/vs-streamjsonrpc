@@ -585,7 +585,9 @@ namespace StreamJsonRpc
                 }
 
                 [return: MaybeNull]
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member because of nullability attributes.
                 public TClass Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member because of nullability attributes.
                 {
                     if (reader.TryReadNil())
                     {

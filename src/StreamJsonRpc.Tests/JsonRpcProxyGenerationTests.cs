@@ -82,6 +82,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> MultiplyAsync(int a, int b);
     }
 
+    public interface IDisposableServer2 : IDisposable, IServer2
+    {
+    }
+
     public interface IServerWithParamsObject
     {
         Task<int> SumOfParameterObject(int a, int b);
@@ -154,6 +158,23 @@ public class JsonRpcProxyGenerationTests : TestBase
     public async Task CallMethod_String_String()
     {
         Assert.Equal("Hi, Andrew!", await this.clientRpc.SayHiAsync("Andrew"));
+    }
+
+    [Fact]
+    public async Task RpcInterfaceCanDispose_IDisposable()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+
+        var clientRpc = JsonRpc.Attach<IDisposableServer2>(streams.Item1);
+        var server = new Server2();
+
+        this.serverRpc = new JsonRpc(streams.Item2);
+        this.serverRpc.AddLocalRpcTarget(server);
+        this.serverRpc.StartListening();
+
+        Assert.Equal(6, await clientRpc.MultiplyAsync(2, 3));
+        clientRpc.Dispose();
+        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
     }
 
     [Fact]
@@ -654,13 +675,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         public Task IncrementAsync()
         {
             this.Counter++;
-            return TplExtensions.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public Task Dispose()
         {
             this.Counter--;
-            return TplExtensions.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task HeavyWorkAsync(CancellationToken cancellationToken)
@@ -704,6 +725,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
 
         internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
+    }
+
+    internal class Server2 : IServer2
+    {
+        public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
     }
 
     internal class ServerOfInternalInterface : IServerInternal

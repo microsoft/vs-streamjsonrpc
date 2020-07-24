@@ -9,7 +9,7 @@ namespace StreamJsonRpc
     using Newtonsoft.Json;
 
     /// <summary>
-    /// Represents the ID of a request, whether it is a number of a string.
+    /// Represents the ID of a request, whether it is a number or a string.
     /// </summary>
     [JsonConverter(typeof(RequestIdJsonConverter))]
     public struct RequestId : IEquatable<RequestId>

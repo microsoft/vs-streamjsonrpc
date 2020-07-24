@@ -141,7 +141,9 @@ namespace StreamJsonRpc.Reflection
         /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator. May be <c>null</c> to indicate there will be no more values.</param>
         /// <param name="prefetchedItems">The list of items that are included with the enumerable handle.</param>
         /// <returns>The enumerator.</returns>
+#pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         public IAsyncEnumerable<T> CreateEnumerableProxy<T>(object? handle, IReadOnlyList<T>? prefetchedItems)
+#pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         {
             return new AsyncEnumerableProxy<T>(this.jsonRpc, handle, prefetchedItems);
         }
@@ -444,6 +446,11 @@ namespace StreamJsonRpc.Reflection
                         try
                         {
                             EnumeratorResults<T> results = await this.owner.jsonRpc.InvokeWithCancellationAsync<EnumeratorResults<T>>(NextMethodName, this.nextOrDisposeArguments, this.cancellationToken).ConfigureAwait(false);
+                            if (!results.Finished && results.Values?.Count == 0)
+                            {
+                                throw new UnexpectedEmptyEnumerableResponseException("The RPC server responded with an empty list of additional values for an incomplete list.");
+                            }
+
                             if (results.Values != null)
                             {
                                 Write(this.localCachedValues, results.Values);
@@ -451,9 +458,17 @@ namespace StreamJsonRpc.Reflection
 
                             this.generatorReportsFinished = results.Finished;
                         }
-                        catch (RemoteInvocationException ex) when (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                        catch (RemoteInvocationException ex)
                         {
-                            throw new InvalidOperationException(ex.Message, ex);
+                            // Avoid spending a message asking the server to dispose of the marshalled enumerator since they threw an exception at us.
+                            this.generatorReportsFinished = true;
+
+                            if (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
+                            {
+                                throw new InvalidOperationException(ex.Message, ex);
+                            }
+
+                            throw;
                         }
                     }
 
