@@ -9,6 +9,11 @@ indent_style = space
 
 # (Please don't specify an indent_size here; that has too many unintended consequences.)
 
+[*.yml]
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
 # Code files
 [*.{cs,csx,vb,vbx,h,cpp,idl}]
 indent_size = 4
