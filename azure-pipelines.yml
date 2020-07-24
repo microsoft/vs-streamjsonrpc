@@ -22,6 +22,5 @@ variables:
 jobs:
 - template: azure-pipelines/build.yml
   parameters:
-    SignType:
     ShouldSkipOptimize:
 - template: azure-pipelines/richnav.yml
