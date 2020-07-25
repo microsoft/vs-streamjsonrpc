@@ -49,7 +49,7 @@ stages:
 
 - stage: symbol_archive
   displayName: Symbol archival
-  condition: and(succeeded(), eq(variables['SignType'], 'Real'))
+  condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - job: archive
     pool: VSEng-RMPool
@@ -74,7 +74,7 @@ stages:
 
 - stage: azure_public_vssdk_feed
   displayName: azure-public/vssdk feed
-  condition: and(succeeded(), eq(variables['SignType'], 'Real'))
+  condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - deployment: push
     pool:
