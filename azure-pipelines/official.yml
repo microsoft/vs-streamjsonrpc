@@ -53,6 +53,8 @@ stages:
   jobs:
   - job: archive
     pool: VSEng-RMPool
+    variables:
+      SymbolsFeatureName: StreamJsonRpc
     steps:
     - template: release-deployment-prep.yml
     - download: current
@@ -61,7 +63,7 @@ stages:
     - task: MicroBuildArchiveSymbols@1
       displayName: Archive $(SymbolsFeatureName) on Symweb
       inputs:
-        SymbolsFeatureName: StreamJsonRpc
+        SymbolsFeatureName: $(SymbolsFeatureName)
         SymbolsSymwebProject: VS
         SymbolsUncPath: \\cpvsbuild\drops\$(TeamName)\$(Build.DefinitionName)\$(Build.SourceBranchName)\$(Build.BuildNumber)\Symbols.Archival
         SymbolsEmailContacts: vsidemicrobuild
