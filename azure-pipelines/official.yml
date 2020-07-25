@@ -56,7 +56,14 @@ stages:
     variables:
       SymbolsFeatureName: StreamJsonRpc
     steps:
-    - template: release-deployment-prep.yml
+    - download: current
+      artifact: Variables-Windows
+      displayName: Download Variables-Windows artifact
+    - task: PowerShell@2
+      displayName: Set VSTS variables based on artifacts
+      inputs:
+        targetType: filePath
+        filePath: $(Pipeline.Workspace)/Variables-Windows/_pipelines.ps1
     - download: current
       artifact: symbols-Windows
       displayName: Download symbols-Windows artifact
@@ -83,7 +90,6 @@ stages:
       runOnce:
         deploy:
           steps:
-          - template: release-deployment-prep.yml
           - download: current
             artifact: deployables-Windows
             displayName: Download deployables-Windows artifact
