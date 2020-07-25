@@ -22,6 +22,9 @@ stages:
       runOnce:
         deploy:
           steps:
+          - powershell: |
+              Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.CI.runName)"
+            displayName: Set pipeline name
           - template: release-deployment-prep.yml
           - download: CI
             artifact: VSInsertion-Windows

@@ -54,9 +54,6 @@ stages:
   - job: archive
     pool: VSEng-RMPool
     steps:
-    - powershell: |
-        Write-Host "##vso[build.updatebuildnumber]$(resources.pipeline.CI.runName)"
-      displayName: Set pipeline name
     - template: release-deployment-prep.yml
     - download: current
       artifact: symbols-Windows
