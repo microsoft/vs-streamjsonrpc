@@ -265,6 +265,37 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="MessagePackSerializerOptions"/> passed to an <see cref="IMessagePackFormatter{T}"/>
+    /// during serialization of user data is or derives from the value supplied to
+    /// <see cref="MessagePackFormatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions)"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is important because some users actually pass extra state to their formatters by way of a derivation of the options class.
+    /// Modifying their options is fine so long as it is done using the <see cref="MessagePackSerializerOptions.Clone"/> method
+    /// so that the instance is still their type with any custom properties copied.
+    /// </remarks>
+    [Fact]
+    public void ActualOptions_IsOrDerivesFrom_SetMessagePackSerializerOptions()
+    {
+        var customFormatter = new CustomFormatter();
+        var options = (CustomOptions)new CustomOptions(MessagePackFormatter.DefaultUserDataSerializationOptions) { CustomProperty = 3 }
+            .WithResolver(CompositeResolver.Create(customFormatter));
+        this.formatter.SetMessagePackSerializerOptions(options);
+        var value = new JsonRpcRequest
+        {
+            RequestId = new RequestId(1),
+            Method = "Eat",
+            ArgumentsList = new object[] { new TypeRequiringCustomFormatter() },
+        };
+
+        var sequence = new Sequence<byte>();
+        this.formatter.Serialize(sequence, value);
+
+        var observedOptions = Assert.IsType<CustomOptions>(customFormatter.LastObservedOptions);
+        Assert.Equal(options.CustomProperty, observedOptions.CustomProperty);
+    }
+
     [Fact]
     public void CanDeserializeWithExtraProperty_JsonRpcRequest()
     {
@@ -381,8 +412,11 @@ public class MessagePackFormatterTests : TestBase
 
     private class CustomFormatter : IMessagePackFormatter<TypeRequiringCustomFormatter>
     {
+        internal MessagePackSerializerOptions? LastObservedOptions { get; private set; }
+
         public TypeRequiringCustomFormatter Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
+            this.LastObservedOptions = options;
             Assert.Equal(2, reader.ReadArrayHeader());
             return new TypeRequiringCustomFormatter
             {
@@ -393,6 +427,7 @@ public class MessagePackFormatterTests : TestBase
 
         public void Serialize(ref MessagePackWriter writer, TypeRequiringCustomFormatter value, MessagePackSerializerOptions options)
         {
+            this.LastObservedOptions = options;
             writer.WriteArrayHeader(2);
             writer.Write(value.Prop1);
             writer.Write(value.Prop2);
@@ -402,5 +437,23 @@ public class MessagePackFormatterTests : TestBase
     private class Server
     {
         public int Add(int a, int b) => a + b;
+    }
+
+    private class CustomOptions : MessagePackSerializerOptions
+    {
+        internal CustomOptions(CustomOptions copyFrom)
+            : base(copyFrom)
+        {
+            this.CustomProperty = copyFrom.CustomProperty;
+        }
+
+        internal CustomOptions(MessagePackSerializerOptions copyFrom)
+            : base(copyFrom)
+        {
+        }
+
+        internal int CustomProperty { get; set; }
+
+        protected override MessagePackSerializerOptions Clone() => new CustomOptions(this);
     }
 }
