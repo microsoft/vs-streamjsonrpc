@@ -1271,7 +1271,9 @@ namespace StreamJsonRpc
                                     var positionalArgs = new ReadOnlySequence<byte>[reader.ReadArrayHeader()];
                                     for (int i = 0; i < positionalArgs.Length; i++)
                                     {
-                                        positionalArgs[i] = GetSliceForNextToken(ref reader);
+#warning 这里原代码有问题，因此做了修改
+                                        var arr = GetSliceForNextToken(ref reader).ToArray();
+                                        positionalArgs[i] = new ReadOnlySequence<byte>(arr);
                                     }
 
                                     result.MsgPackPositionalArguments = positionalArgs;
@@ -1282,7 +1284,9 @@ namespace StreamJsonRpc
                                     for (int i = 0; i < namedArgsCount; i++)
                                     {
                                         string propertyName = reader.ReadString();
-                                        namedArgs.Add(propertyName, GetSliceForNextToken(ref reader));
+#warning 这里原代码有问题，因此做了修改
+                                        var arr = GetSliceForNextToken(ref reader).ToArray();
+                                        namedArgs.Add(propertyName, new ReadOnlySequence<byte>(arr));
                                     }
 
                                     result.MsgPackNamedArguments = namedArgs;
@@ -1417,7 +1421,9 @@ namespace StreamJsonRpc
                             result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
                             break;
                         case ResultPropertyName:
-                            result.MsgPackResult = GetSliceForNextToken(ref reader);
+#warning 这里原代码有问题，因此做了修改
+                            var arr = GetSliceForNextToken(ref reader).ToArray();
+                            result.MsgPackResult = new ReadOnlySequence<byte>(arr);
                             break;
                         default:
                             reader.Skip();
@@ -1536,7 +1542,9 @@ namespace StreamJsonRpc
                             result.Message = reader.ReadString();
                             break;
                         case DataPropertyName:
-                            result.MsgPackData = GetSliceForNextToken(ref reader);
+#warning 这里原代码有问题，因此做了修改
+                            var arr = GetSliceForNextToken(ref reader).ToArray();
+                            result.MsgPackData = new ReadOnlySequence<byte>(arr);
                             break;
                         default:
                             reader.Skip();
