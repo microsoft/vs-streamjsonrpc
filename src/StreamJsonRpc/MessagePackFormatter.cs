@@ -102,7 +102,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The options to use for serializing user data (e.g. arguments, return values and errors).
         /// </summary>
-        private CustomMessagePackSerializerOptions userDataSerializationOptions;
+        private MessagePackSerializerOptions userDataSerializationOptions;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
@@ -408,7 +408,7 @@ namespace StreamJsonRpc
         /// </summary>
         /// <param name="userSuppliedOptions">The options for user data that is supplied by the user (or the default).</param>
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
-        private CustomMessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
+        private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
             var formatters = new IMessagePackFormatter[]
             {
@@ -430,13 +430,13 @@ namespace StreamJsonRpc
                 // Add resolvers to make types serializable that we expect to be serializable.
                 MessagePackExceptionResolver.Instance,
             };
-            IFormatterResolver userDataResolver = CompositeResolver.Create(formatters, resolvers);
 
-            MessagePackSerializerOptions userDataOptions = userSuppliedOptions
+            // Wrap the resolver in another class as a way to pass information to our custom formatters.
+            IFormatterResolver userDataResolver = new ResolverWrapper(CompositeResolver.Create(formatters, resolvers), this);
+
+            return userSuppliedOptions
                 .WithCompression(MessagePackCompression.None) // If/when we support LZ4 compression, it will be at the message level -- not the user-data level.
                 .WithResolver(userDataResolver);
-
-            return new CustomMessagePackSerializerOptions(userDataOptions, this);
         }
 
         private IFormatterResolver CreateTopLevelMessageResolver()
@@ -518,23 +518,19 @@ namespace StreamJsonRpc
             }
         }
 
-        private class CustomMessagePackSerializerOptions : MessagePackSerializerOptions
+        private class ResolverWrapper : IFormatterResolver
         {
-            internal CustomMessagePackSerializerOptions(CustomMessagePackSerializerOptions copyFrom)
-                : base(copyFrom)
+            private readonly IFormatterResolver inner;
+
+            internal ResolverWrapper(IFormatterResolver inner, MessagePackFormatter formatter)
             {
-                this.MessagePackFormatter = copyFrom.MessagePackFormatter;
+                this.inner = inner;
+                this.Formatter = formatter;
             }
 
-            internal CustomMessagePackSerializerOptions(MessagePackSerializerOptions copyFrom, MessagePackFormatter formatter)
-                : base(copyFrom)
-            {
-                this.MessagePackFormatter = formatter;
-            }
+            internal MessagePackFormatter Formatter { get; }
 
-            internal MessagePackFormatter MessagePackFormatter { get; }
-
-            protected override MessagePackSerializerOptions Clone() => new CustomMessagePackSerializerOptions(this);
+            public IMessagePackFormatter<T> GetFormatter<T>() => this.inner.GetFormatter<T>();
         }
 
         private class MessagePackFormatterConverter : IFormatterConverter
@@ -1135,9 +1131,9 @@ namespace StreamJsonRpc
                         info.AddValue(name, value);
                     }
 
-                    var customOptions = options as CustomMessagePackSerializerOptions;
-                    Report.If(customOptions is null, "Unexpected options type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(info, customOptions?.MessagePackFormatter.rpc?.TraceSource);
+                    var resolverWrapper = options.Resolver as ResolverWrapper;
+                    Report.If(resolverWrapper is null, "Unexpected resolver type.");
+                    return ExceptionSerializationHelpers.Deserialize<T>(info, resolverWrapper?.Formatter.rpc?.TraceSource);
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)

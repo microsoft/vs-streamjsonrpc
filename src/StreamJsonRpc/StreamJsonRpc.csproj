@@ -16,21 +16,21 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MessagePack" Version="2.1.90" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.1.90" PrivateAssets="all" />
+    <PackageReference Include="MessagePack" Version="2.1.152" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.1.152" PrivateAssets="all" />
     <!-- <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.4" PrivateAssets="all" /> -->
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.6.13" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.6.13" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.7.54" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.7.54" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.0.0" PrivateAssets="compile" />
-    <PackageReference Include="Nerdbank.Streams" Version="2.5.72" />
+    <PackageReference Include="Nerdbank.Streams" Version="2.5.76" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.0-beta1.final" PrivateAssets="all" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
     <PackageReference Include="System.IO.Pipelines" Version="4.7.0" />
-    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Net.WebSockets" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.6.0" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.9.0" PrivateAssets="compile" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.3" />
     <PackageReference Include="XliffTasks" Version="1.0.0-beta.19253.2" PrivateAssets="all" />
