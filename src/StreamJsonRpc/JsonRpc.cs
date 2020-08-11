@@ -684,26 +684,37 @@ namespace StreamJsonRpc
             return proxy;
         }
 
-        /// <summary>
-        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
-        /// should not inherit from each other and are invoked in the order which they are added.
-        /// </summary>
-        /// <param name="target">Target to invoke when incoming messages are received.</param>
+        /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
         public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
 
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options) => this.AddLocalRpcTarget(Requires.NotNull(target, nameof(target)).GetType(), target, options);
+
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        /// <typeparam name="T"><inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)" path="/param[@name='exposingMembersOn']"/></typeparam>
+        public void AddLocalRpcTarget<T>(T target, JsonRpcTargetOptions? options)
+            where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
+
         /// <summary>
-        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
-        /// should not inherit from each other and are invoked in the order which they are added.
+        /// Adds the specified target as possible object to invoke when incoming messages are received.
         /// </summary>
+        /// <param name="exposingMembersOn">
+        /// The type whose members define the RPC accessible members of the <paramref name="target"/> object.
+        /// If this type is not an interface, only public members become invokable unless <see cref="JsonRpcTargetOptions.AllowNonPublicInvocation"/> is set to true on the <paramref name="options"/> argument.
+        /// </param>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
         /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
-        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options)
+        /// <remarks>
+        /// When multiple target objects are added, the first target with a method that matches a request is invoked.
+        /// </remarks>
+        public void AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options)
         {
+            Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
             Requires.NotNull(target, nameof(target));
             options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
-            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(target, options);
+            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), target, options);
             lock (this.syncObject)
             {
                 foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
@@ -742,11 +753,11 @@ namespace StreamJsonRpc
 
                 if (options.NotifyClientOfEvents)
                 {
-                    for (TypeInfo? t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                     {
                         foreach (EventInfo evt in t.DeclaredEvents)
                         {
-                            if ((evt.AddMethod?.IsPublic ?? false) && !evt.AddMethod.IsStatic)
+                            if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
                             {
                                 if (this.eventReceivers == null)
                                 {
@@ -1583,12 +1594,14 @@ namespace StreamJsonRpc
         /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
-        /// <param name="target">Object to reflect over and analyze its methods.</param>
+        /// <param name="exposedMembersOnType">Type to reflect over and analyze its methods.</param>
+        /// <param name="target">The instance of <paramref name="exposedMembersOnType"/> to be exposed to RPC.</param>
         /// <param name="options">The options that apply for this target object.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target, JsonRpcTargetOptions options)
+        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
+            Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
             Requires.NotNull(options, nameof(options));
 
             var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -1596,14 +1609,14 @@ namespace StreamJsonRpc
             var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            var mapping = new MethodNameMap(target.GetType().GetTypeInfo());
+            var mapping = new MethodNameMap(exposedMembersOnType);
 
-            for (TypeInfo? t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+            for (TypeInfo? t = exposedMembersOnType; t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
                 // As we enumerate methods, skip accessor methods
                 foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
-                    if (!options.AllowNonPublicInvocation && !method.IsPublic)
+                    if (!options.AllowNonPublicInvocation && !method.IsPublic && !exposedMembersOnType.IsInterface)
                     {
                         continue;
                     }

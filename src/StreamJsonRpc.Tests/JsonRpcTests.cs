@@ -85,6 +85,87 @@ public abstract class JsonRpcTests : TestBase
         int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token);
 
         int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields);
+
+        int Add_ExplicitInterfaceImplementation(int a, int b);
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler);
+        this.serverRpc.AddLocalRpcTarget<IServer>(this.server, null);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+        this.clientRpc.StartListening();
+
+        // Verify that members on the interface are callable.
+        await this.clientRpc.InvokeAsync("AnotherName", new object[] { "my -name" });
+
+        // Verify that explicitly interface implementations of members on the interface are callable.
+        Assert.Equal(3, await this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
+
+        // Verify that members NOT on the interface are not callable, whether public or internal.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" }));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod)));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_OfT_ActualClass()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler);
+        this.serverRpc.AddLocalRpcTarget<Server>(this.server, null);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+        this.clientRpc.StartListening();
+
+        // Verify that public members on the class (and NOT the interface) are callable.
+        await this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" });
+
+        // Verify that explicitly interface implementations of members on the interface are NOT callable.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
+
+        // Verify that internal members on the class are NOT callable.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod)));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_OfT_ActualClass_NonPublicAccessible()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler);
+        this.serverRpc.AddLocalRpcTarget<Server>(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = true });
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+        this.clientRpc.StartListening();
+
+        // Verify that public members on the class (and NOT the interface) are callable.
+        await this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" });
+
+        // Verify that explicitly interface implementations of members on the interface are callable.
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
+
+        // Verify that internal members on the class are callable.
+        await this.clientRpc.InvokeAsync(nameof(Server.InternalMethod));
     }
 
     [Fact]
@@ -2528,6 +2609,8 @@ public abstract class JsonRpcTests : TestBase
         {
             this.ReceivedException = ex;
         }
+
+        int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
         internal void InternalMethod()
         {

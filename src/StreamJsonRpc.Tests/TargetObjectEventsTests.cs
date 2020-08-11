@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
@@ -40,6 +41,13 @@ public class TargetObjectEventsTests : TestBase
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+    }
+
+    public interface IServer
+    {
+        event EventHandler InterfaceEvent;
+
+        event EventHandler ExplicitInterfaceImplementation_Event;
     }
 
     [Theory]
@@ -194,6 +202,72 @@ public class TargetObjectEventsTests : TestBase
         Assert.True(eventNameTransformSeen);
     }
 
+    [Fact]
+    public async Task AddLocalRpcTarget_OfT_Interface()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget<IServer>(this.server, null);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        var eventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServer.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
+        var explicitEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServer.ExplicitInterfaceImplementation_Event), new Action<EventArgs>(explicitEventRaised.SetResult));
+        var classOnlyEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(Server.ServerEvent), new Action<EventArgs>(classOnlyEventRaised.SetResult));
+        this.clientRpc.StartListening();
+
+        // Verify that ordinary interface events can be raised.
+        this.server.TriggerInterfaceEvent(new EventArgs());
+        await eventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that explicit interface implementation events can also be raised.
+        this.server.TriggerExplicitInterfaceImplementationEvent(new EventArgs());
+        await explicitEventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that events that are NOT on the interface cannot be raised.
+        this.server.TriggerEvent(new EventArgs());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => classOnlyEventRaised.Task.WithCancellation(ExpectedTimeoutToken));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_OfT_ActualClass()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget<Server>(this.server, null);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        var eventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServer.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
+        var explicitEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServer.ExplicitInterfaceImplementation_Event), new Action<EventArgs>(explicitEventRaised.SetResult));
+        var classOnlyEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(Server.ServerEvent), new Action<EventArgs>(classOnlyEventRaised.SetResult));
+        this.clientRpc.StartListening();
+
+        // Verify that ordinary interface events can be raised.
+        this.server.TriggerInterfaceEvent(new EventArgs());
+        await eventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that explicit interface implementation events can also be raised.
+        this.server.TriggerExplicitInterfaceImplementationEvent(new EventArgs());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => explicitEventRaised.Task.WithCancellation(ExpectedTimeoutToken));
+
+        // Verify that events that are NOT on the interface can be raised.
+        this.server.TriggerEvent(new EventArgs());
+        await classOnlyEventRaised.Task.WithCancellation(this.TimeoutToken);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -224,8 +298,10 @@ public class TargetObjectEventsTests : TestBase
         public void ServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgsRaised?.Invoke(args);
     }
 
-    private class Server
+    private class Server : IServer
     {
+        private EventHandler? explicitInterfaceImplementationEvent;
+
         public delegate void MessageReceivedEventHandler<T>(object sender, MessageEventArgs<T> args)
             where T : class;
 
@@ -237,7 +313,15 @@ public class TargetObjectEventsTests : TestBase
 
         public event MessageReceivedEventHandler<string>? ServerEventWithCustomGenericDelegateAndArgs;
 
+        public event EventHandler? InterfaceEvent;
+
         private static event EventHandler? PrivateStaticServerEvent;
+
+        event EventHandler IServer.ExplicitInterfaceImplementation_Event
+        {
+            add => this.explicitInterfaceImplementationEvent += value;
+            remove => this.explicitInterfaceImplementationEvent -= value;
+        }
 
         private event EventHandler? PrivateServerEvent;
 
@@ -258,6 +342,10 @@ public class TargetObjectEventsTests : TestBase
         }
 
         public void TriggerServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.OnServerEventWithCustomGenericDelegateAndArgs(args);
+
+        public void TriggerInterfaceEvent(EventArgs args) => this.InterfaceEvent?.Invoke(this, args);
+
+        public void TriggerExplicitInterfaceImplementationEvent(EventArgs args) => this.explicitInterfaceImplementationEvent?.Invoke(this, args);
 
         protected static void OnPrivateStaticServerEvent(EventArgs args) => PrivateStaticServerEvent?.Invoke(null, args);
 
