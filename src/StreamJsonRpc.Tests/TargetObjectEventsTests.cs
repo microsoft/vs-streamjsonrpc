@@ -135,6 +135,14 @@ public class TargetObjectEventsTests : TestBase
         Assert.Null(this.server.ServerEventWithCustomArgsAccessor);
     }
 
+    /// <summary>Ensures that JsonRpc only adds one event handler to target objects where events are declared multiple times in an type hierarchy.</summary>
+    /// <remarks>This is a regression test for <see href="https://github.com/microsoft/vs-streamjsonrpc/issues/481">this bug</see>.</remarks>
+    [Fact]
+    public void EventOverridesStillGetJustOneHandler()
+    {
+        Assert.Equal(1, this.server.HandlersAttachedToAbstractBaseEvent);
+    }
+
     [Fact]
     public void IncompatibleEventHandlerType()
     {
@@ -298,9 +306,16 @@ public class TargetObjectEventsTests : TestBase
         public void ServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgsRaised?.Invoke(args);
     }
 
-    private class Server : IServer
+    private abstract class ServerBase
+    {
+        public abstract event EventHandler? AbstractBaseEvent;
+    }
+
+    private class Server : ServerBase, IServer
     {
         private EventHandler? explicitInterfaceImplementationEvent;
+
+        private EventHandler? abstractBaseEvent;
 
         public delegate void MessageReceivedEventHandler<T>(object sender, MessageEventArgs<T> args)
             where T : class;
@@ -315,6 +330,12 @@ public class TargetObjectEventsTests : TestBase
 
         public event EventHandler? InterfaceEvent;
 
+        public override event EventHandler? AbstractBaseEvent
+        {
+            add => this.abstractBaseEvent += value;
+            remove => this.abstractBaseEvent -= value;
+        }
+
         private static event EventHandler? PrivateStaticServerEvent;
 
         event EventHandler IServer.ExplicitInterfaceImplementation_Event
@@ -328,6 +349,8 @@ public class TargetObjectEventsTests : TestBase
         internal EventHandler? ServerEventAccessor => this.ServerEvent;
 
         internal EventHandler<CustomEventArgs>? ServerEventWithCustomArgsAccessor => this.ServerEventWithCustomArgs;
+
+        internal int HandlersAttachedToAbstractBaseEvent => this.abstractBaseEvent?.GetInvocationList().Length ?? 0;
 
         public static void TriggerPublicStaticServerEvent(EventArgs args) => PublicStaticServerEvent?.Invoke(null, args);
 
