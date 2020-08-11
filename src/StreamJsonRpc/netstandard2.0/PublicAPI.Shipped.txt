@@ -466,3 +466,12 @@ virtual StreamJsonRpc.MessageHandlerBase.DisposeWriter() -> void
 virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.GetData(System.Type! dataType) -> object?
 virtual StreamJsonRpc.Protocol.JsonRpcError.ErrorDetail.SetExpectedDataType(System.Type! dataType) -> void
 virtual StreamJsonRpc.Protocol.JsonRpcResult.SetExpectedResultType(System.Type! resultType) -> void
+StreamJsonRpc.DisconnectedReason.RemoteProtocolViolation = 6 -> StreamJsonRpc.DisconnectedReason
+StreamJsonRpc.JsonRpc.DispatchCompletion.get -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.TraceEvents.TransmissionFailed = 18 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.get -> int
+StreamJsonRpc.JsonRpcEnumerableSettings.Prefetch.set -> void
+StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.UseSingleObjectParameterDeserialization.set -> void
+StreamJsonRpc.RequestId.IsNull.get -> bool
+static StreamJsonRpc.RequestId.Null.get -> StreamJsonRpc.RequestId
