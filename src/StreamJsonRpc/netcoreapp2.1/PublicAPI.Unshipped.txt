@@ -17,3 +17,4 @@ StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
 StreamJsonRpc.RequestId.IsNull.get -> bool
 static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
 static StreamJsonRpc.RequestId.Null.get -> StreamJsonRpc.RequestId
+virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!
