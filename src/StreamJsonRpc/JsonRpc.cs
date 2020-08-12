@@ -753,6 +753,7 @@ namespace StreamJsonRpc
 
                 if (options.NotifyClientOfEvents)
                 {
+                    HashSet<string>? eventsDiscovered = null;
                     for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                     {
                         foreach (EventInfo evt in t.DeclaredEvents)
@@ -762,6 +763,17 @@ namespace StreamJsonRpc
                                 if (this.eventReceivers == null)
                                 {
                                     this.eventReceivers = new List<EventReceiver>();
+                                }
+
+                                if (eventsDiscovered is null)
+                                {
+                                    eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
+                                }
+
+                                if (!eventsDiscovered.Add(evt.Name))
+                                {
+                                    // Do not add the same event again. It can appear multiple times in a type hierarchy.
+                                    continue;
                                 }
 
                                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
