@@ -1058,9 +1058,7 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-#pragma warning disable RS0016 // Add public types and members to the declared API
         public Task InvokeWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
-#pragma warning restore RS0016 // Add public types and members to the declared API
         {
             return this.InvokeWithParameterObjectAsync<object>(targetName, argument, argumentDeclaredTypes, cancellationToken);
         }
@@ -1114,9 +1112,7 @@ namespace StreamJsonRpc
         /// </exception>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-#pragma warning disable RS0016 // Add public types and members to the declared API
         public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
-#pragma warning restore RS0016 // Add public types and members to the declared API
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object?[]? argumentToPass = argument == null ? null : new object?[] { argument };
@@ -1499,9 +1495,7 @@ namespace StreamJsonRpc
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-#pragma warning disable RS0016 // Add public types and members to the declared API
         protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? positionalArgumentDeclaredTypes, IReadOnlyDictionary<string, Type>? namedArgumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
-#pragma warning restore RS0016 // Add public types and members to the declared API
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
