@@ -2,6 +2,8 @@ StreamJsonRpc.JsonRpc.AddLocalRpcTarget(System.Type! exposingMembersOn, object! 
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget<T>(T target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>! argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+StreamJsonRpc.JsonRpc.NotifyAsync(string! targetName, object?[]? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionTypeNotFound = 19 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>?
 StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.set -> void

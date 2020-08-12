@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
@@ -90,14 +91,26 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     /// <summary>
     /// Verifies that positional parameters can support union types by providing extra type information for each argument.
     /// </summary>
-    [Fact]
-    public async Task UnionType_PositionalParameter_NoReturnValue()
+    [Theory]
+    [CombinatorialData]
+    public async Task UnionType_PositionalParameter_NoReturnValue(bool notify)
     {
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        await this.clientRpc.InvokeWithCancellationAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), new object?[] { new UnionDerivedClass() }, new[] { typeof(UnionBaseClass) }, this.TimeoutToken);
-        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+        UnionBaseClass? receivedValue;
+        if (notify)
+        {
+            await this.clientRpc.NotifyAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), new object?[] { new UnionDerivedClass() }, new[] { typeof(UnionBaseClass) }).WithCancellation(this.TimeoutToken);
+            receivedValue = await server.ReceivedValueSource.Task.WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), new object?[] { new UnionDerivedClass() }, new[] { typeof(UnionBaseClass) }, this.TimeoutToken);
+            receivedValue = server.ReceivedValue;
+        }
+
+        Assert.IsType<UnionDerivedClass>(receivedValue);
     }
 
     /// <summary>
@@ -115,26 +128,44 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     /// <summary>
     /// Verifies that the type information associated with named parameters is used for proper serialization of union types.
     /// </summary>
-    [Fact]
-    public async Task UnionType_NamedParameter_NoReturnValue_UntypedDictionary()
+    [Theory]
+    [CombinatorialData]
+    public async Task UnionType_NamedParameter_NoReturnValue_UntypedDictionary(bool notify)
     {
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        await this.clientRpc.InvokeWithParameterObjectAsync(
-            nameof(MessagePackServer.AcceptUnionTypeAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
-            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
-            this.TimeoutToken);
-        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+        var argument = new Dictionary<string, object> { { "value", new UnionDerivedClass() } };
+        var argumentDeclaredTypes = new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } };
+
+        UnionBaseClass? receivedValue;
+        if (notify)
+        {
+            await this.clientRpc.NotifyWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), argument, argumentDeclaredTypes).WithCancellation(this.TimeoutToken);
+            receivedValue = await server.ReceivedValueSource.Task.WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), argument, argumentDeclaredTypes, this.TimeoutToken);
+            receivedValue = server.ReceivedValue;
+        }
+
+        Assert.IsType<UnionDerivedClass>(receivedValue);
 
         // Exercise the non-init path by repeating
-        await this.clientRpc.InvokeWithParameterObjectAsync(
-            nameof(MessagePackServer.AcceptUnionTypeAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
-            new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
-            this.TimeoutToken);
-        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+        server.ReceivedValueSource = new TaskCompletionSource<UnionBaseClass>();
+        if (notify)
+        {
+            await this.clientRpc.NotifyWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), argument, argumentDeclaredTypes).WithCancellation(this.TimeoutToken);
+            receivedValue = await server.ReceivedValueSource.Task.WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), argument, argumentDeclaredTypes, this.TimeoutToken);
+            receivedValue = server.ReceivedValue;
+        }
+
+        Assert.IsType<UnionDerivedClass>(receivedValue);
     }
 
     /// <summary>
@@ -167,18 +198,43 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     /// <summary>
     /// Verifies that the type information associated with named parameters is used for proper serialization of union types.
     /// </summary>
-    [Fact]
-    public async Task UnionType_NamedParameter_NoReturnValue()
+    [Theory]
+    [CombinatorialData]
+    public async Task UnionType_NamedParameter_NoReturnValue(bool notify)
     {
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), new { value = (UnionBaseClass)new UnionDerivedClass() }, this.TimeoutToken);
-        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+        var namedArgs = new { value = (UnionBaseClass)new UnionDerivedClass() };
+
+        UnionBaseClass? receivedValue;
+        if (notify)
+        {
+            await this.clientRpc.NotifyWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), namedArgs).WithCancellation(this.TimeoutToken);
+            receivedValue = await server.ReceivedValueSource.Task.WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), namedArgs, this.TimeoutToken);
+            receivedValue = server.ReceivedValue;
+        }
+
+        Assert.IsType<UnionDerivedClass>(receivedValue);
 
         // Exercise the non-init path by repeating
-        await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), new { value = (UnionBaseClass)new UnionDerivedClass() }, this.TimeoutToken);
-        Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
+        server.ReceivedValueSource = new TaskCompletionSource<UnionBaseClass>();
+        if (notify)
+        {
+            await this.clientRpc.NotifyWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), namedArgs).WithCancellation(this.TimeoutToken);
+            receivedValue = await server.ReceivedValueSource.Task.WithCancellation(this.TimeoutToken);
+        }
+        else
+        {
+            await this.clientRpc.InvokeWithParameterObjectAsync(nameof(MessagePackServer.AcceptUnionTypeAsync), namedArgs, this.TimeoutToken);
+            receivedValue = server.ReceivedValue;
+        }
+
+        Assert.IsType<UnionDerivedClass>(receivedValue);
     }
 
     /// <summary>
@@ -254,6 +310,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
 
         // Repeat the proxy call to exercise the non-init path of the dynamically generated proxy.
+        server.ReceivedValueSource = new TaskCompletionSource<UnionBaseClass>();
         await clientProxy.AcceptUnionTypeAsync(new UnionDerivedClass(), this.TimeoutToken);
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
     }
@@ -272,6 +329,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
 
         // Repeat the proxy call to exercise the non-init path of the dynamically generated proxy.
+        server.ReceivedValueSource = new TaskCompletionSource<UnionBaseClass>();
         await clientProxy.AcceptUnionTypeAsync(new UnionDerivedClass(), this.TimeoutToken);
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
     }
@@ -335,6 +393,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     {
         internal UnionBaseClass? ReceivedValue { get; private set; }
 
+        internal TaskCompletionSource<UnionBaseClass> ReceivedValueSource { get; set; } = new TaskCompletionSource<UnionBaseClass>();
+
         public Task<UnionBaseClass> ReturnUnionTypeAsync(CancellationToken cancellationToken) => Task.FromResult<UnionBaseClass>(new UnionDerivedClass());
 
         public Task<string?> AcceptUnionTypeAndReturnStringAsync(UnionBaseClass value, CancellationToken cancellationToken) => Task.FromResult((this.ReceivedValue = value)?.GetType().Name);
@@ -342,6 +402,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         public Task AcceptUnionTypeAsync(UnionBaseClass value, CancellationToken cancellationToken)
         {
             this.ReceivedValue = value;
+            this.ReceivedValueSource.SetResult(value);
             return Task.CompletedTask;
         }
 

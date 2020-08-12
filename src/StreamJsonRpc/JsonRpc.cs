@@ -1254,6 +1254,9 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, CancellationToken.None);
         }
 
+        /// <inheritdoc cref="NotifyAsync(string, object?[], IReadOnlyList{Type}?)"/>
+        public Task NotifyAsync(string targetName, params object?[]? arguments) => this.NotifyAsync(targetName, arguments, null);
+
         /// <summary>
         /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.
         /// </summary>
@@ -1262,13 +1265,19 @@ namespace StreamJsonRpc
         /// </remarks>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task NotifyAsync(string targetName, params object?[]? arguments)
+        public Task NotifyAsync(string targetName, object?[]? arguments, IReadOnlyList<Type>? argumentDeclaredTypes)
         {
-            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, CancellationToken.None);
+            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, argumentDeclaredTypes, null, CancellationToken.None, isParameterObject: false);
         }
+
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
+        /// <inheritdoc cref="NotifyWithParameterObjectAsync(string, object?, IReadOnlyDictionary{string, Type}?)"/>
+        public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, null);
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
 
         /// <summary>
         /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.  The parameter is passed as an object.
@@ -1278,15 +1287,16 @@ namespace StreamJsonRpc
         /// </remarks>
         /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
         /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='namedArgumentDeclaredTypes']"/></param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null)
+        public Task NotifyWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes)
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object?[]? argumentToPass = argument == null ? null : new object?[] { argument };
 
-            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, CancellationToken.None, isParameterObject: true);
+            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, null, argumentDeclaredTypes, CancellationToken.None, isParameterObject: true);
         }
 
         void IJsonRpcTracingCallbacks.OnMessageSerialized(JsonRpcMessage message, object encodedMessage)
