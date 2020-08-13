@@ -114,6 +114,13 @@ public class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
+    public interface IServerWithVoidReturnType
+    {
+        void Notify(int a, int b);
+
+        void NotifyWithCancellation(int a, int b, CancellationToken cancellationToken);
+    }
+
     public interface IServerWithUnsupportedEventTypes
     {
         event Action MyActionEvent;
@@ -196,6 +203,27 @@ public class JsonRpcProxyGenerationTests : TestBase
     {
         await this.clientRpc.IncrementAsync();
         Assert.Equal(1, this.server.Counter);
+    }
+
+    [Theory]
+    [CombinatorialData]
+    public async Task CallVoidMethod(bool useNamedParameters)
+    {
+        var clientProxy = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc.Attach<IServerWithVoidReturnType>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = useNamedParameters });
+        clientProxy.Notify(5, 8);
+        Assert.Equal(13, await this.server.NotifyResult.Task.WithCancellation(this.TimeoutToken));
+    }
+
+    /// <summary>
+    /// Verifies that void returning methods with CancellationToken 'work' (even if we don't honor the CancellationToken).
+    /// </summary>
+    [Theory]
+    [CombinatorialData]
+    public async Task CallVoidMethodWithCancellationToken(bool useNamedParameters)
+    {
+        var clientProxy = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc.Attach<IServerWithVoidReturnType>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = useNamedParameters });
+        clientProxy.NotifyWithCancellation(5, 8, this.TimeoutToken);
+        Assert.Equal(13, await this.server.NotifyResult.Task.WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
@@ -650,7 +678,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public string? Color { get; set; }
     }
 
-    internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks
+    internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks, IServerWithVoidReturnType
     {
         public event EventHandler? ItHappened;
 
@@ -665,6 +693,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         public AsyncManualResetEvent ResumeMethod { get; } = new AsyncManualResetEvent(initialState: true);
 
         public TaskCompletionSource<int> MethodResult { get; set; } = new TaskCompletionSource<int>();
+
+        public TaskCompletionSource<int> NotifyResult { get; set; } = new TaskCompletionSource<int>();
 
         public int Counter { get; set; }
 
@@ -719,6 +749,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         public ValueTask DoSomethingValueAsync() => default;
 
         public ValueTask<int> AddValueAsync(int a, int b) => new ValueTask<int>(a + b);
+
+        public void Notify(int a, int b) => this.NotifyResult.SetResult(a + b);
+
+        public void NotifyWithCancellation(int a, int b, CancellationToken cancellationToken) => this.Notify(a, b);
 
         public ValueTask<bool> ManyParameters(int p1, int p2, int p3, int p4, int p5, int p6, int p7, int p8, int p9, int p10, CancellationToken cancellationToken)
         {

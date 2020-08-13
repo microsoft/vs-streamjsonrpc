@@ -213,6 +213,12 @@ namespace StreamJsonRpc
                 MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
                 MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 3);
 
+                IEnumerable<MethodInfo> notifyAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyAsync));
+                MethodInfo notifyAsyncOfTaskMethodInfo = notifyAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
+
+                IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
+                MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 2);
+
                 foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
                     // Check for specially supported methods from derived interfaces.
@@ -225,7 +231,8 @@ namespace StreamJsonRpc
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
                     bool returnTypeIsIAsyncEnumerable = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
-                    VerifySupported(returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
+                    bool returnTypeIsVoid = method.ReturnType == typeof(void);
+                    VerifySupported(returnTypeIsVoid || returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
                     VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
 
                     bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
@@ -245,7 +252,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, jsonRpcField);
 
-                    // First argument to InvokeAsync is the method name.
+                    // First argument to InvokeAsync and NotifyAsync is the method name.
                     // Run it through the method name transform.
                     // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
                     il.Emit(OpCodes.Ldarg_0);
@@ -283,23 +290,16 @@ namespace StreamJsonRpc
                             il.Emit(OpCodes.Ldnull);
                         }
 
-                        MethodInfo invokingMethod = invokeResultTypeArgument != null
-                            ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument)
-                            : invokeWithParameterObjectAsyncOfTaskMethodInfo;
-                        if (cancellationTokenParameter != null)
-                        {
-                            il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
-                        }
-                        else
-                        {
-                            il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
-                        }
+                        // Note that we do NOT need to load in a dictionary of named parameter types
+                        // because of our specialized parameter object that strongly types all arguments for us.
 
-                        il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+                        // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
+                        MethodInfo invokingMethod =
+                            invokeResultTypeArgument != null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                            returnTypeIsVoid ? notifyWithParameterObjectAsyncOfTaskMethodInfo :
+                            invokeWithParameterObjectAsyncOfTaskMethodInfo;
 
-                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
-
-                        il.Emit(OpCodes.Ret);
+                        CompleteCall(invokingMethod);
                     }
 
                     // The second argument is an array of arguments for the RPC method.
@@ -332,27 +332,46 @@ namespace StreamJsonRpc
                         // The third argument is a Type[] describing each parameter type.
                         LoadParameterTypeArrayField(proxyTypeBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), il);
 
-                        if (cancellationTokenParameter != null)
-                        {
-                            il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
-                        }
-                        else
-                        {
-                            il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
-                        }
-
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                        MethodInfo invokingMethod = invokeResultTypeArgument is object
-                            ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument)
-                            : invokeWithCancellationAsyncOfTaskMethodInfo;
-                        il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+                        MethodInfo invokingMethod =
+                            invokeResultTypeArgument is object ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                            returnTypeIsVoid ? notifyAsyncOfTaskMethodInfo :
+                            invokeWithCancellationAsyncOfTaskMethodInfo;
 
-                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
-
-                        il.Emit(OpCodes.Ret);
+                        CompleteCall(invokingMethod);
                     }
 
                     proxyTypeBuilder.DefineMethodOverride(methodBuilder, method);
+
+                    void CompleteCall(MethodInfo invokingMethod)
+                    {
+                        // Only pass in the CancellationToken argument if we're NOT calling the Notify method (which doesn't take one).
+                        if (!returnTypeIsVoid)
+                        {
+                            if (cancellationTokenParameter != null)
+                            {
+                                il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
+                            }
+                            else
+                            {
+                                il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
+                            }
+                        }
+
+                        il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+
+                        if (returnTypeIsVoid)
+                        {
+                            // Disregard the Task returned by NotifyAsync.
+                            il.Emit(OpCodes.Pop);
+                        }
+                        else
+                        {
+                            AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
+                        }
+
+                        il.Emit(OpCodes.Ret);
+                    }
                 }
 
                 generatedType = proxyTypeBuilder.CreateTypeInfo()!;

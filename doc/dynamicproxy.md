@@ -16,16 +16,17 @@ A proxy can only be dynamically generated for an interface that meets these requ
 1. Is public
 1. No properties
 1. No generic methods
-1. All methods return `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`.
-   One exception to this is the RPC interface may derive from `IDisposable` (which declares the `void` returning `Dispose` method).
+1. All methods return `void`, `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`.
 1. All events are typed with `EventHandler` or `EventHandler<T>`. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in `EventHandler<T>`.
 1. Methods *may* accept a `CancellationToken` as the last parameter.
 
 ## Async methods and generated proxies
 
-An interface used to generate a dynamic client proxy must return `Task` or `Task<T>` from all methods.
+An interface used to generate a dynamic client proxy must return awaitable types from all methods.
 This allows the client proxy to be generated with asynchronous methods as appropriate for JSON-RPC (and IPC in general)
 which is fundamentally asynchronous.
+
+A method's return type may also be `void`, in which case the method sends a notification to the RPC server and does not wait for a response.
 
 ### Dispose patterns
 
