@@ -218,6 +218,11 @@ namespace StreamJsonRpc
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
 
             this.MessageHandler = messageHandler;
+
+            // Default to preserving order of incoming messages since so many users assume this is the behavior.
+            // If ordering is not required and higher throughput is desired, the owner of this instance can clear this property
+            // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
+            this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
         }
 
         /// <summary>
