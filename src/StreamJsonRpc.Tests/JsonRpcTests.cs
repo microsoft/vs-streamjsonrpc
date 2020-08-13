@@ -586,8 +586,16 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public void SynchronizationContext_DefaultIsNull()
+    public void SynchronizationContext_DefaultIsNonConcurrent()
     {
+        Assert.IsType<NonConcurrentSynchronizationContext>(this.serverRpc.SynchronizationContext);
+    }
+
+    [Fact]
+    public void SynchronizationContext_CanBeCleared()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.SynchronizationContext = null;
         Assert.Null(this.serverRpc.SynchronizationContext);
     }
 
@@ -1772,12 +1780,27 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task MultipleSyncMethodsExecuteConcurrentlyOnServer()
+    public async Task MultipleSyncMethodsExecuteConcurrentlyOnServer_WithClearedSyncContext()
     {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.SynchronizationContext = null;
+
         var invocation1 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
         await this.server.ServerMethodReached.WaitAsync(UnexpectedTimeoutToken);
         var invocation2 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
         await this.server.ServerMethodReached.WaitAsync(UnexpectedTimeoutToken);
+        this.server.AllowServerMethodToReturn.Set();
+        this.server.AllowServerMethodToReturn.Set();
+        await Task.WhenAll(invocation1, invocation2);
+    }
+
+    [Fact]
+    public async Task MultipleSyncMethodsExecuteDoNotExecuteConcurrentlyOnServer_ByDefault()
+    {
+        var invocation1 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
+        await this.server.ServerMethodReached.WaitAsync(UnexpectedTimeoutToken);
+        var invocation2 = this.clientRpc.InvokeAsync(nameof(Server.SyncMethodWaitsToReturn));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodReached.WaitAsync(ExpectedTimeoutToken));
         this.server.AllowServerMethodToReturn.Set();
         this.server.AllowServerMethodToReturn.Set();
         await Task.WhenAll(invocation1, invocation2);
