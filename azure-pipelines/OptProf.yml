@@ -9,12 +9,13 @@ schedules:
     - master
   always: true # we must keep data fresh since optimizationdata drops are purged after 30 days
 
-resources:
-  repositories:
-  - repository: scripts
-    type: git
-    name: DeploymentScripts
-    ref: refs/heads/test
+# Avoid errant CI builds: https://developercommunity.visualstudio.com/content/problem/1154409/azure-pipeline-is-triggering-due-to-events-that-ne.html
+#resources:
+#  repositories:
+#  - repository: scripts
+#    type: git
+#    name: DeploymentScripts
+#    ref: refs/heads/test
 
 variables:
 - name: TreatWarningsAsErrors
