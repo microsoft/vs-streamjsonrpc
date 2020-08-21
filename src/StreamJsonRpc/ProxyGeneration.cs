@@ -30,8 +30,10 @@ namespace StreamJsonRpc
         private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
         private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
+        private static readonly MethodInfo ActionInvokeMethod = typeof(Action).GetRuntimeMethod(nameof(Action.Invoke), Type.EmptyTypes)!;
         private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None))!.GetMethod!;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
+        private static readonly ConstructorInfo ObjectDisposedExceptionCtor = typeof(ObjectDisposedException).GetTypeInfo().DeclaredConstructors.Single(ctor => ctor.GetParameters() is { } p && p.Length == 1 && p[0].ParameterType == typeof(string));
         private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetRuntimeMethod(nameof(Type.GetTypeFromHandle), new Type[] { typeof(RuntimeTypeHandle) });
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
@@ -39,6 +41,8 @@ namespace StreamJsonRpc
                                                                     let parameters = method.GetParameters()
                                                                     where parameters.Length == 3 && parameters.All(p => p.ParameterType.IsGenericParameter || p.ParameterType.GetTypeInfo().ContainsGenericParameters)
                                                                     select method).Single();
+
+        private static readonly MethodInfo NotifyAsyncOfTaskMethodInfo = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyAsync)).Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
 
         private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform))!.GetMethod!;
         private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) })!;
@@ -87,6 +91,8 @@ namespace StreamJsonRpc
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
                 FieldBuilder jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 FieldBuilder optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
+                FieldBuilder onDisposeField = proxyTypeBuilder.DefineField("onDispose", typeof(Action), fieldAttributes);
+                FieldBuilder disposedField = proxyTypeBuilder.DefineField("disposed", typeof(bool), FieldAttributes.Private);
 
                 VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
@@ -147,12 +153,12 @@ namespace StreamJsonRpc
                     }));
                 }
 
-                // .ctor(JsonRpc, JsonRpcProxyOptions)
+                // .ctor(JsonRpc, JsonRpcProxyOptions, Action onDispose)
                 {
                     ConstructorBuilder ctor = proxyTypeBuilder.DefineConstructor(
                         MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                         CallingConventions.Standard,
-                        new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions) });
+                        new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions), typeof(Action) });
                     ILGenerator il = ctor.GetILGenerator();
 
                     // : base()
@@ -169,6 +175,11 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ldarg_2);
                     il.Emit(OpCodes.Stfld, optionsField);
 
+                    // this.onDispose = onDispose;
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldarg_3);
+                    il.Emit(OpCodes.Stfld, onDisposeField);
+
                     // Emit IL that supports events.
                     foreach (Action<ILGenerator> action in ctorActions)
                     {
@@ -178,7 +189,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ret);
                 }
 
-                ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField);
+                ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, optionsField, onDisposeField, disposedField);
 
                 // IJsonRpcClientProxy.JsonRpc property
                 {
@@ -213,9 +224,6 @@ namespace StreamJsonRpc
                 MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
                 MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 3);
 
-                IEnumerable<MethodInfo> notifyAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyAsync));
-                MethodInfo notifyAsyncOfTaskMethodInfo = notifyAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
-
                 IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
                 MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 2);
 
@@ -247,6 +255,8 @@ namespace StreamJsonRpc
                         method.ReturnType,
                         methodParameters.Select(p => p.ParameterType).ToArray());
                     ILGenerator il = methodBuilder.GetILGenerator();
+
+                    EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
 
                     // this.rpc
                     il.Emit(OpCodes.Ldarg_0);
@@ -335,7 +345,7 @@ namespace StreamJsonRpc
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
                         MethodInfo invokingMethod =
                             invokeResultTypeArgument is object ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
-                            returnTypeIsVoid ? notifyAsyncOfTaskMethodInfo :
+                            returnTypeIsVoid ? NotifyAsyncOfTaskMethodInfo :
                             invokeWithCancellationAsyncOfTaskMethodInfo;
 
                         CompleteCall(invokingMethod);
@@ -432,7 +442,21 @@ namespace StreamJsonRpc
             il.MarkLabel(skipInitLabel);
         }
 
-        private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField)
+        private static void EmitThrowIfDisposed(TypeBuilder proxyTypeBuilder, ILGenerator il, FieldBuilder disposedField)
+        {
+            // if (this.disposed) throw new ObjectDisposedException("Proxy");
+            Label notDisposedLabel = il.DefineLabel();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, disposedField);
+            il.Emit(OpCodes.Brfalse_S, notDisposedLabel);
+            il.Emit(OpCodes.Ldstr, proxyTypeBuilder.Name);
+            il.Emit(OpCodes.Newobj, ObjectDisposedExceptionCtor);
+            il.Emit(OpCodes.Throw);
+
+            il.MarkLabel(notDisposedLabel);
+        }
+
+        private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder optionsField, FieldBuilder onDisposeField, FieldBuilder disposedField)
         {
             MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
                 DisposeMethod.Name,
@@ -441,7 +465,31 @@ namespace StreamJsonRpc
                 Type.EmptyTypes);
             ILGenerator il = methodBuilder.GetILGenerator();
 
-            // this.rpc.Dispose();
+            EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
+
+            // this.disposed = true;
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldc_I4_1);
+            il.Emit(OpCodes.Stfld, disposedField);
+
+            Label elseBlock = il.DefineLabel();
+
+            // if (this.onDispose is object) {
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, onDisposeField);
+            il.Emit(OpCodes.Brfalse_S, elseBlock);
+
+            // this.onDispose();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, onDisposeField);
+            il.Emit(OpCodes.Callvirt, ActionInvokeMethod);
+
+            il.Emit(OpCodes.Ret);
+
+            // } else {
+            //     this.rpc.Dispose();
+            // }
+            il.MarkLabel(elseBlock);
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldfld, jsonRpcField);
             il.Emit(OpCodes.Callvirt, DisposeMethod);

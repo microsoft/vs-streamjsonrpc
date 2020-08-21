@@ -242,6 +242,23 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task TaskReturningRpcMethodsThrowAfterDisposal()
+    {
+        var disposableClient = (IDisposable)this.clientRpc;
+        disposableClient.Dispose();
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => this.clientRpc.AddAsync(1, 2));
+    }
+
+    [Fact]
+    public void VoidReturningRpcMethodsThrowAfterDisposal()
+    {
+        var clientProxy = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc.Attach<IServerWithVoidReturnType>();
+        var disposableClient = (IDisposable)clientProxy;
+        disposableClient.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => clientProxy.Notify(1, 2));
+    }
+
+    [Fact]
     public async Task DisposeCollision()
     {
         // We're calling IServer.Dispose -- NOT IDisposable.Dispose here.

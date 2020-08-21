@@ -51,6 +51,41 @@ public abstract class TestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Checks whether a given exception or any transitive inner exception has a given type.
+    /// </summary>
+    /// <typeparam name="TException">The type of exception sought.</typeparam>
+    /// <param name="ex">The exception to search.</param>
+    /// <param name="exactTypeMatch"><c>true</c> to require an exact match; <c>false</c> to allow match on derived types of <typeparamref name="TException"/>.</param>
+    /// <returns><c>true</c> if an exception of type <typeparamref name="TException"/> was found at or under <paramref name="ex"/>.</returns>
+    protected static bool IsExceptionOrInnerOfType<TException>(Exception? ex, bool exactTypeMatch = false) => FindExceptionOrInner(ex, x => exactTypeMatch ? (x.GetType() == typeof(TException)) : x is TException) is object;
+
+    /// <summary>
+    /// Searches an exception and all inner exceptions for one that matches some check.
+    /// </summary>
+    /// <param name="ex">The starting exception to search.</param>
+    /// <param name="predicate">The test for whether this exception is the one sought for.</param>
+    /// <returns>The first in the exception tree for which <paramref name="predicate"/> returns <c>true</c>, or <c>null</c> if the <paramref name="predicate"/> never returned <c>true</c>.</returns>
+    protected static Exception? FindExceptionOrInner(Exception? ex, Func<Exception, bool> predicate)
+    {
+        if (ex is null)
+        {
+            return null;
+        }
+
+        if (predicate(ex))
+        {
+            return ex;
+        }
+
+        if (ex is AggregateException agg)
+        {
+            return agg.InnerExceptions.Select(inner => FindExceptionOrInner(inner, predicate)).FirstOrDefault(inner => inner is object);
+        }
+
+        return FindExceptionOrInner(ex.InnerException, predicate);
+    }
+
     protected static Task WhenAllSucceedOrAnyFault(params Task[] tasks)
     {
         if (tasks.Length == 0)
@@ -75,6 +110,17 @@ public abstract class TestBase : IDisposable
         bf.Serialize(ms, original);
         ms.Position = 0;
         return (T)bf.Deserialize(ms);
+    }
+
+    protected async Task AssertWeakReferenceGetsCollectedAsync(WeakReference weakReference)
+    {
+        while (!this.TimeoutToken.IsCancellationRequested && weakReference.IsAlive)
+        {
+            await Task.Delay(1);
+            GC.Collect();
+        }
+
+        Assert.False(weakReference.IsAlive);
     }
 
     protected virtual void Dispose(bool disposing)
