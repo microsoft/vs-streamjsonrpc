@@ -22,10 +22,10 @@ steps:
   displayName: dotnet test -f net472
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true
     testRunTitle: net472-$(Agent.JobName)
     workingDirectory: src
-  condition: and(ne(variables['OptProf'], 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
+  condition: ne(variables['OptProf'], 'true')
 
 - task: DotNetCoreCLI@2
   displayName: dotnet test -f netcoreapp2.1
@@ -44,10 +44,6 @@ steps:
     testRunTitle: netcoreapp3.1-$(Agent.JobName)
     workingDirectory: src
   condition: ne(variables['OptProf'], 'true')
-
-- powershell: mono $(NUGET_PACKAGES)/xunit.runner.console/2.4.1/tools/net472/xunit.console.exe bin/StreamJsonRpc.Tests/$(BuildConfiguration)/net472/StreamJsonRpc.Tests.dll -vsts -notrait "TestCategory=FailsInCloudTest" -notrait "FailsOnMono=true"
-  displayName: Run tests on mono
-  condition: ne(variables['Agent.OS'], 'Windows_NT') # The Windows Hosted agent doesn't include mono
 
 # We have to artifically run this script so that the extra .nupkg is produced for variables/InsertConfigValues.ps1 to notice.
 - powershell: azure-pipelines\artifacts\VSInsertion.ps1
