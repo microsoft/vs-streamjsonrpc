@@ -127,7 +127,7 @@ namespace StreamJsonRpc.Reflection
             }
 
             // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-            return this.jsonRpc.Attach(
+            object result = this.jsonRpc.Attach(
                 interfaceType,
                 new JsonRpcProxyOptions(options)
                 {
@@ -143,6 +143,12 @@ namespace StreamJsonRpc.Reflection
                         this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
                     },
                 });
+            if (options.OnProxyConstructed is object)
+            {
+                options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);
+            }
+
+            return result;
         }
 
         /// <summary>

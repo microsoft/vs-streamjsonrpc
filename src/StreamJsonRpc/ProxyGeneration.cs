@@ -31,6 +31,7 @@ namespace StreamJsonRpc
         private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo ActionInvokeMethod = typeof(Action).GetRuntimeMethod(nameof(Action.Invoke), Type.EmptyTypes)!;
+        private static readonly MethodInfo EventHandlerOfStringInvoke = typeof(EventHandler<string>).GetMethod(nameof(EventHandler<string>.Invoke))!;
         private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None))!.GetMethod!;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly ConstructorInfo ObjectDisposedExceptionCtor = typeof(ObjectDisposedException).GetTypeInfo().DeclaredConstructors.Single(ctor => ctor.GetParameters() is { } p && p.Length == 1 && p[0].ParameterType == typeof(string));
@@ -51,6 +52,7 @@ namespace StreamJsonRpc
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
 
         private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
+        private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed)).GetMethod!;
 
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -81,6 +83,7 @@ namespace StreamJsonRpc
                 };
 
                 interfaces.Add(typeof(IJsonRpcClientProxy));
+                interfaces.Add(typeof(IJsonRpcClientProxyInternal));
 
                 TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
                     string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
@@ -88,11 +91,14 @@ namespace StreamJsonRpc
                     typeof(object),
                     interfaces.ToArray());
                 Type proxyType = proxyTypeBuilder;
+
                 const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
                 FieldBuilder jsonRpcField = proxyTypeBuilder.DefineField("rpc", typeof(JsonRpc), fieldAttributes);
                 FieldBuilder optionsField = proxyTypeBuilder.DefineField("options", typeof(JsonRpcProxyOptions), fieldAttributes);
                 FieldBuilder onDisposeField = proxyTypeBuilder.DefineField("onDispose", typeof(Action), fieldAttributes);
                 FieldBuilder disposedField = proxyTypeBuilder.DefineField("disposed", typeof(bool), FieldAttributes.Private);
+                FieldBuilder callingMethodField = proxyTypeBuilder.DefineField("callingMethod", typeof(EventHandler<string>), FieldAttributes.Private);
+                FieldBuilder calledMethodField = proxyTypeBuilder.DefineField("calledMethod", typeof(EventHandler<string>), FieldAttributes.Private);
 
                 VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
@@ -190,6 +196,8 @@ namespace StreamJsonRpc
                 }
 
                 ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, optionsField, onDisposeField, disposedField);
+                ImplementIsDisposedProperty(proxyTypeBuilder, jsonRpcField, disposedField);
+                ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField);
 
                 // IJsonRpcClientProxy.JsonRpc property
                 {
@@ -257,6 +265,8 @@ namespace StreamJsonRpc
                     ILGenerator il = methodBuilder.GetILGenerator();
 
                     EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
+
+                    EmitRaiseCallEvent(il, callingMethodField, method.Name);
 
                     // this.rpc
                     il.Emit(OpCodes.Ldarg_0);
@@ -380,6 +390,8 @@ namespace StreamJsonRpc
                             AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
                         }
 
+                        EmitRaiseCallEvent(il, calledMethodField, method.Name);
+
                         il.Emit(OpCodes.Ret);
                     }
                 }
@@ -395,6 +407,54 @@ namespace StreamJsonRpc
             }
 
             return generatedType;
+        }
+
+        private static void EmitRaiseCallEvent(ILGenerator il, FieldBuilder eventHandlerField, string methodName)
+        {
+            Label endOfSubroutine = il.DefineLabel();
+
+            // if (this.callingMethod != null) {
+            Label eventHandlerExistsLabel = il.DefineLabel();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, eventHandlerField);
+            il.Emit(OpCodes.Dup);
+            il.Emit(OpCodes.Brtrue_S, eventHandlerExistsLabel);
+
+            il.Emit(OpCodes.Pop);
+            il.Emit(OpCodes.Br_S, endOfSubroutine);
+
+            // this.eventHandler.Invoke(this, "clrMethodName");
+            il.MarkLabel(eventHandlerExistsLabel);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldstr, methodName);
+            il.Emit(OpCodes.Callvirt, EventHandlerOfStringInvoke);
+
+            il.MarkLabel(endOfSubroutine);
+        }
+
+        private static void ImplementIJsonRpcClientProxyInternal(TypeBuilder proxyTypeBuilder, FieldBuilder callingMethodField, FieldBuilder calledMethodField)
+        {
+            void AddEvent(FieldBuilder evtField, string eventName)
+            {
+                // event EventHandler<string> IJsonRpcClientProxyInternal.CallingMethod
+                EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(eventName, EventAttributes.None, typeof(EventHandler<string>));
+
+                var addRemoveHandlerParams = new Type[] { typeof(EventHandler<string>) };
+
+                // add_CallingMethod
+                const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+                MethodBuilder addMethod = proxyTypeBuilder.DefineMethod($"add_{eventName}", methodAttributes, null, addRemoveHandlerParams);
+                ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
+                evtBuilder.SetAddOnMethod(addMethod);
+
+                // remove_EventName
+                MethodBuilder removeMethod = proxyTypeBuilder.DefineMethod($"remove_{eventName}", methodAttributes, null, addRemoveHandlerParams);
+                ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
+                evtBuilder.SetRemoveOnMethod(removeMethod);
+            }
+
+            AddEvent(callingMethodField, nameof(IJsonRpcClientProxyInternal.CallingMethod));
+            AddEvent(calledMethodField, nameof(IJsonRpcClientProxyInternal.CalledMethod));
         }
 
         private static void LoadParameterTypeArrayField(TypeBuilder proxyTypeBuilder, ParameterInfo[] parameterInfos, ILGenerator il)
@@ -497,6 +557,44 @@ namespace StreamJsonRpc
             il.Emit(OpCodes.Ret);
 
             proxyTypeBuilder.DefineMethodOverride(methodBuilder, DisposeMethod);
+        }
+
+        private static void ImplementIsDisposedProperty(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder disposedField)
+        {
+            PropertyBuilder isDisposedProperty = proxyTypeBuilder.DefineProperty(
+                nameof(IDisposableObservable) + "." + nameof(IDisposableObservable.IsDisposed),
+                PropertyAttributes.None,
+                typeof(bool),
+                Type.EmptyTypes);
+
+            // get_IsDisposed method
+            MethodBuilder isDisposedPropertyGetter = proxyTypeBuilder.DefineMethod(
+                "get_" + nameof(IDisposableObservable.IsDisposed),
+                MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+                typeof(bool),
+                Type.EmptyTypes);
+            ILGenerator il = isDisposedPropertyGetter.GetILGenerator();
+
+            Label returnTrue = il.DefineLabel();
+
+            // if (this.disposed) { return true; }
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, disposedField);
+            il.Emit(OpCodes.Brtrue_S, returnTrue);
+
+            // return this.rpc.IsDisposed;
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, jsonRpcField);
+            il.Emit(OpCodes.Callvirt, IsDisposedPropertyGetter);
+            il.Emit(OpCodes.Ret);
+
+            // return true;
+            il.MarkLabel(returnTrue);
+            il.Emit(OpCodes.Ldc_I4_1);
+            il.Emit(OpCodes.Ret);
+
+            proxyTypeBuilder.DefineMethodOverride(isDisposedPropertyGetter, typeof(IDisposableObservable).GetTypeInfo().GetDeclaredProperty(nameof(IDisposableObservable.IsDisposed))!.GetMethod!);
+            isDisposedProperty.SetGetMethod(isDisposedPropertyGetter);
         }
 
         /// <summary>
