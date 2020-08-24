@@ -190,10 +190,9 @@ namespace StreamJsonRpc
 
             var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
             var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            this.implicitlyMarshaledTypes = new Dictionary<Type, RpcMarshalableImplicitConverter>
-            {
-                { typeof(IDisposable), new RpcMarshalableImplicitConverter(typeof(IDisposable), this, camelCaseProxyOptions, camelCaseTargetOptions) },
-            };
+            this.implicitlyMarshaledTypes = MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes.ToDictionary(
+                t => t.ImplicitlyMarshaledType,
+                t => new RpcMarshalableImplicitConverter(t.ImplicitlyMarshaledType, this, t.ProxyOptions, t.TargetOptions));
 
             foreach (KeyValuePair<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledType in this.implicitlyMarshaledTypes)
             {

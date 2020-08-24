@@ -428,13 +428,6 @@ namespace StreamJsonRpc
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
         private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
-            var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            var implicitlyMarshaledTypes = new (Type, JsonRpcProxyOptions, JsonRpcTargetOptions)[]
-            {
-                (typeof(IDisposable), camelCaseProxyOptions, camelCaseTargetOptions),
-            };
-
             var formatters = new IMessagePackFormatter[]
             {
                 // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
@@ -453,7 +446,7 @@ namespace StreamJsonRpc
                 this.pipeFormatterResolver,
 
                 // Support for marshalled objects.
-                new RpcMarshalableImplicitResolver(this, implicitlyMarshaledTypes),
+                new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
 
                 // Add resolvers to make types serializable that we expect to be serializable.
                 MessagePackExceptionResolver.Instance,
@@ -1109,10 +1102,10 @@ namespace StreamJsonRpc
         private class RpcMarshalableImplicitResolver : IFormatterResolver
         {
             private readonly MessagePackFormatter formatter;
-            private readonly ReadOnlyMemory<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes;
+            private readonly IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes;
             private readonly Dictionary<Type, object> formatters = new Dictionary<Type, object>();
 
-            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter, ReadOnlyMemory<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes)
+            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter, IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes)
             {
                 this.formatter = formatter;
                 this.implicitlyMarshaledTypes = implicitlyMarshaledTypes;
@@ -1134,7 +1127,7 @@ namespace StreamJsonRpc
                 }
 
                 (Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)? matchingCandidate = null;
-                foreach ((Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) candidate in this.implicitlyMarshaledTypes.Span)
+                foreach ((Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) candidate in this.implicitlyMarshaledTypes)
                 {
                     if (candidate.Type == typeof(T) ||
                         (candidate.Type.IsGenericTypeDefinition && typeof(T).IsConstructedGenericType && candidate.Type == typeof(T).GetGenericTypeDefinition()))
