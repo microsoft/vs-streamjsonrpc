@@ -20,6 +20,31 @@ namespace StreamJsonRpc.Reflection
         internal static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> ImplicitlyMarshaledTypes = new (Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)[]
         {
             (typeof(IDisposable), new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }, new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
+
+            // IObserver<T> support requires special recognition of OnCompleted and OnError be considered terminating calls.
+            (
+                typeof(IObserver<>),
+                new JsonRpcProxyOptions
+                {
+                    MethodNameTransform = CommonMethodNameTransforms.CamelCase,
+                    OnProxyConstructed = (IJsonRpcClientProxyInternal proxy) =>
+                    {
+                        proxy.CalledMethod += (sender, methodName) =>
+                        {
+                            // When OnError or OnCompleted is called, per IObserver<T> patterns that's implicitly a termination of the connection.
+                            if (methodName == nameof(IObserver<int>.OnError) || methodName == nameof(IObserver<int>.OnCompleted))
+                            {
+                                ((IDisposable)sender).Dispose();
+                            }
+                        };
+                        proxy.CallingMethod += (sender, methodName) =>
+                        {
+                            // Any RPC method call on IObserver<T> shouldn't happen if it has already been completed.
+                            Verify.NotDisposed((IDisposableObservable)sender);
+                        };
+                    },
+                },
+                new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
         };
 
         private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();

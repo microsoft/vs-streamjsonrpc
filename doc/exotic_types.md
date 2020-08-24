@@ -6,6 +6,7 @@ Some types are not serializable but are specially recognized and marshaled by St
 * [`IProgress<T>`](progresssupport.md)
 * [`Stream`, `IDuplexPipe`, `PipeReader`, `PipeWriter`](oob_streams.md)
 * [`IAsyncEnumerable<T>`](asyncenumerable.md)
+* [`IObserver<T>`](observer.md)
 * [`IDisposable`](disposable.md)
 * [General marshalable object support](general_marshaled_objects.md)
 
