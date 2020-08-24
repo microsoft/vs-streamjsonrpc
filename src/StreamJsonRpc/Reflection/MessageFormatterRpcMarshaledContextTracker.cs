@@ -99,13 +99,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Creates a proxy for a remote object.
         /// </summary>
-        /// <typeparam name="T">The interface the proxy must implement.</typeparam>
+        /// <param name="interfaceType">The interface the proxy must implement.</param>
         /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
         /// <param name="options">The options to feed into proxy generation.</param>
         /// <returns>The generated proxy, or <c>null</c> if <paramref name="token"/> is null.</returns>
         [return: NotNullIfNotNull("token")]
-        internal T? GetObject<T>(MarshalToken? token, JsonRpcProxyOptions options)
-            where T : class
+        internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
         {
             if (token is null)
             {
@@ -123,15 +122,22 @@ namespace StreamJsonRpc.Reflection
             }
 
             // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-            return this.jsonRpc.Attach<T>(new JsonRpcProxyOptions(options)
-            {
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
-                OnDispose = delegate
+            return this.jsonRpc.Attach(
+                interfaceType,
+                new JsonRpcProxyOptions(options)
                 {
-                    this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
-                    this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
-                },
-            });
+                    MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
+                    OnDispose = delegate
+                    {
+                        // Only forward the Dispose call if the marshaled interface derives from IDisposable.
+                        if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                        {
+                            this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
+                        }
+
+                        this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                    },
+                });
         }
 
         /// <summary>
