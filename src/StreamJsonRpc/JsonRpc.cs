@@ -601,7 +601,7 @@ namespace StreamJsonRpc
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(sendingStream, receivingStream);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default, /* onDispose: */ null)!;
             rpc.StartListening();
             return proxy;
         }
@@ -638,7 +638,7 @@ namespace StreamJsonRpc
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(handler);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             rpc.StartListening();
             return proxy;
         }
@@ -664,7 +664,7 @@ namespace StreamJsonRpc
             where T : class
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             return proxy;
         }
 
@@ -685,7 +685,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(interfaceType, nameof(interfaceType));
             TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo());
-            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
+            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             return proxy;
         }
 
@@ -712,96 +712,14 @@ namespace StreamJsonRpc
         /// <remarks>
         /// When multiple target objects are added, the first target with a method that matches a request is invoked.
         /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options)
         {
             Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
             Requires.NotNull(target, nameof(target));
-            options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
-            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), target, options);
-            lock (this.syncObject)
-            {
-                foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
-                {
-                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
-                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
-                    {
-                        // Only add methods that do not have equivalent signatures to what we already have.
-                        foreach (MethodSignatureAndTarget newMethod in item.Value)
-                        {
-                            if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
-                            {
-                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
-                                existingList.Add(newMethod);
-                            }
-                            else
-                            {
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (MethodSignatureAndTarget newMethod in item.Value)
-                        {
-                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
-                        }
-
-                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
-                    }
-                }
-
-                if (options.NotifyClientOfEvents)
-                {
-                    HashSet<string>? eventsDiscovered = null;
-                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
-                    {
-                        foreach (EventInfo evt in t.DeclaredEvents)
-                        {
-                            if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
-                            {
-                                if (this.eventReceivers == null)
-                                {
-                                    this.eventReceivers = new List<EventReceiver>();
-                                }
-
-                                if (eventsDiscovered is null)
-                                {
-                                    eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
-                                }
-
-                                if (!eventsDiscovered.Add(evt.Name))
-                                {
-                                    // Do not add the same event again. It can appear multiple times in a type hierarchy.
-                                    continue;
-                                }
-
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
-                                }
-
-                                this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
-                            }
-                        }
-                    }
-                }
-
-                if (options.DisposeOnDisconnect)
-                {
-                    if (this.localTargetObjectsToDispose is null)
-                    {
-                        this.localTargetObjectsToDispose = new List<object>();
-                    }
-
-                    this.localTargetObjectsToDispose.Add(target);
-                }
-            }
+            this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
         }
 
         /// <summary>
@@ -830,6 +748,7 @@ namespace StreamJsonRpc
         /// The method or delegate to invoke when a matching RPC message arrives.
         /// This method may accept parameters from the incoming JSON-RPC message.
         /// </param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(string? rpcMethodName, Delegate handler)
         {
             Requires.NotNull(handler, nameof(handler));
@@ -848,6 +767,7 @@ namespace StreamJsonRpc
         /// This method may accept parameters from the incoming JSON-RPC message.
         /// </param>
         /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(string? rpcMethodName, MethodInfo handler, object? target) => this.AddLocalRpcMethod(handler, target, new JsonRpcMethodAttribute(rpcMethodName));
 
         /// <summary>
@@ -863,6 +783,7 @@ namespace StreamJsonRpc
         /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
         /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
         /// </param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings)
         {
             Requires.NotNull(handler, nameof(handler));
@@ -1345,6 +1266,140 @@ namespace StreamJsonRpc
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Creates a marshallable proxy for a given object that may be sent over RPC such that the receiving side can invoke methods on the given object.
+        /// </summary>
+        /// <typeparam name="T">
+        /// The interface type implemented by the <paramref name="marshaledObject"/> that defines the members to expose over RPC.
+        /// </typeparam>
+        /// <param name="marshaledObject">The object to be exposed over RPC.</param>
+        /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+        /// <returns>A lifetime controlling wrapper around a new proxy value.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use <see cref="MarshalLimitedArgument{T}(T)"/> for a simpler lifetime model when the object should only be marshaled within the scope of a single RPC call.
+        /// </para>
+        /// </remarks>
+        internal static IRpcMarshaledContext<T> MarshalWithControlledLifetime<T>(T marshaledObject, JsonRpcTargetOptions options)
+            where T : class
+        {
+            return new RpcMarshaledContext<T>(marshaledObject, options);
+        }
+
+        /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
+        /// <returns>A proxy value that may be used within an RPC argument so the RPC server may call back into the <paramref name="marshaledObject"/> object on the RPC client.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use <see cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
+        /// This is required when the value is returned from an RPC method or when it is used within an RPC argument and must outlive that RPC invocation.
+        /// </para>
+        /// </remarks>
+        internal static T MarshalLimitedArgument<T>(T marshaledObject)
+            where T : class
+        {
+            // This method is included in the spec, but hasn't been implemented yet and has no callers.
+            // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetime method's responsibilities.
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <c>false</c>.</returns>
+        internal IDisposable? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+        {
+            RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
+            options = options ?? JsonRpcTargetOptions.Default;
+            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), target, options);
+            lock (this.syncObject)
+            {
+                foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
+                {
+                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
+                    {
+                        // Only add methods that do not have equivalent signatures to what we already have.
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
+                        {
+                            if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
+                            {
+                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                                revert?.RecordMethodAdded(rpcMethodName, newMethod);
+                                existingList.Add(newMethod);
+                            }
+                            else
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
+                        {
+                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                            revert?.RecordMethodAdded(rpcMethodName, newMethod);
+                        }
+
+                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
+                    }
+                }
+
+                if (options.NotifyClientOfEvents)
+                {
+                    HashSet<string>? eventsDiscovered = null;
+                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                    {
+                        foreach (EventInfo evt in t.DeclaredEvents)
+                        {
+                            if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
+                            {
+                                if (this.eventReceivers == null)
+                                {
+                                    this.eventReceivers = new List<EventReceiver>();
+                                }
+
+                                if (eventsDiscovered is null)
+                                {
+                                    eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
+                                }
+
+                                if (!eventsDiscovered.Add(evt.Name))
+                                {
+                                    // Do not add the same event again. It can appear multiple times in a type hierarchy.
+                                    continue;
+                                }
+
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
+                                }
+
+                                var eventReceiver = new EventReceiver(this, target, evt, options);
+                                revert?.RecordEventReceiver(eventReceiver);
+                                this.eventReceivers.Add(eventReceiver);
+                            }
+                        }
+                    }
+                }
+
+                if (options.DisposeOnDisconnect)
+                {
+                    if (this.localTargetObjectsToDispose is null)
+                    {
+                        this.localTargetObjectsToDispose = new List<object>();
+                    }
+
+                    revert?.RecordObjectToDispose(target);
+                    this.localTargetObjectsToDispose.Add(target);
+                }
+            }
+
+            return revert;
         }
 
         /// <summary>
@@ -2946,6 +3001,83 @@ namespace StreamJsonRpc
             private void OnEventRaised(object? sender, EventArgs args)
             {
                 this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
+            }
+        }
+
+        /// <summary>
+        /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTargetInternal(Type, object, JsonRpcTargetOptions?, bool)"/>.
+        /// </summary>
+        private class RevertAddLocalRpcTarget : IDisposable
+        {
+            private readonly JsonRpc jsonRpc;
+            private object? objectToDispose;
+            private List<(string RpcMethodName, MethodSignatureAndTarget Method)>? targetMethods;
+            private List<EventReceiver>? eventReceivers;
+
+            internal RevertAddLocalRpcTarget(JsonRpc jsonRpc)
+            {
+                this.jsonRpc = jsonRpc;
+            }
+
+            public void Dispose()
+            {
+                lock (this.jsonRpc.syncObject)
+                {
+                    if (this.objectToDispose is object)
+                    {
+                        this.jsonRpc.localTargetObjectsToDispose?.Remove(this.objectToDispose);
+                    }
+
+                    if (this.targetMethods is object)
+                    {
+                        foreach ((string RpcMethodName, MethodSignatureAndTarget Method) targetMethod in this.targetMethods)
+                        {
+                            if (this.jsonRpc.targetRequestMethodToClrMethodMap.TryGetValue(targetMethod.RpcMethodName, out List<MethodSignatureAndTarget>? list))
+                            {
+                                list.Remove(targetMethod.Method);
+                            }
+                        }
+                    }
+
+                    if (this.eventReceivers is object && this.jsonRpc.eventReceivers is object)
+                    {
+                        foreach (EventReceiver eventReceiver in this.eventReceivers)
+                        {
+                            this.jsonRpc.eventReceivers.Remove(eventReceiver);
+                            eventReceiver.Dispose();
+                        }
+                    }
+
+                    this.objectToDispose = null;
+                    this.targetMethods = null;
+                    this.eventReceivers = null;
+                }
+            }
+
+            internal void RecordEventReceiver(EventReceiver eventReceiver)
+            {
+                if (this.eventReceivers is null)
+                {
+                    this.eventReceivers = new List<EventReceiver>();
+                }
+
+                this.eventReceivers.Add(eventReceiver);
+            }
+
+            internal void RecordMethodAdded(string rpcMethodName, MethodSignatureAndTarget newMethod)
+            {
+                if (this.targetMethods is null)
+                {
+                    this.targetMethods = new List<(string RpcMethodName, MethodSignatureAndTarget Method)>();
+                }
+
+                this.targetMethods.Add((rpcMethodName, newMethod));
+            }
+
+            internal void RecordObjectToDispose(object target)
+            {
+                Assumes.Null(this.objectToDispose);
+                this.objectToDispose = target;
             }
         }
     }

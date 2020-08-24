@@ -4,12 +4,36 @@
 namespace StreamJsonRpc
 {
     using System;
+    using Microsoft;
 
     /// <summary>
     /// Options that may customize how a target object is added to a <see cref="JsonRpc"/> instance.
     /// </summary>
     public class JsonRpcTargetOptions
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcTargetOptions"/> class.
+        /// </summary>
+        public JsonRpcTargetOptions()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcTargetOptions"/> class.
+        /// </summary>
+        /// <param name="copyFrom">An instance to copy all property values from.</param>
+        public JsonRpcTargetOptions(JsonRpcTargetOptions copyFrom)
+        {
+            Requires.NotNull(copyFrom, nameof(copyFrom));
+
+            this.MethodNameTransform = copyFrom.MethodNameTransform;
+            this.EventNameTransform = copyFrom.EventNameTransform;
+            this.NotifyClientOfEvents = copyFrom.NotifyClientOfEvents;
+            this.AllowNonPublicInvocation = copyFrom.AllowNonPublicInvocation;
+            this.UseSingleObjectParameterDeserialization = copyFrom.UseSingleObjectParameterDeserialization;
+            this.DisposeOnDisconnect = copyFrom.DisposeOnDisconnect;
+        }
+
         /// <summary>
         /// Gets or sets a function that takes the CLR method name and returns the RPC method name.
         /// This method is useful for adding prefixes to all methods, or making them camelCased.

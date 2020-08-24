@@ -85,6 +85,11 @@ namespace StreamJsonRpc
         private MessageFormatterEnumerableTracker? enumerableTracker;
 
         /// <summary>
+        /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingMessageWithId"/> property.
         /// </summary>
         private RequestId serializingMessageWithId;
@@ -164,6 +169,7 @@ namespace StreamJsonRpc
                     this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
                     this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
                     this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
+                    this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
                 }
             }
         }
@@ -223,6 +229,18 @@ namespace StreamJsonRpc
             {
                 Assumes.NotNull(this.enumerableTracker); // This should have been set in the Rpc property setter.
                 return this.enumerableTracker;
+            }
+        }
+
+        /// <summary>
+        /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.rpcMarshaledContextTracker); // This should have been set in the Rpc property setter.
+                return this.rpcMarshaledContextTracker;
             }
         }
 
@@ -410,6 +428,9 @@ namespace StreamJsonRpc
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
         private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
+            var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+            var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+
             var formatters = new IMessagePackFormatter[]
             {
                 // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
@@ -426,6 +447,10 @@ namespace StreamJsonRpc
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
+
+                // Support for marshalled objects.
+                CompositeResolver.Create(
+                    new RpcMarshalableImplicitFormatter<IDisposable>(this, camelCaseProxyOptions, camelCaseTargetOptions)),
 
                 // Add resolvers to make types serializable that we expect to be serializable.
                 MessagePackExceptionResolver.Instance,
@@ -1074,6 +1099,41 @@ namespace StreamJsonRpc
                     {
                         writer.WriteNil();
                     }
+                }
+            }
+        }
+
+        private class RpcMarshalableImplicitFormatter<T> : IMessagePackFormatter<T?>
+            where T : class
+        {
+            private MessagePackFormatter messagePackFormatter;
+            private JsonRpcProxyOptions proxyOptions;
+            private JsonRpcTargetOptions targetOptions;
+
+            public RpcMarshalableImplicitFormatter(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            {
+                this.messagePackFormatter = messagePackFormatter;
+                this.proxyOptions = proxyOptions;
+                this.targetOptions = targetOptions;
+            }
+
+            public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = MessagePackSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, options);
+                return token.HasValue ? this.messagePackFormatter.RpcMarshaledContextTracker.GetObject<T>(token, this.proxyOptions) : null;
+            }
+
+            public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+            {
+                if (value is null)
+                {
+                    writer.WriteNil();
+                }
+                else
+                {
+                    IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(value, this.targetOptions);
+                    MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.messagePackFormatter.RpcMarshaledContextTracker.GetToken(context);
+                    MessagePackSerializer.Serialize(ref writer, token, options);
                 }
             }
         }

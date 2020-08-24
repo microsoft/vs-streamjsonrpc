@@ -22,6 +22,28 @@ namespace StreamJsonRpc
         private Func<string, string> eventNameTransform = n => n;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcProxyOptions"/> class.
+        /// </summary>
+        public JsonRpcProxyOptions()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JsonRpcProxyOptions"/> class
+        /// with properties initialized from another instance.
+        /// </summary>
+        /// <param name="copyFrom">The options to copy values from.</param>
+        public JsonRpcProxyOptions(JsonRpcProxyOptions copyFrom)
+        {
+            Requires.NotNull(copyFrom, nameof(copyFrom));
+
+            this.MethodNameTransform = copyFrom.MethodNameTransform;
+            this.EventNameTransform = copyFrom.EventNameTransform;
+            this.ServerRequiresNamedArguments = copyFrom.ServerRequiresNamedArguments;
+            this.OnDispose = copyFrom.OnDispose;
+        }
+
+        /// <summary>
         /// Gets or sets a function that takes the CLR method name and returns the RPC method name.
         /// This method is useful for adding prefixes to all methods, or making them camelCased.
         /// </summary>
@@ -58,5 +80,14 @@ namespace StreamJsonRpc
         /// Callers should *not* mutate properties on this instance since it is shared.
         /// </remarks>
         internal static JsonRpcProxyOptions Default { get; } = new JsonRpcProxyOptions();
+
+        /// <summary>
+        /// Gets or sets a delegate to invoke when this proxy is disposed.
+        /// </summary>
+        /// <remarks>
+        /// When set, the proxy will *not* automatically dispose of the owning <see cref="JsonRpc"/> instance.
+        /// This delegate *may* be called concurrently or more than once if the proxy owner calls <see cref="IDisposable.Dispose"/> concurrently.
+        /// </remarks>
+        internal Action? OnDispose { get; set; }
     }
 }

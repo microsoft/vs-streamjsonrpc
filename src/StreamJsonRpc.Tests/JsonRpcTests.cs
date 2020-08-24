@@ -55,6 +55,8 @@ public abstract class JsonRpcTests : TestBase
         this.server = new Server();
 
         this.ReinitializeRpcWithoutListening();
+        Assumes.NotNull(this.serverRpc);
+        Assumes.NotNull(this.clientRpc);
 
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();

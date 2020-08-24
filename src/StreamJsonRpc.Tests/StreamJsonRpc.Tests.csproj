@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <Compile Include="..\StreamJsonRpc\NullabilityAttributes.cs" Link="NullabilityAttributes.cs" />
+    <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
+    <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DuplexPipeMarshalingJsonTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="DuplexPipeMarshalingMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
