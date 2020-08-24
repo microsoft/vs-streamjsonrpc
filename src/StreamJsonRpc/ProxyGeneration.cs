@@ -525,7 +525,13 @@ namespace StreamJsonRpc
                 Type.EmptyTypes);
             ILGenerator il = methodBuilder.GetILGenerator();
 
-            EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
+            // if (this.disposed) { return; }
+            Label notDisposedLabel = il.DefineLabel();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldfld, disposedField);
+            il.Emit(OpCodes.Brfalse_S, notDisposedLabel);
+            il.Emit(OpCodes.Ret);
+            il.MarkLabel(notDisposedLabel);
 
             // this.disposed = true;
             il.Emit(OpCodes.Ldarg_0);

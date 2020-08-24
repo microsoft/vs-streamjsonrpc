@@ -82,12 +82,12 @@ public abstract class DisposableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task DisposableReturnValue_DisposeThrowsOnSecondCall()
+    public async Task DisposableReturnValue_DisposeSwallowsSecondCall()
     {
         IDisposable? proxyDisposable = await this.client.GetDisposableAsync();
         Assumes.NotNull(proxyDisposable);
         proxyDisposable.Dispose();
-        Assert.Throws<ObjectDisposedException>(proxyDisposable.Dispose);
+        proxyDisposable.Dispose();
     }
 
     [Fact]

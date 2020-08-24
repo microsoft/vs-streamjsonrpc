@@ -255,6 +255,14 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public void DisposeTwiceDoesNotThrow()
+    {
+        var disposableClient = (IDisposable)this.clientRpc;
+        disposableClient.Dispose();
+        disposableClient.Dispose();
+    }
+
+    [Fact]
     public async Task TaskReturningRpcMethodsThrowAfterDisposal()
     {
         var disposableClient = (IDisposable)this.clientRpc;
