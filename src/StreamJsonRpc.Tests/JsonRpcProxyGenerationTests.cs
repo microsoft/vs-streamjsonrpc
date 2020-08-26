@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using StreamJsonRpc;
@@ -227,10 +228,12 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public async Task ImplementsIDisposable()
+    public async Task ImplementsIDisposableObservable()
     {
-        var disposableClient = (IDisposable)this.clientRpc;
+        var disposableClient = (IDisposableObservable)this.clientRpc;
+        Assert.False(disposableClient.IsDisposed);
         disposableClient.Dispose();
+        Assert.True(disposableClient.IsDisposed);
 
         // There is an async delay in disposal of the clientStream when pipes are involved.
         // Tolerate that while verifying that it does eventually close.
@@ -239,6 +242,24 @@ public class JsonRpcProxyGenerationTests : TestBase
             await Task.Delay(1);
             this.TimeoutToken.ThrowIfCancellationRequested();
         }
+    }
+
+    [Fact]
+    public void IsDisposedReturnsTrueWhenJsonRpcIsDisposed()
+    {
+        JsonRpc jsonRpc = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc;
+        jsonRpc.Dispose();
+
+        var disposableClient = (IDisposableObservable)this.clientRpc;
+        Assert.True(disposableClient.IsDisposed);
+    }
+
+    [Fact]
+    public void DisposeTwiceDoesNotThrow()
+    {
+        var disposableClient = (IDisposable)this.clientRpc;
+        disposableClient.Dispose();
+        disposableClient.Dispose();
     }
 
     [Fact]

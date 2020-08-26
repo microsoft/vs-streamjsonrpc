@@ -17,6 +17,36 @@ namespace StreamJsonRpc.Reflection
     /// </summary>
     internal class MessageFormatterRpcMarshaledContextTracker
     {
+        internal static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> ImplicitlyMarshaledTypes = new (Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)[]
+        {
+            (typeof(IDisposable), new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }, new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
+
+            // IObserver<T> support requires special recognition of OnCompleted and OnError be considered terminating calls.
+            (
+                typeof(IObserver<>),
+                new JsonRpcProxyOptions
+                {
+                    MethodNameTransform = CommonMethodNameTransforms.CamelCase,
+                    OnProxyConstructed = (IJsonRpcClientProxyInternal proxy) =>
+                    {
+                        proxy.CalledMethod += (sender, methodName) =>
+                        {
+                            // When OnError or OnCompleted is called, per IObserver<T> patterns that's implicitly a termination of the connection.
+                            if (methodName == nameof(IObserver<int>.OnError) || methodName == nameof(IObserver<int>.OnCompleted))
+                            {
+                                ((IDisposable)sender).Dispose();
+                            }
+                        };
+                        proxy.CallingMethod += (sender, methodName) =>
+                        {
+                            // Any RPC method call on IObserver<T> shouldn't happen if it has already been completed.
+                            Verify.NotDisposed((IDisposableObservable)sender);
+                        };
+                    },
+                },
+                new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
+        };
+
         private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();
         private readonly JsonRpc jsonRpc;
         private readonly IJsonRpcFormatterState formatterState;
@@ -99,13 +129,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Creates a proxy for a remote object.
         /// </summary>
-        /// <typeparam name="T">The interface the proxy must implement.</typeparam>
+        /// <param name="interfaceType">The interface the proxy must implement.</param>
         /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
         /// <param name="options">The options to feed into proxy generation.</param>
         /// <returns>The generated proxy, or <c>null</c> if <paramref name="token"/> is null.</returns>
         [return: NotNullIfNotNull("token")]
-        internal T? GetObject<T>(MarshalToken? token, JsonRpcProxyOptions options)
-            where T : class
+        internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
         {
             if (token is null)
             {
@@ -123,15 +152,28 @@ namespace StreamJsonRpc.Reflection
             }
 
             // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-            return this.jsonRpc.Attach<T>(new JsonRpcProxyOptions(options)
-            {
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
-                OnDispose = delegate
+            object result = this.jsonRpc.Attach(
+                interfaceType,
+                new JsonRpcProxyOptions(options)
                 {
-                    this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
-                    this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
-                },
-            });
+                    MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
+                    OnDispose = delegate
+                    {
+                        // Only forward the Dispose call if the marshaled interface derives from IDisposable.
+                        if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                        {
+                            this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
+                        }
+
+                        this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                    },
+                });
+            if (options.OnProxyConstructed is object)
+            {
+                options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);
+            }
+
+            return result;
         }
 
         /// <summary>

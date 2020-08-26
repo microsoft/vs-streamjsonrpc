@@ -41,6 +41,7 @@ namespace StreamJsonRpc
             this.EventNameTransform = copyFrom.EventNameTransform;
             this.ServerRequiresNamedArguments = copyFrom.ServerRequiresNamedArguments;
             this.OnDispose = copyFrom.OnDispose;
+            this.OnProxyConstructed = copyFrom.OnProxyConstructed;
         }
 
         /// <summary>
@@ -89,5 +90,10 @@ namespace StreamJsonRpc
         /// This delegate *may* be called concurrently or more than once if the proxy owner calls <see cref="IDisposable.Dispose"/> concurrently.
         /// </remarks>
         internal Action? OnDispose { get; set; }
+
+        /// <summary>
+        /// Gets or sets a callback that is invoked whenever a proxy is constructed.
+        /// </summary>
+        internal Action<IJsonRpcClientProxyInternal>? OnProxyConstructed { get; set; }
     }
 }

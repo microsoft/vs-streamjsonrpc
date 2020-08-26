@@ -428,9 +428,6 @@ namespace StreamJsonRpc
         /// <returns>The <see cref="MessagePackSerializerOptions"/> to use for all user data (args, return values and error data) and a special formatter to use when all we have is <see cref="object"/> for this user data.</returns>
         private MessagePackSerializerOptions MassageUserDataOptions(MessagePackSerializerOptions userSuppliedOptions)
         {
-            var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-
             var formatters = new IMessagePackFormatter[]
             {
                 // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
@@ -449,8 +446,7 @@ namespace StreamJsonRpc
                 this.pipeFormatterResolver,
 
                 // Support for marshalled objects.
-                CompositeResolver.Create(
-                    new RpcMarshalableImplicitFormatter<IDisposable>(this, camelCaseProxyOptions, camelCaseTargetOptions)),
+                new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
 
                 // Add resolvers to make types serializable that we expect to be serializable.
                 MessagePackExceptionResolver.Instance,
@@ -1103,6 +1099,67 @@ namespace StreamJsonRpc
             }
         }
 
+        private class RpcMarshalableImplicitResolver : IFormatterResolver
+        {
+            private readonly MessagePackFormatter formatter;
+            private readonly IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes;
+            private readonly Dictionary<Type, object> formatters = new Dictionary<Type, object>();
+
+            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter, IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes)
+            {
+                this.formatter = formatter;
+                this.implicitlyMarshaledTypes = implicitlyMarshaledTypes;
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>()
+            {
+                if (typeof(T).IsValueType)
+                {
+                    return null;
+                }
+
+                lock (this.formatters)
+                {
+                    if (this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        return (IMessagePackFormatter<T>)cachedFormatter;
+                    }
+                }
+
+                (Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)? matchingCandidate = null;
+                foreach ((Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) candidate in this.implicitlyMarshaledTypes)
+                {
+                    if (candidate.Type == typeof(T) ||
+                        (candidate.Type.IsGenericTypeDefinition && typeof(T).IsConstructedGenericType && candidate.Type == typeof(T).GetGenericTypeDefinition()))
+                    {
+                        matchingCandidate = candidate;
+                        break;
+                    }
+                }
+
+                if (!matchingCandidate.HasValue)
+                {
+                    return null;
+                }
+
+                object formatter = Activator.CreateInstance(
+                    typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
+                    this.formatter,
+                    matchingCandidate.Value.ProxyOptions,
+                    matchingCandidate.Value.TargetOptions);
+
+                lock (this.formatters)
+                {
+                    if (!this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        this.formatters.Add(typeof(T), cachedFormatter = formatter);
+                    }
+
+                    return (IMessagePackFormatter<T>)cachedFormatter;
+                }
+            }
+        }
+
         private class RpcMarshalableImplicitFormatter<T> : IMessagePackFormatter<T?>
             where T : class
         {
@@ -1120,7 +1177,7 @@ namespace StreamJsonRpc
             public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = MessagePackSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, options);
-                return token.HasValue ? this.messagePackFormatter.RpcMarshaledContextTracker.GetObject<T>(token, this.proxyOptions) : null;
+                return token.HasValue ? (T?)this.messagePackFormatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions) : null;
             }
 
             public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
