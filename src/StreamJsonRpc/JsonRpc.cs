@@ -856,68 +856,32 @@ namespace StreamJsonRpc
             }
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the server indicates completion of the method.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeAsync{TResult}(string, object?)" path="/param[@name='argument']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeAsync(string targetName, object? argument)
         {
             return this.InvokeAsync<object>(targetName, argument);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the server indicates completion of the method.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeAsync(string targetName, params object?[]? arguments)
         {
             return this.InvokeAsync<object>(targetName, arguments);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">A single method argument, must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeAsync<TResult>(string targetName, object? argument)
         {
             var arguments = new object?[] { argument };
@@ -925,24 +889,12 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<TResult>(targetName, arguments, CancellationToken.None);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeAsync<TResult>(string targetName, params object?[]? arguments)
         {
             // If somebody calls InvokeInternal<T>(id, "method", null), the null is not passed as an item in the array.
@@ -953,24 +905,12 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<TResult>(targetName, arguments, CancellationToken.None);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.  The parameter is passed as an object.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithParameterObjectAsync(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -978,49 +918,25 @@ namespace StreamJsonRpc
             return this.InvokeWithParameterObjectAsync<object>(targetName, argument, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.  The parameter is passed as an object.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
         {
             return this.InvokeWithParameterObjectAsync<object>(targetName, argument, argumentDeclaredTypes, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1028,29 +944,17 @@ namespace StreamJsonRpc
             return this.InvokeWithParameterObjectAsync<TResult>(targetName, argument, null, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">An object whose properties match the names of parameters on the target method. Must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
         /// <param name="argumentDeclaredTypes">
         /// A dictionary of <see cref="Type"/> objects that describe how each entry in the <see cref="IReadOnlyDictionary{TKey, TValue}"/> provided in <paramref name="argument"/> is expected by the server to be typed.
         /// If specified, this must have exactly the same set of keys as <paramref name="argument"/> and contain no <c>null</c> values.
         /// </param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
         {
             // If argument is null, this indicates that the method does not take any parameters.
@@ -1058,26 +962,12 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, argumentToPass, positionalArgumentDeclaredTypes: null, argumentDeclaredTypes, cancellationToken, isParameterObject: true);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1085,27 +975,13 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type> argumentDeclaredTypes, CancellationToken cancellationToken)
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1113,27 +989,13 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, argumentDeclaredTypes, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1141,47 +1003,32 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="argumentDeclaredTypes">
-        /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
-        /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
-        /// </param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='positionalArgumentDeclaredTypes']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, argumentDeclaredTypes, namedArgumentDeclaredTypes: null, cancellationToken, isParameterObject: false);
         }
 
         /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.
+        /// Invokes a given method on a JSON-RPC server without waiting for its response.
         /// </summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">Method argument, must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
+        /// <exception cref="ConnectionLostException">Thrown when the connection is terminated (by either side) while the request is being transmitted.</exception>
         public Task NotifyAsync(string targetName, object? argument)
         {
             var arguments = new object?[] { argument };
@@ -1192,18 +1039,15 @@ namespace StreamJsonRpc
         /// <inheritdoc cref="NotifyAsync(string, object?[], IReadOnlyList{Type}?)"/>
         public Task NotifyAsync(string targetName, params object?[]? arguments) => this.NotifyAsync(targetName, arguments, null);
 
-        /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.
-        /// </summary>
+        /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
         public Task NotifyAsync(string targetName, object?[]? arguments, IReadOnlyList<Type>? argumentDeclaredTypes)
         {
             return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, argumentDeclaredTypes, null, CancellationToken.None, isParameterObject: false);
@@ -1214,18 +1058,15 @@ namespace StreamJsonRpc
         public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, null);
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
 
-        /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.  The parameter is passed as an object.
-        /// </summary>
+        /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='namedArgumentDeclaredTypes']"/></param>
-        /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <returns>A task that completes when the notification has been transmitted.</returns>
+        /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
         public Task NotifyWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes)
         {
             // If argument is null, this indicates that the method does not take any parameters.
@@ -1511,10 +1352,10 @@ namespace StreamJsonRpc
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         [Obsolete("Use the InvokeCoreAsync(RequestId, ...) overload instead.")]
         protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken)
         {
@@ -1527,25 +1368,23 @@ namespace StreamJsonRpc
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         protected Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
 
-        /// <summary>
-        /// Invokes the specified RPC method.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         [Obsolete("Use the InvokeCoreAsync(RequestId, ...) overload instead.")]
         protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
         {
@@ -1559,12 +1398,12 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Invokes the specified RPC method.
+        /// Invokes a given method on a JSON-RPC server.
         /// </summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
+        /// <param name="targetName">Name of the method to invoke. Must not be null or empty.</param>
+        /// <param name="arguments">Arguments to pass to the invoked method. They must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>. If <c>null</c>, no arguments are passed.</param>
         /// <param name="positionalArgumentDeclaredTypes">
         /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
         /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
@@ -1576,7 +1415,29 @@ namespace StreamJsonRpc
         /// </param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <returns>A task that completes with the response from the JSON-RPC server.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Thrown after <paramref name="cancellationToken"/> is canceled.
+        /// If the request has already been transmitted, the exception is only thrown after the server has received the cancellation notification and responded to it.
+        /// If the server completes the request instead of cancelling, this exception will not be thrown.
+        /// When the connection drops before receiving a response, this exception is thrown if <paramref name="cancellationToken"/> has been canceled.
+        /// </exception>
+        /// <exception cref="RemoteRpcException">
+        /// A common base class for a variety of RPC exceptions that may be thrown. Some common derived types are listed individually.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Thrown when an error is returned from the server in consequence of executing the requested method.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Thrown when the server reports that no matching method was found to invoke.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
+        /// <exception cref="ConnectionLostException">
+        /// Thrown when the connection is terminated (by either side) while the request is in progress,
+        /// unless <paramref name="cancellationToken"/> is already signaled.
+        /// </exception>
         protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? positionalArgumentDeclaredTypes, IReadOnlyDictionary<string, Type>? namedArgumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));

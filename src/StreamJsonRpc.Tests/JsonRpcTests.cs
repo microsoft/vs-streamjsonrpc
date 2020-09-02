@@ -31,13 +31,13 @@ public abstract class JsonRpcTests : TestBase
 #pragma warning restore SA1310 // Field names should not contain underscore
 
     protected readonly Server server;
-    protected Nerdbank.FullDuplexStream serverStream;
+    protected Stream serverStream;
     protected JsonRpc serverRpc;
     protected IJsonRpcMessageHandler serverMessageHandler;
     protected IJsonRpcMessageFormatter serverMessageFormatter;
     protected CollectingTraceListener serverTraces;
 
-    protected Nerdbank.FullDuplexStream clientStream;
+    protected Stream clientStream;
     protected JsonRpc clientRpc;
     protected IJsonRpcMessageHandler clientMessageHandler;
     protected IJsonRpcMessageFormatter clientMessageFormatter;
@@ -457,6 +457,109 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task DisposeInDisconnectedHandler()
+    {
+        var eventHandlerResultSource = new TaskCompletionSource<object?>();
+        this.serverRpc.Disconnected += (s, e) =>
+        {
+            try
+            {
+                this.serverRpc.Dispose();
+                eventHandlerResultSource.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                eventHandlerResultSource.SetException(ex);
+            }
+        };
+
+        this.clientRpc.Dispose();
+        await eventHandlerResultSource.Task.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task DisposeDuringOutboundCall()
+    {
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        this.clientRpc.Dispose();
+        await Assert.ThrowsAsync<ConnectionLostException>(() => invokeTask);
+    }
+
+    [Fact]
+    public async Task DisposeDuringCanceledOutboundCall()
+    {
+        var cts = new CancellationTokenSource();
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPlainValueTaskWithYield), cancellationToken: cts.Token);
+        cts.Cancel();
+        this.clientRpc.Dispose();
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        Assert.Equal(cts.Token, oce.CancellationToken);
+    }
+
+    [Fact]
+    public async Task ConnectionLostDuringCanceledOutboundCall()
+    {
+        var cts = new CancellationTokenSource();
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPlainValueTaskWithYield), cancellationToken: cts.Token);
+        cts.Cancel();
+        this.serverRpc.Dispose();
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        Assert.Equal(cts.Token, oce.CancellationToken);
+    }
+
+    [Fact]
+    public async Task ConnectionLostDuringCanceledCallback()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
+        this.server.Tests = this;
+
+        this.clientRpc.AllowModificationWhileListening = true;
+        string testCallbackMethod = $"{nameof(this.ConnectionLostDuringCanceledCallback)}_Callback";
+        var callbackReached = new AsyncManualResetEvent();
+        var releaseCallback = new AsyncManualResetEvent();
+        this.clientRpc.AddLocalRpcMethod(testCallbackMethod, new Func<Task>(async delegate
+        {
+            callbackReached.Set();
+            await releaseCallback.WaitAsync(this.TimeoutToken);
+        }));
+
+        Task invocationTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.Callback), new object?[] { testCallbackMethod }, this.TimeoutToken);
+        await callbackReached.WaitAsync(this.TimeoutToken);
+
+        this.clientRpc.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+    }
+
+    /// <summary>
+    /// This test verifies that the transmitting side and the receiving side both respond with typical connection lost paths
+    /// even when transmission/receiving is active at time of loss.
+    /// </summary>
+    [Fact]
+    public async Task ConnectionLostDuringMessageTransmission()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+
+        this.serverStream = streams.Item1;
+        var clientSlowWriter = new SlowWriteStream(streams.Item2);
+        this.clientStream = clientSlowWriter;
+
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+        this.clientRpc.StartListening();
+        this.serverRpc.StartListening();
+
+        Task invokingTask = this.clientRpc.InvokeAsync("somemethod");
+        await clientSlowWriter.WriteEntered.WaitAsync(this.TimeoutToken);
+        this.serverRpc.Dispose();
+
+        await Assert.ThrowsAsync<ConnectionLostException>(() => invokingTask).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task CanCallMethodOnBaseClass()
     {
         string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.BaseMethod));
@@ -705,18 +808,18 @@ public abstract class JsonRpcTests : TestBase
         {
             using (var cts = new CancellationTokenSource())
             {
-                this.clientStream.BeforeWrite = (stream, buffer, offset, count) =>
-                {
-                    // Cancel on the first write, when the header is being written but the content is not yet.
-                    if (!cts.IsCancellationRequested)
-                    {
-                        cts.Cancel();
-                    }
-                };
+                ((Nerdbank.FullDuplexStream)this.clientStream).BeforeWrite = (stream, buffer, offset, count) =>
+               {
+                   // Cancel on the first write, when the header is being written but the content is not yet.
+                   if (!cts.IsCancellationRequested)
+                   {
+                       cts.Cancel();
+                   }
+               };
 
                 var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
                 Assert.Equal(cts.Token, ex.CancellationToken);
-                this.clientStream.BeforeWrite = null;
+                ((Nerdbank.FullDuplexStream)this.clientStream).BeforeWrite = null;
             }
 
             // Verify that json rpc is still operational after cancellation.
@@ -2239,6 +2342,8 @@ public abstract class JsonRpcTests : TestBase
 
         internal Exception? ReceivedException { get; set; }
 
+        internal JsonRpcTests? Tests { get; set; }
+
         public static string ServerMethod(string argument)
         {
             return argument + "!";
@@ -2490,6 +2595,21 @@ public abstract class JsonRpcTests : TestBase
             Task waitToReturn = this.AllowServerMethodToReturn.WaitAsync();
             this.ServerMethodReached.Set();
             waitToReturn.Wait();
+        }
+
+        public async Task Callback(string clientCallbackMethod, CancellationToken cancellationToken)
+        {
+            try
+            {
+                Verify.Operation(this.Tests is object, $"Set the {nameof(this.Tests)} property first.");
+                await this.Tests.serverRpc.InvokeWithCancellationAsync(clientCallbackMethod, cancellationToken: cancellationToken);
+                this.ServerMethodCompleted.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                this.ServerMethodCompleted.SetException(ex);
+                throw;
+            }
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
@@ -2917,6 +3037,49 @@ public abstract class JsonRpcTests : TestBase
             }
 
             info.AddValue("ClassName", "My.NonExistentException");
+        }
+    }
+
+    private class SlowWriteStream : Stream
+    {
+        private readonly Stream inner;
+
+        internal SlowWriteStream(Stream inner)
+        {
+            this.inner = inner;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => true;
+
+        public override bool CanWrite => true;
+
+        public override long Length => this.inner.Length;
+
+        public override long Position { get => this.inner.Position; set => this.inner.Position = value; }
+
+        internal AsyncAutoResetEvent AllowWrites { get; } = new AsyncAutoResetEvent();
+
+        internal AsyncAutoResetEvent WriteEntered { get; } = new AsyncAutoResetEvent();
+
+        public override void Flush() => this.inner.Flush();
+
+        public override int Read(byte[] buffer, int offset, int count) => this.inner.Read(buffer, offset, count);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.inner.ReadAsync(buffer, offset, count, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => this.inner.Seek(offset, origin);
+
+        public override void SetLength(long value) => this.inner.SetLength(value);
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
+
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            this.WriteEntered.Set();
+            await this.AllowWrites.WaitAsync(cancellationToken);
+            await this.inner.WriteAsync(buffer, offset, count, cancellationToken);
         }
     }
 }
