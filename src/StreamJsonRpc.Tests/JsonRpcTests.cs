@@ -457,6 +457,27 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task DisposeInDisconnectedHandler()
+    {
+        var eventHandlerResultSource = new TaskCompletionSource<object?>();
+        this.serverRpc.Disconnected += (s, e) =>
+        {
+            try
+            {
+                this.serverRpc.Dispose();
+                eventHandlerResultSource.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                eventHandlerResultSource.SetException(ex);
+            }
+        };
+
+        this.clientRpc.Dispose();
+        await eventHandlerResultSource.Task.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task CanCallMethodOnBaseClass()
     {
         string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.BaseMethod));
