@@ -122,43 +122,6 @@ CRLF +
         Assert.Throws<ArgumentException>(() => this.handler.SubType = new string('a', 980));
     }
 
-    private class SlowWriteStream : Stream
-    {
-        private readonly AsyncSemaphore semaphore = new AsyncSemaphore(1);
-        private readonly MemoryStream inner = new MemoryStream();
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => true;
-
-        public override long Length => this.inner.Length;
-
-        public override long Position { get => this.inner.Position; set => this.inner.Position = value; }
-
-        public override void Flush() => this.inner.Flush();
-
-        public override int Read(byte[] buffer, int offset, int count) => this.inner.Read(buffer, offset, count);
-
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => this.inner.ReadAsync(buffer, offset, count, cancellationToken);
-
-        public override long Seek(long offset, SeekOrigin origin) => this.inner.Seek(offset, origin);
-
-        public override void SetLength(long value) => this.inner.SetLength(value);
-
-        public override void Write(byte[] buffer, int offset, int count) => this.inner.Write(buffer, offset, count);
-
-        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            using (await this.semaphore.EnterAsync(cancellationToken))
-            {
-                await Task.Delay(10);
-                await this.inner.WriteAsync(buffer, offset, count, cancellationToken);
-            }
-        }
-    }
-
     private class MockFormatter : IJsonRpcMessageFormatter
     {
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
