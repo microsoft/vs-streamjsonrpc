@@ -31,6 +31,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Task<string?> AcceptUnionTypeAndReturnStringAsync(UnionBaseClass value, CancellationToken cancellationToken);
 
         Task AcceptUnionTypeAsync(UnionBaseClass value, CancellationToken cancellationToken);
+
+        Task ProgressUnionType(IProgress<UnionBaseClass> progress, CancellationToken cancellationToken);
     }
 
     [Fact]
@@ -334,6 +336,20 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
     }
 
+    [Fact]
+    public async Task UnionType_AsIProgressTypeArgument()
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        var clientProxy = this.clientRpc.Attach<IMessagePackServer>();
+
+        var reportSource = new TaskCompletionSource<UnionBaseClass>();
+        var progress = new Progress<UnionBaseClass>(v => reportSource.SetResult(v));
+        await clientProxy.ProgressUnionType(progress, this.TimeoutToken);
+        Assert.IsType<UnionDerivedClass>(await reportSource.Task.WithCancellation(this.TimeoutToken));
+    }
+
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.serverMessageFormatter = new MessagePackFormatter();
@@ -407,6 +423,12 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         }
 
         public UnionBaseClass ReturnUnionType() => new UnionDerivedClass();
+
+        public Task ProgressUnionType(IProgress<UnionBaseClass> progress, CancellationToken cancellationToken)
+        {
+            progress.Report(new UnionDerivedClass());
+            return Task.CompletedTask;
+        }
     }
 
     private class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler
