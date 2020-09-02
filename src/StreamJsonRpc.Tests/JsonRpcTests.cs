@@ -478,6 +478,61 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task DisposeDuringOutboundCall()
+    {
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AsyncMethodWithCancellation), new object?[] { "hi" }, this.TimeoutToken);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        this.clientRpc.Dispose();
+        await Assert.ThrowsAsync<ConnectionLostException>(() => invokeTask);
+    }
+
+    [Fact]
+    public async Task DisposeDuringCanceledOutboundCall()
+    {
+        var cts = new CancellationTokenSource();
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPlainValueTaskWithYield), cancellationToken: cts.Token);
+        cts.Cancel();
+        this.clientRpc.Dispose();
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        Assert.Equal(cts.Token, oce.CancellationToken);
+    }
+
+    [Fact]
+    public async Task ConnectionLostDuringCanceledOutboundCall()
+    {
+        var cts = new CancellationTokenSource();
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ReturnPlainValueTaskWithYield), cancellationToken: cts.Token);
+        cts.Cancel();
+        this.serverRpc.Dispose();
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        Assert.Equal(cts.Token, oce.CancellationToken);
+    }
+
+    [Fact]
+    public async Task ConnectionLostDuringCanceledCallback()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed = true;
+        this.server.Tests = this;
+
+        this.clientRpc.AllowModificationWhileListening = true;
+        string testCallbackMethod = $"{nameof(this.ConnectionLostDuringCanceledCallback)}_Callback";
+        var callbackReached = new AsyncManualResetEvent();
+        var releaseCallback = new AsyncManualResetEvent();
+        this.clientRpc.AddLocalRpcMethod(testCallbackMethod, new Func<Task>(async delegate
+        {
+            callbackReached.Set();
+            await releaseCallback.WaitAsync(this.TimeoutToken);
+        }));
+
+        Task invocationTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.Callback), new object?[] { testCallbackMethod }, this.TimeoutToken);
+        await callbackReached.WaitAsync(this.TimeoutToken);
+
+        this.clientRpc.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task CanCallMethodOnBaseClass()
     {
         string result = await this.clientRpc.InvokeAsync<string>(nameof(Server.BaseMethod));
@@ -2260,6 +2315,8 @@ public abstract class JsonRpcTests : TestBase
 
         internal Exception? ReceivedException { get; set; }
 
+        internal JsonRpcTests? Tests { get; set; }
+
         public static string ServerMethod(string argument)
         {
             return argument + "!";
@@ -2511,6 +2568,21 @@ public abstract class JsonRpcTests : TestBase
             Task waitToReturn = this.AllowServerMethodToReturn.WaitAsync();
             this.ServerMethodReached.Set();
             waitToReturn.Wait();
+        }
+
+        public async Task Callback(string clientCallbackMethod, CancellationToken cancellationToken)
+        {
+            try
+            {
+                Verify.Operation(this.Tests is object, $"Set the {nameof(this.Tests)} property first.");
+                await this.Tests.serverRpc.InvokeWithCancellationAsync(clientCallbackMethod, cancellationToken: cancellationToken);
+                this.ServerMethodCompleted.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                this.ServerMethodCompleted.SetException(ex);
+                throw;
+            }
         }
 
         public async Task<string> AsyncMethodWithCancellation(string arg, CancellationToken cancellationToken)
