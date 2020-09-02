@@ -42,6 +42,11 @@
         <target state="translated">La deserializzazione dell'argomento di JSON-RPC con nome "{0}" e posizione {1} nel tipo "{2}" non è riuscita: {3}</target>
         <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
       </trans-unit>
+      <trans-unit id="FailureDeserializingRpcResult">
+        <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
+        <target state="new">Deserializing JSON-RPC result to type {0} failed with {1}: {2}</target>
+        <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
+      </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
         <target state="translated">Non è possibile eseguire il cast del tipo specificato in IProgress&lt;T&gt;</target>

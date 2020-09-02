@@ -443,8 +443,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         // But for a notification there's no guarantee the server handles the message and no way to get an error back,
         // so it simply should not be allowed since the risk of memory leak is too high.
         var numbers = new int[] { 1, 2, 3 }.AsAsyncEnumerable();
-        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
-        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new { e = numbers } }));
+        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
+        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new { e = numbers } }));
     }
 
     [SkippableFact]
@@ -563,7 +563,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     private async Task<WeakReference> ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization_Helper()
     {
         IAsyncEnumerable<int>? numbers = new int[] { 1, 2, 3 }.AsAsyncEnumerable();
-        await Assert.ThrowsAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync("ThisMethodDoesNotExist", new object?[] { numbers, new UnserializableType() }, this.TimeoutToken));
+        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync("ThisMethodDoesNotExist", new object?[] { numbers, new UnserializableType() }, this.TimeoutToken));
         WeakReference result = new WeakReference(numbers);
         numbers = null;
         return result;

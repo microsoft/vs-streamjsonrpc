@@ -4,6 +4,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
@@ -71,9 +72,11 @@ public class JsonRpcClient10InteropTests : InteropTestBase
     [Fact]
     public async Task ClientThrowsOnAttemptToSendParamsObject()
     {
-        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 }, this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        var ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 }, this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        Assert.IsType<NotSupportedException>(ex.InnerException);
         this.Logger.WriteLine(ex.ToString());
-        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 })).WithCancellation(this.TimeoutToken);
+        ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 })).WithCancellation(this.TimeoutToken);
+        Assert.IsType<NotSupportedException>(ex.InnerException);
 
         Assert.Equal(0, this.messageHandler.WrittenMessages.Count);
     }

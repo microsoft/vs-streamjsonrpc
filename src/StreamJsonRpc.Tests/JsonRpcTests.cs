@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using MessagePack;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
@@ -1189,6 +1189,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task NotifyAsync_LeavesTraceEvidenceOnFailure()
     {
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("DoesNotMatter", new TypeThrowsWhenSerialized()));
+        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
 
         // Verify that the trace explains what went wrong with the original exception message.
         while (!this.clientTraces.Messages.Any(m => m.Contains("Can't touch this")))
@@ -1979,7 +1980,8 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task ReturnTypeThrowsOnDeserialization()
     {
-        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        Assert.True(ex is JsonSerializationException || ex is MessagePackSerializationException, $"Exception type was {ex.GetType().Name}");
     }
 
     [Fact]
@@ -2301,7 +2303,8 @@ public abstract class JsonRpcTests : TestBase
 
         WeakReference weakRef = new WeakReference(progress);
 
-        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
+        Assert.IsType<NotSupportedException>(ex.InnerException);
 
         await progress.WaitAsync();
 

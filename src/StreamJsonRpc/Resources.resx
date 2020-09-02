@@ -169,6 +169,10 @@
     <value>Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</value>
     <comment>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</comment>
   </data>
+  <data name="FailureDeserializingRpcResult" xml:space="preserve">
+    <value>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</value>
+    <comment>{0} is the result type, {1} is the exception type, {2} is the exception message.</comment>
+  </data>
   <data name="FatalExceptionWasThrown" xml:space="preserve">
     <value>A fatal exception was thrown from the server method {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message</comment>

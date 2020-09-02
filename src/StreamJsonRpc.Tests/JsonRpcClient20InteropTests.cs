@@ -246,7 +246,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     [Fact]
     public async Task NotifyWithParameterPassedAsObjectAsync_ThrowsExceptions()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => this.clientRpc.NotifyWithParameterObjectAsync("test", new int[] { 1, 2 }));
+        var ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.NotifyWithParameterObjectAsync("test", new int[] { 1, 2 }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
     }
 
     [Fact]
