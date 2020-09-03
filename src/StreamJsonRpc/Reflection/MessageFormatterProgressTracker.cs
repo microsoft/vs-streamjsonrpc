@@ -269,7 +269,9 @@ namespace StreamJsonRpc.Reflection
             /// <param name="value">The typed value that will be send in the notification to be reported by the original <see cref="IProgress{T}"/> instance.</param>
             public void Report(T value)
             {
-                this.rpc.NotifyAsync(ProgressRequestSpecialMethod, this.token, value).ContinueWith(
+                var arguments = new object?[] { this.token, value };
+                var argumentDeclaredTypes = new Type[] { this.token.GetType(), typeof(T) };
+                this.rpc.NotifyAsync(ProgressRequestSpecialMethod, arguments, argumentDeclaredTypes).ContinueWith(
                     (t, s) => ((JsonRpc)s).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception.InnerException ?? t.Exception),
                     this.rpc,
                     CancellationToken.None,

@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
@@ -31,6 +31,10 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Task<string?> AcceptUnionTypeAndReturnStringAsync(UnionBaseClass value, CancellationToken cancellationToken);
 
         Task AcceptUnionTypeAsync(UnionBaseClass value, CancellationToken cancellationToken);
+
+        Task ProgressUnionType(IProgress<UnionBaseClass> progress, CancellationToken cancellationToken);
+
+        IAsyncEnumerable<UnionBaseClass> GetAsyncEnumerableOfUnionType(CancellationToken cancellationToken);
     }
 
     [Fact]
@@ -334,6 +338,37 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.IsType<UnionDerivedClass>(server.ReceivedValue);
     }
 
+    [Fact]
+    public async Task UnionType_AsIProgressTypeArgument()
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        var clientProxy = this.clientRpc.Attach<IMessagePackServer>();
+
+        var reportSource = new TaskCompletionSource<UnionBaseClass>();
+        var progress = new Progress<UnionBaseClass>(v => reportSource.SetResult(v));
+        await clientProxy.ProgressUnionType(progress, this.TimeoutToken);
+        Assert.IsType<UnionDerivedClass>(await reportSource.Task.WithCancellation(this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task UnionType_AsAsyncEnumerableTypeArgument()
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        var clientProxy = this.clientRpc.Attach<IMessagePackServer>();
+
+        UnionBaseClass? actualItem = null;
+        await foreach (UnionBaseClass item in clientProxy.GetAsyncEnumerableOfUnionType(this.TimeoutToken))
+        {
+            actualItem = item;
+        }
+
+        Assert.IsType<UnionDerivedClass>(actualItem);
+    }
+
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.serverMessageFormatter = new MessagePackFormatter();
@@ -407,6 +442,18 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         }
 
         public UnionBaseClass ReturnUnionType() => new UnionDerivedClass();
+
+        public Task ProgressUnionType(IProgress<UnionBaseClass> progress, CancellationToken cancellationToken)
+        {
+            progress.Report(new UnionDerivedClass());
+            return Task.CompletedTask;
+        }
+
+        public async IAsyncEnumerable<UnionBaseClass> GetAsyncEnumerableOfUnionType([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            yield return new UnionDerivedClass();
+        }
     }
 
     private class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler
