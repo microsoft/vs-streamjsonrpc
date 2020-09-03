@@ -426,26 +426,33 @@ namespace StreamJsonRpc
         /// <returns>The JSON of the message.</returns>
         public JToken Serialize(JsonRpcMessage message)
         {
-            this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
-
-            // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
-            this.TokenizeUserData(message);
-
-            var json = JToken.FromObject(message, DefaultSerializer);
-
-            // Fix up dropped fields that are mandatory
-            if (message is Protocol.JsonRpcResult && json["result"] == null)
+            try
             {
-                json["result"] = JValue.CreateNull();
-            }
+                this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
 
-            if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+                // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
+                this.TokenizeUserData(message);
+
+                var json = JToken.FromObject(message, DefaultSerializer);
+
+                // Fix up dropped fields that are mandatory
+                if (message is Protocol.JsonRpcResult && json["result"] == null)
+                {
+                    json["result"] = JValue.CreateNull();
+                }
+
+                if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+                {
+                    // JSON-RPC 1.0 requires the id property to be present even for notifications.
+                    json["id"] = JValue.CreateNull();
+                }
+
+                return json;
+            }
+            catch (Exception ex)
             {
-                // JSON-RPC 1.0 requires the id property to be present even for notifications.
-                json["id"] = JValue.CreateNull();
+                throw new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, ex.GetType().Name, ex.Message), ex);
             }
-
-            return json;
         }
 
         /// <inheritdoc/>
@@ -852,7 +859,14 @@ namespace StreamJsonRpc
                     return default!;
                 }
 
-                return result.ToObject<T>(this.jsonSerializer);
+                try
+                {
+                    return result.ToObject<T>(this.jsonSerializer);
+                }
+                catch (Exception exception)
+                {
+                    throw new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingRpcResult, typeof(T).Name, exception.GetType().Name, exception.Message));
+                }
             }
         }
 

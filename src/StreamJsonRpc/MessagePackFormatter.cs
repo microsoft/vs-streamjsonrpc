@@ -283,8 +283,15 @@ namespace StreamJsonRpc
             }
 
             var writer = new MessagePackWriter(contentBuffer);
-            this.messageSerializationOptions.Resolver.GetFormatterWithVerify<JsonRpcMessage>().Serialize(ref writer, message, this.messageSerializationOptions);
-            writer.Flush();
+            try
+            {
+                this.messageSerializationOptions.Resolver.GetFormatterWithVerify<JsonRpcMessage>().Serialize(ref writer, message, this.messageSerializationOptions);
+                writer.Flush();
+            }
+            catch (Exception ex)
+            {
+                throw new MessagePackSerializationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, ex.GetType().Name, ex.Message), ex);
+            }
         }
 
         /// <inheritdoc/>

@@ -1029,6 +1029,11 @@ namespace StreamJsonRpc
         /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
         /// <exception cref="ConnectionLostException">Thrown when the connection is terminated (by either side) while the request is being transmitted.</exception>
+        /// <exception cref="Exception">
+        /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
+        /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+        /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
+        /// </exception>
         public Task NotifyAsync(string targetName, object? argument)
         {
             var arguments = new object?[] { argument };
@@ -1437,6 +1442,11 @@ namespace StreamJsonRpc
         /// <exception cref="ConnectionLostException">
         /// Thrown when the connection is terminated (by either side) while the request is in progress,
         /// unless <paramref name="cancellationToken"/> is already signaled.
+        /// </exception>
+        /// <exception cref="Exception">
+        /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
+        /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+        /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
         /// </exception>
         protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? positionalArgumentDeclaredTypes, IReadOnlyDictionary<string, Type>? namedArgumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
         {

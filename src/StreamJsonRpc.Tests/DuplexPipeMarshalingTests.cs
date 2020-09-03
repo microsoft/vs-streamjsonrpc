@@ -105,7 +105,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         var clientRpc = JsonRpc.Attach(streamPair.Item1);
 
         (IDuplexPipe, IDuplexPipe) somePipe = FullDuplexStream.CreatePipePair();
-        await Assert.ThrowsAsync<NotSupportedException>(() => clientRpc.InvokeWithCancellationAsync(nameof(Server.TwoWayPipeAsArg), new[] { somePipe.Item2 }, this.TimeoutToken));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => clientRpc.InvokeWithCancellationAsync(nameof(Server.TwoWayPipeAsArg), new[] { somePipe.Item2 }, this.TimeoutToken));
+        Assert.IsType<NotSupportedException>(ex.InnerException);
     }
 
     [Theory]
@@ -551,7 +552,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task NotifyWithPipe_IsRejectedAtClient()
     {
         (IDuplexPipe, IDuplexPipe) duplexPipes = FullDuplexStream.CreatePipePair();
-        await Assert.ThrowsAsync<NotSupportedException>(() => this.clientRpc.NotifyAsync(nameof(Server.AcceptReadableStream), "fileName", duplexPipes.Item2));
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.AcceptReadableStream), "fileName", duplexPipes.Item2));
+        Assert.IsType<NotSupportedException>(ex.InnerException);
     }
 
     /// <summary>
