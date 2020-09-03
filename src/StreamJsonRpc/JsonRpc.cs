@@ -27,23 +27,22 @@ namespace StreamJsonRpc
     /// </summary>
     public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks
     {
+        /// <summary>
+        /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
+        /// </summary>
+        internal static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
+
         private const string ImpliedMethodNameAsyncSuffix = "Async";
-        private const string CancelRequestSpecialMethod = "$/cancelRequest";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
         private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
         private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
-        /// <summary>
-        /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
-        /// </summary>
-        private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
-
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object syncObject = new object();
 
         /// <summary>
-        /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
+        /// The object to lock when accessing the <see cref="resultDispatcherMap"/>.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object dispatcherMapLock = new object();
@@ -59,13 +58,6 @@ namespace StreamJsonRpc
         /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
         /// </summary>
         private readonly Dictionary<RequestId, OutstandingCallData> resultDispatcherMap = new Dictionary<RequestId, OutstandingCallData>();
-
-        /// <summary>
-        /// A map of id's from inbound calls that have not yet completed and may be canceled,
-        /// to their <see cref="CancellationTokenSource"/> instances.
-        /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
-        /// </summary>
-        private readonly Dictionary<RequestId, CancellationTokenSource> inboundCancellationSources = new Dictionary<RequestId, CancellationTokenSource>();
 
         /// <summary>
         /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
@@ -133,6 +125,11 @@ namespace StreamJsonRpc
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private SynchronizationContext? synchronizationContext;
+
+        /// <summary>
+        /// Backing field for the <see cref="CancellationStrategy"/> property.
+        /// </summary>
+        private ICancellationStrategy? cancellationStrategy;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
@@ -224,6 +221,7 @@ namespace StreamJsonRpc
             // If ordering is not required and higher throughput is desired, the owner of this instance can clear this property
             // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
             this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
+            this.CancellationStrategy = new StandardCancellationStrategy(this);
         }
 
         /// <summary>
@@ -501,6 +499,21 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets or sets the cancellation strategy to use.
+        /// </summary>
+        /// <value>The default value is the <see cref="StandardCancellationStrategy"/> which uses the "$/cancelRequest" notification.</value>
+        /// <inheritdoc cref="ThrowIfConfigurationLocked" path="/exception"/>
+        public ICancellationStrategy? CancellationStrategy
+        {
+            get => this.cancellationStrategy;
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.cancellationStrategy = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the message handler used to send and receive messages.
         /// </summary>
         internal IJsonRpcMessageHandler MessageHandler { get; }
@@ -771,46 +784,8 @@ namespace StreamJsonRpc
         /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(string? rpcMethodName, MethodInfo handler, object? target) => this.AddLocalRpcMethod(handler, target, new JsonRpcMethodAttribute(rpcMethodName));
 
-        /// <summary>
-        /// Adds a handler for an RPC method with a given name.
-        /// </summary>
-        /// <param name="handler">
-        /// The method or delegate to invoke when a matching RPC message arrives.
-        /// This method may accept parameters from the incoming JSON-RPC message.
-        /// </param>
-        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
-        /// <param name="methodRpcSettings">
-        /// A description for how this method should be treated.
-        /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
-        /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
-        /// </param>
-        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
-        public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings)
-        {
-            Requires.NotNull(handler, nameof(handler));
-            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
-
-            this.ThrowIfConfigurationLocked();
-            string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
-            lock (this.syncObject)
-            {
-                var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings);
-                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
-                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
-                {
-                    if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
-                    {
-                        throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
-                    }
-
-                    existingList.Add(methodTarget);
-                }
-                else
-                {
-                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
-                }
-            }
-        }
+        /// <inheritdoc cref="AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
+        public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings) => this.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext: null);
 
         /// <summary>
         /// Gets the <see cref="JsonRpcMethodAttribute"/> for a previously discovered RPC method, if there is one.
@@ -1158,6 +1133,48 @@ namespace StreamJsonRpc
             // This method is included in the spec, but hasn't been implemented yet and has no callers.
             // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetime method's responsibilities.
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Adds a handler for an RPC method with a given name.
+        /// </summary>
+        /// <param name="handler">
+        /// The method or delegate to invoke when a matching RPC message arrives.
+        /// This method may accept parameters from the incoming JSON-RPC message.
+        /// </param>
+        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        /// <param name="methodRpcSettings">
+        /// A description for how this method should be treated.
+        /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
+        /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
+        /// </param>
+        /// <param name="synchronizationContext">The <see cref="System.Threading.SynchronizationContext"/> to schedule the method invocation on instead of the default one specified by the <see cref="SynchronizationContext"/> property.</param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+        internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
+        {
+            Requires.NotNull(handler, nameof(handler));
+            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
+
+            this.ThrowIfConfigurationLocked();
+            string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
+            lock (this.syncObject)
+            {
+                var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings, synchronizationContext);
+                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
+                {
+                    if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
+                    {
+                        throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
+                    }
+
+                    existingList.Add(methodTarget);
+                }
+                else
+                {
+                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
+                }
+            }
         }
 
         /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
@@ -1620,7 +1637,7 @@ namespace StreamJsonRpc
                     }
 
                     // Skip this method if its signature matches one from a derived type we have already scanned.
-                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute);
+                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute, perMethodSynchronizationContext: null);
                     if (methodTargetList.Contains(methodTarget))
                     {
                         continue;
@@ -1849,7 +1866,7 @@ namespace StreamJsonRpc
                     }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction!, request.RequestId, useSynchronizationContext: false))
+                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.RequestId, useSynchronizationContext: false))
                     {
                         // This task will be completed when the Response object comes back from the other end of the pipe
                         return await tcs.Task.ConfigureAwait(false);
@@ -1932,7 +1949,7 @@ namespace StreamJsonRpc
                 {
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out List<MethodSignatureAndTarget>? candidateTargets))
                     {
-                        targetMethod = new TargetMethod(request, candidateTargets);
+                        targetMethod = new TargetMethod(request, candidateTargets, this.SynchronizationContextOrDefault);
                     }
                 }
 
@@ -1943,10 +1960,7 @@ namespace StreamJsonRpc
                     // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
                     if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
                     {
-                        lock (this.dispatcherMapLock)
-                        {
-                            this.inboundCancellationSources.Add(request.RequestId, localMethodCancellationSource!);
-                        }
+                        this.CancellationStrategy?.IncomingRequestStarted(request.RequestId, localMethodCancellationSource!);
                     }
 
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
@@ -1966,16 +1980,14 @@ namespace StreamJsonRpc
                         }
                     }
 
-                    // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
-                    // IMPORTANT: This should be the first await in this async method,
-                    //            and no other await should be between this one and actually invoking the target method.
-                    //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                    //            when a single-threaded SynchronizationContext is applied.
-                    await this.SynchronizationContextOrDefault;
                     object? result;
                     try
                     {
-                        result = targetMethod.Invoke(cancellationToken);
+                        // IMPORTANT: This should be the first await in this async method,
+                        //            and no other await should be between this one and actually invoking the target method.
+                        //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                        //            when a single-threaded SynchronizationContext is applied.
+                        result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
                     }
                     catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
                     {
@@ -2035,10 +2047,7 @@ namespace StreamJsonRpc
                     {
                         if (request.IsResponseExpected)
                         {
-                            lock (this.dispatcherMapLock)
-                            {
-                                this.inboundCancellationSources.Add(request.RequestId, localMethodCancellationSource!);
-                            }
+                            this.CancellationStrategy?.IncomingRequestStarted(request.RequestId, localMethodCancellationSource!);
                         }
 
                         // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
@@ -2140,10 +2149,7 @@ namespace StreamJsonRpc
             {
                 if (localMethodCancellationSource != null)
                 {
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.inboundCancellationSources.Remove(request.RequestId);
-                    }
+                    this.CancellationStrategy?.IncomingRequestEnded(request.RequestId);
 
                     // Be sure to dispose the link to the local method token we created in case it is linked to our long-lived disposal token
                     // and otherwise cause a memory leak.
@@ -2470,12 +2476,6 @@ namespace StreamJsonRpc
                     // We can't accept a request that requires a response if we can't write.
                     Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
 
-                    if (request.IsNotification && request.Method == CancelRequestSpecialMethod)
-                    {
-                        await this.HandleCancellationNotificationAsync(request).ConfigureAwait(false);
-                        return;
-                    }
-
                     JsonRpcMessage result;
                     lock (this.syncObject)
                     {
@@ -2602,49 +2602,6 @@ namespace StreamJsonRpc
             }
         }
 
-        private async Task HandleCancellationNotificationAsync(JsonRpcRequest request)
-        {
-            Requires.NotNull(request, nameof(request));
-
-            if (request.TryGetArgumentByNameOrIndex("id", -1, typeof(RequestId), out object? idArg))
-            {
-                RequestId id = idArg is RequestId requestId ? requestId : RequestId.Parse(idArg);
-                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                {
-                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedCancellation, "Cancellation request received for \"{0}\".", id);
-                }
-
-                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
-                {
-                    JsonRpcEventSource.Instance.ReceivedCancellationRequest(id.NumberIfPossibleForEvent);
-                }
-
-                CancellationTokenSource? cts;
-                lock (this.dispatcherMapLock)
-                {
-                    this.inboundCancellationSources.TryGetValue(id, out cts);
-                }
-
-                if (cts != null)
-                {
-                    // This cancellation token is the one that is passed to the server method.
-                    // It may have callbacks registered on cancellation.
-                    // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
-                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                    try
-                    {
-                        cts.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // There is a race condition between when we retrieve the CTS and actually call Cancel,
-                        // vs. another thread that disposes the CTS at the conclusion of the method invocation.
-                        // It cannot be prevented, so just swallow it since the method executed successfully.
-                    }
-                }
-            }
-        }
-
         private void FaultPendingRequests()
         {
             OutstandingCallData[] pendingRequests;
@@ -2667,27 +2624,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(state, nameof(state));
             var requestId = (RequestId)state;
-            Task.Run(async delegate
-            {
-                if (!this.IsDisposed)
-                {
-                    var cancellationMessage = new JsonRpcRequest
-                    {
-                        Method = CancelRequestSpecialMethod,
-                        NamedArguments = new Dictionary<string, object?>
-                        {
-                            { "id", requestId },
-                        },
-                    };
-
-                    if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
-                    {
-                        JsonRpcEventSource.Instance.SendingCancellationRequest(requestId.NumberIfPossibleForEvent);
-                    }
-
-                    await this.TransmitAsync(cancellationMessage, this.DisconnectedToken).ConfigureAwait(false);
-                }
-            }).Forget();
+            this.CancellationStrategy?.CancelOutboundRequest(requestId);
         }
 
         private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
@@ -2744,6 +2681,7 @@ namespace StreamJsonRpc
         /// Throws an exception if we have already started listening,
         /// unless <see cref="AllowModificationWhileListening"/> is <c>true</c>.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="HasListeningStarted"/> is <c>true</c> and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         private void ThrowIfConfigurationLocked()
         {
             Verify.Operation(!this.HasListeningStarted || this.AllowModificationWhileListening, Resources.MustNotBeListening);
