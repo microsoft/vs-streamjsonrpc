@@ -20,10 +20,25 @@ namespace StreamJsonRpc
         /// the RPC server can understand.
         /// </summary>
         /// <param name="requestId">The ID of the canceled request.</param>
+        /// <remarks>
+        /// Every call to this method is followed by a subsequent call to <see cref="OutboundRequestEnded(RequestId)"/>.
+        /// </remarks>
         void CancelOutboundRequest(RequestId requestId);
 
         /// <summary>
-        /// Reports an incoming request and the <see cref="CancellationTokenSource"/> that is assigned to it.
+        /// Cleans up any state associated with an earlier <see cref="CancelOutboundRequest(RequestId)"/> call.
+        /// </summary>
+        /// <param name="requestId">The ID of the canceled request.</param>
+        /// <remarks>
+        /// This method is invoked by <see cref="JsonRpc"/> when the response to a canceled request has been received.
+        /// It *may* be invoked for requests for which a prior call to <see cref="CancelOutboundRequest(RequestId)"/> was *not* made, due to timing.
+        /// But it should never be invoked concurrently with <see cref="CancelOutboundRequest(RequestId)"/> for the same <see cref="RequestId"/>.
+        /// </remarks>
+        void OutboundRequestEnded(RequestId requestId);
+
+        /// <summary>
+        /// Associates the <see cref="RequestId"/> from an incoming request with the <see cref="CancellationTokenSource"/>
+        /// that is used for the <see cref="CancellationToken"/> passed to that RPC method so it can be canceled later.
         /// </summary>
         /// <param name="requestId">The ID of the incoming request.</param>
         /// <param name="cancellationTokenSource">A means to cancel the <see cref="CancellationToken"/> that will be used when invoking the RPC server method.</param>
@@ -34,7 +49,7 @@ namespace StreamJsonRpc
         void IncomingRequestStarted(RequestId requestId, CancellationTokenSource cancellationTokenSource);
 
         /// <summary>
-        /// Reports that an incoming request is no longer a candidate for cancellation.
+        /// Cleans up any state associated with an earlier <see cref="IncomingRequestStarted(RequestId, CancellationTokenSource)"/> call.
         /// </summary>
         /// <param name="requestId">The ID of the request that has been fulfilled.</param>
         /// <remarks>

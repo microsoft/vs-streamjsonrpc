@@ -7,12 +7,9 @@ namespace StreamJsonRpc
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Reflection;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft;
     using Microsoft.VisualStudio.Threading;
-    using StreamJsonRpc.Protocol;
 
     internal class StandardCancellationStrategy : ICancellationStrategy
     {
@@ -56,7 +53,7 @@ namespace StreamJsonRpc
         internal JsonRpc JsonRpc { get; }
 
         /// <inheritdoc />
-        public virtual void IncomingRequestStarted(RequestId requestId, CancellationTokenSource cancellationTokenSource)
+        public void IncomingRequestStarted(RequestId requestId, CancellationTokenSource cancellationTokenSource)
         {
             lock (this.inboundCancellationSources)
             {
@@ -65,7 +62,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc />
-        public virtual void IncomingRequestEnded(RequestId requestId)
+        public void IncomingRequestEnded(RequestId requestId)
         {
             lock (this.inboundCancellationSources)
             {
@@ -74,7 +71,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc />
-        public virtual void CancelOutboundRequest(RequestId requestId)
+        public void CancelOutboundRequest(RequestId requestId)
         {
             Task.Run(async delegate
             {
@@ -93,6 +90,11 @@ namespace StreamJsonRpc
                     await this.JsonRpc.NotifyWithParameterObjectAsync(CancelRequestSpecialMethod, args).ConfigureAwait(false);
                 }
             }).Forget();
+        }
+
+        /// <inheritdoc />
+        public void OutboundRequestEnded(RequestId requestId)
+        {
         }
 
         /// <summary>

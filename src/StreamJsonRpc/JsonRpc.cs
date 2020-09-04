@@ -1866,10 +1866,20 @@ namespace StreamJsonRpc
                     }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.RequestId, useSynchronizationContext: false))
+                    try
                     {
-                        // This task will be completed when the Response object comes back from the other end of the pipe
-                        return await tcs.Task.ConfigureAwait(false);
+                        using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.RequestId, useSynchronizationContext: false))
+                        {
+                            // This task will be completed when the Response object comes back from the other end of the pipe
+                            return await tcs.Task.ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            this.CancellationStrategy?.OutboundRequestEnded(request.RequestId);
+                        }
                     }
                 }
             }
