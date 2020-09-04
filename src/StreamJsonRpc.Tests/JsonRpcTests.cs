@@ -1202,7 +1202,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressParameterAndFields()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
+        var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
 
@@ -1216,7 +1216,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObject_ProgressAndDefaultParameters()
     {
         int report = 0;
-        ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report += n);
+        var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
 
@@ -1282,7 +1282,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
         int report = 0;
-        var progress = new ProgressWithCompletion<int>(n => report += n);
+        var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYFieldsWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
 
@@ -1296,7 +1296,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithArrayParameters_SendingWithProgressProperty()
     {
         int report = 0;
-        var progress = new ProgressWithCompletion<int>(n => report += n);
+        var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYFieldsWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
@@ -1310,7 +1310,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
         int report = 0;
-        var progress = new ProgressWithCompletion<int>(n => report += n);
+        var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
