@@ -2181,6 +2181,15 @@ public abstract class JsonRpcTests : TestBase
         Assert.Null(this.server.ReceivedException);
     }
 
+    [Fact]
+    public void CancellationStrategy_ConfigurationLocked()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.CancellationStrategy = null);
+        Assert.NotNull(this.clientRpc.CancellationStrategy);
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.CancellationStrategy = null;
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
