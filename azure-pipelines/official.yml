@@ -53,8 +53,6 @@ stages:
   jobs:
   - job: archive
     pool: VSEng-ReleasePool
-    variables:
-      SymbolsFeatureName: StreamJsonRpc
     steps:
     - download: current
       artifact: Variables-Windows
