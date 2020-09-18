@@ -112,6 +112,11 @@
         <target state="translated">응답은 오류가 아닙니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResponseSerializationFailure">
+        <source>Failed to serialize the response.</source>
+        <target state="new">Failed to serialize the response.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됨: {0}</target>

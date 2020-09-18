@@ -257,6 +257,9 @@
   <data name="ResponseIsNotError" xml:space="preserve">
     <value>Response is not error.</value>
   </data>
+  <data name="ResponseSerializationFailure" xml:space="preserve">
+    <value>Failed to serialize the response.</value>
+  </data>
   <data name="ResponseUnexpectedFormat" xml:space="preserve">
     <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
     <comment>{0} is the response message.</comment>

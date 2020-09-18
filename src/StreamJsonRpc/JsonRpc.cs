@@ -1347,6 +1347,8 @@ namespace StreamJsonRpc
                 case JsonRpcErrorCode.InvalidParams:
                 case JsonRpcErrorCode.MethodNotFound:
                     return new RemoteMethodNotFoundException(response.Error.Message, request.Method, response.Error.Code, response.Error.Data, deserializedData);
+                case JsonRpcErrorCode.ResponseSerializationFailure:
+                    return new RemoteSerializationException(response.Error.Message, response.Error.Data, deserializedData);
 
                 default:
                     return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
@@ -1889,6 +1891,19 @@ namespace StreamJsonRpc
             }
         }
 
+        private JsonRpcError CreateErrorForResponseTransmissionFailure(JsonRpcRequest request, Exception exception)
+        {
+            JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
+            this.ThrowIfNullDetail(exception, errorDetails);
+
+            errorDetails.Code = JsonRpcErrorCode.ResponseSerializationFailure;
+            return new JsonRpcError
+            {
+                RequestId = request.RequestId,
+                Error = errorDetails,
+            };
+        }
+
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
         {
             Requires.NotNull(request, nameof(request));
@@ -1903,7 +1918,18 @@ namespace StreamJsonRpc
             exception = StripExceptionToInnerException(exception);
 
             JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
-            if (errorDetails == null)
+            this.ThrowIfNullDetail(exception, errorDetails);
+
+            return new JsonRpcError
+            {
+                RequestId = request.RequestId,
+                Error = errorDetails,
+            };
+        }
+
+        private void ThrowIfNullDetail(Exception exception, JsonRpcError.ErrorDetail errorDetails)
+        {
+            if (errorDetails is null)
             {
                 string errorMessage = $"The {this.GetType().Name}.{nameof(this.CreateErrorDetails)} method returned null, which is not allowed.";
                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Critical))
@@ -1918,12 +1944,6 @@ namespace StreamJsonRpc
 
                 this.OnJsonRpcDisconnected(e);
             }
-
-            return new JsonRpcError
-            {
-                RequestId = request.RequestId,
-                Error = errorDetails,
-            };
         }
 
         private async ValueTask<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
@@ -2512,10 +2532,11 @@ namespace StreamJsonRpc
 
                     if (request.IsResponseExpected && !this.IsDisposed)
                     {
+                        bool responseSent = false;
                         try
                         {
                             await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
-                            this.OnResponseSent(result);
+                            responseSent = true;
                         }
                         catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
                         {
@@ -2525,13 +2546,18 @@ namespace StreamJsonRpc
                         }
                         catch (Exception exception)
                         {
-                            var e = new JsonRpcDisconnectedEventArgs(
-                                string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
-                                DisconnectedReason.StreamError,
-                                exception);
+                            // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
+                            if (!this.DisconnectedToken.IsCancellationRequested)
+                            {
+                                result = this.CreateErrorForResponseTransmissionFailure(request, exception);
+                                await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                                responseSent = true;
+                            }
+                        }
 
-                            // Fatal error. Raise disconnected event.
-                            this.OnJsonRpcDisconnected(e);
+                        if (responseSent)
+                        {
+                            this.OnResponseSent(result);
                         }
                     }
                 }

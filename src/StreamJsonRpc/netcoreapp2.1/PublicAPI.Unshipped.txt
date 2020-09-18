@@ -17,6 +17,7 @@ StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, object?
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionTypeNotFound = 19 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpcProxyOptions.JsonRpcProxyOptions(StreamJsonRpc.JsonRpcProxyOptions! copyFrom) -> void
 StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions(StreamJsonRpc.JsonRpcTargetOptions! copyFrom) -> void
+StreamJsonRpc.Protocol.JsonRpcErrorCode.ResponseSerializationFailure = -32003 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>?
 StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.set -> void
 StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>?
@@ -29,6 +30,8 @@ StreamJsonRpc.RemoteRpcException.ErrorCode.get -> StreamJsonRpc.Protocol.JsonRpc
 StreamJsonRpc.RemoteRpcException.ErrorCode.set -> void
 StreamJsonRpc.RemoteRpcException.ErrorData.get -> object?
 StreamJsonRpc.RemoteRpcException.ErrorData.set -> void
+StreamJsonRpc.RemoteSerializationException
+StreamJsonRpc.RemoteSerializationException.RemoteSerializationException(string? message, object? errorData, object? deserializedErrorData) -> void
 override StreamJsonRpc.RemoteRpcException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
 virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!

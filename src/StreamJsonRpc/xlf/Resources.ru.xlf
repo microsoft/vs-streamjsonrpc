@@ -112,6 +112,11 @@
         <target state="translated">Отклик не является ошибкой.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResponseSerializationFailure">
+        <source>Failed to serialize the response.</source>
+        <target state="new">Failed to serialize the response.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">Непредвиденный формат ответа. Поддерживаются только ошибки и результаты: {0}</target>

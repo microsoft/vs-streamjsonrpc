@@ -1268,6 +1268,13 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task SerializationFailureInResult_ThrowsToClient()
+    {
+        var ex = await Assert.ThrowsAsync<RemoteSerializationException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.GetUnserializableType), cancellationToken: this.TimeoutToken));
+        Assert.Equal(JsonRpcErrorCode.ResponseSerializationFailure, ex.ErrorCode);
+    }
+
+    [Fact]
     public async Task AddLocalRpcTarget_UseSingleObjectParameterDeserialization()
     {
         var streams = FullDuplexStream.CreatePair();
@@ -2756,6 +2763,8 @@ public abstract class JsonRpcTests : TestBase
 
         [JsonRpcMethod("ClassNameForMethod")]
         public int AddWithNameSubstitution(int a, int b) => a + b;
+
+        public TypeThrowsWhenSerialized GetUnserializableType() => new TypeThrowsWhenSerialized();
 
         public void ThrowRemoteInvocationException()
         {
