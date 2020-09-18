@@ -7,7 +7,6 @@ namespace StreamJsonRpc
     using System.IO;
     using System.Runtime.Serialization;
     using System.Text;
-    using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
@@ -28,8 +27,8 @@ namespace StreamJsonRpc
         public RemoteInvocationException(string? message, int errorCode, object? errorData)
             : base(message)
         {
-            this.ErrorCode = errorCode;
-            this.ErrorData = errorData;
+            base.ErrorCode = (JsonRpcErrorCode)errorCode;
+            base.ErrorData = errorData;
         }
 
         /// <summary>
@@ -42,9 +41,9 @@ namespace StreamJsonRpc
         public RemoteInvocationException(string? message, int errorCode, object? errorData, object? deserializedErrorData)
             : base(message)
         {
-            this.ErrorCode = errorCode;
-            this.ErrorData = errorData;
-            this.DeserializedErrorData = deserializedErrorData;
+            base.ErrorCode = (JsonRpcErrorCode)errorCode;
+            base.ErrorData = errorData;
+            base.DeserializedErrorData = deserializedErrorData;
         }
 
         /// <summary>
@@ -55,7 +54,6 @@ namespace StreamJsonRpc
         protected RemoteInvocationException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            this.ErrorCode = info.GetInt32(nameof(this.ErrorCode));
         }
 
         /// <summary>
@@ -65,27 +63,13 @@ namespace StreamJsonRpc
         /// The value may be any integer.
         /// The value may be <see cref="JsonRpcErrorCode.InvocationError"/>, which is a general value used for exceptions thrown on the server when the server does not give an app-specific error code.
         /// </value>
-        public int ErrorCode { get; }
+        public new int ErrorCode => (int)base.ErrorCode!.Value;
 
-        /// <summary>
-        /// Gets the <c>error.data</c> value in the error response, if one was provided.
-        /// </summary>
-        /// <remarks>
-        /// Depending on the <see cref="IJsonRpcMessageFormatter"/> used, the value of this property, if any,
-        /// may be a <see cref="JToken"/> or a deserialized object.
-        /// If a deserialized object, the type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
-        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
-        /// </remarks>
-        public object? ErrorData { get; }
+        /// <inheritdoc cref="RemoteRpcException.ErrorData" />
+        public new object? ErrorData => base.ErrorData;
 
-        /// <summary>
-        /// Gets the <c>error.data</c> value in the error response, if one was provided.
-        /// </summary>
-        /// <remarks>
-        /// The type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
-        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
-        /// </remarks>
-        public object? DeserializedErrorData { get; }
+        /// <inheritdoc cref="RemoteRpcException.DeserializedErrorData" />
+        public new object? DeserializedErrorData => base.DeserializedErrorData;
 
         /// <inheritdoc/>
         public override string ToString()
@@ -108,13 +92,6 @@ namespace StreamJsonRpc
             }
 
             return result;
-        }
-
-        /// <inheritdoc/>
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue(nameof(this.ErrorCode), this.ErrorCode);
         }
 
         private static void ContributeInnerExceptionDetails(StringBuilder builder, CommonErrorData errorData)
