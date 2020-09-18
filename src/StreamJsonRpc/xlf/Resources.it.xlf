@@ -112,6 +112,11 @@
         <target state="translated">La risposta non è un errore.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResponseSerializationFailure">
+        <source>Failed to serialize the response.</source>
+        <target state="new">Failed to serialize the response.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">Il formato della risposta è imprevisto. Sono supportati solo l'errore e il risultato: {0}</target>

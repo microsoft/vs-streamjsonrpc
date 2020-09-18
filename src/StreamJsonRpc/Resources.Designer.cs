@@ -439,6 +439,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to serialize the response..
+        /// </summary>
+        internal static string ResponseSerializationFailure {
+            get {
+                return ResourceManager.GetString("ResponseSerializationFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Response is in an unexpected format.  Only error and result are supported: {0}.
         /// </summary>
         internal static string ResponseUnexpectedFormat {
