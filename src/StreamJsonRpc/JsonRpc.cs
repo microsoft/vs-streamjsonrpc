@@ -2677,7 +2677,15 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                if (exception is OperationCanceledException)
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.TransmissionFailed, "Message transmission was canceled.");
+                }
+                else
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                }
+
                 if (message is JsonRpcRequest request)
                 {
                     this.OnRequestTransmissionAborted(request);
