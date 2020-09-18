@@ -23,5 +23,12 @@ StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.get -> System.C
 StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.get -> System.Type?
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
+StreamJsonRpc.RemoteRpcException.DeserializedErrorData.get -> object?
+StreamJsonRpc.RemoteRpcException.DeserializedErrorData.set -> void
+StreamJsonRpc.RemoteRpcException.ErrorCode.get -> StreamJsonRpc.Protocol.JsonRpcErrorCode?
+StreamJsonRpc.RemoteRpcException.ErrorCode.set -> void
+StreamJsonRpc.RemoteRpcException.ErrorData.get -> object?
+StreamJsonRpc.RemoteRpcException.ErrorData.set -> void
+override StreamJsonRpc.RemoteRpcException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
 virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!

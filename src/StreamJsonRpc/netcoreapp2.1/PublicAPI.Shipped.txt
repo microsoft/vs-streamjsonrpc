@@ -438,7 +438,6 @@ override StreamJsonRpc.NewLineDelimitedMessageHandler.ReadCoreAsync(System.Threa
 override StreamJsonRpc.NewLineDelimitedMessageHandler.Write(StreamJsonRpc.Protocol.JsonRpcMessage! content, System.Threading.CancellationToken cancellationToken) -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeReader() -> void
 override StreamJsonRpc.PipeMessageHandler.DisposeWriter() -> void
-override StreamJsonRpc.RemoteInvocationException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 override StreamJsonRpc.RemoteInvocationException.ToString() -> string!
 override StreamJsonRpc.RemoteMethodNotFoundException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 override StreamJsonRpc.RequestId.Equals(object? obj) -> bool
