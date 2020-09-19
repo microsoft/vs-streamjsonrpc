@@ -35,7 +35,6 @@ namespace StreamJsonRpc
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly object[] EmptyObjectArray = new object[0];
-        private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
         private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
