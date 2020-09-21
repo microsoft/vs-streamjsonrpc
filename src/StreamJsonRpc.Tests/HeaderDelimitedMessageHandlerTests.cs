@@ -28,7 +28,10 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
         : base(logger)
     {
         // Use strict pipe writer so we get deterministic writes for consistent testing.
-        this.handler = new HeaderDelimitedMessageHandler(PipeWriter.Create(this.sendingStream), PipeReader.Create(this.receivingStream), new JsonMessageFormatter());
+        this.handler = new HeaderDelimitedMessageHandler(
+            PipeWriter.Create(this.sendingStream, new StreamPipeWriterOptions(leaveOpen: true)),
+            PipeReader.Create(this.receivingStream, new StreamPipeReaderOptions(leaveOpen: true)),
+            new JsonMessageFormatter());
     }
 
     [Fact]
@@ -45,7 +48,10 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     [Fact]
     public void EncodingThrowsForNonTextFormatters()
     {
-        this.handler = new HeaderDelimitedMessageHandler(PipeWriter.Create(this.sendingStream), PipeReader.Create(this.receivingStream), new MockFormatter());
+        this.handler = new HeaderDelimitedMessageHandler(
+            PipeWriter.Create(this.sendingStream, new StreamPipeWriterOptions(leaveOpen: true)),
+            PipeReader.Create(this.receivingStream, new StreamPipeReaderOptions(leaveOpen: true)),
+            new MockFormatter());
         Assert.Throws<NotSupportedException>(() => this.handler.Encoding);
         Assert.Throws<NotSupportedException>(() => this.handler.Encoding = Encoding.UTF8);
     }

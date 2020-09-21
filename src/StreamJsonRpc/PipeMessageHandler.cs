@@ -72,7 +72,7 @@ namespace StreamJsonRpc
         public PipeMessageHandler(Stream? writer, Stream? reader, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
-            this.Reader = reader is object ? PipeReader.Create(reader) : null;
+            this.Reader = reader is object ? PipeReader.Create(reader, new StreamPipeReaderOptions(leaveOpen: true)) : null;
             this.Writer = writer?.UsePipeWriter();
 
             // After we've completed writing, only dispose the underlying write stream when we've flushed everything.
