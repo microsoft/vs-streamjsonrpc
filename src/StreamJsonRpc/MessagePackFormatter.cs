@@ -990,12 +990,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1023,12 +1023,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipeReader(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeReader(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1056,12 +1056,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1089,12 +1089,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32()).AsStream();
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64()).AsStream();
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value?.UsePipe()) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value?.UsePipe()) is { } token)
                     {
                         writer.Write(token);
                     }

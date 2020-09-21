@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
         : base(logger)
     {
         // Use strict pipe writer so we get deterministic writes for consistent testing.
-        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader(), new JsonMessageFormatter());
+        this.handler = new HeaderDelimitedMessageHandler(PipeWriter.Create(this.sendingStream), PipeReader.Create(this.receivingStream), new JsonMessageFormatter());
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
     [Fact]
     public void EncodingThrowsForNonTextFormatters()
     {
-        this.handler = new HeaderDelimitedMessageHandler(this.sendingStream.UseStrictPipeWriter(), this.receivingStream.UseStrictPipeReader(), new MockFormatter());
+        this.handler = new HeaderDelimitedMessageHandler(PipeWriter.Create(this.sendingStream), PipeReader.Create(this.receivingStream), new MockFormatter());
         Assert.Throws<NotSupportedException>(() => this.handler.Encoding);
         Assert.Throws<NotSupportedException>(() => this.handler.Encoding = Encoding.UTF8);
     }
