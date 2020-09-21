@@ -194,6 +194,7 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 
     [Fact]
+    [Trait("TestCategory", "FailsInCloudTest")] // https://github.com/microsoft/vs-streamjsonrpc/issues/128
     public async Task AspNetCoreWebSocket_DisposeRpcThenCloseSocket()
     {
         var (jsonRpc, webSocket) = await this.EstablishWebSocket();
