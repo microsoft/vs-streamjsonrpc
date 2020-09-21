@@ -13,7 +13,6 @@ resources:
       - auto-release
 
 stages:
-
 - stage: GitHubRelease
   displayName: GitHub Release
   jobs:
@@ -33,12 +32,12 @@ stages:
             displayName: GitHub release (create)
             inputs:
               gitHubConnection: AArnott
-              repositoryName: microsoft/vs-streamjsonrpc
+              repositoryName: $(Build.Repository.Name)
               target: $(resources.pipeline.CI.sourceCommit)
               tagSource: userSpecifiedTag
               tag: v$(resources.pipeline.CI.runName)
               title: v$(resources.pipeline.CI.runName)
-              isDraft: true
+              isDraft: true # After running this step, visit the new draft release, edit, and publish.
               changeLogCompareToRelease: lastNonDraftRelease
               changeLogType: issueBased
               changeLogLabels: |
@@ -47,8 +46,8 @@ stages:
                   { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
                 ]
 
-- stage: nuget_org_feed
-  displayName: nuget.org feed
+- stage: nuget_org
+  displayName: nuget.org
   dependsOn: GitHubRelease
   jobs:
   - deployment: push
@@ -59,10 +58,10 @@ stages:
       runOnce:
         deploy:
           steps:
-          - template: release-deployment-prep.yml
           - download: CI
             artifact: deployables-Windows
             displayName: Download deployables-Windows artifact
+            patterns: 'deployables-Windows/*'
           - task: NuGetToolInstaller@1
             displayName: Use NuGet 5.x
             inputs:

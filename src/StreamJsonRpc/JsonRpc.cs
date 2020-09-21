@@ -33,7 +33,6 @@ namespace StreamJsonRpc
         internal static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
 
         private const string ImpliedMethodNameAsyncSuffix = "Async";
-        private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
         private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -72,7 +71,9 @@ namespace StreamJsonRpc
         /// The source for the <see cref="DisconnectedToken"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// The completion source behind <see cref="Completion"/>.
@@ -154,7 +155,9 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream stream)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
         }
 
@@ -170,7 +173,9 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream? sendingStream, Stream? receivingStream, object? target = null)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
             if (target != null)
             {
@@ -277,7 +282,9 @@ namespace StreamJsonRpc
         /// <summary>
         /// Event IDs raised to our <see cref="TraceSource"/>.
         /// </summary>
+#pragma warning disable CA1717 // Only FlagsAttribute enums should have plural names
         public enum TraceEvents
+#pragma warning restore CA1717 // Only FlagsAttribute enums should have plural names
         {
             /// <summary>
             /// Occurs when a local RPC method is added to our mapping table.
@@ -731,7 +738,9 @@ namespace StreamJsonRpc
             Requires.NotNull(target, nameof(target));
             this.ThrowIfConfigurationLocked();
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
             this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
+#pragma warning restore CA2000 // Dispose objects before losing scope
         }
 
         /// <summary>
@@ -989,6 +998,7 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, argumentDeclaredTypes, namedArgumentDeclaredTypes: null, cancellationToken, isParameterObject: false);
         }
 
+#pragma warning disable CA1200 // Avoid using cref tags with a prefix
         /// <summary>
         /// Invokes a given method on a JSON-RPC server without waiting for its response.
         /// </summary>
@@ -1008,6 +1018,7 @@ namespace StreamJsonRpc
         /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
         /// </exception>
         public Task NotifyAsync(string targetName, object? argument)
+#pragma warning restore CA1200 // Avoid using cref tags with a prefix
         {
             var arguments = new object?[] { argument };
 
@@ -1366,7 +1377,9 @@ namespace StreamJsonRpc
         /// by assuming that the <see cref="JsonRpcError.ErrorDetail.Data"/> object should be deserialized as an instance of <see cref="CommonErrorData"/>.
         /// However derived types can override this method and use <see cref="JsonRpcError.ErrorDetail.Code"/> or other means to determine the appropriate type.
         /// </remarks>
+#pragma warning disable CA1716 // Identifiers should not match keywords
         protected virtual Type? GetErrorDetailsDataType(JsonRpcError error) => typeof(CommonErrorData);
+#pragma warning restore CA1716 // Identifiers should not match keywords
 
         /// <summary>
         /// Invokes the specified RPC method.
@@ -1408,17 +1421,22 @@ namespace StreamJsonRpc
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
         /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         [Obsolete("Use the InvokeCoreAsync(RequestId, ...) overload instead.")]
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+#pragma warning restore CA1068 // CancellationToken parameters must come last
         {
             return this.InvokeCoreAsync<TResult>(id.HasValue ? new RequestId(id.Value) : default, targetName, arguments, cancellationToken, isParameterObject);
         }
 
         /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)"/>
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+#pragma warning restore CA1068 // CancellationToken parameters must come last
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, null, null, cancellationToken, isParameterObject);
         }
 
+#pragma warning disable CA1200 // Avoid using cref tags with a prefix
         /// <summary>
         /// Invokes a given method on a JSON-RPC server.
         /// </summary>
@@ -1465,7 +1483,10 @@ namespace StreamJsonRpc
         /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
         /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
         /// </exception>
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? positionalArgumentDeclaredTypes, IReadOnlyDictionary<string, Type>? namedArgumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
+#pragma warning restore CA1068 // CancellationToken parameters must come last
+#pragma warning restore CA1200 // Avoid using cref tags with a prefix
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
@@ -1547,6 +1568,7 @@ namespace StreamJsonRpc
         /// <param name="request">The request whose transmission could not be completed.</param>
         protected virtual void OnRequestTransmissionAborted(JsonRpcRequest request)
         {
+            Requires.NotNull(request, nameof(request));
             if (!request.RequestId.IsEmpty)
             {
                 this.requestTransmissionAborted?.Invoke(this, new JsonRpcMessageEventArgs(request));
@@ -1557,13 +1579,13 @@ namespace StreamJsonRpc
         /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseReceived"/> event.
         /// </summary>
         /// <param name="response">The result or error that was received.</param>
-        protected virtual void OnResponseReceived(JsonRpcMessage response) => this.responseReceived?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
+        protected virtual void OnResponseReceived(JsonRpcMessage response) => this.responseReceived?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)Requires.NotNull(response, nameof(response))));
 
         /// <summary>
         /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseSent"/> event.
         /// </summary>
         /// <param name="response">The result or error that was sent.</param>
-        protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
+        protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)Requires.NotNull(response, nameof(response))));
 
         /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
@@ -1833,7 +1855,9 @@ namespace StreamJsonRpc
                                 tcs.SetResult(response);
                             }
                         }
+#pragma warning disable CA1031 // Do not catch general exception types
                         catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                         {
                             tcs.TrySetException(ex);
                         }
@@ -1959,7 +1983,9 @@ namespace StreamJsonRpc
                 CancellationToken cancellationToken = CancellationToken.None;
                 if (request.IsResponseExpected)
                 {
+#pragma warning disable CA2000 // Dispose objects before losing scope
                     localMethodCancellationSource = new CancellationTokenSource();
+#pragma warning restore CA2000 // Dispose objects before losing scope
                     cancellationToken = localMethodCancellationSource.Token;
 
                     if (this.CancelLocallyInvokedMethodsWhenConnectionIsClosed)
@@ -2060,7 +2086,7 @@ namespace StreamJsonRpc
                     // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                     // the VoidTaskResult internal struct as a meaningful result.
                     return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
-                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, targetMethod.ReturnType.GetTypeInfo(), cancellationToken).ConfigureAwait(false)
+                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
                         : this.HandleInvocationTaskResult(request, resultingTask);
                 }
                 else
@@ -2241,7 +2267,7 @@ namespace StreamJsonRpc
             return result;
         }
 
-        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, TypeInfo declaredReturnType, CancellationToken cancellationToken)
+        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
         {
             // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
             Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
@@ -2286,7 +2312,9 @@ namespace StreamJsonRpc
         /// <param name="result">The result from the RPC method.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A task that completes when processing the result is complete. The returned Task *may* transition to a <see cref="TaskStatus.Faulted"/> state.</returns>
+#pragma warning disable CA1822 // Mark members as static
         private Task ProcessResultBeforeSerializingAsync(object? result, CancellationToken cancellationToken)
+#pragma warning restore CA1822 // Mark members as static
         {
             // If result is a prefetching IAsyncEnumerable<T>, prefetch now.
             return JsonRpcExtensions.PrefetchIfApplicableAsync(result, cancellationToken);
@@ -2378,7 +2406,9 @@ namespace StreamJsonRpc
                             disposableTarget.Dispose();
                         }
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         exceptions.Add(ex);
                     }
@@ -2393,7 +2423,9 @@ namespace StreamJsonRpc
             {
                 await messageHandlerDisposal.ConfigureAwait(false);
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
             {
                 exceptions.Add(ex);
             }
@@ -2456,7 +2488,9 @@ namespace StreamJsonRpc
                     {
                         break;
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception exception)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                             string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
@@ -2542,7 +2576,9 @@ namespace StreamJsonRpc
                         catch (ObjectDisposedException) when (this.IsDisposed)
                         {
                         }
+#pragma warning disable CA1031 // Do not catch general exception types
                         catch (Exception exception)
+#pragma warning restore CA1031 // Do not catch general exception types
                         {
                             // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
                             if (!this.DisconnectedToken.IsCancellationRequested)
@@ -2621,7 +2657,9 @@ namespace StreamJsonRpc
                         DisconnectedReason.ParseError));
                 }
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
             {
                 var eventArgs = new JsonRpcDisconnectedEventArgs(
                     string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),
@@ -2854,7 +2892,9 @@ namespace StreamJsonRpc
                 this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
             }
 
+#pragma warning disable CA1801 // Review unused parameters
             private void OnEventRaisedGeneric<T>(object? sender, T args)
+#pragma warning restore CA1801 // Review unused parameters
             {
                 this.jsonRpc.NotifyAsync(this.rpcEventName, new object?[] { args }).Forget();
             }

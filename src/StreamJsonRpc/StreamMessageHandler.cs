@@ -3,15 +3,10 @@
 
 namespace StreamJsonRpc
 {
-    using System;
     using System.IO;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
-    using Microsoft.VisualStudio.Threading;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
@@ -20,11 +15,6 @@ namespace StreamJsonRpc
     /// </summary>
     public abstract class StreamMessageHandler : MessageHandlerBase
     {
-        /// <summary>
-        /// The source of a token that is canceled when this instance is disposed.
-        /// </summary>
-        private readonly CancellationTokenSource disposalTokenSource = new CancellationTokenSource();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="StreamMessageHandler"/> class.
         /// </summary>

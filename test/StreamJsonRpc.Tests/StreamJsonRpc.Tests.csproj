@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net472;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
+    <RootNamespace />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
+    <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
+    <Compile Update="DuplexPipeMarshalingJsonTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
+    <Compile Update="DuplexPipeMarshalingMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
+    <Compile Update="ObserverMarshalingJsonTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
+    <Compile Update="ObserverMarshalingMessagePackTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
+    <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="AsyncEnumerableJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
+    <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
+    <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.msbuild" Version="2.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.7.56" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Validation" Version="15.5.31" />
+    <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.1" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <PackageReference Include="xunit.combinatorial" Version="1.4.1" />
+    <PackageReference Include="xunit.runner.console" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+    <PackageReference Include="xunit.skippablefact" Version="1.4.13" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' != 'netcoreapp3.1' " />
+  </ItemGroup>
+</Project>

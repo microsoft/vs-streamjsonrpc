@@ -3,6 +3,7 @@
 
 namespace StreamJsonRpc
 {
+    using System;
     using StreamJsonRpc.Protocol;
 
     /// <summary>
@@ -11,7 +12,10 @@ namespace StreamJsonRpc
     /// <remarks>
     /// This exception comes from the <see cref="JsonRpcErrorCode.ResponseSerializationFailure"/> error code.
     /// </remarks>
+    [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class RemoteSerializationException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteSerializationException"/> class.
@@ -23,6 +27,17 @@ namespace StreamJsonRpc
             this.ErrorCode = JsonRpcErrorCode.ResponseSerializationFailure;
             this.ErrorData = errorData;
             this.DeserializedErrorData = deserializedErrorData;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RemoteSerializationException"/> class.
+        /// </summary>
+        /// <param name="serializationInfo">Serialization info.</param>
+        /// <param name="streamingContext">Streaming context.</param>
+        protected RemoteSerializationException(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext)
+            : base(serializationInfo, streamingContext)
+        {
+            throw new NotImplementedException();
         }
     }
 }

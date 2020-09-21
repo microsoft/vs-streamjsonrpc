@@ -12,7 +12,9 @@ namespace StreamJsonRpc
     /// Base exception class for any exception that happens while receiving an JSON-RPC communication.
     /// </summary>
     [System.Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public abstract class RemoteRpcException : Exception
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteRpcException"/> class.

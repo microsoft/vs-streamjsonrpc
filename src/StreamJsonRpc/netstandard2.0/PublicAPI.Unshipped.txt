@@ -37,7 +37,13 @@ StreamJsonRpc.RemoteRpcException.ErrorCode.set -> void
 StreamJsonRpc.RemoteRpcException.ErrorData.get -> object?
 StreamJsonRpc.RemoteRpcException.ErrorData.set -> void
 StreamJsonRpc.RemoteSerializationException
+StreamJsonRpc.RemoteSerializationException.RemoteSerializationException(System.Runtime.Serialization.SerializationInfo! serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) -> void
 StreamJsonRpc.RemoteSerializationException.RemoteSerializationException(string? message, object? errorData, object? deserializedErrorData) -> void
 override StreamJsonRpc.RemoteRpcException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
+static StreamJsonRpc.RequestId.operator !=(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
+static StreamJsonRpc.RequestId.operator ==(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
+virtual StreamJsonRpc.JsonMessageFormatter.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!
+virtual StreamJsonRpc.MessagePackFormatter.Dispose(bool disposing) -> void
+virtual StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose(bool disposing) -> void

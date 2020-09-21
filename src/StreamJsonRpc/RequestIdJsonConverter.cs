@@ -4,11 +4,11 @@
 namespace StreamJsonRpc
 {
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using Newtonsoft.Json;
 
+#pragma warning disable CA1812
     internal class RequestIdJsonConverter : JsonConverter<RequestId>
+#pragma warning restore CA1812
     {
         public override RequestId ReadJson(JsonReader reader, Type objectType, RequestId existingValue, bool hasExistingValue, JsonSerializer serializer)
         {

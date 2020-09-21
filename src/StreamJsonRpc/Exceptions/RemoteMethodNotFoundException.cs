@@ -18,7 +18,9 @@ namespace StreamJsonRpc
     /// its arguments were incompatible with the arguments supplied by the client.
     /// </remarks>
     [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class RemoteMethodNotFoundException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteMethodNotFoundException"/> class

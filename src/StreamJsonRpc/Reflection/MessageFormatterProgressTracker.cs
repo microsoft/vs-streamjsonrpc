@@ -155,7 +155,9 @@ namespace StreamJsonRpc.Reflection
         /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
+#pragma warning disable CA1822 // Mark members as static
         public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token) => new JsonProgress<T>(rpc, token);
+#pragma warning restore CA1822 // Mark members as static
 
         /// <summary>
         /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.
@@ -163,7 +165,9 @@ namespace StreamJsonRpc.Reflection
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
         /// <param name="valueType">The type that the <see cref="IProgress{T}"/> intance will report.</param>
+#pragma warning disable CA1822 // Mark members as static
         public object CreateProgress(JsonRpc rpc, object token, Type valueType)
+#pragma warning restore CA1822 // Mark members as static
         {
             Requires.NotNull(rpc, nameof(rpc));
             Requires.NotNull(token, nameof(token));
@@ -191,7 +195,9 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// Class used to keep relevant information of an object that implements <see cref="IProgress{T}"/>.
         /// </summary>
+#pragma warning disable CA1034 // Nested types should not be visible
         public class ProgressParamInformation
+#pragma warning restore CA1034 // Nested types should not be visible
         {
             /// <summary>
             /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.

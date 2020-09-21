@@ -31,7 +31,9 @@ namespace StreamJsonRpc
         /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
         /// </param>
         public WebSocketMessageHandler(WebSocket webSocket)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(webSocket, new JsonMessageFormatter())
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
         }
 

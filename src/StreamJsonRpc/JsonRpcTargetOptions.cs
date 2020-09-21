@@ -61,7 +61,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// The default for this property was <c>true</c> in the 1.x versions.
         /// </remarks>
-        public bool AllowNonPublicInvocation { get; set; } = false;
+        public bool AllowNonPublicInvocation { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into the RPC method's first parameter.
