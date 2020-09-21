@@ -70,9 +70,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
         /// </summary>
-#pragma warning disable CA2213 // Disposable fields should be disposed -- https://github.com/AArnott/Nerdbank.Streams/pull/249
         private readonly BufferTextWriter bufferTextWriter = new BufferTextWriter();
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// The reusable <see cref="TextReader"/> to use with newtonsoft.json's deserializer.
@@ -480,9 +478,7 @@ namespace StreamJsonRpc
         {
             this.duplexPipeTracker?.Dispose();
             this.sequenceTextReader.Dispose();
-
-            // This type isn't safe to Dispose (without Initializing first, which we may not have done). https://github.com/AArnott/Nerdbank.Streams/pull/249
-            ////this.bufferTextWriter.Dispose();
+            this.bufferTextWriter.Dispose();
         }
 
         private static IReadOnlyDictionary<string, object> PartiallyParseNamedArguments(JObject args)
