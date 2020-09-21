@@ -24,6 +24,12 @@ StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.get -> System.C
 StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.set -> void
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.get -> System.Type?
 StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipe(ulong? token) -> System.IO.Pipelines.IDuplexPipe?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeReader(ulong? token) -> System.IO.Pipelines.PipeReader?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeWriter(ulong? token) -> System.IO.Pipelines.PipeWriter?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.IDuplexPipe? duplexPipe) -> ulong?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.PipeReader? reader) -> ulong?
+StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.PipeWriter? writer) -> ulong?
 StreamJsonRpc.RemoteRpcException.DeserializedErrorData.get -> object?
 StreamJsonRpc.RemoteRpcException.DeserializedErrorData.set -> void
 StreamJsonRpc.RemoteRpcException.ErrorCode.get -> StreamJsonRpc.Protocol.JsonRpcErrorCode?

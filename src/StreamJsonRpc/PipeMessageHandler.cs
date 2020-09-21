@@ -72,9 +72,7 @@ namespace StreamJsonRpc
         public PipeMessageHandler(Stream? writer, Stream? reader, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
-            // We use Strict reader to avoid max buffer size issues in Pipe (https://github.com/dotnet/corefx/issues/30689)
-            // since it's just stream semantics.
-            this.Reader = reader?.UseStrictPipeReader();
+            this.Reader = reader is object ? PipeReader.Create(reader) : null;
             this.Writer = writer?.UsePipeWriter();
 
             // After we've completed writing, only dispose the underlying write stream when we've flushed everything.

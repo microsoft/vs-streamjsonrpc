@@ -1108,13 +1108,13 @@ namespace StreamJsonRpc
 
             public override IDuplexPipe? ReadJson(JsonReader reader, Type objectType, IDuplexPipe? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.duplexPipeTracker!.GetPipe(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, IDuplexPipe? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.duplexPipeTracker!.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.duplexPipeTracker!.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1130,13 +1130,13 @@ namespace StreamJsonRpc
 
             public override PipeReader? ReadJson(JsonReader reader, Type objectType, PipeReader? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipeReader(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, PipeReader? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1152,13 +1152,13 @@ namespace StreamJsonRpc
 
             public override PipeWriter? ReadJson(JsonReader reader, Type objectType, PipeWriter? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipeWriter(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, PipeWriter? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1174,13 +1174,13 @@ namespace StreamJsonRpc
 
             public override Stream? ReadJson(JsonReader reader, Type objectType, Stream? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipe(tokenId)?.AsStream();
             }
 
             public override void WriteJson(JsonWriter writer, Stream? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value?.UsePipe());
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value?.UsePipe());
                 writer.WriteValue(token);
             }
         }

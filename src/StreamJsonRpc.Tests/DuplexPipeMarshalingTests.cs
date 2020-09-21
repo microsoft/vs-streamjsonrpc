@@ -55,7 +55,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
                 new MultiplexingStream.Options
                 {
                     TraceSource = mxServerTraceSource,
-                    DefaultChannelTraceSourceFactory = (id, name) => new TraceSource("MX Server channel " + id, SourceLevels.Verbose) { Listeners = { new XunitTraceListener(this.Logger) } },
+                    DefaultChannelTraceSourceFactoryWithQualifier = (id, name) => new TraceSource("MX Server channel " + id, SourceLevels.Verbose) { Listeners = { new XunitTraceListener(this.Logger) } },
                 },
                 this.TimeoutToken),
             MultiplexingStream.CreateAsync(
@@ -63,7 +63,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
                 new MultiplexingStream.Options
                 {
                     TraceSource = mxClientTraceSource,
-                    DefaultChannelTraceSourceFactory = (id, name) => new TraceSource("MX Client channel " + id, SourceLevels.Verbose) { Listeners = { new XunitTraceListener(this.Logger) } },
+                    DefaultChannelTraceSourceFactoryWithQualifier = (id, name) => new TraceSource("MX Client channel " + id, SourceLevels.Verbose) { Listeners = { new XunitTraceListener(this.Logger) } },
                 },
                 this.TimeoutToken));
         this.serverMx = mxStreams[0];
@@ -429,7 +429,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             {
                 RequestId = new RequestId(1),
                 Method = nameof(ServerWithOverloads.OverloadedMethod),
-                ArgumentsList = new object[] { false, oobChannel.Id, new object() },
+                ArgumentsList = new object[] { false, oobChannel.QualifiedId.Id, new object() },
             },
             this.TimeoutToken);
         await clientRpcChannel.Output.FlushAsync(this.TimeoutToken);
@@ -563,10 +563,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     [Fact]
     public async Task InvokeWithPipe_ServerMethodDoesNotExist_ChannelOfferCanceled()
     {
-        int? channelIdOffered = null;
+        ulong? channelIdOffered = null;
         this.serverMx.ChannelOffered += (s, e) =>
         {
-            channelIdOffered = e.Id;
+            channelIdOffered = e.QualifiedId.Id;
         };
         (IDuplexPipe, IDuplexPipe) duplexPipes = FullDuplexStream.CreatePipePair();
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync("does not exist", new object[] { duplexPipes.Item2 }, this.TimeoutToken));
