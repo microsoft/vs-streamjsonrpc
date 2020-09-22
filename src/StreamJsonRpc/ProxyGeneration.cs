@@ -26,8 +26,9 @@ namespace StreamJsonRpc
         private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();
         private static readonly object BuilderLock = new object();
 
-        private static readonly Type[] EmptyTypes = new Type[0];
+#pragma warning disable CA1823 // Avoid unused private fields
         private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
+#pragma warning restore CA1823 // Avoid unused private fields
         private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
         private static readonly MethodInfo ActionInvokeMethod = typeof(Action).GetRuntimeMethod(nameof(Action.Invoke), Type.EmptyTypes)!;
@@ -195,7 +196,7 @@ namespace StreamJsonRpc
                     il.Emit(OpCodes.Ret);
                 }
 
-                ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, optionsField, onDisposeField, disposedField);
+                ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, onDisposeField, disposedField);
                 ImplementIsDisposedProperty(proxyTypeBuilder, jsonRpcField, disposedField);
                 ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField);
 
@@ -297,7 +298,7 @@ namespace StreamJsonRpc
                     {
                         if (argumentCountExcludingCancellationToken > 0)
                         {
-                            ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), proxyType);
+                            ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray());
                             for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
                             {
                                 il.Emit(OpCodes.Ldarg, i + 1);
@@ -516,7 +517,7 @@ namespace StreamJsonRpc
             il.MarkLabel(notDisposedLabel);
         }
 
-        private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder optionsField, FieldBuilder onDisposeField, FieldBuilder disposedField)
+        private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder onDisposeField, FieldBuilder disposedField)
         {
             MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
                 DisposeMethod.Name,
@@ -690,7 +691,7 @@ namespace StreamJsonRpc
 #endif
         }
 
-        private static ConstructorInfo CreateParameterObjectType(ModuleBuilder moduleBuilder, ParameterInfo[] parameters, Type parentType)
+        private static ConstructorInfo CreateParameterObjectType(ModuleBuilder moduleBuilder, ParameterInfo[] parameters)
         {
             Requires.NotNull(parameters, nameof(parameters));
             if (parameters.Length == 0)
@@ -793,7 +794,7 @@ namespace StreamJsonRpc
                 // EventHandler value2 = (EventHandler)Delegate.CombineOrRemove(eventHandler2, value);
                 il.Emit(OpCodes.Ldloc_1);
                 il.Emit(OpCodes.Ldarg_1);
-                il.EmitCall(OpCodes.Call, combineOrRemoveMethod, EmptyTypes);
+                il.EmitCall(OpCodes.Call, combineOrRemoveMethod, Type.EmptyTypes);
                 il.Emit(OpCodes.Castclass, evtField.FieldType);
                 il.Emit(OpCodes.Stloc_2);
 
@@ -803,7 +804,7 @@ namespace StreamJsonRpc
                 il.Emit(OpCodes.Ldflda, evtField);
                 il.Emit(OpCodes.Ldloc_2);
                 il.Emit(OpCodes.Ldloc_1);
-                il.EmitCall(OpCodes.Call, compareExchangeClosedGeneric, EmptyTypes);
+                il.EmitCall(OpCodes.Call, compareExchangeClosedGeneric, Type.EmptyTypes);
                 il.Emit(OpCodes.Stloc_0);
 
                 // while ((object)eventHandler != eventHandler2);

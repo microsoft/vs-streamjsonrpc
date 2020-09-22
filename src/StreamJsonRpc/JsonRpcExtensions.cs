@@ -162,7 +162,9 @@ namespace StreamJsonRpc
 
         private static RpcEnumerable<T> GetRpcEnumerable<T>(IAsyncEnumerable<T> enumerable) => enumerable as RpcEnumerable<T> ?? new RpcEnumerable<T>(enumerable);
 
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
         private class RpcEnumerable<T> : IAsyncEnumerable<T>, IRpcEnumerable
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
         {
             private readonly RpcEnumerator innerEnumerator;
 
@@ -194,7 +196,9 @@ namespace StreamJsonRpc
             {
                 private readonly IAsyncEnumerator<T> innerEnumerator;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
                 private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
                 private List<T>? prefetchedElements;
 

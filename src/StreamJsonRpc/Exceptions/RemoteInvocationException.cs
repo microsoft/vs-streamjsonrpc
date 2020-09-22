@@ -16,7 +16,9 @@ namespace StreamJsonRpc
     /// The details of the target method exception can be found on the <see cref="ErrorCode"/> and <see cref="ErrorData"/> properties.
     /// </remarks>
     [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class RemoteInvocationException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.

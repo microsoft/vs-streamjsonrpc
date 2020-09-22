@@ -57,7 +57,9 @@ namespace StreamJsonRpc
         /// Gets the ID if it is a string.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+#pragma warning disable CA1720 // Identifier contains type name
         public string? String { get; }
+#pragma warning restore CA1720 // Identifier contains type name
 
         /// <summary>
         /// Gets a value indicating whether this request ID is explicitly specified as the special "null" value.
@@ -81,6 +83,22 @@ namespace StreamJsonRpc
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal long NumberIfPossibleForEvent => this.Number ?? -1;
 
+        /// <summary>
+        /// Tests equality between two <see cref="RequestId"/> values.
+        /// </summary>
+        /// <param name="first">The first value.</param>
+        /// <param name="second">The second value.</param>
+        /// <returns><c>true</c> if the values are equal; <c>false</c> otherwise.</returns>
+        public static bool operator ==(RequestId first, RequestId second) => first.Equals(second);
+
+        /// <summary>
+        /// Tests inequality between two <see cref="RequestId"/> values.
+        /// </summary>
+        /// <param name="first">The first value.</param>
+        /// <param name="second">The second value.</param>
+        /// <returns><c>false</c> if the values are equal; <c>true</c> otherwise.</returns>
+        public static bool operator !=(RequestId first, RequestId second) => !(first == second);
+
         /// <inheritdoc/>
         public bool Equals(RequestId other) => this.Number == other.Number && this.String == other.String && this.IsNull == other.IsNull;
 
@@ -88,7 +106,11 @@ namespace StreamJsonRpc
         public override bool Equals(object? obj) => obj is RequestId other && this.Equals(other);
 
         /// <inheritdoc/>
+#if NETCOREAPP
+        public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode(StringComparison.Ordinal) ?? 0;
+#else
         public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode() ?? 0;
+#endif
 
         /// <inheritdoc/>
         public override string ToString() => this.Number?.ToString(CultureInfo.InvariantCulture) ?? this.String ?? (this.IsNull ? "(null)" : "(not specified)");

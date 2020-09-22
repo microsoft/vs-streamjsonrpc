@@ -272,6 +272,16 @@ namespace StreamJsonRpc.Reflection
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+        protected virtual void Dispose(bool disposing)
+        {
             this.isDisposed = true;
 
             // Release memory and shutdown channels that outlived the RPC channel.

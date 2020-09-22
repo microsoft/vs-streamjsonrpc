@@ -29,7 +29,9 @@ namespace StreamJsonRpc
         /// <param name="name">Replacement name of a method.</param>
         public JsonRpcMethodAttribute(string? name)
         {
+#pragma warning disable CA1820 // Test for empty strings using string length
             if (name == string.Empty)
+#pragma warning restore CA1820 // Test for empty strings using string length
             {
                 // We actually allow null, but we don't want to see empty strings.
                 Requires.NotNullOrEmpty(name, nameof(name));

@@ -306,6 +306,16 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+        protected virtual void Dispose(bool disposing)
+        {
             this.duplexPipeTracker?.Dispose();
         }
 
@@ -821,7 +831,9 @@ namespace StreamJsonRpc
             /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>
             /// or an <see cref="IAsyncEnumerable{T}"/> into an enumeration token.
             /// </summary>
+#pragma warning disable CA1812
             private class PreciseTypeFormatter<T> : IMessagePackFormatter<IAsyncEnumerable<T>?>
+#pragma warning restore CA1812
             {
                 private MessagePackFormatter mainFormatter;
 
@@ -910,8 +922,10 @@ namespace StreamJsonRpc
             /// <summary>
             /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
             /// </summary>
+#pragma warning disable CA1812
             private class GeneratorFormatter<TClass, TElement> : IMessagePackFormatter<TClass>
                 where TClass : IAsyncEnumerable<TElement>
+#pragma warning restore CA1812
             {
                 private MessagePackFormatter mainFormatter;
 
@@ -973,8 +987,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class DuplexPipeFormatter<T> : IMessagePackFormatter<T?>
                 where T : class, IDuplexPipe
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1006,8 +1022,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class PipeReaderFormatter<T> : IMessagePackFormatter<T?>
                 where T : PipeReader
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1039,8 +1057,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class PipeWriterFormatter<T> : IMessagePackFormatter<T?>
                 where T : PipeWriter
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1072,8 +1092,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class StreamFormatter<T> : IMessagePackFormatter<T?>
                 where T : Stream
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1167,8 +1189,10 @@ namespace StreamJsonRpc
             }
         }
 
+#pragma warning disable CA1812
         private class RpcMarshalableImplicitFormatter<T> : IMessagePackFormatter<T?>
             where T : class
+#pragma warning restore CA1812
         {
             private MessagePackFormatter messagePackFormatter;
             private JsonRpcProxyOptions proxyOptions;
@@ -1225,7 +1249,9 @@ namespace StreamJsonRpc
             {
                 internal static readonly IMessagePackFormatter<T>? Formatter;
 
+#pragma warning disable CA1810 // Initialize reference type static fields inline
                 static Cache()
+#pragma warning restore CA1810 // Initialize reference type static fields inline
                 {
                     if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
                     {
@@ -1235,8 +1261,10 @@ namespace StreamJsonRpc
             }
 
 #pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
+#pragma warning disable CA1812
             private class ExceptionFormatter<T> : IMessagePackFormatter<T>
                 where T : Exception
+#pragma warning restore CA1812
             {
                 [return: MaybeNull]
                 public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -1441,7 +1469,9 @@ namespace StreamJsonRpc
                             }
                         }
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         this.formatter.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
                     }

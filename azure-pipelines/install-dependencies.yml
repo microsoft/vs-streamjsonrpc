@@ -4,13 +4,18 @@ parameters:
 steps:
 
 - powershell: |
-    .\init.ps1 -AccessToken '$(System.AccessToken)' ${{ parameters['initArgs'] }} -UpgradePrerequisites
+    $AccessToken = '$(System.AccessToken)' # Avoid specifying the access token directly on the init.ps1 command line to avoid it showing up in errors
+    .\init.ps1 -AccessToken $AccessToken ${{ parameters['initArgs'] }} -UpgradePrerequisites
     dotnet --info
   displayName: Install prerequisites
 
-- task: PowerShell@2
+# We have to use the traditional nuget.exe for restoring since we have vcxproj projects too.
+- task: NuGetToolInstaller@0
+  displayName: Pin nuget.exe version
   inputs:
-    filePath: azure-pipelines/variables/_pipelines.ps1
-    failOnStderr: true
+    versionSpec: 5.1.x
+
+- powershell: azure-pipelines/variables/_pipelines.ps1
+  failOnStderr: true
   displayName: Set pipeline variables based on source
   name: SetPipelineVariables

@@ -1,0 +1,40 @@
+[*.cs]
+
+dotnet_diagnostic.VSTHRD200.severity = silent
+dotnet_diagnostic.VSTHRD002.severity = silent
+dotnet_diagnostic.VSTHRD103.severity = silent
+dotnet_diagnostic.VSTHRD003.severity = none
+dotnet_diagnostic.VSTHRD111.severity = none
+dotnet_diagnostic.VSTHRD012.severity = none
+dotnet_diagnostic.VSTHRD001.severity = none
+
+dotnet_diagnostic.CS1591.severity = none
+
+# CA1307: Specify StringComparison
+dotnet_diagnostic.CA1307.severity = suggestion
+
+# Default severity for analyzer diagnostics with category 'Design'
+dotnet_analyzer_diagnostic.category-Design.severity = silent
+
+# Default severity for analyzer diagnostics with category 'Performance'
+dotnet_analyzer_diagnostic.category-Performance.severity = suggestion
+
+# Default severity for analyzer diagnostics with category 'Reliability'
+dotnet_analyzer_diagnostic.category-Reliability.severity = suggestion
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = silent
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1601: Partial elements should be documented
+dotnet_diagnostic.SA1601.severity = silent
+
+dotnet_diagnostic.CA1724.severity = suggestion
+dotnet_diagnostic.CA2211.severity = none
+dotnet_diagnostic.CA2213.severity = suggestion
+dotnet_diagnostic.CA1816.severity = suggestion
+dotnet_diagnostic.CA1001.severity = suggestion
+dotnet_diagnostic.CA1063.severity = suggestion
+dotnet_diagnostic.CA1065.severity = suggestion
