@@ -48,7 +48,7 @@ stages:
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
-    pool: VSEng-RMPool
+    pool: VSEng-ReleasePool
     variables:
       InsertPayloadName: vs-streamjsonrpc
       InsertTopicBranch: team/VS-IDE/vs-StreamJsonRpc-OptProf-run-$(Build.BuildId)
