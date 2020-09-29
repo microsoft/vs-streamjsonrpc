@@ -250,3 +250,6 @@ paket-files/
 msbuild.err
 msbuild.wrn
 *.binlog
+
+#SVN
+.svn/
