@@ -7,13 +7,13 @@ namespace StreamJsonRpc
     using System.Buffers;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Collections.ObjectModel;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
@@ -129,6 +129,11 @@ namespace StreamJsonRpc
         /// Backing field for the <see cref="CancellationStrategy"/> property.
         /// </summary>
         private ICancellationStrategy? cancellationStrategy;
+
+        /// <summary>
+        /// Backing field for <see cref="ExceptionStrategy"/>.
+        /// </summary>
+        private ExceptionProcessing exceptionStrategy;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
@@ -515,6 +520,26 @@ namespace StreamJsonRpc
             {
                 this.ThrowIfConfigurationLocked();
                 this.cancellationStrategy = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether exceptions thrown by the RPC server should be fully serialized
+        /// for the RPC client to then deserialize.
+        /// </summary>
+        /// <value>The default value is <see cref="ExceptionProcessing.CommonErrorData"/>.</value>
+        /// <remarks>
+        /// This setting influences the implementations of error processing virtual methods on this class.
+        /// When those methods are overridden by a derived type, this property may have different or no impact on behavior.
+        /// This does not alter how <see cref="LocalRpcException"/> behaves when thrown, since that exception type supplies all the details of the error response directly.
+        /// </remarks>
+        public ExceptionProcessing ExceptionStrategy
+        {
+            get => this.exceptionStrategy;
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.exceptionStrategy = value;
             }
         }
 
@@ -1328,9 +1353,9 @@ namespace StreamJsonRpc
             var localRpcEx = exception as LocalRpcException;
             return new JsonRpcError.ErrorDetail
             {
-                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? JsonRpcErrorCode.InvocationError,
+                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? (this.ExceptionStrategy == ExceptionProcessing.ISerializable ? JsonRpcErrorCode.InvocationErrorWithException : JsonRpcErrorCode.InvocationError),
                 Message = exception.Message,
-                Data = localRpcEx != null ? localRpcEx.ErrorData : new CommonErrorData(exception),
+                Data = localRpcEx != null ? localRpcEx.ErrorData : (this.ExceptionStrategy == ExceptionProcessing.ISerializable ? (object?)exception : new CommonErrorData(exception)),
             };
         }
 
@@ -1360,7 +1385,9 @@ namespace StreamJsonRpc
                     return new RemoteSerializationException(response.Error.Message, response.Error.Data, deserializedData);
 
                 default:
-                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
+                    return deserializedData is Exception innerException
+                        ? new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, innerException)
+                        : new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
             }
         }
 
@@ -1378,7 +1405,7 @@ namespace StreamJsonRpc
         /// However derived types can override this method and use <see cref="JsonRpcError.ErrorDetail.Code"/> or other means to determine the appropriate type.
         /// </remarks>
 #pragma warning disable CA1716 // Identifiers should not match keywords
-        protected virtual Type? GetErrorDetailsDataType(JsonRpcError error) => typeof(CommonErrorData);
+        protected virtual Type? GetErrorDetailsDataType(JsonRpcError error) => this.ExceptionStrategy == ExceptionProcessing.ISerializable && error?.Error?.Code == JsonRpcErrorCode.InvocationErrorWithException ? typeof(Exception) : typeof(CommonErrorData);
 #pragma warning restore CA1716 // Identifiers should not match keywords
 
         /// <summary>
