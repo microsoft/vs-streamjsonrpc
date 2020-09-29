@@ -49,7 +49,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     [Fact]
     public async Task ExceptionControllingErrorData()
     {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException))).WithCancellation(this.TimeoutToken);
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException))).WithCancellation(this.TimeoutToken);
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
         object myCustomData = data!["myCustomData"];

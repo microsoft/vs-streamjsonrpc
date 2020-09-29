@@ -265,6 +265,26 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void ExceptionStrategy_DefaultValue()
+    {
+        ExceptionProcessing originalValue = this.clientRpc.ExceptionStrategy;
+        Assert.Equal(ExceptionProcessing.CommonErrorData, originalValue);
+    }
+
+    [Fact]
+    public void ExceptionStrategy_ThrowsOnLockedConfiguration()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable);
+        Assert.Equal(ExceptionProcessing.CommonErrorData, this.clientRpc.ExceptionStrategy);
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.ExceptionStrategy = ExceptionProcessing.CommonErrorData);
+        Assert.Equal(ExceptionProcessing.CommonErrorData, this.clientRpc.ExceptionStrategy);
+
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        Assert.Equal(ExceptionProcessing.ISerializable, this.clientRpc.ExceptionStrategy);
+    }
+
+    [Fact]
     public async Task CanInvokeMethodOnServer_WithVeryLargePayload()
     {
         string testLine = "TestLine1" + new string('a', 1024 * 1024);
@@ -297,6 +317,7 @@ public abstract class JsonRpcTests : TestBase
     {
         var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeAsync(nameof(Server.ServerMethodThatReturnsCancelledTask)));
         Assert.Equal(CancellationToken.None, ex.CancellationToken);
+        Assert.Null(ex.InnerException);
     }
 
     [Fact]
@@ -305,6 +326,7 @@ public abstract class JsonRpcTests : TestBase
         var cts = new CancellationTokenSource();
         var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ServerMethodThatReturnsCancelledTask), cancellationToken: cts.Token));
         Assert.Equal(CancellationToken.None, ex.CancellationToken);
+        Assert.Null(ex.InnerException);
     }
 
     [Fact]
@@ -365,7 +387,22 @@ public abstract class JsonRpcTests : TestBase
     public async Task CanCallAsyncMethodThatThrows()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.Equal(Server.ExceptionMessage, errorData.Message);
+    }
+
+    [Fact]
+    public async Task CanCallAsyncMethodThatThrows_ISerializable()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
+        Assert.Null(exception.DeserializedErrorData);
+        Exception inner = Assert.IsType<Exception>(exception.InnerException);
+        Assert.Equal(Server.ExceptionMessage, inner.Message);
     }
 
     [Fact]
@@ -495,6 +532,7 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.Dispose();
         var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
         Assert.Equal(cts.Token, oce.CancellationToken);
+        Assert.Null(oce.InnerException);
     }
 
     [Fact]
@@ -506,6 +544,7 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc.Dispose();
         var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
         Assert.Equal(cts.Token, oce.CancellationToken);
+        Assert.Null(oce.InnerException);
     }
 
     [Fact]
@@ -529,7 +568,8 @@ public abstract class JsonRpcTests : TestBase
         await callbackReached.WaitAsync(this.TimeoutToken);
 
         this.clientRpc.Dispose();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+        Assert.Null(oce.InnerException);
     }
 
     /// <summary>
@@ -819,6 +859,7 @@ public abstract class JsonRpcTests : TestBase
 
                 var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
                 Assert.Equal(cts.Token, ex.CancellationToken);
+                Assert.Null(ex.InnerException);
                 ((Nerdbank.FullDuplexStream)this.clientStream).BeforeWrite = null;
             }
 
@@ -911,6 +952,7 @@ public abstract class JsonRpcTests : TestBase
             // Ultimately, the server throws because it was canceled.
             var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask.WithTimeout(UnexpectedTimeout));
             Assert.Equal(cts.Token, ex.CancellationToken);
+            Assert.Null(ex.InnerException);
         }
     }
 
@@ -928,23 +970,27 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    [Fact]
-    public async Task CancelMayStillReturnErrorFromServer()
+    [Theory, PairwiseData]
+    public async Task CancelMayStillReturnErrorFromServer(ExceptionProcessing exceptionStrategy)
     {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
+
         using (var cts = new CancellationTokenSource())
         {
             var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodFaultsAfterCancellation), new[] { "a" }, cts.Token);
             await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
             cts.Cancel();
             this.server.AllowServerMethodToReturn.Set();
-            try
+            var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => invokeTask).WithCancellation(this.TimeoutToken);
+            Assert.Equal(Server.ThrowAfterCancellationMessage, ex.Message);
+
+            if (exceptionStrategy == ExceptionProcessing.ISerializable)
             {
-                await invokeTask.WithCancellation(this.TimeoutToken);
-                Assert.False(true, "Expected exception not thrown.");
-            }
-            catch (RemoteInvocationException ex)
-            {
-                Assert.Equal(Server.ThrowAfterCancellationMessage, ex.Message);
+                var inner = Assert.IsType<InvalidOperationException>(ex.InnerException);
+                Assert.Equal(Server.ThrowAfterCancellationMessage, inner.Message);
             }
         }
     }
@@ -1731,7 +1777,8 @@ public abstract class JsonRpcTests : TestBase
         Assert.False(rpcTask.IsCompleted);
         await this.server.ServerMethodReached.WaitAsync();
         this.clientStream.Dispose();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+        var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+        Assert.Null(oce.InnerException);
     }
 
     [Fact]
@@ -1934,11 +1981,19 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(IServer.AddWithNameSubstitution), "andrew"));
     }
 
-    [Fact]
-    public async Task ExceptionControllingErrorCode()
+    [Theory, PairwiseData]
+    public async Task ExceptionControllingErrorCode(ExceptionProcessing exceptionStrategy)
     {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException)));
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
+
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException)));
         Assert.Equal(2, exception.ErrorCode);
+
+        // Even with ExceptionStrategy on, we do not serialize exceptions when LocalRpcException is thrown because the server is taking control over that.
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
@@ -2010,6 +2065,45 @@ public abstract class JsonRpcTests : TestBase
         var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
+    }
+
+    [Fact]
+    public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient()
+    {
+        var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
+        var outer = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.Equal(typeof(FileNotFoundException).FullName, outer.TypeName);
+        Assert.Equal("3", outer.Message);
+        Assert.NotNull(outer.StackTrace);
+        var middle = Assert.IsType<CommonErrorData>(outer.Inner);
+        Assert.Equal(typeof(ApplicationException).FullName, middle.TypeName);
+        Assert.Equal("2", middle.Message);
+        Assert.NotNull(middle.StackTrace);
+        var inner = Assert.IsType<CommonErrorData>(middle.Inner);
+        Assert.Equal(typeof(InvalidOperationException).FullName, inner.TypeName);
+        Assert.Equal("1", inner.Message);
+        Assert.NotNull(inner.StackTrace);
+    }
+
+    [Fact]
+    public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient_ISerializable()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
+        Assert.Null(exception.DeserializedErrorData);
+        var outer = Assert.IsType<FileNotFoundException>(exception.InnerException);
+        Assert.Equal("3", outer.Message);
+        Assert.NotNull(outer.StackTrace);
+        var middle = Assert.IsType<ApplicationException>(outer.InnerException);
+        Assert.Equal("2", middle.Message);
+        Assert.NotNull(middle.StackTrace);
+        var inner = Assert.IsType<InvalidOperationException>(middle.InnerException);
+        Assert.Equal("1", inner.Message);
+        Assert.NotNull(inner.StackTrace);
     }
 
     [Fact]
@@ -2348,6 +2442,7 @@ public abstract class JsonRpcTests : TestBase
 #pragma warning disable CA1801 // use all parameters
     public class Server : BaseClass, IServer
     {
+        internal const string ExceptionMessage = "some message";
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
 
         public bool NullPassed { get; private set; }
@@ -2541,6 +2636,25 @@ public abstract class JsonRpcTests : TestBase
             throw new UnauthorizedAccessException();
         }
 
+        public void MethodThatThrowsDeeplyNestedExceptions()
+        {
+            try
+            {
+                try
+                {
+                    throw new InvalidOperationException("1");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new ApplicationException("2", ex);
+                }
+            }
+            catch (ApplicationException ex)
+            {
+                throw new FileNotFoundException("3", ex);
+            }
+        }
+
         public Foo MethodThatAcceptsFoo(Foo foo)
         {
             return new Foo
@@ -2709,7 +2823,7 @@ public abstract class JsonRpcTests : TestBase
         public async Task AsyncMethodThatThrows()
         {
             await Task.Yield();
-            throw new Exception();
+            throw new Exception(ExceptionMessage);
         }
 
         public Task<object> MethodThatReturnsTaskOfInternalClass()
@@ -2769,7 +2883,7 @@ public abstract class JsonRpcTests : TestBase
 
         public TypeThrowsWhenSerialized GetUnserializableType() => new TypeThrowsWhenSerialized();
 
-        public void ThrowRemoteInvocationException()
+        public void ThrowLocalRpcException()
         {
             throw new LocalRpcException { ErrorCode = 2, ErrorData = new { myCustomData = "hi" } };
         }
