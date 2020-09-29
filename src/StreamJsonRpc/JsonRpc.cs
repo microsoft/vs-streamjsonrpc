@@ -106,7 +106,9 @@ namespace StreamJsonRpc
         private List<EventReceiver>? eventReceivers;
 
         private Task? readLinesTask;
-        private long nextId = 1;
+        private long nextId = 256;
+        // 服务器预留的内部ID空间，供服务端使用 默认值为0~255，这个范围的ID为不可用ID
+        private long maxServerId = 255;
         private int requestsInDispatchCount;
         private JsonRpcDisconnectedEventArgs? disconnectedEventArgs;
 
@@ -218,6 +220,15 @@ namespace StreamJsonRpc
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
 
             this.MessageHandler = messageHandler;
+        }
+
+        /// <summary>
+        /// 设置内部服务ID的范围
+        /// </summary>
+        /// <param name="num"></param>
+        public void SetMaxServerId(long num)
+        {
+            maxServerId = num;
         }
 
         /// <summary>
@@ -1927,6 +1938,24 @@ namespace StreamJsonRpc
             CancellationTokenRegistration disconnectedRegistration = default;
             try
             {
+                // 新增对ID的判断，只有ID为数值型时才做判断
+                if (!request.RequestId.IsNull && request.RequestId.Number != null)
+                {
+                    long id = (long)request.RequestId.Number;
+                    if (id < maxServerId)
+                    {
+                        return new JsonRpcError
+                        {
+                            RequestId = request.RequestId,
+                            Error = new JsonRpcError.ErrorDetail
+                            {
+                                Code = JsonRpcErrorCode.InvalidRequestId,
+                                Message = string.Format(CultureInfo.CurrentCulture, Resources.InvalidRequestId, request.Method),
+                            },
+                        };
+                    }
+                }
+
                 // Add cancelation to inboundCancellationSources before yielding to ensure that
                 // it cannot be preempted by the cancellation request that would try to set it
                 // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56

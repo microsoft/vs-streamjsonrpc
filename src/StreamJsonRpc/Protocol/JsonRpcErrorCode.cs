@@ -22,6 +22,11 @@ namespace StreamJsonRpc.Protocol
         NoMarshaledObjectFound = -32001,
 
         /// <summary>
+        /// 无效的ID
+        /// </summary>
+        InvalidRequestId = -32002,
+
+        /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
         /// </summary>
         ParseError = -32700,

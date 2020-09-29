@@ -17,6 +17,7 @@ StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string! targetName, S
 StreamJsonRpc.JsonRpc.JsonRpc(System.IO.Stream? sendingStream, System.IO.Stream? receivingStream, object? target = null) -> void
 StreamJsonRpc.JsonRpc.NotifyAsync(string! targetName, params object?[]? arguments) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpc.StartListening() -> void
+StreamJsonRpc.JsonRpc.SetMaxServerId(long num) -> void
 StreamJsonRpc.JsonRpcDisconnectedEventArgs
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.Description.get -> string!
 StreamJsonRpc.JsonRpcDisconnectedEventArgs.Exception.get -> System.Exception?
@@ -219,6 +220,7 @@ StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidRequest = -32600 -> StreamJsonRpc
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationError = -32000 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.MethodNotFound = -32601 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.ParseError = -32700 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InvalidRequestId = -32002 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcErrorCode.RequestCanceled = -32800 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcMessage
 StreamJsonRpc.Protocol.JsonRpcMessage.JsonRpcMessage() -> void

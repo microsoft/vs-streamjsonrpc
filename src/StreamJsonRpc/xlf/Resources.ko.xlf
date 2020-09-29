@@ -52,6 +52,11 @@
         <target state="translated">이 포맷터가 이미 JsonRpc 인스턴스와 연결되어 있기 때문에 구성이 잠겼습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">JSON RPC는 null이면 안 됩니다.</target>

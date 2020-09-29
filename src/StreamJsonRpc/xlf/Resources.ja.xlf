@@ -52,6 +52,11 @@
         <target state="translated">このフォーマッタは既に JsonRpc インスタンスに関連付けられているため、構成はロックされています。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">JSON RPC は null にできません。</target>

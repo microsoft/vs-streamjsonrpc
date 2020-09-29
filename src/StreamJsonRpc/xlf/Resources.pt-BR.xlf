@@ -52,6 +52,11 @@
         <target state="translated">A configuração está bloqueada porque este formatador já foi associado a uma instância de JsonRpc.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">O RPC de JSON não deve ser nulo.</target>

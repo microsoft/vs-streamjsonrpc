@@ -52,6 +52,11 @@
         <target state="translated">Конфигурация заблокирована, так как этот модуль форматирования уже связан с экземпляром JsonRpc.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">RPC JSON не должен равняться NULL.</target>

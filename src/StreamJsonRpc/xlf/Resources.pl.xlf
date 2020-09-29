@@ -52,6 +52,11 @@
         <target state="translated">Konfiguracja jest zablokowana, ponieważ ten program formatujący został już skojarzony z wystąpieniem JsonRpc.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">Wywołanie JSON RPC nie może mieć wartości null.</target>

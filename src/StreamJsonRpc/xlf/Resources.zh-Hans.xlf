@@ -52,6 +52,11 @@
         <target state="translated">配置已锁定，因为此格式化程序已与 JsonRpc 实例关联。</target>
         <note />
       </trans-unit>
+      <trans-unit id="InvalidRequestId">
+        <source>Invalid Request Id.</source>
+        <target state="new">Invalid Request Id.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">JSON RPC 不得为 null。</target>
