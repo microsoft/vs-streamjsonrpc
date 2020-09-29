@@ -1,0 +1,7 @@
+[*.cs]
+
+# Allow tests to use `var` even when the type isn't apparent
+csharp_style_var_elsewhere = false:silent
+
+# SA1600: Elements should be documented
+dotnet_diagnostic.SA1600.severity = none

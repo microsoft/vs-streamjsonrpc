@@ -160,3 +160,20 @@ csharp_new_line_before_members_in_anonymous_types = true
 
 # Blocks are allowed
 csharp_prefer_braces = true:silent
+
+dotnet_diagnostic.AD0001.severity = none
+dotnet_diagnostic.SA1130.severity = silent
+dotnet_diagnostic.SA1600.severity = silent
+dotnet_diagnostic.SA1609.severity = none
+dotnet_diagnostic.SA1611.severity = none
+dotnet_diagnostic.SA1615.severity = silent
+dotnet_diagnostic.SA1633.severity = silent
+dotnet_diagnostic.SA1634.severity = silent
+dotnet_diagnostic.SA1635.severity = silent
+dotnet_diagnostic.SA1636.severity = silent
+dotnet_diagnostic.SA1637.severity = silent
+dotnet_diagnostic.SA1638.severity = silent
+dotnet_diagnostic.SA1639.severity = silent
+dotnet_diagnostic.SA1640.severity = silent
+dotnet_diagnostic.SA1641.severity = silent
+dotnet_diagnostic.CA1033.severity = suggestion

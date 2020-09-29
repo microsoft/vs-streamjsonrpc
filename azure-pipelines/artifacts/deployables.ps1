@@ -1,4 +1,4 @@
-$RepoRoot = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\..")
+$RepoRoot = [System.IO.Path]::GetFullPath("$PSScriptRoot/../..")
 $BuildConfiguration = $env:BUILDCONFIGURATION
 if (!$BuildConfiguration) {
     $BuildConfiguration = 'Debug'

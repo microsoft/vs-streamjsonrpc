@@ -22,6 +22,7 @@ namespace StreamJsonRpc
     /// </remarks>
     public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable, Microsoft.VisualStudio.Threading.IAsyncDisposable
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
         /// </summary>
@@ -31,6 +32,7 @@ namespace StreamJsonRpc
         /// A semaphore acquired while sending a message.
         /// </summary>
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// The sync object to lock when inspecting and mutating the <see cref="state"/> field.
@@ -229,7 +231,13 @@ namespace StreamJsonRpc
         /// Disposes this instance, and cancels any pending read or write operations.
         /// </summary>
         [Obsolete("Call IAsyncDisposable.DisposeAsync instead.")]
-        public void Dispose() => this.DisposeAsync().GetAwaiter().GetResult();
+#pragma warning disable CA1063 // Implement IDisposable Correctly
+        public void Dispose()
+#pragma warning restore CA1063 // Implement IDisposable Correctly
+        {
+            this.DisposeAsync().GetAwaiter().GetResult();
+            GC.SuppressFinalize(this);
+        }
 #pragma warning restore VSTHRD002
 
         /// <summary>
@@ -278,7 +286,6 @@ namespace StreamJsonRpc
             if (disposing)
             {
                 (this.Formatter as IDisposable)?.Dispose();
-                GC.SuppressFinalize(this);
             }
         }
 

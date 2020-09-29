@@ -27,22 +27,19 @@ namespace StreamJsonRpc
     /// </summary>
     public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks
     {
-        private const string ImpliedMethodNameAsyncSuffix = "Async";
-        private const string CancelRequestSpecialMethod = "$/cancelRequest";
-        private static readonly ReadOnlyDictionary<string, string> EmptyDictionary = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
-        private static readonly object[] EmptyObjectArray = new object[0];
-        private static readonly JsonSerializer DefaultJsonSerializer = JsonSerializer.CreateDefault();
-
         /// <summary>
         /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
         /// </summary>
-        private static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
+        internal static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
+
+        private const string ImpliedMethodNameAsyncSuffix = "Async";
+        private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object syncObject = new object();
 
         /// <summary>
-        /// The object to lock when accessing the <see cref="resultDispatcherMap"/> or <see cref="inboundCancellationSources"/> objects.
+        /// The object to lock when accessing the <see cref="resultDispatcherMap"/>.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly object dispatcherMapLock = new object();
@@ -60,13 +57,6 @@ namespace StreamJsonRpc
         private readonly Dictionary<RequestId, OutstandingCallData> resultDispatcherMap = new Dictionary<RequestId, OutstandingCallData>();
 
         /// <summary>
-        /// A map of id's from inbound calls that have not yet completed and may be canceled,
-        /// to their <see cref="CancellationTokenSource"/> instances.
-        /// Lock the <see cref="dispatcherMapLock"/> object for all access to this member.
-        /// </summary>
-        private readonly Dictionary<RequestId, CancellationTokenSource> inboundCancellationSources = new Dictionary<RequestId, CancellationTokenSource>();
-
-        /// <summary>
         /// A delegate for the <see cref="CancelPendingOutboundRequest"/> method.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -81,7 +71,9 @@ namespace StreamJsonRpc
         /// The source for the <see cref="DisconnectedToken"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// The completion source behind <see cref="Completion"/>.
@@ -134,6 +126,11 @@ namespace StreamJsonRpc
         private SynchronizationContext? synchronizationContext;
 
         /// <summary>
+        /// Backing field for the <see cref="CancellationStrategy"/> property.
+        /// </summary>
+        private ICancellationStrategy? cancellationStrategy;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
         /// </summary>
         private EventHandler<JsonRpcMessageEventArgs>? requestTransmissionAborted;
@@ -158,7 +155,9 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream stream)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
         }
 
@@ -174,7 +173,9 @@ namespace StreamJsonRpc
         /// It is important to call <see cref="StartListening"/> to begin receiving messages.
         /// </remarks>
         public JsonRpc(Stream? sendingStream, Stream? receivingStream, object? target = null)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
             if (target != null)
             {
@@ -218,6 +219,12 @@ namespace StreamJsonRpc
             this.cancelPendingOutboundRequestAction = this.CancelPendingOutboundRequest;
 
             this.MessageHandler = messageHandler;
+
+            // Default to preserving order of incoming messages since so many users assume this is the behavior.
+            // If ordering is not required and higher throughput is desired, the owner of this instance can clear this property
+            // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
+            this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
+            this.CancellationStrategy = new StandardCancellationStrategy(this);
         }
 
         /// <summary>
@@ -275,7 +282,9 @@ namespace StreamJsonRpc
         /// <summary>
         /// Event IDs raised to our <see cref="TraceSource"/>.
         /// </summary>
+#pragma warning disable CA1717 // Only FlagsAttribute enums should have plural names
         public enum TraceEvents
+#pragma warning restore CA1717 // Only FlagsAttribute enums should have plural names
         {
             /// <summary>
             /// Occurs when a local RPC method is added to our mapping table.
@@ -495,6 +504,21 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets or sets the cancellation strategy to use.
+        /// </summary>
+        /// <value>The default value is the <see cref="StandardCancellationStrategy"/> which uses the "$/cancelRequest" notification.</value>
+        /// <inheritdoc cref="ThrowIfConfigurationLocked" path="/exception"/>
+        public ICancellationStrategy? CancellationStrategy
+        {
+            get => this.cancellationStrategy;
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.cancellationStrategy = value;
+            }
+        }
+
+        /// <summary>
         /// Gets the message handler used to send and receive messages.
         /// </summary>
         internal IJsonRpcMessageHandler MessageHandler { get; }
@@ -596,7 +620,7 @@ namespace StreamJsonRpc
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(sendingStream, receivingStream);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, JsonRpcProxyOptions.Default, /* onDispose: */ null)!;
             rpc.StartListening();
             return proxy;
         }
@@ -633,7 +657,7 @@ namespace StreamJsonRpc
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
             var rpc = new JsonRpc(handler);
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             rpc.StartListening();
             return proxy;
         }
@@ -659,7 +683,7 @@ namespace StreamJsonRpc
             where T : class
         {
             TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
-            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             return proxy;
         }
 
@@ -680,100 +704,43 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(interfaceType, nameof(interfaceType));
             TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo());
-            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default)!;
+            object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
             return proxy;
         }
 
-        /// <summary>
-        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
-        /// should not inherit from each other and are invoked in the order which they are added.
-        /// </summary>
-        /// <param name="target">Target to invoke when incoming messages are received.</param>
+        /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
         public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
 
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options) => this.AddLocalRpcTarget(Requires.NotNull(target, nameof(target)).GetType(), target, options);
+
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        /// <typeparam name="T"><inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)" path="/param[@name='exposingMembersOn']"/></typeparam>
+        public void AddLocalRpcTarget<T>(T target, JsonRpcTargetOptions? options)
+            where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
+
         /// <summary>
-        /// Adds the specified target as possible object to invoke when incoming messages are received.  The target object
-        /// should not inherit from each other and are invoked in the order which they are added.
+        /// Adds the specified target as possible object to invoke when incoming messages are received.
         /// </summary>
+        /// <param name="exposingMembersOn">
+        /// The type whose members define the RPC accessible members of the <paramref name="target"/> object.
+        /// If this type is not an interface, only public members become invokable unless <see cref="JsonRpcTargetOptions.AllowNonPublicInvocation"/> is set to true on the <paramref name="options"/> argument.
+        /// </param>
         /// <param name="target">Target to invoke when incoming messages are received.</param>
         /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
-        public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options)
+        /// <remarks>
+        /// When multiple target objects are added, the first target with a method that matches a request is invoked.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+        public void AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options)
         {
+            Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
             Requires.NotNull(target, nameof(target));
-            options = options ?? JsonRpcTargetOptions.Default;
             this.ThrowIfConfigurationLocked();
 
-            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(target, options);
-            lock (this.syncObject)
-            {
-                foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
-                {
-                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
-                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
-                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
-                    {
-                        // Only add methods that do not have equivalent signatures to what we already have.
-                        foreach (MethodSignatureAndTarget newMethod in item.Value)
-                        {
-                            if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
-                            {
-                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
-                                existingList.Add(newMethod);
-                            }
-                            else
-                            {
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (MethodSignatureAndTarget newMethod in item.Value)
-                        {
-                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
-                        }
-
-                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
-                    }
-                }
-
-                if (options.NotifyClientOfEvents)
-                {
-                    for (TypeInfo? t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
-                    {
-                        foreach (EventInfo evt in t.DeclaredEvents)
-                        {
-                            if ((evt.AddMethod?.IsPublic ?? false) && !evt.AddMethod.IsStatic)
-                            {
-                                if (this.eventReceivers == null)
-                                {
-                                    this.eventReceivers = new List<EventReceiver>();
-                                }
-
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
-                                }
-
-                                this.eventReceivers.Add(new EventReceiver(this, target, evt, options));
-                            }
-                        }
-                    }
-                }
-
-                if (options.DisposeOnDisconnect)
-                {
-                    if (this.localTargetObjectsToDispose is null)
-                    {
-                        this.localTargetObjectsToDispose = new List<object>();
-                    }
-
-                    this.localTargetObjectsToDispose.Add(target);
-                }
-            }
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
+#pragma warning restore CA2000 // Dispose objects before losing scope
         }
 
         /// <summary>
@@ -802,6 +769,7 @@ namespace StreamJsonRpc
         /// The method or delegate to invoke when a matching RPC message arrives.
         /// This method may accept parameters from the incoming JSON-RPC message.
         /// </param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(string? rpcMethodName, Delegate handler)
         {
             Requires.NotNull(handler, nameof(handler));
@@ -820,47 +788,11 @@ namespace StreamJsonRpc
         /// This method may accept parameters from the incoming JSON-RPC message.
         /// </param>
         /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         public void AddLocalRpcMethod(string? rpcMethodName, MethodInfo handler, object? target) => this.AddLocalRpcMethod(handler, target, new JsonRpcMethodAttribute(rpcMethodName));
 
-        /// <summary>
-        /// Adds a handler for an RPC method with a given name.
-        /// </summary>
-        /// <param name="handler">
-        /// The method or delegate to invoke when a matching RPC message arrives.
-        /// This method may accept parameters from the incoming JSON-RPC message.
-        /// </param>
-        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
-        /// <param name="methodRpcSettings">
-        /// A description for how this method should be treated.
-        /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
-        /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
-        /// </param>
-        public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings)
-        {
-            Requires.NotNull(handler, nameof(handler));
-            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
-
-            this.ThrowIfConfigurationLocked();
-            string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
-            lock (this.syncObject)
-            {
-                var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings);
-                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
-                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
-                {
-                    if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
-                    {
-                        throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
-                    }
-
-                    existingList.Add(methodTarget);
-                }
-                else
-                {
-                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
-                }
-            }
-        }
+        /// <inheritdoc cref="AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
+        public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings) => this.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext: null);
 
         /// <summary>
         /// Gets the <see cref="JsonRpcMethodAttribute"/> for a previously discovered RPC method, if there is one.
@@ -906,68 +838,32 @@ namespace StreamJsonRpc
             }
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the server indicates completion of the method.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeAsync{TResult}(string, object?)" path="/param[@name='argument']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeAsync(string targetName, object? argument)
         {
             return this.InvokeAsync<object>(targetName, argument);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the server indicates completion of the method.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeAsync(string targetName, params object?[]? arguments)
         {
             return this.InvokeAsync<object>(targetName, arguments);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">A single method argument, must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeAsync<TResult>(string targetName, object? argument)
         {
             var arguments = new object?[] { argument };
@@ -975,24 +871,12 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<TResult>(targetName, arguments, CancellationToken.None);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeAsync<TResult>(string targetName, params object?[]? arguments)
         {
             // If somebody calls InvokeInternal<T>(id, "method", null), the null is not passed as an item in the array.
@@ -1003,24 +887,12 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<TResult>(targetName, arguments, CancellationToken.None);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.  The parameter is passed as an object.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithParameterObjectAsync(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1028,51 +900,25 @@ namespace StreamJsonRpc
             return this.InvokeWithParameterObjectAsync<object>(targetName, argument, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.  The parameter is passed as an object.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-#pragma warning disable RS0016 // Add public types and members to the declared API
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task InvokeWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
-#pragma warning restore RS0016 // Add public types and members to the declared API
         {
             return this.InvokeWithParameterObjectAsync<object>(targetName, argument, argumentDeclaredTypes, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1080,58 +926,30 @@ namespace StreamJsonRpc
             return this.InvokeWithParameterObjectAsync<TResult>(targetName, argument, null, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.  The parameter is passed as an object.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">An object whose properties match the names of parameters on the target method. Must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
         /// <param name="argumentDeclaredTypes">
         /// A dictionary of <see cref="Type"/> objects that describe how each entry in the <see cref="IReadOnlyDictionary{TKey, TValue}"/> provided in <paramref name="argument"/> is expected by the server to be typed.
         /// If specified, this must have exactly the same set of keys as <paramref name="argument"/> and contain no <c>null</c> values.
         /// </param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-#pragma warning disable RS0016 // Add public types and members to the declared API
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
-#pragma warning restore RS0016 // Add public types and members to the declared API
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object?[]? argumentToPass = argument == null ? null : new object?[] { argument };
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, argumentToPass, positionalArgumentDeclaredTypes: null, argumentDeclaredTypes, cancellationToken, isParameterObject: true);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1139,27 +957,13 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server.
-        /// </summary>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
         /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task that completes when the server method executes.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type> argumentDeclaredTypes, CancellationToken cancellationToken)
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1167,27 +971,13 @@ namespace StreamJsonRpc
             return this.InvokeWithCancellationAsync<object>(targetName, arguments, argumentDeclaredTypes, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
 #pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
 #pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
@@ -1195,87 +985,83 @@ namespace StreamJsonRpc
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, cancellationToken);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and get back the result.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">Type of the method result.</typeparam>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
-        /// <param name="argumentDeclaredTypes">
-        /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
-        /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
-        /// </param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='positionalArgumentDeclaredTypes']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <returns>A task that completes when the server method executes and returns the result.</returns>
-        /// <exception cref="OperationCanceledException">
-        /// Result task fails with this exception if the communication channel ends before the result gets back from the server
-        /// or in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteInvocationException">
-        /// Result task fails with this exception if the server method throws an exception,
-        /// which may occur in response to the <paramref name="cancellationToken"/> being canceled.
-        /// </exception>
-        /// <exception cref="RemoteMethodNotFoundException">
-        /// Result task fails with this exception if the <paramref name="targetName"/> method has not been registered on the server.
-        /// </exception>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
         public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, argumentDeclaredTypes, namedArgumentDeclaredTypes: null, cancellationToken, isParameterObject: false);
         }
 
+#pragma warning disable CA1200 // Avoid using cref tags with a prefix
         /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.
+        /// Invokes a given method on a JSON-RPC server without waiting for its response.
         /// </summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument">Method argument, must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
         /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
+        /// <exception cref="ConnectionLostException">Thrown when the connection is terminated (by either side) while the request is being transmitted.</exception>
+        /// <exception cref="Exception">
+        /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
+        /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+        /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
+        /// </exception>
         public Task NotifyAsync(string targetName, object? argument)
+#pragma warning restore CA1200 // Avoid using cref tags with a prefix
         {
             var arguments = new object?[] { argument };
 
             return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, CancellationToken.None);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.
-        /// </summary>
+        /// <inheritdoc cref="NotifyAsync(string, object?[], IReadOnlyList{Type}?)"/>
+        public Task NotifyAsync(string targetName, params object?[]? arguments) => this.NotifyAsync(targetName, arguments, null);
+
+        /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="arguments">Method arguments, must be serializable to JSON.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithCancellationAsync{TResult}(string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
         /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task NotifyAsync(string targetName, params object?[]? arguments)
+        /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
+        public Task NotifyAsync(string targetName, object?[]? arguments, IReadOnlyList<Type>? argumentDeclaredTypes)
         {
-            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, CancellationToken.None);
+            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, argumentDeclaredTypes, null, CancellationToken.None, isParameterObject: false);
         }
 
-        /// <summary>
-        /// Invoke a method on the server and don't wait for its completion, fire-and-forget style.  The parameter is passed as an object.
-        /// </summary>
+#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
+        /// <inheritdoc cref="NotifyWithParameterObjectAsync(string, object?, IReadOnlyDictionary{string, Type}?)"/>
+        public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, null);
+#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
+
+        /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
         /// <remarks>
         /// Any error that happens on the server side is ignored.
         /// </remarks>
-        /// <param name="targetName">The name of the method to invoke on the server. Must not be null or empty string.</param>
-        /// <param name="argument">Method argument, must be serializable to JSON.</param>
-        /// <returns>A task that completes when the notify request is sent to the channel to the server.</returns>
-        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
-        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has been disposed.</exception>
-        public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null)
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+        /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='namedArgumentDeclaredTypes']"/></param>
+        /// <returns>A task that completes when the notification has been transmitted.</returns>
+        /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
+        public Task NotifyWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes)
         {
             // If argument is null, this indicates that the method does not take any parameters.
             object?[]? argumentToPass = argument == null ? null : new object?[] { argument };
 
-            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, CancellationToken.None, isParameterObject: true);
+            return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, null, argumentDeclaredTypes, CancellationToken.None, isParameterObject: true);
         }
 
         void IJsonRpcTracingCallbacks.OnMessageSerialized(JsonRpcMessage message, object encodedMessage)
@@ -1311,6 +1097,191 @@ namespace StreamJsonRpc
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Creates a marshallable proxy for a given object that may be sent over RPC such that the receiving side can invoke methods on the given object.
+        /// </summary>
+        /// <typeparam name="T">
+        /// The interface type implemented by the <paramref name="marshaledObject"/> that defines the members to expose over RPC.
+        /// </typeparam>
+        /// <param name="marshaledObject">The object to be exposed over RPC.</param>
+        /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+        /// <returns>A lifetime controlling wrapper around a new proxy value.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use <see cref="MarshalLimitedArgument{T}(T)"/> for a simpler lifetime model when the object should only be marshaled within the scope of a single RPC call.
+        /// </para>
+        /// </remarks>
+        internal static IRpcMarshaledContext<T> MarshalWithControlledLifetime<T>(T marshaledObject, JsonRpcTargetOptions options)
+            where T : class
+        {
+            return new RpcMarshaledContext<T>(marshaledObject, options);
+        }
+
+        /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
+        /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
+        /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
+        /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+        internal static IRpcMarshaledContext<object> MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
+        {
+            return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options });
+        }
+
+        /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
+        /// <returns>A proxy value that may be used within an RPC argument so the RPC server may call back into the <paramref name="marshaledObject"/> object on the RPC client.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use <see cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
+        /// This is required when the value is returned from an RPC method or when it is used within an RPC argument and must outlive that RPC invocation.
+        /// </para>
+        /// </remarks>
+        internal static T MarshalLimitedArgument<T>(T marshaledObject)
+            where T : class
+        {
+            // This method is included in the spec, but hasn't been implemented yet and has no callers.
+            // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetime method's responsibilities.
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Adds a handler for an RPC method with a given name.
+        /// </summary>
+        /// <param name="handler">
+        /// The method or delegate to invoke when a matching RPC message arrives.
+        /// This method may accept parameters from the incoming JSON-RPC message.
+        /// </param>
+        /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
+        /// <param name="methodRpcSettings">
+        /// A description for how this method should be treated.
+        /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
+        /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
+        /// </param>
+        /// <param name="synchronizationContext">The <see cref="System.Threading.SynchronizationContext"/> to schedule the method invocation on instead of the default one specified by the <see cref="SynchronizationContext"/> property.</param>
+        /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+        internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
+        {
+            Requires.NotNull(handler, nameof(handler));
+            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
+
+            this.ThrowIfConfigurationLocked();
+            string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
+            lock (this.syncObject)
+            {
+                var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings, synchronizationContext);
+                this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
+                {
+                    if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
+                    {
+                        throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
+                    }
+
+                    existingList.Add(methodTarget);
+                }
+                else
+                {
+                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, new List<MethodSignatureAndTarget> { methodTarget });
+                }
+            }
+        }
+
+        /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+        /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <c>false</c>.</returns>
+        internal IDisposable? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+        {
+            RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
+            options = options ?? JsonRpcTargetOptions.Default;
+            Dictionary<string, List<MethodSignatureAndTarget>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), target, options);
+            lock (this.syncObject)
+            {
+                foreach (KeyValuePair<string, List<MethodSignatureAndTarget>> item in mapping)
+                {
+                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                    if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
+                    {
+                        // Only add methods that do not have equivalent signatures to what we already have.
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
+                        {
+                            if (!existingList.Any(e => e.Signature.Equals(newMethod.Signature)))
+                            {
+                                this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                                revert?.RecordMethodAdded(rpcMethodName, newMethod);
+                                existingList.Add(newMethod);
+                            }
+                            else
+                            {
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (MethodSignatureAndTarget newMethod in item.Value)
+                        {
+                            this.TraceLocalMethodAdded(rpcMethodName, newMethod);
+                            revert?.RecordMethodAdded(rpcMethodName, newMethod);
+                        }
+
+                        this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, item.Value);
+                    }
+                }
+
+                if (options.NotifyClientOfEvents)
+                {
+                    HashSet<string>? eventsDiscovered = null;
+                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                    {
+                        foreach (EventInfo evt in t.DeclaredEvents)
+                        {
+                            if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
+                            {
+                                if (this.eventReceivers == null)
+                                {
+                                    this.eventReceivers = new List<EventReceiver>();
+                                }
+
+                                if (eventsDiscovered is null)
+                                {
+                                    eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
+                                }
+
+                                if (!eventsDiscovered.Add(evt.Name))
+                                {
+                                    // Do not add the same event again. It can appear multiple times in a type hierarchy.
+                                    continue;
+                                }
+
+                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                                {
+                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
+                                }
+
+                                var eventReceiver = new EventReceiver(this, target, evt, options);
+                                revert?.RecordEventReceiver(eventReceiver);
+                                this.eventReceivers.Add(eventReceiver);
+                            }
+                        }
+                    }
+                }
+
+                if (options.DisposeOnDisconnect)
+                {
+                    if (this.localTargetObjectsToDispose is null)
+                    {
+                        this.localTargetObjectsToDispose = new List<object>();
+                    }
+
+                    revert?.RecordObjectToDispose(target);
+                    this.localTargetObjectsToDispose.Add(target);
+                }
+            }
+
+            return revert;
         }
 
         /// <summary>
@@ -1351,6 +1322,7 @@ namespace StreamJsonRpc
         /// <remarks>
         /// This method may be overridden in a derived class to change the way error details are expressed.
         /// </remarks>
+        /// <seealso cref="CreateExceptionFromRpcError(JsonRpcRequest, JsonRpcError)"/>
         protected virtual JsonRpcError.ErrorDetail CreateErrorDetails(JsonRpcRequest request, Exception exception)
         {
             var localRpcEx = exception as LocalRpcException;
@@ -1360,6 +1332,36 @@ namespace StreamJsonRpc
                 Message = exception.Message,
                 Data = localRpcEx != null ? localRpcEx.ErrorData : new CommonErrorData(exception),
             };
+        }
+
+        /// <summary>
+        /// Creates a <see cref="RemoteRpcException"/> (or derived type) that represents the data found in a JSON-RPC error response.
+        /// This is called on the client side to produce the exception that will be thrown back to the RPC client.
+        /// </summary>
+        /// <param name="request">The JSON-RPC request that produced this error.</param>
+        /// <param name="response">The JSON-RPC error response.</param>
+        /// <returns>An instance of <see cref="RemoteRpcException"/>.</returns>
+        /// <seealso cref="CreateErrorDetails(JsonRpcRequest, Exception)"/>
+        protected virtual RemoteRpcException CreateExceptionFromRpcError(JsonRpcRequest request, JsonRpcError response)
+        {
+            Requires.NotNull(request, nameof(request));
+            Requires.NotNull(response, nameof(response));
+            Assumes.NotNull(request.Method);
+
+            Assumes.NotNull(response.Error);
+            Type? dataType = this.GetErrorDetailsDataType(response);
+            object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
+            switch (response.Error.Code)
+            {
+                case JsonRpcErrorCode.InvalidParams:
+                case JsonRpcErrorCode.MethodNotFound:
+                    return new RemoteMethodNotFoundException(response.Error.Message, request.Method, response.Error.Code, response.Error.Data, deserializedData);
+                case JsonRpcErrorCode.ResponseSerializationFailure:
+                    return new RemoteSerializationException(response.Error.Message, response.Error.Data, deserializedData);
+
+                default:
+                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
+            }
         }
 
         /// <summary>
@@ -1375,7 +1377,9 @@ namespace StreamJsonRpc
         /// by assuming that the <see cref="JsonRpcError.ErrorDetail.Data"/> object should be deserialized as an instance of <see cref="CommonErrorData"/>.
         /// However derived types can override this method and use <see cref="JsonRpcError.ErrorDetail.Code"/> or other means to determine the appropriate type.
         /// </remarks>
+#pragma warning disable CA1716 // Identifiers should not match keywords
         protected virtual Type? GetErrorDetailsDataType(JsonRpcError error) => typeof(CommonErrorData);
+#pragma warning restore CA1716 // Identifiers should not match keywords
 
         /// <summary>
         /// Invokes the specified RPC method.
@@ -1383,10 +1387,10 @@ namespace StreamJsonRpc
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         [Obsolete("Use the InvokeCoreAsync(RequestId, ...) overload instead.")]
         protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken)
         {
@@ -1399,44 +1403,47 @@ namespace StreamJsonRpc
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client that MUST contain a String, Number, or NULL value if included.
         /// If it is not included it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         protected Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken)
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, cancellationToken, isParameterObject: false);
         }
 
-        /// <summary>
-        /// Invokes the specified RPC method.
-        /// </summary>
+        /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
-        /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
+        /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+        /// <param name="arguments"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='arguments']"/></param>
+        /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
+        /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
         [Obsolete("Use the InvokeCoreAsync(RequestId, ...) overload instead.")]
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected Task<TResult> InvokeCoreAsync<TResult>(long? id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+#pragma warning restore CA1068 // CancellationToken parameters must come last
         {
             return this.InvokeCoreAsync<TResult>(id.HasValue ? new RequestId(id.Value) : default, targetName, arguments, cancellationToken, isParameterObject);
         }
 
         /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)"/>
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, CancellationToken cancellationToken, bool isParameterObject)
+#pragma warning restore CA1068 // CancellationToken parameters must come last
         {
             return this.InvokeCoreAsync<TResult>(id, targetName, arguments, null, null, cancellationToken, isParameterObject);
         }
 
+#pragma warning disable CA1200 // Avoid using cref tags with a prefix
         /// <summary>
-        /// Invokes the specified RPC method.
+        /// Invokes a given method on a JSON-RPC server.
         /// </summary>
         /// <typeparam name="TResult">RPC method return type.</typeparam>
         /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
-        /// <param name="targetName">Name of the method to invoke.</param>
-        /// <param name="arguments">Arguments to pass to the invoked method. If null, no arguments are passed.</param>
+        /// <param name="targetName">Name of the method to invoke. Must not be null or empty.</param>
+        /// <param name="arguments">Arguments to pass to the invoked method. They must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>. If <c>null</c>, no arguments are passed.</param>
         /// <param name="positionalArgumentDeclaredTypes">
         /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
         /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
@@ -1448,10 +1455,38 @@ namespace StreamJsonRpc
         /// </param>
         /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
         /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
-        /// <returns>A task whose result is the deserialized response from the JSON-RPC server.</returns>
-#pragma warning disable RS0016 // Add public types and members to the declared API
+        /// <returns>A task that completes with the response from the JSON-RPC server.</returns>
+        /// <exception cref="OperationCanceledException">
+        /// Thrown after <paramref name="cancellationToken"/> is canceled.
+        /// If the request has already been transmitted, the exception is only thrown after the server has received the cancellation notification and responded to it.
+        /// If the server completes the request instead of cancelling, this exception will not be thrown.
+        /// When the connection drops before receiving a response, this exception is thrown if <paramref name="cancellationToken"/> has been canceled.
+        /// </exception>
+        /// <exception cref="RemoteRpcException">
+        /// A common base class for a variety of RPC exceptions that may be thrown. Some common derived types are listed individually.
+        /// </exception>
+        /// <exception cref="RemoteInvocationException">
+        /// Thrown when an error is returned from the server in consequence of executing the requested method.
+        /// </exception>
+        /// <exception cref="RemoteMethodNotFoundException">
+        /// Thrown when the server reports that no matching method was found to invoke.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">If <paramref name="targetName"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
+        /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
+        /// <exception cref="ConnectionLostException">
+        /// Thrown when the connection is terminated (by either side) while the request is in progress,
+        /// unless <paramref name="cancellationToken"/> is already signaled.
+        /// </exception>
+        /// <exception cref="Exception">
+        /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
+        /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+        /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
+        /// </exception>
+#pragma warning disable CA1068 // CancellationToken parameters must come last
         protected async Task<TResult> InvokeCoreAsync<TResult>(RequestId id, string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type>? positionalArgumentDeclaredTypes, IReadOnlyDictionary<string, Type>? namedArgumentDeclaredTypes, CancellationToken cancellationToken, bool isParameterObject)
-#pragma warning restore RS0016 // Add public types and members to the declared API
+#pragma warning restore CA1068 // CancellationToken parameters must come last
+#pragma warning restore CA1200 // Avoid using cref tags with a prefix
         {
             Requires.NotNullOrEmpty(targetName, nameof(targetName));
 
@@ -1485,7 +1520,7 @@ namespace StreamJsonRpc
             }
             else
             {
-                request.Arguments = arguments ?? EmptyObjectArray;
+                request.Arguments = arguments ?? Array.Empty<object>();
 
                 if (positionalArgumentDeclaredTypes is object)
                 {
@@ -1500,7 +1535,7 @@ namespace StreamJsonRpc
             {
                 if (response is JsonRpcError error)
                 {
-                    throw this.CreateExceptionFromRpcError(error, request.Method);
+                    throw this.CreateExceptionFromRpcError(request, error);
                 }
                 else if (response is JsonRpcResult result)
                 {
@@ -1533,6 +1568,7 @@ namespace StreamJsonRpc
         /// <param name="request">The request whose transmission could not be completed.</param>
         protected virtual void OnRequestTransmissionAborted(JsonRpcRequest request)
         {
+            Requires.NotNull(request, nameof(request));
             if (!request.RequestId.IsEmpty)
             {
                 this.requestTransmissionAborted?.Invoke(this, new JsonRpcMessageEventArgs(request));
@@ -1543,23 +1579,25 @@ namespace StreamJsonRpc
         /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseReceived"/> event.
         /// </summary>
         /// <param name="response">The result or error that was received.</param>
-        protected virtual void OnResponseReceived(JsonRpcMessage response) => this.responseReceived?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
+        protected virtual void OnResponseReceived(JsonRpcMessage response) => this.responseReceived?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)Requires.NotNull(response, nameof(response))));
 
         /// <summary>
         /// Raises the <see cref="IJsonRpcFormatterCallbacks.ResponseSent"/> event.
         /// </summary>
         /// <param name="response">The result or error that was sent.</param>
-        protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)response));
+        protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)Requires.NotNull(response, nameof(response))));
 
         /// <summary>
         /// Creates a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
         /// </summary>
-        /// <param name="target">Object to reflect over and analyze its methods.</param>
+        /// <param name="exposedMembersOnType">Type to reflect over and analyze its methods.</param>
+        /// <param name="target">The instance of <paramref name="exposedMembersOnType"/> to be exposed to RPC.</param>
         /// <param name="options">The options that apply for this target object.</param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(object target, JsonRpcTargetOptions options)
+        private static Dictionary<string, List<MethodSignatureAndTarget>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, object target, JsonRpcTargetOptions options)
         {
             Requires.NotNull(target, nameof(target));
+            Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
             Requires.NotNull(options, nameof(options));
 
             var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -1567,14 +1605,14 @@ namespace StreamJsonRpc
             var requestMethodToDelegateMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
             var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            var mapping = new MethodNameMap(target.GetType().GetTypeInfo());
+            var mapping = new MethodNameMap(exposedMembersOnType);
 
-            for (TypeInfo? t = target.GetType().GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+            for (TypeInfo? t = exposedMembersOnType; t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
                 // As we enumerate methods, skip accessor methods
                 foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
                 {
-                    if (!options.AllowNonPublicInvocation && !method.IsPublic)
+                    if (!options.AllowNonPublicInvocation && !method.IsPublic && !exposedMembersOnType.IsInterface)
                     {
                         continue;
                     }
@@ -1621,7 +1659,7 @@ namespace StreamJsonRpc
                     }
 
                     // Skip this method if its signature matches one from a derived type we have already scanned.
-                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute);
+                    MethodSignatureAndTarget methodTarget = new MethodSignatureAndTarget(method, target, attribute, perMethodSynchronizationContext: null);
                     if (methodTargetList.Contains(methodTarget))
                     {
                         continue;
@@ -1738,24 +1776,6 @@ namespace StreamJsonRpc
             return false;
         }
 
-        private RemoteRpcException CreateExceptionFromRpcError(JsonRpcError response, string targetName)
-        {
-            Requires.NotNull(response, nameof(response));
-
-            Assumes.NotNull(response.Error);
-            Type? dataType = this.GetErrorDetailsDataType(response);
-            object? deserializedData = dataType != null ? response.Error.GetData(dataType) : response.Error.Data;
-            switch (response.Error.Code)
-            {
-                case JsonRpcErrorCode.InvalidParams:
-                case JsonRpcErrorCode.MethodNotFound:
-                    return new RemoteMethodNotFoundException(response.Error.Message, targetName, response.Error.Code, response.Error.Data, deserializedData);
-
-                default:
-                    return new RemoteInvocationException(response.Error.Message, (int)response.Error.Code, response.Error.Data, deserializedData);
-            }
-        }
-
         private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
         {
             Requires.NotNull(request, nameof(request));
@@ -1835,7 +1855,9 @@ namespace StreamJsonRpc
                                 tcs.SetResult(response);
                             }
                         }
+#pragma warning disable CA1031 // Do not catch general exception types
                         catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                         {
                             tcs.TrySetException(ex);
                         }
@@ -1868,10 +1890,20 @@ namespace StreamJsonRpc
                     }
 
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction!, request.RequestId, useSynchronizationContext: false))
+                    try
                     {
-                        // This task will be completed when the Response object comes back from the other end of the pipe
-                        return await tcs.Task.ConfigureAwait(false);
+                        using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.RequestId, useSynchronizationContext: false))
+                        {
+                            // This task will be completed when the Response object comes back from the other end of the pipe
+                            return await tcs.Task.ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            this.CancellationStrategy?.OutboundRequestEnded(request.RequestId);
+                        }
                     }
                 }
             }
@@ -1879,6 +1911,19 @@ namespace StreamJsonRpc
             {
                 throw new ConnectionLostException(Resources.ConnectionDropped, ex);
             }
+        }
+
+        private JsonRpcError CreateErrorForResponseTransmissionFailure(JsonRpcRequest request, Exception exception)
+        {
+            JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
+            this.ThrowIfNullDetail(exception, errorDetails);
+
+            errorDetails.Code = JsonRpcErrorCode.ResponseSerializationFailure;
+            return new JsonRpcError
+            {
+                RequestId = request.RequestId,
+                Error = errorDetails,
+            };
         }
 
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
@@ -1895,7 +1940,18 @@ namespace StreamJsonRpc
             exception = StripExceptionToInnerException(exception);
 
             JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
-            if (errorDetails == null)
+            this.ThrowIfNullDetail(exception, errorDetails);
+
+            return new JsonRpcError
+            {
+                RequestId = request.RequestId,
+                Error = errorDetails,
+            };
+        }
+
+        private void ThrowIfNullDetail(Exception exception, JsonRpcError.ErrorDetail errorDetails)
+        {
+            if (errorDetails is null)
             {
                 string errorMessage = $"The {this.GetType().Name}.{nameof(this.CreateErrorDetails)} method returned null, which is not allowed.";
                 if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Critical))
@@ -1910,12 +1966,6 @@ namespace StreamJsonRpc
 
                 this.OnJsonRpcDisconnected(e);
             }
-
-            return new JsonRpcError
-            {
-                RequestId = request.RequestId,
-                Error = errorDetails,
-            };
         }
 
         private async ValueTask<JsonRpcMessage> DispatchIncomingRequestAsync(JsonRpcRequest request)
@@ -1933,7 +1983,9 @@ namespace StreamJsonRpc
                 CancellationToken cancellationToken = CancellationToken.None;
                 if (request.IsResponseExpected)
                 {
+#pragma warning disable CA2000 // Dispose objects before losing scope
                     localMethodCancellationSource = new CancellationTokenSource();
+#pragma warning restore CA2000 // Dispose objects before losing scope
                     cancellationToken = localMethodCancellationSource.Token;
 
                     if (this.CancelLocallyInvokedMethodsWhenConnectionIsClosed)
@@ -1951,7 +2003,7 @@ namespace StreamJsonRpc
                 {
                     if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out List<MethodSignatureAndTarget>? candidateTargets))
                     {
-                        targetMethod = new TargetMethod(request, candidateTargets);
+                        targetMethod = new TargetMethod(request, candidateTargets, this.SynchronizationContextOrDefault);
                     }
                 }
 
@@ -1962,10 +2014,7 @@ namespace StreamJsonRpc
                     // Fix for https://github.com/Microsoft/vs-streamjsonrpc/issues/56
                     if (targetMethod.AcceptsCancellationToken && request.IsResponseExpected)
                     {
-                        lock (this.dispatcherMapLock)
-                        {
-                            this.inboundCancellationSources.Add(request.RequestId, localMethodCancellationSource!);
-                        }
+                        this.CancellationStrategy?.IncomingRequestStarted(request.RequestId, localMethodCancellationSource!);
                     }
 
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
@@ -1985,16 +2034,14 @@ namespace StreamJsonRpc
                         }
                     }
 
-                    // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
-                    // IMPORTANT: This should be the first await in this async method,
-                    //            and no other await should be between this one and actually invoking the target method.
-                    //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                    //            when a single-threaded SynchronizationContext is applied.
-                    await this.SynchronizationContextOrDefault;
                     object? result;
                     try
                     {
-                        result = targetMethod.Invoke(cancellationToken);
+                        // IMPORTANT: This should be the first await in this async method,
+                        //            and no other await should be between this one and actually invoking the target method.
+                        //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                        //            when a single-threaded SynchronizationContext is applied.
+                        result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
                     }
                     catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
                     {
@@ -2039,7 +2086,7 @@ namespace StreamJsonRpc
                     // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
                     // the VoidTaskResult internal struct as a meaningful result.
                     return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
-                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, targetMethod.ReturnType.GetTypeInfo(), cancellationToken).ConfigureAwait(false)
+                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
                         : this.HandleInvocationTaskResult(request, resultingTask);
                 }
                 else
@@ -2054,10 +2101,7 @@ namespace StreamJsonRpc
                     {
                         if (request.IsResponseExpected)
                         {
-                            lock (this.dispatcherMapLock)
-                            {
-                                this.inboundCancellationSources.Add(request.RequestId, localMethodCancellationSource!);
-                            }
+                            this.CancellationStrategy?.IncomingRequestStarted(request.RequestId, localMethodCancellationSource!);
                         }
 
                         // Yield now so method invocation is async and we can proceed to handle other requests meanwhile.
@@ -2159,10 +2203,7 @@ namespace StreamJsonRpc
             {
                 if (localMethodCancellationSource != null)
                 {
-                    lock (this.dispatcherMapLock)
-                    {
-                        this.inboundCancellationSources.Remove(request.RequestId);
-                    }
+                    this.CancellationStrategy?.IncomingRequestEnded(request.RequestId);
 
                     // Be sure to dispose the link to the local method token we created in case it is linked to our long-lived disposal token
                     // and otherwise cause a memory leak.
@@ -2226,7 +2267,7 @@ namespace StreamJsonRpc
             return result;
         }
 
-        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, TypeInfo declaredReturnType, CancellationToken cancellationToken)
+        private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
         {
             // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
             Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
@@ -2271,7 +2312,9 @@ namespace StreamJsonRpc
         /// <param name="result">The result from the RPC method.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A task that completes when processing the result is complete. The returned Task *may* transition to a <see cref="TaskStatus.Faulted"/> state.</returns>
+#pragma warning disable CA1822 // Mark members as static
         private Task ProcessResultBeforeSerializingAsync(object? result, CancellationToken cancellationToken)
+#pragma warning restore CA1822 // Mark members as static
         {
             // If result is a prefetching IAsyncEnumerable<T>, prefetch now.
             return JsonRpcExtensions.PrefetchIfApplicableAsync(result, cancellationToken);
@@ -2363,7 +2406,9 @@ namespace StreamJsonRpc
                             disposableTarget.Dispose();
                         }
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         exceptions.Add(ex);
                     }
@@ -2378,7 +2423,9 @@ namespace StreamJsonRpc
             {
                 await messageHandlerDisposal.ConfigureAwait(false);
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
             {
                 exceptions.Add(ex);
             }
@@ -2441,7 +2488,9 @@ namespace StreamJsonRpc
                     {
                         break;
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception exception)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                             string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
@@ -2489,12 +2538,6 @@ namespace StreamJsonRpc
                     // We can't accept a request that requires a response if we can't write.
                     Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
 
-                    if (request.IsNotification && request.Method == CancelRequestSpecialMethod)
-                    {
-                        await this.HandleCancellationNotificationAsync(request).ConfigureAwait(false);
-                        return;
-                    }
-
                     JsonRpcMessage result;
                     lock (this.syncObject)
                     {
@@ -2521,10 +2564,11 @@ namespace StreamJsonRpc
 
                     if (request.IsResponseExpected && !this.IsDisposed)
                     {
+                        bool responseSent = false;
                         try
                         {
                             await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
-                            this.OnResponseSent(result);
+                            responseSent = true;
                         }
                         catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
                         {
@@ -2532,15 +2576,22 @@ namespace StreamJsonRpc
                         catch (ObjectDisposedException) when (this.IsDisposed)
                         {
                         }
+#pragma warning disable CA1031 // Do not catch general exception types
                         catch (Exception exception)
+#pragma warning restore CA1031 // Do not catch general exception types
                         {
-                            var e = new JsonRpcDisconnectedEventArgs(
-                                string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcResult, exception.GetType().Name, exception.Message),
-                                DisconnectedReason.StreamError,
-                                exception);
+                            // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
+                            if (!this.DisconnectedToken.IsCancellationRequested)
+                            {
+                                result = this.CreateErrorForResponseTransmissionFailure(request, exception);
+                                await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                                responseSent = true;
+                            }
+                        }
 
-                            // Fatal error. Raise disconnected event.
-                            this.OnJsonRpcDisconnected(e);
+                        if (responseSent)
+                        {
+                            this.OnResponseSent(result);
                         }
                     }
                 }
@@ -2606,7 +2657,9 @@ namespace StreamJsonRpc
                         DisconnectedReason.ParseError));
                 }
             }
+#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
             {
                 var eventArgs = new JsonRpcDisconnectedEventArgs(
                     string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),
@@ -2618,49 +2671,6 @@ namespace StreamJsonRpc
 
                 // If we extracted this callback from the collection already, take care to complete it to avoid hanging our client.
                 data?.CompletionHandler(null);
-            }
-        }
-
-        private async Task HandleCancellationNotificationAsync(JsonRpcRequest request)
-        {
-            Requires.NotNull(request, nameof(request));
-
-            if (request.TryGetArgumentByNameOrIndex("id", -1, typeof(RequestId), out object? idArg))
-            {
-                RequestId id = idArg is RequestId requestId ? requestId : RequestId.Parse(idArg);
-                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                {
-                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedCancellation, "Cancellation request received for \"{0}\".", id);
-                }
-
-                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
-                {
-                    JsonRpcEventSource.Instance.ReceivedCancellationRequest(id.NumberIfPossibleForEvent);
-                }
-
-                CancellationTokenSource? cts;
-                lock (this.dispatcherMapLock)
-                {
-                    this.inboundCancellationSources.TryGetValue(id, out cts);
-                }
-
-                if (cts != null)
-                {
-                    // This cancellation token is the one that is passed to the server method.
-                    // It may have callbacks registered on cancellation.
-                    // Cancel it asynchronously to ensure that these callbacks do not delay handling of other json rpc messages.
-                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                    try
-                    {
-                        cts.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // There is a race condition between when we retrieve the CTS and actually call Cancel,
-                        // vs. another thread that disposes the CTS at the conclusion of the method invocation.
-                        // It cannot be prevented, so just swallow it since the method executed successfully.
-                    }
-                }
             }
         }
 
@@ -2686,27 +2696,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(state, nameof(state));
             var requestId = (RequestId)state;
-            Task.Run(async delegate
-            {
-                if (!this.IsDisposed)
-                {
-                    var cancellationMessage = new JsonRpcRequest
-                    {
-                        Method = CancelRequestSpecialMethod,
-                        NamedArguments = new Dictionary<string, object?>
-                        {
-                            { "id", requestId },
-                        },
-                    };
-
-                    if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
-                    {
-                        JsonRpcEventSource.Instance.SendingCancellationRequest(requestId.NumberIfPossibleForEvent);
-                    }
-
-                    await this.TransmitAsync(cancellationMessage, this.DisconnectedToken).ConfigureAwait(false);
-                }
-            }).Forget();
+            this.CancellationStrategy?.CancelOutboundRequest(requestId);
         }
 
         private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
@@ -2749,7 +2739,15 @@ namespace StreamJsonRpc
                     this.OnJsonRpcDisconnected(e);
                 }
 
-                this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                if (exception is OperationCanceledException)
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.TransmissionFailed, "Message transmission was canceled.");
+                }
+                else
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                }
+
                 if (message is JsonRpcRequest request)
                 {
                     this.OnRequestTransmissionAborted(request);
@@ -2763,6 +2761,7 @@ namespace StreamJsonRpc
         /// Throws an exception if we have already started listening,
         /// unless <see cref="AllowModificationWhileListening"/> is <c>true</c>.
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="HasListeningStarted"/> is <c>true</c> and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         private void ThrowIfConfigurationLocked()
         {
             Verify.Operation(!this.HasListeningStarted || this.AllowModificationWhileListening, Resources.MustNotBeListening);
@@ -2893,7 +2892,9 @@ namespace StreamJsonRpc
                 this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
             }
 
+#pragma warning disable CA1801 // Review unused parameters
             private void OnEventRaisedGeneric<T>(object? sender, T args)
+#pragma warning restore CA1801 // Review unused parameters
             {
                 this.jsonRpc.NotifyAsync(this.rpcEventName, new object?[] { args }).Forget();
             }
@@ -2901,6 +2902,83 @@ namespace StreamJsonRpc
             private void OnEventRaised(object? sender, EventArgs args)
             {
                 this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
+            }
+        }
+
+        /// <summary>
+        /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTargetInternal(Type, object, JsonRpcTargetOptions?, bool)"/>.
+        /// </summary>
+        private class RevertAddLocalRpcTarget : IDisposable
+        {
+            private readonly JsonRpc jsonRpc;
+            private object? objectToDispose;
+            private List<(string RpcMethodName, MethodSignatureAndTarget Method)>? targetMethods;
+            private List<EventReceiver>? eventReceivers;
+
+            internal RevertAddLocalRpcTarget(JsonRpc jsonRpc)
+            {
+                this.jsonRpc = jsonRpc;
+            }
+
+            public void Dispose()
+            {
+                lock (this.jsonRpc.syncObject)
+                {
+                    if (this.objectToDispose is object)
+                    {
+                        this.jsonRpc.localTargetObjectsToDispose?.Remove(this.objectToDispose);
+                    }
+
+                    if (this.targetMethods is object)
+                    {
+                        foreach ((string RpcMethodName, MethodSignatureAndTarget Method) targetMethod in this.targetMethods)
+                        {
+                            if (this.jsonRpc.targetRequestMethodToClrMethodMap.TryGetValue(targetMethod.RpcMethodName, out List<MethodSignatureAndTarget>? list))
+                            {
+                                list.Remove(targetMethod.Method);
+                            }
+                        }
+                    }
+
+                    if (this.eventReceivers is object && this.jsonRpc.eventReceivers is object)
+                    {
+                        foreach (EventReceiver eventReceiver in this.eventReceivers)
+                        {
+                            this.jsonRpc.eventReceivers.Remove(eventReceiver);
+                            eventReceiver.Dispose();
+                        }
+                    }
+
+                    this.objectToDispose = null;
+                    this.targetMethods = null;
+                    this.eventReceivers = null;
+                }
+            }
+
+            internal void RecordEventReceiver(EventReceiver eventReceiver)
+            {
+                if (this.eventReceivers is null)
+                {
+                    this.eventReceivers = new List<EventReceiver>();
+                }
+
+                this.eventReceivers.Add(eventReceiver);
+            }
+
+            internal void RecordMethodAdded(string rpcMethodName, MethodSignatureAndTarget newMethod)
+            {
+                if (this.targetMethods is null)
+                {
+                    this.targetMethods = new List<(string RpcMethodName, MethodSignatureAndTarget Method)>();
+                }
+
+                this.targetMethods.Add((rpcMethodName, newMethod));
+            }
+
+            internal void RecordObjectToDispose(object target)
+            {
+                Assumes.Null(this.objectToDispose);
+                this.objectToDispose = target;
             }
         }
     }

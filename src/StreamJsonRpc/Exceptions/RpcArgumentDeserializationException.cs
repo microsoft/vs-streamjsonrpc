@@ -13,7 +13,9 @@ namespace StreamJsonRpc
     /// when the argument cannot be deserialized to the requested type, typically due to an incompatibility or exception thrown from the deserializer.
     /// </summary>
     [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class RpcArgumentDeserializationException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RpcArgumentDeserializationException"/> class.

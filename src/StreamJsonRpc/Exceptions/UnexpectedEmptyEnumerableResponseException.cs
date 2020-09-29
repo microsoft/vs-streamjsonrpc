@@ -5,7 +5,9 @@ namespace StreamJsonRpc
 {
     using System;
 
+#pragma warning disable CA1032 // Implement standard exception constructors
     internal class UnexpectedEmptyEnumerableResponseException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="UnexpectedEmptyEnumerableResponseException"/> class.

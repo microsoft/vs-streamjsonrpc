@@ -89,31 +89,28 @@ then yields at an *await*, and before it returns a request comes in for `DoSomet
 start executing on the dedicated thread immediately, and the original `DoSomething` method cannot resume until
 `DoSomethingElse` yields the thread.
 
-## When message order is important
+## Concurrency vs. message ordering
 
-If your server state is mutable, it may be important for your to respond to client requests in the order
+For maximum performance, requests can be handled concurrently.
+But this brings up important questions when request order is important.
+
+If your server state is mutable, it may be important for you to handle client requests in the order
 the client originally sent them. This happens naturally if the client sends only one request at a time,
 awaiting the result before making the next request.
 
-If the client sends a stream of requests at a time, and expects you to process them strictly in-order,
-you should apply a `SynchronizationContext`-derived instance that will only dispatch one call at a time, and use only
-synchronous server methods (no *awaits*).
-The `Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext` is a good option for this,
-and can be applied like this:
+If the client sends a stream of requests at a time, and expects you to process them strictly in-order, it becomes the RPC server's responsibility to maintain the order.
+This ordering comes by setting the `JsonRpc.SynchronizationContext` property to a `SynchronizationContext` that preserves order of calls dispatched with `SynchronizationContext.Post`.
 
-```cs
-var jsonRpc = new JsonRpc(stream);
-jsonRpc.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
-jsonRpc.AddLocalRpcTarget(this);
-jsonRpc.StartListening();
-```
+### `NonConcurrentSynchronizationContext`
 
-At this point, incoming JSON-RPC requests will be dispatched to the threadpool one-at-a-time,
-in the order the requests were made.
+The `Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext` supports this by scheduling incoming messages to the threadpool but disallowing concurrency.
+When used in its "non-sticky" mode, the `NonConcurrentSynchronizationContext` invokes RPC server methods sequentially, but allows them to execute concurrently after their first yielding *await* (if any).
+This ensures your server methods are invoked in-order and exclusively, but may opt into allowing another request to execute by yielding (e.g. `await Task.Yield();`), after which they may run concurrently with subsequent incoming requests.
+When a server method is invoked, it may already be concurrent with a previously invoked server method that has already hit its first yielding *await*.
 
 Suppose two requests are received to invoke RPC server methods `Op1Async()` and `Op2Async()`,
 in that order but close together.
-The `SynchronizationContext` applied above will ensure that `Op1Async()` is invoked first.
+The `NonConcurrentSynchronizationContext` will ensure that `Op1Async()` is invoked first.
 When `Op1Async` hits its first yielding `await`, `Op2Async` will be invoked.
 
 What happens next depends on the `sticky` argument passed to the `NonConcurrentSynchronizationContext` constructor.
@@ -129,6 +126,30 @@ when whatever it is waiting on is done. Its continuation may now run concurrentl
 When a yielding await uses `.ConfigureAwait(false)`, it takes that async method off the `SynchronizationContext`
 at which point code execution will happen on the threadpool, concurrently with any other code.
 The `sticky` value has no effect on concurrency of code that uses `.ConfigureAwait(false)`.
+
+### Default ordering and concurrency behavior
+
+**Important:** The default behavior changed in StreamJsonRpc v2.6.
+
+In StreamJsonRpc v2.6 and later, `NonConcurrentSynchronizationContext` (in non-sticky mode) is the default behavior.
+Prior to v2.6 the default behavior was no `SynchronizationContext`, which meant all RPC server invocations were immediately queued to the threadpool, allowing ordering to get scrambled.
+
+Whether before or after StreamJsonRpc v2.6, either behavior can be achieved by setting (or clearing) the `JsonRpc.SynchronizationContext` property, as in this example:
+
+```cs
+var jsonRpc = new JsonRpc(stream);
+
+// Get v2.6+ default behavior in versions before 2.6:
+// ordering preserved at expense of no concurrency prior to first yielding await.
+jsonRpc.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
+
+// Get pre-2.6 behavior in 2.6+ versions:
+// no ordering => maximum throughput
+jsonRpc.SynchronizationContext = null;
+
+jsonRpc.AddLocalRpcTarget(this);
+jsonRpc.StartListening();
+```
 
 ## Fatal exceptions
 

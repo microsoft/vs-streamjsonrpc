@@ -21,6 +21,13 @@ namespace StreamJsonRpc.Protocol
         /// </summary>
         NoMarshaledObjectFound = -32001,
 
+        /* We're skipping -32002 because LSP uses it at the app level: https://github.com/microsoft/vscode-languageserver-node/issues/672 */
+
+        /// <summary>
+        /// Indicates a response could not be serialized as the application intended.
+        /// </summary>
+        ResponseSerializationFailure = -32003,
+
         /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
         /// </summary>

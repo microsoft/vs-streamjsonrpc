@@ -85,6 +85,11 @@ namespace StreamJsonRpc
         private MessageFormatterEnumerableTracker? enumerableTracker;
 
         /// <summary>
+        /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingMessageWithId"/> property.
         /// </summary>
         private RequestId serializingMessageWithId;
@@ -164,6 +169,7 @@ namespace StreamJsonRpc
                     this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
                     this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
                     this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
+                    this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
                 }
             }
         }
@@ -227,6 +233,18 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.rpcMarshaledContextTracker); // This should have been set in the Rpc property setter.
+                return this.rpcMarshaledContextTracker;
+            }
+        }
+
+        /// <summary>
         /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
         /// </summary>
         /// <param name="options">
@@ -265,8 +283,15 @@ namespace StreamJsonRpc
             }
 
             var writer = new MessagePackWriter(contentBuffer);
-            this.messageSerializationOptions.Resolver.GetFormatterWithVerify<JsonRpcMessage>().Serialize(ref writer, message, this.messageSerializationOptions);
-            writer.Flush();
+            try
+            {
+                this.messageSerializationOptions.Resolver.GetFormatterWithVerify<JsonRpcMessage>().Serialize(ref writer, message, this.messageSerializationOptions);
+                writer.Flush();
+            }
+            catch (Exception ex)
+            {
+                throw new MessagePackSerializationException(string.Format(System.Globalization.CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, ex.GetType().Name, ex.Message), ex);
+            }
         }
 
         /// <inheritdoc/>
@@ -280,6 +305,16 @@ namespace StreamJsonRpc
 
         /// <inheritdoc/>
         public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+        protected virtual void Dispose(bool disposing)
         {
             this.duplexPipeTracker?.Dispose();
         }
@@ -426,6 +461,9 @@ namespace StreamJsonRpc
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
+
+                // Support for marshalled objects.
+                new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
 
                 // Add resolvers to make types serializable that we expect to be serializable.
                 MessagePackExceptionResolver.Instance,
@@ -793,7 +831,9 @@ namespace StreamJsonRpc
             /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>
             /// or an <see cref="IAsyncEnumerable{T}"/> into an enumeration token.
             /// </summary>
+#pragma warning disable CA1812
             private class PreciseTypeFormatter<T> : IMessagePackFormatter<IAsyncEnumerable<T>?>
+#pragma warning restore CA1812
             {
                 private MessagePackFormatter mainFormatter;
 
@@ -882,8 +922,10 @@ namespace StreamJsonRpc
             /// <summary>
             /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
             /// </summary>
+#pragma warning disable CA1812
             private class GeneratorFormatter<TClass, TElement> : IMessagePackFormatter<TClass>
                 where TClass : IAsyncEnumerable<TElement>
+#pragma warning restore CA1812
             {
                 private MessagePackFormatter mainFormatter;
 
@@ -945,8 +987,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class DuplexPipeFormatter<T> : IMessagePackFormatter<T?>
                 where T : class, IDuplexPipe
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -962,12 +1006,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -978,8 +1022,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class PipeReaderFormatter<T> : IMessagePackFormatter<T?>
                 where T : PipeReader
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -995,12 +1041,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipeReader(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeReader(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1011,8 +1057,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class PipeWriterFormatter<T> : IMessagePackFormatter<T?>
                 where T : PipeWriter
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1028,12 +1076,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadInt32());
+                    return (T)this.formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadUInt64());
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1044,8 +1092,10 @@ namespace StreamJsonRpc
                 }
             }
 
+#pragma warning disable CA1812
             private class StreamFormatter<T> : IMessagePackFormatter<T?>
                 where T : Stream
+#pragma warning restore CA1812
             {
                 private readonly MessagePackFormatter formatter;
 
@@ -1061,12 +1111,12 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadInt32()).AsStream();
+                    return (T)this.formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64()).AsStream();
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
                 {
-                    if (this.formatter.DuplexPipeTracker.GetToken(value?.UsePipe()) is { } token)
+                    if (this.formatter.DuplexPipeTracker.GetULongToken(value?.UsePipe()) is { } token)
                     {
                         writer.Write(token);
                     }
@@ -1074,6 +1124,104 @@ namespace StreamJsonRpc
                     {
                         writer.WriteNil();
                     }
+                }
+            }
+        }
+
+        private class RpcMarshalableImplicitResolver : IFormatterResolver
+        {
+            private readonly MessagePackFormatter formatter;
+            private readonly IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes;
+            private readonly Dictionary<Type, object> formatters = new Dictionary<Type, object>();
+
+            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter, IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes)
+            {
+                this.formatter = formatter;
+                this.implicitlyMarshaledTypes = implicitlyMarshaledTypes;
+            }
+
+            public IMessagePackFormatter<T>? GetFormatter<T>()
+            {
+                if (typeof(T).IsValueType)
+                {
+                    return null;
+                }
+
+                lock (this.formatters)
+                {
+                    if (this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        return (IMessagePackFormatter<T>)cachedFormatter;
+                    }
+                }
+
+                (Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)? matchingCandidate = null;
+                foreach ((Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) candidate in this.implicitlyMarshaledTypes)
+                {
+                    if (candidate.Type == typeof(T) ||
+                        (candidate.Type.IsGenericTypeDefinition && typeof(T).IsConstructedGenericType && candidate.Type == typeof(T).GetGenericTypeDefinition()))
+                    {
+                        matchingCandidate = candidate;
+                        break;
+                    }
+                }
+
+                if (!matchingCandidate.HasValue)
+                {
+                    return null;
+                }
+
+                object formatter = Activator.CreateInstance(
+                    typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
+                    this.formatter,
+                    matchingCandidate.Value.ProxyOptions,
+                    matchingCandidate.Value.TargetOptions);
+
+                lock (this.formatters)
+                {
+                    if (!this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        this.formatters.Add(typeof(T), cachedFormatter = formatter);
+                    }
+
+                    return (IMessagePackFormatter<T>)cachedFormatter;
+                }
+            }
+        }
+
+#pragma warning disable CA1812
+        private class RpcMarshalableImplicitFormatter<T> : IMessagePackFormatter<T?>
+            where T : class
+#pragma warning restore CA1812
+        {
+            private MessagePackFormatter messagePackFormatter;
+            private JsonRpcProxyOptions proxyOptions;
+            private JsonRpcTargetOptions targetOptions;
+
+            public RpcMarshalableImplicitFormatter(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            {
+                this.messagePackFormatter = messagePackFormatter;
+                this.proxyOptions = proxyOptions;
+                this.targetOptions = targetOptions;
+            }
+
+            public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = MessagePackSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, options);
+                return token.HasValue ? (T?)this.messagePackFormatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions) : null;
+            }
+
+            public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
+            {
+                if (value is null)
+                {
+                    writer.WriteNil();
+                }
+                else
+                {
+                    IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(value, this.targetOptions);
+                    MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.messagePackFormatter.RpcMarshaledContextTracker.GetToken(context);
+                    MessagePackSerializer.Serialize(ref writer, token, options);
                 }
             }
         }
@@ -1101,7 +1249,9 @@ namespace StreamJsonRpc
             {
                 internal static readonly IMessagePackFormatter<T>? Formatter;
 
+#pragma warning disable CA1810 // Initialize reference type static fields inline
                 static Cache()
+#pragma warning restore CA1810 // Initialize reference type static fields inline
                 {
                     if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
                     {
@@ -1111,8 +1261,10 @@ namespace StreamJsonRpc
             }
 
 #pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
+#pragma warning disable CA1812
             private class ExceptionFormatter<T> : IMessagePackFormatter<T>
                 where T : Exception
+#pragma warning restore CA1812
             {
                 [return: MaybeNull]
                 public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -1321,7 +1473,9 @@ namespace StreamJsonRpc
                             }
                         }
                     }
+#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception ex)
+#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         this.formatter.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
                     }
