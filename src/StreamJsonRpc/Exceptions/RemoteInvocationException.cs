@@ -58,6 +58,9 @@ namespace StreamJsonRpc
             : base(message, innerException)
         {
             base.ErrorCode = (JsonRpcErrorCode)errorCode;
+
+            // Emulate the CommonErrorData object tree as well so folks can keep reading that if they were before.
+            base.DeserializedErrorData = new CommonErrorData(innerException);
         }
 
         /// <summary>

@@ -383,26 +383,23 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal("test!", result);
     }
 
-    [Fact]
-    public async Task CanCallAsyncMethodThatThrows()
-    {
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
-        Assert.Equal(Server.ExceptionMessage, errorData.Message);
-    }
-
-    [Fact]
-    public async Task CanCallAsyncMethodThatThrows_ISerializable()
+    [Theory, PairwiseData]
+    public async Task CanCallAsyncMethodThatThrows(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
-        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
-        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
 
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrows)));
-        Assert.Null(exception.DeserializedErrorData);
-        Exception inner = Assert.IsType<Exception>(exception.InnerException);
-        Assert.Equal(Server.ExceptionMessage, inner.Message);
+        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.Equal(Server.ExceptionMessage, errorData.Message);
+
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            Exception inner = Assert.IsType<Exception>(exception.InnerException);
+            Assert.Equal(Server.ExceptionMessage, inner.Message);
+        }
     }
 
     [Fact]
@@ -2067,43 +2064,44 @@ public abstract class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    [Fact]
-    public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient()
-    {
-        var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
-        var outer = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
-        Assert.Equal(typeof(FileNotFoundException).FullName, outer.TypeName);
-        Assert.Equal("3", outer.Message);
-        Assert.NotNull(outer.StackTrace);
-        var middle = Assert.IsType<CommonErrorData>(outer.Inner);
-        Assert.Equal(typeof(ApplicationException).FullName, middle.TypeName);
-        Assert.Equal("2", middle.Message);
-        Assert.NotNull(middle.StackTrace);
-        var inner = Assert.IsType<CommonErrorData>(middle.Inner);
-        Assert.Equal(typeof(InvalidOperationException).FullName, inner.TypeName);
-        Assert.Equal("1", inner.Message);
-        Assert.NotNull(inner.StackTrace);
-    }
-
-    [Fact]
-    public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient_ISerializable()
+    [Theory, PairwiseData]
+    public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
-        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
-        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
 
         var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
-        Assert.Null(exception.DeserializedErrorData);
-        var outer = Assert.IsType<FileNotFoundException>(exception.InnerException);
-        Assert.Equal("3", outer.Message);
-        Assert.NotNull(outer.StackTrace);
-        var middle = Assert.IsType<ApplicationException>(outer.InnerException);
-        Assert.Equal("2", middle.Message);
-        Assert.NotNull(middle.StackTrace);
-        var inner = Assert.IsType<InvalidOperationException>(middle.InnerException);
-        Assert.Equal("1", inner.Message);
-        Assert.NotNull(inner.StackTrace);
+
+        // Verify the CommonErrorData is always available.
+        {
+            var outer = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+            Assert.Equal(typeof(FileNotFoundException).FullName, outer.TypeName);
+            Assert.Equal("3", outer.Message);
+            Assert.NotNull(outer.StackTrace);
+            var middle = Assert.IsType<CommonErrorData>(outer.Inner);
+            Assert.Equal(typeof(ApplicationException).FullName, middle.TypeName);
+            Assert.Equal("2", middle.Message);
+            Assert.NotNull(middle.StackTrace);
+            var inner = Assert.IsType<CommonErrorData>(middle.Inner);
+            Assert.Equal(typeof(InvalidOperationException).FullName, inner.TypeName);
+            Assert.Equal("1", inner.Message);
+            Assert.NotNull(inner.StackTrace);
+        }
+
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            var outer = Assert.IsType<FileNotFoundException>(exception.InnerException);
+            Assert.Equal("3", outer.Message);
+            Assert.NotNull(outer.StackTrace);
+            var middle = Assert.IsType<ApplicationException>(outer.InnerException);
+            Assert.Equal("2", middle.Message);
+            Assert.NotNull(middle.StackTrace);
+            var inner = Assert.IsType<InvalidOperationException>(middle.InnerException);
+            Assert.Equal("1", inner.Message);
+            Assert.NotNull(inner.StackTrace);
+        }
     }
 
     [Fact]
