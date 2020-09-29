@@ -1,0 +1,5 @@
+[*.cs]
+
+dotnet_diagnostic.VSTHRD111.severity = error
+dotnet_diagnostic.VSTHRD100.severity = error
+dotnet_diagnostic.VSTHRD200.severity = error

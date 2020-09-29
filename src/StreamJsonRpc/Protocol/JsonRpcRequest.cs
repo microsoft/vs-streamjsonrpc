@@ -127,7 +127,9 @@ namespace StreamJsonRpc.Protocol
         /// </summary>
         [IgnoreDataMember]
         [Obsolete("Use " + nameof(ArgumentsList) + " instead.")]
+#pragma warning disable CA1819 // Properties should not return arrays
         public object?[]? ArgumentsArray
+#pragma warning restore CA1819 // Properties should not return arrays
         {
             get => this.Arguments as object[];
             set => this.Arguments = value;

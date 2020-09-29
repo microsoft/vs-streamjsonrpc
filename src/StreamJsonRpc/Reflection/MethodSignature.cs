@@ -14,7 +14,6 @@ namespace StreamJsonRpc
     [DebuggerDisplay("{DebuggerDisplay}")]
     internal sealed class MethodSignature : IEquatable<MethodSignature>
     {
-        private static readonly ParameterInfo[] EmptyParameterInfoArray = new ParameterInfo[0];
         private static readonly StringComparer TypeNameComparer = StringComparer.Ordinal;
 
         /// <summary>
@@ -33,7 +32,7 @@ namespace StreamJsonRpc
 
         internal JsonRpcMethodAttribute? Attribute { get; }
 
-        internal ParameterInfo[] Parameters => this.parameters ?? (this.parameters = this.MethodInfo.GetParameters() ?? EmptyParameterInfoArray);
+        internal ParameterInfo[] Parameters => this.parameters ?? (this.parameters = this.MethodInfo.GetParameters() ?? Array.Empty<ParameterInfo>());
 
         internal bool IsPublic => this.MethodInfo.IsPublic;
 

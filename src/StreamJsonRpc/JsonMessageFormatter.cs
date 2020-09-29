@@ -7,6 +7,7 @@ namespace StreamJsonRpc
     using System.Buffers;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.IO.Pipelines;
@@ -22,6 +23,7 @@ namespace StreamJsonRpc
     using Nerdbank.Streams;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
     using StreamJsonRpc.Protocol;
     using StreamJsonRpc.Reflection;
 
@@ -63,6 +65,8 @@ namespace StreamJsonRpc
         /// </remarks>
         private static readonly JsonSerializer DefaultSerializer = JsonSerializer.CreateDefault();
 
+        private readonly IReadOnlyDictionary<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledTypes;
+
         /// <summary>
         /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
         /// </summary>
@@ -92,6 +96,11 @@ namespace StreamJsonRpc
         /// The helper for marshaling <see cref="IAsyncEnumerable{T}"/> in RPC method arguments or return values.
         /// </summary>
         private MessageFormatterEnumerableTracker? enumerableTracker;
+
+        /// <summary>
+        /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingMessageWithId"/> property.
@@ -164,6 +173,7 @@ namespace StreamJsonRpc
                 NullValueHandling = NullValueHandling.Ignore,
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
                 DateParseHandling = DateParseHandling.None,
+                ContractResolver = new ImplicitMarshalContractResolver(this),
                 Converters =
                 {
                     new JsonProgressServerConverter(this),
@@ -177,6 +187,17 @@ namespace StreamJsonRpc
                     new ExceptionConverter(this),
                 },
             };
+
+            var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+            var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
+            this.implicitlyMarshaledTypes = MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes.ToDictionary(
+                t => t.ImplicitlyMarshaledType,
+                t => new RpcMarshalableImplicitConverter(t.ImplicitlyMarshaledType, this, t.ProxyOptions, t.TargetOptions));
+
+            foreach (KeyValuePair<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledType in this.implicitlyMarshaledTypes)
+            {
+                this.JsonSerializer.Converters.Add(implicitlyMarshaledType.Value);
+            }
         }
 
         /// <summary>
@@ -243,6 +264,7 @@ namespace StreamJsonRpc
                 this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
+                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
             }
         }
 
@@ -288,6 +310,18 @@ namespace StreamJsonRpc
             {
                 Assumes.NotNull(this.enumerableTracker); // This should have been set in the Rpc property setter.
                 return this.enumerableTracker;
+            }
+        }
+
+        /// <summary>
+        /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+        /// </summary>
+        private MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
+        {
+            get
+            {
+                Assumes.NotNull(this.rpcMarshaledContextTracker); // This should have been set in the Rpc property setter.
+                return this.rpcMarshaledContextTracker;
             }
         }
 
@@ -392,26 +426,33 @@ namespace StreamJsonRpc
         /// <returns>The JSON of the message.</returns>
         public JToken Serialize(JsonRpcMessage message)
         {
-            this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
-
-            // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
-            this.TokenizeUserData(message);
-
-            var json = JToken.FromObject(message, DefaultSerializer);
-
-            // Fix up dropped fields that are mandatory
-            if (message is Protocol.JsonRpcResult && json["result"] == null)
+            try
             {
-                json["result"] = JValue.CreateNull();
-            }
+                this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
 
-            if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+                // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
+                this.TokenizeUserData(message);
+
+                var json = JToken.FromObject(message, DefaultSerializer);
+
+                // Fix up dropped fields that are mandatory
+                if (message is Protocol.JsonRpcResult && json["result"] == null)
+                {
+                    json["result"] = JValue.CreateNull();
+                }
+
+                if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+                {
+                    // JSON-RPC 1.0 requires the id property to be present even for notifications.
+                    json["id"] = JValue.CreateNull();
+                }
+
+                return json;
+            }
+            catch (Exception ex)
             {
-                // JSON-RPC 1.0 requires the id property to be present even for notifications.
-                json["id"] = JValue.CreateNull();
+                throw new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, ex.GetType().Name, ex.Message), ex);
             }
-
-            return json;
         }
 
         /// <inheritdoc/>
@@ -425,7 +466,19 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+        protected virtual void Dispose(bool disposing)
+        {
             this.duplexPipeTracker?.Dispose();
+            this.sequenceTextReader.Dispose();
+            this.bufferTextWriter.Dispose();
         }
 
         private static IReadOnlyDictionary<string, object> PartiallyParseNamedArguments(JObject args)
@@ -462,7 +515,7 @@ namespace StreamJsonRpc
             builder.AppendFormat(CultureInfo.CurrentCulture, "Unrecognized JSON-RPC {0} message", this.ProtocolVersion);
             if (explanation != null)
             {
-                builder.AppendFormat(" ({0})", explanation);
+                builder.AppendFormat(CultureInfo.CurrentCulture, " ({0})", explanation);
             }
 
             builder.Append(": ");
@@ -528,7 +581,13 @@ namespace StreamJsonRpc
 
                     if (request.ArgumentsList != null)
                     {
-                        request.ArgumentsList = request.ArgumentsList.Select(this.TokenizeUserData).ToArray();
+                        var tokenizedArgumentsList = new JToken[request.ArgumentsList.Count];
+                        for (int i = 0; i < request.ArgumentsList.Count; i++)
+                        {
+                            tokenizedArgumentsList[i] = this.TokenizeUserData(request.ArgumentListDeclaredTypes?[i], request.ArgumentsList[i]);
+                        }
+
+                        request.ArgumentsList = tokenizedArgumentsList;
                     }
                     else if (request.Arguments != null)
                     {
@@ -538,13 +597,14 @@ namespace StreamJsonRpc
                         }
 
                         // Tokenize the user data using the user-supplied serializer.
+                        // TODO: add declared type handling to this branch too.
                         var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
                         request.Arguments = paramsObject;
                     }
                 }
                 else if (jsonRpcMessage is Protocol.JsonRpcResult result)
                 {
-                    result.Result = this.TokenizeUserData(result.Result);
+                    result.Result = this.TokenizeUserData(result.ResultDeclaredType, result.Result);
                 }
             }
             finally
@@ -557,9 +617,10 @@ namespace StreamJsonRpc
         /// <summary>
         /// Converts a single user data value to a <see cref="JToken"/>, using all applicable user-provided <see cref="JsonConverter"/> instances.
         /// </summary>
+        /// <param name="declaredType">The <see cref="Type"/> that the <paramref name="value"/> is declared to be, if available.</param>
         /// <param name="value">The value to tokenize.</param>
         /// <returns>The <see cref="JToken"/> instance.</returns>
-        private JToken TokenizeUserData(object? value)
+        private JToken TokenizeUserData(Type? declaredType, object? value)
         {
             if (value is JToken token)
             {
@@ -571,7 +632,30 @@ namespace StreamJsonRpc
                 return JValue.CreateNull();
             }
 
+            if (declaredType is object && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableImplicitConverter? converter))
+            {
+                using var jsonWriter = new JTokenWriter();
+                converter.WriteJson(jsonWriter, value, this.JsonSerializer);
+                return jsonWriter.Token;
+            }
+
             return JToken.FromObject(value, this.JsonSerializer);
+        }
+
+        private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableImplicitConverter? converter)
+        {
+            if (this.implicitlyMarshaledTypes.TryGetValue(type, out converter))
+            {
+                return true;
+            }
+
+            if (type.IsConstructedGenericType && this.implicitlyMarshaledTypes.TryGetValue(type.GetGenericTypeDefinition(), out converter))
+            {
+                converter = converter.WithClosedType(type);
+                return true;
+            }
+
+            return false;
         }
 
         private JsonRpcRequest ReadRequest(JToken json)
@@ -612,7 +696,9 @@ namespace StreamJsonRpc
                         progressInfo.InvokeReport(typedValue);
                     }
                 }
+#pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception e)
+#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     this.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
                 }
@@ -787,7 +873,14 @@ namespace StreamJsonRpc
                     return default!;
                 }
 
-                return result.ToObject<T>(this.jsonSerializer);
+                try
+                {
+                    return result.ToObject<T>(this.jsonSerializer);
+                }
+                catch (Exception exception)
+                {
+                    throw new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingRpcResult, typeof(T).Name, exception.GetType().Name, exception.Message));
+                }
             }
         }
 
@@ -1029,13 +1122,13 @@ namespace StreamJsonRpc
 
             public override IDuplexPipe? ReadJson(JsonReader reader, Type objectType, IDuplexPipe? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.duplexPipeTracker!.GetPipe(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, IDuplexPipe? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.duplexPipeTracker!.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.duplexPipeTracker!.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1051,13 +1144,13 @@ namespace StreamJsonRpc
 
             public override PipeReader? ReadJson(JsonReader reader, Type objectType, PipeReader? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipeReader(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, PipeReader? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1073,13 +1166,13 @@ namespace StreamJsonRpc
 
             public override PipeWriter? ReadJson(JsonReader reader, Type objectType, PipeWriter? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipeWriter(tokenId);
             }
 
             public override void WriteJson(JsonWriter writer, PipeWriter? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value);
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value);
                 writer.WriteValue(token);
             }
         }
@@ -1095,14 +1188,75 @@ namespace StreamJsonRpc
 
             public override Stream? ReadJson(JsonReader reader, Type objectType, Stream? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
-                int? tokenId = JToken.Load(reader).Value<int?>();
+                ulong? tokenId = JToken.Load(reader).Value<ulong?>();
                 return this.jsonMessageFormatter.DuplexPipeTracker.GetPipe(tokenId)?.AsStream();
             }
 
             public override void WriteJson(JsonWriter writer, Stream? value, JsonSerializer serializer)
             {
-                var token = this.jsonMessageFormatter.DuplexPipeTracker.GetToken(value?.UsePipe());
+                ulong? token = this.jsonMessageFormatter.DuplexPipeTracker.GetULongToken(value?.UsePipe());
                 writer.WriteValue(token);
+            }
+        }
+
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
+        private class RpcMarshalableImplicitConverter : JsonConverter
+        {
+            private readonly Type implicitlyConvertedType;
+            private readonly JsonMessageFormatter jsonMessageFormatter;
+            private readonly JsonRpcProxyOptions proxyOptions;
+            private readonly JsonRpcTargetOptions targetOptions;
+
+            public RpcMarshalableImplicitConverter(Type implicitlyConvertedType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            {
+                this.implicitlyConvertedType = implicitlyConvertedType;
+                this.jsonMessageFormatter = jsonMessageFormatter;
+                this.proxyOptions = proxyOptions;
+                this.targetOptions = targetOptions;
+            }
+
+            private RpcMarshalableImplicitConverter(RpcMarshalableImplicitConverter copyFrom, Type implicitlyConvertedType)
+                : this(implicitlyConvertedType, copyFrom.jsonMessageFormatter, copyFrom.proxyOptions, copyFrom.targetOptions)
+            {
+            }
+
+            private string DebuggerDisplay => $"Implicit converter for: {this.implicitlyConvertedType.Name}";
+
+            public override bool CanConvert(Type objectType) =>
+                objectType == this.implicitlyConvertedType ||
+                (this.implicitlyConvertedType.IsGenericTypeDefinition && objectType.IsGenericType && objectType.GetGenericTypeDefinition() == this.implicitlyConvertedType);
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
+                return this.jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, this.proxyOptions);
+            }
+
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+            {
+                if (value is null)
+                {
+                    writer.WriteNull();
+                }
+                else
+                {
+                    IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(this.implicitlyConvertedType, value, this.targetOptions);
+                    MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(context);
+                    serializer.Serialize(writer, token);
+                }
+            }
+
+            internal RpcMarshalableImplicitConverter WithClosedType(Type implicitlyMarshaledType)
+            {
+                if (this.implicitlyConvertedType == implicitlyMarshaledType ||
+                    !this.implicitlyConvertedType.IsGenericType ||
+                    this.implicitlyConvertedType.IsConstructedGenericType)
+                {
+                    return this;
+                }
+
+                Assumes.True(implicitlyMarshaledType.GetGenericTypeDefinition().Equals(this.implicitlyConvertedType.GetGenericTypeDefinition()));
+                return new RpcMarshalableImplicitConverter(this, implicitlyMarshaledType);
             }
         }
 
@@ -1224,6 +1378,38 @@ namespace StreamJsonRpc
                 }
 
                 writer.WriteEndObject();
+            }
+        }
+
+        private class ImplicitMarshalContractResolver : DefaultContractResolver
+        {
+            private readonly JsonMessageFormatter formatter;
+
+            public ImplicitMarshalContractResolver(JsonMessageFormatter formatter)
+            {
+                this.formatter = formatter;
+            }
+
+            public override JsonContract ResolveContract(Type type)
+            {
+                JsonContract? result = base.ResolveContract(type);
+                if (result is JsonObjectContract objectContract)
+                {
+                    foreach (JsonProperty property in objectContract.Properties)
+                    {
+                        if (property.Ignored)
+                        {
+                            continue;
+                        }
+
+                        if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
+                        {
+                            property.Converter = converter;
+                        }
+                    }
+                }
+
+                return result;
             }
         }
     }

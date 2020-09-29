@@ -2,10 +2,11 @@ trigger:
   branches:
     include:
     - master
-    - 'v*'
+    - 'v?.*'
     - 'validate/*'
   paths:
     exclude:
+    - .github/
     - doc/
     - '*.md'
     - .vscode/
@@ -16,7 +17,7 @@ schedules:
   branches:
     include:
     - master
-    - 'v2.*'
+    - 'v?.*'
 
 parameters:
 - name: SignTypeSelection
@@ -52,9 +53,7 @@ stages:
   condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - job: archive
-    pool: VSEng-RMPool
-    variables:
-      SymbolsFeatureName: StreamJsonRpc
+    pool: VSEng-ReleasePool
     steps:
     - download: current
       artifact: Variables-Windows

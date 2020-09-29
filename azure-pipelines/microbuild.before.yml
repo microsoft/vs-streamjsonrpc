@@ -2,7 +2,6 @@ parameters:
 - name: ShouldSkipOptimize
 
 steps:
-
 - task: MicroBuildOptProfPlugin@5
   inputs:
     ProfilingInputsDropName: ProfilingInputs/$(System.TeamProject)/$(Build.Repository.Name)/$(Build.SourceBranchName)/$(Build.BuildNumber)

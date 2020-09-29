@@ -251,6 +251,5 @@ msbuild.err
 msbuild.wrn
 *.binlog
 
-# SVN
-
+#SVN
 .svn/
