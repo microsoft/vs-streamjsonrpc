@@ -1502,7 +1502,7 @@ namespace StreamJsonRpc
         /// <exception cref="ArgumentException">Thrown when <paramref name="targetName" /> is empty.</exception>
         /// <exception cref="ObjectDisposedException">If this instance of <see cref="JsonRpc"/> has already been disposed prior to this call.</exception>
         /// <exception cref="ConnectionLostException">
-        /// Thrown when the connection is terminated (by either side) while the request is in progress,
+        /// Thrown when the connection is terminated (by either side) before the request or while the request is in progress,
         /// unless <paramref name="cancellationToken"/> is already signaled.
         /// </exception>
         /// <exception cref="Exception">

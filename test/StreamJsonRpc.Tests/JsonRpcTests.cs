@@ -893,6 +893,14 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task Invoke_ThrowsConnectionLostExceptionOverDisposedException_ForNewRequests()
+    {
+        this.serverStream.Dispose();
+        await this.clientRpc.Completion;
+        await Assert.ThrowsAsync<ConnectionLostException>(() => this.clientRpc.InvokeAsync("Something"));
+    }
+
+    [Fact]
     public async Task InvokeAsync_CanCallCancellableMethodWithNoArgs()
     {
         Assert.Equal(5, await this.clientRpc.InvokeAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
