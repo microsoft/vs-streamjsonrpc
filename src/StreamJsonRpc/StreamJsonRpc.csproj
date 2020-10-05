@@ -16,7 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.2.44-rc" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.2.44-rc" PrivateAssets="all" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.2.60" PrivateAssets="all" />
     <!-- <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.4" PrivateAssets="all" /> -->
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.7.56" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.7.56" />
