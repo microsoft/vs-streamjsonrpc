@@ -42,6 +42,11 @@
         <target state="translated">이름이 "{0}"(이)고 위치가 {1}인 JSON-RPC 인수를 "{2}" 형식에 역직렬화하지 못했습니다. {3}</target>
         <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
       </trans-unit>
+      <trans-unit id="FailureDeserializingRpcResult">
+        <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
+        <target state="new">Deserializing JSON-RPC result to type {0} failed with {1}: {2}</target>
+        <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
+      </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
         <target state="translated">지정된 형식을 IProgress로 캐스팅할 수 없음&lt;T&gt;</target>
@@ -107,6 +112,11 @@
         <target state="translated">응답은 오류가 아닙니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResponseSerializationFailure">
+        <source>Failed to serialize the response.</source>
+        <target state="new">Failed to serialize the response.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됨: {0}</target>
@@ -125,6 +135,11 @@
       <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
         <source>The task was cancelled.</source>
         <target state="translated">작업이 취소되었습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TypedArgumentsLengthMismatch">
+        <source>The length of this list must equal the length of the arguments list.</source>
+        <target state="new">The length of this list must equal the length of the arguments list.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">

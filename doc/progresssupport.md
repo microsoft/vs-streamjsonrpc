@@ -13,7 +13,7 @@ in the outgoing message.
 
 The request sent to the server will look like this:
 
-`
+```json
 {
   "jsonrpc": "2.0",
   "id": 153,
@@ -23,7 +23,7 @@ The request sent to the server will look like this:
     "progress": "some-JSON-token"
   }
 }
-`
+```
 
 The progress argument may have any name or position. Its value will be determined by the `IJsonRpcMessageFormatter` and may be any valid JSON token.
 A value of null is specially recognized as an indication that the client does not want progress updates from the server.
@@ -46,7 +46,7 @@ the token given by the client and the reported values as parameters.
 
 The progress notification will look like this:
 
-`
+```json
 {
   "jsonrpc": "2.0",
   "method": "$/progress",
@@ -55,7 +55,7 @@ The progress notification will look like this:
     "value": { "some": "status-token" }
   }
 }
-`
+```
 
 ## Links
 

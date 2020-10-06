@@ -2,16 +2,25 @@ trigger:
   branches:
     include:
     - master
-    - 'v*'
+    - 'v?.*'
     - 'validate/*'
   paths:
     exclude:
+    - .github/
     - doc/
     - '*.md'
     - .vscode/
+    - azure-pipelines/release.yml
+schedules:
+- cron: "0 3 * * *" # Daily @ 8 PM PST
+  displayName: Daily vs-insertion
+  branches:
+    include:
+    - master
+    - 'v?.*'
 
 parameters:
-- name: SignType
+- name: SignTypeSelection
   displayName: Sign type
   type: string
   default: Test
@@ -22,6 +31,7 @@ parameters:
   default: false
 
 stages:
+
 - stage: Build
   variables:
     TreatWarningsAsErrors: true
@@ -31,29 +41,35 @@ stages:
     BuildPlatform: Any CPU
     push_to_ci: true
     NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
+    SignTypeSelection: ${{ parameters.SignTypeSelection }}
   jobs:
   - template: build.yml
     parameters:
       windowsPool: VSEng-MicroBuildVS2019
-      SignType: ${{ parameters.SignType }}
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
 
 - stage: symbol_archive
   displayName: Symbol archival
-  condition: eq('${{ parameters.SignType }}', 'Real')
-  dependsOn: build
+  condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - job: archive
-    pool: VSEng-RMPool
+    pool: VSEng-ReleasePool
     steps:
-    - template: release-deployment-prep.yml
+    - download: current
+      artifact: Variables-Windows
+      displayName: Download Variables-Windows artifact
+    - task: PowerShell@2
+      displayName: Set VSTS variables based on artifacts
+      inputs:
+        targetType: filePath
+        filePath: $(Pipeline.Workspace)/Variables-Windows/_pipelines.ps1
     - download: current
       artifact: symbols-Windows
       displayName: Download symbols-Windows artifact
     - task: MicroBuildArchiveSymbols@1
       displayName: Archive $(SymbolsFeatureName) on Symweb
       inputs:
-        SymbolsFeatureName: StreamJsonRpc
+        SymbolsFeatureName: $(SymbolsFeatureName)
         SymbolsSymwebProject: VS
         SymbolsUncPath: \\cpvsbuild\drops\$(TeamName)\$(Build.DefinitionName)\$(Build.SourceBranchName)\$(Build.BuildNumber)\Symbols.Archival
         SymbolsEmailContacts: vsidemicrobuild
@@ -61,54 +77,18 @@ stages:
     - task: MicroBuildCleanup@1
       displayName: Send Telemetry
 
-- stage: VS
-  displayName: VS insertion
-  dependsOn: symbol_archive
-  jobs:
-  - deployment: insertion
-    pool: VSEng-RMPool
-    environment: VSPlatform-Approval-Required
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - template: release-deployment-prep.yml
-          - download: current
-            artifact: VSInsertion-Windows
-            displayName: Download VSInsertion-Windows artifact
-          - task: NuGetCommand@2
-            displayName: Push CoreXT packages to VS feed
-            inputs:
-              command: push
-              packagesToPush: $(Pipeline.Workspace)/VSInsertion-windows/*.nupkg
-              publishVstsFeed: 97a41293-2972-4f48-8c0e-05493ae82010
-              allowPackageConflicts: true
-          - task: MicroBuildInsertVsPayload@3
-            displayName: Insert VS Payload
-            inputs:
-              TeamName: $(TeamName)
-              TeamEmail: $(TeamEmail)
-              InsertionPayloadName: $(Build.Repository.Name) $(Build.BuildNumber)
-              InsertionBuildPolicy: Request Perf DDRITs
-              AutoCompletePR: true
-              AutoCompleteMergeStrategy: Squash
-          - task: MicroBuildCleanup@1
-            displayName: Send Telemetry
-
 - stage: azure_public_vssdk_feed
   displayName: azure-public/vssdk feed
-  dependsOn: symbol_archive
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - deployment: push
     pool:
       vmImage: ubuntu-latest
-    environment: VSPlatform-Approval-Required
+    environment: No-Approval
     strategy:
       runOnce:
         deploy:
           steps:
-          - template: release-deployment-prep.yml
           - download: current
             artifact: deployables-Windows
             displayName: Download deployables-Windows artifact
@@ -123,61 +103,3 @@ stages:
               packagesToPush: $(Pipeline.Workspace)/deployables-Windows/NuGet/*.nupkg
               nuGetFeedType: external
               publishFeedCredentials: azure-public/vssdk
-
-- stage: nuget_org_feed
-  displayName: nuget.org feed
-  dependsOn: symbol_archive
-  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: push
-    pool:
-      vmImage: ubuntu-latest
-    environment: VSPlatform-Approval-Required
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - template: release-deployment-prep.yml
-          - download: current
-            artifact: deployables-Windows
-            displayName: Download deployables-Windows artifact
-          - task: NuGetToolInstaller@1
-            displayName: Use NuGet 5.x
-            inputs:
-              versionSpec: 5.x
-          - task: NuGetCommand@2
-            displayName: NuGet push
-            inputs:
-              command: push
-              packagesToPush: $(Pipeline.Workspace)/deployables-Windows/NuGet/*.nupkg
-              nuGetFeedType: external
-              publishFeedCredentials: VisualStudioExtensibility (nuget.org)
-
-- stage: GitHubRelease
-  displayName: GitHub Release
-  dependsOn: nuget_org_feed
-  jobs:
-  - deployment: create
-    pool:
-      vmImage: ubuntu-latest
-    environment: VSPlatform-Approval-Required
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: GitHubRelease@1
-            displayName: GitHub release (create)
-            inputs:
-              gitHubConnection: AArnott
-              repositoryName: microsoft/vs-streamjsonrpc
-              tagSource: userSpecifiedTag
-              tag: v$(Build.BuildNumber)
-              title: v$(Build.BuildNumber)
-              isDraft: true
-              changeLogCompareToRelease: lastNonDraftRelease
-              changeLogType: issueBased
-              changeLogLabels: |
-                [
-                  { "label" : "bug", "displayName" : "Fixes", "state" : "closed" },
-                  { "label" : "enhancement", "displayName": "Enhancements", "state" : "closed" }
-                ]

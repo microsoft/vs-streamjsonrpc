@@ -8,8 +8,8 @@ The data that is sent back may only be human readable rather than machine parsab
 
 The [structure JSON-RPC defines for errors](https://www.jsonrpc.org/specification#response_object) includes an error code and a message.
 
-Some error codes are reserved for the protocol itself or for the library that implements it,
-but most of the 32-bit integer range of the error code is available for the application to define.
+Error codes -32768 to -32000 are reserved for the protocol itself or for the library that implements it.
+The rest of the 32-bit integer range of the error code is available for the application to define.
 This error code is the best way for an RPC server to communicate a particular kind of error that the RPC client may use for controlling execution flow. For example the server may use an error code to indicate a conflict and another code to indicate a permission denied error. The client may check this error code and branch execution based on its value.
 
 The error *message* should be a localized, human readable message that explains the problem, possibly to the programmer of the RPC client or perhaps to the end user of the application.
@@ -19,6 +19,9 @@ The schema for this property is up to the application, but StreamJsonRpc default
 a `CommonErrorData` object to this property which retains much of the useful information from an
 `Exception` object.
 
+By setting `JsonRpc.ExceptionStrategy` to `ExceptionProcessing.ISerializable`, `JsonRpc` will use the `ISerializable` patterns in .NET to serialize exceptions with higher fidelity. On the RPC client the `RemoteInvocationException` will have its `InnerException` property set with the original exception (and inner exceptions) thrown at the RPC server.
+This requires that the exception strategy be set both on the server and on the client.
+
 ## Server-side concerns
 
 In StreamJsonRpc, your RPC server can return errors to the client by throwing an exception from your RPC method. StreamJsonRpc will automatically serialize data from the exception as an error response and transmit to the client when allowed. If the RPC method was invoked using a JSON-RPC notification, the client is not expecting any response and the exception thrown from the server will be swallowed.
@@ -26,6 +29,7 @@ In StreamJsonRpc, your RPC server can return errors to the client by throwing an
 If some or all exceptions thrown from RPC methods should be considered fatal and terminate the JSON-RPC connection, you can configure this behavior. See the [Fatal exceptions section of our resiliency doc](resiliency.md#Fatal-exceptions).
 
 By default any exception thrown from an RPC method is assigned `JsonRpcErrorCode.InvocationError` (-32000) for the JSON-RPC `error.code` property. The `Exception.Message` property is used as the JSON-RPC `error.message` property.
+When `ExceptionProcessing.ISerializable` is used the error code `JsonRpcErrorCode.InvocationErrorWithException` (-32004) indicates when full `Exception` data is serialized instead of just that data captured by `CommonErrorData`.
 
 An RPC server may take total control of `error.message` value simply by throwing any exception type with the message to use.
 The RPC server may also take control of the `error.code` and `error.data` properties by throwing `LocalRpcException`, which has properties for each of these JSON-RPC error message properties.
@@ -50,4 +54,5 @@ Because `error.data` may have any schema, extracting this property from `RemoteI
 
 When working with a JSON-RPC server that responds with `error.data` that does *not* conform to the `CommonErrorData` type defined by StreamJsonRpc, you may derive from the `JsonRpc` class and override the `GetErrorDetailsDataType` method to inspect the JSON-RPC error message directly and return the type of data object that should be deserialized for easier consumption from your exception handlers.
 
-The `RemoteInvocationException.InnerException` property does *not* contain a deserialized exception tree from what was thrown on the server. The server may not even be based on .NET, but even if it were, .NET exceptions are not serialized such that they can be deserialized over a JSON-RPC connection. Thus this property will typically be `null` and should not generally be relied on.
+By default, the `RemoteInvocationException.InnerException` property does *not* contain a deserialized exception tree from what was thrown on the server. The server may not even be based on .NET, but even if it were, .NET exceptions are not serialized such that they can be deserialized over a JSON-RPC connection. Thus this property will typically be `null` and should not generally be relied on.
+When `ExceptionProcessing.ISerializable` is used there *will* be an `InnerException` which is the original one thrown from the server if the server provided the data to deserialize.

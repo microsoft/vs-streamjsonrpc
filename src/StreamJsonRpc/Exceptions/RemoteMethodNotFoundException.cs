@@ -18,7 +18,9 @@ namespace StreamJsonRpc
     /// its arguments were incompatible with the arguments supplied by the client.
     /// </remarks>
     [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class RemoteMethodNotFoundException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteMethodNotFoundException"/> class
@@ -33,10 +35,10 @@ namespace StreamJsonRpc
             : base(message)
         {
             Requires.NotNullOrEmpty(targetMethod, nameof(targetMethod));
-            this.ErrorCode = errorCode;
+            base.ErrorCode = errorCode;
             this.TargetMethod = targetMethod;
-            this.ErrorData = errorData;
-            this.DeserializedErrorData = deserializedErrorData;
+            base.ErrorData = errorData;
+            base.DeserializedErrorData = deserializedErrorData;
         }
 
         /// <summary>
@@ -61,27 +63,13 @@ namespace StreamJsonRpc
         /// <value>
         /// The value is typically either <see cref="JsonRpcErrorCode.InvalidParams"/> or <see cref="JsonRpcErrorCode.MethodNotFound"/>.
         /// </value>
-        public JsonRpcErrorCode ErrorCode { get; }
+        public new JsonRpcErrorCode ErrorCode => base.ErrorCode!.Value;
 
-        /// <summary>
-        /// Gets the <c>error.data</c> value in the error response, if one was provided.
-        /// </summary>
-        /// <remarks>
-        /// Depending on the <see cref="IJsonRpcMessageFormatter"/> used, the value of this property, if any,
-        /// may be a <see cref="JToken"/> or a deserialized object.
-        /// If a deserialized object, the type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
-        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
-        /// </remarks>
-        public object? ErrorData { get; }
+        /// <inheritdoc cref="RemoteRpcException.ErrorData" />
+        public new object? ErrorData => base.ErrorData;
 
-        /// <summary>
-        /// Gets the <c>error.data</c> value in the error response, if one was provided.
-        /// </summary>
-        /// <remarks>
-        /// The type of this object is determined by <see cref="JsonRpc.GetErrorDetailsDataType(JsonRpcError)"/>.
-        /// The default implementation of this method produces a <see cref="CommonErrorData"/> object.
-        /// </remarks>
-        public object? DeserializedErrorData { get; }
+        /// <inheritdoc cref="RemoteRpcException.DeserializedErrorData" />
+        public new object? DeserializedErrorData => base.DeserializedErrorData;
 
         /// <inheritdoc/>
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

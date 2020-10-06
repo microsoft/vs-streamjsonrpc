@@ -1,9 +1,7 @@
 parameters:
-- name: SignType
 - name: ShouldSkipOptimize
 
 steps:
-
 - task: MicroBuildOptProfPlugin@5
   inputs:
     ProfilingInputsDropName: ProfilingInputs/$(System.TeamProject)/$(Build.Repository.Name)/$(Build.SourceBranchName)/$(Build.BuildNumber)
@@ -14,6 +12,6 @@ steps:
 
 - task: MicroBuildSigningPlugin@2
   inputs:
-    signType: ${{ parameters.SignType }}
+    signType: $(SignType)
     zipSources: false
   displayName: Install MicroBuild Signing Plugin

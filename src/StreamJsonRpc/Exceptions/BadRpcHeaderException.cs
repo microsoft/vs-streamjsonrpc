@@ -10,7 +10,9 @@ namespace StreamJsonRpc
     /// </summary>
     /// <seealso cref="RemoteRpcException" />
     [Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
     public class BadRpcHeaderException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.

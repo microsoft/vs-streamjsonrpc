@@ -196,6 +196,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deserializing JSON-RPC result to type {0} failed with {1}: {2}.
+        /// </summary>
+        internal static string FailureDeserializingRpcResult {
+            get {
+                return ResourceManager.GetString("FailureDeserializingRpcResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A fatal exception was thrown from the server method {0}: {1}.
         /// </summary>
         internal static string FatalExceptionWasThrown {
@@ -430,6 +439,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Failed to serialize the response..
+        /// </summary>
+        internal static string ResponseSerializationFailure {
+            get {
+                return ResourceManager.GetString("ResponseSerializationFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Response is in an unexpected format.  Only error and result are supported: {0}.
         /// </summary>
         internal static string ResponseUnexpectedFormat {
@@ -516,6 +534,15 @@ namespace StreamJsonRpc {
         internal static string TextEncoderNotApplicable {
             get {
                 return ResourceManager.GetString("TextEncoderNotApplicable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The length of this list must equal the length of the arguments list..
+        /// </summary>
+        internal static string TypedArgumentsLengthMismatch {
+            get {
+                return ResourceManager.GetString("TypedArgumentsLengthMismatch", resourceCulture);
             }
         }
         

@@ -13,7 +13,6 @@ namespace StreamJsonRpc.Reflection
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
     using Nerdbank.Streams;
-    using StreamJsonRpc.Protocol;
 
     /// <summary>
     /// Assists <see cref="IJsonRpcMessageFormatter"/> implementations with supporting marshaling <see cref="IDuplexPipe"/> over JSON-RPC.
@@ -47,12 +46,12 @@ namespace StreamJsonRpc.Reflection
         /// <summary>
         /// The set of channels that have been opened but not yet closed to support outbound requests, keyed by their ID.
         /// </summary>
-        private ImmutableDictionary<int, MultiplexingStream.Channel> openOutboundChannels = ImmutableDictionary<int, MultiplexingStream.Channel>.Empty;
+        private ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> openOutboundChannels = ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel>.Empty;
 
         /// <summary>
         /// The set of channels that have been opened but not yet closed to support inbound requests, keyed by their ID.
         /// </summary>
-        private ImmutableDictionary<int, MultiplexingStream.Channel> openInboundChannels = ImmutableDictionary<int, MultiplexingStream.Channel>.Empty;
+        private ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> openInboundChannels = ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel>.Empty;
 
         /// <summary>
         /// Backing field for the <see cref="IDisposableObservable.IsDisposed"/> property.
@@ -99,6 +98,11 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         private RequestId RequestIdBeingDeserialized => this.formatterState.DeserializingMessageWithId;
 
+        /// <inheritdoc cref="GetULongToken(IDuplexPipe?)"/>
+        [return: NotNullIfNotNull("duplexPipe")]
+        [Obsolete("Use " + nameof(GetULongToken) + " instead.")]
+        public int? GetToken(IDuplexPipe? duplexPipe) => checked((int?)this.GetULongToken(duplexPipe));
+
         /// <summary>
         /// Creates a token to represent an <see cref="IDuplexPipe"/> as it is transmitted from the client to an RPC server as a method argument.
         /// </summary>
@@ -106,14 +110,17 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="duplexPipe"/> was <c>null</c>.</returns>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("duplexPipe")]
-        public int? GetToken(IDuplexPipe? duplexPipe)
+        public ulong? GetULongToken(IDuplexPipe? duplexPipe)
         {
             Verify.NotDisposed(this);
 
             MultiplexingStream mxstream = this.GetMultiplexingStreamOrThrow();
-            if (this.RequestIdBeingSerialized.IsEmpty)
+            if (this.formatterState.SerializingMessageWithId.IsEmpty)
             {
-                throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
+                duplexPipe?.Output.Complete();
+                duplexPipe?.Input.Complete();
+
+                throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
             }
 
             if (duplexPipe is null)
@@ -123,18 +130,26 @@ namespace StreamJsonRpc.Reflection
 
             MultiplexingStream.Channel channel = mxstream.CreateChannel(new MultiplexingStream.ChannelOptions { ExistingPipe = duplexPipe });
 
-            ImmutableInterlocked.AddOrUpdate(
-                ref this.outboundRequestChannelMap,
-                this.RequestIdBeingSerialized,
-                ImmutableList.Create(channel),
-                (key, value) => value.Add(channel));
+            if (!this.RequestIdBeingSerialized.IsEmpty)
+            {
+                ImmutableInterlocked.AddOrUpdate(
+                    ref this.outboundRequestChannelMap,
+                    this.RequestIdBeingSerialized,
+                    ImmutableList.Create(channel),
+                    (key, value) => value.Add(channel));
+            }
 
             // Track open channels to assist in diagnosing abandoned channels.
-            ImmutableInterlocked.TryAdd(ref this.openOutboundChannels, channel.Id, channel);
-            channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openOutboundChannels, channel.Id, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
+            ImmutableInterlocked.TryAdd(ref this.openOutboundChannels, channel.QualifiedId, channel);
+            channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openOutboundChannels, channel.QualifiedId, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
 
-            return channel.Id;
+            return channel.QualifiedId.Id;
         }
+
+        /// <inheritdoc cref="GetULongToken(PipeReader?)"/>
+        [return: NotNullIfNotNull("reader")]
+        [Obsolete("Use " + nameof(GetULongToken) + " instead.")]
+        public int? GetToken(PipeReader? reader) => checked((int?)this.GetULongToken(reader));
 
         /// <summary>
         /// Creates a token to represent a <see cref="PipeReader"/> as it is transmitted from the client to an RPC server as a method argument.
@@ -143,7 +158,12 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="reader"/> was <c>null</c>.</returns>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("reader")]
-        public int? GetToken(PipeReader? reader) => this.GetToken(reader != null ? new DuplexPipe(reader) : null);
+        public ulong? GetULongToken(PipeReader? reader) => this.GetULongToken(reader != null ? new DuplexPipe(reader) : null);
+
+        /// <inheritdoc cref="GetULongToken(PipeWriter?)"/>
+        [return: NotNullIfNotNull("writer")]
+        [Obsolete("Use " + nameof(GetULongToken) + " instead.")]
+        public int? GetToken(PipeWriter? writer) => checked((int?)this.GetULongToken(writer));
 
         /// <summary>
         /// Creates a token to represent a <see cref="PipeWriter"/> as it is transmitted from the client to an RPC server as a method argument.
@@ -152,7 +172,12 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="writer"/> was <c>null</c>.</returns>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("writer")]
-        public int? GetToken(PipeWriter? writer) => this.GetToken(writer != null ? new DuplexPipe(writer) : null);
+        public ulong? GetULongToken(PipeWriter? writer) => this.GetULongToken(writer != null ? new DuplexPipe(writer) : null);
+
+        /// <inheritdoc cref="GetPipe(ulong?)"/>
+        [return: NotNullIfNotNull("token")]
+        [Obsolete("Use " + nameof(GetPipe) + "(ulong?) instead.")]
+        public IDuplexPipe? GetPipe(int? token) => this.GetPipe((ulong?)token);
 
         /// <summary>
         /// Creates an <see cref="IDuplexPipe"/> from a given token as it is received at the RPC server as a method argument.
@@ -162,7 +187,7 @@ namespace StreamJsonRpc.Reflection
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
         [return: NotNullIfNotNull("token")]
-        public IDuplexPipe? GetPipe(int? token)
+        public IDuplexPipe? GetPipe(ulong? token)
         {
             Verify.NotDisposed(this);
 
@@ -172,30 +197,32 @@ namespace StreamJsonRpc.Reflection
                 return null;
             }
 
-            if (this.RequestIdBeingDeserialized.IsEmpty)
-            {
-                throw new NotSupportedException(Resources.MarshaledObjectInResponseOrNotificationError);
-            }
-
             // In the case of multiple overloads, we might be called to convert a channel's token more than once.
             // But we can only accept the channel once, so look up in a dictionary to see if we've already done this.
-            if (!this.openInboundChannels.TryGetValue(token.Value, out MultiplexingStream.Channel channel))
+            if (!this.openInboundChannels.TryGetValue(new MultiplexingStream.QualifiedChannelId(token.Value, MultiplexingStream.ChannelSource.Remote), out MultiplexingStream.Channel channel))
             {
                 channel = mxstream.AcceptChannel(token.Value);
-
-                ImmutableInterlocked.AddOrUpdate(
-                    ref this.inboundRequestChannelMap,
-                    this.RequestIdBeingDeserialized,
-                    ImmutableList.Create(channel),
-                    (key, value) => value.Add(channel));
+                if (!this.RequestIdBeingDeserialized.IsEmpty)
+                {
+                    ImmutableInterlocked.AddOrUpdate(
+                        ref this.inboundRequestChannelMap,
+                        this.RequestIdBeingDeserialized,
+                        ImmutableList.Create(channel),
+                        (key, value) => value.Add(channel));
+                }
 
                 // Track open channels to assist in diagnosing abandoned channels and handling multiple overloads.
-                ImmutableInterlocked.TryAdd(ref this.openInboundChannels, channel.Id, channel);
-                channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openInboundChannels, channel.Id, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
+                ImmutableInterlocked.TryAdd(ref this.openInboundChannels, channel.QualifiedId, channel);
+                channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openInboundChannels, channel.QualifiedId, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
             }
 
             return channel;
         }
+
+        /// <inheritdoc cref="GetPipeReader(ulong?)"/>
+        [return: NotNullIfNotNull("token")]
+        [Obsolete("Use " + nameof(GetPipeReader) + "(ulong?) instead.")]
+        public PipeReader? GetPipeReader(int? token) => this.GetPipeReader((ulong?)token);
 
         /// <summary>
         /// Creates a <see cref="PipeReader"/> from a given token as it is received at the RPC server as a method argument.
@@ -205,7 +232,7 @@ namespace StreamJsonRpc.Reflection
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
         [return: NotNullIfNotNull("token")]
-        public PipeReader? GetPipeReader(int? token)
+        public PipeReader? GetPipeReader(ulong? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);
             if (duplexPipe != null)
@@ -217,6 +244,11 @@ namespace StreamJsonRpc.Reflection
             return null;
         }
 
+        /// <inheritdoc cref="GetPipeWriter(ulong?)"/>
+        [return: NotNullIfNotNull("token")]
+        [Obsolete("Use " + nameof(GetPipeWriter) + "(ulong?) instead.")]
+        public PipeWriter? GetPipeWriter(int? token) => this.GetPipeWriter((ulong?)token);
+
         /// <summary>
         /// Creates a <see cref="PipeWriter"/> from a given token as it is received at the RPC server as a method argument.
         /// </summary>
@@ -225,7 +257,7 @@ namespace StreamJsonRpc.Reflection
         /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
         [return: NotNullIfNotNull("token")]
-        public PipeWriter? GetPipeWriter(int? token)
+        public PipeWriter? GetPipeWriter(ulong? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);
             if (duplexPipe != null)
@@ -240,20 +272,30 @@ namespace StreamJsonRpc.Reflection
         /// <inheritdoc/>
         public void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes managed and native resources held by this instance.
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+        protected virtual void Dispose(bool disposing)
+        {
             this.isDisposed = true;
 
             // Release memory and shutdown channels that outlived the RPC channel.
             this.outboundRequestChannelMap = this.outboundRequestChannelMap.Clear();
             this.inboundRequestChannelMap = this.inboundRequestChannelMap.Clear();
 
-            ImmutableDictionary<int, MultiplexingStream.Channel> openInboundChannels = Interlocked.Exchange(ref this.openInboundChannels, this.openInboundChannels.Clear());
-            foreach (KeyValuePair<int, MultiplexingStream.Channel> entry in openInboundChannels)
+            ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> openInboundChannels = Interlocked.Exchange(ref this.openInboundChannels, this.openInboundChannels.Clear());
+            foreach (KeyValuePair<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> entry in openInboundChannels)
             {
                 entry.Value.Dispose();
             }
 
-            ImmutableDictionary<int, MultiplexingStream.Channel> openOutboundChannels = Interlocked.Exchange(ref this.openOutboundChannels, this.openOutboundChannels.Clear());
-            foreach (KeyValuePair<int, MultiplexingStream.Channel> entry in openOutboundChannels)
+            ImmutableDictionary<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> openOutboundChannels = Interlocked.Exchange(ref this.openOutboundChannels, this.openOutboundChannels.Clear());
+            foreach (KeyValuePair<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> entry in openOutboundChannels)
             {
                 entry.Value.Dispose();
             }

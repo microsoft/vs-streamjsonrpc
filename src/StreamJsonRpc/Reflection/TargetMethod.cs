@@ -10,6 +10,7 @@ namespace StreamJsonRpc
     using System.Linq;
     using System.Reflection;
     using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -21,6 +22,7 @@ namespace StreamJsonRpc
         private readonly object? target;
         private readonly MethodSignature? signature;
         private readonly object?[]? arguments;
+        private SynchronizationContext? synchronizationContext;
 
         /// <summary>
         /// A collection of error messages. May be null until the first message is added.
@@ -29,7 +31,8 @@ namespace StreamJsonRpc
 
         internal TargetMethod(
             JsonRpcRequest request,
-            List<MethodSignatureAndTarget> candidateMethodTargets)
+            List<MethodSignatureAndTarget> candidateMethodTargets,
+            SynchronizationContext fallbackSynchronizationContext)
         {
             Requires.NotNull(request, nameof(request));
             Requires.NotNull(candidateMethodTargets, nameof(candidateMethodTargets));
@@ -47,6 +50,7 @@ namespace StreamJsonRpc
                     Span<object?> args = argumentArray.AsSpan(0, parameterCount);
                     if (this.TryGetArguments(request, candidateMethod.Signature, args))
                     {
+                        this.synchronizationContext = candidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
                         this.target = candidateMethod.Target;
                         this.signature = candidateMethod.Signature;
                         this.arguments = args.ToArray();
@@ -102,7 +106,7 @@ namespace StreamJsonRpc
             return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
         }
 
-        internal object? Invoke(CancellationToken cancellationToken)
+        internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
         {
             if (this.signature == null)
             {
@@ -115,6 +119,8 @@ namespace StreamJsonRpc
                 this.arguments[this.arguments.Length - 1] = cancellationToken;
             }
 
+            Assumes.NotNull(this.synchronizationContext);
+            await this.synchronizationContext;
             return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
         }
 

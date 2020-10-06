@@ -2,7 +2,7 @@
 
 JSON-RPC is great for invoking methods and passing regular data types as arguments.
 When you want to pass binary data or stream a great deal of text without encoding as a very large JSON message,
-StreamJsonRpc gives you an option to pass `Stream`, `IDuplexPipe`, `PipeReader` or `PipeWriter` as an argument to an RPC method.
+StreamJsonRpc gives you an option to pass `Stream`, `IDuplexPipe`, `PipeReader` or `PipeWriter` as an argument or as a return type for an RPC method.
 
 The content of the `Stream` or `IDuplexPipe` is transmitted out of band of the JSON-RPC channel so that no extra encoding is required. This out of band channel is provisioned from a [`MultiplexingStream`](https://github.com/AArnott/Nerdbank.Streams/blob/master/doc/MultiplexingStream.md) that can optionally be provided to the `JsonMessageFormatter` (or other formatters that support this feature). The `JsonRpc` connection itself is expected to be one of the channels in this `MultiplexingStream`.
 This can be configured like this (creation of the `MultiplexingStream` is out of scope of this topic):
@@ -42,14 +42,21 @@ public async Task TakeLargeFileAsync(IDuplexPipe pipe)
 }
 ```
 
+The server may also reply with stream or pipe:
+
+```cs
+public Stream GetFile(string path) {
+    // Validate that the client should be granted access to the requested file.
+    return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+}
+```
+
 ## Rules
 
 Passing out of band streams/pipes along JSON-RPC messages requires care be taken to avoid leaving
 abandoned `MultiplexingStream` channels active and consuming resources in corner cases.
 To facilitate this, the following rules apply:
-
-1. The `IDuplexPipe` always originates on the client and is passed as an argument to the server.
-   Servers are not allowed to return `IDuplexPipe` to clients because the server would have no feedback if the client dropped it, leaking resources.
+ 
 1. The client can only send an `IDuplexPipe` in a request (that expects a response).
    Notifications would not provide the client with feedback that the server dropped it, leaking resources.
 1. The client will immediately terminate the `IDuplexPipe` if the server returns ANY error in response to the request, since the server may not be aware of the `IDuplexPipe`.

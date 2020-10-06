@@ -20,7 +20,18 @@ namespace StreamJsonRpc.Protocol
         /// Gets or sets the value of the result of an invocation, if any.
         /// </summary>
         [DataMember(Name = "result", Order = 2, IsRequired = true, EmitDefaultValue = true)]
+#pragma warning disable CA1721 // Property names should not match get methods
         public object? Result { get; set; }
+#pragma warning restore CA1721 // Property names should not match get methods
+
+        /// <summary>
+        /// Gets or sets the declared type of the return value.
+        /// </summary>
+        /// <remarks>
+        /// This value is not serialized, but is used by the RPC server to assist in serialization where necessary.
+        /// </remarks>
+        [IgnoreDataMember]
+        public Type? ResultDeclaredType { get; set; }
 
         /// <summary>
         /// Gets or sets an identifier established by the client if a response to the request is expected.

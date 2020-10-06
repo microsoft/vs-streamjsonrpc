@@ -114,7 +114,9 @@ namespace StreamJsonRpc
         /// <param name="sendingStream">The stream to use for transmitting messages.</param>
         /// <param name="receivingStream">The stream to use for receiving messages.</param>
         public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream)
+#pragma warning disable CA2000 // Dispose objects before losing scope
             : this(sendingStream, receivingStream, new JsonMessageFormatter())
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
         }
 
@@ -186,7 +188,14 @@ namespace StreamJsonRpc
             }
 
             int contentLength = headers.Value.ContentLength.Value;
-            return await this.DeserializeMessageAsync(contentLength, headers.Value.ContentEncoding, DefaultContentEncoding, cancellationToken).ConfigureAwait(false);
+            JsonRpcMessage message = await this.DeserializeMessageAsync(contentLength, headers.Value.ContentEncoding, DefaultContentEncoding, cancellationToken).ConfigureAwait(false);
+
+            if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+            {
+                JsonRpcEventSource.Instance.HandlerReceived(contentLength);
+            }
+
+            return message;
         }
 
         /// <inheritdoc />
@@ -263,6 +272,11 @@ namespace StreamJsonRpc
                 Memory<byte> contentMemory = this.Writer.GetMemory((int)contentSequence.Length);
                 contentSequence.CopyTo(contentMemory.Span);
                 this.Writer.Advance((int)contentSequence.Length);
+
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.HandlerTransmitted(contentSequence.Length);
+                }
             }
             finally
             {
@@ -330,20 +344,6 @@ namespace StreamJsonRpc
             {
                 throw new BadRpcHeaderException(ex.Message, ex);
             }
-        }
-
-        private static void ThrowIfNotExpectedToken(char actual, char expected)
-        {
-            if (actual != expected)
-            {
-                ThrowUnexpectedToken(actual, expected);
-            }
-        }
-
-        private static Exception ThrowUnexpectedToken(char actual, char? expected = null)
-        {
-            throw new BadRpcHeaderException(
-                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedTokenReadingHeader, actual));
         }
 
         private static bool IsLastFourBytesCrlfCrlf(byte[] buffer, int lastIndex)

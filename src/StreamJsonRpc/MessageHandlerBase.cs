@@ -22,6 +22,7 @@ namespace StreamJsonRpc
     /// </remarks>
     public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableObservable, Microsoft.VisualStudio.Threading.IAsyncDisposable
     {
+#pragma warning disable CA2213 // Disposable fields should be disposed
         /// <summary>
         /// The source of a token that is canceled when this instance is disposed.
         /// </summary>
@@ -31,6 +32,7 @@ namespace StreamJsonRpc
         /// A semaphore acquired while sending a message.
         /// </summary>
         private readonly AsyncSemaphore sendingSemaphore = new AsyncSemaphore(1);
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
         /// <summary>
         /// The sync object to lock when inspecting and mutating the <see cref="state"/> field.
@@ -170,6 +172,7 @@ namespace StreamJsonRpc
         /// <returns>A task that represents the asynchronous operation.</returns>
         /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <c>false</c>.</exception>
         /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before message transmission begins.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed before or during transmission.</exception>
         /// <remarks>
         /// Implementations should expect this method to be invoked concurrently
         /// and use a queue to preserve message order as they are transmitted one at a time.
@@ -189,7 +192,18 @@ namespace StreamJsonRpc
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         await this.WriteCoreAsync(content, cancellationToken).ConfigureAwait(false);
-                        await this.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                        // When flushing, do NOT honor the caller's CancellationToken since the writing is done
+                        // and we must not throw OperationCanceledException back at them as if we hadn't transmitted it.
+                        // But *do* cancel flushing if we're being disposed.
+                        try
+                        {
+                            await this.FlushAsync(this.DisposalToken).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException ex) when (this.DisposalToken.IsCancellationRequested)
+                        {
+                            throw new ObjectDisposedException(this.GetType().FullName, ex);
+                        }
                     }
                     finally
                     {
@@ -217,7 +231,13 @@ namespace StreamJsonRpc
         /// Disposes this instance, and cancels any pending read or write operations.
         /// </summary>
         [Obsolete("Call IAsyncDisposable.DisposeAsync instead.")]
-        public void Dispose() => this.DisposeAsync().GetAwaiter().GetResult();
+#pragma warning disable CA1063 // Implement IDisposable Correctly
+        public void Dispose()
+#pragma warning restore CA1063 // Implement IDisposable Correctly
+        {
+            this.DisposeAsync().GetAwaiter().GetResult();
+            GC.SuppressFinalize(this);
+        }
 #pragma warning restore VSTHRD002
 
         /// <summary>
@@ -266,7 +286,6 @@ namespace StreamJsonRpc
             if (disposing)
             {
                 (this.Formatter as IDisposable)?.Dispose();
-                GC.SuppressFinalize(this);
             }
         }
 

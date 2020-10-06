@@ -64,7 +64,9 @@ namespace StreamJsonRpc.Protocol
         /// Describes the error.
         /// </summary>
         [DataContract]
+#pragma warning disable CA1034 // Nested types should not be visible
         public class ErrorDetail
+#pragma warning restore CA1034 // Nested types should not be visible
         {
             /// <summary>
             /// Gets or sets a number that indicates the error type that occurred.
@@ -89,7 +91,10 @@ namespace StreamJsonRpc.Protocol
             /// Gets or sets additional data about the error.
             /// </summary>
             [DataMember(Name = "data", Order = 2, IsRequired = false)]
+            [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
+#pragma warning disable CA1721 // Property names should not match get methods
             public object? Data { get; set; }
+#pragma warning restore CA1721 // Property names should not match get methods
 
             /// <summary>
             /// Gets the value of the <see cref="Data"/>, taking into account any possible type coercion.
