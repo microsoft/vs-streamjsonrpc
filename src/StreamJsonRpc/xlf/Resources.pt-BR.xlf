@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FailureDeserializingRpcResult">
         <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
-        <target state="new">Deserializing JSON-RPC result to type {0} failed with {1}: {2}</target>
+        <target state="translated">Falha na desserialização do resultado do JSON-RPC para o tipo {0} com {1}: {2}</target>
         <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="ResponseSerializationFailure">
         <source>Failed to serialize the response.</source>
-        <target state="new">Failed to serialize the response.</target>
+        <target state="translated">Falha ao serializar a resposta.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="TypedArgumentsLengthMismatch">
         <source>The length of this list must equal the length of the arguments list.</source>
-        <target state="new">The length of this list must equal the length of the arguments list.</target>
+        <target state="translated">O tamanho desta lista precisa ser igual ao tamanho da lista de argumentos.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">

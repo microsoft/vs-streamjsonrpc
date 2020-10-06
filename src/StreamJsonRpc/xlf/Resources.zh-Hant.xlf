@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
-  <file datatype="xml" source-language="en" target-language="zh-HANT" original="../Resources.resx">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Resources.resx">
     <body>
       <trans-unit id="BothReadableWritableAreNull" translate="yes" xml:space="preserve">
         <source>Both readable and writable are null.</source>
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FailureDeserializingRpcResult">
         <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
-        <target state="new">Deserializing JSON-RPC result to type {0} failed with {1}: {2}</target>
+        <target state="translated">將 JSON-RPC 結果還原序列化為類型 {0} 失敗。{1}: {2}</target>
         <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
       </trans-unit>
       <trans-unit id="FindIProgressOfTError">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="ResponseSerializationFailure">
         <source>Failed to serialize the response.</source>
-        <target state="new">Failed to serialize the response.</target>
+        <target state="translated">無法序列化此回應。</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="TypedArgumentsLengthMismatch">
         <source>The length of this list must equal the length of the arguments list.</source>
-        <target state="new">The length of this list must equal the length of the arguments list.</target>
+        <target state="translated">此清單的長度必須等於引數清單的長度。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
