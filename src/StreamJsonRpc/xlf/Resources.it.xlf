@@ -42,11 +42,6 @@
         <target state="translated">La deserializzazione dell'argomento di JSON-RPC con nome "{0}" e posizione {1} nel tipo "{2}" non è riuscita: {3}</target>
         <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
       </trans-unit>
-      <trans-unit id="FailureDeserializingRpcResult">
-        <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
-        <target state="translated">La deserializzazione del risultato JSON-RPC nel tipo {0} non è riuscita. Tipo dell'eccezione {1}: {2}</target>
-        <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
-      </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
         <target state="translated">Non è possibile eseguire il cast del tipo specificato in IProgress&lt;T&gt;</target>
@@ -112,11 +107,6 @@
         <target state="translated">La risposta non è un errore.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResponseSerializationFailure">
-        <source>Failed to serialize the response.</source>
-        <target state="translated">Non è stato possibile serializzare la risposta.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">Il formato della risposta è imprevisto. Sono supportati solo l'errore e il risultato: {0}</target>
@@ -135,11 +125,6 @@
       <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
         <source>The task was cancelled.</source>
         <target state="translated">L'attività è stata annullata.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TypedArgumentsLengthMismatch">
-        <source>The length of this list must equal the length of the arguments list.</source>
-        <target state="translated">La lunghezza di questo elenco deve essere uguale alla lunghezza dell'elenco di argomenti.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">

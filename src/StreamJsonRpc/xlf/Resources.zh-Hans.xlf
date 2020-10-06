@@ -42,11 +42,6 @@
         <target state="translated">未能将名称为“{0}”且位置为 {1} 的 JSON-RPC 参数反序列化为类型“{2}”: {3}</target>
         <note>{0} is a parameter name, {1} is an integer, {2} is a CLR type name and {3} is an exception object.</note>
       </trans-unit>
-      <trans-unit id="FailureDeserializingRpcResult">
-        <source>Deserializing JSON-RPC result to type {0} failed with {1}: {2}</source>
-        <target state="translated">未能将 JSON-RPC 结果反序列化为类型 {0}，出现 {1}: {2}</target>
-        <note>{0} is the result type, {1} is the exception type, {2} is the exception message.</note>
-      </trans-unit>
       <trans-unit id="FindIProgressOfTError">
         <source>Unable to cast given Type to IProgress&lt;T&gt;</source>
         <target state="translated">无法将给定类型强制转换为 IProgress&lt;T&gt;</target>
@@ -112,11 +107,6 @@
         <target state="translated">响应不是错误。</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResponseSerializationFailure">
-        <source>Failed to serialize the response.</source>
-        <target state="translated">未能序列化响应。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResponseUnexpectedFormat">
         <source>Response is in an unexpected format.  Only error and result are supported: {0}</source>
         <target state="translated">响应为意外格式。仅支持错误和结果: {0}</target>
@@ -135,11 +125,6 @@
       <trans-unit id="TaskWasCancelled" translate="yes" xml:space="preserve">
         <source>The task was cancelled.</source>
         <target state="translated">任务已取消。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="TypedArgumentsLengthMismatch">
-        <source>The length of this list must equal the length of the arguments list.</source>
-        <target state="translated">此列表的长度必须等于参数列表的长度。</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToFindMethod" translate="yes" xml:space="preserve">
