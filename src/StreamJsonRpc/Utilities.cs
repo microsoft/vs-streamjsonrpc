@@ -92,38 +92,45 @@ namespace StreamJsonRpc
                 return identifier;
             }
 
-            char[] chars = identifier.ToCharArray();
-
-            for (int i = 0; i < chars.Length; i++)
+            char[] chars = ArrayPool<char>.Shared.Rent(identifier.Length);
+            identifier.CopyTo(0, chars, 0, identifier.Length);
+            try
             {
-                if (i == 1 && !char.IsUpper(chars[i]))
+                for (int i = 0; i < identifier.Length; i++)
                 {
-                    break;
-                }
-
-                bool hasNext = i + 1 < chars.Length;
-                if (i > 0 && hasNext && !char.IsUpper(chars[i + 1]))
-                {
-                    // if the next character is a space, which is not considered uppercase
-                    // (otherwise we wouldn't be here...)
-                    // we want to ensure that the following:
-                    // 'FOO bar' is rewritten as 'foo bar', and not as 'foO bar'
-                    // The code was written in such a way that the first word in uppercase
-                    // ends when if finds an uppercase letter followed by a lowercase letter.
-                    // now a ' ' (space, (char)32) is considered not upper
-                    // but in that case we still want our current character to become lowercase
-                    if (char.IsSeparator(chars[i + 1]))
+                    if (i == 1 && !char.IsUpper(chars[i]))
                     {
-                        chars[i] = char.ToLowerInvariant(chars[i]);
+                        break;
                     }
 
-                    break;
+                    bool hasNext = i + 1 < identifier.Length;
+                    if (i > 0 && hasNext && !char.IsUpper(chars[i + 1]))
+                    {
+                        // if the next character is a space, which is not considered uppercase
+                        // (otherwise we wouldn't be here...)
+                        // we want to ensure that the following:
+                        // 'FOO bar' is rewritten as 'foo bar', and not as 'foO bar'
+                        // The code was written in such a way that the first word in uppercase
+                        // ends when if finds an uppercase letter followed by a lowercase letter.
+                        // now a ' ' (space, (char)32) is considered not upper
+                        // but in that case we still want our current character to become lowercase
+                        if (char.IsSeparator(chars[i + 1]))
+                        {
+                            chars[i] = char.ToLowerInvariant(chars[i]);
+                        }
+
+                        break;
+                    }
+
+                    chars[i] = char.ToLowerInvariant(chars[i]);
                 }
 
-                chars[i] = char.ToLowerInvariant(chars[i]);
+                return new string(chars, 0, identifier.Length);
             }
-
-            return new string(chars);
+            finally
+            {
+                ArrayPool<char>.Shared.Return(chars);
+            }
         }
     }
 }
