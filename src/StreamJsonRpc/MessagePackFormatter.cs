@@ -1228,6 +1228,10 @@ namespace StreamJsonRpc
                     Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
 
                     this.Data = this.GetData(dataType);
+
+                    // Clear the source now that we've deserialized to prevent GetData from attempting
+                    // deserialization later when the buffer may be recycled on another thread.
+                    this.MsgPackData = default;
                 }
             }
         }

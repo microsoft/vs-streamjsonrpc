@@ -4,11 +4,11 @@
 namespace StreamJsonRpc.Protocol
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Runtime.Serialization;
     using Microsoft;
     using Newtonsoft.Json.Linq;
+    using StreamJsonRpc.Reflection;
 
     /// <summary>
     /// Describes the error resulting from a <see cref="JsonRpcRequest"/> that failed on the server.
@@ -122,6 +122,11 @@ namespace StreamJsonRpc.Protocol
             /// argument that will be used when calling <see cref="GetData{T}"/> later.
             /// </summary>
             /// <param name="dataType">The type that will be used as the generic type argument to <see cref="GetData{T}"/>.</param>
+            /// <remarks>
+            /// Overridding methods in types that retain buffers used to deserialize should deserialize within this method and clear those buffers
+            /// to prevent further access to these buffers which may otherwise happen concurrently with a call to <see cref="IJsonRpcMessageBufferManager.DeserializationComplete"/>
+            /// that would recycle the same buffer being deserialized from.
+            /// </remarks>
             protected internal virtual void SetExpectedDataType(Type dataType)
             {
             }
