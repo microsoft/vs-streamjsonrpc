@@ -42,7 +42,7 @@ public class AssemblyLoadTests : TestBase
         }
     }
 
-    [Fact(Skip = "By design for now, since we use the CamelCaseNamingStrategy from Newtonsoft.Json")]
+    [Fact]
     public void MessagePackDoesNotLoadNewtonsoftJsonUnnecessarily()
     {
         AppDomain testDomain = CreateTestAppDomain();
@@ -139,7 +139,6 @@ public class AssemblyLoadTests : TestBase
 
         internal void CreateMessagePackConnection()
         {
-            // By design for now, since we use the CamelCaseNamingStrategy from Newtonsoft.Json
             var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new MessagePackFormatter()));
         }
 
