@@ -405,6 +405,17 @@ namespace StreamJsonRpc
             /// An incoming <see cref="Exception"/> cannot be deserialized to its original type because the type could not be loaded.
             /// </summary>
             ExceptionTypeNotFound,
+
+            /// <summary>
+            /// An instance of an <see cref="Exception"/>-derived type was serialized as its base type because it did not have the <see cref="SerializableAttribute"/> applied.
+            /// </summary>
+            ExceptionNotSerializable,
+
+            /// <summary>
+            /// An <see cref="Exception"/>-derived type could not be deserialized because it was missing a deserializing constructor.
+            /// A base-type that <em>does</em> offer the constructor will be instantiated instead.
+            /// </summary>
+            ExceptionNotDeserializable,
         }
 
         /// <summary>
