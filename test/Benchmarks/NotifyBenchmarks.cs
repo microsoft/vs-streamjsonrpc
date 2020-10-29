@@ -7,23 +7,32 @@ namespace Benchmarks
     using System.IO;
     using System.Threading.Tasks;
     using BenchmarkDotNet.Attributes;
+    using Microsoft;
     using StreamJsonRpc;
 
     [MemoryDiagnoser]
     public class NotifyBenchmarks
     {
-        private readonly JsonRpc clientRpc;
+        private JsonRpc clientRpc = null!;
 
-        public NotifyBenchmarks()
-        {
-            this.clientRpc = new JsonRpc(Stream.Null);
-        }
+        [Params("JSON", "MessagePack")]
+        public string Formatter { get; set; } = null!;
 
-        /// <summary>
-        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837.
-        /// </summary>
         [GlobalSetup]
-        public void Workaround() => this.NotifyAsync_NoArgs();
+        public void Setup()
+        {
+            this.clientRpc = new JsonRpc(CreateHandler(Stream.Null));
+
+            IJsonRpcMessageHandler CreateHandler(Stream pipe)
+            {
+                return this.Formatter switch
+                {
+                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                    "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
+                    _ => throw Assumes.NotReachable(),
+                };
+            }
+        }
 
         [Benchmark]
         public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());

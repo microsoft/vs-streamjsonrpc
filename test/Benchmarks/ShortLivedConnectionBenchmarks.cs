@@ -4,8 +4,10 @@
 namespace Benchmarks
 {
     using System;
+    using System.IO.Pipelines;
     using System.Threading.Tasks;
     using BenchmarkDotNet.Attributes;
+    using Microsoft;
     using Nerdbank.Streams;
     using StreamJsonRpc;
 
@@ -14,20 +16,33 @@ namespace Benchmarks
     {
         private const int Iterations = 1000;
 
+        [Params("JSON", "MessagePack")]
+        public string Formatter { get; set; } = null!;
+
         [Benchmark(OperationsPerInvoke = Iterations)]
         public async Task CreateConnectionAndInvokeOnce()
         {
             for (int i = 0; i < Iterations; i++)
             {
-                (System.IO.Pipelines.IDuplexPipe, System.IO.Pipelines.IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
-                using var clientRpc = new JsonRpc(new LengthHeaderMessageHandler(duplex.Item1, new MessagePackFormatter()));
+                (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
+                using var clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
                 clientRpc.StartListening();
 
-                using var serverRpc = new JsonRpc(new LengthHeaderMessageHandler(duplex.Item2, new MessagePackFormatter()));
+                using var serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
                 serverRpc.AddLocalRpcTarget(new Server());
                 serverRpc.StartListening();
 
                 await clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
+            }
+
+            IJsonRpcMessageHandler CreateHandler(IDuplexPipe pipe)
+            {
+                return this.Formatter switch
+                {
+                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                    "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+                    _ => throw Assumes.NotReachable(),
+                };
             }
         }
 

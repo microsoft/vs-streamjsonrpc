@@ -4,33 +4,43 @@
 namespace Benchmarks
 {
     using System;
+    using System.IO.Pipelines;
     using System.Threading.Tasks;
     using BenchmarkDotNet.Attributes;
+    using Microsoft;
     using Nerdbank.Streams;
     using StreamJsonRpc;
 
     [MemoryDiagnoser]
     public class InvokeBenchmarks
     {
-        private readonly JsonRpc clientRpc;
-        private readonly JsonRpc serverRpc;
+        private JsonRpc clientRpc = null!;
+        private JsonRpc serverRpc = null!;
 
-        public InvokeBenchmarks()
+        [Params("JSON", "MessagePack")]
+        public string Formatter { get; set; } = null!;
+
+        [GlobalSetup]
+        public void Setup()
         {
-            (System.IO.Pipelines.IDuplexPipe, System.IO.Pipelines.IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
-            this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item1, new JsonMessageFormatter()));
+            (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
+            this.clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
             this.clientRpc.StartListening();
 
-            this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(duplex.Item2, new JsonMessageFormatter()));
+            this.serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
             this.serverRpc.AddLocalRpcTarget(new Server());
             this.serverRpc.StartListening();
-        }
 
-        /// <summary>
-        /// Workaround https://github.com/dotnet/BenchmarkDotNet/issues/837.
-        /// </summary>
-        [GlobalSetup]
-        public void Workaround() => this.InvokeAsync_NoArgs();
+            IJsonRpcMessageHandler CreateHandler(IDuplexPipe pipe)
+            {
+                return this.Formatter switch
+                {
+                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                    "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+                    _ => throw Assumes.NotReachable(),
+                };
+            }
+        }
 
         [Benchmark]
         public Task InvokeAsync_NoArgs() => this.clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
