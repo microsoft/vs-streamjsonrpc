@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
+    using StreamJsonRpc.Reflection;
     using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
     internal static class ProxyGeneration
@@ -76,7 +77,7 @@ namespace StreamJsonRpc
 
                 ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(serviceInterface);
 
-                var methodNameMap = new JsonRpc.MethodNameMap(serviceInterface);
+                RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(serviceInterface);
 
                 var interfaces = new List<Type>
                 {

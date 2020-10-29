@@ -50,9 +50,9 @@ namespace StreamJsonRpc
         private string DebuggerDisplay => $"{this.MethodInfo.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
 
         /// <inheritdoc/>
-        bool IEquatable<MethodSignature>.Equals(MethodSignature other)
+        public bool Equals(MethodSignature? other)
         {
-            if (object.ReferenceEquals(other, null))
+            if (other is null)
             {
                 return false;
             }
@@ -83,10 +83,7 @@ namespace StreamJsonRpc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj)
-        {
-            return (obj is MethodSignature) && ((IEquatable<MethodSignature>)this).Equals((MethodSignature)obj);
-        }
+        public override bool Equals(object? obj) => obj is MethodSignature other && this.Equals(other);
 
         /// <inheritdoc/>
         public override int GetHashCode()
