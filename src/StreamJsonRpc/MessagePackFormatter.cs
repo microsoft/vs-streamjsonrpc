@@ -781,12 +781,7 @@ namespace StreamJsonRpc
             {
                 Verify.Operation(this.encodedMessage.HasValue, "This object has not been activated. It may have already been recycled.");
 
-                if (this.jsonString is null)
-                {
-                    this.jsonString = MessagePackSerializer.ConvertToJson(this.encodedMessage.Value, this.options);
-                }
-
-                return this.jsonString;
+                return this.jsonString ??= MessagePackSerializer.ConvertToJson(this.encodedMessage.Value, this.options);
             }
 
             /// <summary>
