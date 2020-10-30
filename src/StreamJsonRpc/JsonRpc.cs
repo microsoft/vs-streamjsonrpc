@@ -2464,7 +2464,12 @@ namespace StreamJsonRpc
         /// <exception cref="InvalidOperationException">Thrown if <see cref="HasListeningStarted"/> is <c>true</c> and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
         private void ThrowIfConfigurationLocked()
         {
-            Verify.Operation(!this.HasListeningStarted || this.AllowModificationWhileListening, Resources.MustNotBeListening);
+            // PERF: This can get called a lot in scenarios where connections are short-lived and frequent.
+            // Avoid loading the string resource unless we're going to throw the exception.
+            if (this.HasListeningStarted && !this.AllowModificationWhileListening)
+            {
+                Verify.FailOperation(Resources.MustNotBeListening);
+            }
         }
 
         private class OutstandingCallData

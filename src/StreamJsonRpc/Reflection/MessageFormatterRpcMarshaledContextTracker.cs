@@ -7,6 +7,7 @@ namespace StreamJsonRpc.Reflection
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
+    using System.Reflection;
     using System.Runtime.Serialization;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
@@ -47,6 +48,8 @@ namespace StreamJsonRpc.Reflection
                 new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
         };
 
+        private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
         private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();
         private readonly JsonRpc jsonRpc;
         private readonly IJsonRpcFormatterState formatterState;
@@ -67,7 +70,7 @@ namespace StreamJsonRpc.Reflection
             this.jsonRpc = jsonRpc;
             this.formatterState = formatterState;
 
-            this.jsonRpc.AddLocalRpcMethod("$/releaseMarshaledObject", new Action<long, bool>(this.ReleaseMarshaledObject));
+            this.jsonRpc.AddLocalRpcMethod("$/releaseMarshaledObject", ReleaseMarshaledObjectMethodInfo, this);
 
             // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
             IJsonRpcFormatterCallbacks callbacks = jsonRpc;
@@ -181,7 +184,9 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="handle">The handle to the object as created by the <see cref="GetToken(IRpcMarshaledContext{object})"/> method.</param>
         /// <param name="ownedBySender"><c>true</c> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <c>false</c> if the token and object was created locally.</param>
+#pragma warning disable CA1801 // Review unused parameters -- Signature is dicated by protocol extension server method.
         private void ReleaseMarshaledObject(long handle, bool ownedBySender)
+#pragma warning restore CA1801 // Review unused parameters
         {
             lock (this.marshaledObjects)
             {
