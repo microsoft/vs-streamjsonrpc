@@ -111,7 +111,7 @@ namespace StreamJsonRpc
         /// Backing field for the <see cref="TraceSource"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TraceSource traceSource = new TraceSource(nameof(JsonRpc));
+        private TraceSource traceSource = new TraceSource(nameof(JsonRpc), SourceLevels.ActivityTracing | SourceLevels.Warning);
 
         /// <summary>
         /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
@@ -134,6 +134,11 @@ namespace StreamJsonRpc
         /// Backing field for <see cref="ExceptionStrategy"/>.
         /// </summary>
         private ExceptionProcessing exceptionStrategy;
+
+        /// <summary>
+        /// Backing field for the <see cref="TraceContextParentId"/> property.
+        /// </summary>
+        private ReadOnlyMemory<byte> traceContextParentId;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
@@ -540,6 +545,30 @@ namespace StreamJsonRpc
             {
                 this.ThrowIfConfigurationLocked();
                 this.exceptionStrategy = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the <see href="https://www.w3.org/TR/trace-context/#parent-id"><c>parent-id</c></see> to use when creating or propagating
+        /// <see href="https://www.w3.org/TR/trace-context/">W3C trace-context</see>.
+        /// </summary>
+        /// <value>
+        /// An 8-byte non-zero value to enable trace-context, or a 0-byte value to disable creating trace-contexts.
+        /// </value>
+        /// <remarks>
+        /// Even when left at its default empty value, any trace-context received in incoming messages will be propagated.
+        /// </remarks>
+        public ReadOnlyMemory<byte> TraceContextParentId
+        {
+            get => this.traceContextParentId;
+            set
+            {
+                if (value.Length > 0 && !TraceParentVersion0Format.IsValidParentId(value.Span))
+                {
+                    throw Requires.Fail(Resources.TraceContextParentIdLengthMismatch);
+                }
+
+                this.traceContextParentId = value;
             }
         }
 
@@ -1524,6 +1553,14 @@ namespace StreamJsonRpc
             {
                 RequestId = id,
                 Method = targetName,
+                TraceParent = new TraceParent
+                {
+                    Version = 0,
+                    VersionFormat = new TraceParentVersion0Format(Trace.CorrelationManager.ActivityId, this.TraceContextParentId.Span)
+                    {
+                        TraceFlags = (this.TraceSource.Switch.Level & SourceLevels.ActivityTracing) == SourceLevels.ActivityTracing && this.TraceSource.Listeners.Count > 0 ? TraceFlags.Sampled : TraceFlags.None,
+                    },
+                },
             };
             if (isParameterObject)
             {
@@ -2061,6 +2098,19 @@ namespace StreamJsonRpc
                         }
                     }
 
+                    Guid oldActivityId = Trace.CorrelationManager.ActivityId;
+                    bool incomingActivity = request.TraceParent.VersionFormat.IsValidParentId();
+                    if (incomingActivity)
+                    {
+                        if (oldActivityId != Guid.Empty)
+                        {
+                            this.TraceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), request.TraceParent.VersionFormat.TraceIdGuid);
+                        }
+
+                        Trace.CorrelationManager.ActivityId = request.TraceParent.VersionFormat.TraceIdGuid;
+                        this.TraceSource.TraceEvent(TraceEventType.Start, 0, request.Method);
+                    }
+
                     object? result;
                     try
                     {
@@ -2073,6 +2123,19 @@ namespace StreamJsonRpc
                     catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
                     {
                         return CreateCancellationResponse(request);
+                    }
+                    finally
+                    {
+                        if (incomingActivity)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Stop, 0, request.Method);
+                            if (oldActivityId != Guid.Empty)
+                            {
+                                this.TraceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), oldActivityId);
+                            }
+
+                            Trace.CorrelationManager.ActivityId = oldActivityId;
+                        }
                     }
 
                     // Convert ValueTask to Task or ValueTask<T> to Task<T>

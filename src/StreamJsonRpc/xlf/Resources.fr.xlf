@@ -137,6 +137,11 @@
         <target state="translated">La tâche a été annulée.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceContextParentIdLengthMismatch">
+        <source>The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation.</source>
+        <target state="new">The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TypedArgumentsLengthMismatch">
         <source>The length of this list must equal the length of the arguments list.</source>
         <target state="translated">La longueur de cette liste doit être égale à la longueur de la liste d'arguments.</target>

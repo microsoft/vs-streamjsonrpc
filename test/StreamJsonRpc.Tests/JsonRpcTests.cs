@@ -2297,6 +2297,16 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.CancellationStrategy = null;
     }
 
+    [Fact]
+    public async Task CorrelationManagerActivitiesPropagate()
+    {
+        this.clientRpc.TraceContextParentId = new byte[] { 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+        Guid clientActivityId = Guid.NewGuid();
+        Trace.CorrelationManager.ActivityId = clientActivityId;
+        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetActivityId), cancellationToken: this.TimeoutToken);
+        Assert.Equal(clientActivityId, serverActivityId);
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -2384,8 +2394,8 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -2898,6 +2908,8 @@ public abstract class JsonRpcTests : TestBase
         {
             this.ReceivedException = ex;
         }
+
+        public Guid GetActivityId() => Trace.CorrelationManager.ActivityId;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 

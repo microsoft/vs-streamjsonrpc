@@ -137,6 +137,11 @@
         <target state="translated">작업이 취소되었습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceContextParentIdLengthMismatch">
+        <source>The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation.</source>
+        <target state="new">The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TypedArgumentsLengthMismatch">
         <source>The length of this list must equal the length of the arguments list.</source>
         <target state="translated">이 목록의 길이는 인수 목록의 길이와 같아야 합니다.</target>

@@ -15,9 +15,7 @@ StreamJsonRpc participates in and propagates trace context when the `JsonRpc.IsT
 
 ### Include activity tracing information in `TraceSource`
 
-TODO: modify this to indicate that only the `JsonRpc.TraceSource` instance will receive the `TraceTransfer` and `TraceEvent` calls.
-TODO: Change the code so that the default `JsonRpc.TraceSource` object has the necessary flag set.
-TODO:
+- TODO: modify this to indicate that only the `JsonRpc.TraceSource` instance will receive the `TraceTransfer` and `TraceEvent` calls.
 
 Tracing using the `TraceSource` API will include the `ActivityId` in each traced message if the [SourceLevels.ActivityTracing][ActivityTracingFlag] flag is set.
 For example, to construct a `TraceSource` that will emit activity IDs for correlation between processes and machines, use code such as:

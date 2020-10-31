@@ -295,6 +295,9 @@
     <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>
     <comment>{0} and {1} are CLR type names.</comment>
   </data>
+  <data name="TraceContextParentIdLengthMismatch" xml:space="preserve">
+    <value>The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation.</value>
+  </data>
   <data name="TypedArgumentsLengthMismatch" xml:space="preserve">
     <value>The length of this list must equal the length of the arguments list.</value>
   </data>
