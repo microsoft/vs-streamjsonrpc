@@ -87,6 +87,10 @@ namespace StreamJsonRpc
 
         private readonly PipeFormatterResolver pipeFormatterResolver;
 
+        private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
+
+        private readonly ToStringHelper deserializationToStringHelper = new ToStringHelper();
+
         /// <summary>
         /// Backing field for the <see cref="MultiplexingStream"/> property.
         /// </summary>
@@ -286,7 +290,15 @@ namespace StreamJsonRpc
             JsonRpcMessage message = MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
 
             IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
-            tracingCallbacks?.OnMessageDeserialized(message, new ToStringHelper(contentBuffer, this.messageSerializationOptions));
+            this.deserializationToStringHelper.Activate(contentBuffer, this.messageSerializationOptions);
+            try
+            {
+                tracingCallbacks?.OnMessageDeserialized(message, this.deserializationToStringHelper);
+            }
+            finally
+            {
+                this.deserializationToStringHelper.Deactivate();
+            }
 
             return message;
         }
@@ -323,7 +335,15 @@ namespace StreamJsonRpc
         void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
         {
             IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
-            tracingCallbacks?.OnMessageSerialized(message, new ToStringHelper(encodedMessage, this.messageSerializationOptions));
+            this.serializationToStringHelper.Activate(encodedMessage, this.messageSerializationOptions);
+            try
+            {
+                tracingCallbacks?.OnMessageSerialized(message, this.serializationToStringHelper);
+            }
+            finally
+            {
+                this.serializationToStringHelper.Deactivate();
+            }
         }
 
         /// <inheritdoc/>
@@ -743,18 +763,45 @@ namespace StreamJsonRpc
             public ulong ToUInt64(object value) => ((RawMessagePack)value).Deserialize<ulong>(this.options);
         }
 
+        /// <summary>
+        /// A recyclable object that can serialize a message to JSON on demand.
+        /// </summary>
+        /// <remarks>
+        /// In perf traces, creation of this object used to show up as one of the most allocated objects.
+        /// It is used even when tracing isn't active. So we changed its design it to be reused,
+        /// since its lifetime is only required during a synchronous call to a trace API.
+        /// </remarks>
         private class ToStringHelper
         {
-            private readonly ReadOnlySequence<byte> encodedMessage;
-            private readonly MessagePackSerializerOptions options;
+            private ReadOnlySequence<byte>? encodedMessage;
+            private MessagePackSerializerOptions? options;
+            private string? jsonString;
 
-            internal ToStringHelper(ReadOnlySequence<byte> encodedMessage, MessagePackSerializerOptions options)
+            public override string ToString()
+            {
+                Verify.Operation(this.encodedMessage.HasValue, "This object has not been activated. It may have already been recycled.");
+
+                return this.jsonString ??= MessagePackSerializer.ConvertToJson(this.encodedMessage.Value, this.options);
+            }
+
+            /// <summary>
+            /// Initializes this object to represent a message.
+            /// </summary>
+            internal void Activate(ReadOnlySequence<byte> encodedMessage, MessagePackSerializerOptions options)
             {
                 this.encodedMessage = encodedMessage;
                 this.options = options;
             }
 
-            public override string ToString() => MessagePackSerializer.ConvertToJson(this.encodedMessage, this.options);
+            /// <summary>
+            /// Cleans out this object to release memory and ensure <see cref="ToString"/> throws if someone uses it after deactivation.
+            /// </summary>
+            internal void Deactivate()
+            {
+                this.encodedMessage = null;
+                this.options = null;
+                this.jsonString = null;
+            }
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>
