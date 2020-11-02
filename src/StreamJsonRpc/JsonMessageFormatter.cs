@@ -575,36 +575,41 @@ namespace StreamJsonRpc
             try
             {
                 this.serializingMessageWithId = jsonRpcMessage is IJsonRpcMessageWithId msgWithId ? msgWithId.RequestId : default;
-                if (jsonRpcMessage is Protocol.JsonRpcRequest request)
+                switch (jsonRpcMessage)
                 {
-                    this.serializingRequest = true;
+                    case Protocol.JsonRpcRequest request:
+                        this.serializingRequest = true;
 
-                    if (request.ArgumentsList != null)
-                    {
-                        var tokenizedArgumentsList = new JToken[request.ArgumentsList.Count];
-                        for (int i = 0; i < request.ArgumentsList.Count; i++)
+                        if (request.ArgumentsList != null)
                         {
-                            tokenizedArgumentsList[i] = this.TokenizeUserData(request.ArgumentListDeclaredTypes?[i], request.ArgumentsList[i]);
+                            var tokenizedArgumentsList = new JToken[request.ArgumentsList.Count];
+                            for (int i = 0; i < request.ArgumentsList.Count; i++)
+                            {
+                                tokenizedArgumentsList[i] = this.TokenizeUserData(request.ArgumentListDeclaredTypes?[i], request.ArgumentsList[i]);
+                            }
+
+                            request.ArgumentsList = tokenizedArgumentsList;
+                        }
+                        else if (request.Arguments != null)
+                        {
+                            if (this.ProtocolVersion.Major < 2)
+                            {
+                                throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
+                            }
+
+                            // Tokenize the user data using the user-supplied serializer.
+                            // TODO: add declared type handling to this branch too.
+                            var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+                            request.Arguments = paramsObject;
                         }
 
-                        request.ArgumentsList = tokenizedArgumentsList;
-                    }
-                    else if (request.Arguments != null)
-                    {
-                        if (this.ProtocolVersion.Major < 2)
-                        {
-                            throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
-                        }
-
-                        // Tokenize the user data using the user-supplied serializer.
-                        // TODO: add declared type handling to this branch too.
-                        var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
-                        request.Arguments = paramsObject;
-                    }
-                }
-                else if (jsonRpcMessage is Protocol.JsonRpcResult result)
-                {
-                    result.Result = this.TokenizeUserData(result.ResultDeclaredType, result.Result);
+                        break;
+                    case Protocol.JsonRpcResult result:
+                        result.Result = this.TokenizeUserData(result.ResultDeclaredType, result.Result);
+                        break;
+                    case Protocol.JsonRpcError error when error.Error is object:
+                        error.Error.Data = error.Error.Data is object ? this.TokenizeUserData(typeof(object), error.Error.Data) : null;
+                        break;
                 }
             }
             finally
@@ -1393,20 +1398,23 @@ namespace StreamJsonRpc
             public override JsonContract ResolveContract(Type type)
             {
                 JsonContract? result = base.ResolveContract(type);
-                if (result is JsonObjectContract objectContract)
+                switch (result)
                 {
-                    foreach (JsonProperty property in objectContract.Properties)
-                    {
-                        if (property.Ignored)
+                    case JsonObjectContract objectContract:
+                        foreach (JsonProperty property in objectContract.Properties)
                         {
-                            continue;
+                            if (property.Ignored)
+                            {
+                                continue;
+                            }
+
+                            if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
+                            {
+                                property.Converter = converter;
+                            }
                         }
 
-                        if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
-                        {
-                            property.Converter = converter;
-                        }
-                    }
+                        break;
                 }
 
                 return result;

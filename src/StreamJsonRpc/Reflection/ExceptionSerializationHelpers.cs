@@ -11,6 +11,8 @@ namespace StreamJsonRpc.Reflection
 
     internal static class ExceptionSerializationHelpers
     {
+        private const string AssemblyNameKeyName = "AssemblyName";
+
         private static readonly Type[] DeserializingConstructorParameterTypes = new Type[] { typeof(SerializationInfo), typeof(StreamingContext) };
 
         private static StreamingContext Context => new StreamingContext(StreamingContextStates.Remoting);
@@ -18,13 +20,38 @@ namespace StreamJsonRpc.Reflection
         internal static T Deserialize<T>(SerializationInfo info, TraceSource? traceSource)
             where T : Exception
         {
-            string? runtimeTypeName = info.GetString("ClassName");
-            if (runtimeTypeName is null)
+            if (!TryGetValue(info, "ClassName", out string? runtimeTypeName) || runtimeTypeName is null)
             {
                 throw new NotSupportedException("ClassName was not found in the serialized data.");
             }
 
-            Type? runtimeType = Type.GetType(runtimeTypeName);
+            Assembly? exceptionDeclaringAssembly = null;
+            if (TryGetValue(info, AssemblyNameKeyName, out string? runtimeAssemblyName) && runtimeAssemblyName is object)
+            {
+                try
+                {
+                    exceptionDeclaringAssembly = Assembly.Load(runtimeAssemblyName);
+                }
+                catch (System.IO.FileLoadException)
+                {
+                    // Try removing the version from the AssemblyName and try again, in case the message came from a newer version.
+                    var an = new AssemblyName(runtimeAssemblyName);
+                    if (an.Version is object)
+                    {
+                        an.Version = null;
+                        try
+                        {
+                            exceptionDeclaringAssembly = Assembly.Load(an.FullName);
+                        }
+                        catch (System.IO.FileLoadException)
+                        {
+                            // If we fail again, we'll just try to load the exception type from the AppDomain without an assembly's context.
+                        }
+                    }
+                }
+            }
+
+            Type? runtimeType = exceptionDeclaringAssembly is object ? exceptionDeclaringAssembly.GetType(runtimeTypeName) : Type.GetType(runtimeTypeName);
             if (runtimeType is null)
             {
                 if (traceSource?.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
@@ -58,6 +85,7 @@ namespace StreamJsonRpc.Reflection
             Type exceptionType = exception.GetType();
             EnsureSerializableAttribute(exceptionType);
             exception.GetObjectData(info, Context);
+            info.AddValue(AssemblyNameKeyName, exception.GetType().Assembly.FullName);
         }
 
         internal static object Convert(IFormatterConverter formatterConverter, object value, TypeCode typeCode)
@@ -92,5 +120,19 @@ namespace StreamJsonRpc.Reflection
         }
 
         private static ConstructorInfo? FindDeserializingConstructor(Type runtimeType) => runtimeType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, DeserializingConstructorParameterTypes, null);
+
+        private static bool TryGetValue(SerializationInfo info, string key, out string? value)
+        {
+            try
+            {
+                value = info.GetString(key);
+                return true;
+            }
+            catch (SerializationException)
+            {
+                value = null;
+                return false;
+            }
+        }
     }
 }

@@ -3,7 +3,8 @@
 
 using System;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using System.Reflection;
+using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
@@ -471,5 +472,120 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         await this.clientRpc.Completion.WithCancellation(this.TimeoutToken);
         var eventArgs = await args.Task.WithCancellation(this.TimeoutToken);
         Assert.Equal(DisconnectedReason.RemoteProtocolViolation, eventArgs.Reason);
+    }
+
+    [Fact]
+    public async Task SerializableExceptions_AssemblyVersionMismatch()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        var modifiedAssemblyName = new AssemblyName(typeof(PrivateSerializableException).Assembly.FullName!);
+        modifiedAssemblyName.Version = new Version(modifiedAssemblyName.Version!.Major, modifiedAssemblyName.Version.Minor + 1, modifiedAssemblyName.Version.Build, modifiedAssemblyName.Version.Revision);
+        string expectedMessage = "Some test exception message.";
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = JsonRpcErrorCode.InvocationErrorWithException,
+                message = expectedMessage,
+                data = new
+                {
+                    ClassName = typeof(PrivateSerializableException).FullName,
+                    Message = expectedMessage,
+                    Data = (object?)null,
+                    InnerException = (object?)null,
+                    HelpURL = (string?)null,
+                    StackTraceString = (string?)null,
+                    RemoteStackTraceString = (string?)null,
+                    RemoteStackIndex = 0,
+                    ExceptionMethod = string.Empty,
+                    HResult = -2146233088,
+                    Source = "StreamJsonRpc.Tests",
+                    AssemblyName = modifiedAssemblyName.FullName,
+                },
+            },
+        });
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.IsType<PrivateSerializableException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task SerializableExceptions_AssemblyNameMissing()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        // Because the test runner loads the test assembly in the LoadFrom context,
+        // when the JSON-RPC receiver doesn't have an assembly name to load,
+        // we need to help the CLR find the assembly containing our exception type in the Load context.
+        AppDomain.CurrentDomain.TypeResolve += (s, e) =>
+        {
+            if (e.Name == typeof(PrivateSerializableException).FullName)
+            {
+                return typeof(PrivateSerializableException).Assembly;
+            }
+
+            return null;
+        };
+
+        string expectedMessage = "Some test exception message.";
+        var requestTask = this.clientRpc.InvokeAsync("SomeMethod");
+        var remoteReceivedMessage = await this.ReceiveAsync();
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            id = remoteReceivedMessage["id"],
+            error = new
+            {
+                code = JsonRpcErrorCode.InvocationErrorWithException,
+                message = expectedMessage,
+                data = new
+                {
+                    ClassName = typeof(PrivateSerializableException).FullName,
+                    Message = expectedMessage,
+                    Data = (object?)null,
+                    InnerException = (object?)null,
+                    HelpURL = (string?)null,
+                    StackTraceString = (string?)null,
+                    RemoteStackTraceString = (string?)null,
+                    RemoteStackIndex = 0,
+                    ExceptionMethod = string.Empty,
+                    HResult = -2146233088,
+                    Source = "StreamJsonRpc.Tests",
+                },
+            },
+        });
+        var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
+        Assert.IsType<PrivateSerializableException>(ex.InnerException);
+    }
+
+    [Serializable]
+    private class PrivateSerializableException : Exception
+    {
+        public PrivateSerializableException()
+        {
+        }
+
+        public PrivateSerializableException(string message)
+            : base(message)
+        {
+        }
+
+        public PrivateSerializableException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+        protected PrivateSerializableException(
+            SerializationInfo info,
+            StreamingContext context)
+            : base(info, context)
+        {
+        }
     }
 }
