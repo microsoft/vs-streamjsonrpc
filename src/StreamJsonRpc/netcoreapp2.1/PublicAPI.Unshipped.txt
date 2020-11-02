@@ -5,3 +5,4 @@ StreamJsonRpc.JsonRpc.ExceptionStrategy.get -> StreamJsonRpc.ExceptionProcessing
 StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationErrorWithException = -32004 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
+StreamJsonRpc.RequestId.RequestId() -> void
