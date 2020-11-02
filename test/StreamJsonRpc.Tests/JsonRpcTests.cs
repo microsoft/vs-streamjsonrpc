@@ -462,6 +462,18 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ThrowCustomExceptionThatImplementsISerializableProperly()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.ThrowPrivateSerializableException)));
+        Assert.IsType<PrivateSerializableException>(exception.InnerException);
+    }
+
+    [Fact]
     public async Task CanCallOverloadedMethod()
     {
         int result = await this.clientRpc.InvokeAsync<int>(nameof(Server.OverloadedMethod), new Foo { Bar = "bar-bar", Bazz = -100 });
@@ -2918,6 +2930,8 @@ public abstract class JsonRpcTests : TestBase
             throw new ExceptionMissingDeserializingConstructor(ExceptionMessage);
         }
 
+        public void ThrowPrivateSerializableException() => throw new PrivateSerializableException();
+
         public Task<object> MethodThatReturnsTaskOfInternalClass()
         {
             var result = new Task<object>(() => new InternalClass());
@@ -3313,6 +3327,31 @@ public abstract class JsonRpcTests : TestBase
     {
         public ExceptionMissingDeserializingConstructor(string message)
             : base(message)
+        {
+        }
+    }
+
+    [Serializable]
+    private class PrivateSerializableException : Exception
+    {
+        public PrivateSerializableException()
+        {
+        }
+
+        public PrivateSerializableException(string message)
+            : base(message)
+        {
+        }
+
+        public PrivateSerializableException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+        protected PrivateSerializableException(
+          SerializationInfo info,
+          StreamingContext context)
+            : base(info, context)
         {
         }
     }
