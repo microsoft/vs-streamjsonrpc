@@ -5,6 +5,8 @@ StreamJsonRpc.JsonRpc.ExceptionStrategy.get -> StreamJsonRpc.ExceptionProcessing
 StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
 StreamJsonRpc.JsonRpc.TraceContextParentId.get -> System.ReadOnlyMemory<byte>
 StreamJsonRpc.JsonRpc.TraceContextParentId.set -> void
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationErrorWithException = -32004 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
 StreamJsonRpc.RequestId.RequestId() -> void
