@@ -15,8 +15,6 @@ StreamJsonRpc participates in and propagates trace context when the `JsonRpc.IsT
 
 ### Include activity tracing information in `TraceSource`
 
-- TODO: modify this to indicate that only the `JsonRpc.TraceSource` instance will receive the `TraceTransfer` and `TraceEvent` calls.
-
 Tracing using the `TraceSource` API will include the `ActivityId` in each traced message if the [SourceLevels.ActivityTracing][ActivityTracingFlag] flag is set.
 For example, to construct a `TraceSource` that will emit activity IDs for correlation between processes and machines, use code such as:
 
@@ -38,6 +36,15 @@ Add an instance of this class to your `TraceSource.Listeners` collection for the
 This can be used in combination with other unstructured `TraceListener`-derived classes if desired.
 
 ## Protocol
+
+The formatting, parsing, propagating and modification rules all apply as defined in the [Trace Context][trace-context] spec.
+
+The `tracestate` property is optional and MAY be omitted when empty.
+The `traceparent` property is optional but MUST be present if `tracestate` is present.
+
+### Text encoding
+
+When using a text-based encoding (e.g. UTF-8) the trace-context values are encoded as strings as follows:
 
 Given a standard JSON-RPC request:
 
@@ -65,10 +72,12 @@ For example, a JSON-RPC request message may look like this:
 }
 ```
 
-The `tracestate` property is optional and MAY be omitted when empty.
-The `traceparent` property is optional but MUST be present if `tracestate` is present.
+### Binary encoding
 
-The formatting, parsing, propagating and modification rules all apply as defined in the [Trace Context][trace-context] spec.
+When using a binary encoding (e.g. MessagePack) the trace-context values are encoded as arrays of binary elements as follows:
+
+- `traceparent` is an array containing an 8-byte unsigned integer, a byte array, a byte array, and another unsigned integer.
+- `tracestate` is an array with an even numbered length, where the odd numbered elements are keys and even numbered elements are values associated with the keys that immediately preceded them.
 
 [trace-context]: https://www.w3.org/TR/trace-context/
 [traceparent]: https://www.w3.org/TR/trace-context/#traceparent-header-field-values
