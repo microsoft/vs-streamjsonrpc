@@ -19,6 +19,8 @@ StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, object?
 StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
 StreamJsonRpc.JsonRpc.NotifyAsync(string! targetName, object?[]? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionTypeNotFound = 19 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpcProxyOptions.JsonRpcProxyOptions(StreamJsonRpc.JsonRpcProxyOptions! copyFrom) -> void
 StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions(StreamJsonRpc.JsonRpcTargetOptions! copyFrom) -> void
