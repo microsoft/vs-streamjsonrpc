@@ -11,10 +11,10 @@ namespace StreamJsonRpc
     using System.Threading;
     using Microsoft;
 
-    [DebuggerDisplay("{DebuggerDisplay}")]
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     {
-        public MethodSignatureAndTarget(MethodInfo method, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext)
+        internal MethodSignatureAndTarget(MethodInfo method, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext)
         {
             Requires.NotNull(method, nameof(method));
 
@@ -23,9 +23,16 @@ namespace StreamJsonRpc
             this.SynchronizationContext = perMethodSynchronizationContext;
         }
 
-        public MethodSignature Signature { get; }
+        internal MethodSignatureAndTarget(MethodSignature signature, object? target, SynchronizationContext? perMethodSynchronizationContext)
+        {
+            this.Signature = signature;
+            this.Target = target;
+            this.SynchronizationContext = perMethodSynchronizationContext;
+        }
 
-        public object? Target { get; }
+        internal MethodSignature Signature { get; }
+
+        internal object? Target { get; }
 
         internal SynchronizationContext? SynchronizationContext { get; }
 

@@ -29,6 +29,10 @@ parameters:
   displayName: Skip OptProf optimization
   type: boolean
   default: false
+- name: includeMacOS
+  displayName: Build on macOS
+  type: boolean
+  default: false # macOS is often bogged down in Azure Pipelines
 
 stages:
 
@@ -47,6 +51,7 @@ stages:
     parameters:
       windowsPool: VSEng-MicroBuildVS2019
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
+      includeMacOS: ${{ parameters.includeMacOS }}
 
 - stage: symbol_archive
   displayName: Symbol archival
