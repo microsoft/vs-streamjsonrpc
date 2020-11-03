@@ -19,6 +19,7 @@ namespace StreamJsonRpc
     using System.Threading.Tasks;
     using Microsoft;
     using Microsoft.VisualStudio.Threading;
+    using StreamJsonRpc.Reflection;
     using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
     internal static class ProxyGeneration
@@ -45,6 +46,7 @@ namespace StreamJsonRpc
                                                                     select method).Single();
 
         private static readonly MethodInfo NotifyAsyncOfTaskMethodInfo = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyAsync)).Single(m => !m.IsGenericMethod && m.GetParameters().Length == 3);
+        private static readonly MethodInfo AddLocalRpcMethodMethodInfo = typeof(JsonRpc).GetRuntimeMethod(nameof(JsonRpc.AddLocalRpcMethod), new Type[] { typeof(string), typeof(Delegate) })!;
 
         private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform))!.GetMethod!;
         private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) })!;
@@ -76,7 +78,7 @@ namespace StreamJsonRpc
 
                 ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(serviceInterface);
 
-                var methodNameMap = new JsonRpc.MethodNameMap(serviceInterface);
+                RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(serviceInterface);
 
                 var interfaces = new List<Type>
                 {
@@ -138,7 +140,6 @@ namespace StreamJsonRpc
 
                     ctorActions.Add(new Action<ILGenerator>(il =>
                     {
-                        MethodInfo addLocalRpcMethod = typeof(JsonRpc).GetRuntimeMethod(nameof(JsonRpc.AddLocalRpcMethod), new Type[] { typeof(string), typeof(Delegate) })!;
                         ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
 
                         // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
@@ -156,7 +157,7 @@ namespace StreamJsonRpc
                         il.Emit(OpCodes.Ldarg_0);
                         il.Emit(OpCodes.Ldftn, raiseEventMethod);
                         il.Emit(OpCodes.Newobj, delegateCtor);
-                        il.Emit(OpCodes.Callvirt, addLocalRpcMethod);
+                        il.Emit(OpCodes.Callvirt, AddLocalRpcMethodMethodInfo);
                     }));
                 }
 

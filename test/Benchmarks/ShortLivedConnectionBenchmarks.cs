@@ -12,24 +12,28 @@ namespace Benchmarks
     using StreamJsonRpc;
 
     [MemoryDiagnoser]
-    public class InvokeBenchmarks
+    public class ShortLivedConnectionBenchmarks
     {
-        private JsonRpc clientRpc = null!;
-        private JsonRpc serverRpc = null!;
+        private const int Iterations = 1000;
 
         [Params("JSON", "MessagePack")]
         public string Formatter { get; set; } = null!;
 
-        [GlobalSetup]
-        public void Setup()
+        [Benchmark(OperationsPerInvoke = Iterations)]
+        public async Task CreateConnectionAndInvokeOnce()
         {
-            (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
-            this.clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
-            this.clientRpc.StartListening();
+            for (int i = 0; i < Iterations; i++)
+            {
+                (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
+                using var clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
+                clientRpc.StartListening();
 
-            this.serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
-            this.serverRpc.AddLocalRpcTarget(new Server());
-            this.serverRpc.StartListening();
+                using var serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
+                serverRpc.AddLocalRpcTarget(new Server());
+                serverRpc.StartListening();
+
+                await clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
+            }
 
             IJsonRpcMessageHandler CreateHandler(IDuplexPipe pipe)
             {
@@ -41,9 +45,6 @@ namespace Benchmarks
                 };
             }
         }
-
-        [Benchmark]
-        public Task InvokeAsync_NoArgs() => this.clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
 
         private class Server
         {
