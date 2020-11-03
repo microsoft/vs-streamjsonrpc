@@ -55,6 +55,7 @@ namespace StreamJsonRpc.Protocol
             {
                 this.Version = default;
                 this.VersionFormat = default;
+                return;
             }
 
             ReadOnlySpan<char> headerValue = httpHeaderEncoding.AsSpan();

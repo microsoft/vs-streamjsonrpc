@@ -76,8 +76,8 @@ For example, a JSON-RPC request message may look like this:
 
 When using a binary encoding (e.g. MessagePack) the trace-context values are encoded as arrays of binary elements as follows:
 
-- `traceparent` is an array containing an 8-byte unsigned integer, a byte array, a byte array, and another unsigned integer.
-- `tracestate` is an array with an even numbered length, where the odd numbered elements are keys and even numbered elements are values associated with the keys that immediately preceded them.
+- `traceparent` as `[uint8, [byte[], byte[], byte]`
+- `tracestate` is `[str, str, str, str]` (an array with an even numbered length, where the odd numbered elements are keys and even numbered elements are values associated with the keys that immediately preceded them.)
 
 [trace-context]: https://www.w3.org/TR/trace-context/
 [traceparent]: https://www.w3.org/TR/trace-context/#traceparent-header-field-values

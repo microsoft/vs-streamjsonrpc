@@ -64,6 +64,16 @@ namespace StreamJsonRpc
         private static readonly CommonString ParamsPropertyName = new CommonString("params");
 
         /// <summary>
+        /// The constant "traceparent", in its various forms.
+        /// </summary>
+        private static readonly CommonString TraceParentPropertyName = new CommonString("traceparent");
+
+        /// <summary>
+        /// The constant "tracestate", in its various forms.
+        /// </summary>
+        private static readonly CommonString TraceStatePropertyName = new CommonString("tracestate");
+
+        /// <summary>
         /// The constant "2.0", in its various forms.
         /// </summary>
         private static readonly CommonString Version2 = new CommonString("2.0");
@@ -565,6 +575,8 @@ namespace StreamJsonRpc
                 new JsonRpcResultFormatter(this),
                 new JsonRpcErrorFormatter(this),
                 new JsonRpcErrorDetailFormatter(this),
+                new TraceParentFormatter(),
+                new TraceStateFormatter(),
             };
             var resolvers = new IFormatterResolver[]
             {
@@ -578,11 +590,14 @@ namespace StreamJsonRpc
         {
             internal CommonString(string value)
             {
-                Requires.Argument(value.Length > 0 && value.Length <= 8, nameof(value), "Length must be >0 and <=8.");
+                Requires.Argument(value.Length > 0 && value.Length <= 16, nameof(value), "Length must be >0 and <=16.");
                 this.Value = value;
                 ReadOnlyMemory<byte> encodedBytes = MessagePack.Internal.CodeGenHelpers.GetEncodedStringBytes(value);
                 this.EncodedBytes = encodedBytes;
-                this.Key = GetKey(encodedBytes.Span.Slice(1)); // header is 1 byte because string length <= 8
+
+                ReadOnlySpan<byte> span = this.EncodedBytes.Span.Slice(1);
+                this.Key = MessagePack.Internal.AutomataKeyGen.GetKey(ref span); // header is 1 byte because string length <= 16
+                this.Key2 = span.Length > 0 ? (ulong?)MessagePack.Internal.AutomataKeyGen.GetKey(ref span) : null;
             }
 
             /// <summary>
@@ -594,6 +609,11 @@ namespace StreamJsonRpc
             /// Gets the 64-bit integer that represents the string without decoding it.
             /// </summary>
             private ulong Key { get; }
+
+            /// <summary>
+            /// Gets the next 64-bit integer that represents the string without decoding it.
+            /// </summary>
+            private ulong? Key2 { get; }
 
             /// <summary>
             /// Gets the messagepack header and UTF-8 bytes for this string.
@@ -624,15 +644,38 @@ namespace StreamJsonRpc
             /// </summary>
             /// <param name="utf8String">The UTF-8 string.</param>
             /// <returns><see langword="true"/> if the UTF-8 bytes are the encoding of this common string; <see langword="false"/> otherwise.</returns>
-            internal bool TryRead(ReadOnlySpan<byte> utf8String) => utf8String.Length == this.EncodedBytes.Length - 1 && GetKey(utf8String) == this.Key;
-
-            /// <summary>
-            /// Gets the 64-bit integer representation of a short sequence of UTF-8 encoded bytes.
-            /// </summary>
-            private static ulong GetKey(ReadOnlySpan<byte> utf8Bytes)
+            internal bool TryRead(ReadOnlySpan<byte> utf8String)
             {
-                Assumes.True(utf8Bytes.Length <= 8); // the key only fits in ulong when the string is <= 8 long.
-                return MessagePack.Internal.AutomataKeyGen.GetKey(ref utf8Bytes);
+                if (utf8String.Length != this.EncodedBytes.Length - 1)
+                {
+                    return false;
+                }
+
+                ulong key1 = MessagePack.Internal.AutomataKeyGen.GetKey(ref utf8String);
+                if (key1 != this.Key)
+                {
+                    return false;
+                }
+
+                if (utf8String.Length > 0)
+                {
+                    if (!this.Key2.HasValue)
+                    {
+                        return false;
+                    }
+
+                    ulong key2 = MessagePack.Internal.AutomataKeyGen.GetKey(ref utf8String);
+                    if (key2 != this.Key2.Value)
+                    {
+                        return false;
+                    }
+                }
+                else if (this.Key2.HasValue)
+                {
+                    return false;
+                }
+
+                return true;
             }
         }
 
@@ -1618,6 +1661,14 @@ namespace StreamJsonRpc
 
                         result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
                     }
+                    else if (TraceParentPropertyName.TryRead(stringKey))
+                    {
+                        result.TraceParent = options.Resolver.GetFormatterWithVerify<TraceParent>().Deserialize(ref reader, options);
+                    }
+                    else if (TraceStatePropertyName.TryRead(stringKey))
+                    {
+                        result.TraceState = options.Resolver.GetFormatterWithVerify<TraceState>().Deserialize(ref reader, options);
+                    }
                     else
                     {
                         reader.Skip();
@@ -1655,7 +1706,17 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(value.RequestId.IsEmpty ? 3 : 4);
+                int mapElementCount = value.RequestId.IsEmpty ? 3 : 4;
+                if (value.TraceParent.VersionFormat.IsValidParentId())
+                {
+                    mapElementCount++;
+                    if (value.TraceState.Values.Length > 0)
+                    {
+                        mapElementCount++;
+                    }
+                }
+
+                writer.WriteMapHeader(mapElementCount);
 
                 WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
@@ -1669,7 +1730,6 @@ namespace StreamJsonRpc
                 writer.Write(value.Method);
 
                 ParamsPropertyName.Write(ref writer);
-
                 if (value.ArgumentsList != null)
                 {
                     writer.WriteArrayHeader(value.ArgumentsList.Count);
@@ -1705,6 +1765,18 @@ namespace StreamJsonRpc
                 else
                 {
                     writer.WriteNil();
+                }
+
+                if (value.TraceParent.VersionFormat.IsValidParentId())
+                {
+                    TraceParentPropertyName.Write(ref writer);
+                    options.Resolver.GetFormatterWithVerify<TraceParent>().Serialize(ref writer, value.TraceParent, options);
+
+                    if (value.TraceState.Values.Length > 0)
+                    {
+                        TraceStatePropertyName.Write(ref writer);
+                        options.Resolver.GetFormatterWithVerify<TraceState>().Serialize(ref writer, value.TraceState, options);
+                    }
                 }
             }
         }
@@ -1885,6 +1957,69 @@ namespace StreamJsonRpc
 
                 writer.Write(DataPropertyName);
                 DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
+            }
+        }
+
+        private class TraceParentFormatter : IMessagePackFormatter<TraceParent>
+        {
+            public unsafe TraceParent Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                if (reader.ReadArrayHeader() != 2)
+                {
+                    throw new NotSupportedException("Unexpected array length.");
+                }
+
+                var result = default(TraceParent);
+                result.Version = reader.ReadByte();
+                if (result.Version != 0)
+                {
+                    throw new NotSupportedException("traceparent version " + result.Version + " is not supported.");
+                }
+
+                if (reader.ReadArrayHeader() != 3)
+                {
+                    throw new NotSupportedException("Unexpected array length in version-format.");
+                }
+
+                ReadOnlySequence<byte> bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected traceid not found.");
+                bytes.CopyTo(new Span<byte>(result.VersionFormat.TraceId, TraceParentVersion0Format.TraceIdLength));
+
+                bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected parentid not found.");
+                bytes.CopyTo(new Span<byte>(result.VersionFormat.ParentId, TraceParentVersion0Format.ParentIdLength));
+
+                result.VersionFormat.TraceFlags = (TraceFlags)reader.ReadByte();
+
+                return result;
+            }
+
+            public unsafe void Serialize(ref MessagePackWriter writer, TraceParent value, MessagePackSerializerOptions options)
+            {
+                if (value.Version != 0)
+                {
+                    throw new NotSupportedException("traceparent version " + value.Version + " is not supported.");
+                }
+
+                writer.WriteArrayHeader(2);
+
+                writer.Write(value.Version);
+
+                writer.WriteArrayHeader(3);
+                writer.Write(new ReadOnlySpan<byte>(value.VersionFormat.TraceId, TraceParentVersion0Format.TraceIdLength));
+                writer.Write(new ReadOnlySpan<byte>(value.VersionFormat.ParentId, TraceParentVersion0Format.ParentIdLength));
+                writer.Write((byte)value.VersionFormat.TraceFlags);
+            }
+        }
+
+        private class TraceStateFormatter : IMessagePackFormatter<TraceState>
+        {
+            public TraceState Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Serialize(ref MessagePackWriter writer, TraceState value, MessagePackSerializerOptions options)
+            {
+                throw new NotImplementedException();
             }
         }
 
