@@ -402,6 +402,78 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
+    [Theory, PairwiseData]
+    public async Task CanCallAsyncMethodThatThrowsNonSerializableException(ExceptionProcessing exceptionStrategy)
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
+
+        RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsNonSerializableException)));
+        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.Equal(Server.ExceptionMessage, errorData.Message);
+
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            Assert.Null(exception.InnerException);
+
+            // Assert that the server logged a warning about the exception problem.
+            Assert.Contains(JsonRpc.TraceEvents.ExceptionNotSerializable, this.serverTraces.Ids);
+        }
+    }
+
+    [Theory, PairwiseData]
+    public async Task CanCallAsyncMethodThatThrowsExceptionWithoutDeserializingConstructor(ExceptionProcessing exceptionStrategy)
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = exceptionStrategy;
+        this.serverRpc.ExceptionStrategy = exceptionStrategy;
+
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAnExceptionWithoutDeserializingConstructor)));
+        var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
+        Assert.Equal(Server.ExceptionMessage, errorData.Message);
+
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            // The inner exception type should be the nearest base type that declares the deserializing constructor.
+            Exception inner = Assert.IsType<InvalidOperationException>(exception.InnerException);
+            Assert.Equal(Server.ExceptionMessage, inner.Message);
+        }
+
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            Assert.Contains(JsonRpc.TraceEvents.ExceptionNotDeserializable, this.clientTraces.Ids);
+        }
+    }
+
+    [Fact]
+    public async Task CanCallAsyncMethodThatThrowsExceptionWhileSerializingException()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        RemoteSerializationException exception = await Assert.ThrowsAnyAsync<RemoteSerializationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsExceptionThatThrowsOnSerialization)));
+        Assert.Equal(JsonRpcErrorCode.ResponseSerializationFailure, exception.ErrorCode);
+        Assert.NotEqual(Server.ExceptionMessage, exception.Message);
+        Assert.Null(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task ThrowCustomExceptionThatImplementsISerializableProperly()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.ThrowPrivateSerializableException)));
+        Assert.IsType<PrivateSerializableException>(exception.InnerException);
+    }
+
     [Fact]
     public async Task CanCallOverloadedMethod()
     {
@@ -2289,6 +2361,15 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task NonSerializableExceptionInArgumentThrowsLocally()
+    {
+        // Synthesize an exception message that refers to an exception type that does not exist.
+        var exceptionToSend = new NonSerializableException(Server.ExceptionMessage);
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken));
+        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
+    }
+
+    [Fact]
     public void CancellationStrategy_ConfigurationLocked()
     {
         Assert.Throws<InvalidOperationException>(() => this.clientRpc.CancellationStrategy = null);
@@ -2832,6 +2913,26 @@ public abstract class JsonRpcTests : TestBase
             throw new Exception(ExceptionMessage);
         }
 
+        public async Task AsyncMethodThatThrowsNonSerializableException()
+        {
+            await Task.Yield();
+            throw new NonSerializableException(ExceptionMessage);
+        }
+
+        public async Task AsyncMethodThatThrowsExceptionThatThrowsOnSerialization()
+        {
+            await Task.Yield();
+            throw new ThrowOnSerializeException(ExceptionMessage);
+        }
+
+        public async Task AsyncMethodThatThrowsAnExceptionWithoutDeserializingConstructor()
+        {
+            await Task.Yield();
+            throw new ExceptionMissingDeserializingConstructor(ExceptionMessage);
+        }
+
+        public void ThrowPrivateSerializableException() => throw new PrivateSerializableException();
+
         public Task<object> MethodThatReturnsTaskOfInternalClass()
         {
             var result = new Task<object>(() => new InternalClass());
@@ -3182,6 +3283,77 @@ public abstract class JsonRpcTests : TestBase
             }
 
             info.AddValue("ClassName", "My.NonExistentException");
+        }
+    }
+
+    /// <summary>
+    /// An exception that does <em>not</em> have a <see cref="SerializableAttribute"/> applied.
+    /// </summary>
+    private class NonSerializableException : InvalidOperationException
+    {
+        public NonSerializableException(string message)
+            : base(message)
+        {
+        }
+    }
+
+    /// <summary>
+    /// An exception that throws while being serialized.
+    /// </summary>
+    [Serializable]
+    private class ThrowOnSerializeException : InvalidOperationException
+    {
+        public ThrowOnSerializeException(string message)
+            : base(message)
+        {
+        }
+
+        protected ThrowOnSerializeException(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+            // Unlikely to ever be called since serialization throws, but complete the pattern so we test exactly what we mean to.
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            throw new InvalidOperationException("This exception always throws when serialized.");
+        }
+    }
+
+    /// <summary>
+    /// An exception that throws while being serialized.
+    /// </summary>
+    [Serializable]
+    private class ExceptionMissingDeserializingConstructor : InvalidOperationException
+    {
+        public ExceptionMissingDeserializingConstructor(string message)
+            : base(message)
+        {
+        }
+    }
+
+    [Serializable]
+    private class PrivateSerializableException : Exception
+    {
+        public PrivateSerializableException()
+        {
+        }
+
+        public PrivateSerializableException(string message)
+            : base(message)
+        {
+        }
+
+        public PrivateSerializableException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+        protected PrivateSerializableException(
+          SerializationInfo info,
+          StreamingContext context)
+            : base(info, context)
+        {
         }
     }
 

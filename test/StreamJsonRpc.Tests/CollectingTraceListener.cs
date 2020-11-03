@@ -3,12 +3,15 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
+using StreamJsonRpc;
 
 public class CollectingTraceListener : TraceListener
 {
     private readonly StringBuilder lineInProgress = new StringBuilder();
 
     private readonly ImmutableList<string>.Builder messages = ImmutableList.CreateBuilder<string>();
+
+    private readonly ImmutableList<JsonRpc.TraceEvents>.Builder traceEventIds = ImmutableList.CreateBuilder<JsonRpc.TraceEvents>();
 
     public override bool IsThreadSafe => false;
 
@@ -23,7 +26,48 @@ public class CollectingTraceListener : TraceListener
         }
     }
 
+    public ImmutableList<JsonRpc.TraceEvents> Ids
+    {
+        get
+        {
+            lock (this.traceEventIds)
+            {
+                return this.traceEventIds.ToImmutable();
+            }
+        }
+    }
+
     public AsyncAutoResetEvent MessageReceived { get; } = new AsyncAutoResetEvent();
+
+    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
+    {
+        lock (this.traceEventIds)
+        {
+            this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        base.TraceEvent(eventCache, source, eventType, id, format, args);
+    }
+
+    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
+    {
+        lock (this.traceEventIds)
+        {
+            this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        base.TraceEvent(eventCache, source, eventType, id, message);
+    }
+
+    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
+    {
+        lock (this.traceEventIds)
+        {
+            this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        base.TraceEvent(eventCache, source, eventType, id);
+    }
 
     public override void Write(string message) => this.lineInProgress.Append(message);
 
