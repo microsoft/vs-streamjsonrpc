@@ -1361,12 +1361,21 @@ namespace StreamJsonRpc
         /// <seealso cref="CreateExceptionFromRpcError(JsonRpcRequest, JsonRpcError)"/>
         protected virtual JsonRpcError.ErrorDetail CreateErrorDetails(JsonRpcRequest request, Exception exception)
         {
+            Requires.NotNull(exception, nameof(exception));
+
             var localRpcEx = exception as LocalRpcException;
+            bool iserializable = this.ExceptionStrategy == ExceptionProcessing.ISerializable;
+            if (!ExceptionSerializationHelpers.IsSerializable(exception))
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ExceptionNotSerializable, "An exception of type {0} was thrown but is not serializable.", exception.GetType().AssemblyQualifiedName);
+                iserializable = false;
+            }
+
             return new JsonRpcError.ErrorDetail
             {
-                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? (this.ExceptionStrategy == ExceptionProcessing.ISerializable ? JsonRpcErrorCode.InvocationErrorWithException : JsonRpcErrorCode.InvocationError),
+                Code = (JsonRpcErrorCode?)localRpcEx?.ErrorCode ?? (iserializable ? JsonRpcErrorCode.InvocationErrorWithException : JsonRpcErrorCode.InvocationError),
                 Message = exception.Message,
-                Data = localRpcEx != null ? localRpcEx.ErrorData : (this.ExceptionStrategy == ExceptionProcessing.ISerializable ? (object?)exception : new CommonErrorData(exception)),
+                Data = localRpcEx != null ? localRpcEx.ErrorData : (iserializable ? (object?)exception : new CommonErrorData(exception)),
             };
         }
 

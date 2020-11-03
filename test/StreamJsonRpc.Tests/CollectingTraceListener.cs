@@ -39,6 +39,16 @@ public class CollectingTraceListener : TraceListener
 
     public AsyncAutoResetEvent MessageReceived { get; } = new AsyncAutoResetEvent();
 
+    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
+    {
+        lock (this.traceEventIds)
+        {
+            this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        base.TraceEvent(eventCache, source, eventType, id, format, args);
+    }
+
     public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
     {
         lock (this.traceEventIds)
@@ -47,6 +57,16 @@ public class CollectingTraceListener : TraceListener
         }
 
         base.TraceEvent(eventCache, source, eventType, id, message);
+    }
+
+    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
+    {
+        lock (this.traceEventIds)
+        {
+            this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        base.TraceEvent(eventCache, source, eventType, id);
     }
 
     public override void Write(string message) => this.lineInProgress.Append(message);

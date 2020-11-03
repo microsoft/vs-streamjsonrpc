@@ -69,12 +69,17 @@ namespace StreamJsonRpc.Reflection
                 throw new NotSupportedException($"{runtimeTypeName} does not derive from {typeof(T).FullName}.");
             }
 
-            EnsureSerializableAttribute(runtimeType);
-
-            ConstructorInfo? ctor = FindDeserializingConstructor(runtimeType);
-            if (ctor is null)
+            // Find the nearest exception type that implements the deserializing constructor and is deserializable.
+            ConstructorInfo? ctor;
+            while (runtimeType.GetCustomAttribute<SerializableAttribute>() is null || (ctor = FindDeserializingConstructor(runtimeType)) is null)
             {
-                throw new NotSupportedException($"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))}).");
+                string errorMessage = $"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))}).";
+                traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
+                runtimeType = runtimeType.BaseType;
+                if (runtimeType is null)
+                {
+                    throw new NotSupportedException(errorMessage);
+                }
             }
 
             return (T)ctor.Invoke(new object?[] { info, Context });
@@ -87,6 +92,8 @@ namespace StreamJsonRpc.Reflection
             exception.GetObjectData(info, Context);
             info.AddValue(AssemblyNameKeyName, exception.GetType().Assembly.FullName);
         }
+
+        internal static bool IsSerializable(Exception exception) => exception.GetType().GetCustomAttribute<SerializableAttribute>() is object;
 
         internal static object Convert(IFormatterConverter formatterConverter, object value, TypeCode typeCode)
         {

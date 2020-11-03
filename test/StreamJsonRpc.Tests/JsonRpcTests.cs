@@ -410,19 +410,17 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
         this.serverRpc.ExceptionStrategy = exceptionStrategy;
 
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsNonSerializableException)));
+        RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsNonSerializableException)));
         var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
         Assert.Equal(Server.ExceptionMessage, errorData.Message);
 
         if (exceptionStrategy == ExceptionProcessing.ISerializable)
         {
-            // The inner exception type should be the nearest base type that applies the [Serializable] attribute.
-            Exception inner = Assert.IsType<InvalidOperationException>(exception.InnerException);
-            Assert.Equal(Server.ExceptionMessage, inner.Message);
-        }
+            Assert.Null(exception.InnerException);
 
-        // Assert that the server logged a warning about the exception problem.
-        Assert.Contains(JsonRpc.TraceEvents.ExceptionNotSerializable, this.serverTraces.Ids);
+            // Assert that the server logged a warning about the exception problem.
+            Assert.Contains(JsonRpc.TraceEvents.ExceptionNotSerializable, this.serverTraces.Ids);
+        }
     }
 
     [Theory, PairwiseData]
@@ -444,7 +442,10 @@ public abstract class JsonRpcTests : TestBase
             Assert.Equal(Server.ExceptionMessage, inner.Message);
         }
 
-        Assert.Contains(JsonRpc.TraceEvents.ExceptionNotDeserializable, this.clientTraces.Ids);
+        if (exceptionStrategy == ExceptionProcessing.ISerializable)
+        {
+            Assert.Contains(JsonRpc.TraceEvents.ExceptionNotDeserializable, this.clientTraces.Ids);
+        }
     }
 
     [Fact]
@@ -455,8 +456,8 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
         this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
 
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsExceptionThatThrowsOnSerialization)));
-        Assert.Equal((int)JsonRpcErrorCode.ResponseSerializationFailure, exception.ErrorCode);
+        RemoteSerializationException exception = await Assert.ThrowsAnyAsync<RemoteSerializationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsExceptionThatThrowsOnSerialization)));
+        Assert.Equal(JsonRpcErrorCode.ResponseSerializationFailure, exception.ErrorCode);
         Assert.NotEqual(Server.ExceptionMessage, exception.Message);
         Assert.Null(exception.InnerException);
     }
