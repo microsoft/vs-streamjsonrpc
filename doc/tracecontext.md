@@ -9,9 +9,11 @@ A new activity is created and parented to that existing `ActivityId` and the new
 
 When receiving requests, StreamJsonRpc sets the `ActivityId` property before dispatching the request.
 
+Note: StreamJsonRpc does not currently use the [`System.Diagnostics.Activity` API](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.activity?view=netcore-3.1) from the [`System.Diagnostics.DiagnosticSource` NuGet package](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource).
+
 ## Usage
 
-StreamJsonRpc participates in and propagates trace context when the `JsonRpc.IsTraceContextEnabled` property is set to `true`.
+StreamJsonRpc participates in and propagates trace context when the `JsonRpc.TraceContextParentId` property is set to a non-default value.
 
 ### Include activity tracing information in `TraceSource`
 
@@ -76,7 +78,7 @@ For example, a JSON-RPC request message may look like this:
 
 When using a binary encoding (e.g. MessagePack) the trace-context values are encoded as arrays of binary elements as follows:
 
-- `traceparent` as `[uint8, [byte[], byte[], byte]`
+- `traceparent` as `[uint8, [byte[], byte[], byte]]`
 - `tracestate` is `[str, str, str, str]` (an array with an even numbered length, where the odd numbered elements are keys and even numbered elements are values associated with the keys that immediately preceded them.)
 
 [trace-context]: https://www.w3.org/TR/trace-context/
