@@ -3,21 +3,52 @@
 This document describes how StreamJsonRpc propagates [Trace Context][trace-context] over JSON-RPC.
 
 StreamJsonRpc propagates trace context only in JSON-RPC requests (including notifications).
-
-When sending requests, StreamJsonRpc takes the trace context from the [`Trace.CorrelationManager.ActivityId` property][ActivityId].
-A new activity is created and parented to that existing `ActivityId` and the new activity's ID is then sent to the remote party.
-
-When receiving requests, StreamJsonRpc sets the `ActivityId` property before dispatching the request.
-
-Note: StreamJsonRpc does not currently use the [`System.Diagnostics.Activity` API](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.activity?view=netcore-3.1) from the [`System.Diagnostics.DiagnosticSource` NuGet package](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource).
+Trace context does not propagate over response messages.
 
 ## Usage
 
-StreamJsonRpc participates in and propagates trace context when the `JsonRpc.TraceContextParentId` property is set to a non-default value.
+StreamJsonRpc participates in and propagates trace context when the `JsonRpc.ActivityTracingStrategy` property is set to an implementation of the `IActivityTracingStrategy` interface.
+StreamJsonRpc includes two such implementations, as described in the following sections.
 
-### Include activity tracing information in `TraceSource`
+### `ActivityTracingStrategy`
 
-Tracing using the `TraceSource` API will include the `ActivityId` in each traced message if the [SourceLevels.ActivityTracing][ActivityTracingFlag] flag is set.
+This strategy utilizes the [`System.Diagnostics.Activity` API](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.activity?view=netcore-3.1) from the [`System.Diagnostics.DiagnosticSource` NuGet package](https://www.nuget.org/packages/System.Diagnostics.DiagnosticSource) to track activities.
+
+No trace context is applied to outbound requests when `Activity.Current is null`
+or when `Activity.Current.IdFormat != ActivityIdFormat.W3C`.
+
+The value of the `Activity.Current.Id` property is used directly for the `traceparent` property in an outbound RPC request.
+
+The value of the `Activity.Current.TraceStateString` property is used directly for the `tracestate` property in an outbound RPC request.
+
+On an inbound request that carries trace context data, a new `Activity` is started whose `ParentId` is set to the value of the request's `traceparent` property and whose `TraceStateString` property is set to the value of the request's `tracestate` property.
+The `Activity.Name` is set to the name of the method being invoked via RPC.
+
+### `CorrelationManagerTracingStrategy`
+
+This strategy utilizes the `Trace.CorrelationManager` and `TraceSource` APIs to track activities.
+
+No trace context is applied to outbound requests when `Trace.CorrelationManager.ActivityId == Guid.Empty`.
+
+This strategy populates the `traceparent` property as follows:
+
+sub-field     | value or source
+--------------|-----------------------------------------------------------------------
+`version`     | `0`
+`trace-id`    | [`Trace.CorrelationManager.ActivityId`][CorrelationManagerActivityId]
+`parent-id`   | a random value for each outbound request
+`trace-flags` | `sampled` if `CorrelationManagerTracingStrategy.TraceSource` is set to an instance with at least one `TraceListener` and the `SourceLevels.ActivityTracing` flag set on its `TraceSource.Switch` property.
+
+When receiving requests, the `trace-id` from the request is applied to the `Trace.CorrelationManager.ActivityId` property before dispatching the request.
+Any prior value for the `ActivityId` property is preserved and reapplied after the request has been handled.
+When an activity is applied or reverted, the appropriate `TraceSource` APIs are called (e.g. `TraceTransfer`, `TraceEvent` with `TraceEventType.Start` or `TraceEventType.Stop`).
+
+The `tracestate` property on an outbound request is set to the value of `CorrelationManagerTracingStrategy.TraceState`.
+For an inbound request, the value from the request is applied to this same property.
+
+Tracing using the `TraceSource` API will include the value from `Trace.CorrelationManager.ActivityId` in each traced message if the [SourceLevels.ActivityTracing][SourceLevelsActivityTracingFlag] flag is set.
+Note that this flag *not* included in `SourceLevels.Verbose`.
+
 For example, to construct a `TraceSource` that will emit activity IDs for correlation between processes and machines, use code such as:
 
 ```cs
@@ -29,6 +60,9 @@ Or to modify an existing `TraceSource` to add activity tracing, you can set the 
 ```cs
 traceSource.Switch.Level |= SourceLevels.ActivityTracing;
 ```
+
+You *may* share a `TraceSource` or `TraceListener` between your `JsonRpc` instance and the `CorrelationManagerTracingStrategy` instance.
+For proper activity recording in trace logs, be sure to set the `SourceLevels.ActivityTracing` flag described above in all relevant `TraceSource` objects.
 
 ### Creating and reviewing trace logs
 
@@ -84,7 +118,7 @@ When using a binary encoding (e.g. MessagePack) the trace-context values are enc
 [trace-context]: https://www.w3.org/TR/trace-context/
 [traceparent]: https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 [tracestate]: https://www.w3.org/TR/trace-context/#tracestate-header-field-values
-[ActivityId]: https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.correlationmanager.activityid?view=netcore-3.1
-[ActivityTracingFlag]: https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.sourcelevels?view=netcore-3.1#System_Diagnostics_SourceLevels_ActivityTracing
+[CorrelationManagerActivityId]: https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.correlationmanager.activityid?view=netcore-3.1
+[SourceLevelsActivityTracingFlag]: https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.sourcelevels?view=netcore-3.1#System_Diagnostics_SourceLevels_ActivityTracing
 [XmlWriterTraceListener]: https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.xmlwritertracelistener?view=netcore-3.1
 [ServiceTraceViewer]: https://docs.microsoft.com/en-us/dotnet/framework/wcf/service-trace-viewer-tool-svctraceviewer-exe#using-the-service-trace-viewer-tool
