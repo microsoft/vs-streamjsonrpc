@@ -61,6 +61,30 @@ public class ActivityTracingStrategyTests : TestBase
         }
     }
 
+    /// <summary>
+    /// Verifies that an inbound request that says nothing about traceparent does not interfere with ongoing activities on the server.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Inbound_WithoutTraceParent(bool contextualActivity)
+    {
+        Activity? testActivity = contextualActivity ? new Activity("test").Start() : null;
+        try
+        {
+            using (IDisposable? state = this.strategy.ApplyInboundActivity(this.request))
+            {
+                Assert.Same(testActivity, Activity.Current);
+            }
+
+            Assert.Same(testActivity, Activity.Current);
+        }
+        finally
+        {
+            testActivity?.Stop();
+        }
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("k=v")]
