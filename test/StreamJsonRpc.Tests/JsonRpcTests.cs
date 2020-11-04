@@ -2424,6 +2424,59 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
+#if !NETCOREAPP2_1
+    /// <summary>
+    /// Sets up <see cref="JsonRpc"/> on both sides to record activity traces as XML so an engineer can manually validate
+    /// that <see href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/service-trace-viewer-tool-svctraceviewer-exe#using-the-service-trace-viewer-tool">Service Trace Viewer</see>
+    /// can open and compose into a holistic view.
+    /// </summary>
+    [Fact]
+    public async Task ActivityTracing_IntegrationTest()
+    {
+        string logDir = Path.Combine(Environment.CurrentDirectory, this.GetType().Name + "." + nameof(this.ActivityTracing_IntegrationTest));
+        Directory.CreateDirectory(logDir);
+
+        // We are intentionally setting up many isolated listeners, TraceSources and strategies to simulate this all being done across processes where they couldn't be shared.
+        using var clientListener = new XmlWriterTraceListener(Path.Combine(logDir, "client.svclog"));
+        using var clientRpcListener = new XmlWriterTraceListener(Path.Combine(logDir, "client-rpc.svclog"));
+        using var clientStrategyListener = new XmlWriterTraceListener(Path.Combine(logDir, "client-strategy.svclog"));
+        using var serverRpcListener = new XmlWriterTraceListener(Path.Combine(logDir, "server-rpc.svclog"));
+        using var serverStrategyListener = new XmlWriterTraceListener(Path.Combine(logDir, "server-strategy.svclog"));
+        using var serverTargetListener = new XmlWriterTraceListener(Path.Combine(logDir, "server.svclog"));
+
+        this.server.TraceSource = new TraceSource("server-target", SourceLevels.ActivityTracing | SourceLevels.Information)
+        {
+            Listeners = { serverTargetListener },
+        };
+
+        var clientTraceSource = new TraceSource("client", SourceLevels.ActivityTracing | SourceLevels.Information)
+        {
+            Listeners = { clientListener },
+        };
+
+        ConfigureTracing(this.clientRpc, "client", clientRpcListener, clientStrategyListener);
+        ConfigureTracing(this.serverRpc, "server", serverRpcListener, serverStrategyListener);
+
+        Trace.CorrelationManager.ActivityId = Guid.NewGuid();
+        clientTraceSource.TraceInformation("I feel like making an RPC call.");
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.TraceSomething), new object?[] { "hi" }, this.TimeoutToken);
+
+        static void ConfigureTracing(JsonRpc jsonRpc, string name, XmlWriterTraceListener listener, XmlWriterTraceListener strategyListener)
+        {
+            jsonRpc.AllowModificationWhileListening = true;
+            jsonRpc.TraceSource.Switch.Level |= SourceLevels.ActivityTracing | SourceLevels.Information;
+            jsonRpc.TraceSource.Listeners.Add(listener);
+            jsonRpc.ActivityTracingStrategy = new CorrelationManagerTracingStrategy
+            {
+                TraceSource = new TraceSource($"{name}-strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+                {
+                    Listeners = { strategyListener },
+                },
+            };
+        }
+    }
+#endif
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -2593,6 +2646,8 @@ public abstract class JsonRpcTests : TestBase
         internal Exception? ReceivedException { get; set; }
 
         internal JsonRpcTests? Tests { get; set; }
+
+        internal TraceSource? TraceSource { get; set; }
 
         public static string ServerMethod(string argument)
         {
@@ -2829,7 +2884,9 @@ public abstract class JsonRpcTests : TestBase
             return arg;
         }
 
-        public string RepeatString(string arg) => arg;
+        public string? RepeatString(string? arg) => arg;
+
+        public void TraceSomething(string? message) => this.TraceSource?.TraceInformation(message);
 
         public async Task<string> AsyncMethod(string arg)
         {

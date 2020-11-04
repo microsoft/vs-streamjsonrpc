@@ -39,7 +39,8 @@ sub-field     | value or source
 `parent-id`   | a random value for each outbound request
 `trace-flags` | `sampled` if `CorrelationManagerTracingStrategy.TraceSource` is set to an instance with at least one `TraceListener` and the `SourceLevels.ActivityTracing` flag set on its `TraceSource.Switch` property.
 
-When receiving requests, the `trace-id` from the request is applied to the `Trace.CorrelationManager.ActivityId` property before dispatching the request.
+When receiving requests, a new `Guid` is assigned to the `Trace.CorrelationManager.ActivityId` property before dispatching the request.
+The `trace-id` from the request is recorded as a parent to this new activity through a call to `TraceSource.TraceTransfer`.
 Any prior value for the `ActivityId` property is preserved and reapplied after the request has been handled.
 When an activity is applied or reverted, the appropriate `TraceSource` APIs are called (e.g. `TraceTransfer`, `TraceEvent` with `TraceEventType.Start` or `TraceEventType.Stop`).
 

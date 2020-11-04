@@ -63,17 +63,11 @@ namespace StreamJsonRpc
                 return null;
             }
 
-            var oldState = new ActivityState(request, this.TraceSource);
             var traceparent = new TraceParent(request.TraceParent);
+            Guid childActivityId = Guid.NewGuid();
+
+            var oldState = new ActivityState(request, this.TraceSource, traceparent.TraceIdGuid, childActivityId);
             TraceState = request.TraceState;
-
-            if (oldState.ActivityId != Guid.Empty)
-            {
-                this.TraceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), traceparent.TraceIdGuid);
-            }
-
-            Trace.CorrelationManager.ActivityId = traceparent.TraceIdGuid;
-            this.TraceSource?.TraceEvent(TraceEventType.Start, 0, request.Method);
 
             return oldState;
         }
@@ -92,8 +86,18 @@ namespace StreamJsonRpc
             private readonly JsonRpcRequest request;
             private readonly TraceSource? traceSource;
 
-            internal ActivityState(JsonRpcRequest request, TraceSource? traceSource)
+            internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, Guid parentTraceId, Guid childTraceId)
             {
+                if (traceSource is object)
+                {
+                    Trace.CorrelationManager.ActivityId = parentTraceId;
+                    traceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), childTraceId);
+                }
+
+                Trace.CorrelationManager.ActivityId = childTraceId;
+
+                this.TraceSource?.TraceEvent(TraceEventType.Start, 0, request.Method);
+
                 this.ActivityId = Trace.CorrelationManager.ActivityId;
                 this.TraceState = CorrelationManagerTracingStrategy.TraceState;
                 this.request = request;
