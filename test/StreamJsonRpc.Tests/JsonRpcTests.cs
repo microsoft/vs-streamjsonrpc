@@ -2434,6 +2434,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task ActivityTracing_IntegrationTest()
     {
         string logDir = Path.Combine(Environment.CurrentDirectory, this.GetType().Name + "." + nameof(this.ActivityTracing_IntegrationTest));
+        this.Logger.WriteLine("Log files dropped to \"{0}\".", logDir);
         Directory.CreateDirectory(logDir);
 
         // We are intentionally setting up many isolated listeners, TraceSources and strategies to simulate this all being done across processes where they couldn't be shared.

@@ -66,10 +66,7 @@ namespace StreamJsonRpc
             var traceparent = new TraceParent(request.TraceParent);
             Guid childActivityId = Guid.NewGuid();
 
-            var oldState = new ActivityState(request, this.TraceSource, traceparent.TraceIdGuid, childActivityId);
-            TraceState = request.TraceState;
-
-            return oldState;
+            return new ActivityState(request, this.TraceSource, traceparent.TraceIdGuid, childActivityId);
         }
 
         private static unsafe void FillRandomBytes(Span<byte> buffer) => CopyGuidToBuffer(Guid.NewGuid(), buffer);
@@ -85,9 +82,14 @@ namespace StreamJsonRpc
         {
             private readonly JsonRpcRequest request;
             private readonly TraceSource? traceSource;
+            private readonly Guid originalActivityId;
+            private readonly string? originalTraceState;
 
             internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, Guid parentTraceId, Guid childTraceId)
             {
+                this.originalActivityId = Trace.CorrelationManager.ActivityId;
+                this.originalTraceState = TraceState;
+
                 if (traceSource is object)
                 {
                     Trace.CorrelationManager.ActivityId = parentTraceId;
@@ -95,29 +97,24 @@ namespace StreamJsonRpc
                 }
 
                 Trace.CorrelationManager.ActivityId = childTraceId;
+                TraceState = request.TraceState;
 
-                this.TraceSource?.TraceEvent(TraceEventType.Start, 0, request.Method);
+                traceSource?.TraceEvent(TraceEventType.Start, 0, request.Method);
 
-                this.ActivityId = Trace.CorrelationManager.ActivityId;
-                this.TraceState = CorrelationManagerTracingStrategy.TraceState;
                 this.request = request;
                 this.traceSource = traceSource;
             }
 
-            internal Guid ActivityId { get; }
-
-            internal string? TraceState { get; }
-
             public void Dispose()
             {
                 this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.request.Method);
-                if (this.ActivityId != Guid.Empty)
+                if (this.originalActivityId != Guid.Empty)
                 {
-                    this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.ActivityId);
+                    this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.originalActivityId);
                 }
 
-                Trace.CorrelationManager.ActivityId = this.ActivityId;
-                CorrelationManagerTracingStrategy.TraceState = this.TraceState;
+                Trace.CorrelationManager.ActivityId = this.originalActivityId;
+                TraceState = this.originalTraceState;
             }
         }
     }
