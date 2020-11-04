@@ -576,7 +576,6 @@ namespace StreamJsonRpc
                 new JsonRpcErrorFormatter(this),
                 new JsonRpcErrorDetailFormatter(this),
                 new TraceParentFormatter(),
-                new TraceStateFormatter(),
             };
             var resolvers = new IFormatterResolver[]
             {
@@ -1663,11 +1662,12 @@ namespace StreamJsonRpc
                     }
                     else if (TraceParentPropertyName.TryRead(stringKey))
                     {
-                        result.TraceParent = options.Resolver.GetFormatterWithVerify<TraceParent>().Deserialize(ref reader, options);
+                        TraceParent traceParent = options.Resolver.GetFormatterWithVerify<TraceParent>().Deserialize(ref reader, options);
+                        result.TraceParent = traceParent.ToString();
                     }
                     else if (TraceStatePropertyName.TryRead(stringKey))
                     {
-                        result.TraceState = options.Resolver.GetFormatterWithVerify<TraceState>().Deserialize(ref reader, options);
+                        result.TraceState = ReadTraceState(ref reader);
                     }
                     else
                     {
@@ -1707,10 +1707,10 @@ namespace StreamJsonRpc
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
                 int mapElementCount = value.RequestId.IsEmpty ? 3 : 4;
-                if (value.TraceParent.VersionFormat.IsValidParentId())
+                if (value.TraceParent?.Length > 0)
                 {
                     mapElementCount++;
-                    if (value.TraceState.Values.Length > 0)
+                    if (value.TraceState?.Length > 0)
                     {
                         mapElementCount++;
                     }
@@ -1767,17 +1767,72 @@ namespace StreamJsonRpc
                     writer.WriteNil();
                 }
 
-                if (value.TraceParent.VersionFormat.IsValidParentId())
+                if (value.TraceParent?.Length > 0)
                 {
                     TraceParentPropertyName.Write(ref writer);
-                    options.Resolver.GetFormatterWithVerify<TraceParent>().Serialize(ref writer, value.TraceParent, options);
+                    options.Resolver.GetFormatterWithVerify<TraceParent>().Serialize(ref writer, new TraceParent(value.TraceParent), options);
 
-                    if (value.TraceState.Values.Length > 0)
+                    if (value.TraceState?.Length > 0)
                     {
                         TraceStatePropertyName.Write(ref writer);
-                        options.Resolver.GetFormatterWithVerify<TraceState>().Serialize(ref writer, value.TraceState, options);
+                        WriteTraceState(ref writer, value.TraceState);
                     }
                 }
+            }
+
+            private static void WriteTraceState(ref MessagePackWriter writer, string traceState)
+            {
+                ReadOnlySpan<char> traceStateChars = traceState.AsSpan();
+
+                // Count elements first so we can write the header.
+                int elementCount = 1;
+                int commaIndex;
+                while ((commaIndex = traceStateChars.IndexOf(',')) >= 0)
+                {
+                    elementCount++;
+                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
+                }
+
+                // For every element, we have a key and value to record.
+                writer.WriteArrayHeader(elementCount * 2);
+
+                traceStateChars = traceState.AsSpan();
+                while ((commaIndex = traceStateChars.IndexOf(',')) >= 0)
+                {
+                    ReadOnlySpan<char> element = traceStateChars.Slice(0, commaIndex);
+                    int equalsIndex = element.IndexOf('=');
+                    ReadOnlySpan<char> key = element.Slice(0, equalsIndex);
+                    ReadOnlySpan<char> value = element.Slice(equalsIndex + 1);
+                    writer.Write(key);
+                    writer.Write(value);
+
+                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
+                }
+            }
+
+            private static unsafe string ReadTraceState(ref MessagePackReader reader)
+            {
+                int elements = reader.ReadArrayHeader();
+                if (elements % 2 != 0)
+                {
+                    throw new NotSupportedException("Odd number of elements not expected.");
+                }
+
+                // With care, we could probably assemble this string with just two allocations (the string + a char[]).
+                var resultBuilder = new StringBuilder();
+                for (int i = 0; i < elements; i += 2)
+                {
+                    if (resultBuilder.Length > 0)
+                    {
+                        resultBuilder.Append(',');
+                    }
+
+                    resultBuilder.Append(reader.ReadString());
+                    resultBuilder.Append('=');
+                    resultBuilder.Append(reader.ReadString());
+                }
+
+                return resultBuilder.ToString();
             }
         }
 
@@ -1982,12 +2037,12 @@ namespace StreamJsonRpc
                 }
 
                 ReadOnlySequence<byte> bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected traceid not found.");
-                bytes.CopyTo(new Span<byte>(result.VersionFormat.TraceId, TraceParentVersion0Format.TraceIdLength));
+                bytes.CopyTo(new Span<byte>(result.TraceId, TraceParent.TraceIdByteCount));
 
                 bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected parentid not found.");
-                bytes.CopyTo(new Span<byte>(result.VersionFormat.ParentId, TraceParentVersion0Format.ParentIdLength));
+                bytes.CopyTo(new Span<byte>(result.ParentId, TraceParent.ParentIdByteCount));
 
-                result.VersionFormat.TraceFlags = (TraceFlags)reader.ReadByte();
+                result.Flags = (TraceParent.TraceFlags)reader.ReadByte();
 
                 return result;
             }
@@ -2004,22 +2059,9 @@ namespace StreamJsonRpc
                 writer.Write(value.Version);
 
                 writer.WriteArrayHeader(3);
-                writer.Write(new ReadOnlySpan<byte>(value.VersionFormat.TraceId, TraceParentVersion0Format.TraceIdLength));
-                writer.Write(new ReadOnlySpan<byte>(value.VersionFormat.ParentId, TraceParentVersion0Format.ParentIdLength));
-                writer.Write((byte)value.VersionFormat.TraceFlags);
-            }
-        }
-
-        private class TraceStateFormatter : IMessagePackFormatter<TraceState>
-        {
-            public TraceState Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Serialize(ref MessagePackWriter writer, TraceState value, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
+                writer.Write(new ReadOnlySpan<byte>(value.TraceId, TraceParent.TraceIdByteCount));
+                writer.Write(new ReadOnlySpan<byte>(value.ParentId, TraceParent.ParentIdByteCount));
+                writer.Write((byte)value.Flags);
             }
         }
 

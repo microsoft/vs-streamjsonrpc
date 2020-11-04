@@ -714,7 +714,8 @@ namespace StreamJsonRpc
                 RequestId = id,
                 Method = json.Value<string>("method"),
                 Arguments = arguments,
-                TraceParentString = json.Value<string>("traceparent"),
+                TraceParent = json.Value<string>("traceparent"),
+                TraceState = json.Value<string>("tracestate"),
             };
         }
 

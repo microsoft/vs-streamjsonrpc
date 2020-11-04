@@ -119,14 +119,14 @@ namespace StreamJsonRpc
         private ICancellationStrategy? cancellationStrategy;
 
         /// <summary>
+        /// Backing field for the <see cref="ActivityTracingStrategy"/> property.
+        /// </summary>
+        private IActivityTracingStrategy? activityTracingStrategy;
+
+        /// <summary>
         /// Backing field for <see cref="ExceptionStrategy"/>.
         /// </summary>
         private ExceptionProcessing exceptionStrategy;
-
-        /// <summary>
-        /// Backing field for the <see cref="TraceContextParentId"/> property.
-        /// </summary>
-        private ReadOnlyMemory<byte> traceContextParentId;
 
         /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
@@ -550,26 +550,15 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
-        /// Gets or sets the <see href="https://www.w3.org/TR/trace-context/#parent-id"><c>parent-id</c></see> to use when creating or propagating
-        /// <see href="https://www.w3.org/TR/trace-context/">W3C trace-context</see>.
+        /// Gets or sets the strategy for propagating activity IDs over RPC.
         /// </summary>
-        /// <value>
-        /// An 8-byte non-zero value to enable trace-context, or a 0-byte value to disable creating trace-contexts.
-        /// </value>
-        /// <remarks>
-        /// Even when left at its default empty value, any trace-context received in incoming messages will be propagated.
-        /// </remarks>
-        public ReadOnlyMemory<byte> TraceContextParentId
+        public IActivityTracingStrategy? ActivityTracingStrategy
         {
-            get => this.traceContextParentId;
+            get => this.activityTracingStrategy;
             set
             {
-                if (value.Length > 0 && !TraceParentVersion0Format.IsValidParentId(value.Span))
-                {
-                    throw Requires.Fail(Resources.TraceContextParentIdLengthMismatch);
-                }
-
-                this.traceContextParentId = value;
+                this.ThrowIfConfigurationLocked();
+                this.activityTracingStrategy = value;
             }
         }
 
@@ -1408,15 +1397,9 @@ namespace StreamJsonRpc
             {
                 RequestId = id,
                 Method = targetName,
-                TraceParent = new TraceParent
-                {
-                    Version = 0,
-                    VersionFormat = new TraceParentVersion0Format(Trace.CorrelationManager.ActivityId, this.TraceContextParentId.Span)
-                    {
-                        TraceFlags = (this.TraceSource.Switch.Level & SourceLevels.ActivityTracing) == SourceLevels.ActivityTracing && this.TraceSource.Listeners.Count > 0 ? TraceFlags.Sampled : TraceFlags.None,
-                    },
-                },
             };
+            this.ActivityTracingStrategy?.ApplyOutboundActivity(request);
+
             if (isParameterObject)
             {
                 object? argument = arguments;
@@ -1837,43 +1820,20 @@ namespace StreamJsonRpc
                         }
                     }
 
-                    Guid oldActivityId = Trace.CorrelationManager.ActivityId;
-                    bool incomingActivity = request.TraceParent.VersionFormat.IsValidParentId();
-                    if (incomingActivity)
-                    {
-                        if (oldActivityId != Guid.Empty)
-                        {
-                            this.TraceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), request.TraceParent.VersionFormat.TraceIdGuid);
-                        }
-
-                        Trace.CorrelationManager.ActivityId = request.TraceParent.VersionFormat.TraceIdGuid;
-                        this.TraceSource.TraceEvent(TraceEventType.Start, 0, request.Method);
-                    }
-
                     object? result;
-                    try
+                    using (IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request))
                     {
-                        // IMPORTANT: This should be the first await in this async method,
-                        //            and no other await should be between this one and actually invoking the target method.
-                        //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                        //            when a single-threaded SynchronizationContext is applied.
-                        result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
-                    {
-                        return CreateCancellationResponse(request);
-                    }
-                    finally
-                    {
-                        if (incomingActivity)
+                        try
                         {
-                            this.TraceSource.TraceEvent(TraceEventType.Stop, 0, request.Method);
-                            if (oldActivityId != Guid.Empty)
-                            {
-                                this.TraceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), oldActivityId);
-                            }
-
-                            Trace.CorrelationManager.ActivityId = oldActivityId;
+                            // IMPORTANT: This should be the first await in this async method,
+                            //            and no other await should be between this one and actually invoking the target method.
+                            //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                            //            when a single-threaded SynchronizationContext is applied.
+                            result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+                        {
+                            return CreateCancellationResponse(request);
                         }
                     }
 

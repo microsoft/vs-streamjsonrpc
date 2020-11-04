@@ -2379,13 +2379,49 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void ActivityTracingStrategy_ConfigurationLocked()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.ActivityTracingStrategy = null);
+        Assert.Null(this.clientRpc.ActivityTracingStrategy);
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = null;
+    }
+
+    [Fact]
     public async Task CorrelationManagerActivitiesPropagate()
     {
-        this.clientRpc.TraceContextParentId = new byte[] { 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+        var strategy = new CorrelationManagerTracingStrategy();
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
         Guid clientActivityId = Guid.NewGuid();
         Trace.CorrelationManager.ActivityId = clientActivityId;
-        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetActivityId), cancellationToken: this.TimeoutToken);
+        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
         Assert.Equal(clientActivityId, serverActivityId);
+    }
+
+    [Fact]
+    public async Task ActivityIdActivitiesPropagate()
+    {
+        var strategy = new ActivityTracingStrategy();
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        var activity = new Activity("test").SetIdFormat(ActivityIdFormat.W3C).Start();
+        try
+        {
+            Activity.Current = activity;
+            string? serverParentActivityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetParentActivityId), cancellationToken: this.TimeoutToken);
+            Assert.Equal(activity.Id, serverParentActivityId);
+        }
+        finally
+        {
+            activity.Stop();
+        }
     }
 
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
@@ -3010,7 +3046,9 @@ public abstract class JsonRpcTests : TestBase
             this.ReceivedException = ex;
         }
 
-        public Guid GetActivityId() => Trace.CorrelationManager.ActivityId;
+        public Guid GetCorrelationManagerActivityId() => Trace.CorrelationManager.ActivityId;
+
+        public string? GetParentActivityId() => Activity.Current?.ParentId;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
