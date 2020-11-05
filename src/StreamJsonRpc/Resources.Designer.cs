@@ -538,15 +538,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The parent-id for the W3C trace-context must be exactly 8 bytes and include at least one non-zero byte. An 0-length is also acceptable and disables trace-context creation..
-        /// </summary>
-        internal static string TraceContextParentIdLengthMismatch {
-            get {
-                return ResourceManager.GetString("TraceContextParentIdLengthMismatch", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The length of this list must equal the length of the arguments list..
         /// </summary>
         internal static string TypedArgumentsLengthMismatch {
