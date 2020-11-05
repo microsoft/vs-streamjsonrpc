@@ -65,9 +65,20 @@ namespace StreamJsonRpc
 
             var traceparent = new TraceParent(request.TraceParent);
             Guid childActivityId = Guid.NewGuid();
+            string? activityName = this.GetInboundActivityName(request);
 
-            return new ActivityState(request, this.TraceSource, traceparent.TraceIdGuid, childActivityId);
+            return new ActivityState(request, this.TraceSource, activityName, traceparent.TraceIdGuid, childActivityId);
         }
+
+        /// <summary>
+        /// Determines the name to give to the activity started when dispatching an incoming RPC call.
+        /// </summary>
+        /// <param name="request">The inbound RPC request.</param>
+        /// <returns>The name of the activity.</returns>
+        /// <remarks>
+        /// The default implementation uses <see cref="JsonRpcRequest.Method"/> as the activity name.
+        /// </remarks>
+        protected virtual string? GetInboundActivityName(JsonRpcRequest request) => request?.Method;
 
         private static unsafe void FillRandomBytes(Span<byte> buffer) => CopyGuidToBuffer(Guid.NewGuid(), buffer);
 
@@ -83,16 +94,16 @@ namespace StreamJsonRpc
             private readonly TraceSource? traceSource;
             private readonly Guid originalActivityId;
             private readonly string? originalTraceState;
-            private readonly string? eventName;
+            private readonly string? activityName;
 
-            internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, Guid parentTraceId, Guid childTraceId)
+            internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, string? activityName, Guid parentTraceId, Guid childTraceId)
             {
                 this.originalActivityId = Trace.CorrelationManager.ActivityId;
                 this.originalTraceState = TraceState;
+                this.activityName = activityName;
 
                 if (traceSource is object)
                 {
-                    this.eventName = "Dispatch " + request.Method;
                     Trace.CorrelationManager.ActivityId = parentTraceId;
                     traceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), childTraceId);
                 }
@@ -100,14 +111,14 @@ namespace StreamJsonRpc
                 Trace.CorrelationManager.ActivityId = childTraceId;
                 TraceState = request.TraceState;
 
-                traceSource?.TraceEvent(TraceEventType.Start, 0, this.eventName);
+                traceSource?.TraceEvent(TraceEventType.Start, 0, this.activityName);
 
                 this.traceSource = traceSource;
             }
 
             public void Dispose()
             {
-                this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.eventName);
+                this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.activityName);
                 if (this.originalActivityId != Guid.Empty)
                 {
                     this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.originalActivityId);
