@@ -80,10 +80,10 @@ namespace StreamJsonRpc
 
         private class ActivityState : IDisposable
         {
-            private readonly JsonRpcRequest request;
             private readonly TraceSource? traceSource;
             private readonly Guid originalActivityId;
             private readonly string? originalTraceState;
+            private readonly string? eventName;
 
             internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, Guid parentTraceId, Guid childTraceId)
             {
@@ -92,6 +92,7 @@ namespace StreamJsonRpc
 
                 if (traceSource is object)
                 {
+                    this.eventName = "Dispatch " + request.Method;
                     Trace.CorrelationManager.ActivityId = parentTraceId;
                     traceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), childTraceId);
                 }
@@ -99,15 +100,14 @@ namespace StreamJsonRpc
                 Trace.CorrelationManager.ActivityId = childTraceId;
                 TraceState = request.TraceState;
 
-                traceSource?.TraceEvent(TraceEventType.Start, 0, request.Method);
+                traceSource?.TraceEvent(TraceEventType.Start, 0, this.eventName);
 
-                this.request = request;
                 this.traceSource = traceSource;
             }
 
             public void Dispose()
             {
-                this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.request.Method);
+                this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.eventName);
                 if (this.originalActivityId != Guid.Empty)
                 {
                     this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.originalActivityId);
