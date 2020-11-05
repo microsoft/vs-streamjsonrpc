@@ -95,12 +95,14 @@ namespace StreamJsonRpc
             private readonly Guid originalActivityId;
             private readonly string? originalTraceState;
             private readonly string? activityName;
+            private readonly Guid parentTraceId;
 
             internal ActivityState(JsonRpcRequest request, TraceSource? traceSource, string? activityName, Guid parentTraceId, Guid childTraceId)
             {
                 this.originalActivityId = Trace.CorrelationManager.ActivityId;
                 this.originalTraceState = TraceState;
                 this.activityName = activityName;
+                this.parentTraceId = parentTraceId;
 
                 if (traceSource is object)
                 {
@@ -119,10 +121,7 @@ namespace StreamJsonRpc
             public void Dispose()
             {
                 this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.activityName);
-                if (this.originalActivityId != Guid.Empty)
-                {
-                    this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.originalActivityId);
-                }
+                this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.parentTraceId);
 
                 Trace.CorrelationManager.ActivityId = this.originalActivityId;
                 TraceState = this.originalTraceState;

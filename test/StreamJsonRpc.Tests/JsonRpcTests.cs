@@ -2390,7 +2390,14 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task CorrelationManagerActivitiesPropagate()
     {
-        var strategy = new CorrelationManagerTracingStrategy();
+        var strategyListener = new CollectingTraceListener();
+        var strategy = new CorrelationManagerTracingStrategy
+        {
+            TraceSource = new TraceSource("strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+            {
+                Listeners = { strategyListener },
+            },
+        };
         this.clientRpc.AllowModificationWhileListening = true;
         this.clientRpc.ActivityTracingStrategy = strategy;
         this.serverRpc.AllowModificationWhileListening = true;
@@ -2399,7 +2406,15 @@ public abstract class JsonRpcTests : TestBase
         Guid clientActivityId = Guid.NewGuid();
         Trace.CorrelationManager.ActivityId = clientActivityId;
         Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
-        Assert.Equal(clientActivityId, serverActivityId);
+
+        // The activity ID on the server should not *equal* the client's or else it doesn't look like a separate chain in Service Trace Viewer.
+        Assert.NotEqual(clientActivityId, serverActivityId);
+
+        // The activity ID should also not be empty.
+        Assert.NotEqual(Guid.Empty, serverActivityId);
+
+        // But whatever the activity ID is randomly assigned to be, a Transfer should have been recorded.
+        Assert.Contains(strategyListener.Transfers, t => t.CurrentActivityId == clientActivityId && t.RelatedActivityId == serverActivityId);
     }
 
     [Fact]
@@ -2461,6 +2476,11 @@ public abstract class JsonRpcTests : TestBase
         Trace.CorrelationManager.ActivityId = Guid.NewGuid();
         clientTraceSource.TraceInformation("I feel like making an RPC call.");
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.TraceSomething), new object?[] { "hi" }, this.TimeoutToken);
+        clientTraceSource.TraceInformation("Call completed.");
+
+        // Remove the listeners before we dispose them.
+        this.serverRpc.TraceSource.Listeners.Remove(serverRpcListener);
+        this.clientRpc.TraceSource.Listeners.Remove(clientRpcListener);
 
         static void ConfigureTracing(JsonRpc jsonRpc, string name, XmlWriterTraceListener listener, XmlWriterTraceListener strategyListener)
         {

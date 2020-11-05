@@ -99,28 +99,8 @@ public class CorrelationManagerTracingStrategyTests : TestBase
     [Theory]
     [InlineData(null)]
     [InlineData("k=v")]
-    public void Inbound_WithTraceParent_NoContextual(string? traceState)
+    public void Inbound_TraceState(string? traceState)
     {
-        this.request.TraceParent = SampleTraceParent;
-        this.request.TraceState = traceState;
-
-        using (IDisposable? state = this.strategy.ApplyInboundActivity(this.request))
-        {
-            Assert.Equal(SampleParentId, Trace.CorrelationManager.ActivityId);
-            Assert.Equal(traceState, CorrelationManagerTracingStrategy.TraceState);
-        }
-
-        Assert.Equal(Guid.Empty, Trace.CorrelationManager.ActivityId);
-        Assert.Null(CorrelationManagerTracingStrategy.TraceState);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("k=v")]
-    public void Inbound_WithTraceParent_AndContextual(string? traceState)
-    {
-        Guid testId = Guid.NewGuid();
-        Trace.CorrelationManager.ActivityId = testId;
         try
         {
             this.request.TraceParent = SampleTraceParent;
@@ -128,11 +108,8 @@ public class CorrelationManagerTracingStrategyTests : TestBase
 
             using (IDisposable? state = this.strategy.ApplyInboundActivity(this.request))
             {
-                Assert.Equal(SampleParentId, Trace.CorrelationManager.ActivityId);
                 Assert.Equal(traceState, CorrelationManagerTracingStrategy.TraceState);
             }
-
-            Assert.Equal(testId, Trace.CorrelationManager.ActivityId);
         }
         finally
         {
@@ -140,101 +117,44 @@ public class CorrelationManagerTracingStrategyTests : TestBase
         }
     }
 
-    [Fact]
-    public void Activity_Transfers_NoContextual()
+    [Theory, CombinatorialData]
+    public void Inbound_Activity(bool predefinedActivity)
     {
-        var listener = new ListenerLogger();
-        this.strategy.TraceSource = new TraceSource("test", SourceLevels.ActivityTracing)
-        {
-            Listeners = { listener },
-        };
-
-        this.request.TraceParent = SampleTraceParent;
-        using (this.strategy.ApplyInboundActivity(this.request))
-        {
-            Assert.Empty(listener.Transfers);
-            var start = Assert.Single(listener.Events);
-            Assert.Equal(TraceEventType.Start, start.EventType);
-            Assert.Equal(this.request.Method, start.Message);
-            listener.Events.Clear();
-        }
-
-        var stop = Assert.Single(listener.Events);
-        Assert.Equal(TraceEventType.Stop, stop.EventType);
-        Assert.Equal(this.request.Method, stop.Message);
-    }
-
-    [Fact]
-    public void Activity_Transfers_WithContextual()
-    {
-        var listener = new ListenerLogger();
+        var listener = new CollectingTraceListener();
         this.strategy.TraceSource = new TraceSource("test", SourceLevels.ActivityTracing)
         {
             Listeners = { listener },
         };
 
         Guid testContext = Guid.NewGuid();
-        Trace.CorrelationManager.ActivityId = testContext;
+        if (predefinedActivity)
+        {
+            Trace.CorrelationManager.ActivityId = testContext;
+        }
 
         this.request.TraceParent = SampleTraceParent;
+        (Guid RelatedActivityId, Guid CurrentActivityId) transfer1;
         using (this.strategy.ApplyInboundActivity(this.request))
         {
-            var transfer = Assert.Single(listener.Transfers);
-            Assert.Equal(testContext, transfer.CurrentActivityId);
-            Assert.Equal(SampleParentId, transfer.RelatedActivityId);
-            listener.Transfers.Clear();
+            transfer1 = Assert.Single(listener.Transfers);
+            Assert.Equal(SampleParentId, transfer1.CurrentActivityId);
+            Assert.NotEqual(SampleParentId, transfer1.RelatedActivityId);
+            Assert.NotEqual(testContext, transfer1.RelatedActivityId);
 
-            var start = listener.Events.Single(e => e.EventType != TraceEventType.Transfer);
-            Assert.Equal(TraceEventType.Start, start.EventType);
+            Assert.Equal(transfer1.RelatedActivityId, Trace.CorrelationManager.ActivityId);
+
+            var start = listener.Events.Single(e => e.EventType == TraceEventType.Start);
             Assert.Equal(this.request.Method, start.Message);
-            listener.Events.Clear();
         }
 
-        var stop = listener.Events.Single(e => e.EventType != TraceEventType.Transfer);
-        Assert.Equal(TraceEventType.Stop, stop.EventType);
+        Assert.Equal(predefinedActivity ? testContext : Guid.Empty, Trace.CorrelationManager.ActivityId);
+
+        var stop = listener.Events.Single(e => e.EventType == TraceEventType.Stop);
         Assert.Equal(this.request.Method, stop.Message);
 
-        var transfer2 = Assert.Single(listener.Transfers);
-        Assert.Equal(SampleParentId, transfer2.CurrentActivityId);
-        Assert.Equal(testContext, transfer2.RelatedActivityId);
-    }
-
-    private class ListenerLogger : TraceListener
-    {
-        internal List<(Guid RelatedActivityId, Guid CurrentActivityId)> Transfers { get; } = new List<(Guid RelatedActivityId, Guid CurrentActivityId)>();
-
-        internal List<(TraceEventType EventType, string? Message)> Events { get; } = new List<(TraceEventType EventType, string? Message)>();
-
-        public override void TraceTransfer(TraceEventCache eventCache, string source, int id, string message, Guid relatedActivityId)
-        {
-            base.TraceTransfer(eventCache, source, id, message, relatedActivityId);
-            this.Transfers.Add((relatedActivityId, Trace.CorrelationManager.ActivityId));
-        }
-
-        public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
-        {
-            base.TraceEvent(eventCache, source, eventType, id);
-            this.Events.Add((eventType, null));
-        }
-
-        public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
-        {
-            base.TraceEvent(eventCache, source, eventType, id, message);
-            this.Events.Add((eventType, message));
-        }
-
-        public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
-        {
-            base.TraceEvent(eventCache, source, eventType, id, format, args);
-            this.Events.Add((eventType, string.Format(CultureInfo.CurrentCulture, format, args)));
-        }
-
-        public override void Write(string message)
-        {
-        }
-
-        public override void WriteLine(string message)
-        {
-        }
+        Assert.Equal(2, listener.Transfers.Count);
+        var transfer2 = listener.Transfers[1];
+        Assert.Equal(SampleParentId, transfer2.RelatedActivityId);
+        Assert.Equal(transfer1.RelatedActivityId, transfer2.CurrentActivityId);
     }
 }
