@@ -2387,8 +2387,12 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.ActivityTracingStrategy = null;
     }
 
-    [Fact]
-    public async Task CorrelationManagerActivitiesPropagate()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("k=v")]
+    [InlineData("k=v,k2=v2")]
+    public async Task CorrelationManagerActivitiesPropagate(string traceState)
     {
         var strategyListener = new CollectingTraceListener();
         var strategy = new CorrelationManagerTracingStrategy
@@ -2405,7 +2409,9 @@ public abstract class JsonRpcTests : TestBase
 
         Guid clientActivityId = Guid.NewGuid();
         Trace.CorrelationManager.ActivityId = clientActivityId;
+        CorrelationManagerTracingStrategy.TraceState = traceState;
         Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
+        string? serverTraceState = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetTraceState), new object[] { true }, cancellationToken: this.TimeoutToken);
 
         // The activity ID on the server should not *equal* the client's or else it doesn't look like a separate chain in Service Trace Viewer.
         Assert.NotEqual(clientActivityId, serverActivityId);
@@ -2415,10 +2421,24 @@ public abstract class JsonRpcTests : TestBase
 
         // But whatever the activity ID is randomly assigned to be, a Transfer should have been recorded.
         Assert.Contains(strategyListener.Transfers, t => t.CurrentActivityId == clientActivityId && t.RelatedActivityId == serverActivityId);
+
+        // When traceState was empty, the server is allowed to see null.
+        if (traceState == string.Empty)
+        {
+            Assert.True(string.IsNullOrEmpty(serverTraceState));
+        }
+        else
+        {
+            Assert.Equal(traceState, serverTraceState);
+        }
     }
 
-    [Fact]
-    public async Task ActivityIdActivitiesPropagate()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("k=v")]
+    [InlineData("k=v,k2=v2")]
+    public async Task ActivityIdActivitiesPropagate(string traceState)
     {
         var strategy = new ActivityTracingStrategy();
         this.clientRpc.AllowModificationWhileListening = true;
@@ -2429,9 +2449,20 @@ public abstract class JsonRpcTests : TestBase
         var activity = new Activity("test").SetIdFormat(ActivityIdFormat.W3C).Start();
         try
         {
-            Activity.Current = activity;
+            activity.TraceStateString = traceState;
             string? serverParentActivityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetParentActivityId), cancellationToken: this.TimeoutToken);
             Assert.Equal(activity.Id, serverParentActivityId);
+            string? serverTraceState = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetTraceState), new object[] { false }, cancellationToken: this.TimeoutToken);
+
+            // When traceState was empty, the server is allowed to see null.
+            if (traceState == string.Empty)
+            {
+                Assert.True(string.IsNullOrEmpty(serverTraceState));
+            }
+            else
+            {
+                Assert.Equal(traceState, serverTraceState);
+            }
         }
         finally
         {
@@ -3127,6 +3158,8 @@ public abstract class JsonRpcTests : TestBase
         public Guid GetCorrelationManagerActivityId() => Trace.CorrelationManager.ActivityId;
 
         public string? GetParentActivityId() => Activity.Current?.ParentId;
+
+        public string? GetTraceState(bool useCorrelationManager) => useCorrelationManager ? CorrelationManagerTracingStrategy.TraceState : Activity.Current?.TraceStateString;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 

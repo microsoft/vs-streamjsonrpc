@@ -31,6 +31,7 @@ namespace StreamJsonRpc
         /// <returns>An optional disposable object that can revert the effects taken by this method at the conclusion of the dispatched RPC server method.</returns>
         /// <remarks>
         /// This method may be invoked regardless of whether an activity is identified in the incoming request.
+        /// The <paramref name="request"/> may be referenced by the returned <see cref="IDisposable"/> value if necessary.
         /// </remarks>
         IDisposable? ApplyInboundActivity(JsonRpcRequest request);
     }

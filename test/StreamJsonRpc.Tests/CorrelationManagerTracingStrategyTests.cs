@@ -34,7 +34,9 @@ public class CorrelationManagerTracingStrategyTests : TestBase
 
     [Theory]
     [InlineData(null)]
+    [InlineData("")]
     [InlineData("k=v")]
+    [InlineData("k=v,k2=v2")]
     public void Outbound_WithContextualActivity(string? traceState)
     {
         Trace.CorrelationManager.ActivityId = SampleParentId;

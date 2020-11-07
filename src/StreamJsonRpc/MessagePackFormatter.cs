@@ -1800,13 +1800,20 @@ namespace StreamJsonRpc
                 while ((commaIndex = traceStateChars.IndexOf(',')) >= 0)
                 {
                     ReadOnlySpan<char> element = traceStateChars.Slice(0, commaIndex);
-                    int equalsIndex = element.IndexOf('=');
-                    ReadOnlySpan<char> key = element.Slice(0, equalsIndex);
-                    ReadOnlySpan<char> value = element.Slice(equalsIndex + 1);
+                    WritePair(ref writer, element);
+                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
+                }
+
+                // Write out the last one.
+                WritePair(ref writer, traceStateChars);
+
+                static void WritePair(ref MessagePackWriter writer, ReadOnlySpan<char> pair)
+                {
+                    int equalsIndex = pair.IndexOf('=');
+                    ReadOnlySpan<char> key = pair.Slice(0, equalsIndex);
+                    ReadOnlySpan<char> value = pair.Slice(equalsIndex + 1);
                     writer.Write(key);
                     writer.Write(value);
-
-                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
                 }
             }
 

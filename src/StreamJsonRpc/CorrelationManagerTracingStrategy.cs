@@ -106,6 +106,9 @@ namespace StreamJsonRpc
 
                 if (traceSource is object)
                 {
+                    // We set ActivityId to a short-lived value here for the sake of the TraceTransfer call that comes next.
+                    // TraceTransfer goes from the current activity to the one passed as an argument.
+                    // Without a traceSource object, there's no transfer and thus no need to set this temporary ActivityId.
                     Trace.CorrelationManager.ActivityId = parentTraceId;
                     traceSource.TraceTransfer(0, nameof(TraceEventType.Transfer), childTraceId);
                 }
