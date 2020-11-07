@@ -120,7 +120,7 @@ public class CorrelationManagerTracingStrategyTests : TestBase
     }
 
     [Theory, CombinatorialData]
-    public void Inbound_Activity(bool predefinedActivity)
+    public void Inbound_Activity(bool predefinedActivity, bool upperCaseTraceParent)
     {
         var listener = new CollectingTraceListener();
         this.strategy.TraceSource = new TraceSource("test", SourceLevels.ActivityTracing)
@@ -134,7 +134,7 @@ public class CorrelationManagerTracingStrategyTests : TestBase
             Trace.CorrelationManager.ActivityId = testContext;
         }
 
-        this.request.TraceParent = SampleTraceParent;
+        this.request.TraceParent = upperCaseTraceParent ? SampleTraceParent.ToUpperInvariant() : SampleTraceParent;
         (Guid RelatedActivityId, Guid CurrentActivityId) transfer1;
         using (this.strategy.ApplyInboundActivity(this.request))
         {

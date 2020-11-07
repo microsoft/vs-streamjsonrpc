@@ -56,6 +56,7 @@ namespace StreamJsonRpc
             for (int i = 10; i < 16; i++)
             {
                 bytes[i + 'a' - '0' - 0x0a] = (byte)i;
+                bytes[i + 'A' - '0' - 0x0a] = (byte)i;
             }
 
             return bytes;
