@@ -99,7 +99,7 @@ namespace StreamJsonRpc
         /// Backing field for the <see cref="TraceSource"/> property.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private TraceSource traceSource = new TraceSource(nameof(JsonRpc));
+        private TraceSource traceSource = new TraceSource(nameof(JsonRpc), SourceLevels.ActivityTracing | SourceLevels.Warning);
 
         /// <summary>
         /// Backing field for the <see cref="CancelLocallyInvokedMethodsWhenConnectionIsClosed"/> property.
@@ -117,6 +117,11 @@ namespace StreamJsonRpc
         /// Backing field for the <see cref="CancellationStrategy"/> property.
         /// </summary>
         private ICancellationStrategy? cancellationStrategy;
+
+        /// <summary>
+        /// Backing field for the <see cref="ActivityTracingStrategy"/> property.
+        /// </summary>
+        private IActivityTracingStrategy? activityTracingStrategy;
 
         /// <summary>
         /// Backing field for <see cref="ExceptionStrategy"/>.
@@ -541,6 +546,19 @@ namespace StreamJsonRpc
             {
                 this.ThrowIfConfigurationLocked();
                 this.exceptionStrategy = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the strategy for propagating activity IDs over RPC.
+        /// </summary>
+        public IActivityTracingStrategy? ActivityTracingStrategy
+        {
+            get => this.activityTracingStrategy;
+            set
+            {
+                this.ThrowIfConfigurationLocked();
+                this.activityTracingStrategy = value;
             }
         }
 
@@ -1380,6 +1398,8 @@ namespace StreamJsonRpc
                 RequestId = id,
                 Method = targetName,
             };
+            this.ActivityTracingStrategy?.ApplyOutboundActivity(request);
+
             if (isParameterObject)
             {
                 object? argument = arguments;
@@ -1801,17 +1821,20 @@ namespace StreamJsonRpc
                     }
 
                     object? result;
-                    try
+                    using (IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request))
                     {
-                        // IMPORTANT: This should be the first await in this async method,
-                        //            and no other await should be between this one and actually invoking the target method.
-                        //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                        //            when a single-threaded SynchronizationContext is applied.
-                        result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
-                    {
-                        return CreateCancellationResponse(request);
+                        try
+                        {
+                            // IMPORTANT: This should be the first await in this async method,
+                            //            and no other await should be between this one and actually invoking the target method.
+                            //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                            //            when a single-threaded SynchronizationContext is applied.
+                            result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+                        {
+                            return CreateCancellationResponse(request);
+                        }
                     }
 
                     // Convert ValueTask to Task or ValueTask<T> to Task<T>

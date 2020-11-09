@@ -2378,6 +2378,198 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.CancellationStrategy = null;
     }
 
+    [Fact]
+    public void ActivityTracingStrategy_ConfigurationLocked()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.ActivityTracingStrategy = null);
+        Assert.Null(this.clientRpc.ActivityTracingStrategy);
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = null;
+    }
+
+    [Fact]
+    public async Task ActivityStartsOnServerIfNoParent_CorrelationManager()
+    {
+        var strategyListener = new CollectingTraceListener();
+        var strategy = new CorrelationManagerTracingStrategy
+        {
+            TraceSource = new TraceSource("strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+            {
+                Listeners = { strategyListener },
+            },
+        };
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        Assert.Equal(Guid.Empty, Trace.CorrelationManager.ActivityId);
+        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
+        Assert.Equal(Guid.Empty, Trace.CorrelationManager.ActivityId);
+
+        Assert.NotEqual(Guid.Empty, serverActivityId);
+    }
+
+    [Fact]
+    public async Task ActivityStartsOnServerIfNoParent_Activity()
+    {
+        var strategy = new ActivityTracingStrategy();
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        Assert.Null(Activity.Current);
+        string? parentActivityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetParentActivityId), cancellationToken: this.TimeoutToken);
+        string? activityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetActivityId), cancellationToken: this.TimeoutToken);
+        Assert.Null(Activity.Current);
+
+        Assert.Null(parentActivityId);
+        Assert.NotNull(activityId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("k=v")]
+    [InlineData("k=v,k2=v2")]
+    public async Task CorrelationManagerActivitiesPropagate(string traceState)
+    {
+        var strategyListener = new CollectingTraceListener();
+        var strategy = new CorrelationManagerTracingStrategy
+        {
+            TraceSource = new TraceSource("strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+            {
+                Listeners = { strategyListener },
+            },
+        };
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        Guid clientActivityId = Guid.NewGuid();
+        Trace.CorrelationManager.ActivityId = clientActivityId;
+        CorrelationManagerTracingStrategy.TraceState = traceState;
+        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
+        string? serverTraceState = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetTraceState), new object[] { true }, cancellationToken: this.TimeoutToken);
+
+        // The activity ID on the server should not *equal* the client's or else it doesn't look like a separate chain in Service Trace Viewer.
+        Assert.NotEqual(clientActivityId, serverActivityId);
+
+        // The activity ID should also not be empty.
+        Assert.NotEqual(Guid.Empty, serverActivityId);
+
+        // But whatever the activity ID is randomly assigned to be, a Transfer should have been recorded.
+        Assert.Contains(strategyListener.Transfers, t => t.CurrentActivityId == clientActivityId && t.RelatedActivityId == serverActivityId);
+
+        // When traceState was empty, the server is allowed to see null.
+        if (traceState == string.Empty)
+        {
+            Assert.True(string.IsNullOrEmpty(serverTraceState));
+        }
+        else
+        {
+            Assert.Equal(traceState, serverTraceState);
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("k=v")]
+    [InlineData("k=v,k2=v2")]
+    public async Task ActivityIdActivitiesPropagate(string traceState)
+    {
+        var strategy = new ActivityTracingStrategy();
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        var activity = new Activity("test").SetIdFormat(ActivityIdFormat.W3C).Start();
+        try
+        {
+            activity.TraceStateString = traceState;
+            string? serverParentActivityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetParentActivityId), cancellationToken: this.TimeoutToken);
+            Assert.Equal(activity.Id, serverParentActivityId);
+            string? serverTraceState = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetTraceState), new object[] { false }, cancellationToken: this.TimeoutToken);
+
+            // When traceState was empty, the server is allowed to see null.
+            if (traceState == string.Empty)
+            {
+                Assert.True(string.IsNullOrEmpty(serverTraceState));
+            }
+            else
+            {
+                Assert.Equal(traceState, serverTraceState);
+            }
+        }
+        finally
+        {
+            activity.Stop();
+        }
+    }
+
+#if !NETCOREAPP2_1
+    /// <summary>
+    /// Sets up <see cref="JsonRpc"/> on both sides to record activity traces as XML so an engineer can manually validate
+    /// that <see href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/service-trace-viewer-tool-svctraceviewer-exe#using-the-service-trace-viewer-tool">Service Trace Viewer</see>
+    /// can open and compose into a holistic view.
+    /// </summary>
+    [Fact]
+    public async Task ActivityTracing_IntegrationTest()
+    {
+        string logDir = Path.Combine(Environment.CurrentDirectory, this.GetType().Name + "." + nameof(this.ActivityTracing_IntegrationTest));
+        this.Logger.WriteLine("Log files dropped to \"{0}\".", logDir);
+        Directory.CreateDirectory(logDir);
+
+        // We are intentionally setting up many isolated listeners, TraceSources and strategies to simulate this all being done across processes where they couldn't be shared.
+        using var clientListener = new XmlWriterTraceListener(Path.Combine(logDir, "client.svclog"));
+        using var clientRpcListener = new XmlWriterTraceListener(Path.Combine(logDir, "client-rpc.svclog"));
+        using var clientStrategyListener = new XmlWriterTraceListener(Path.Combine(logDir, "client-strategy.svclog"));
+        using var serverRpcListener = new XmlWriterTraceListener(Path.Combine(logDir, "server-rpc.svclog"));
+        using var serverStrategyListener = new XmlWriterTraceListener(Path.Combine(logDir, "server-strategy.svclog"));
+        using var serverTargetListener = new XmlWriterTraceListener(Path.Combine(logDir, "server.svclog"));
+
+        this.server.TraceSource = new TraceSource("server-target", SourceLevels.ActivityTracing | SourceLevels.Information)
+        {
+            Listeners = { serverTargetListener },
+        };
+
+        var clientTraceSource = new TraceSource("client", SourceLevels.ActivityTracing | SourceLevels.Information)
+        {
+            Listeners = { clientListener },
+        };
+
+        ConfigureTracing(this.clientRpc, "client", clientRpcListener, clientStrategyListener);
+        ConfigureTracing(this.serverRpc, "server", serverRpcListener, serverStrategyListener);
+
+        Trace.CorrelationManager.ActivityId = Guid.NewGuid();
+        clientTraceSource.TraceInformation("I feel like making an RPC call.");
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.TraceSomething), new object?[] { "hi" }, this.TimeoutToken);
+        clientTraceSource.TraceInformation("Call completed.");
+
+        // Remove the listeners before we dispose them.
+        this.serverRpc.TraceSource.Listeners.Remove(serverRpcListener);
+        this.clientRpc.TraceSource.Listeners.Remove(clientRpcListener);
+
+        static void ConfigureTracing(JsonRpc jsonRpc, string name, XmlWriterTraceListener listener, XmlWriterTraceListener strategyListener)
+        {
+            jsonRpc.AllowModificationWhileListening = true;
+            jsonRpc.TraceSource.Switch.Level |= SourceLevels.ActivityTracing | SourceLevels.Information;
+            jsonRpc.TraceSource.Listeners.Add(listener);
+            jsonRpc.ActivityTracingStrategy = new CorrelationManagerTracingStrategy
+            {
+                TraceSource = new TraceSource($"{name}-strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+                {
+                    Listeners = { strategyListener },
+                },
+            };
+        }
+    }
+#endif
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -2465,8 +2657,8 @@ public abstract class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -2547,6 +2739,8 @@ public abstract class JsonRpcTests : TestBase
         internal Exception? ReceivedException { get; set; }
 
         internal JsonRpcTests? Tests { get; set; }
+
+        internal TraceSource? TraceSource { get; set; }
 
         public static string ServerMethod(string argument)
         {
@@ -2783,7 +2977,9 @@ public abstract class JsonRpcTests : TestBase
             return arg;
         }
 
-        public string RepeatString(string arg) => arg;
+        public string? RepeatString(string? arg) => arg;
+
+        public void TraceSomething(string? message) => this.TraceSource?.TraceInformation(message);
 
         public async Task<string> AsyncMethod(string arg)
         {
@@ -2999,6 +3195,14 @@ public abstract class JsonRpcTests : TestBase
         {
             this.ReceivedException = ex;
         }
+
+        public Guid GetCorrelationManagerActivityId() => Trace.CorrelationManager.ActivityId;
+
+        public string? GetParentActivityId() => Activity.Current?.ParentId;
+
+        public string? GetActivityId() => Activity.Current?.Id;
+
+        public string? GetTraceState(bool useCorrelationManager) => useCorrelationManager ? CorrelationManagerTracingStrategy.TraceState : Activity.Current?.TraceStateString;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 

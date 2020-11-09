@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
@@ -12,6 +14,10 @@ public class CollectingTraceListener : TraceListener
     private readonly ImmutableList<string>.Builder messages = ImmutableList.CreateBuilder<string>();
 
     private readonly ImmutableList<JsonRpc.TraceEvents>.Builder traceEventIds = ImmutableList.CreateBuilder<JsonRpc.TraceEvents>();
+
+    private readonly ImmutableList<(TraceEventType EventType, string? Message)>.Builder events = ImmutableList.CreateBuilder<(TraceEventType EventType, string? Message)>();
+
+    private readonly ImmutableList<(Guid RelatedActivityId, Guid CurrentActivityId)>.Builder transfers = ImmutableList.CreateBuilder<(Guid RelatedActivityId, Guid CurrentActivityId)>();
 
     public override bool IsThreadSafe => false;
 
@@ -37,13 +43,50 @@ public class CollectingTraceListener : TraceListener
         }
     }
 
+    public ImmutableList<(TraceEventType EventType, string? Message)> Events
+    {
+        get
+        {
+            lock (this.events)
+            {
+                return this.events.ToImmutable();
+            }
+        }
+    }
+
+    public ImmutableList<(Guid RelatedActivityId, Guid CurrentActivityId)> Transfers
+    {
+        get
+        {
+            lock (this.transfers)
+            {
+                return this.transfers.ToImmutable();
+            }
+        }
+    }
+
     public AsyncAutoResetEvent MessageReceived { get; } = new AsyncAutoResetEvent();
+
+    public override void TraceTransfer(TraceEventCache eventCache, string source, int id, string message, Guid relatedActivityId)
+    {
+        base.TraceTransfer(eventCache, source, id, message, relatedActivityId);
+
+        lock (this.transfers)
+        {
+            this.transfers.Add((relatedActivityId, Trace.CorrelationManager.ActivityId));
+        }
+    }
 
     public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
     {
         lock (this.traceEventIds)
         {
             this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        lock (this.events)
+        {
+            this.events.Add((eventType, string.Format(CultureInfo.InvariantCulture, format, args)));
         }
 
         base.TraceEvent(eventCache, source, eventType, id, format, args);
@@ -56,6 +99,11 @@ public class CollectingTraceListener : TraceListener
             this.traceEventIds.Add((JsonRpc.TraceEvents)id);
         }
 
+        lock (this.events)
+        {
+            this.events.Add((eventType, message));
+        }
+
         base.TraceEvent(eventCache, source, eventType, id, message);
     }
 
@@ -64,6 +112,11 @@ public class CollectingTraceListener : TraceListener
         lock (this.traceEventIds)
         {
             this.traceEventIds.Add((JsonRpc.TraceEvents)id);
+        }
+
+        lock (this.events)
+        {
+            this.events.Add((eventType, null));
         }
 
         base.TraceEvent(eventCache, source, eventType, id);

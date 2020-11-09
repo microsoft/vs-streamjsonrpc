@@ -161,6 +161,18 @@ namespace StreamJsonRpc.Protocol
         public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
         /// <summary>
+        /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>traceparent</c> value.
+        /// </summary>
+        [DataMember(Name = "traceparent", EmitDefaultValue = false)]
+        public string? TraceParent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>tracestate</c> value.
+        /// </summary>
+        [DataMember(Name = "tracestate", EmitDefaultValue = false)]
+        public string? TraceState { get; set; }
+
+        /// <summary>
         /// Gets the string to display in the debugger for this instance.
         /// </summary>
         protected string DebuggerDisplay => (!this.RequestId.IsEmpty ? $"Request {this.RequestId}" : "Notification") + $": {this.Method}({this.Arguments})";
