@@ -31,16 +31,11 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            if (request.TraceParent is object)
-            {
-                var state = new State(new Activity(request.Method));
-                state.NewActivity.TraceStateString = request.TraceState;
-                state.NewActivity.SetParentId(request.TraceParent);
-                state.NewActivity.Start();
-                return state;
-            }
-
-            return null;
+            var state = new State(new Activity(request.Method));
+            state.NewActivity.TraceStateString = request.TraceState;
+            state.NewActivity.SetParentId(request.TraceParent);
+            state.NewActivity.Start();
+            return state;
         }
 
         private class State : IDisposable

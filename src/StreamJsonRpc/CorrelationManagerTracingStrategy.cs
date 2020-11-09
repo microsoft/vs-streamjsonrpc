@@ -58,11 +58,6 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            if (request.TraceParent is null)
-            {
-                return null;
-            }
-
             var traceparent = new TraceParent(request.TraceParent);
             Guid childActivityId = Guid.NewGuid();
             string? activityName = this.GetInboundActivityName(request);
@@ -104,7 +99,7 @@ namespace StreamJsonRpc
                 this.activityName = activityName;
                 this.parentTraceId = parentTraceId;
 
-                if (traceSource is object)
+                if (traceSource is object && parentTraceId != Guid.Empty)
                 {
                     // We set ActivityId to a short-lived value here for the sake of the TraceTransfer call that comes next.
                     // TraceTransfer goes from the current activity to the one passed as an argument.
@@ -124,7 +119,11 @@ namespace StreamJsonRpc
             public void Dispose()
             {
                 this.traceSource?.TraceEvent(TraceEventType.Stop, 0, this.activityName);
-                this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.parentTraceId);
+
+                if (this.parentTraceId != Guid.Empty)
+                {
+                    this.traceSource?.TraceTransfer(0, nameof(TraceEventType.Transfer), this.parentTraceId);
+                }
 
                 Trace.CorrelationManager.ActivityId = this.originalActivityId;
                 TraceState = this.originalTraceState;

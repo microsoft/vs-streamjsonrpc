@@ -2387,6 +2387,47 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.ActivityTracingStrategy = null;
     }
 
+    [Fact]
+    public async Task ActivityStartsOnServerIfNoParent_CorrelationManager()
+    {
+        var strategyListener = new CollectingTraceListener();
+        var strategy = new CorrelationManagerTracingStrategy
+        {
+            TraceSource = new TraceSource("strategy", SourceLevels.ActivityTracing | SourceLevels.Information)
+            {
+                Listeners = { strategyListener },
+            },
+        };
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        Assert.Equal(Guid.Empty, Trace.CorrelationManager.ActivityId);
+        Guid serverActivityId = await this.clientRpc.InvokeWithCancellationAsync<Guid>(nameof(Server.GetCorrelationManagerActivityId), cancellationToken: this.TimeoutToken);
+        Assert.Equal(Guid.Empty, Trace.CorrelationManager.ActivityId);
+
+        Assert.NotEqual(Guid.Empty, serverActivityId);
+    }
+
+    [Fact]
+    public async Task ActivityStartsOnServerIfNoParent_Activity()
+    {
+        var strategy = new ActivityTracingStrategy();
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ActivityTracingStrategy = strategy;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ActivityTracingStrategy = strategy;
+
+        Assert.Null(Activity.Current);
+        string? parentActivityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetParentActivityId), cancellationToken: this.TimeoutToken);
+        string? activityId = await this.clientRpc.InvokeWithCancellationAsync<string?>(nameof(Server.GetActivityId), cancellationToken: this.TimeoutToken);
+        Assert.Null(Activity.Current);
+
+        Assert.Null(parentActivityId);
+        Assert.NotNull(activityId);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -3158,6 +3199,8 @@ public abstract class JsonRpcTests : TestBase
         public Guid GetCorrelationManagerActivityId() => Trace.CorrelationManager.ActivityId;
 
         public string? GetParentActivityId() => Activity.Current?.ParentId;
+
+        public string? GetActivityId() => Activity.Current?.Id;
 
         public string? GetTraceState(bool useCorrelationManager) => useCorrelationManager ? CorrelationManagerTracingStrategy.TraceState : Activity.Current?.TraceStateString;
 

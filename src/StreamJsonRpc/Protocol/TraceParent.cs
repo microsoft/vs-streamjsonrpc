@@ -23,8 +23,15 @@ namespace StreamJsonRpc.Protocol
 
         internal TraceFlags Flags;
 
-        internal TraceParent(string traceparent)
+        internal TraceParent(string? traceparent)
         {
+            if (traceparent is null)
+            {
+                this.Version = 0;
+                this.Flags = TraceFlags.None;
+                return;
+            }
+
             ReadOnlySpan<char> traceparentChars = traceparent.AsSpan();
 
             // Decode version

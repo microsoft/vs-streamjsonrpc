@@ -74,21 +74,27 @@ public class CorrelationManagerTracingStrategyTests : TestBase
         }
     }
 
-    /// <summary>
-    /// Verifies that an inbound request that says nothing about traceparent does not interfere with ongoing activities on the server.
-    /// </summary>
     [Theory]
     [CombinatorialData]
     public void Inbound_WithoutTraceParent(bool contextualActivity)
     {
+        var listener = new CollectingTraceListener();
+        this.strategy.TraceSource = new TraceSource("test", SourceLevels.ActivityTracing)
+        {
+            Listeners = { listener },
+        };
+
         Guid testActivityId = contextualActivity ? Guid.NewGuid() : Guid.Empty;
         Trace.CorrelationManager.ActivityId = testActivityId;
         try
         {
             using (IDisposable? state = this.strategy.ApplyInboundActivity(this.request))
             {
-                Assert.Equal(testActivityId, Trace.CorrelationManager.ActivityId);
+                Assert.NotEqual(testActivityId, Trace.CorrelationManager.ActivityId);
             }
+
+            // No transfers should have been recorded since there was no parent activity.
+            Assert.Empty(listener.Transfers);
 
             Assert.Equal(testActivityId, Trace.CorrelationManager.ActivityId);
         }
