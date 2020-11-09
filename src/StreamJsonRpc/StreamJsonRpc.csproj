@@ -19,7 +19,7 @@
     <PackageReference Include="MessagePackAnalyzer" Version="2.2.60" PrivateAssets="all" />
     <!-- <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.4" PrivateAssets="all" /> -->
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="16.8.51" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.8.51" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.8.55" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" PrivateAssets="compile" />
     <PackageReference Include="Nerdbank.Streams" Version="2.6.81" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
