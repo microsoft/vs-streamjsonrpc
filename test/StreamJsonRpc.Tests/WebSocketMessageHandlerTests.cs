@@ -182,6 +182,7 @@ public class WebSocketMessageHandlerTests : TestBase
     }
 
     [Fact]
+    [Trait("TestCategory", "FailsInCloudTest")] // https://github.com/microsoft/vs-streamjsonrpc/issues/608
     public async Task AspNetCoreWebSocket_ServerHangUp()
     {
         var (jsonRpc, webSocket) = await this.EstablishWebSocket();
