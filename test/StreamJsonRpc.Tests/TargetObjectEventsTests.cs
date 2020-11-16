@@ -1,26 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using System.Threading;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class TargetObjectEventsTests : TestBase
+public abstract class TargetObjectEventsTests : TestBase
 {
+    protected IJsonRpcMessageHandler serverMessageHandler = null!;
+    protected IJsonRpcMessageHandler clientMessageHandler = null!;
+    protected FullDuplexStream serverStream = null!;
+    protected FullDuplexStream clientStream = null!;
+
     private readonly Server server;
     private readonly Client client;
 
-    private FullDuplexStream serverStream;
     private JsonRpc serverRpc;
-
-    private FullDuplexStream clientStream;
     private JsonRpc clientRpc;
 
     public TargetObjectEventsTests(ITestOutputHelper logger)
@@ -29,18 +29,12 @@ public class TargetObjectEventsTests : TestBase
         this.server = new ServerDerived();
         this.client = new Client();
 
-        var streams = FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
+        this.ReinitializeRpcWithoutListening();
+        Assumes.NotNull(this.serverRpc);
+        Assumes.NotNull(this.clientRpc);
 
-        this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
-        this.clientRpc = JsonRpc.Attach(this.clientStream, this.client);
-
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
-
-        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
     }
 
     public interface IServer
@@ -287,7 +281,27 @@ public class TargetObjectEventsTests : TestBase
         base.Dispose(disposing);
     }
 
-    private class Client
+    protected abstract void InitializeFormattersAndHandlers();
+
+    private void ReinitializeRpcWithoutListening()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers();
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler, this.client);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+    }
+
+    protected class Client
     {
         internal Action<EventArgs>? ServerEventRaised { get; set; }
 
@@ -306,12 +320,12 @@ public class TargetObjectEventsTests : TestBase
         public void ServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgsRaised?.Invoke(args);
     }
 
-    private abstract class ServerBase
+    protected abstract class ServerBase
     {
         public abstract event EventHandler? AbstractBaseEvent;
     }
 
-    private class Server : ServerBase, IServer
+    protected class Server : ServerBase, IServer
     {
         private EventHandler? explicitInterfaceImplementationEvent;
 
@@ -381,11 +395,11 @@ public class TargetObjectEventsTests : TestBase
         protected virtual void OnServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgs?.Invoke(this, args);
     }
 
-    private class ServerDerived : Server
+    protected class ServerDerived : Server
     {
     }
 
-    private class ServerWithIncompatibleEvents
+    protected class ServerWithIncompatibleEvents
     {
         public delegate int MyDelegate(double d);
 
@@ -394,14 +408,18 @@ public class TargetObjectEventsTests : TestBase
 #pragma warning restore CS0067
     }
 
-    private class CustomEventArgs : EventArgs
+    [DataContract]
+    protected class CustomEventArgs : EventArgs
     {
+        [DataMember]
         public int Seeds { get; set; }
     }
 
-    private class MessageEventArgs<T> : EventArgs
+    [DataContract]
+    protected class MessageEventArgs<T> : EventArgs
         where T : class
     {
+        [DataMember]
         public T? Message { get; set; }
     }
 }

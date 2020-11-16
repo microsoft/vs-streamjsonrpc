@@ -16,6 +16,8 @@
     <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="AsyncEnumerableJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
+    <Compile Update="TargetObjectEventsJsonTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
+    <Compile Update="TargetObjectEventsMessagePackTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
