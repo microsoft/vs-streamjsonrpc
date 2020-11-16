@@ -672,7 +672,7 @@ namespace StreamJsonRpc.Reflection
             private void OnEventRaisedGeneric<T>(object? sender, T args)
 #pragma warning restore CA1801 // Review unused parameters
             {
-                this.jsonRpc.NotifyAsync(this.rpcEventName, new object?[] { args }).Forget();
+                this.jsonRpc.NotifyAsync(this.rpcEventName, arguments: new object?[] { args }, argumentDeclaredTypes: new Type[] { typeof(T) }).Forget();
             }
 
             private void OnEventRaised(object? sender, EventArgs args)

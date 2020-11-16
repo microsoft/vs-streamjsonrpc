@@ -37,6 +37,12 @@ public abstract class TargetObjectEventsTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    [MessagePack.Union(key: 0, typeof(Fruit))]
+    public interface IFruit
+    {
+        string Name { get; }
+    }
+
     public interface IServer
     {
         event EventHandler InterfaceEvent;
@@ -94,6 +100,17 @@ public abstract class TargetObjectEventsTests : TestBase
         this.server.TriggerGenericEvent(expectedArgs);
         var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
         Assert.Equal(expectedArgs.Seeds, actualArgs.Seeds);
+    }
+
+    [Fact]
+    public async Task EventWithInterfaceTypedArgument()
+    {
+        var tcs = new TaskCompletionSource<IFruit>();
+        var expectedArgs = new Fruit("hi");
+        this.client.ServerIFruitEventRaised = args => tcs.SetResult(args);
+        this.server.TriggerIFruitEvent(expectedArgs);
+        var actualArgs = await tcs.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedArgs.Name, actualArgs.Name);
     }
 
     [Fact]
@@ -301,6 +318,18 @@ public abstract class TargetObjectEventsTests : TestBase
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
+    [DataContract]
+    public class Fruit : IFruit
+    {
+        internal Fruit(string name)
+        {
+            this.Name = name;
+        }
+
+        [DataMember]
+        public string Name { get; }
+    }
+
     protected class Client
     {
         internal Action<EventArgs>? ServerEventRaised { get; set; }
@@ -311,6 +340,8 @@ public abstract class TargetObjectEventsTests : TestBase
 
         internal Action<MessageEventArgs<string>>? ServerEventWithCustomGenericDelegateAndArgsRaised { get; set; }
 
+        internal Action<IFruit>? ServerIFruitEventRaised { get; set; }
+
         public void ServerEvent(EventArgs args) => this.ServerEventRaised?.Invoke(args);
 
         public void PublicStaticServerEvent(EventArgs args) => this.PublicStaticServerEventRaised?.Invoke(args);
@@ -318,6 +349,8 @@ public abstract class TargetObjectEventsTests : TestBase
         public void ServerEventWithCustomArgs(CustomEventArgs args) => this.GenericServerEventRaised?.Invoke(args);
 
         public void ServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.ServerEventWithCustomGenericDelegateAndArgsRaised?.Invoke(args);
+
+        public void IFruitEvent(IFruit args) => this.ServerIFruitEventRaised?.Invoke(args);
     }
 
     protected abstract class ServerBase
@@ -343,6 +376,8 @@ public abstract class TargetObjectEventsTests : TestBase
         public event MessageReceivedEventHandler<string>? ServerEventWithCustomGenericDelegateAndArgs;
 
         public event EventHandler? InterfaceEvent;
+
+        public event EventHandler<IFruit>? IFruitEvent;
 
         public override event EventHandler? AbstractBaseEvent
         {
@@ -381,6 +416,8 @@ public abstract class TargetObjectEventsTests : TestBase
         public void TriggerServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.OnServerEventWithCustomGenericDelegateAndArgs(args);
 
         public void TriggerInterfaceEvent(EventArgs args) => this.InterfaceEvent?.Invoke(this, args);
+
+        public void TriggerIFruitEvent(IFruit args) => this.IFruitEvent?.Invoke(this, args);
 
         public void TriggerExplicitInterfaceImplementationEvent(EventArgs args) => this.explicitInterfaceImplementationEvent?.Invoke(this, args);
 
