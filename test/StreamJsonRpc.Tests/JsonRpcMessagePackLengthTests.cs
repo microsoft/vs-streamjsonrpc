@@ -374,7 +374,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         this.serverMessageFormatter = new MessagePackFormatter();
         this.clientMessageFormatter = new MessagePackFormatter();
 
-        var options = MessagePackSerializerOptions.Standard
+        var options = MessagePackFormatter.DefaultUserDataSerializationOptions
             .WithResolver(CompositeResolver.Create(
                 new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter() },
                 new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));

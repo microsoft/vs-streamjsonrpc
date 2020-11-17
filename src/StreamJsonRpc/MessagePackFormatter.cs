@@ -87,6 +87,13 @@ namespace StreamJsonRpc
         private static readonly Dictionary<Type, IReadOnlyDictionary<string, Type>> ParameterObjectPropertyTypes = new Dictionary<Type, IReadOnlyDictionary<string, Type>>();
 
         /// <summary>
+        /// A resolver for stateless formatters that make types serializable that users may expect to be,
+        /// but for which MessagePack itself provides no formatter in the default resolver.
+        /// </summary>
+        private static readonly IFormatterResolver BasicTypesResolver = CompositeResolver.Create(
+            EventArgsFormatter.Instance);
+
+        /// <summary>
         /// The options to use for serializing top-level RPC messages.
         /// </summary>
         private readonly MessagePackSerializerOptions messageSerializationOptions;
@@ -541,11 +548,16 @@ namespace StreamJsonRpc
                 // We preset this one because for some protocols like IProgress<T>, tokens are passed in that we must relay exactly back to the client as an argument.
                 RawMessagePackFormatter.Instance,
             };
+
+            // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
             var resolvers = new IFormatterResolver[]
             {
                 userSuppliedOptions.Resolver,
 
-                // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
+                // Add stateless, non-specialized resolvers that help basic functionality to "just work".
+                BasicTypesResolver,
+
+                // Stateful or per-connection resolvers.
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
@@ -2019,6 +2031,34 @@ namespace StreamJsonRpc
 
                 writer.Write(DataPropertyName);
                 DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
+            }
+        }
+
+        /// <summary>
+        /// Enables formatting the default/empty <see cref="EventArgs"/> class.
+        /// </summary>
+        private class EventArgsFormatter : IMessagePackFormatter<EventArgs>
+        {
+            /// <summary>
+            /// The singleton instance of the formatter to be used.
+            /// </summary>
+            internal static readonly IMessagePackFormatter<EventArgs> Instance = new EventArgsFormatter();
+
+            private EventArgsFormatter()
+            {
+            }
+
+            /// <inheritdoc/>
+            public void Serialize(ref MessagePackWriter writer, EventArgs value, MessagePackSerializerOptions options)
+            {
+                writer.WriteMapHeader(0);
+            }
+
+            /// <inheritdoc/>
+            public EventArgs Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                reader.Skip();
+                return EventArgs.Empty;
             }
         }
 
