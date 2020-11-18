@@ -17,7 +17,7 @@ namespace StreamJsonRpc.Reflection
 
         private static StreamingContext Context => new StreamingContext(StreamingContextStates.Remoting);
 
-        internal static T Deserialize<T>(SerializationInfo info, TraceSource? traceSource)
+        internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, TraceSource? traceSource)
             where T : Exception
         {
             if (!TryGetValue(info, "ClassName", out string? runtimeTypeName) || runtimeTypeName is null)
@@ -25,33 +25,8 @@ namespace StreamJsonRpc.Reflection
                 throw new NotSupportedException("ClassName was not found in the serialized data.");
             }
 
-            Assembly? exceptionDeclaringAssembly = null;
-            if (TryGetValue(info, AssemblyNameKeyName, out string? runtimeAssemblyName) && runtimeAssemblyName is object)
-            {
-                try
-                {
-                    exceptionDeclaringAssembly = Assembly.Load(runtimeAssemblyName);
-                }
-                catch (System.IO.FileLoadException)
-                {
-                    // Try removing the version from the AssemblyName and try again, in case the message came from a newer version.
-                    var an = new AssemblyName(runtimeAssemblyName);
-                    if (an.Version is object)
-                    {
-                        an.Version = null;
-                        try
-                        {
-                            exceptionDeclaringAssembly = Assembly.Load(an.FullName);
-                        }
-                        catch (System.IO.FileLoadException)
-                        {
-                            // If we fail again, we'll just try to load the exception type from the AppDomain without an assembly's context.
-                        }
-                    }
-                }
-            }
-
-            Type? runtimeType = exceptionDeclaringAssembly is object ? exceptionDeclaringAssembly.GetType(runtimeTypeName) : Type.GetType(runtimeTypeName);
+            TryGetValue(info, AssemblyNameKeyName, out string? runtimeAssemblyName);
+            Type? runtimeType = jsonRpc.LoadType(runtimeTypeName, runtimeAssemblyName);
             if (runtimeType is null)
             {
                 if (traceSource?.Switch.ShouldTrace(TraceEventType.Warning) ?? false)

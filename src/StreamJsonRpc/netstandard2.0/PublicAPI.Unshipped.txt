@@ -30,3 +30,4 @@ StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.set -> void
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
 StreamJsonRpc.RequestId.RequestId() -> void
 virtual StreamJsonRpc.CorrelationManagerTracingStrategy.GetInboundActivityName(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> string?
+virtual StreamJsonRpc.JsonRpc.LoadType(string! typeFullName, string? assemblyName) -> System.Type?
