@@ -18,9 +18,13 @@ namespace StreamJsonRpc
     /// A message handler for the <see cref="JsonRpc"/> class
     /// that uses <see cref="System.Net.WebSockets.WebSocket"/> as the transport.
     /// </summary>
-    public class WebSocketMessageHandler : MessageHandlerBase
+    public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBufferManager
     {
         private readonly int sizeHint;
+
+        private readonly Sequence<byte> contentSequenceBuilder = new Sequence<byte>();
+
+        private IJsonRpcMessageBufferManager? bufferedMessage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketMessageHandler"/> class
@@ -70,44 +74,66 @@ namespace StreamJsonRpc
         /// </summary>
         public WebSocket WebSocket { get; }
 
+        /// <inheritdoc/>
+        void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+        {
+            if (message is object && this.bufferedMessage == message)
+            {
+                this.bufferedMessage.DeserializationComplete(message);
+                this.bufferedMessage = null;
+                this.contentSequenceBuilder.Reset();
+            }
+        }
+
         /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
-            using (var contentSequenceBuilder = new Sequence<byte>())
+#if NETCOREAPP2_1
+            ValueWebSocketReceiveResult result;
+#else
+            WebSocketReceiveResult result;
+#endif
+            do
             {
 #if NETCOREAPP2_1
-                ValueWebSocketReceiveResult result;
+                Memory<byte> memory = this.contentSequenceBuilder.GetMemory(this.sizeHint);
+                result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
+                this.contentSequenceBuilder.Advance(result.Count);
 #else
-                WebSocketReceiveResult result;
-#endif
-                do
+                ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+                byte[] segment = pool.Rent(this.sizeHint);
+                try
                 {
-                    Memory<byte> memory = contentSequenceBuilder.GetMemory(this.sizeHint);
-#if NETCOREAPP2_1
-                    result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
-                    contentSequenceBuilder.Advance(result.Count);
-#else
-                    ArrayPool<byte> pool = ArrayPool<byte>.Shared;
-                    byte[] segment = pool.Rent(this.sizeHint);
-                    try
-                    {
-                        result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(segment), cancellationToken).ConfigureAwait(false);
-                        contentSequenceBuilder.Write(segment.AsSpan(0, result.Count));
-                    }
-                    finally
-                    {
-                        pool.Return(segment);
-                    }
-#endif
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        await this.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed as requested.", CancellationToken.None).ConfigureAwait(false);
-                        return null;
-                    }
+                    result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(segment), cancellationToken).ConfigureAwait(false);
+                    this.contentSequenceBuilder.Write(segment.AsSpan(0, result.Count));
                 }
-                while (!result.EndOfMessage);
+                finally
+                {
+                    pool.Return(segment);
+                }
+#endif
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await this.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed as requested.", CancellationToken.None).ConfigureAwait(false);
+                    return null;
+                }
+            }
+            while (!result.EndOfMessage);
 
-                return contentSequenceBuilder.AsReadOnlySequence.Length > 0 ? this.Formatter.Deserialize(contentSequenceBuilder) : null;
+            if (this.contentSequenceBuilder.AsReadOnlySequence.Length > 0)
+            {
+                JsonRpcMessage message = this.Formatter.Deserialize(this.contentSequenceBuilder);
+                this.bufferedMessage = message as IJsonRpcMessageBufferManager;
+                if (this.bufferedMessage is null)
+                {
+                    this.contentSequenceBuilder.Reset();
+                }
+
+                return message;
+            }
+            else
+            {
+                return null;
             }
         }
 
