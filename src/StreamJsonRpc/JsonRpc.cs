@@ -1174,6 +1174,56 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Attempts to load a type based on its full name and possibly assembly name.
+        /// </summary>
+        /// <param name="typeFullName">The <see cref="Type.FullName"/> of the type to be loaded.</param>
+        /// <param name="assemblyName">The assemble name that is expected to define the type, if available. This should be parseable by <see cref="AssemblyName(string)"/>.</param>
+        /// <returns>The loaded <see cref="Type"/>, if one could be found; otherwise <see langword="null" />.</returns>
+        /// <remarks>
+        /// <para>
+        /// This method is used to load types that are strongly referenced by incoming messages during serialization.
+        /// It is important to not load types that may pose a security threat based on the type and the trust level of the remote party.
+        /// </para>
+        /// <para>
+        /// The default implementation of this method loads any type named if it can be found based on its assembly name (if provided) or based on any assembly already loaded in the AppDomain otherwise.
+        /// </para>
+        /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
+        /// </remarks>
+        protected internal virtual Type? LoadType(string typeFullName, string? assemblyName)
+        {
+            Requires.NotNull(typeFullName, nameof(typeFullName));
+
+            Assembly? typeDeclaringAssembly = null;
+            if (assemblyName is object)
+            {
+                try
+                {
+                    typeDeclaringAssembly = Assembly.Load(assemblyName);
+                }
+                catch (FileLoadException)
+                {
+                    // Try removing the version from the AssemblyName and try again, in case the message came from a newer version.
+                    var an = new AssemblyName(assemblyName);
+                    if (an.Version is object)
+                    {
+                        an.Version = null;
+                        try
+                        {
+                            typeDeclaringAssembly = Assembly.Load(an.FullName);
+                        }
+                        catch (FileLoadException)
+                        {
+                            // If we fail again, we'll just try to load the exception type from the AppDomain without an assembly's context.
+                        }
+                    }
+                }
+            }
+
+            Type? runtimeType = typeDeclaringAssembly is object ? typeDeclaringAssembly.GetType(typeFullName) : Type.GetType(typeFullName);
+            return runtimeType;
+        }
+
+        /// <summary>
         /// Disposes managed and native resources held by this instance.
         /// </summary>
         /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>

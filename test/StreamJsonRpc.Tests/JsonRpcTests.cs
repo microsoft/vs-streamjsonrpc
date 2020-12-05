@@ -2370,6 +2370,38 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task SerializableExceptions_RedirectType()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers(false);
+
+        this.serverRpc = new JsonRpcThatSubstitutesType(this.serverMessageHandler);
+        this.clientRpc = new JsonRpcThatSubstitutesType(this.clientMessageHandler);
+
+        this.serverRpc.AddLocalRpcTarget(this.server);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
+        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
+        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new object[] { new ArgumentOutOfRangeException() }, this.TimeoutToken);
+
+        // assert that a different type was received than was transmitted.
+        Assert.IsType<ArgumentException>(this.server.ReceivedException);
+    }
+
+    [Fact]
     public void CancellationStrategy_ConfigurationLocked()
     {
         Assert.Throws<InvalidOperationException>(() => this.clientRpc.CancellationStrategy = null);
@@ -3558,6 +3590,24 @@ public abstract class JsonRpcTests : TestBase
           StreamingContext context)
             : base(info, context)
         {
+        }
+    }
+
+    private class JsonRpcThatSubstitutesType : JsonRpc
+    {
+        public JsonRpcThatSubstitutesType(IJsonRpcMessageHandler messageHandler)
+            : base(messageHandler)
+        {
+        }
+
+        protected override Type? LoadType(string typeFullName, string? assemblyName)
+        {
+            if (typeFullName == typeof(ArgumentOutOfRangeException).FullName)
+            {
+                return typeof(ArgumentException);
+            }
+
+            return base.LoadType(typeFullName, assemblyName);
         }
     }
 

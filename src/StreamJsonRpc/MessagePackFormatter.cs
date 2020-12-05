@@ -104,6 +104,8 @@ namespace StreamJsonRpc
 
         private readonly PipeFormatterResolver pipeFormatterResolver;
 
+        private readonly MessagePackExceptionResolver exceptionResolver;
+
         private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
 
         private readonly ToStringHelper deserializationToStringHelper = new ToStringHelper();
@@ -172,6 +174,7 @@ namespace StreamJsonRpc
             this.progressFormatterResolver = new ProgressFormatterResolver(this);
             this.asyncEnumerableFormatterResolver = new AsyncEnumerableFormatterResolver(this);
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
+            this.exceptionResolver = new MessagePackExceptionResolver(this);
 
             // Set up default user data resolver.
             this.userDataSerializationOptions = this.MassageUserDataOptions(DefaultUserDataSerializationOptions);
@@ -561,12 +564,10 @@ namespace StreamJsonRpc
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
+                this.exceptionResolver,
 
                 // Support for marshalled objects.
                 new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
-
-                // Add resolvers to make types serializable that we expect to be serializable.
-                MessagePackExceptionResolver.Instance,
             };
 
             // Wrap the resolver in another class as a way to pass information to our custom formatters.
@@ -1459,26 +1460,32 @@ namespace StreamJsonRpc
         /// </remarks>
         private class MessagePackExceptionResolver : IFormatterResolver
         {
-            internal static readonly MessagePackExceptionResolver Instance = new MessagePackExceptionResolver();
+            private readonly object[] formatterActivationArgs;
 
-            private MessagePackExceptionResolver()
+            private readonly Dictionary<Type, object?> formatterCache = new Dictionary<Type, object?>();
+
+            internal MessagePackExceptionResolver(MessagePackFormatter formatter)
             {
+                this.formatterActivationArgs = new object[] { formatter };
             }
 
-            public IMessagePackFormatter<T>? GetFormatter<T>() => Cache<T>.Formatter;
-
-            private static class Cache<T>
+            public IMessagePackFormatter<T>? GetFormatter<T>()
             {
-                internal static readonly IMessagePackFormatter<T>? Formatter;
-
-#pragma warning disable CA1810 // Initialize reference type static fields inline
-                static Cache()
-#pragma warning restore CA1810 // Initialize reference type static fields inline
+                lock (this.formatterCache)
                 {
+                    if (this.formatterCache.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        return (IMessagePackFormatter<T>?)cachedFormatter;
+                    }
+
+                    IMessagePackFormatter<T>? formatter = null;
                     if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
                     {
-                        Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)));
+                        formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)), this.formatterActivationArgs);
                     }
+
+                    this.formatterCache.Add(typeof(T), formatter);
+                    return formatter;
                 }
             }
 
@@ -1488,9 +1495,17 @@ namespace StreamJsonRpc
                 where T : Exception
 #pragma warning restore CA1812
             {
+                private readonly MessagePackFormatter formatter;
+
+                public ExceptionFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
                 [return: MaybeNull]
                 public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
                 {
+                    Assumes.NotNull(this.formatter.rpc);
                     if (reader.TryReadNil())
                     {
                         return null;
@@ -1507,7 +1522,7 @@ namespace StreamJsonRpc
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(info, resolverWrapper?.Formatter.rpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.rpc, info, resolverWrapper?.Formatter.rpc?.TraceSource);
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)

@@ -1329,6 +1329,7 @@ namespace StreamJsonRpc
 
             public override Exception? ReadJson(JsonReader reader, Type objectType, Exception? existingValue, bool hasExistingValue, JsonSerializer serializer)
             {
+                Assumes.NotNull(this.formatter.rpc);
                 if (reader.TokenType == JsonToken.Null)
                 {
                     return null;
@@ -1364,7 +1365,7 @@ namespace StreamJsonRpc
                     }
                 }
 
-                return ExceptionSerializationHelpers.Deserialize<Exception>(info, this.formatter.rpc?.TraceSource);
+                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.rpc, info, this.formatter.rpc?.TraceSource);
             }
 
             public override void WriteJson(JsonWriter writer, Exception? value, JsonSerializer serializer)
