@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.Streams;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
@@ -116,6 +118,26 @@ public abstract class WebSocketMessageHandlerTests : TestBase
         // Don't do it this way. Instead, dispose of the JsonRpc instance first, then close the socket.
         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client initiated close", this.TimeoutToken);
         jsonRpc.Dispose();
+    }
+
+    [Fact]
+    public async Task DecodeArgument()
+    {
+        var msg = new JsonRpcRequest
+        {
+            Method = "test",
+            ArgumentsList = new List<object?>
+            {
+                "somearg",
+            },
+        };
+        using var seq = new Sequence<byte>();
+        this.formatter.Serialize(seq, msg);
+        this.socket.EnqueueRead(seq.AsReadOnlySequence.ToArray());
+        JsonRpcRequest? result = (JsonRpcRequest?)await this.handler.ReadAsync(this.TimeoutToken);
+        Assert.Equal(msg.Method, result!.Method);
+        Assert.True(result.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? value));
+        Assert.Equal(msg.ArgumentsList[0], value);
     }
 
     protected static JsonRpcRequest CreateDefaultMessage()
