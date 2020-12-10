@@ -141,7 +141,7 @@ namespace StreamJsonRpc.Reflection
 
             // Track open channels to assist in diagnosing abandoned channels.
             ImmutableInterlocked.TryAdd(ref this.openOutboundChannels, channel.QualifiedId, channel);
-            channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openOutboundChannels, channel.QualifiedId, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
+            channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openOutboundChannels, channel.QualifiedId, out MultiplexingStream.Channel? removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
 
             return channel.QualifiedId.Id;
         }
@@ -199,7 +199,7 @@ namespace StreamJsonRpc.Reflection
 
             // In the case of multiple overloads, we might be called to convert a channel's token more than once.
             // But we can only accept the channel once, so look up in a dictionary to see if we've already done this.
-            if (!this.openInboundChannels.TryGetValue(new MultiplexingStream.QualifiedChannelId(token.Value, MultiplexingStream.ChannelSource.Remote), out MultiplexingStream.Channel channel))
+            if (!this.openInboundChannels.TryGetValue(new MultiplexingStream.QualifiedChannelId(token.Value, MultiplexingStream.ChannelSource.Remote), out MultiplexingStream.Channel? channel))
             {
                 channel = mxstream.AcceptChannel(token.Value);
                 if (!this.RequestIdBeingDeserialized.IsEmpty)
@@ -213,7 +213,7 @@ namespace StreamJsonRpc.Reflection
 
                 // Track open channels to assist in diagnosing abandoned channels and handling multiple overloads.
                 ImmutableInterlocked.TryAdd(ref this.openInboundChannels, channel.QualifiedId, channel);
-                channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openInboundChannels, channel.QualifiedId, out MultiplexingStream.Channel removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
+                channel.Completion.ContinueWith(_ => ImmutableInterlocked.TryRemove(ref this.openInboundChannels, channel.QualifiedId, out MultiplexingStream.Channel? removedChannel), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default).Forget();
             }
 
             return channel;
@@ -308,7 +308,7 @@ namespace StreamJsonRpc.Reflection
                 return;
             }
 
-            if (ImmutableInterlocked.TryRemove(ref this.inboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
+            if (ImmutableInterlocked.TryRemove(ref this.inboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel>? channels))
             {
                 // Only kill the channels if the server threw an error.
                 // Successful responses make it the responsibility of the client/server to terminate the pipe.
@@ -329,7 +329,7 @@ namespace StreamJsonRpc.Reflection
                 return;
             }
 
-            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel> channels))
+            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestChannelMap, requestId, out ImmutableList<MultiplexingStream.Channel>? channels))
             {
                 // Only kill the channels if the server threw an error.
                 // Successful responses make it the responsibility of the client/server to terminate the pipe.

@@ -73,7 +73,7 @@ public class ActivityTracingStrategyTests : TestBase
         {
             using (IDisposable? state = this.strategy.ApplyInboundActivity(this.request))
             {
-                Assert.Same(testActivity, Activity.Current.Parent);
+                Assert.Same(testActivity, Activity.Current?.Parent);
             }
 
             Assert.Same(testActivity, Activity.Current);

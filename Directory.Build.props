@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="all" />
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="3.8.0" PrivateAssets="all" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="all" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.312" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
