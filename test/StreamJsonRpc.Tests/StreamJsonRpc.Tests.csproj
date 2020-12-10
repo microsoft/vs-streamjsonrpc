@@ -18,6 +18,8 @@
     <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="TargetObjectEventsJsonTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
     <Compile Update="TargetObjectEventsMessagePackTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
+    <Compile Update="WebSocketMessageHandlerJsonTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
+    <Compile Update="WebSocketMessageHandlerMessagePackTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
