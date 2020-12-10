@@ -203,7 +203,7 @@ namespace StreamJsonRpc.Reflection
 
         private void CleanUpOutboundResources(RequestId requestId, bool successful)
         {
-            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestIdMarshalMap, requestId, out ImmutableList<long> handles))
+            if (ImmutableInterlocked.TryRemove(ref this.outboundRequestIdMarshalMap, requestId, out ImmutableList<long>? handles))
             {
                 // Only kill the marshaled objects if the server threw an error.
                 // Successful responses make it the responsibility of the client/server to terminate the marshaled connection.

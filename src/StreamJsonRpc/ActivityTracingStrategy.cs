@@ -31,9 +31,13 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(request, nameof(request));
 
-            var state = new State(new Activity(request.Method));
+            var state = new State(new Activity(request.Method!));
             state.NewActivity.TraceStateString = request.TraceState;
-            state.NewActivity.SetParentId(request.TraceParent);
+            if (request.TraceParent is object)
+            {
+                state.NewActivity.SetParentId(request.TraceParent);
+            }
+
             state.NewActivity.Start();
             return state;
         }
@@ -46,7 +50,7 @@ namespace StreamJsonRpc
                 this.NewActivity = newActivity;
             }
 
-            internal Activity PriorActivity { get; }
+            internal Activity? PriorActivity { get; }
 
             internal Activity NewActivity { get; }
 
