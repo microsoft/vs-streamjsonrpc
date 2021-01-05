@@ -49,7 +49,7 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEng-MicroBuildVS2019
+      windowsPool: VSEngSS-MicroBuild2019
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
       includeMacOS: ${{ parameters.includeMacOS }}
 
