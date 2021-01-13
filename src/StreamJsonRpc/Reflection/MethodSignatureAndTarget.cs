@@ -37,7 +37,7 @@ namespace StreamJsonRpc
         internal SynchronizationContext? SynchronizationContext { get; }
 
         [ExcludeFromCodeCoverage]
-        private string DebuggerDisplay => $"{this.Signature} ({this.Target})";
+        private string DebuggerDisplay => this.ToString();
 
         /// <inheritdoc/>
         public override bool Equals(object? obj)
@@ -58,5 +58,8 @@ namespace StreamJsonRpc
         {
             return this.Signature.GetHashCode() + (this.Target != null ? RuntimeHelpers.GetHashCode(this.Target) : 0);
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"{this.Signature} ({this.Target})";
     }
 }
