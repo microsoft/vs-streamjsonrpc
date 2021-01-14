@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds all projects in this repo.
+    Converts between Windows PDB and Portable PDB formats.
 .PARAMETER DllPath
     The path to the DLL whose PDB is to be converted.
 .PARAMETER PdbPath
@@ -18,10 +18,13 @@
         [string]$OutputPath
     )
 
-    $version = '1.1.0-beta1-63314-01'
-    $pdb2pdbpath = "$env:temp\pdb2pdb.$version\tools\Pdb2Pdb.exe"
+    $version = '1.1.0-beta2-20115-01'
+    $baseDir = "$PSScriptRoot\..\obj\tools"
+    $pdb2pdbpath = "$baseDir\Microsoft.DiaSymReader.Pdb2Pdb.$version\tools\Pdb2Pdb.exe"
     if (-not (Test-Path $pdb2pdbpath)) {
-        nuget install pdb2pdb -version $version -PackageSaveMode nuspec -OutputDirectory $env:temp -Source https://dotnet.myget.org/F/symreader-converter/api/v3/index.json
+        if (-not (Test-Path $baseDir)) { New-Item -Type Directory -Path $baseDir | Out-Null }
+        $baseDir = (Resolve-Path $baseDir).Path # Normalize it
+        nuget install Microsoft.DiaSymReader.Pdb2Pdb -version $version -PackageSaveMode nuspec -OutputDirectory $baseDir -Source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json | Out-Null
     }
 
     $args = $DllPath,'/out',$OutputPath,'/nowarn','0021'
@@ -29,5 +32,6 @@
         $args += '/pdb',$PdbPath
     }
 
-    & "$env:temp\pdb2pdb.$version\tools\Pdb2Pdb.exe" $args
+    Write-Verbose "$pdb2pdbpath $args"
+    & $pdb2pdbpath $args
 #}
