@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-    - master
+    - main
     - 'v?.*'
     - 'validate/*'
   paths:
@@ -16,7 +16,7 @@ schedules:
   displayName: Daily vs-insertion
   branches:
     include:
-    - master
+    - main
     - 'v?.*'
 
 parameters:
