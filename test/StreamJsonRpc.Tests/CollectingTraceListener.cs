@@ -25,9 +25,9 @@ public class CollectingTraceListener : TraceListener
 
     public AsyncAutoResetEvent MessageReceived { get; } = new AsyncAutoResetEvent();
 
-    public override void Write(string message) => this.lineInProgress.Append(message);
+    public override void Write(string? message) => this.lineInProgress.Append(message);
 
-    public override void WriteLine(string message)
+    public override void WriteLine(string? message)
     {
         this.lineInProgress.Append(message);
         lock (this.messages)
