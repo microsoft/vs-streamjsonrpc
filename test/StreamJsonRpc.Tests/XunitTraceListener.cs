@@ -16,9 +16,9 @@ internal class XunitTraceListener : TraceListener
 
     public override bool IsThreadSafe => false;
 
-    public override void Write(string message) => this.lineInProgress.Append(message);
+    public override void Write(string? message) => this.lineInProgress.Append(message);
 
-    public override void WriteLine(string message)
+    public override void WriteLine(string? message)
     {
         if (!this.disposed)
         {
