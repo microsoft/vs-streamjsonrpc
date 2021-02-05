@@ -104,12 +104,15 @@ public abstract class TestBase : IDisposable
     }
 
     protected static T BinaryFormatterRoundtrip<T>(T original)
+        where T : notnull
     {
         var bf = new BinaryFormatter();
         var ms = new MemoryStream();
+#pragma warning disable SYSLIB0011 // Type or member is obsolete
         bf.Serialize(ms, original);
         ms.Position = 0;
         return (T)bf.Deserialize(ms);
+#pragma warning restore SYSLIB0011 // Type or member is obsolete
     }
 
     protected async Task AssertWeakReferenceGetsCollectedAsync(WeakReference weakReference)
