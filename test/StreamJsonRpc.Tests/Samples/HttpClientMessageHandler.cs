@@ -184,7 +184,7 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
             }
 
             // The response is expected to be a success code, or an error code with a content-type that we can deserialize.
-            if (response.IsSuccessStatusCode || (response.Content?.Headers.ContentType.MediaType is string mediaType && AllowedContentTypes.Contains(mediaType)))
+            if (response.IsSuccessStatusCode || (response.Content?.Headers.ContentType?.MediaType is string mediaType && AllowedContentTypes.Contains(mediaType)))
             {
                 // Some requests don't merit response messages, such as notifications in JSON-RPC.
                 // Servers may communicate this with 202 or 204 HTTPS status codes in the response.

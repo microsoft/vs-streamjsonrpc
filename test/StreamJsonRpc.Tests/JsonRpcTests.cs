@@ -3011,7 +3011,7 @@ public abstract class JsonRpcTests : TestBase
 
         public string? RepeatString(string? arg) => arg;
 
-        public void TraceSomething(string? message) => this.TraceSource?.TraceInformation(message);
+        public void TraceSomething(string message) => this.TraceSource?.TraceInformation(message);
 
         public async Task<string> AsyncMethod(string arg)
         {

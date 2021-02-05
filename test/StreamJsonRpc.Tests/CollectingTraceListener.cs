@@ -67,7 +67,7 @@ public class CollectingTraceListener : TraceListener
 
     public AsyncAutoResetEvent MessageReceived { get; } = new AsyncAutoResetEvent();
 
-    public override void TraceTransfer(TraceEventCache eventCache, string source, int id, string message, Guid relatedActivityId)
+    public override void TraceTransfer(TraceEventCache? eventCache, string source, int id, string? message, Guid relatedActivityId)
     {
         base.TraceTransfer(eventCache, source, id, message, relatedActivityId);
 
@@ -77,7 +77,7 @@ public class CollectingTraceListener : TraceListener
         }
     }
 
-    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
+    public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string format, params object?[]? args)
     {
         lock (this.traceEventIds)
         {
@@ -86,13 +86,13 @@ public class CollectingTraceListener : TraceListener
 
         lock (this.events)
         {
-            this.events.Add((eventType, string.Format(CultureInfo.InvariantCulture, format, args)));
+            this.events.Add((eventType, string.Format(CultureInfo.InvariantCulture, format, args ?? Array.Empty<object?>())));
         }
 
         base.TraceEvent(eventCache, source, eventType, id, format, args);
     }
 
-    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
+    public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string? message)
     {
         lock (this.traceEventIds)
         {
@@ -107,7 +107,7 @@ public class CollectingTraceListener : TraceListener
         base.TraceEvent(eventCache, source, eventType, id, message);
     }
 
-    public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id)
+    public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id)
     {
         lock (this.traceEventIds)
         {
@@ -122,9 +122,9 @@ public class CollectingTraceListener : TraceListener
         base.TraceEvent(eventCache, source, eventType, id);
     }
 
-    public override void Write(string message) => this.lineInProgress.Append(message);
+    public override void Write(string? message) => this.lineInProgress.Append(message);
 
-    public override void WriteLine(string message)
+    public override void WriteLine(string? message)
     {
         this.lineInProgress.Append(message);
         lock (this.messages)
