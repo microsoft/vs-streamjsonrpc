@@ -267,6 +267,11 @@ namespace StreamJsonRpc
             }
         }
 
+        /// <summary>
+        /// 接收到了未知ID的结果信息
+        /// </summary>
+        public event EventHandler<JsonRpcResult> ResultWithoutIDArrived;
+
         /// <inheritdoc/>
         event EventHandler<JsonRpcMessageEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
         {
@@ -2436,6 +2441,13 @@ namespace StreamJsonRpc
                         if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
                         {
                             this.resultDispatcherMap.Remove(resultOrError.RequestId);
+                        }
+                        else
+                        {
+                            if (result != null)
+                            {
+                                ResultWithoutIDArrived?.Invoke(this, (JsonRpcResult)result);
+                            }
                         }
                     }
 
