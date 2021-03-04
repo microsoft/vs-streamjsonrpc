@@ -701,6 +701,18 @@ namespace StreamJsonRpc
             return Attach<T>(handler, options: null);
         }
 
+        /// <summary>
+        /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+        /// </summary>
+        /// <param name="handler">The message handler to use.</param>
+        /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+        /// <param name="rpc"></param>
+        /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
+        /// <returns>
+        /// An instance of the generated proxy.
+        /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+        /// and should be disposed of to close the connection.
+        ///</returns>
         public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options, out JsonRpc rpc)
                  where T : class
         {
