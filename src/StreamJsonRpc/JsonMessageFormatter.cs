@@ -485,7 +485,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(args, nameof(args));
 
-            return args.Properties().ToDictionary(p => p.Name, p => (object)p.Value);
+            return args.ToObject<Dictionary<string, JToken>>().ToDictionary(k => k.Key, k => (object)k.Value);
         }
 
         private static object[] PartiallyParsePositionalArguments(JArray args)
