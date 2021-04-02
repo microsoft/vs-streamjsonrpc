@@ -711,6 +711,8 @@ namespace StreamJsonRpc
 
             internal bool IsDefault => this.rawMemory.IsEmpty && this.rawSequence.IsEmpty;
 
+            public override string ToString() => "<raw msgpack>";
+
             /// <summary>
             /// Reads one raw messagepack token.
             /// </summary>
@@ -809,7 +811,7 @@ namespace StreamJsonRpc
 
             public float ToSingle(object value) => ((RawMessagePack)value).Deserialize<float>(this.options);
 
-            public string ToString(object value) => ((RawMessagePack)value).Deserialize<string>(this.options);
+            public string? ToString(object value) => value is null ? null : ((RawMessagePack)value).Deserialize<string?>(this.options);
 
             public ushort ToUInt16(object value) => ((RawMessagePack)value).Deserialize<ushort>(this.options);
 
@@ -1516,7 +1518,13 @@ namespace StreamJsonRpc
                     for (int i = 0; i < memberCount; i++)
                     {
                         string name = reader.ReadString();
-                        object value = RawMessagePack.ReadRaw(ref reader, false);
+
+                        // SerializationInfo.GetValue(string, typeof(object)) does not call our formatter,
+                        // so the caller will get a boxed RawMessagePack struct in that case.
+                        // Although we can't do much about *that* in general, we can at least ensure that null values
+                        // are represented as null instead of this boxed struct.
+                        var value = reader.TryReadNil() ? null : (object)RawMessagePack.ReadRaw(ref reader, false);
+
                         info.AddValue(name, value);
                     }
 
