@@ -358,7 +358,23 @@ namespace StreamJsonRpc.Reflection
 
             MethodNameMap mapping = GetMethodNameMap(exposedMembersOnType);
 
-            for (TypeInfo? t = exposedMembersOnType; t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+            // We retrieve exposed types differently for interfaces vs. classes
+            List<TypeInfo>? typesToMap = new List<TypeInfo>();
+            if (exposedMembersOnType.IsInterface)
+            {
+                typesToMap.Add(exposedMembersOnType.GetTypeInfo());
+                typesToMap.AddRange(exposedMembersOnType.GetInterfaces().Select(t => t.GetTypeInfo()));
+            }
+            else
+            {
+                typesToMap = new List<TypeInfo>();
+                for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                {
+                    typesToMap.Add(t);
+                }
+            }
+
+            foreach (TypeInfo t in typesToMap)
             {
                 // As we enumerate methods, skip accessor methods
                 foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
