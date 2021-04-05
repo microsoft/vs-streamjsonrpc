@@ -2336,6 +2336,41 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ArgumentOutOfRangeException_WithNullArgValue()
+    {
+        Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "msg");
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+        Assert.Null(((ArgumentOutOfRangeException)this.server.ReceivedException!).ActualValue);
+        AssertExceptionEquality(exceptionToSend, this.server.ReceivedException);
+    }
+
+    [Fact]
+    public async Task ArgumentOutOfRangeException_WithStringArgValue()
+    {
+        Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "argValue", "msg");
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+
+        if (this.clientMessageFormatter is MessagePackFormatter)
+        {
+            // MessagePack cannot (safely) deserialize a typeless value like ArgumentOutOfRangeException.ActualValue,
+            // So assert that a placeholder was put there instead.
+            Assert.Equal(exceptionToSend.Message.Replace("argValue", "<raw msgpack>"), this.server.ReceivedException!.Message);
+        }
+        else
+        {
+            AssertExceptionEquality(exceptionToSend, this.server.ReceivedException);
+        }
+    }
+
+    [Fact]
     public async Task SerializableExceptions_NonExistant()
     {
         // Synthesize an exception message that refers to an exception type that does not exist.
