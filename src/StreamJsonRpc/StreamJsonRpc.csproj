@@ -3,8 +3,10 @@
     <TargetFrameworks>netstandard2.0;netcoreapp2.1</TargetFrameworks>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
+    <ErrorLog>$(MSBuildProjectFullPath).$([System.Guid]::NewGuid().ToString().Substring(0,8)).sarif</ErrorLog>
+    
     <Description>A cross-platform .NETStandard library that implements the JSON-RPC wire protocol and can use System.IO.Stream, System.IO.Pipelines or WebSocket so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
   </PropertyGroup>
@@ -33,6 +35,10 @@
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="5.0.0" PrivateAssets="compile" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="XliffTasks" Version="1.0.0-beta.19505.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Shipped.txt" />
