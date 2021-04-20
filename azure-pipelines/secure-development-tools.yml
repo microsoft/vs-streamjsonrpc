@@ -18,27 +18,19 @@ steps:
   inputs:
     InputType: 'Basic'
     Function: 'analyze'
-    AnalyzeTarget: '$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)/netstandard2.0/StreamJsonRpc.dll;$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)/netcoreapp2.1/StreamJsonRpc.dll'
+    AnalyzeTarget: $(BinSkimTargets)
 
-# ### Copy files for APIScan
-#- task: CopyFiles@2
-#  displayName: 'Copy Files for APIScan'
-#  inputs:
-#    SourceFolder: '$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)'
-#    Contents: |
-#      netcoreapp2.1\StreamJsonRpc.*
-#    TargetFolder: $(Agent.TempDirectory)\APIScanFiles\netcoreapp2.1
-#  condition: ne(variables['DisableAPIScan'], 'true')
-#
-#- task: CopyFiles@2
-#  displayName: 'Copy Files for APIScan'
-#  inputs:
-#    SourceFolder: '$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)'
-#    Contents: |
-#      netstandard2.0\StreamJsonRpc.*
-#    TargetFolder: $(Agent.TempDirectory)\APIScanFiles\netstandard2.0
-#  condition: ne(variables['DisableAPIScan'], 'true')
-#
+ ### Copy files for APIScan
+- task: CopyFiles@2
+  displayName: 'Copy Files for APIScan'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)/bin/StreamJsonRpc'
+    Contents: |
+      **\StreamJsonRpc.dll
+      **\StreamJsonRpc.pdb
+    TargetFolder: $(Agent.TempDirectory)\APIScanFiles
+  condition: ne(variables['DisableAPIScan'], 'true')
+
 # ### Run APIScan
 #- task: APIScan@2
 #  displayName: Run APIScan
