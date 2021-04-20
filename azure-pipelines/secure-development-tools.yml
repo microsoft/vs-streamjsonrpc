@@ -7,7 +7,6 @@ steps:
     TreatSignatureUpdateFailureAs: Warning
     SignatureFreshness: OneDay
     FileDirPath: '$(Build.SourcesDirectory)/bin/'
-  continueOnError: True
 
  ### Check for checked in credentials.
 - task: CredScan@3
@@ -18,7 +17,7 @@ steps:
   displayName: 'Run PoliCheck'
   inputs:
     targetType: F
-    optionsRulesDBPath: '$(Build.SourcesDirectory)/azure-pipelines/policheck-exclusions.mdb'
+    optionsRulesDBPath: azure-pipelines/policheck-exclusions.mdb
 
  ### Analyze managed and unmanaged binaries (exe, dll) for security vulnerabilities
 - task: BinSkim@3
@@ -30,7 +29,7 @@ steps:
 
  ### Copy existing Roslyn Analyzer logs to be analyzed
 - task: RoslynAnalyzers@3
-  displayName: Run Roslyn Analyzers.
+  displayName: Run Roslyn Analyzers
   inputs:
     copyLogsOnly: 'true'
   continueOnError: True
@@ -59,7 +58,7 @@ steps:
   displayName: Run APIScan
   inputs:
     softwareFolder: $(Agent.TempDirectory)\APIScanFiles
-    softwareName: 'Microsoft.VisualStudio.LanguageServer'
+    softwareName: 'StreamJsonRpc'
     softwareVersionNum: '$(Build.BuildId)'
     isLargeApp: false
     toolVersion: LatestPreRelease
