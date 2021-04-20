@@ -79,7 +79,7 @@ steps:
     ModernCop: false
     PoliCheck: true
     PoliCheckBreakOn: 'Severity4Above'
-    RoslynAnalyzers: true
+    RoslynAnalyzers: false
     RoslynAnalyzersBreakOn: 'WarningAbove'
     SDLNativeRules: false
     Semmle: false

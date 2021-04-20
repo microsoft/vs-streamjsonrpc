@@ -4,7 +4,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    
+
     <Description>A cross-platform .NETStandard library that implements the JSON-RPC wire protocol and can use System.IO.Stream, System.IO.Pipelines or WebSocket so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
   </PropertyGroup>
