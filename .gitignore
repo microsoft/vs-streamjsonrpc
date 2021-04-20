@@ -250,6 +250,3 @@ paket-files/
 msbuild.err
 msbuild.wrn
 *.binlog
-
-# Roslyn analyzer output
-*.sarif
