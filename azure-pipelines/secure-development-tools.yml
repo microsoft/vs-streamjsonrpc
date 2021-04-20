@@ -18,6 +18,7 @@ steps:
   displayName: 'Run PoliCheck'
   inputs:
     targetType: F
+    optionsRulesDBPath: '$(Build.SourcesDirectory)/azure-pipelines/policheck-exclusions.mdb'
 
  ### Analyze managed and unmanaged binaries (exe, dll) for security vulnerabilities
 - task: BinSkim@3
