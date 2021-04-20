@@ -19,13 +19,6 @@ steps:
     Function: 'analyze'
     AnalyzeTarget: '$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)/netstandard2.0/StreamJsonRpc.dll;$(Build.SourcesDirectory)/bin/StreamJsonRpc/$(BuildConfiguration)/netcoreapp2.1/StreamJsonRpc.dll'
 
- ### Copy existing Roslyn Analyzer logs to be analyzed
-- task: RoslynAnalyzers@3
-  displayName: Run Roslyn Analyzers
-  inputs:
-    copyLogsOnly: 'true'
-  continueOnError: True
-
  ### Copy files for APIScan
 - task: CopyFiles@2
   displayName: 'Copy Files for APIScan'
@@ -46,15 +39,14 @@ steps:
   condition: ne(variables['DisableAPIScan'], 'true')
 
  ### Run APIScan
-- task: APIScan@1
+- task: APIScan@2
   displayName: Run APIScan
   inputs:
     softwareFolder: $(Agent.TempDirectory)\APIScanFiles
     softwareName: 'StreamJsonRpc'
     softwareVersionNum: '$(Build.BuildId)'
     isLargeApp: false
-    toolVersion: LatestPreRelease
-  continueOnError: true
+    toolVersion: '3.1.29231'
   condition: ne(variables['DisableAPIScan'], 'true')
 
  ### Create formatted HTML code analysis log file.
@@ -66,7 +58,6 @@ steps:
     CredScan: true
     PoliCheck: true
     PoliCheckBreakOn: Severity4Above
-  continueOnError: true
 
  ### Publish Code Analysis results to build Artifacts.
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-publishsecurityanalysislogs.PublishSecurityAnalysisLogs@2
@@ -93,4 +84,3 @@ steps:
     Semmle: false
     TSLint: false
     ToolLogsNotFoundAction: 'Standard'
-  condition: eq(variables['BreakOnError'], 'true')
