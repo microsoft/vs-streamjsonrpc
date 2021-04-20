@@ -1,13 +1,5 @@
 steps:
 
- ### Scan binaries with Windows Defender
-- task: securedevelopmentteam.vss-secure-development-tools.build-task-antimalware.AntiMalware@3
-  displayName: 'Scan with Windows Defender'
-  inputs:
-    TreatSignatureUpdateFailureAs: Warning
-    SignatureFreshness: OneDay
-    FileDirPath: '$(Build.SourcesDirectory)/bin/'
-
  ### Check for checked in credentials.
 - task: CredScan@3
   displayName: 'Run CredScan'
