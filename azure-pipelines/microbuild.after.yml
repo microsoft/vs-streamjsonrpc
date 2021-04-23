@@ -46,3 +46,4 @@ steps:
   continueOnError: true
 
 - template: secure-development-tools.yml
+  condition: ne(variables['OptProf'], 'true')
