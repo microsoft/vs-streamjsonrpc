@@ -62,7 +62,7 @@ steps:
 - task: PostAnalysis@1
   inputs:
     AllTools: false
-    APIScan: true
+    APIScan: false
     BinSkim: true
     BinSkimBreakOn: 'WarningAbove'
     CodesignValidation: true
