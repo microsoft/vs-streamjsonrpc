@@ -29,7 +29,7 @@ steps:
       **\StreamJsonRpc.dll
       **\StreamJsonRpc.pdb
     TargetFolder: $(Agent.TempDirectory)\APIScanFiles
-  condition: ne(variables['DisableAPIScan'], 'true')
+  condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
 
  ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
 - task: APIScan@2
@@ -40,11 +40,9 @@ steps:
     softwareVersionNum: '$(Build.BuildId)'
     isLargeApp: false
     toolVersion: 'Latest'
-  condition: ne(variables['DisableAPIScan'], 'true')
+  condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
   env:
-      AZURE_CLIENT_SECRET: $(ApiScanSecret)
-      AZURE_TENANT_ID: $(ApiScanTenant)
-      AZURE_CLIENT_ID: $(ApiScanClientId)
+    AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
 
  ### Create formatted HTML code analysis log file.
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-report.SdtReport@1
