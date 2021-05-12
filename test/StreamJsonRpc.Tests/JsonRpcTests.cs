@@ -91,11 +91,6 @@ public abstract class JsonRpcTests : TestBase
         int Add_ExplicitInterfaceImplementation(int a, int b);
     }
 
-    private interface IServerDerived : IServer
-    {
-        bool MethodOnDerived();
-    }
-
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
     {
@@ -106,15 +101,14 @@ public abstract class JsonRpcTests : TestBase
         this.InitializeFormattersAndHandlers();
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler);
-        this.serverRpc.AddLocalRpcTarget<IServerDerived>(this.server, null);
+        this.serverRpc.AddLocalRpcTarget<IServer>(this.server, null);
         this.serverRpc.StartListening();
 
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
         this.clientRpc.StartListening();
 
-        // Verify that members on the interface and base interfaces are callable.
+        // Verify that members on the interface are callable.
         await this.clientRpc.InvokeAsync("AnotherName", new object[] { "my -name" });
-        await this.clientRpc.InvokeAsync(nameof(IServerDerived.MethodOnDerived));
 
         // Verify that explicitly interface implementations of members on the interface are callable.
         Assert.Equal(3, await this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
@@ -142,7 +136,6 @@ public abstract class JsonRpcTests : TestBase
 
         // Verify that public members on the class (and NOT the interface) are callable.
         await this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" });
-        await this.clientRpc.InvokeAsync(nameof(BaseClass.BaseMethod));
 
         // Verify that explicitly interface implementations of members on the interface are NOT callable.
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
@@ -2793,7 +2786,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
-    public class Server : BaseClass, IServerDerived
+    public class Server : BaseClass, IServer
     {
         internal const string ExceptionMessage = "some message";
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
@@ -3277,8 +3270,6 @@ public abstract class JsonRpcTests : TestBase
         public string? GetActivityId() => Activity.Current?.Id;
 
         public string? GetTraceState(bool useCorrelationManager) => useCorrelationManager ? CorrelationManagerTracingStrategy.TraceState : Activity.Current?.TraceStateString;
-
-        public bool MethodOnDerived() => true;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
