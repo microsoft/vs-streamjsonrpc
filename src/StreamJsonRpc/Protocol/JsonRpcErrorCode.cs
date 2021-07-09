@@ -40,6 +40,11 @@ namespace StreamJsonRpc.Protocol
         InvocationErrorWithException = -32004,
 
         /// <summary>
+        /// 无效的ID
+        /// </summary>
+        InvalidRequestId = -32005,
+
+        /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
         /// </summary>
         ParseError = -32700,
