@@ -701,6 +701,16 @@ namespace StreamJsonRpc
             return Attach<T>(handler, options: null);
         }
 
+        public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options, out JsonRpc rpc)
+                 where T : class
+        {
+            TypeInfo proxyType = ProxyGeneration.Get(typeof(T).GetTypeInfo());
+            rpc = new JsonRpc(handler);
+            T proxy = (T)Activator.CreateInstance(proxyType.AsType(), rpc, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
+            rpc.StartListening();
+            return proxy;
+        }
+
         /// <summary>
         /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
         /// </summary>
@@ -2446,7 +2456,9 @@ namespace StreamJsonRpc
                         {
                             if (result != null)
                             {
+                                result.SetExpectedResultType(typeof(Dictionary<string, object>));
                                 ResultWithoutIDArrived?.Invoke(this, (JsonRpcResult)result);
+                                return;
                             }
                         }
                     }
