@@ -253,12 +253,12 @@ namespace StreamJsonRpc
                 // If they're active, they'll take care of themselves when they finish since we signaled disposal.
                 lock (this.syncObject)
                 {
-                    if (!this.state.HasFlag(MessageHandlerState.Reading))
+                    if ((this.state & MessageHandlerState.Reading) != MessageHandlerState.Reading)
                     {
                         this.readingCompleted.Set();
                     }
 
-                    if (!this.state.HasFlag(MessageHandlerState.Writing))
+                    if ((this.state & MessageHandlerState.Writing) != MessageHandlerState.Writing)
                     {
                         this.writingCompleted.Set();
                     }
@@ -347,7 +347,7 @@ namespace StreamJsonRpc
             {
                 Verify.NotDisposed(this);
                 MessageHandlerState state = this.state;
-                Assumes.False(state.HasFlag(startingOperation));
+                Assumes.False((state & startingOperation) == startingOperation);
                 this.state |= startingOperation;
             }
         }

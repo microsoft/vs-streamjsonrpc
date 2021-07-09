@@ -1,49 +1,33 @@
-StreamJsonRpc.ICancellationStrategy
-StreamJsonRpc.ICancellationStrategy.CancelOutboundRequest(StreamJsonRpc.RequestId requestId) -> void
-StreamJsonRpc.ICancellationStrategy.IncomingRequestEnded(StreamJsonRpc.RequestId requestId) -> void
-StreamJsonRpc.ICancellationStrategy.IncomingRequestStarted(StreamJsonRpc.RequestId requestId, System.Threading.CancellationTokenSource! cancellationTokenSource) -> void
-StreamJsonRpc.ICancellationStrategy.OutboundRequestEnded(StreamJsonRpc.RequestId requestId) -> void
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget(System.Type! exposingMembersOn, object! target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget<T>(T target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
-StreamJsonRpc.JsonRpc.CancellationStrategy.get -> StreamJsonRpc.ICancellationStrategy?
-StreamJsonRpc.JsonRpc.CancellationStrategy.set -> void
-StreamJsonRpc.JsonRpc.InvokeCoreAsync<TResult>(StreamJsonRpc.RequestId id, string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? positionalArgumentDeclaredTypes, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? namedArgumentDeclaredTypes, System.Threading.CancellationToken cancellationToken, bool isParameterObject) -> System.Threading.Tasks.Task<TResult>!
-StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>! argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync<TResult>(string! targetName, System.Collections.Generic.IReadOnlyList<object?>? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
-StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
-StreamJsonRpc.JsonRpc.NotifyAsync(string! targetName, object?[]? arguments, System.Collections.Generic.IReadOnlyList<System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
-StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, object? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
-StreamJsonRpc.JsonRpc.TraceEvents.ExceptionTypeNotFound = 19 -> StreamJsonRpc.JsonRpc.TraceEvents
-StreamJsonRpc.JsonRpcProxyOptions.JsonRpcProxyOptions(StreamJsonRpc.JsonRpcProxyOptions! copyFrom) -> void
-StreamJsonRpc.JsonRpcTargetOptions.JsonRpcTargetOptions(StreamJsonRpc.JsonRpcTargetOptions! copyFrom) -> void
-StreamJsonRpc.Protocol.JsonRpcErrorCode.ResponseSerializationFailure = -32003 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
-StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>?
-StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentListDeclaredTypes.set -> void
-StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>?
-StreamJsonRpc.Protocol.JsonRpcRequest.NamedArgumentDeclaredTypes.set -> void
-StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.get -> System.Type?
-StreamJsonRpc.Protocol.JsonRpcResult.ResultDeclaredType.set -> void
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipe(ulong? token) -> System.IO.Pipelines.IDuplexPipe?
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeReader(ulong? token) -> System.IO.Pipelines.PipeReader?
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetPipeWriter(ulong? token) -> System.IO.Pipelines.PipeWriter?
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.IDuplexPipe? duplexPipe) -> ulong?
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.PipeReader? reader) -> ulong?
-StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.GetULongToken(System.IO.Pipelines.PipeWriter? writer) -> ulong?
-StreamJsonRpc.RemoteRpcException.DeserializedErrorData.get -> object?
-StreamJsonRpc.RemoteRpcException.DeserializedErrorData.set -> void
-StreamJsonRpc.RemoteRpcException.ErrorCode.get -> StreamJsonRpc.Protocol.JsonRpcErrorCode?
-StreamJsonRpc.RemoteRpcException.ErrorCode.set -> void
-StreamJsonRpc.RemoteRpcException.ErrorData.get -> object?
-StreamJsonRpc.RemoteRpcException.ErrorData.set -> void
-StreamJsonRpc.RemoteSerializationException
-StreamJsonRpc.RemoteSerializationException.RemoteSerializationException(System.Runtime.Serialization.SerializationInfo! serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) -> void
-StreamJsonRpc.RemoteSerializationException.RemoteSerializationException(string? message, object? errorData, object? deserializedErrorData) -> void
-override StreamJsonRpc.RemoteRpcException.GetObjectData(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
-static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
-static StreamJsonRpc.RequestId.operator !=(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
-static StreamJsonRpc.RequestId.operator ==(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
-virtual StreamJsonRpc.JsonMessageFormatter.Dispose(bool disposing) -> void
-virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!
-virtual StreamJsonRpc.MessagePackFormatter.Dispose(bool disposing) -> void
-virtual StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose(bool disposing) -> void
+static StreamJsonRpc.CorrelationManagerTracingStrategy.TraceState.get -> string?
+static StreamJsonRpc.CorrelationManagerTracingStrategy.TraceState.set -> void
+StreamJsonRpc.ActivityTracingStrategy
+StreamJsonRpc.ActivityTracingStrategy.ActivityTracingStrategy() -> void
+StreamJsonRpc.ActivityTracingStrategy.ApplyInboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> System.IDisposable?
+StreamJsonRpc.ActivityTracingStrategy.ApplyOutboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> void
+StreamJsonRpc.CorrelationManagerTracingStrategy
+StreamJsonRpc.CorrelationManagerTracingStrategy.ApplyInboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> System.IDisposable?
+StreamJsonRpc.CorrelationManagerTracingStrategy.ApplyOutboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> void
+StreamJsonRpc.CorrelationManagerTracingStrategy.CorrelationManagerTracingStrategy() -> void
+StreamJsonRpc.CorrelationManagerTracingStrategy.TraceSource.get -> System.Diagnostics.TraceSource?
+StreamJsonRpc.CorrelationManagerTracingStrategy.TraceSource.set -> void
+StreamJsonRpc.ExceptionProcessing
+StreamJsonRpc.ExceptionProcessing.CommonErrorData = 0 -> StreamJsonRpc.ExceptionProcessing
+StreamJsonRpc.ExceptionProcessing.ISerializable = 1 -> StreamJsonRpc.ExceptionProcessing
+StreamJsonRpc.IActivityTracingStrategy
+StreamJsonRpc.IActivityTracingStrategy.ApplyInboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> System.IDisposable?
+StreamJsonRpc.IActivityTracingStrategy.ApplyOutboundActivity(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> void
+StreamJsonRpc.JsonRpc.ActivityTracingStrategy.get -> StreamJsonRpc.IActivityTracingStrategy?
+StreamJsonRpc.JsonRpc.ActivityTracingStrategy.set -> void
+StreamJsonRpc.JsonRpc.ExceptionStrategy.get -> StreamJsonRpc.ExceptionProcessing
+StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationErrorWithException = -32004 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.get -> string?
+StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.set -> void
+StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.get -> string?
+StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.set -> void
+StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
+StreamJsonRpc.RequestId.RequestId() -> void
+virtual StreamJsonRpc.CorrelationManagerTracingStrategy.GetInboundActivityName(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> string?
+virtual StreamJsonRpc.JsonRpc.LoadType(string! typeFullName, string? assemblyName) -> System.Type?

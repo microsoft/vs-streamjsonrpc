@@ -80,7 +80,7 @@ namespace StreamJsonRpc
             {
                 Assumes.NotNull(this.Writer);
 #pragma warning disable CS0618 // Type or member is obsolete (Nerdbank.Streams implements this, so it won't go away).
-                this.Writer.OnReaderCompleted((ex, state) => ((Stream)state).Dispose(), writer);
+                this.Writer.OnReaderCompleted((ex, state) => ((Stream)state!).Dispose(), writer);
 #pragma warning restore CS0618 // Type or member is obsolete
             }
 
@@ -123,7 +123,9 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
             this.Write(content, cancellationToken);
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
             return default;
         }
 

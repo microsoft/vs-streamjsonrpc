@@ -43,6 +43,9 @@ namespace StreamJsonRpc.Reflection
         private const string NextMethodName = "$/enumerator/next";
         private const string DisposeMethodName = "$/enumerator/abort";
 
+        private static readonly MethodInfo OnNextAsyncMethodInfo = typeof(MessageFormatterEnumerableTracker).GetMethod(nameof(OnNextAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+        private static readonly MethodInfo OnDisposeAsyncMethodInfo = typeof(MessageFormatterEnumerableTracker).GetMethod(nameof(OnDisposeAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
         /// <summary>
         /// Dictionary used to map the outbound request id to their progress info so that the progress objects are cleaned after getting the final response.
         /// </summary>
@@ -69,8 +72,8 @@ namespace StreamJsonRpc.Reflection
             this.jsonRpc = jsonRpc;
             this.formatterState = formatterState;
 
-            jsonRpc.AddLocalRpcMethod(NextMethodName, new Func<long, CancellationToken, ValueTask<object>>(this.OnNextAsync));
-            jsonRpc.AddLocalRpcMethod(DisposeMethodName, new Func<long, ValueTask>(this.OnDisposeAsync));
+            jsonRpc.AddLocalRpcMethod(NextMethodName, OnNextAsyncMethodInfo, this);
+            jsonRpc.AddLocalRpcMethod(DisposeMethodName, OnDisposeAsyncMethodInfo, this);
             this.formatterState = formatterState;
 
             // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.

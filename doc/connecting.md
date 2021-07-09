@@ -1,14 +1,19 @@
 # Establishing a JSON-RPC connection
 
-The JSON-RPC protocol communicates over an existing transport, such as a .NET `Stream` or `WebSocket`.
-
-If using the `Stream` class, you may have a single full-duplex `Stream` (e.g. a `PipeStream` or `NetworkStream`)
-or a pair of half-duplex `Stream` objects (e.g. STDIN and STDOUT streams). All APIs that accept both forms, but
-this document will assume a single bidirectional `Stream` for brevity.
-
-A JSON-RPC connection is created and managed via the `JsonRpc` class.
+A JSON-RPC connection is created and managed via the `JsonRpc` class and communicates over an existing transport, such as a .NET `Stream`, `IDuplexPipe` or `WebSocket`.
 
 ## Connecting
+
+If using the `Stream` class, you may use one duplex `Stream` (e.g. a `PipeStream` or `NetworkStream`)
+or a pair of simplex `Stream`s (e.g. STDIN and STDOUT streams).
+Most APIs accept both forms.
+
+You can use the APIs that accept just one duplex stream by splicing two simplex streams together using the `FullDuplexStream.Splice` API:
+
+```cs
+var stdioStream = FullDuplexStream.Splice(readingStream, writingStream);
+var jsonRpc = JsonRpc.Attach(stdioStream);
+```
 
 Certain decisions about the protocol details must be made up front while constructing the `JsonRpc` class.
 This library includes several built-in protocol variants and options, and you can add your own. This is all documented in our [extensibility](extensibility.md) document.
@@ -27,14 +32,25 @@ JsonRpc rpc = JsonRpc.Attach(stream);
 
 You can then proceed to send requests using the `rpc` variable. [Learn more about sending requests](sendrequest.md).
 
+Consider a process that spawns a child process, redirecting its STDIN/STDOUT to communicate with that child process using JSON-RPC:
+
+```cs
+Process childProcess = Process.Start(new ProcessStartInfo("childprocess.exe")
+{
+    RedirectStandardInput = true,
+    RedirectStandardOutput = true,
+});
+JsonRpc jsonRpc = JsonRpc.Attach(childProcess.StandardInput.BaseStream, childProcess.StandardOutput.BaseStream);
+```
+
 ### Server (and possibly client also)
 
 If you expect to respond to RPC requests, you can provide the target object that defines the methods that may be
 invoked by the remote party:
 
 ```cs
-var target = new LanguageServerTarget();
-var rpc = JsonRpc.Attach(stream, target);
+RpcTarget target = new RpcTarget();
+JsonRpc rpc = JsonRpc.Attach(stream, target);
 ```
 
 The `JsonRpc` object assigned to the `rpc` variable is now listening for requests on the stream and will invoke
@@ -48,6 +64,16 @@ and before disposing the stream, you can hold the connection open as long as the
 ```cs
 await rpc.Completion;
 ```
+
+For an invisible process that uses STDIN/STDOUT as its transport for JSON-RPC, this can be trivially done with code like this:
+
+```cs
+JsonRpc rpc = JsonRpc.Attach(Console.OpenStandardOutput(), Console.OpenStandardInput());
+```
+
+But beware that STDIN/STDOUT handles are freely available to all code running in a process.
+Any code that interacts with STDIN/STDOUT can potentially corrupt the JSON-RPC protocol messages being exchanged.
+For example if the process uses `Console.WriteLine` for logging anywhere, this will corrupt the JSON-RPC stream and ultimately lead to malfunction and/or disconnection.
 
 ## Configuring/customizing the protocol <a name="Configuring"></a>
 

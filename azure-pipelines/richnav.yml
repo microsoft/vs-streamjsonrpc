@@ -9,6 +9,5 @@ jobs:
     inputs:
       languages: 'csharp'
       environment: production
-      githubServiceConnection: Microsoft
       isPrivateFeed: false
     continueOnError: true

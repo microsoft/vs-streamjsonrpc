@@ -14,6 +14,7 @@ namespace StreamJsonRpc
     using System.Reflection;
     using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
+    using System.Text;
     using MessagePack;
     using MessagePack.Formatters;
     using MessagePack.Resolvers;
@@ -33,17 +34,49 @@ namespace StreamJsonRpc
     public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcFormatterTracingCallbacks, IDisposable
     {
         /// <summary>
-        /// The constant "jsonrpc".
+        /// The constant "jsonrpc", in its various forms.
         /// </summary>
-        private const string VersionPropertyName = "jsonrpc";
+        private static readonly CommonString VersionPropertyName = new CommonString("jsonrpc");
 
-        private const string IdPropertyName = "id";
+        /// <summary>
+        /// The constant "id", in its various forms.
+        /// </summary>
+        private static readonly CommonString IdPropertyName = new CommonString("id");
 
-        private const string MethodPropertyName = "method";
+        /// <summary>
+        /// The constant "method", in its various forms.
+        /// </summary>
+        private static readonly CommonString MethodPropertyName = new CommonString("method");
 
-        private const string ResultPropertyName = "result";
+        /// <summary>
+        /// The constant "result", in its various forms.
+        /// </summary>
+        private static readonly CommonString ResultPropertyName = new CommonString("result");
 
-        private const string ErrorPropertyName = "error";
+        /// <summary>
+        /// The constant "error", in its various forms.
+        /// </summary>
+        private static readonly CommonString ErrorPropertyName = new CommonString("error");
+
+        /// <summary>
+        /// The constant "params", in its various forms.
+        /// </summary>
+        private static readonly CommonString ParamsPropertyName = new CommonString("params");
+
+        /// <summary>
+        /// The constant "traceparent", in its various forms.
+        /// </summary>
+        private static readonly CommonString TraceParentPropertyName = new CommonString("traceparent");
+
+        /// <summary>
+        /// The constant "tracestate", in its various forms.
+        /// </summary>
+        private static readonly CommonString TraceStatePropertyName = new CommonString("tracestate");
+
+        /// <summary>
+        /// The constant "2.0", in its various forms.
+        /// </summary>
+        private static readonly CommonString Version2 = new CommonString("2.0");
 
         /// <summary>
         /// A cache of property names to declared property types, indexed by their containing parameter object type.
@@ -52,6 +85,13 @@ namespace StreamJsonRpc
         /// All access to this field should be while holding a lock on this member's value.
         /// </remarks>
         private static readonly Dictionary<Type, IReadOnlyDictionary<string, Type>> ParameterObjectPropertyTypes = new Dictionary<Type, IReadOnlyDictionary<string, Type>>();
+
+        /// <summary>
+        /// A resolver for stateless formatters that make types serializable that users may expect to be,
+        /// but for which MessagePack itself provides no formatter in the default resolver.
+        /// </summary>
+        private static readonly IFormatterResolver BasicTypesResolver = CompositeResolver.Create(
+            EventArgsFormatter.Instance);
 
         /// <summary>
         /// The options to use for serializing top-level RPC messages.
@@ -63,6 +103,12 @@ namespace StreamJsonRpc
         private readonly AsyncEnumerableFormatterResolver asyncEnumerableFormatterResolver;
 
         private readonly PipeFormatterResolver pipeFormatterResolver;
+
+        private readonly MessagePackExceptionResolver exceptionResolver;
+
+        private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
+
+        private readonly ToStringHelper deserializationToStringHelper = new ToStringHelper();
 
         /// <summary>
         /// Backing field for the <see cref="MultiplexingStream"/> property.
@@ -128,6 +174,7 @@ namespace StreamJsonRpc
             this.progressFormatterResolver = new ProgressFormatterResolver(this);
             this.asyncEnumerableFormatterResolver = new AsyncEnumerableFormatterResolver(this);
             this.pipeFormatterResolver = new PipeFormatterResolver(this);
+            this.exceptionResolver = new MessagePackExceptionResolver(this);
 
             // Set up default user data resolver.
             this.userDataSerializationOptions = this.MassageUserDataOptions(DefaultUserDataSerializationOptions);
@@ -263,7 +310,15 @@ namespace StreamJsonRpc
             JsonRpcMessage message = MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
 
             IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
-            tracingCallbacks?.OnMessageDeserialized(message, new ToStringHelper(contentBuffer, this.messageSerializationOptions));
+            this.deserializationToStringHelper.Activate(contentBuffer, this.messageSerializationOptions);
+            try
+            {
+                tracingCallbacks?.OnMessageDeserialized(message, this.deserializationToStringHelper);
+            }
+            finally
+            {
+                this.deserializationToStringHelper.Deactivate();
+            }
 
             return message;
         }
@@ -300,7 +355,15 @@ namespace StreamJsonRpc
         void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
         {
             IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
-            tracingCallbacks?.OnMessageSerialized(message, new ToStringHelper(encodedMessage, this.messageSerializationOptions));
+            this.serializationToStringHelper.Activate(encodedMessage, this.messageSerializationOptions);
+            try
+            {
+                tracingCallbacks?.OnMessageSerialized(message, this.serializationToStringHelper);
+            }
+            finally
+            {
+                this.serializationToStringHelper.Deactivate();
+            }
         }
 
         /// <inheritdoc/>
@@ -438,6 +501,41 @@ namespace StreamJsonRpc
         }
 
         /// <summary>
+        /// Reads a string with an optimized path for the value "2.0".
+        /// </summary>
+        /// <param name="reader">The reader to use.</param>
+        /// <returns>The decoded string.</returns>
+        private static unsafe string ReadProtocolVersion(ref MessagePackReader reader)
+        {
+            // Recognize "2.0" since we expect it and can avoid decoding and allocating a new string for it.
+            ReadOnlySpan<byte> valueBytes = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+            if (Version2.TryRead(valueBytes))
+            {
+                return Version2.Value;
+            }
+            else
+            {
+                // It wasn't the expected value, so decode it.
+                fixed (byte* pValueBytes = valueBytes)
+                {
+                    return Encoding.UTF8.GetString(pValueBytes, valueBytes.Length);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the JSON-RPC version property name and value in a highly optimized way.
+        /// </summary>
+        private static void WriteProtocolVersionPropertyAndValue(ref MessagePackWriter writer, string version)
+        {
+            VersionPropertyName.Write(ref writer);
+            if (!Version2.TryWrite(ref writer, version))
+            {
+                writer.Write(version);
+            }
+        }
+
+        /// <summary>
         /// Takes the user-supplied resolver for their data types and prepares the wrapping options
         /// and the dynamic object wrapper for serialization.
         /// </summary>
@@ -453,20 +551,23 @@ namespace StreamJsonRpc
                 // We preset this one because for some protocols like IProgress<T>, tokens are passed in that we must relay exactly back to the client as an argument.
                 RawMessagePackFormatter.Instance,
             };
+
+            // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
             var resolvers = new IFormatterResolver[]
             {
                 userSuppliedOptions.Resolver,
 
-                // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
+                // Add stateless, non-specialized resolvers that help basic functionality to "just work".
+                BasicTypesResolver,
+
+                // Stateful or per-connection resolvers.
                 this.progressFormatterResolver,
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
+                this.exceptionResolver,
 
                 // Support for marshalled objects.
                 new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
-
-                // Add resolvers to make types serializable that we expect to be serializable.
-                MessagePackExceptionResolver.Instance,
             };
 
             // Wrap the resolver in another class as a way to pass information to our custom formatters.
@@ -487,12 +588,107 @@ namespace StreamJsonRpc
                 new JsonRpcResultFormatter(this),
                 new JsonRpcErrorFormatter(this),
                 new JsonRpcErrorDetailFormatter(this),
+                new TraceParentFormatter(),
             };
             var resolvers = new IFormatterResolver[]
             {
                 StandardResolverAllowPrivate.Instance,
             };
             return CompositeResolver.Create(formatters, resolvers);
+        }
+
+        [DebuggerDisplay("{" + nameof(Value) + "}")]
+        private struct CommonString
+        {
+            internal CommonString(string value)
+            {
+                Requires.Argument(value.Length > 0 && value.Length <= 16, nameof(value), "Length must be >0 and <=16.");
+                this.Value = value;
+                ReadOnlyMemory<byte> encodedBytes = MessagePack.Internal.CodeGenHelpers.GetEncodedStringBytes(value);
+                this.EncodedBytes = encodedBytes;
+
+                ReadOnlySpan<byte> span = this.EncodedBytes.Span.Slice(1);
+                this.Key = MessagePack.Internal.AutomataKeyGen.GetKey(ref span); // header is 1 byte because string length <= 16
+                this.Key2 = span.Length > 0 ? (ulong?)MessagePack.Internal.AutomataKeyGen.GetKey(ref span) : null;
+            }
+
+            /// <summary>
+            /// Gets the original string.
+            /// </summary>
+            internal string Value { get; }
+
+            /// <summary>
+            /// Gets the 64-bit integer that represents the string without decoding it.
+            /// </summary>
+            private ulong Key { get; }
+
+            /// <summary>
+            /// Gets the next 64-bit integer that represents the string without decoding it.
+            /// </summary>
+            private ulong? Key2 { get; }
+
+            /// <summary>
+            /// Gets the messagepack header and UTF-8 bytes for this string.
+            /// </summary>
+            private ReadOnlyMemory<byte> EncodedBytes { get; }
+
+            /// <summary>
+            /// Writes out the messagepack binary for this common string, if it matches the given value.
+            /// </summary>
+            /// <param name="writer">The writer to use.</param>
+            /// <param name="value">The value to be written, if it matches this <see cref="CommonString"/>.</param>
+            /// <returns><see langword="true"/> if <paramref name="value"/> matches this <see cref="Value"/> and it was written; <see langword="false"/> otherwise.</returns>
+            internal bool TryWrite(ref MessagePackWriter writer, string value)
+            {
+                if (value == this.Value)
+                {
+                    this.Write(ref writer);
+                    return true;
+                }
+
+                return false;
+            }
+
+            internal void Write(ref MessagePackWriter writer) => writer.WriteRaw(this.EncodedBytes.Span);
+
+            /// <summary>
+            /// Checks whether a span of UTF-8 bytes equal this common string.
+            /// </summary>
+            /// <param name="utf8String">The UTF-8 string.</param>
+            /// <returns><see langword="true"/> if the UTF-8 bytes are the encoding of this common string; <see langword="false"/> otherwise.</returns>
+            internal bool TryRead(ReadOnlySpan<byte> utf8String)
+            {
+                if (utf8String.Length != this.EncodedBytes.Length - 1)
+                {
+                    return false;
+                }
+
+                ulong key1 = MessagePack.Internal.AutomataKeyGen.GetKey(ref utf8String);
+                if (key1 != this.Key)
+                {
+                    return false;
+                }
+
+                if (utf8String.Length > 0)
+                {
+                    if (!this.Key2.HasValue)
+                    {
+                        return false;
+                    }
+
+                    ulong key2 = MessagePack.Internal.AutomataKeyGen.GetKey(ref utf8String);
+                    if (key2 != this.Key2.Value)
+                    {
+                        return false;
+                    }
+                }
+                else if (this.Key2.HasValue)
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         private struct RawMessagePack
@@ -514,6 +710,8 @@ namespace StreamJsonRpc
             }
 
             internal bool IsDefault => this.rawMemory.IsEmpty && this.rawSequence.IsEmpty;
+
+            public override string ToString() => "<raw msgpack>";
 
             /// <summary>
             /// Reads one raw messagepack token.
@@ -613,7 +811,7 @@ namespace StreamJsonRpc
 
             public float ToSingle(object value) => ((RawMessagePack)value).Deserialize<float>(this.options);
 
-            public string ToString(object value) => ((RawMessagePack)value).Deserialize<string>(this.options);
+            public string? ToString(object value) => value is null ? null : ((RawMessagePack)value).Deserialize<string?>(this.options);
 
             public ushort ToUInt16(object value) => ((RawMessagePack)value).Deserialize<ushort>(this.options);
 
@@ -622,18 +820,45 @@ namespace StreamJsonRpc
             public ulong ToUInt64(object value) => ((RawMessagePack)value).Deserialize<ulong>(this.options);
         }
 
+        /// <summary>
+        /// A recyclable object that can serialize a message to JSON on demand.
+        /// </summary>
+        /// <remarks>
+        /// In perf traces, creation of this object used to show up as one of the most allocated objects.
+        /// It is used even when tracing isn't active. So we changed its design it to be reused,
+        /// since its lifetime is only required during a synchronous call to a trace API.
+        /// </remarks>
         private class ToStringHelper
         {
-            private readonly ReadOnlySequence<byte> encodedMessage;
-            private readonly MessagePackSerializerOptions options;
+            private ReadOnlySequence<byte>? encodedMessage;
+            private MessagePackSerializerOptions? options;
+            private string? jsonString;
 
-            internal ToStringHelper(ReadOnlySequence<byte> encodedMessage, MessagePackSerializerOptions options)
+            public override string ToString()
+            {
+                Verify.Operation(this.encodedMessage.HasValue, "This object has not been activated. It may have already been recycled.");
+
+                return this.jsonString ??= MessagePackSerializer.ConvertToJson(this.encodedMessage.Value, this.options);
+            }
+
+            /// <summary>
+            /// Initializes this object to represent a message.
+            /// </summary>
+            internal void Activate(ReadOnlySequence<byte> encodedMessage, MessagePackSerializerOptions options)
             {
                 this.encodedMessage = encodedMessage;
                 this.options = options;
             }
 
-            public override string ToString() => MessagePackSerializer.ConvertToJson(this.encodedMessage, this.options);
+            /// <summary>
+            /// Cleans out this object to release memory and ensure <see cref="ToString"/> throws if someone uses it after deactivation.
+            /// </summary>
+            internal void Deactivate()
+            {
+                this.encodedMessage = null;
+                this.options = null;
+                this.jsonString = null;
+            }
         }
 
         private class RequestIdFormatter : IMessagePackFormatter<RequestId>
@@ -1237,26 +1462,32 @@ namespace StreamJsonRpc
         /// </remarks>
         private class MessagePackExceptionResolver : IFormatterResolver
         {
-            internal static readonly MessagePackExceptionResolver Instance = new MessagePackExceptionResolver();
+            private readonly object[] formatterActivationArgs;
 
-            private MessagePackExceptionResolver()
+            private readonly Dictionary<Type, object?> formatterCache = new Dictionary<Type, object?>();
+
+            internal MessagePackExceptionResolver(MessagePackFormatter formatter)
             {
+                this.formatterActivationArgs = new object[] { formatter };
             }
 
-            public IMessagePackFormatter<T>? GetFormatter<T>() => Cache<T>.Formatter;
-
-            private static class Cache<T>
+            public IMessagePackFormatter<T>? GetFormatter<T>()
             {
-                internal static readonly IMessagePackFormatter<T>? Formatter;
-
-#pragma warning disable CA1810 // Initialize reference type static fields inline
-                static Cache()
-#pragma warning restore CA1810 // Initialize reference type static fields inline
+                lock (this.formatterCache)
                 {
+                    if (this.formatterCache.TryGetValue(typeof(T), out object? cachedFormatter))
+                    {
+                        return (IMessagePackFormatter<T>?)cachedFormatter;
+                    }
+
+                    IMessagePackFormatter<T>? formatter = null;
                     if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
                     {
-                        Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)));
+                        formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)), this.formatterActivationArgs);
                     }
+
+                    this.formatterCache.Add(typeof(T), formatter);
+                    return formatter;
                 }
             }
 
@@ -1266,9 +1497,17 @@ namespace StreamJsonRpc
                 where T : Exception
 #pragma warning restore CA1812
             {
+                private readonly MessagePackFormatter formatter;
+
+                public ExceptionFormatter(MessagePackFormatter formatter)
+                {
+                    this.formatter = formatter;
+                }
+
                 [return: MaybeNull]
                 public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
                 {
+                    Assumes.NotNull(this.formatter.rpc);
                     if (reader.TryReadNil())
                     {
                         return null;
@@ -1279,13 +1518,19 @@ namespace StreamJsonRpc
                     for (int i = 0; i < memberCount; i++)
                     {
                         string name = reader.ReadString();
-                        object value = RawMessagePack.ReadRaw(ref reader, false);
+
+                        // SerializationInfo.GetValue(string, typeof(object)) does not call our formatter,
+                        // so the caller will get a boxed RawMessagePack struct in that case.
+                        // Although we can't do much about *that* in general, we can at least ensure that null values
+                        // are represented as null instead of this boxed struct.
+                        var value = reader.TryReadNil() ? null : (object)RawMessagePack.ReadRaw(ref reader, false);
+
                         info.AddValue(name, value);
                     }
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(info, resolverWrapper?.Formatter.rpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.rpc, info, resolverWrapper?.Formatter.rpc?.TraceSource);
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
@@ -1324,22 +1569,25 @@ namespace StreamJsonRpc
                 int propertyCount = readAhead.ReadMapHeader();
                 for (int i = 0; i < propertyCount; i++)
                 {
-                    string propertyName = readAhead.ReadString();
-                    if (propertyName == MethodPropertyName)
+                    // We read the property name in this fancy way in order to avoid paying to decode and allocate a string when we already know what we're looking for.
+                    ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref readAhead);
+                    if (MethodPropertyName.TryRead(stringKey))
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Deserialize(ref reader, options);
                     }
-                    else if (propertyName == ResultPropertyName)
+                    else if (ResultPropertyName.TryRead(stringKey))
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcResult>().Deserialize(ref reader, options);
                     }
-                    else if (propertyName == ErrorPropertyName)
+                    else if (ErrorPropertyName.TryRead(stringKey))
                     {
                         return options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError>().Deserialize(ref reader, options);
                     }
-
-                    // Skip over the entire value of this property.
-                    readAhead.Skip();
+                    else
+                    {
+                        // Skip over the value of this property.
+                        readAhead.Skip();
+                    }
                 }
 
                 throw new UnrecognizedJsonRpcMessageException();
@@ -1378,8 +1626,6 @@ namespace StreamJsonRpc
 
         private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
         {
-            private const string ParamsPropertyName = "params";
-
             private readonly MessagePackFormatter formatter;
 
             internal JsonRpcRequestFormatter(MessagePackFormatter formatter)
@@ -1398,61 +1644,69 @@ namespace StreamJsonRpc
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
-                    switch (reader.ReadString())
+                    // We read the property name in this fancy way in order to avoid paying to decode and allocate a string when we already know what we're looking for.
+                    ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                    if (VersionPropertyName.TryRead(stringKey))
                     {
-                        case VersionPropertyName:
-                            result.Version = reader.ReadString();
-                            break;
-                        case IdPropertyName:
-                            result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
-                            break;
-                        case MethodPropertyName:
-                            result.Method = reader.ReadString();
-                            break;
-                        case ParamsPropertyName:
-                            SequencePosition paramsTokenStartPosition = reader.Position;
+                        result.Version = ReadProtocolVersion(ref reader);
+                    }
+                    else if (IdPropertyName.TryRead(stringKey))
+                    {
+                        result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                    }
+                    else if (MethodPropertyName.TryRead(stringKey))
+                    {
+                        result.Method = reader.ReadString();
+                    }
+                    else if (ParamsPropertyName.TryRead(stringKey))
+                    {
+                        SequencePosition paramsTokenStartPosition = reader.Position;
 
-                            // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
-                            switch (reader.NextMessagePackType)
-                            {
-                                case MessagePackType.Array:
-                                    var positionalArgs = new ReadOnlySequence<byte>[reader.ReadArrayHeader()];
-                                    for (int i = 0; i < positionalArgs.Length; i++)
-                                    {
-#warning 这里原代码有问题，因此做了修改
-                                        var arr = GetSliceForNextToken(ref reader).ToArray();
-                                        positionalArgs[i] = new ReadOnlySequence<byte>(arr);
-                                    }
+                        // Parse out the arguments into a dictionary or array, but don't deserialize them because we don't yet know what types to deserialize them to.
+                        switch (reader.NextMessagePackType)
+                        {
+                            case MessagePackType.Array:
+                                var positionalArgs = new ReadOnlySequence<byte>[reader.ReadArrayHeader()];
+                                for (int i = 0; i < positionalArgs.Length; i++)
+                                {
+                                    positionalArgs[i] = GetSliceForNextToken(ref reader);
+                                }
 
-                                    result.MsgPackPositionalArguments = positionalArgs;
-                                    break;
-                                case MessagePackType.Map:
-                                    int namedArgsCount = reader.ReadMapHeader();
-                                    var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
-                                    for (int i = 0; i < namedArgsCount; i++)
-                                    {
-                                        string propertyName = reader.ReadString();
-#warning 这里原代码有问题，因此做了修改
-                                        var arr = GetSliceForNextToken(ref reader).ToArray();
-                                        namedArgs.Add(propertyName, new ReadOnlySequence<byte>(arr));
-                                    }
+                                result.MsgPackPositionalArguments = positionalArgs;
+                                break;
+                            case MessagePackType.Map:
+                                int namedArgsCount = reader.ReadMapHeader();
+                                var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
+                                for (int i = 0; i < namedArgsCount; i++)
+                                {
+                                    string propertyName = reader.ReadString();
+                                    namedArgs.Add(propertyName, GetSliceForNextToken(ref reader));
+                                }
 
-                                    result.MsgPackNamedArguments = namedArgs;
-                                    break;
-                                case MessagePackType.Nil:
-                                    result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
-                                    reader.ReadNil();
-                                    break;
-                                case MessagePackType type:
-                                    throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
-                            }
+                                result.MsgPackNamedArguments = namedArgs;
+                                break;
+                            case MessagePackType.Nil:
+                                result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
+                                reader.ReadNil();
+                                break;
+                            case MessagePackType type:
+                                throw new MessagePackSerializationException("Expected a map or array of arguments but got " + type);
+                        }
 
-                            result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
-
-                            break;
-                        default:
-                            reader.Skip();
-                            break;
+                        result.MsgPackArguments = reader.Sequence.Slice(paramsTokenStartPosition, reader.Position);
+                    }
+                    else if (TraceParentPropertyName.TryRead(stringKey))
+                    {
+                        TraceParent traceParent = options.Resolver.GetFormatterWithVerify<TraceParent>().Deserialize(ref reader, options);
+                        result.TraceParent = traceParent.ToString();
+                    }
+                    else if (TraceStatePropertyName.TryRead(stringKey))
+                    {
+                        result.TraceState = ReadTraceState(ref reader);
+                    }
+                    else
+                    {
+                        reader.Skip();
                     }
                 }
 
@@ -1487,22 +1741,30 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(value.RequestId.IsEmpty ? 3 : 4);
+                int mapElementCount = value.RequestId.IsEmpty ? 3 : 4;
+                if (value.TraceParent?.Length > 0)
+                {
+                    mapElementCount++;
+                    if (value.TraceState?.Length > 0)
+                    {
+                        mapElementCount++;
+                    }
+                }
 
-                writer.Write(VersionPropertyName);
-                writer.Write(value.Version);
+                writer.WriteMapHeader(mapElementCount);
+
+                WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
                 if (!value.RequestId.IsEmpty)
                 {
-                    writer.Write(IdPropertyName);
+                    IdPropertyName.Write(ref writer);
                     options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
                 }
 
-                writer.Write(MethodPropertyName);
+                MethodPropertyName.Write(ref writer);
                 writer.Write(value.Method);
 
-                writer.Write(ParamsPropertyName);
-
+                ParamsPropertyName.Write(ref writer);
                 if (value.ArgumentsList != null)
                 {
                     writer.WriteArrayHeader(value.ArgumentsList.Count);
@@ -1539,6 +1801,80 @@ namespace StreamJsonRpc
                 {
                     writer.WriteNil();
                 }
+
+                if (value.TraceParent?.Length > 0)
+                {
+                    TraceParentPropertyName.Write(ref writer);
+                    options.Resolver.GetFormatterWithVerify<TraceParent>().Serialize(ref writer, new TraceParent(value.TraceParent), options);
+
+                    if (value.TraceState?.Length > 0)
+                    {
+                        TraceStatePropertyName.Write(ref writer);
+                        WriteTraceState(ref writer, value.TraceState);
+                    }
+                }
+            }
+
+            private static void WriteTraceState(ref MessagePackWriter writer, string traceState)
+            {
+                ReadOnlySpan<char> traceStateChars = traceState.AsSpan();
+
+                // Count elements first so we can write the header.
+                int elementCount = 1;
+                int commaIndex;
+                while ((commaIndex = traceStateChars.IndexOf(',')) >= 0)
+                {
+                    elementCount++;
+                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
+                }
+
+                // For every element, we have a key and value to record.
+                writer.WriteArrayHeader(elementCount * 2);
+
+                traceStateChars = traceState.AsSpan();
+                while ((commaIndex = traceStateChars.IndexOf(',')) >= 0)
+                {
+                    ReadOnlySpan<char> element = traceStateChars.Slice(0, commaIndex);
+                    WritePair(ref writer, element);
+                    traceStateChars = traceStateChars.Slice(commaIndex + 1);
+                }
+
+                // Write out the last one.
+                WritePair(ref writer, traceStateChars);
+
+                static void WritePair(ref MessagePackWriter writer, ReadOnlySpan<char> pair)
+                {
+                    int equalsIndex = pair.IndexOf('=');
+                    ReadOnlySpan<char> key = pair.Slice(0, equalsIndex);
+                    ReadOnlySpan<char> value = pair.Slice(equalsIndex + 1);
+                    writer.Write(key);
+                    writer.Write(value);
+                }
+            }
+
+            private static unsafe string ReadTraceState(ref MessagePackReader reader)
+            {
+                int elements = reader.ReadArrayHeader();
+                if (elements % 2 != 0)
+                {
+                    throw new NotSupportedException("Odd number of elements not expected.");
+                }
+
+                // With care, we could probably assemble this string with just two allocations (the string + a char[]).
+                var resultBuilder = new StringBuilder();
+                for (int i = 0; i < elements; i += 2)
+                {
+                    if (resultBuilder.Length > 0)
+                    {
+                        resultBuilder.Append(',');
+                    }
+
+                    resultBuilder.Append(reader.ReadString());
+                    resultBuilder.Append('=');
+                    resultBuilder.Append(reader.ReadString());
+                }
+
+                return resultBuilder.ToString();
             }
         }
 
@@ -1562,22 +1898,23 @@ namespace StreamJsonRpc
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
-                    switch (reader.ReadString())
+                    // We read the property name in this fancy way in order to avoid paying to decode and allocate a string when we already know what we're looking for.
+                    ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                    if (VersionPropertyName.TryRead(stringKey))
                     {
-                        case VersionPropertyName:
-                            result.Version = reader.ReadString();
-                            break;
-                        case IdPropertyName:
-                            result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
-                            break;
-                        case ResultPropertyName:
-#warning 这里原代码有问题，因此做了修改
-                            var arr = GetSliceForNextToken(ref reader).ToArray();
-                            result.MsgPackResult = new ReadOnlySequence<byte>(arr);
-                            break;
-                        default:
-                            reader.Skip();
-                            break;
+                        result.Version = ReadProtocolVersion(ref reader);
+                    }
+                    else if (IdPropertyName.TryRead(stringKey))
+                    {
+                        result.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                    }
+                    else if (ResultPropertyName.TryRead(stringKey))
+                    {
+                        result.MsgPackResult = GetSliceForNextToken(ref reader);
+                    }
+                    else
+                    {
+                        reader.Skip();
                     }
                 }
 
@@ -1589,13 +1926,12 @@ namespace StreamJsonRpc
             {
                 writer.WriteMapHeader(3);
 
-                writer.Write(VersionPropertyName);
-                writer.Write(value.Version);
+                WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
-                writer.Write(IdPropertyName);
+                IdPropertyName.Write(ref writer);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
-                writer.Write(ResultPropertyName);
+                ResultPropertyName.Write(ref writer);
                 if (value.ResultDeclaredType is object && value.ResultDeclaredType != typeof(void))
                 {
                     MessagePackSerializer.Serialize(value.ResultDeclaredType, ref writer, value.Result, this.formatter.userDataSerializationOptions);
@@ -1627,20 +1963,23 @@ namespace StreamJsonRpc
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
                 {
-                    switch (reader.ReadString())
+                    // We read the property name in this fancy way in order to avoid paying to decode and allocate a string when we already know what we're looking for.
+                    ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                    if (VersionPropertyName.TryRead(stringKey))
                     {
-                        case VersionPropertyName:
-                            error.Version = reader.ReadString();
-                            break;
-                        case IdPropertyName:
-                            error.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
-                            break;
-                        case ErrorPropertyName:
-                            error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
-                            break;
-                        default:
-                            reader.Skip();
-                            break;
+                        error.Version = ReadProtocolVersion(ref reader);
+                    }
+                    else if (IdPropertyName.TryRead(stringKey))
+                    {
+                        error.RequestId = options.Resolver.GetFormatterWithVerify<RequestId>().Deserialize(ref reader, options);
+                    }
+                    else if (ErrorPropertyName.TryRead(stringKey))
+                    {
+                        error.Error = options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Deserialize(ref reader, options);
+                    }
+                    else
+                    {
+                        reader.Skip();
                     }
                 }
 
@@ -1652,13 +1991,12 @@ namespace StreamJsonRpc
             {
                 writer.WriteMapHeader(3);
 
-                writer.Write(VersionPropertyName);
-                writer.Write(value.Version);
+                WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
-                writer.Write(IdPropertyName);
+                IdPropertyName.Write(ref writer);
                 options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
-                writer.Write(ErrorPropertyName);
+                ErrorPropertyName.Write(ref writer);
                 options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
             }
         }
@@ -1692,9 +2030,7 @@ namespace StreamJsonRpc
                             result.Message = reader.ReadString();
                             break;
                         case DataPropertyName:
-#warning 这里原代码有问题，因此做了修改
-                            var arr = GetSliceForNextToken(ref reader).ToArray();
-                            result.MsgPackData = new ReadOnlySequence<byte>(arr);
+                            result.MsgPackData = GetSliceForNextToken(ref reader);
                             break;
                         default:
                             reader.Skip();
@@ -1718,6 +2054,84 @@ namespace StreamJsonRpc
 
                 writer.Write(DataPropertyName);
                 DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
+            }
+        }
+
+        /// <summary>
+        /// Enables formatting the default/empty <see cref="EventArgs"/> class.
+        /// </summary>
+        private class EventArgsFormatter : IMessagePackFormatter<EventArgs>
+        {
+            /// <summary>
+            /// The singleton instance of the formatter to be used.
+            /// </summary>
+            internal static readonly IMessagePackFormatter<EventArgs> Instance = new EventArgsFormatter();
+
+            private EventArgsFormatter()
+            {
+            }
+
+            /// <inheritdoc/>
+            public void Serialize(ref MessagePackWriter writer, EventArgs value, MessagePackSerializerOptions options)
+            {
+                writer.WriteMapHeader(0);
+            }
+
+            /// <inheritdoc/>
+            public EventArgs Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                reader.Skip();
+                return EventArgs.Empty;
+            }
+        }
+
+        private class TraceParentFormatter : IMessagePackFormatter<TraceParent>
+        {
+            public unsafe TraceParent Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                if (reader.ReadArrayHeader() != 2)
+                {
+                    throw new NotSupportedException("Unexpected array length.");
+                }
+
+                var result = default(TraceParent);
+                result.Version = reader.ReadByte();
+                if (result.Version != 0)
+                {
+                    throw new NotSupportedException("traceparent version " + result.Version + " is not supported.");
+                }
+
+                if (reader.ReadArrayHeader() != 3)
+                {
+                    throw new NotSupportedException("Unexpected array length in version-format.");
+                }
+
+                ReadOnlySequence<byte> bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected traceid not found.");
+                bytes.CopyTo(new Span<byte>(result.TraceId, TraceParent.TraceIdByteCount));
+
+                bytes = reader.ReadBytes() ?? throw new NotSupportedException("Expected parentid not found.");
+                bytes.CopyTo(new Span<byte>(result.ParentId, TraceParent.ParentIdByteCount));
+
+                result.Flags = (TraceParent.TraceFlags)reader.ReadByte();
+
+                return result;
+            }
+
+            public unsafe void Serialize(ref MessagePackWriter writer, TraceParent value, MessagePackSerializerOptions options)
+            {
+                if (value.Version != 0)
+                {
+                    throw new NotSupportedException("traceparent version " + value.Version + " is not supported.");
+                }
+
+                writer.WriteArrayHeader(2);
+
+                writer.Write(value.Version);
+
+                writer.WriteArrayHeader(3);
+                writer.Write(new ReadOnlySpan<byte>(value.TraceId, TraceParent.TraceIdByteCount));
+                writer.Write(new ReadOnlySpan<byte>(value.ParentId, TraceParent.ParentIdByteCount));
+                writer.Write((byte)value.Flags);
             }
         }
 
@@ -1940,6 +2354,10 @@ namespace StreamJsonRpc
                     Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
 
                     this.Data = this.GetData(dataType);
+
+                    // Clear the source now that we've deserialized to prevent GetData from attempting
+                    // deserialization later when the buffer may be recycled on another thread.
+                    this.MsgPackData = default;
                 }
             }
         }

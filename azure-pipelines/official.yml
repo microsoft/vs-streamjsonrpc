@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-    - master
+    - main
     - 'v?.*'
     - 'validate/*'
   paths:
@@ -16,7 +16,7 @@ schedules:
   displayName: Daily vs-insertion
   branches:
     include:
-    - master
+    - main
     - 'v?.*'
 
 parameters:
@@ -29,6 +29,13 @@ parameters:
   displayName: Skip OptProf optimization
   type: boolean
   default: false
+- name: includeMacOS
+  displayName: Build on macOS
+  type: boolean
+  default: false # macOS is often bogged down in Azure Pipelines
+
+variables:
+  NugetSecurityAnalysisWarningLevel: none # nuget.config requires signed packages by trusted owners
 
 stages:
 
@@ -45,8 +52,9 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEng-MicroBuildVS2019
+      windowsPool: VSEngSS-MicroBuild2019
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
+      includeMacOS: ${{ parameters.includeMacOS }}
 
 - stage: symbol_archive
   displayName: Symbol archival
@@ -71,7 +79,7 @@ stages:
       inputs:
         SymbolsFeatureName: $(SymbolsFeatureName)
         SymbolsSymwebProject: VS
-        SymbolsUncPath: \\cpvsbuild\drops\$(TeamName)\$(Build.DefinitionName)\$(Build.SourceBranchName)\$(Build.BuildNumber)\Symbols.Archival
+        SymbolsUncPath: \\cpvsbuild\drops\$(TeamName)\$(Build.DefinitionName)\$(Build.SourceBranchName)\$(Build.BuildId)\Symbols.Archival
         SymbolsEmailContacts: vsidemicrobuild
         SymbolsAgentPath: $(Pipeline.Workspace)/symbols-Windows
     - task: MicroBuildCleanup@1
@@ -103,3 +111,5 @@ stages:
               packagesToPush: $(Pipeline.Workspace)/deployables-Windows/NuGet/*.nupkg
               nuGetFeedType: external
               publishFeedCredentials: azure-public/vssdk
+              allowPackageConflicts: true
+            continueOnError: true # until "skip on conflict" is offered as a task input.

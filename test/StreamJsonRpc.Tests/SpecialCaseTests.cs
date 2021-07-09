@@ -72,12 +72,12 @@ public class SpecialCaseTests : TestBase
 
     private class ThrowingTraceListener : TraceListener
     {
-        public override void Write(string message)
+        public override void Write(string? message)
         {
             throw new NotImplementedException();
         }
 
-        public override void WriteLine(string message)
+        public override void WriteLine(string? message)
         {
             throw new NotImplementedException();
         }

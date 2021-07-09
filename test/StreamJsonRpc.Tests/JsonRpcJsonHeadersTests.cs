@@ -159,7 +159,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     [Fact]
     public async Task ExceptionControllingErrorData()
     {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException)));
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException)));
 
         // C# dynamic is infamously unstable. If this test ends up being unstable, yet the dump clearly shows the fields are there even though the exception claims it isn't,
         // that's consistent with the instability I've seen before. Switching to using JToken APIs will fix the instability, but it relies on using the JsonMessageFormatter.

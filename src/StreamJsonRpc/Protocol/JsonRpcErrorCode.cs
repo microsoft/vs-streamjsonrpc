@@ -3,16 +3,21 @@
 
 namespace StreamJsonRpc.Protocol
 {
+    using System;
+    using System.Runtime.Serialization;
+
     /// <summary>
     /// Error codes laid out in the JSON-RPC spec or this library.
     /// </summary>
     /// <remarks>
-    /// The error codes from and including -32768 to -32000 are reserved for pre-defined errors.
+    /// Per <see href="https://www.jsonrpc.org/specification#error_object">the spec</see>, the error codes from and including -32768 to -32000 are reserved for pre-defined errors.
+    /// The range from -32000 to -32099 is "Reserved for implementation-defined server-errors", so we define whatever new we need for StreamJsonRpc.
     /// </remarks>
     public enum JsonRpcErrorCode : int
     {
         /// <summary>
         /// Indicates the RPC call was made but the target threw an exception.
+        /// The <see cref="JsonRpcError.ErrorDetail.Data"/> included in the <see cref="JsonRpcError.Error"/> is likely to be <see cref="CommonErrorData"/>.
         /// </summary>
         InvocationError = -32000,
 
@@ -29,9 +34,10 @@ namespace StreamJsonRpc.Protocol
         ResponseSerializationFailure = -32003,
 
         /// <summary>
-        /// 无效的ID
+        /// Indicates the RPC call was made but the target threw an exception.
+        /// The <see cref="JsonRpcError.ErrorDetail.Data"/> included in the <see cref="JsonRpcError.Error"/> should be interpreted as an <see cref="Exception"/> serialized via <see cref="ISerializable"/>.
         /// </summary>
-        InvalidRequestId = -32002,
+        InvocationErrorWithException = -32004,
 
         /// <summary>
         /// Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.

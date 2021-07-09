@@ -6,7 +6,7 @@ updates:
 - package-ecosystem: nuget
   directory: /
   schedule:
-    interval: weekly
+    interval: monthly
   ignore:
   - dependency-name: Newtonsoft.Json # This has to match VS and VS rarely updates it
   - dependency-name: Microsoft.AspNetCore.TestHost # Later versions require .NET Core 3.1, which prevents our testing on net472

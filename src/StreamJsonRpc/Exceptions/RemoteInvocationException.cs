@@ -51,6 +51,21 @@ namespace StreamJsonRpc
         /// <summary>
         /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
         /// </summary>
+        /// <param name="message">The message.</param>
+        /// <param name="errorCode">The value of the error.code field in the response.</param>
+        /// <param name="innerException">The deserialized exception thrown by the RPC server.</param>
+        public RemoteInvocationException(string? message, int errorCode, Exception innerException)
+            : base(message, innerException)
+        {
+            base.ErrorCode = (JsonRpcErrorCode)errorCode;
+
+            // Emulate the CommonErrorData object tree as well so folks can keep reading that if they were before.
+            base.DeserializedErrorData = new CommonErrorData(innerException);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RemoteInvocationException"/> class.
+        /// </summary>
         /// <param name="info">Serialization info.</param>
         /// <param name="context">Streaming context.</param>
         protected RemoteInvocationException(SerializationInfo info, StreamingContext context)

@@ -6,7 +6,7 @@ schedules:
   branches:
     include:
     - 'v?.*'
-    - master
+    - main
   always: true # we must keep data fresh since optimizationdata drops are purged after 30 days
 
 # Avoid errant CI builds: https://developercommunity.visualstudio.com/content/problem/1154409/azure-pipeline-is-triggering-due-to-events-that-ne.html
@@ -33,6 +33,8 @@ variables:
 - name: SignType
   value: real
 - group: Library.Template
+- name: NugetSecurityAnalysisWarningLevel
+  value: none # nuget.config requires signed packages by trusted owners
 
 stages:
 - stage: Library
@@ -41,7 +43,7 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEng-MicroBuildVS2019
+      windowsPool: VSEngSS-MicroBuild2019
       ShouldSkipOptimize: true
 - stage: QueueVSBuild
   jobs:
@@ -84,7 +86,7 @@ stages:
         packagesToPush: $(Agent.TempDirectory)/VSInsertion-Windows/*.nupkg
         publishVstsFeed: 97a41293-2972-4f48-8c0e-05493ae82010 # VS feed
         allowPackageConflicts: true
-    - task: MicroBuildInsertVsPayload@3
+    - task: MicroBuildInsertVsPayload@4
       displayName: Insert VS Payload
       inputs:
         SkipCreatePR: true

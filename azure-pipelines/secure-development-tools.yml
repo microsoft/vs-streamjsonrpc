@@ -9,3 +9,73 @@ steps:
   displayName: 'Run PoliCheck'
   inputs:
     targetType: F
+    optionsRulesDBPath: azure-pipelines/policheck-exclusions.mdb
+    optionsPE: 1|2|3|4
+
+ ### Analyze managed and unmanaged binaries (exe, dll) for security vulnerabilities
+- task: BinSkim@3
+  displayName: Run BinSkim
+  inputs:
+    InputType: 'Basic'
+    Function: 'analyze'
+    AnalyzeTarget: $(BinSkimTargets)
+
+ ### Copy files for APIScan
+- task: CopyFiles@2
+  displayName: 'Copy Files for APIScan'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)/bin/StreamJsonRpc'
+    Contents: |
+      **\StreamJsonRpc.dll
+      **\StreamJsonRpc.pdb
+    TargetFolder: $(Agent.TempDirectory)\APIScanFiles
+  condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
+
+ ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
+- task: APIScan@2
+  displayName: Run APIScan
+  inputs:
+    softwareFolder: $(Agent.TempDirectory)\APIScanFiles
+    softwareName: 'StreamJsonRpc'
+    softwareVersionNum: '$(Build.BuildId)'
+    isLargeApp: false
+    toolVersion: 'Latest'
+  condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
+  env:
+    AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
+
+ ### Create formatted HTML code analysis log file.
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-report.SdtReport@1
+  displayName: 'Create Security Analysis Report'
+  inputs:
+    BinSkim: true
+    BinSkimBreakOn: WarningAbove
+    CredScan: true
+    PoliCheck: true
+    PoliCheckBreakOn: Severity4Above
+
+ ### Publish Code Analysis results to build Artifacts.
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-publishsecurityanalysislogs.PublishSecurityAnalysisLogs@2
+  displayName: 'Publish Code Analysis Logs'
+
+ ### Fails the build if tools generate errors
+- task: PostAnalysis@1
+  inputs:
+    AllTools: false
+    APIScan: false
+    BinSkim: true
+    BinSkimBreakOn: 'WarningAbove'
+    CodesignValidation: true
+    CodesignValidationBreakOn: 'WarningAbove'
+    CredScan: true
+    FortifySCA: false
+    FxCop: false
+    ModernCop: false
+    PoliCheck: true
+    PoliCheckBreakOn: 'Severity4Above'
+    RoslynAnalyzers: false
+    RoslynAnalyzersBreakOn: 'WarningAbove'
+    SDLNativeRules: false
+    Semmle: false
+    TSLint: false
+    ToolLogsNotFoundAction: 'Standard'

@@ -49,7 +49,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     [Fact]
     public async Task ExceptionControllingErrorData()
     {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowRemoteInvocationException))).WithCancellation(this.TimeoutToken);
+        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException))).WithCancellation(this.TimeoutToken);
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
         object myCustomData = data!["myCustomData"];
@@ -374,7 +374,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         this.serverMessageFormatter = new MessagePackFormatter();
         this.clientMessageFormatter = new MessagePackFormatter();
 
-        var options = MessagePackSerializerOptions.Standard
+        var options = MessagePackFormatter.DefaultUserDataSerializationOptions
             .WithResolver(CompositeResolver.Create(
                 new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter() },
                 new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
