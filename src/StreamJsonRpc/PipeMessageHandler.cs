@@ -123,7 +123,9 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         protected sealed override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
         {
+#pragma warning disable VSTHRD103 // Call async methods when in an async method
             this.Write(content, cancellationToken);
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
             return default;
         }
 

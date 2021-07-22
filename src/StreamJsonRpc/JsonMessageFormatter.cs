@@ -41,6 +41,14 @@ namespace StreamJsonRpc
         internal const string ExceptionDataKey = "JToken";
 
         /// <summary>
+        /// JSON parse settings.
+        /// </summary>
+        /// <remarks>
+        /// We save MBs of memory by turning off line info handling.
+        /// </remarks>
+        private static readonly JsonLoadSettings LoadSettings = new JsonLoadSettings { LineInfoHandling = LineInfoHandling.Ignore };
+
+        /// <summary>
         /// A collection of supported protocol versions.
         /// </summary>
         private static readonly IReadOnlyCollection<Version> SupportedProtocolVersions = new Version[] { new Version(1, 0), new Version(2, 0) };
@@ -351,7 +359,7 @@ namespace StreamJsonRpc
             using (var jsonReader = new JsonTextReader(new StreamReader(reader.AsStream(), encoding)))
             {
                 this.ConfigureJsonTextReader(jsonReader);
-                JToken json = await JToken.ReadFromAsync(jsonReader, cancellationToken).ConfigureAwait(false);
+                JToken json = await JToken.ReadFromAsync(jsonReader, LoadSettings, cancellationToken).ConfigureAwait(false);
                 JsonRpcMessage message = this.Deserialize(json);
 
                 IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
@@ -547,7 +555,7 @@ namespace StreamJsonRpc
             using (var jsonReader = new JsonTextReader(this.sequenceTextReader))
             {
                 this.ConfigureJsonTextReader(jsonReader);
-                JToken json = JToken.ReadFrom(jsonReader);
+                JToken json = JToken.ReadFrom(jsonReader, LoadSettings);
                 return json;
             }
         }

@@ -91,6 +91,11 @@ public abstract class JsonRpcTests : TestBase
         int Add_ExplicitInterfaceImplementation(int a, int b);
     }
 
+    private interface IServerDerived : IServer
+    {
+        bool MethodOnDerived();
+    }
+
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
     {
@@ -101,14 +106,15 @@ public abstract class JsonRpcTests : TestBase
         this.InitializeFormattersAndHandlers();
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler);
-        this.serverRpc.AddLocalRpcTarget<IServer>(this.server, null);
+        this.serverRpc.AddLocalRpcTarget<IServerDerived>(this.server, null);
         this.serverRpc.StartListening();
 
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
         this.clientRpc.StartListening();
 
-        // Verify that members on the interface are callable.
+        // Verify that members on the interface and base interfaces are callable.
         await this.clientRpc.InvokeAsync("AnotherName", new object[] { "my -name" });
+        await this.clientRpc.InvokeAsync(nameof(IServerDerived.MethodOnDerived));
 
         // Verify that explicitly interface implementations of members on the interface are callable.
         Assert.Equal(3, await this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
@@ -136,6 +142,7 @@ public abstract class JsonRpcTests : TestBase
 
         // Verify that public members on the class (and NOT the interface) are callable.
         await this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" });
+        await this.clientRpc.InvokeAsync(nameof(BaseClass.BaseMethod));
 
         // Verify that explicitly interface implementations of members on the interface are NOT callable.
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
@@ -2336,6 +2343,41 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task ArgumentOutOfRangeException_WithNullArgValue()
+    {
+        Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "msg");
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+        Assert.Null(((ArgumentOutOfRangeException)this.server.ReceivedException!).ActualValue);
+        AssertExceptionEquality(exceptionToSend, this.server.ReceivedException);
+    }
+
+    [Fact]
+    public async Task ArgumentOutOfRangeException_WithStringArgValue()
+    {
+        Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "argValue", "msg");
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Make sure the exception is its own unique (deserialized) instance, but equal by value.
+        Assert.NotSame(this.server.ReceivedException, exceptionToSend);
+
+        if (this.clientMessageFormatter is MessagePackFormatter)
+        {
+            // MessagePack cannot (safely) deserialize a typeless value like ArgumentOutOfRangeException.ActualValue,
+            // So assert that a placeholder was put there instead.
+            Assert.Equal(exceptionToSend.Message.Replace("argValue", "<raw msgpack>"), this.server.ReceivedException!.Message);
+        }
+        else
+        {
+            AssertExceptionEquality(exceptionToSend, this.server.ReceivedException);
+        }
+    }
+
+    [Fact]
     public async Task SerializableExceptions_NonExistant()
     {
         // Synthesize an exception message that refers to an exception type that does not exist.
@@ -2751,7 +2793,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
-    public class Server : BaseClass, IServer
+    public class Server : BaseClass, IServerDerived
     {
         internal const string ExceptionMessage = "some message";
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
@@ -3235,6 +3277,8 @@ public abstract class JsonRpcTests : TestBase
         public string? GetActivityId() => Activity.Current?.Id;
 
         public string? GetTraceState(bool useCorrelationManager) => useCorrelationManager ? CorrelationManagerTracingStrategy.TraceState : Activity.Current?.TraceStateString;
+
+        public bool MethodOnDerived() => true;
 
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
