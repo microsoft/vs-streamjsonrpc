@@ -785,12 +785,12 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     protected class ThrowingJsonConverter<T> : JsonConverter<T>
     {
-        public override T ReadJson(JsonReader reader, Type objectType, T existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override T ReadJson(JsonReader reader, Type objectType, T? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             throw new Exception();
         }
 
-        public override void WriteJson(JsonWriter writer, T value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, T? value, JsonSerializer serializer)
         {
             throw new Exception();
         }

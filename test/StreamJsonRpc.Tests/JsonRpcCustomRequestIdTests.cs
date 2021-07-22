@@ -37,8 +37,8 @@ public class JsonRpcCustomRequestIdTests : InteropTestBase
     {
         var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test", cancellationToken: this.TimeoutToken);
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.String, request["id"].Type);
-        string idAsString = request.Value<string>("id");
+        Assert.Equal(JTokenType.String, request["id"]?.Type);
+        string? idAsString = request.Value<string>("id");
         Assert.StartsWith("prefix-", idAsString);
         this.Send(new
         {

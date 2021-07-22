@@ -134,7 +134,7 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         Assert.Equal(2, msgJson.Length);
         for (int i = 0; i < 2; i++)
         {
-            Assert.Equal(this.mockMessages[i].RequestId.Number, msgJson[i]["id"].Value<int>());
+            Assert.Equal(this.mockMessages[i].RequestId.Number, msgJson[i]["id"]!.Value<int>());
         }
     }
 }

@@ -49,7 +49,7 @@ public class TargetObjectEventsJsonTests : TargetObjectEventsTests
             }
 
             Assumes.True(reader.Read());
-            Assumes.True((string)reader.Value == nameof(IFruit.Name));
+            Assumes.True((string?)reader.Value == nameof(IFruit.Name));
             Assumes.True(reader.Read());
             string name = (string)reader.Value;
             return new Fruit(name);
