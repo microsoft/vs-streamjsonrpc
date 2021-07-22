@@ -3,15 +3,11 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.Threading;
-using Nerdbank.Streams;
-using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Xunit;
