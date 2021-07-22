@@ -493,7 +493,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(args, nameof(args));
 
-            return args.ToObject<Dictionary<string, JToken>>().ToDictionary(k => k.Key, k => (object)k.Value);
+            return args.Properties().ToDictionary(p => p.Name, p => (object)p.Value);
         }
 
         private static object[] PartiallyParsePositionalArguments(JArray args)
@@ -608,6 +608,15 @@ namespace StreamJsonRpc
                             // Tokenize the user data using the user-supplied serializer.
                             // TODO: add declared type handling to this branch too.
                             var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+
+                            // Json.Net TypeHandling could insert a $type child JToken to the paramsObject above.
+                            // This $type JToken should not be there to maintain Json RPC Spec compatibility. We will
+                            // strip the token out here.
+                            if (this.JsonSerializer.TypeNameHandling != TypeNameHandling.None)
+                            {
+                                paramsObject.Remove("$type");
+                            }
+
                             request.Arguments = paramsObject;
                         }
 

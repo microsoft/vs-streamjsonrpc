@@ -1444,7 +1444,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
+    public virtual async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
@@ -1465,7 +1465,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
-    public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
+    public virtual async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
@@ -2677,6 +2677,27 @@ public abstract class JsonRpcTests : TestBase
         return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
     }
 
+    protected void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false)
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers(controlledFlushingClient);
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
+        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
+        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
+    }
+
     private static void AssertExceptionEquality(Exception? expected, Exception? actual, bool compareType = true)
     {
         Assert.Equal(expected is null, actual is null);
@@ -2718,27 +2739,6 @@ public abstract class JsonRpcTests : TestBase
             yield return errorData;
             errorData = errorData.Inner;
         }
-    }
-
-    private void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false)
-    {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.InitializeFormattersAndHandlers(controlledFlushingClient);
-
-        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
-        this.clientRpc = new JsonRpc(this.clientMessageHandler);
-
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-
-        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-
-        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
-        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
     }
 
     private void StartListening()
