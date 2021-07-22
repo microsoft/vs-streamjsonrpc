@@ -160,7 +160,9 @@ namespace StreamJsonRpc
             return (enumerable as RpcEnumerable<T>)?.TearOffPrefetchedElements() ?? (Array.Empty<T>(), false);
         }
 
+#pragma warning disable VSTHRD200 // Use "Async" suffix for async methods
         private static RpcEnumerable<T> GetRpcEnumerable<T>(IAsyncEnumerable<T> enumerable) => enumerable as RpcEnumerable<T> ?? new RpcEnumerable<T>(enumerable);
+#pragma warning restore VSTHRD200 // Use "Async" suffix for async methods
 
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
         private class RpcEnumerable<T> : IAsyncEnumerable<T>, IRpcEnumerable
