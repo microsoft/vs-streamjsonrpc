@@ -45,6 +45,7 @@ stages:
     parameters:
       windowsPool: VSEngSS-MicroBuild2019
       ShouldSkipOptimize: true
+      OptProf: true
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
