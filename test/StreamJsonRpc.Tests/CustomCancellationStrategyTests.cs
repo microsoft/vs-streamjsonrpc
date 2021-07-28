@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,14 @@ using Xunit.Abstractions;
 
 public class CustomCancellationStrategyTests : TestBase
 {
+    protected Stream serverStream;
+    protected IJsonRpcMessageHandler? serverMessageHandler;
+    protected IJsonRpcMessageFormatter? serverMessageFormatter;
+
+    protected Stream clientStream;
+    protected IJsonRpcMessageHandler? clientMessageHandler;
+    protected IJsonRpcMessageFormatter? clientMessageFormatter;
+
     private readonly JsonRpc clientRpc;
     private readonly Server server;
     private readonly JsonRpc serverRpc;
@@ -26,7 +35,15 @@ public class CustomCancellationStrategyTests : TestBase
         this.mockStrategy = new MockCancellationStrategy(this, logger);
 
         var streams = FullDuplexStream.CreatePair();
-        this.clientRpc = new JsonRpc(streams.Item1)
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers();
+
+        Assert.NotNull(this.clientMessageHandler);
+        Assert.NotNull(this.serverMessageHandler);
+
+        this.clientRpc = new JsonRpc(this.clientMessageHandler!)
         {
             CancellationStrategy = this.mockStrategy,
             TraceSource = new TraceSource("Client", SourceLevels.Verbose)
@@ -37,7 +54,7 @@ public class CustomCancellationStrategyTests : TestBase
         this.clientRpc.StartListening();
 
         this.server = new Server();
-        this.serverRpc = new JsonRpc(streams.Item2)
+        this.serverRpc = new JsonRpc(this.serverMessageHandler!)
         {
             CancellationStrategy = this.mockStrategy,
             TraceSource = new TraceSource("Server", SourceLevels.Verbose)
@@ -111,6 +128,15 @@ public class CustomCancellationStrategyTests : TestBase
 
         // This may be invoked, but if the product doesn't invoke it, that's ok too.
         ////await this.mockStrategy.OutboundRequestEndedInvoked.WaitAsync(this.TimeoutToken);
+    }
+
+    protected virtual void InitializeFormattersAndHandlers()
+    {
+        this.serverMessageFormatter = new JsonMessageFormatter();
+        this.clientMessageFormatter = new JsonMessageFormatter();
+
+        this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
+        this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
     }
 
 #pragma warning disable CA1801 // Review unused parameters
