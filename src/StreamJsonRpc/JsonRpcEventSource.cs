@@ -278,18 +278,33 @@ namespace StreamJsonRpc
 
             const int maxLength = 128;
 
-            if (arguments is object?[] args)
+            if (arguments is null)
+            {
+                return string.Empty;
+            }
+            else if (arguments is object[] args)
             {
                 var stringBuilder = new StringBuilder();
-                if (args != null && args.Length > 0)
+                for (int i = 0; i < args.Length; ++i)
                 {
-                    for (int i = 0; i < args.Length; ++i)
+                    stringBuilder.Append($"arg{i}: {args[i]}, ");
+                    if (stringBuilder.Length > maxLength)
                     {
-                        stringBuilder.Append($"arg{i}: {args[i]}, ");
-                        if (stringBuilder.Length > maxLength)
-                        {
-                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
-                        }
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                    }
+                }
+
+                return stringBuilder.ToString();
+            }
+            else if (arguments is Dictionary<string, object> dict)
+            {
+                var stringBuilder = new StringBuilder();
+                foreach (KeyValuePair<string, object> entry in dict)
+                {
+                    stringBuilder.Append($"{entry.Key}: {entry.Value}, ");
+                    if (stringBuilder.Length > maxLength)
+                    {
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
                     }
                 }
 
