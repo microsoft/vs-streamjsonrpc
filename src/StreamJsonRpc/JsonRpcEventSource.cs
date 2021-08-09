@@ -282,7 +282,7 @@ namespace StreamJsonRpc
             {
                 return string.Empty;
             }
-            else if (arguments is object[] args)
+            else if (arguments is object?[] args)
             {
                 var stringBuilder = new StringBuilder();
                 for (int i = 0; i < args.Length; ++i)
@@ -296,10 +296,10 @@ namespace StreamJsonRpc
 
                 return stringBuilder.ToString();
             }
-            else if (arguments is Dictionary<string, object> dict)
+            else if (arguments is IReadOnlyDictionary<string, object?> dict)
             {
                 var stringBuilder = new StringBuilder();
-                foreach (KeyValuePair<string, object> entry in dict)
+                foreach (KeyValuePair<string, object?> entry in dict)
                 {
                     stringBuilder.Append($"{entry.Key}: {entry.Value}, ");
                     if (stringBuilder.Length > maxLength)
