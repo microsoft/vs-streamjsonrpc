@@ -3,7 +3,7 @@
 
 namespace StreamJsonRpc
 {
-    using System.Collections.Generic;
+    using System.Collections;
     using System.Diagnostics.Tracing;
     using System.Text;
     using StreamJsonRpc.Protocol;
@@ -296,15 +296,18 @@ namespace StreamJsonRpc
 
                 return stringBuilder.ToString();
             }
-            else if (arguments is IReadOnlyDictionary<string, object?> dict)
+            else if (arguments is IDictionary dict)
             {
                 var stringBuilder = new StringBuilder();
-                foreach (KeyValuePair<string, object?> entry in dict)
+                if (dict.Count > 0)
                 {
-                    stringBuilder.Append($"{entry.Key}: {entry.Value}, ");
-                    if (stringBuilder.Length > maxLength)
+                    foreach (var key in dict.Keys)
                     {
-                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                        stringBuilder.Append($"{key}: {dict[key]}, ");
+                        if (stringBuilder.Length > maxLength)
+                        {
+                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                        }
                     }
                 }
 
