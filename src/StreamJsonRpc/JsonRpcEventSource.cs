@@ -271,18 +271,14 @@ namespace StreamJsonRpc
         /// <returns>String representation of first argument only.</returns>
         internal static string GetArgumentsString(object? arguments)
         {
-            if (arguments == null)
+            if (arguments is null)
             {
                 return string.Empty;
             }
 
             const int maxLength = 128;
 
-            if (arguments is null)
-            {
-                return string.Empty;
-            }
-            else if (arguments is object?[] args)
+            if (arguments is object?[] args)
             {
                 var stringBuilder = new StringBuilder();
                 for (int i = 0; i < args.Length; ++i)
