@@ -402,14 +402,14 @@ namespace StreamJsonRpc
                         return
                             json["method"] != null ? this.ReadRequest(json) :
                             json["error"]?.Type == JTokenType.Null ? this.ReadResult(json) :
-                            json["error"]?.Type != JTokenType.Null ? (JsonRpcMessage)this.ReadError(json) :
+                            json["error"] is { Type: not JTokenType.Null } ? this.ReadError(json) :
                             throw this.CreateProtocolNonComplianceException(json);
                     case 2:
                         this.VerifyProtocolCompliance(json.Value<string>("jsonrpc") == "2.0", json, $"\"jsonrpc\" property must be set to \"2.0\", or set {nameof(this.ProtocolVersion)} to 1.0 mode.");
                         return
                             json["method"] != null ? this.ReadRequest(json) :
                             json["result"] != null ? this.ReadResult(json) :
-                            json["error"] != null ? (JsonRpcMessage)this.ReadError(json) :
+                            json["error"] != null ? this.ReadError(json) :
                             throw this.CreateProtocolNonComplianceException(json);
                     default:
                         throw Assumes.NotReachable();
@@ -649,7 +649,7 @@ namespace StreamJsonRpc
             {
                 using var jsonWriter = new JTokenWriter();
                 converter.WriteJson(jsonWriter, value, this.JsonSerializer);
-                return jsonWriter.Token;
+                return jsonWriter.Token!;
             }
 
             return JToken.FromObject(value, this.JsonSerializer);
@@ -679,14 +679,14 @@ namespace StreamJsonRpc
 
             // We leave arguments as JTokens at this point, so that we can try deserializing them
             // to more precise .NET types as required by the method we're invoking.
-            JToken args = json["params"];
+            JToken? args = json["params"];
             object? arguments =
                 args is JObject argsObject ? PartiallyParseNamedArguments(argsObject) :
                 args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
                 null;
 
             // If method is $/progress, get the progress instance from the dictionary and call Report
-            string method = json.Value<string>("method");
+            string? method = json.Value<string>("method");
 
             if (this.formatterProgressTracker != null && string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
             {
@@ -703,7 +703,7 @@ namespace StreamJsonRpc
                         null;
 
                     MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
-                    if (this.formatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
+                    if (progressId is object && this.formatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
                     {
                         object? typedValue = value?.ToObject(progressInfo.ValueType, this.JsonSerializer);
                         progressInfo.InvokeReport(typedValue);
@@ -732,7 +732,7 @@ namespace StreamJsonRpc
             Requires.NotNull(json, nameof(json));
 
             RequestId id = this.ExtractRequestId(json);
-            JToken result = json["result"];
+            JToken? result = json["result"];
 
             return new JsonRpcResult(this.JsonSerializer)
             {
@@ -746,7 +746,8 @@ namespace StreamJsonRpc
             Requires.NotNull(json, nameof(json));
 
             RequestId id = this.ExtractRequestId(json);
-            JToken error = json["error"];
+            JToken? error = json["error"];
+            Assumes.NotNull(error); // callers should have verified this already.
 
             return new JsonRpcError
             {
@@ -762,7 +763,7 @@ namespace StreamJsonRpc
 
         private RequestId ExtractRequestId(JToken json)
         {
-            JToken idToken = json["id"];
+            JToken? idToken = json["id"];
             if (idToken == null)
             {
                 throw this.CreateProtocolNonComplianceException(json, "\"id\" property missing.");
@@ -843,7 +844,7 @@ namespace StreamJsonRpc
                         this.formatter.deserializingMessageWithId = this.RequestId;
                         try
                         {
-                            value = token?.ToObject(typeHint, this.formatter.JsonSerializer);
+                            value = token?.ToObject(typeHint!, this.formatter.JsonSerializer); // Null typeHint is allowed (https://github.com/JamesNK/Newtonsoft.Json/pull/2562)
                         }
                         finally
                         {
@@ -890,7 +891,7 @@ namespace StreamJsonRpc
 
                 try
                 {
-                    return result.ToObject<T>(this.jsonSerializer);
+                    return result.ToObject<T>(this.jsonSerializer)!;
                 }
                 catch (Exception exception)
                 {
@@ -949,7 +950,7 @@ namespace StreamJsonRpc
 
             public T[] Rent(int minimumLength) => this.arrayPool.Rent(minimumLength);
 
-            public void Return(T[] array) => this.arrayPool.Return(array);
+            public void Return(T[]? array) => this.arrayPool.Return(array);
         }
 
         /// <summary>
@@ -971,9 +972,9 @@ namespace StreamJsonRpc
                 throw new NotSupportedException();
             }
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
             {
-                long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value);
+                long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value!);
                 writer.WriteValue(progressId);
             }
         }
@@ -1050,7 +1051,7 @@ namespace StreamJsonRpc
                 }
             }
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
             {
                 throw new NotSupportedException();
             }
@@ -1060,7 +1061,7 @@ namespace StreamJsonRpc
 #pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
             {
                 JToken enumJToken = JToken.Load(reader);
-                JToken handle = enumJToken[MessageFormatterEnumerableTracker.TokenPropertyName];
+                JToken? handle = enumJToken[MessageFormatterEnumerableTracker.TokenPropertyName];
                 IReadOnlyList<T>? prefetchedItems = enumJToken[MessageFormatterEnumerableTracker.ValuesPropertyName]?.ToObject<IReadOnlyList<T>>(serializer);
 
                 return this.formatter.EnumerableTracker.CreateEnumerableProxy(handle, prefetchedItems);
@@ -1088,9 +1089,9 @@ namespace StreamJsonRpc
                 throw new NotSupportedException();
             }
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
             {
-                Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(value.GetType());
+                Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(value!.GetType());
                 Assumes.NotNull(iface);
                 MethodInfo genericMethod = WriteJsonOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
                 try
@@ -1284,9 +1285,9 @@ namespace StreamJsonRpc
                 this.serializer = serializer;
             }
 
-            public object Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer);
+            public object? Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer);
 
-            public object Convert(object value, TypeCode typeCode)
+            public object? Convert(object value, TypeCode typeCode)
             {
                 return typeCode switch
                 {
@@ -1317,7 +1318,7 @@ namespace StreamJsonRpc
 
             public float ToSingle(object value) => ((JToken)value).ToObject<float>(this.serializer);
 
-            public string ToString(object value) => ((JToken)value).ToObject<string>(this.serializer);
+            public string? ToString(object value) => ((JToken)value).ToObject<string>(this.serializer);
 
             public ushort ToUInt16(object value) => ((JToken)value).ToObject<ushort>(this.serializer);
 
@@ -1358,7 +1359,7 @@ namespace StreamJsonRpc
 
                     if (reader.TokenType == JsonToken.PropertyName)
                     {
-                        string name = (string)reader.Value;
+                        string name = (string)reader.Value!;
                         if (!reader.Read())
                         {
                             throw new EndOfStreamException();
@@ -1419,7 +1420,7 @@ namespace StreamJsonRpc
                                 continue;
                             }
 
-                            if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
+                            if (property.PropertyType is object && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
                             {
                                 property.Converter = converter;
                             }

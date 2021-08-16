@@ -34,8 +34,8 @@ public class JsonRpcClient10InteropTests : InteropTestBase
         // Receive the request at the server side and sanity check its contents.
         JToken request = await this.ReceiveAsync();
         Assert.Equal("test", request.Value<string>("method"));
-        Assert.Single((JArray)request["params"]);
-        Assert.Equal("arg1", request["params"][0].Value<string>());
+        Assert.Single((JArray?)request["params"]);
+        Assert.Equal("arg1", request["params"]?[0]?.Value<string>());
         Assert.NotNull(request["id"]);
 
         const string expectedResult = "some result";

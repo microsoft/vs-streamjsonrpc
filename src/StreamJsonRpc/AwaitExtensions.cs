@@ -20,7 +20,9 @@ namespace StreamJsonRpc
         /// <returns>The value to await on.</returns>
         internal static SynchronizationContextAwaiter GetAwaiter(this SynchronizationContext synchronizationContext)
         {
+#pragma warning disable VSTHRD110 // Observe result of async calls
             Requires.NotNull(synchronizationContext, nameof(synchronizationContext));
+#pragma warning restore VSTHRD110 // Observe result of async calls
             return new SynchronizationContextAwaiter(synchronizationContext);
         }
 
@@ -42,7 +44,9 @@ namespace StreamJsonRpc
             /// <param name="synchronizationContext">The <see cref="SynchronizationContext"/> to switch the caller's context to.</param>
             internal SynchronizationContextAwaiter(SynchronizationContext synchronizationContext)
             {
+#pragma warning disable VSTHRD110 // Observe result of async calls
                 Requires.NotNull(synchronizationContext, nameof(synchronizationContext));
+#pragma warning restore VSTHRD110 // Observe result of async calls
                 this.synchronizationContext = synchronizationContext;
             }
 
