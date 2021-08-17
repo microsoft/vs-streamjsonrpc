@@ -280,39 +280,75 @@ namespace StreamJsonRpc
 
             if (arguments is object?[] args)
             {
-                var stringBuilder = new StringBuilder();
-                for (int i = 0; i < args.Length; ++i)
+                if (args.Length > 0)
                 {
-                    stringBuilder.Append($"arg{i}: {args[i]}, ");
-                    if (stringBuilder.Length > maxLength)
+                    var stringBuilder = new StringBuilder();
+                    for (int i = 0; i < args.Length; ++i)
                     {
-                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
-                    }
-                }
-
-                return stringBuilder.ToString();
-            }
-            else if (arguments is IDictionary dict)
-            {
-                var stringBuilder = new StringBuilder();
-                if (dict.Count > 0)
-                {
-                    foreach (var key in dict.Keys)
-                    {
-                        stringBuilder.Append($"{key}: {dict[key]}, ");
+                        Format(stringBuilder, args[i]);
+                        stringBuilder.Append(", ");
                         if (stringBuilder.Length > maxLength)
                         {
                             return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
                         }
                     }
+
+                    stringBuilder.Length -= 2; // Trim trailing comma
+                    return stringBuilder.ToString();
                 }
 
-                return stringBuilder.ToString();
+                return string.Empty;
+            }
+            else if (arguments is IDictionary dict)
+            {
+                if (dict.Count > 0)
+                {
+                    var stringBuilder = new StringBuilder();
+                    foreach (object key in dict.Keys)
+                    {
+                        stringBuilder.Append(key);
+                        stringBuilder.Append(": ");
+                        Format(stringBuilder, dict[key]);
+                        stringBuilder.Append(", ");
+                        if (stringBuilder.Length > maxLength)
+                        {
+                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                        }
+                    }
+
+                    stringBuilder.Length -= 2; // Trim trailing comma
+                    return stringBuilder.ToString();
+                }
+
+                return string.Empty;
             }
             else
             {
                 string? retVal = arguments.ToString();
                 return (retVal?.Length > maxLength) ? $"{retVal.Substring(0, maxLength)}...(truncated)" : (retVal ?? "(null)");
+            }
+
+            static void Format(StringBuilder builder, object? value)
+            {
+                switch (value)
+                {
+                    case null:
+                        builder.Append("null");
+                        break;
+                    case string s:
+                        builder.Append("\"");
+                        builder.Append(s);
+                        builder.Append("\"");
+                        break;
+                    case Newtonsoft.Json.Linq.JValue jValue when jValue.Type == Newtonsoft.Json.Linq.JTokenType.String:
+                        builder.Append("\"");
+                        builder.Append(jValue.Value);
+                        builder.Append("\"");
+                        break;
+                    default:
+                        builder.Append(value);
+                        break;
+                }
             }
         }
 
