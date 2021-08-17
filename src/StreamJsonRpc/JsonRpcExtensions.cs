@@ -265,7 +265,7 @@ namespace StreamJsonRpc
                     this.prefetchedElements = prefetchedElements;
                 }
 
-                private CancellationTokenRegistration LinkToCancellation(CancellationToken cancellationToken) => cancellationToken.Register(cts => ((CancellationTokenSource)cts).Cancel(), this.cancellationTokenSource);
+                private CancellationTokenRegistration LinkToCancellation(CancellationToken cancellationToken) => cancellationToken.Register(cts => ((CancellationTokenSource)cts!).Cancel(), this.cancellationTokenSource);
             }
         }
     }

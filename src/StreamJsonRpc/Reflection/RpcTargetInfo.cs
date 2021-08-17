@@ -161,7 +161,7 @@ namespace StreamJsonRpc.Reflection
 
             lock (this.SyncObject)
             {
-                if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out List<MethodSignatureAndTarget> candidateTargets))
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(request.Method, out List<MethodSignatureAndTarget>? candidateTargets))
                 {
                     targetMethod = new TargetMethod(request, candidateTargets, this.jsonRpc.SynchronizationContextOrDefault);
                     return true;
@@ -212,7 +212,7 @@ namespace StreamJsonRpc.Reflection
                             var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, null);
                             this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                             revert?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                            existingList.Add(signatureAndTarget);
+                            existingList!.Add(signatureAndTarget);
                         }
                         else
                         {

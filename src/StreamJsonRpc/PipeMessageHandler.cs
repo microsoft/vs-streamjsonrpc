@@ -89,7 +89,7 @@ namespace StreamJsonRpc
             // We only need to do this if the read stream is distinct from the write stream, which is already handled above.
             if (reader != null && reader != writer)
             {
-                this.DisposalToken.Register(state => ((Stream)state).Dispose(), reader);
+                this.DisposalToken.Register(state => ((Stream)state!).Dispose(), reader);
             }
         }
 

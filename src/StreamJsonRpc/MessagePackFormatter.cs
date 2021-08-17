@@ -425,7 +425,7 @@ namespace StreamJsonRpc
                 key = memberInfo.Name;
                 if (isDataContract)
                 {
-                    DataMemberAttribute dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
+                    DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
                     if (dataMemberAttribute == null)
                     {
                         return false;
@@ -433,7 +433,7 @@ namespace StreamJsonRpc
 
                     if (!dataMemberAttribute.EmitDefaultValue)
                     {
-                        throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType.FullName}.{memberInfo.Name}.");
+                        throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType!.FullName}.{memberInfo.Name}.");
                     }
 
                     key = dataMemberAttribute.Name ?? memberInfo.Name;
@@ -1190,19 +1190,19 @@ namespace StreamJsonRpc
                     {
                         if (typeof(IDuplexPipe).IsAssignableFrom(typeof(T)))
                         {
-                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(DuplexPipeFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(DuplexPipeFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter)!;
                         }
                         else if (typeof(PipeReader).IsAssignableFrom(typeof(T)))
                         {
-                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeReaderFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeReaderFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter)!;
                         }
                         else if (typeof(PipeWriter).IsAssignableFrom(typeof(T)))
                         {
-                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeWriterFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(PipeWriterFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter)!;
                         }
                         else if (typeof(Stream).IsAssignableFrom(typeof(T)))
                         {
-                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(StreamFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter);
+                            formatter = (IMessagePackFormatter)Activator.CreateInstance(typeof(StreamFormatter<>).MakeGenericType(typeof(T)), this.mainFormatter)!;
                         }
 
                         this.pipeFormatters.Add(typeof(T), formatter);
@@ -1400,7 +1400,7 @@ namespace StreamJsonRpc
                     typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
                     this.formatter,
                     matchingCandidate.Value.ProxyOptions,
-                    matchingCandidate.Value.TargetOptions);
+                    matchingCandidate.Value.TargetOptions)!;
 
                 lock (this.formatters)
                 {
@@ -1483,7 +1483,7 @@ namespace StreamJsonRpc
                     IMessagePackFormatter<T>? formatter = null;
                     if (typeof(Exception).IsAssignableFrom(typeof(T)) && typeof(T).GetCustomAttribute<SerializableAttribute>() is object)
                     {
-                        formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)), this.formatterActivationArgs);
+                        formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(typeof(ExceptionFormatter<>).MakeGenericType(typeof(T)), this.formatterActivationArgs)!;
                     }
 
                     this.formatterCache.Add(typeof(T), formatter);

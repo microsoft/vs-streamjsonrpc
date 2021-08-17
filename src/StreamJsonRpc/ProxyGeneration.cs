@@ -37,7 +37,7 @@ namespace StreamJsonRpc
         private static readonly MethodInfo CancellationTokenNonePropertyGetter = typeof(CancellationToken).GetRuntimeProperty(nameof(CancellationToken.None))!.GetMethod!;
         private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
         private static readonly ConstructorInfo ObjectDisposedExceptionCtor = typeof(ObjectDisposedException).GetTypeInfo().DeclaredConstructors.Single(ctor => ctor.GetParameters() is { } p && p.Length == 1 && p[0].ParameterType == typeof(string));
-        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetRuntimeMethod(nameof(Type.GetTypeFromHandle), new Type[] { typeof(RuntimeTypeHandle) });
+        private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetRuntimeMethod(nameof(Type.GetTypeFromHandle), new Type[] { typeof(RuntimeTypeHandle) }) ?? throw Assumes.NotReachable();
         private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
         private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
                                                                     where method.Name == nameof(Interlocked.CompareExchange)
@@ -54,8 +54,8 @@ namespace StreamJsonRpc
         private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) })!;
         private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
 
-        private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose));
-        private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed)).GetMethod!;
+        private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)) ?? throw Assumes.NotReachable();
+        private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed))!.GetMethod ?? throw Assumes.NotReachable();
 
         /// <summary>
         /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -638,7 +638,7 @@ namespace StreamJsonRpc
                 }
 
 #pragma warning disable CS0618
-                MethodInfo createProxyEnumerableMethod = typeof(CodeGenHelpers).GetMethod(nameof(CodeGenHelpers.CreateAsyncEnumerableProxy), BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]);
+                MethodInfo createProxyEnumerableMethod = typeof(CodeGenHelpers).GetMethod(nameof(CodeGenHelpers.CreateAsyncEnumerableProxy), BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]);
 #pragma warning restore CS0618
                 il.Emit(OpCodes.Call, createProxyEnumerableMethod);
             }
