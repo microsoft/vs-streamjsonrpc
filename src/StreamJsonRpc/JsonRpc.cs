@@ -1140,7 +1140,7 @@ namespace StreamJsonRpc
         /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
         internal static IRpcMarshaledContext<object> MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
         {
-            return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options });
+            return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options })!;
         }
 
         /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
@@ -1737,7 +1737,7 @@ namespace StreamJsonRpc
                     // Arrange for sending a cancellation message if canceled while we're waiting for a response.
                     try
                     {
-                        using (cancellationToken.Register(this.cancelPendingOutboundRequestAction, request.RequestId, useSynchronizationContext: false))
+                        using (cancellationToken.Register(this.cancelPendingOutboundRequestAction!, request.RequestId, useSynchronizationContext: false))
                         {
                             // This task will be completed when the Response object comes back from the other end of the pipe
                             return await tcs.Task.ConfigureAwait(false);
@@ -1839,7 +1839,7 @@ namespace StreamJsonRpc
                         // and we need to break the link (but without disposing the CTS we created) at the conclusion of this method.
                         // Disposing the CTS causes .NET Framework (in its default configuration) to throw when CancellationToken.Register is called later,
                         // which causes problems with some long-lived server methods such as those that return IAsyncEnumerable<T>.
-                        disconnectedRegistration = this.DisconnectedToken.Register(state => ((CancellationTokenSource)state).Cancel(), localMethodCancellationSource);
+                        disconnectedRegistration = this.DisconnectedToken.Register(state => ((CancellationTokenSource)state!).Cancel(), localMethodCancellationSource);
                     }
                 }
 
@@ -2046,7 +2046,11 @@ namespace StreamJsonRpc
 
                     // Be sure to dispose the link to the local method token we created in case it is linked to our long-lived disposal token
                     // and otherwise cause a memory leak.
+#if NETCOREAPP
+                    await disconnectedRegistration.DisposeAsync().ConfigureAwait(false);
+#else
                     disconnectedRegistration.Dispose();
+#endif
                 }
             }
         }

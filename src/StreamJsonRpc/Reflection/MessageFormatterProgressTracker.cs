@@ -278,7 +278,7 @@ namespace StreamJsonRpc.Reflection
                 var arguments = new object?[] { this.token, value };
                 var argumentDeclaredTypes = new Type[] { this.token.GetType(), typeof(T) };
                 this.rpc.NotifyAsync(ProgressRequestSpecialMethod, arguments, argumentDeclaredTypes).ContinueWith(
-                    (t, s) => ((JsonRpc)s).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception.InnerException ?? t.Exception),
+                    (t, s) => ((JsonRpc)s!).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception!.InnerException ?? t.Exception),
                     this.rpc,
                     CancellationToken.None,
                     TaskContinuationOptions.OnlyOnFaulted,

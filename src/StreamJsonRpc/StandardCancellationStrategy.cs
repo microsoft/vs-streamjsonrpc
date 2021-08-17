@@ -9,6 +9,7 @@ namespace StreamJsonRpc
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft;
     using Microsoft.VisualStudio.Threading;
 
     internal class StandardCancellationStrategy : ICancellationStrategy
@@ -21,7 +22,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// The <see cref="MethodInfo"/> for the <see cref="CancelInboundRequest(RequestId)"/> method.
         /// </summary>
-        private static readonly MethodInfo CancelInboundRequestMethodInfo = typeof(StandardCancellationStrategy).GetMethod(nameof(CancelInboundRequest), BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo CancelInboundRequestMethodInfo = typeof(StandardCancellationStrategy).GetMethod(nameof(CancelInboundRequest), BindingFlags.Instance | BindingFlags.NonPublic) ?? throw Assumes.NotReachable();
 
         /// <summary>
         /// A map of id's from inbound calls that have not yet completed and may be canceled,

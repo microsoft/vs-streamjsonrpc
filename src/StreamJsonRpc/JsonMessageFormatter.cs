@@ -950,7 +950,13 @@ namespace StreamJsonRpc
 
             public T[] Rent(int minimumLength) => this.arrayPool.Rent(minimumLength);
 
-            public void Return(T[]? array) => this.arrayPool.Return(array);
+            public void Return(T[]? array)
+            {
+                if (array is object)
+                {
+                    this.arrayPool.Return(array);
+                }
+            }
         }
 
         /// <summary>
@@ -1046,7 +1052,11 @@ namespace StreamJsonRpc
                 }
                 catch (TargetInvocationException ex)
                 {
-                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    if (ex.InnerException is object)
+                    {
+                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    }
+
                     throw Assumes.NotReachable();
                 }
             }
@@ -1100,7 +1110,11 @@ namespace StreamJsonRpc
                 }
                 catch (TargetInvocationException ex)
                 {
-                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    if (ex.InnerException is object)
+                    {
+                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    }
+
                     throw Assumes.NotReachable();
                 }
             }
@@ -1285,13 +1299,13 @@ namespace StreamJsonRpc
                 this.serializer = serializer;
             }
 
-            public object? Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer);
+            public object Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer)!;
 
-            public object? Convert(object value, TypeCode typeCode)
+            public object Convert(object value, TypeCode typeCode)
             {
                 return typeCode switch
                 {
-                    TypeCode.Object => ((JToken)value).ToObject(typeof(object), this.serializer),
+                    TypeCode.Object => ((JToken)value).ToObject(typeof(object), this.serializer)!,
                     _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
                 };
             }

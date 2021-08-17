@@ -185,7 +185,7 @@ namespace StreamJsonRpc.Reflection
         {
             lock (this.syncObject)
             {
-                if (this.generatorTokensByRequestId.TryGetValue(requestId, out ImmutableList<long> tokens))
+                if (this.generatorTokensByRequestId.TryGetValue(requestId, out ImmutableList<long>? tokens))
                 {
                     foreach (var token in tokens)
                     {
@@ -231,7 +231,7 @@ namespace StreamJsonRpc.Reflection
             {
                 try
                 {
-                    using (cancellationToken.Register(state => ((CancellationTokenSource)state).Cancel(), this.cancellationTokenSource))
+                    using (cancellationToken.Register(state => ((CancellationTokenSource)state!).Cancel(), this.cancellationTokenSource))
                     {
                         cancellationToken = this.cancellationTokenSource.Token;
                         bool finished = false;
