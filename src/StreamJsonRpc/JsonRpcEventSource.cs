@@ -267,65 +267,70 @@ namespace StreamJsonRpc
         /// <summary>
         /// Creates a string representation of arguments of max 200 characters for logging.
         /// </summary>
-        /// <param name="arguments">A single argument or an array of arguments.</param>
+        /// <param name="request">The request whose arguments are to be logged.</param>
         /// <returns>String representation of first argument only.</returns>
-        internal static string GetArgumentsString(object? arguments)
+        internal static string GetArgumentsString(JsonRpcRequest request)
         {
-            if (arguments is null)
-            {
-                return string.Empty;
-            }
-
             const int maxLength = 128;
 
-            if (arguments is object?[] args)
+            if (request.ArgumentCount == 0)
             {
-                if (args.Length > 0)
-                {
-                    var stringBuilder = new StringBuilder();
-                    for (int i = 0; i < args.Length; ++i)
-                    {
-                        Format(stringBuilder, args[i]);
-                        stringBuilder.Append(", ");
-                        if (stringBuilder.Length > maxLength)
-                        {
-                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
-                        }
-                    }
-
-                    stringBuilder.Length -= 2; // Trim trailing comma
-                    return stringBuilder.ToString();
-                }
-
-                return string.Empty;
+                return "[]";
             }
-            else if (arguments is IDictionary dict)
+
+            if (request.ArgumentNames is null)
             {
-                if (dict.Count > 0)
+                var stringBuilder = new StringBuilder();
+                stringBuilder.Append('[');
+                for (int i = 0; i < request.ArgumentCount; ++i)
                 {
-                    var stringBuilder = new StringBuilder();
-                    foreach (object key in dict.Keys)
+                    if (request.TryGetArgumentByNameOrIndex(null, i, null, out object? value))
                     {
-                        stringBuilder.Append(key);
-                        stringBuilder.Append(": ");
-                        Format(stringBuilder, dict[key]);
+                        Format(stringBuilder, value);
                         stringBuilder.Append(", ");
-                        if (stringBuilder.Length > maxLength)
-                        {
-                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
-                        }
+                    }
+                    else
+                    {
+                        stringBuilder.Append("<unformattable>");
                     }
 
-                    stringBuilder.Length -= 2; // Trim trailing comma
-                    return stringBuilder.ToString();
+                    if (stringBuilder.Length > maxLength)
+                    {
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                    }
                 }
 
-                return string.Empty;
+                stringBuilder.Length -= 2; // Trim trailing comma
+                stringBuilder.Append(']');
+                return stringBuilder.ToString();
             }
             else
             {
-                string? retVal = arguments.ToString();
-                return (retVal?.Length > maxLength) ? $"{retVal.Substring(0, maxLength)}...(truncated)" : (retVal ?? "(null)");
+                var stringBuilder = new StringBuilder();
+                stringBuilder.Append('{');
+                foreach (string key in request.ArgumentNames)
+                {
+                    if (request.TryGetArgumentByNameOrIndex(key, -1, null, out object? value))
+                    {
+                        stringBuilder.Append(key);
+                        stringBuilder.Append(": ");
+                        Format(stringBuilder, value);
+                        stringBuilder.Append(", ");
+                    }
+                    else
+                    {
+                        stringBuilder.Append("<unformattable>");
+                    }
+
+                    if (stringBuilder.Length > maxLength)
+                    {
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                    }
+                }
+
+                stringBuilder.Length -= 2; // Trim trailing comma
+                stringBuilder.Append('}');
+                return stringBuilder.ToString();
             }
 
             static void Format(StringBuilder builder, object? value)
@@ -338,11 +343,6 @@ namespace StreamJsonRpc
                     case string s:
                         builder.Append("\"");
                         builder.Append(s);
-                        builder.Append("\"");
-                        break;
-                    case Newtonsoft.Json.Linq.JValue jValue when jValue.Type == Newtonsoft.Json.Linq.JTokenType.String:
-                        builder.Append("\"");
-                        builder.Append(jValue.Value);
                         builder.Append("\"");
                         break;
                     default:
