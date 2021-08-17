@@ -2148,6 +2148,8 @@ namespace StreamJsonRpc
 
             public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
 
+            public override IEnumerable<string>? ArgumentNames => this.MsgPackNamedArguments?.Keys;
+
             public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
 
             internal ReadOnlySequence<byte> MsgPackArguments { get; set; }

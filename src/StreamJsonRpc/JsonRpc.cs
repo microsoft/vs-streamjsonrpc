@@ -1634,7 +1634,7 @@ namespace StreamJsonRpc
                     {
                         if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Verbose, System.Diagnostics.Tracing.EventKeywords.None))
                         {
-                            JsonRpcEventSource.Instance.SendingNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                            JsonRpcEventSource.Instance.SendingNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
 
                         await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
@@ -1718,7 +1718,7 @@ namespace StreamJsonRpc
                     {
                         if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Verbose, System.Diagnostics.Tracing.EventKeywords.None))
                         {
-                            JsonRpcEventSource.Instance.SendingRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                            JsonRpcEventSource.Instance.SendingRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
 
                         await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
@@ -1862,11 +1862,11 @@ namespace StreamJsonRpc
                     {
                         if (request.IsResponseExpected)
                         {
-                            JsonRpcEventSource.Instance.ReceivedRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                            JsonRpcEventSource.Instance.ReceivedRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
                         else
                         {
-                            JsonRpcEventSource.Instance.ReceivedNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request.Arguments));
+                            JsonRpcEventSource.Instance.ReceivedNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
                     }
 

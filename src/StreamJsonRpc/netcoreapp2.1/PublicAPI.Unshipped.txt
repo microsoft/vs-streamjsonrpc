@@ -31,3 +31,4 @@ StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? messag
 StreamJsonRpc.RequestId.RequestId() -> void
 virtual StreamJsonRpc.CorrelationManagerTracingStrategy.GetInboundActivityName(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> string?
 virtual StreamJsonRpc.JsonRpc.LoadType(string! typeFullName, string? assemblyName) -> System.Type?
+virtual StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentNames.get -> System.Collections.Generic.IEnumerable<string!>?

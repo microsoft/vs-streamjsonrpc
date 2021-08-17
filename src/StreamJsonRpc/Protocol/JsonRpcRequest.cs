@@ -161,6 +161,12 @@ namespace StreamJsonRpc.Protocol
         public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
         /// <summary>
+        /// Gets the sequence of argument names, if applicable.
+        /// </summary>
+        [IgnoreDataMember]
+        public virtual IEnumerable<string>? ArgumentNames => this.NamedArguments?.Keys;
+
+        /// <summary>
         /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>traceparent</c> value.
         /// </summary>
         [DataMember(Name = "traceparent", EmitDefaultValue = false)]
