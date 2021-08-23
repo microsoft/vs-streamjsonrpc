@@ -56,7 +56,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return this.Signature.GetHashCode() + (this.Target != null ? RuntimeHelpers.GetHashCode(this.Target) : 0);
+            return this.Signature.GetHashCode() + (this.Target is not null ? RuntimeHelpers.GetHashCode(this.Target) : 0);
         }
 
         /// <inheritdoc/>

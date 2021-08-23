@@ -38,7 +38,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(enumerable, nameof(enumerable));
 
-            if (settings == null)
+            if (settings is null)
             {
                 return enumerable;
             }
@@ -249,7 +249,7 @@ namespace StreamJsonRpc
                 internal async Task PrefetchAsync(int count, CancellationToken cancellationToken)
                 {
                     Requires.Range(count >= 0, nameof(count));
-                    Verify.Operation(this.prefetchedElements == null, Resources.ElementsAlreadyPrefetched);
+                    Verify.Operation(this.prefetchedElements is null, Resources.ElementsAlreadyPrefetched);
 
                     // Arrange to cancel the entire enumerator if the prefetch is canceled.
                     using CancellationTokenRegistration ctr = this.LinkToCancellation(cancellationToken);

@@ -196,8 +196,8 @@ namespace StreamJsonRpc.Reflection
             {
                 foreach (KeyValuePair<string, List<MethodSignature>> item in mapping)
                 {
-                    string rpcMethodName = options.MethodNameTransform != null ? options.MethodNameTransform(item.Key) : item.Key;
-                    Requires.Argument(rpcMethodName != null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                    string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
+                    Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
                     bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
                     if (!alreadyExists)
                     {
@@ -227,13 +227,13 @@ namespace StreamJsonRpc.Reflection
                 if (options.NotifyClientOfEvents)
                 {
                     HashSet<string>? eventsDiscovered = null;
-                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                     {
                         foreach (EventInfo evt in t.DeclaredEvents)
                         {
                             if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
                             {
-                                if (this.eventReceivers == null)
+                                if (this.eventReceivers is null)
                                 {
                                     this.eventReceivers = new List<EventReceiver>();
                                 }
@@ -294,7 +294,7 @@ namespace StreamJsonRpc.Reflection
         internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
         {
             Requires.NotNull(handler, nameof(handler));
-            Requires.Argument(handler.IsStatic == (target == null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
+            Requires.Argument(handler.IsStatic == (target is null), nameof(target), Resources.TargetObjectAndMethodStaticFlagMismatch);
 
             string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
             lock (this.SyncObject)
@@ -319,7 +319,7 @@ namespace StreamJsonRpc.Reflection
 
         internal void UnregisterEventHandlersFromTargetObjects()
         {
-            if (this.eventReceivers != null)
+            if (this.eventReceivers is not null)
             {
                 foreach (EventReceiver receiver in this.eventReceivers)
                 {
@@ -372,7 +372,7 @@ namespace StreamJsonRpc.Reflection
             }
             else
             {
-                for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t != null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
                 {
                     typesToMap.Add(t);
                 }
@@ -424,7 +424,7 @@ namespace StreamJsonRpc.Reflection
 
                     JsonRpcMethodAttribute? attribute = mapping.FindAttribute(method);
 
-                    if (attribute == null && key.UseSingleObjectParameterDeserialization)
+                    if (attribute is null && key.UseSingleObjectParameterDeserialization)
                     {
                         attribute = new JsonRpcMethodAttribute(null) { UseSingleObjectParameterDeserialization = true };
                     }
@@ -440,7 +440,7 @@ namespace StreamJsonRpc.Reflection
 
                     // If no explicit attribute has been applied, and the method ends with Async,
                     // register a request method name that does not include Async as well.
-                    if (attribute?.Name == null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
+                    if (attribute?.Name is null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
                     {
                         string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
                         if (!candidateAliases.ContainsKey(nonAsyncMethodName))
@@ -650,7 +650,7 @@ namespace StreamJsonRpc.Reflection
                 this.server = server;
                 this.eventInfo = eventInfo;
 
-                this.rpcEventName = options.EventNameTransform != null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
+                this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
 
                 try
                 {

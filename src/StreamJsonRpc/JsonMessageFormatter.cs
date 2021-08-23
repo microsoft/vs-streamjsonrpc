@@ -255,7 +255,7 @@ namespace StreamJsonRpc
             get => this.multiplexingStream;
             set
             {
-                Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
+                Verify.Operation(this.rpc is null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
                 this.multiplexingStream = value;
             }
         }
@@ -266,7 +266,7 @@ namespace StreamJsonRpc
             set
             {
                 Requires.NotNull(value, nameof(value));
-                Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
+                Verify.Operation(this.rpc is null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
                 this.rpc = value;
 
                 this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
@@ -397,19 +397,19 @@ namespace StreamJsonRpc
                 switch (this.ProtocolVersion.Major)
                 {
                     case 1:
-                        this.VerifyProtocolCompliance(json["jsonrpc"] == null, json, "\"jsonrpc\" property not expected. Use protocol version 2.0.");
-                        this.VerifyProtocolCompliance(json["id"] != null, json, "\"id\" property missing.");
+                        this.VerifyProtocolCompliance(json["jsonrpc"] is null, json, "\"jsonrpc\" property not expected. Use protocol version 2.0.");
+                        this.VerifyProtocolCompliance(json["id"] is not null, json, "\"id\" property missing.");
                         return
-                            json["method"] != null ? this.ReadRequest(json) :
+                            json["method"] is not null ? this.ReadRequest(json) :
                             json["error"]?.Type == JTokenType.Null ? this.ReadResult(json) :
                             json["error"] is { Type: not JTokenType.Null } ? this.ReadError(json) :
                             throw this.CreateProtocolNonComplianceException(json);
                     case 2:
                         this.VerifyProtocolCompliance(json.Value<string>("jsonrpc") == "2.0", json, $"\"jsonrpc\" property must be set to \"2.0\", or set {nameof(this.ProtocolVersion)} to 1.0 mode.");
                         return
-                            json["method"] != null ? this.ReadRequest(json) :
-                            json["result"] != null ? this.ReadResult(json) :
-                            json["error"] != null ? this.ReadError(json) :
+                            json["method"] is not null ? this.ReadRequest(json) :
+                            json["result"] is not null ? this.ReadResult(json) :
+                            json["error"] is not null ? this.ReadError(json) :
                             throw this.CreateProtocolNonComplianceException(json);
                     default:
                         throw Assumes.NotReachable();
@@ -436,7 +436,7 @@ namespace StreamJsonRpc
         {
             try
             {
-                this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String != null;
+                this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String is not null;
 
                 // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
                 this.TokenizeUserData(message);
@@ -444,12 +444,12 @@ namespace StreamJsonRpc
                 var json = JToken.FromObject(message, DefaultSerializer);
 
                 // Fix up dropped fields that are mandatory
-                if (message is Protocol.JsonRpcResult && json["result"] == null)
+                if (message is Protocol.JsonRpcResult && json["result"] is null)
                 {
                     json["result"] = JValue.CreateNull();
                 }
 
-                if (this.ProtocolVersion.Major == 1 && json["id"] == null)
+                if (this.ProtocolVersion.Major == 1 && json["id"] is null)
                 {
                     // JSON-RPC 1.0 requires the id property to be present even for notifications.
                     json["id"] = JValue.CreateNull();
@@ -521,7 +521,7 @@ namespace StreamJsonRpc
         {
             var builder = new StringBuilder();
             builder.AppendFormat(CultureInfo.CurrentCulture, "Unrecognized JSON-RPC {0} message", this.ProtocolVersion);
-            if (explanation != null)
+            if (explanation is not null)
             {
                 builder.AppendFormat(CultureInfo.CurrentCulture, " ({0})", explanation);
             }
@@ -588,7 +588,7 @@ namespace StreamJsonRpc
                     case Protocol.JsonRpcRequest request:
                         this.serializingRequest = true;
 
-                        if (request.ArgumentsList != null)
+                        if (request.ArgumentsList is not null)
                         {
                             var tokenizedArgumentsList = new JToken[request.ArgumentsList.Count];
                             for (int i = 0; i < request.ArgumentsList.Count; i++)
@@ -598,7 +598,7 @@ namespace StreamJsonRpc
 
                             request.ArgumentsList = tokenizedArgumentsList;
                         }
-                        else if (request.Arguments != null)
+                        else if (request.Arguments is not null)
                         {
                             if (this.ProtocolVersion.Major < 2)
                             {
@@ -640,7 +640,7 @@ namespace StreamJsonRpc
                 return token;
             }
 
-            if (value == null)
+            if (value is null)
             {
                 return JValue.CreateNull();
             }
@@ -688,7 +688,7 @@ namespace StreamJsonRpc
             // If method is $/progress, get the progress instance from the dictionary and call Report
             string? method = json.Value<string>("method");
 
-            if (this.formatterProgressTracker != null && string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
+            if (this.formatterProgressTracker is not null && string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
             {
                 try
                 {
@@ -764,7 +764,7 @@ namespace StreamJsonRpc
         private RequestId ExtractRequestId(JToken json)
         {
             JToken? idToken = json["id"];
-            if (idToken == null)
+            if (idToken is null)
             {
                 throw this.CreateProtocolNonComplianceException(json, "\"id\" property missing.");
             }
@@ -775,7 +775,7 @@ namespace StreamJsonRpc
 
         private RequestId NormalizeId(RequestId id)
         {
-            if (!this.observedTransmittedRequestWithStringId && id.String != null && long.TryParse(id.String, out long idAsNumber))
+            if (!this.observedTransmittedRequestWithStringId && id.String is not null && long.TryParse(id.String, out long idAsNumber))
             {
                 id = new RequestId(idAsNumber);
             }
@@ -796,7 +796,7 @@ namespace StreamJsonRpc
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
-                if (parameters.Length == 1 && this.NamedArguments != null)
+                if (parameters.Length == 1 && this.NamedArguments is not null)
                 {
                     // Special support for accepting a single JToken instead of all parameters individually.
                     if (parameters[0].ParameterType == typeof(JToken))
@@ -812,7 +812,7 @@ namespace StreamJsonRpc
                     }
 
                     // Support for opt-in to deserializing all named arguments into a single parameter.
-                    if (this.Method != null)
+                    if (this.Method is not null)
                     {
                         JsonRpcMethodAttribute? attribute = this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters);
                         if (attribute?.UseSingleObjectParameterDeserialization ?? false)
@@ -881,11 +881,11 @@ namespace StreamJsonRpc
 
             public override T GetResult<T>()
             {
-                Verify.Operation(this.Result != null, "This instance hasn't been initialized with a result yet.");
+                Verify.Operation(this.Result is not null, "This instance hasn't been initialized with a result yet.");
                 var result = (JToken)this.Result;
                 if (result.Type == JTokenType.Null)
                 {
-                    Verify.Operation(!typeof(T).GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(typeof(T)) != null, "null result is not assignable to a value type.");
+                    Verify.Operation(!typeof(T).GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(typeof(T)) is not null, "null result is not assignable to a value type.");
                     return default!;
                 }
 
@@ -917,7 +917,7 @@ namespace StreamJsonRpc
                 var data = (JToken?)this.Data;
                 if (data?.Type == JTokenType.Null)
                 {
-                    Verify.Operation(!dataType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(dataType) != null, "null result is not assignable to a value type.");
+                    Verify.Operation(!dataType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(dataType) is not null, "null result is not assignable to a value type.");
                     return default!;
                 }
 

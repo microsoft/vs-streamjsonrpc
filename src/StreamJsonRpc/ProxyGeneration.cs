@@ -286,8 +286,8 @@ namespace StreamJsonRpc
                     Label positionalArgsLabel = il.DefineLabel();
 
                     ParameterInfo cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
-                    int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter != null ? 1 : 0);
-                    VerifySupported(cancellationTokenParameter == null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
+                    int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter is not null ? 1 : 0);
+                    VerifySupported(cancellationTokenParameter is null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
 
                     // if (this.options.ServerRequiresNamedArguments) {
                     il.Emit(OpCodes.Ldarg_0);
@@ -317,7 +317,7 @@ namespace StreamJsonRpc
 
                         // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
                         MethodInfo invokingMethod =
-                            invokeResultTypeArgument != null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                            invokeResultTypeArgument is not null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
                             returnTypeIsVoid ? notifyWithParameterObjectAsyncOfTaskMethodInfo :
                             invokeWithParameterObjectAsyncOfTaskMethodInfo;
 
@@ -370,7 +370,7 @@ namespace StreamJsonRpc
                         // Only pass in the CancellationToken argument if we're NOT calling the Notify method (which doesn't take one).
                         if (!returnTypeIsVoid)
                         {
-                            if (cancellationTokenParameter != null)
+                            if (cancellationTokenParameter is not null)
                             {
                                 il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
                             }
@@ -625,7 +625,7 @@ namespace StreamJsonRpc
             {
                 // We must convert the Task<IAsyncEnumerable<T>> to IAsyncEnumerable<T>
                 // Push a CancellationToken to the stack as well. Use the one this method was given if available, otherwise push CancellationToken.None.
-                if (cancellationTokenParameter != null)
+                if (cancellationTokenParameter is not null)
                 {
                     il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
                 }

@@ -196,7 +196,7 @@ namespace StreamJsonRpc
         /// <returns>The constructor to the IgnoresAccessChecksToAttribute.</returns>
         private ConstructorInfo GetMagicAttributeCtor()
         {
-            if (this.magicAttributeCtor == null)
+            if (this.magicAttributeCtor is null)
             {
                 TypeInfo magicAttribute = this.EmitMagicAttribute();
                 this.magicAttributeCtor = magicAttribute.GetConstructor(new Type[] { typeof(string) });
@@ -250,12 +250,12 @@ namespace StreamJsonRpc
 
             public bool Equals(AssemblyName? x, AssemblyName? y)
             {
-                if (x == null && y == null)
+                if (x is null && y is null)
                 {
                     return true;
                 }
 
-                if (x == null || y == null)
+                if (x is null || y is null)
                 {
                     return false;
                 }

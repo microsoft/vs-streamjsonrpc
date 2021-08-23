@@ -13,7 +13,7 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets a value indicating whether the mono runtime is executing this code.
         /// </summary>
-        internal static bool IsRunningOnMono => Type.GetType("Mono.Runtime") != null;
+        internal static bool IsRunningOnMono => Type.GetType("Mono.Runtime") is not null;
 
         /// <summary>
         /// Reads an <see cref="int"/> value from a buffer using big endian.

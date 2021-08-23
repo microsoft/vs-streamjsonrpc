@@ -158,7 +158,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="reader"/> was <c>null</c>.</returns>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("reader")]
-        public ulong? GetULongToken(PipeReader? reader) => this.GetULongToken(reader != null ? new DuplexPipe(reader) : null);
+        public ulong? GetULongToken(PipeReader? reader) => this.GetULongToken(reader is not null ? new DuplexPipe(reader) : null);
 
         /// <inheritdoc cref="GetULongToken(PipeWriter?)"/>
         [return: NotNullIfNotNull("writer")]
@@ -172,7 +172,7 @@ namespace StreamJsonRpc.Reflection
         /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="writer"/> was <c>null</c>.</returns>
         /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
         [return: NotNullIfNotNull("writer")]
-        public ulong? GetULongToken(PipeWriter? writer) => this.GetULongToken(writer != null ? new DuplexPipe(writer) : null);
+        public ulong? GetULongToken(PipeWriter? writer) => this.GetULongToken(writer is not null ? new DuplexPipe(writer) : null);
 
         /// <inheritdoc cref="GetPipe(ulong?)"/>
         [return: NotNullIfNotNull("token")]
@@ -235,7 +235,7 @@ namespace StreamJsonRpc.Reflection
         public PipeReader? GetPipeReader(ulong? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);
-            if (duplexPipe != null)
+            if (duplexPipe is not null)
             {
                 duplexPipe.Output.Complete();
                 return duplexPipe.Input;
@@ -260,7 +260,7 @@ namespace StreamJsonRpc.Reflection
         public PipeWriter? GetPipeWriter(ulong? token)
         {
             IDuplexPipe? duplexPipe = this.GetPipe(token);
-            if (duplexPipe != null)
+            if (duplexPipe is not null)
             {
                 duplexPipe.Input.Complete();
                 return duplexPipe.Output;

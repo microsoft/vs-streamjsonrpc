@@ -213,9 +213,9 @@ namespace StreamJsonRpc.Protocol
                 ParameterInfo parameter = parameters[i];
                 if (this.TryGetArgumentByNameOrIndex(parameter.Name, i, parameter.ParameterType, out object? argument))
                 {
-                    if (argument == null)
+                    if (argument is null)
                     {
-                        if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) == null)
+                        if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) is null)
                         {
                             // We cannot pass a null value to a value type parameter.
                             return ArgumentMatchResult.ParameterArgumentTypeMismatch;
@@ -257,11 +257,11 @@ namespace StreamJsonRpc.Protocol
         /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
         public virtual bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
-            if (this.NamedArguments != null && name != null)
+            if (this.NamedArguments is not null && name is not null)
             {
                 return this.NamedArguments.TryGetValue(name, out value);
             }
-            else if (this.ArgumentsList != null && position < this.ArgumentsList.Count && position >= 0)
+            else if (this.ArgumentsList is not null && position < this.ArgumentsList.Count && position >= 0)
             {
                 value = this.ArgumentsList[position];
                 return true;

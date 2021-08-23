@@ -102,7 +102,7 @@
 
             cancellationToken.ThrowIfCancellationRequested();
             Message? message = null;
-            while (message == null)
+            while (message is null)
             {
                 Task? waitTask = null;
                 lock (this.readQueue)
@@ -117,7 +117,7 @@
                     }
                 }
 
-                if (waitTask != null)
+                if (waitTask is not null)
                 {
                     if (cancellationToken.CanBeCanceled)
                     {
