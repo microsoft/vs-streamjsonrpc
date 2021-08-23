@@ -207,11 +207,11 @@ namespace StreamJsonRpc
         {
             set
             {
-                Verify.Operation(this.rpc == null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
+                Verify.Operation(this.rpc is null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
 
                 this.rpc = value;
 
-                if (value != null)
+                if (value is not null)
                 {
                     this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
                     this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
@@ -229,7 +229,7 @@ namespace StreamJsonRpc
             get => this.multiplexingStream;
             set
             {
-                Verify.Operation(this.rpc == null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
+                Verify.Operation(this.rpc is null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
                 this.multiplexingStream = value;
             }
         }
@@ -326,7 +326,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public void Serialize(IBufferWriter<byte> contentBuffer, JsonRpcMessage message)
         {
-            if (message is Protocol.JsonRpcRequest request && request.Arguments != null && request.ArgumentsList == null && !(request.Arguments is IReadOnlyDictionary<string, object?>))
+            if (message is Protocol.JsonRpcRequest request && request.Arguments is not null && request.ArgumentsList is null && !(request.Arguments is IReadOnlyDictionary<string, object?>))
             {
                 // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
                 // the parameters can be matched to the method we're invoking.
@@ -393,7 +393,7 @@ namespace StreamJsonRpc
         [return: NotNullIfNotNull("paramsObject")]
         private static (IReadOnlyDictionary<string, object?> ArgumentValues, IReadOnlyDictionary<string, Type> ArgumentTypes)? GetParamsObjectDictionary(object? paramsObject)
         {
-            if (paramsObject == null)
+            if (paramsObject is null)
             {
                 return default;
             }
@@ -412,7 +412,7 @@ namespace StreamJsonRpc
             var result = new Dictionary<string, object?>(StringComparer.Ordinal);
 
             TypeInfo paramsTypeInfo = paramsObject.GetType().GetTypeInfo();
-            bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() != null;
+            bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() is not null;
 
             BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
             if (isDataContract)
@@ -426,7 +426,7 @@ namespace StreamJsonRpc
                 if (isDataContract)
                 {
                     DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
-                    if (dataMemberAttribute == null)
+                    if (dataMemberAttribute is null)
                     {
                         return false;
                     }
@@ -441,13 +441,13 @@ namespace StreamJsonRpc
                 }
                 else
                 {
-                    return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() == null;
+                    return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null;
                 }
             }
 
             foreach (PropertyInfo property in paramsTypeInfo.GetProperties(bindingFlags))
             {
-                if (property.GetMethod != null)
+                if (property.GetMethod is not null)
                 {
                     if (TryGetSerializationInfo(property, out string key))
                     {
@@ -1765,7 +1765,7 @@ namespace StreamJsonRpc
                 writer.Write(value.Method);
 
                 ParamsPropertyName.Write(ref writer);
-                if (value.ArgumentsList != null)
+                if (value.ArgumentsList is not null)
                 {
                     writer.WriteArrayHeader(value.ArgumentsList.Count);
                     for (int i = 0; i < value.ArgumentsList.Count; i++)
@@ -1781,7 +1781,7 @@ namespace StreamJsonRpc
                         }
                     }
                 }
-                else if (value.NamedArguments != null)
+                else if (value.NamedArguments is not null)
                 {
                     writer.WriteMapHeader(value.NamedArguments.Count);
                     foreach (KeyValuePair<string, object?> entry in value.NamedArguments)
@@ -2171,7 +2171,7 @@ namespace StreamJsonRpc
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
-                if (parameters.Length == 1 && this.MsgPackNamedArguments != null)
+                if (parameters.Length == 1 && this.MsgPackNamedArguments is not null)
                 {
                     Assumes.NotNull(this.Method);
 
@@ -2197,14 +2197,14 @@ namespace StreamJsonRpc
             public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
             {
                 // If anyone asks us for an argument *after* we've been told deserialization is done, there's something very wrong.
-                Assumes.True(this.MsgPackNamedArguments != null || this.MsgPackPositionalArguments != null);
+                Assumes.True(this.MsgPackNamedArguments is not null || this.MsgPackPositionalArguments is not null);
 
                 ReadOnlySequence<byte> msgpackArgument = default;
                 if (position >= 0 && this.MsgPackPositionalArguments?.Count > position)
                 {
                     msgpackArgument = this.MsgPackPositionalArguments[position];
                 }
-                else if (name is object && this.MsgPackNamedArguments != null)
+                else if (name is object && this.MsgPackNamedArguments is not null)
                 {
                     this.MsgPackNamedArguments.TryGetValue(name, out msgpackArgument);
                 }
@@ -2267,7 +2267,7 @@ namespace StreamJsonRpc
 
             public override T GetResult<T>()
             {
-                if (this.resultDeserializationException != null)
+                if (this.resultDeserializationException is not null)
                 {
                     ExceptionDispatchInfo.Capture(this.resultDeserializationException).Throw();
                 }

@@ -236,7 +236,7 @@ namespace StreamJsonRpc.Reflection
                         cancellationToken = this.cancellationTokenSource.Token;
                         bool finished = false;
                         var results = new List<T>(this.Settings.MinBatchSize);
-                        if (this.readAheadElements != null)
+                        if (this.readAheadElements is not null)
                         {
                             // Fetch at least the min batch size and at most the number that has been cached up to this point (or until we hit the end of the sequence).
                             // We snap the number of cached elements up front because as we dequeue, we create capacity to store more and we don't want to
@@ -346,7 +346,7 @@ namespace StreamJsonRpc.Reflection
                 this.jsonRpc = jsonRpc;
                 this.handle = handle;
                 this.prefetchedItems = prefetchedItems;
-                this.finished = handle == null;
+                this.finished = handle is null;
             }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
@@ -386,10 +386,10 @@ namespace StreamJsonRpc.Reflection
                 internal AsyncEnumeratorProxy(AsyncEnumerableProxy<T> owner, object? handle, IReadOnlyList<T>? prefetchedItems, bool finished, CancellationToken cancellationToken)
                 {
                     this.owner = owner;
-                    this.nextOrDisposeArguments = handle != null ? new object[] { handle } : null;
+                    this.nextOrDisposeArguments = handle is not null ? new object[] { handle } : null;
                     this.cancellationToken = cancellationToken;
 
-                    if (prefetchedItems != null)
+                    if (prefetchedItems is not null)
                     {
                         Write(this.localCachedValues, prefetchedItems);
                     }
@@ -460,7 +460,7 @@ namespace StreamJsonRpc.Reflection
                                 throw new UnexpectedEmptyEnumerableResponseException("The RPC server responded with an empty list of additional values for an incomplete list.");
                             }
 
-                            if (results.Values != null)
+                            if (results.Values is not null)
                             {
                                 Write(this.localCachedValues, results.Values);
                             }

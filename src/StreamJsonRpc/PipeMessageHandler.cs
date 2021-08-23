@@ -76,7 +76,7 @@ namespace StreamJsonRpc
             this.Writer = writer?.UsePipeWriter();
 
             // After we've completed writing, only dispose the underlying write stream when we've flushed everything.
-            if (writer != null)
+            if (writer is not null)
             {
                 Assumes.NotNull(this.Writer);
 #pragma warning disable CS0618 // Type or member is obsolete (Nerdbank.Streams implements this, so it won't go away).
@@ -87,17 +87,17 @@ namespace StreamJsonRpc
             // NamedPipeClientStream.ReadAsync(byte[], int, int, CancellationToken) ignores the CancellationToken except at the entrypoint.
             // To avoid an async hang there or in similar streams upon disposal, we're going to Dispose the read stream directly.
             // We only need to do this if the read stream is distinct from the write stream, which is already handled above.
-            if (reader != null && reader != writer)
+            if (reader is not null && reader != writer)
             {
                 this.DisposalToken.Register(state => ((Stream)state!).Dispose(), reader);
             }
         }
 
         /// <inheritdoc/>
-        public override bool CanRead => this.Reader != null;
+        public override bool CanRead => this.Reader is not null;
 
         /// <inheritdoc/>
-        public override bool CanWrite => this.Writer != null;
+        public override bool CanWrite => this.Writer is not null;
 
         /// <summary>
         /// Gets the reader to use for receiving messages.
@@ -112,7 +112,7 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
         {
-            if (message != null && this.Reader != null && this.deserializationReservedBuffer.Message == message)
+            if (message is not null && this.Reader is not null && this.deserializationReservedBuffer.Message == message)
             {
                 this.deserializationReservedBuffer.Message.DeserializationComplete(message);
                 this.Reader.AdvanceTo(this.deserializationReservedBuffer.ConsumedPosition);
@@ -161,7 +161,7 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
         {
-            Verify.Operation(this.Writer != null, "No sending stream.");
+            Verify.Operation(this.Writer is not null, "No sending stream.");
             await this.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -231,13 +231,13 @@ namespace StreamJsonRpc
             if (contentLength >= LargeMessageThreshold && this.Formatter is IJsonRpcAsyncMessageFormatter asyncFormatter)
             {
                 PipeReader slice = this.Reader.ReadSlice(contentLength);
-                if (contentEncoding != null && asyncFormatter is IJsonRpcAsyncMessageTextFormatter asyncTextFormatter)
+                if (contentEncoding is not null && asyncFormatter is IJsonRpcAsyncMessageTextFormatter asyncTextFormatter)
                 {
                     return await asyncTextFormatter.DeserializeAsync(slice, contentEncoding, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    if (specificEncoding != null)
+                    if (specificEncoding is not null)
                     {
                         this.ThrowNoTextEncoder();
                     }
@@ -252,13 +252,13 @@ namespace StreamJsonRpc
                 try
                 {
                     JsonRpcMessage message;
-                    if (contentEncoding != null && this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
+                    if (contentEncoding is not null && this.Formatter is IJsonRpcMessageTextFormatter textFormatter)
                     {
                         message = textFormatter.Deserialize(contentBuffer, contentEncoding);
                     }
                     else
                     {
-                        if (specificEncoding != null)
+                        if (specificEncoding is not null)
                         {
                             this.ThrowNoTextEncoder();
                         }
@@ -275,7 +275,7 @@ namespace StreamJsonRpc
                 }
                 finally
                 {
-                    if (this.deserializationReservedBuffer.Message == null)
+                    if (this.deserializationReservedBuffer.Message is null)
                     {
                         // We're now done reading from the pipe's buffer. We can release it now.
                         this.Reader.AdvanceTo(contentBuffer.End);

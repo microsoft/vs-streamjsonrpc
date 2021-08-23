@@ -3026,7 +3026,7 @@ public abstract class JsonRpcTests : TestBase
 
         public object? MethodThatAccceptsAndReturnsNull(object value)
         {
-            this.NullPassed = value == null;
+            this.NullPassed = value is null;
             return null;
         }
 

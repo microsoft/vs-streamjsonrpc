@@ -228,7 +228,7 @@ public abstract class WebSocketMessageHandlerTests : TestBase
 
         public override Task SendAsync(ArraySegment<byte> input, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
         {
-            if (this.writingInProgress == null)
+            if (this.writingInProgress is null)
             {
                 var bufferCopy = new byte[input.Count];
                 Buffer.BlockCopy(input.Array!, input.Offset, bufferCopy, 0, input.Count);

@@ -220,7 +220,7 @@ namespace StreamJsonRpc.Reflection
 
                 Type? iProgressOfTType = FindIProgressOfT(progressObject.GetType());
 
-                Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
+                Verify.Operation(iProgressOfTType is not null, Resources.FindIProgressOfTError);
 
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
                 this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;

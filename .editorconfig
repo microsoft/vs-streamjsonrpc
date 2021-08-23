@@ -177,3 +177,9 @@ dotnet_diagnostic.SA1639.severity = silent
 dotnet_diagnostic.SA1640.severity = silent
 dotnet_diagnostic.SA1641.severity = silent
 dotnet_diagnostic.CA1033.severity = suggestion
+
+# CSIsNull001: Use `is null` for null checks
+dotnet_diagnostic.CSIsNull001.severity = warning
+
+# CSIsNull002: Use `is object` for non-null checks
+dotnet_diagnostic.CSIsNull002.severity = warning

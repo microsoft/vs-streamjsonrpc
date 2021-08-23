@@ -391,7 +391,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         TaskCompletionSource<object> channelCreatedTask = new TaskCompletionSource<object>();
 
-        if (this.clientMx != null)
+        if (this.clientMx is not null)
         {
             this.clientMx.ChannelOffered += (object? sender, MultiplexingStream.ChannelOfferEventArgs args) =>
             {
