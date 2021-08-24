@@ -24,6 +24,13 @@ StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationErrorWithException = -32004 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
+StreamJsonRpc.Protocol.JsonRpcMessage.OutboundExtraTopLevelProperties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue>!
+StreamJsonRpc.Protocol.JsonRpcMessage.SetTopLevelProperty<T>(string! name, T? value) -> void
+StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue
+StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue.TypedValue() -> void
+StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue.TypedValue(object? value, System.Type! valueType) -> void
+StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue.Value.get -> object?
+StreamJsonRpc.Protocol.JsonRpcMessage.TypedValue.ValueType.get -> System.Type?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.get -> string?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.set -> void
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.get -> string?
@@ -34,4 +41,5 @@ StreamJsonRpc.TargetMethod
 virtual StreamJsonRpc.CorrelationManagerTracingStrategy.GetInboundActivityName(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> string?
 virtual StreamJsonRpc.JsonRpc.DispatchRequestAsync(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.TargetMethod! targetMethod, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage!>
 virtual StreamJsonRpc.JsonRpc.LoadType(string! typeFullName, string? assemblyName) -> System.Type?
+virtual StreamJsonRpc.Protocol.JsonRpcMessage.TryGetTopLevelProperty<T>(string! name, out T? value) -> bool
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentNames.get -> System.Collections.Generic.IEnumerable<string!>?
