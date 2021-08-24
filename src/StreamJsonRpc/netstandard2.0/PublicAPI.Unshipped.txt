@@ -1,3 +1,4 @@
+override StreamJsonRpc.TargetMethod.ToString() -> string!
 static StreamJsonRpc.CorrelationManagerTracingStrategy.TraceState.get -> string?
 static StreamJsonRpc.CorrelationManagerTracingStrategy.TraceState.set -> void
 StreamJsonRpc.ActivityTracingStrategy
@@ -29,6 +30,8 @@ StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.get -> string?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.set -> void
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
 StreamJsonRpc.RequestId.RequestId() -> void
+StreamJsonRpc.TargetMethod
 virtual StreamJsonRpc.CorrelationManagerTracingStrategy.GetInboundActivityName(StreamJsonRpc.Protocol.JsonRpcRequest! request) -> string?
+virtual StreamJsonRpc.JsonRpc.DispatchRequestAsync(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.TargetMethod! targetMethod, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage!>
 virtual StreamJsonRpc.JsonRpc.LoadType(string! typeFullName, string? assemblyName) -> System.Type?
 virtual StreamJsonRpc.Protocol.JsonRpcRequest.ArgumentNames.get -> System.Collections.Generic.IEnumerable<string!>?

@@ -1539,6 +1539,82 @@ namespace StreamJsonRpc
         /// <param name="response">The result or error that was sent.</param>
         protected virtual void OnResponseSent(JsonRpcMessage response) => this.responseSent?.Invoke(this, new JsonRpcResponseEventArgs((IJsonRpcMessageWithId)Requires.NotNull(response, nameof(response))));
 
+        /// <summary>
+        /// Invokes the method on the local RPC target object and converts the response into a JSON-RPC result message.
+        /// </summary>
+        /// <param name="request">The incoming JSON-RPC request that resulted in the <paramref name="targetMethod"/> being selected to receive the dispatch.</param>
+        /// <param name="targetMethod">The method to be invoked and the arguments to pass to it.</param>
+        /// <param name="cancellationToken">A cancellation token to pass to <see cref="TargetMethod.InvokeAsync(CancellationToken)"/>.</param>
+        /// <returns>
+        /// The JSON-RPC response message to send back to the client.
+        /// This is never expected to be null. If the protocol indicates no response message is expected by the client, it will be dropped rather than transmitted.
+        /// </returns>
+        /// <remarks>
+        /// Overrides of this method are expected to call this base method for core functionality.
+        /// Overrides should call the base method before any yielding await in order to maintain consistent message ordering
+        /// unless the goal of the override is specifically to alter ordering of incoming messages.
+        /// </remarks>
+        protected virtual async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
+        {
+            object? result;
+            using (IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request))
+            {
+                try
+                {
+                    // IMPORTANT: This should be the first await in this async method,
+                    //            and no other await should be between this one and actually invoking the target method.
+                    //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                    //            when a single-threaded SynchronizationContext is applied.
+                    result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+                {
+                    return CreateCancellationResponse(request);
+                }
+            }
+
+            // Convert ValueTask to Task or ValueTask<T> to Task<T>
+            if (TryGetTaskFromValueTask(result, out Task? resultTask))
+            {
+                result = resultTask;
+            }
+
+            if (!(result is Task resultingTask))
+            {
+                if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
+                {
+                    JsonRpcEventSource.Instance.SendingResult(request.RequestId.NumberIfPossibleForEvent);
+                }
+
+                try
+                {
+                    await this.ProcessResultBeforeSerializingAsync(result, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return CreateCancellationResponse(request);
+                }
+
+                return new JsonRpcResult
+                {
+                    RequestId = request.RequestId,
+                    Result = result,
+                    ResultDeclaredType = targetMethod.ReturnType,
+                };
+            }
+
+            // Avoid another first chance exception from re-throwing here. We'll handle faults in our HandleInvocationTask* methods below.
+            await resultingTask.NoThrowAwaitable(false);
+
+            // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
+            // Checking on the runtime result object itself is problematic because .NET / C# implements
+            // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
+            // the VoidTaskResult internal struct as a meaningful result.
+            return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
+                ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
+                : this.HandleInvocationTaskResult(request, resultingTask);
+        }
+
         private static JsonRpcError CreateCancellationResponse(JsonRpcRequest request)
         {
             return new JsonRpcError
@@ -1870,63 +1946,7 @@ namespace StreamJsonRpc
                         }
                     }
 
-                    object? result;
-                    using (IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request))
-                    {
-                        try
-                        {
-                            // IMPORTANT: This should be the first await in this async method,
-                            //            and no other await should be between this one and actually invoking the target method.
-                            //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                            //            when a single-threaded SynchronizationContext is applied.
-                            result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
-                        }
-                        catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
-                        {
-                            return CreateCancellationResponse(request);
-                        }
-                    }
-
-                    // Convert ValueTask to Task or ValueTask<T> to Task<T>
-                    if (TryGetTaskFromValueTask(result, out Task? resultTask))
-                    {
-                        result = resultTask;
-                    }
-
-                    if (!(result is Task resultingTask))
-                    {
-                        if (JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None))
-                        {
-                            JsonRpcEventSource.Instance.SendingResult(request.RequestId.NumberIfPossibleForEvent);
-                        }
-
-                        try
-                        {
-                            await this.ProcessResultBeforeSerializingAsync(result, cancellationToken).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return CreateCancellationResponse(request);
-                        }
-
-                        return new JsonRpcResult
-                        {
-                            RequestId = request.RequestId,
-                            Result = result,
-                            ResultDeclaredType = targetMethod.ReturnType,
-                        };
-                    }
-
-                    // Avoid another first chance exception from re-throwing here. We'll handle faults in our HandleInvocationTask* methods below.
-                    await resultingTask.NoThrowAwaitable(false);
-
-                    // Pick continuation delegate based on whether a Task.Result exists based on method declaration.
-                    // Checking on the runtime result object itself is problematic because .NET / C# implements
-                    // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
-                    // the VoidTaskResult internal struct as a meaningful result.
-                    return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
-                        ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
-                        : this.HandleInvocationTaskResult(request, resultingTask);
+                    return await this.DispatchRequestAsync(request, targetMethod, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {

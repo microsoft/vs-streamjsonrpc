@@ -16,7 +16,10 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
-    internal sealed class TargetMethod
+    /// <summary>
+    /// Represents the dispatch target of an incoming request.
+    /// </summary>
+    public sealed class TargetMethod
     {
         private readonly JsonRpcRequest request;
         private readonly object? target;
