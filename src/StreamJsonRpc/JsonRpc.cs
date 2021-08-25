@@ -1443,11 +1443,9 @@ namespace StreamJsonRpc
             cancellationToken.ThrowIfCancellationRequested();
             Verify.NotDisposed(this);
 
-            var request = new JsonRpcRequest
-            {
-                RequestId = id,
-                Method = targetName,
-            };
+            JsonRpcRequest request = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateRequestMessage() ?? new JsonRpcRequest();
+            request.RequestId = id;
+            request.Method = targetName;
             this.ActivityTracingStrategy?.ApplyOutboundActivity(request);
 
             if (isParameterObject)
@@ -1569,7 +1567,7 @@ namespace StreamJsonRpc
                 }
                 catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
                 {
-                    return CreateCancellationResponse(request);
+                    return this.CreateCancellationResponse(request);
                 }
             }
 
@@ -1592,15 +1590,14 @@ namespace StreamJsonRpc
                 }
                 catch (OperationCanceledException)
                 {
-                    return CreateCancellationResponse(request);
+                    return this.CreateCancellationResponse(request);
                 }
 
-                return new JsonRpcResult
-                {
-                    RequestId = request.RequestId,
-                    Result = result,
-                    ResultDeclaredType = targetMethod.ReturnType,
-                };
+                JsonRpcResult resultMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateResultMessage() ?? new JsonRpcResult();
+                resultMessage.RequestId = request.RequestId;
+                resultMessage.Result = result;
+                resultMessage.ResultDeclaredType = targetMethod.ReturnType;
+                return resultMessage;
             }
 
             // Avoid another first chance exception from re-throwing here. We'll handle faults in our HandleInvocationTask* methods below.
@@ -1613,19 +1610,6 @@ namespace StreamJsonRpc
             return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
                 ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
                 : this.HandleInvocationTaskResult(request, resultingTask);
-        }
-
-        private static JsonRpcError CreateCancellationResponse(JsonRpcRequest request)
-        {
-            return new JsonRpcError
-            {
-                RequestId = request.RequestId,
-                Error = new JsonRpcError.ErrorDetail
-                {
-                    Code = JsonRpcErrorCode.RequestCanceled,
-                    Message = Resources.TaskWasCancelled,
-                },
-            };
         }
 
         private static Exception StripExceptionToInnerException(Exception exception)
@@ -1695,6 +1679,18 @@ namespace StreamJsonRpc
 
             task = null;
             return false;
+        }
+
+        private JsonRpcError CreateCancellationResponse(JsonRpcRequest request)
+        {
+            JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
+            errorMessage.RequestId = request.RequestId;
+            errorMessage.Error = new JsonRpcError.ErrorDetail
+            {
+                Code = JsonRpcErrorCode.RequestCanceled,
+                Message = Resources.TaskWasCancelled,
+            };
+            return errorMessage;
         }
 
         private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
@@ -1840,11 +1836,10 @@ namespace StreamJsonRpc
             this.ThrowIfNullDetail(exception, errorDetails);
 
             errorDetails.Code = JsonRpcErrorCode.ResponseSerializationFailure;
-            return new JsonRpcError
-            {
-                RequestId = request.RequestId,
-                Error = errorDetails,
-            };
+            JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
+            errorMessage.RequestId = request.RequestId;
+            errorMessage.Error = errorDetails;
+            return errorMessage;
         }
 
         private JsonRpcError CreateError(JsonRpcRequest request, Exception exception)
@@ -1863,11 +1858,10 @@ namespace StreamJsonRpc
             JsonRpcError.ErrorDetail errorDetails = this.CreateErrorDetails(request, exception);
             this.ThrowIfNullDetail(exception, errorDetails);
 
-            return new JsonRpcError
-            {
-                RequestId = request.RequestId,
-                Error = errorDetails,
-            };
+            JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
+            errorMessage.RequestId = request.RequestId;
+            errorMessage.Error = errorDetails;
+            return errorMessage;
         }
 
         private void ThrowIfNullDetail(Exception exception, JsonRpcError.ErrorDetail errorDetails)
@@ -2017,15 +2011,14 @@ namespace StreamJsonRpc
                             this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
                         }
 
-                        return new JsonRpcError
+                        JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
+                        errorMessage.RequestId = request.RequestId;
+                        errorMessage.Error = new JsonRpcError.ErrorDetail
                         {
-                            RequestId = request.RequestId,
-                            Error = new JsonRpcError.ErrorDetail
-                            {
-                                Code = JsonRpcErrorCode.MethodNotFound,
-                                Message = string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method),
-                            },
+                            Code = JsonRpcErrorCode.MethodNotFound,
+                            Message = string.Format(CultureInfo.CurrentCulture, Resources.RpcMethodNameNotFound, request.Method),
                         };
+                        return errorMessage;
                     }
                     else
                     {
@@ -2034,16 +2027,15 @@ namespace StreamJsonRpc
                             this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
                         }
 
-                        return new JsonRpcError
+                        JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
+                        errorMessage.RequestId = request.RequestId;
+                        errorMessage.Error = new JsonRpcError.ErrorDetail
                         {
-                            RequestId = request.RequestId,
-                            Error = new JsonRpcError.ErrorDetail
-                            {
-                                Code = JsonRpcErrorCode.InvalidParams,
-                                Message = targetMethod.LookupErrorMessage,
-                                Data = targetMethod.ArgumentDeserializationFailures is object ? new CommonErrorData(targetMethod.ArgumentDeserializationFailures) : null,
-                            },
+                            Code = JsonRpcErrorCode.InvalidParams,
+                            Message = targetMethod.LookupErrorMessage,
+                            Data = targetMethod.ArgumentDeserializationFailures is object ? new CommonErrorData(targetMethod.ArgumentDeserializationFailures) : null,
                         };
+                        return errorMessage;
                     }
                 }
             }
@@ -2102,14 +2094,13 @@ namespace StreamJsonRpc
             }
             else if (t.IsCanceled)
             {
-                result = CreateCancellationResponse(request);
+                result = this.CreateCancellationResponse(request);
             }
             else
             {
-                result = new JsonRpcResult
-                {
-                    RequestId = request.RequestId,
-                };
+                JsonRpcResult resultMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateResultMessage() ?? new JsonRpcResult();
+                resultMessage.RequestId = request.RequestId;
+                result = resultMessage;
             }
 
             if (result is JsonRpcError error)
