@@ -7,6 +7,7 @@ namespace StreamJsonRpc.Protocol
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.Serialization;
     using Microsoft;
 
@@ -40,8 +41,9 @@ namespace StreamJsonRpc.Protocol
         /// <see langword="true" /> if the <see cref="IJsonRpcMessageFormatter"/> supports this extensibility
         /// and the property was present on the message; otherwise <see langword="false" />.
         /// </returns>
-        public virtual bool TryGetTopLevelProperty<T>(string name, out T? value)
+        public virtual bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
         {
+            Requires.NotNull(name, nameof(name));
             value = default;
             return false;
         }
@@ -56,7 +58,7 @@ namespace StreamJsonRpc.Protocol
         /// <see langword="true" /> if the formatter supports setting top-level properties;
         /// <see langword="false" /> otherwise.
         /// </returns>
-        public virtual bool TrySetTopLevelProperty<T>(string name, T? value)
+        public virtual bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
         {
             Requires.NotNull(name, nameof(name));
             return false;
