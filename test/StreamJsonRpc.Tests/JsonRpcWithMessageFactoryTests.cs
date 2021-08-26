@@ -118,7 +118,7 @@ public class JsonRpcWithMessageFactoryTests : TestBase
 
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
         {
-            return this.formatter.Deserialize(contentBuffer);
+            throw new NotSupportedException();
         }
 
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding)

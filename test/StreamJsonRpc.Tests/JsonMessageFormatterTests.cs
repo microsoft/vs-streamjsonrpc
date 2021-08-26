@@ -239,12 +239,16 @@ public class JsonMessageFormatterTests : TestBase
 
         jsonRequest.Method = "test";
         Assert.True(jsonRequest.TrySetTopLevelProperty("testProperty", "testValue"));
+        Assert.True(jsonRequest.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
 
         var messageJsonObject = formatter.Serialize(jsonRequest);
         var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
 
         Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
         Assert.Equal("testValue", value);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
+        Assert.Equal(25, customObject?.Age);
     }
 
     [Fact]
@@ -273,5 +277,10 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal(msg.Method, readMsg.Method);
 
         return length;
+    }
+
+    public class CustomType
+    {
+        public int Age { get; set; }
     }
 }
