@@ -346,6 +346,38 @@ public class MessagePackFormatterTests : TestBase
         Assert.Equal(dynamic.error.code, (int?)request.Error?.Code);
     }
 
+    [Fact]
+    public void TopLevelPropertiesCanBeSerialized()
+    {
+        var requestMessage = this.formatter.CreateRequestMessage();
+        Assert.NotNull(requestMessage);
+
+        requestMessage.Method = "test";
+        Assert.True(requestMessage.TrySetTopLevelProperty("testProperty", "testValue"));
+        Assert.True(requestMessage.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
+
+        var roundTripMessage = this.Roundtrip(requestMessage);
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
+        Assert.Equal(25, customObject?.Age);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesWithNullValue()
+    {
+        var requestMessage = this.formatter.CreateRequestMessage();
+        Assert.NotNull(requestMessage);
+
+        requestMessage.Method = "test";
+        Assert.True(requestMessage.TrySetTopLevelProperty<string?>("testProperty", null));
+
+        var roundTripMessage = this.Roundtrip(requestMessage);
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Null(value);
+    }
+
     private T Read<T>(object anonymousObject)
         where T : JsonRpcMessage
     {
