@@ -33,7 +33,7 @@ namespace StreamJsonRpc
     /// <remarks>
     /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
     /// </remarks>
-    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
+    public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcFormatterState, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IDisposable
     {
         /// <summary>
         /// The key into an <see cref="Exception.Data"/> dictionary whose value may be a <see cref="JToken"/> that failed deserialization.
@@ -472,6 +472,24 @@ namespace StreamJsonRpc
         public object GetJsonText(JsonRpcMessage message) => throw new NotSupportedException();
 
         /// <inheritdoc/>
+        public Protocol.JsonRpcRequest CreateRequestMessage()
+        {
+            return new JsonRpcRequest(this);
+        }
+
+        /// <inheritdoc/>
+        public JsonRpcError CreateErrorMessage()
+        {
+            return new JsonRpcError();
+        }
+
+        /// <inheritdoc/>
+        public Protocol.JsonRpcResult CreateResultMessage()
+        {
+            return new JsonRpcResult(this.JsonSerializer);
+        }
+
+        /// <inheritdoc/>
         public void Dispose()
         {
             this.Dispose(true);
@@ -717,6 +735,19 @@ namespace StreamJsonRpc
                 }
             }
 
+            Dictionary<string, JToken?>? topLevelProperties = null;
+            JObject? topLevelPropertyObject = json["toplevelproperties"] as JObject;
+
+            if (topLevelPropertyObject is object)
+            {
+                topLevelProperties = new Dictionary<string, JToken?>();
+
+                foreach (JProperty property in topLevelPropertyObject.Properties())
+                {
+                    topLevelProperties[property.Name] = property.Value;
+                }
+            }
+
             return new JsonRpcRequest(this)
             {
                 RequestId = id,
@@ -724,6 +755,7 @@ namespace StreamJsonRpc
                 Arguments = arguments,
                 TraceParent = json.Value<string>("traceparent"),
                 TraceState = json.Value<string>("tracestate"),
+                TopLevelProperties = topLevelProperties,
             };
         }
 
@@ -788,10 +820,21 @@ namespace StreamJsonRpc
         private class JsonRpcRequest : Protocol.JsonRpcRequest
         {
             private readonly JsonMessageFormatter formatter;
+            private Dictionary<string, JToken?>? topLevelProperties;
 
             internal JsonRpcRequest(JsonMessageFormatter formatter)
             {
                 this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+            }
+
+            /// <summary>
+            /// Gets or sets the dictionary of top level properties.
+            /// </summary>
+            [DataMember(Name = "toplevelproperties", IsRequired = false, EmitDefaultValue = false)]
+            public IReadOnlyDictionary<string, JToken?>? TopLevelProperties
+            {
+                get => this.topLevelProperties;
+                set => this.topLevelProperties = value is null ? null : value.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             }
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
@@ -865,6 +908,31 @@ namespace StreamJsonRpc
                 }
 
                 return false;
+            }
+
+            public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            {
+                value = default;
+
+                JToken? serializedValue = null;
+                if (this.topLevelProperties?.TryGetValue(name, out serializedValue) is true)
+                {
+                    value = serializedValue is null ? default : serializedValue.ToObject<T>(this.formatter.JsonSerializer);
+                    return true;
+                }
+
+                return false;
+            }
+
+            public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                if (this.topLevelProperties is null)
+                {
+                    this.topLevelProperties = new Dictionary<string, JToken?>();
+                }
+
+                this.topLevelProperties[name] = value is null ? null : JToken.FromObject(value, this.formatter.JsonSerializer);
+                return true;
             }
         }
 

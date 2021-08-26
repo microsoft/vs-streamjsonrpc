@@ -21,12 +21,18 @@ StreamJsonRpc.IJsonRpcMessageFactory
 StreamJsonRpc.IJsonRpcMessageFactory.CreateErrorMessage() -> StreamJsonRpc.Protocol.JsonRpcError!
 StreamJsonRpc.IJsonRpcMessageFactory.CreateRequestMessage() -> StreamJsonRpc.Protocol.JsonRpcRequest!
 StreamJsonRpc.IJsonRpcMessageFactory.CreateResultMessage() -> StreamJsonRpc.Protocol.JsonRpcResult!
+StreamJsonRpc.JsonMessageFormatter.CreateErrorMessage() -> StreamJsonRpc.Protocol.JsonRpcError!
+StreamJsonRpc.JsonMessageFormatter.CreateRequestMessage() -> StreamJsonRpc.Protocol.JsonRpcRequest!
+StreamJsonRpc.JsonMessageFormatter.CreateResultMessage() -> StreamJsonRpc.Protocol.JsonRpcResult!
 StreamJsonRpc.JsonRpc.ActivityTracingStrategy.get -> StreamJsonRpc.IActivityTracingStrategy?
 StreamJsonRpc.JsonRpc.ActivityTracingStrategy.set -> void
 StreamJsonRpc.JsonRpc.ExceptionStrategy.get -> StreamJsonRpc.ExceptionProcessing
 StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.MessagePackFormatter.CreateErrorMessage() -> StreamJsonRpc.Protocol.JsonRpcError!
+StreamJsonRpc.MessagePackFormatter.CreateRequestMessage() -> StreamJsonRpc.Protocol.JsonRpcRequest!
+StreamJsonRpc.MessagePackFormatter.CreateResultMessage() -> StreamJsonRpc.Protocol.JsonRpcResult!
 StreamJsonRpc.Protocol.JsonRpcErrorCode.InvocationErrorWithException = -32004 -> StreamJsonRpc.Protocol.JsonRpcErrorCode
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.get -> string?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.set -> void

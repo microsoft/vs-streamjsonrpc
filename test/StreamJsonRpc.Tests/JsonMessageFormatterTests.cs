@@ -230,6 +230,40 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }
 
+    [Fact]
+    public void TopLevelPropertiesCanBeSerialized()
+    {
+        var formatter = new JsonMessageFormatter();
+        var jsonRequest = formatter.CreateRequestMessage();
+        Assert.NotNull(jsonRequest);
+
+        jsonRequest.Method = "test";
+        Assert.True(jsonRequest.TrySetTopLevelProperty("testProperty", "testValue"));
+
+        var messageJsonObject = formatter.Serialize(jsonRequest);
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesWithNullValue()
+    {
+        var formatter = new JsonMessageFormatter();
+        var jsonRequest = formatter.CreateRequestMessage();
+        Assert.NotNull(jsonRequest);
+
+        jsonRequest.Method = "test";
+        Assert.True(jsonRequest.TrySetTopLevelProperty<string?>("testProperty", null));
+
+        var messageJsonObject = formatter.Serialize(jsonRequest);
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Null(value);
+    }
+
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
     {
         var builder = new Sequence<byte>();
