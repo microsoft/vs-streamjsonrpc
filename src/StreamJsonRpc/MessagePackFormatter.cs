@@ -358,22 +358,13 @@ namespace StreamJsonRpc
         public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public Protocol.JsonRpcRequest CreateRequestMessage()
-        {
-            return new JsonRpcRequest(this);
-        }
+        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new JsonRpcRequest(this);
 
         /// <inheritdoc/>
-        public Protocol.JsonRpcError CreateErrorMessage()
-        {
-            return new JsonRpcError();
-        }
+        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError();
 
         /// <inheritdoc/>
-        public Protocol.JsonRpcResult CreateResultMessage()
-        {
-            return new JsonRpcResult(this.messageSerializationOptions);
-        }
+        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.messageSerializationOptions);
 
         void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
         {
@@ -2310,7 +2301,7 @@ namespace StreamJsonRpc
                     var reader = new MessagePackReader(serializedValue);
                     try
                     {
-                        value = (T)MessagePackSerializer.Deserialize(typeof(T), ref reader, this.formatter.userDataSerializationOptions);
+                        value = MessagePackSerializer.Deserialize<T>(ref reader, this.formatter.userDataSerializationOptions);
                         return true;
                     }
                     catch (MessagePackSerializationException)

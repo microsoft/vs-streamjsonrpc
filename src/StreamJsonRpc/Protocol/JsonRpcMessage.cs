@@ -43,7 +43,7 @@ namespace StreamJsonRpc.Protocol
         /// </returns>
         public virtual bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
         {
-            Requires.NotNull(name, nameof(name));
+            Requires.NotNullOrEmpty(name, nameof(name));
             value = default;
             return false;
         }
@@ -60,7 +60,7 @@ namespace StreamJsonRpc.Protocol
         /// </returns>
         public virtual bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
         {
-            Requires.NotNull(name, nameof(name));
+            Requires.NotNullOrEmpty(name, nameof(name));
             return false;
         }
     }

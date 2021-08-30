@@ -234,7 +234,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesCanBeSerialized()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonRequest = formatter.CreateRequestMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
         Assert.NotNull(jsonRequest);
 
         jsonRequest.Method = "test";
@@ -255,7 +256,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesWithNullValue()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonRequest = formatter.CreateRequestMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
         Assert.NotNull(jsonRequest);
 
         jsonRequest.Method = "test";
