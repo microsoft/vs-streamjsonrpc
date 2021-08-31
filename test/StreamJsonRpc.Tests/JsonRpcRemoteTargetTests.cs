@@ -77,7 +77,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanNotifyOnRemoteTargetServer()
     {
         await this.originRpc.NotifyAsync(nameof(RemoteTargetOne.GetOne));
-        var result = await RemoteTargetOne.NotificationReceived;
+        var result = await RemoteTargetOne.NotificationReceived.WithCancellation(this.TimeoutToken);
         Assert.Equal(1, result);
     }
 
@@ -92,7 +92,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanNotifyOnOriginServer()
     {
         await this.remoteRpc1.NotifyAsync(nameof(OriginTarget.GetTwo));
-        var result = await OriginTarget.NotificationReceived;
+        var result = await OriginTarget.NotificationReceived.WithCancellation(this.TimeoutToken);
         Assert.Equal(2, result);
     }
 

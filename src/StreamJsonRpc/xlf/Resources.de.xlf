@@ -57,6 +57,11 @@
         <target state="translated">Die Konfiguration ist gesperrt, weil dieser Formatierer bereits einer JsonRpc-Instanz zugeordnet wurde.</target>
         <note />
       </trans-unit>
+      <trans-unit id="InboundMessageOnly">
+        <source>This operation is only appropriate for inbound messages.</source>
+        <target state="new">This operation is only appropriate for inbound messages.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="JsonRpcCannotBeNull" translate="yes" xml:space="preserve">
         <source>JSON RPC must not be null.</source>
         <target state="translated">Der JSON-RPC darf nicht NULL sein.</target>
@@ -92,6 +97,11 @@
         <target state="translated">Out-of-Band-Streams/-Pipes werden in dieser Konfiguration nicht unterstützt. Haben Sie einen MultiplexingStream für den Formatierer festgelegt?</target>
         <note />
       </trans-unit>
+      <trans-unit id="OutboundMessageOnly">
+        <source>This operation is only appropriate for outbound messages.</source>
+        <target state="new">This operation is only appropriate for outbound messages.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ReachedEndOfStream" translate="yes" xml:space="preserve">
         <source>Reached end of stream.</source>
         <target state="translated">Das Ende des Datenstroms wurde erreicht.</target>
@@ -105,6 +115,11 @@
       <trans-unit id="RelayAlreadySet">
         <source>Relay connection has already been established.</source>
         <target state="translated">Die Relayverbindung wurde bereits eingerichtet.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ReservedPropertyName">
+        <source>This property name is reserved by the JSON-RPC spec or this library.</source>
+        <target state="new">This property name is reserved by the JSON-RPC spec or this library.</target>
         <note />
       </trans-unit>
       <trans-unit id="ResponseIsNotError" translate="yes" xml:space="preserve">
@@ -331,6 +346,11 @@
         <source>Error writing JSON RPC Message: {0}: {1}</source>
         <target state="translated">Fehler beim Schreiben der JSON-RPC-Nachricht: {0}: {1}</target>
         <note from="MultilingualBuild" annotates="source" priority="2">{0} is the exception type, {1} is the exception message.</note>
+      </trans-unit>
+      <trans-unit id="UsableOnceOnly">
+        <source>This operation can only be performed once on this object.</source>
+        <target state="new">This operation can only be performed once on this object.</target>
+        <note />
       </trans-unit>
     </body>
   </file>

@@ -230,6 +230,76 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }
 
+    [Fact]
+    public void TopLevelPropertiesCanBeSerialized()
+    {
+        var formatter = new JsonMessageFormatter();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
+        Assert.NotNull(jsonRequest);
+
+        jsonRequest.Method = "test";
+        Assert.True(jsonRequest.TrySetTopLevelProperty("testProperty", "testValue"));
+        Assert.True(jsonRequest.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
+
+        var messageJsonObject = formatter.Serialize(jsonRequest);
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
+        Assert.Equal(25, customObject?.Age);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesCanBeSerializedInError()
+    {
+        var formatter = new JsonMessageFormatter();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonError = factory.CreateErrorMessage();
+        jsonError.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
+
+        Assert.True(jsonError.TrySetTopLevelProperty("testProperty", "testValue"));
+
+        var messageJsonObject = formatter.Serialize(jsonError);
+        var jsonMessage = (JsonRpcError)formatter.Deserialize(messageJsonObject);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesCanBeSerializedInResult()
+    {
+        var formatter = new JsonMessageFormatter();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonResult = factory.CreateResultMessage();
+        Assert.True(jsonResult.TrySetTopLevelProperty("testProperty", "testValue"));
+        var messageJsonObject = formatter.Serialize(jsonResult);
+        var jsonMessage = (JsonRpcResult)formatter.Deserialize(messageJsonObject);
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesWithNullValue()
+    {
+        var formatter = new JsonMessageFormatter();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
+        Assert.NotNull(jsonRequest);
+
+        jsonRequest.Method = "test";
+        Assert.True(jsonRequest.TrySetTopLevelProperty<string?>("testProperty", null));
+
+        var messageJsonObject = formatter.Serialize(jsonRequest);
+        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
+
+        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Null(value);
+    }
+
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
     {
         var builder = new Sequence<byte>();
@@ -239,5 +309,10 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal(msg.Method, readMsg.Method);
 
         return length;
+    }
+
+    public class CustomType
+    {
+        public int Age { get; set; }
     }
 }

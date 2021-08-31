@@ -6,6 +6,7 @@ namespace StreamJsonRpc
     using System;
     using System.Buffers;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
@@ -31,47 +32,47 @@ namespace StreamJsonRpc
     /// The README on that project site describes use cases and its performance compared to alternative
     /// .NET MessagePack implementations and this one appears to be the best by far.
     /// </remarks>
-    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcFormatterTracingCallbacks, IDisposable
+    public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory, IDisposable
     {
         /// <summary>
         /// The constant "jsonrpc", in its various forms.
         /// </summary>
-        private static readonly CommonString VersionPropertyName = new CommonString("jsonrpc");
+        private static readonly CommonString VersionPropertyName = new CommonString(Constants.jsonrpc);
 
         /// <summary>
         /// The constant "id", in its various forms.
         /// </summary>
-        private static readonly CommonString IdPropertyName = new CommonString("id");
+        private static readonly CommonString IdPropertyName = new CommonString(Constants.id);
 
         /// <summary>
         /// The constant "method", in its various forms.
         /// </summary>
-        private static readonly CommonString MethodPropertyName = new CommonString("method");
+        private static readonly CommonString MethodPropertyName = new CommonString(Constants.Request.method);
 
         /// <summary>
         /// The constant "result", in its various forms.
         /// </summary>
-        private static readonly CommonString ResultPropertyName = new CommonString("result");
+        private static readonly CommonString ResultPropertyName = new CommonString(Constants.Result.result);
 
         /// <summary>
         /// The constant "error", in its various forms.
         /// </summary>
-        private static readonly CommonString ErrorPropertyName = new CommonString("error");
+        private static readonly CommonString ErrorPropertyName = new CommonString(Constants.Error.error);
 
         /// <summary>
         /// The constant "params", in its various forms.
         /// </summary>
-        private static readonly CommonString ParamsPropertyName = new CommonString("params");
+        private static readonly CommonString ParamsPropertyName = new CommonString(Constants.Request.@params);
 
         /// <summary>
         /// The constant "traceparent", in its various forms.
         /// </summary>
-        private static readonly CommonString TraceParentPropertyName = new CommonString("traceparent");
+        private static readonly CommonString TraceParentPropertyName = new CommonString(Constants.Request.traceparent);
 
         /// <summary>
         /// The constant "tracestate", in its various forms.
         /// </summary>
-        private static readonly CommonString TraceStatePropertyName = new CommonString("tracestate");
+        private static readonly CommonString TraceStatePropertyName = new CommonString(Constants.Request.tracestate);
 
         /// <summary>
         /// The constant "2.0", in its various forms.
@@ -352,6 +353,15 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : throw new NotSupportedException();
 
+        /// <inheritdoc/>
+        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new JsonRpcRequest(this);
+
+        /// <inheritdoc/>
+        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.userDataSerializationOptions);
+
+        /// <inheritdoc/>
+        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.messageSerializationOptions);
+
         void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
         {
             IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
@@ -533,6 +543,17 @@ namespace StreamJsonRpc
             {
                 writer.Write(version);
             }
+        }
+
+        private static void ReadUnknownProperty(ref MessagePackReader reader, ref Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties, ReadOnlySpan<byte> stringKey)
+        {
+            topLevelProperties ??= new Dictionary<string, ReadOnlySequence<byte>>(StringComparer.Ordinal);
+#if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1
+            string name = Encoding.UTF8.GetString(stringKey);
+#else
+            string name = Encoding.UTF8.GetString(stringKey.ToArray());
+#endif
+            topLevelProperties.Add(name, GetSliceForNextToken(ref reader));
         }
 
         /// <summary>
@@ -1642,6 +1663,7 @@ namespace StreamJsonRpc
 
                 options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
+                Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties = null;
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
                 {
                     // We read the property name in this fancy way in order to avoid paying to decode and allocate a string when we already know what we're looking for.
@@ -1706,8 +1728,13 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        reader.Skip();
+                        ReadUnknownProperty(ref reader, ref topLevelProperties, stringKey);
                     }
+                }
+
+                if (topLevelProperties is not null)
+                {
+                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter.userDataSerializationOptions, topLevelProperties);
                 }
 
                 // If method is $/progress, get the progress instance from the dictionary and call Report
@@ -1741,6 +1768,8 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcRequest value, MessagePackSerializerOptions options)
             {
+                JsonRpcRequest? msgPackMessage = value as JsonRpcRequest;
+
                 int mapElementCount = value.RequestId.IsEmpty ? 3 : 4;
                 if (value.TraceParent?.Length > 0)
                 {
@@ -1751,6 +1780,7 @@ namespace StreamJsonRpc
                     }
                 }
 
+                mapElementCount += msgPackMessage?.MsgPackTopLevelPropertyBag?.PropertyCount ?? 0;
                 writer.WriteMapHeader(mapElementCount);
 
                 WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
@@ -1813,6 +1843,8 @@ namespace StreamJsonRpc
                         WriteTraceState(ref writer, value.TraceState);
                     }
                 }
+
+                msgPackMessage?.MsgPackTopLevelPropertyBag?.WritePropertiesAndClear(ref writer);
             }
 
             private static void WriteTraceState(ref MessagePackWriter writer, string traceState)
@@ -1894,6 +1926,7 @@ namespace StreamJsonRpc
                     OriginalMessagePack = reader.Sequence,
                 };
 
+                Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties = null;
                 options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++)
@@ -1914,8 +1947,13 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        reader.Skip();
+                        ReadUnknownProperty(ref reader, ref topLevelProperties, stringKey);
                     }
+                }
+
+                if (topLevelProperties is not null)
+                {
+                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter.userDataSerializationOptions, topLevelProperties);
                 }
 
                 reader.Depth--;
@@ -1924,7 +1962,11 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcResult value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(3);
+                JsonRpcResult? msgPackMessage = value as JsonRpcResult;
+
+                int mapElementCount = 3;
+                mapElementCount += msgPackMessage?.MsgPackTopLevelPropertyBag?.PropertyCount ?? 0;
+                writer.WriteMapHeader(mapElementCount);
 
                 WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
@@ -1940,6 +1982,8 @@ namespace StreamJsonRpc
                 {
                     DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
                 }
+
+                msgPackMessage?.MsgPackTopLevelPropertyBag?.WritePropertiesAndClear(ref writer);
             }
         }
 
@@ -1954,11 +1998,12 @@ namespace StreamJsonRpc
 
             public Protocol.JsonRpcError Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                var error = new JsonRpcError
+                var error = new JsonRpcError(this.formatter.messageSerializationOptions)
                 {
                     OriginalMessagePack = reader.Sequence,
                 };
 
+                Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties = null;
                 options.Security.DepthStep(ref reader);
                 int propertyCount = reader.ReadMapHeader();
                 for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
@@ -1979,8 +2024,13 @@ namespace StreamJsonRpc
                     }
                     else
                     {
-                        reader.Skip();
+                        ReadUnknownProperty(ref reader, ref topLevelProperties, stringKey);
                     }
+                }
+
+                if (topLevelProperties is not null)
+                {
+                    error.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter.userDataSerializationOptions, topLevelProperties);
                 }
 
                 reader.Depth--;
@@ -1989,7 +2039,11 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError value, MessagePackSerializerOptions options)
             {
-                writer.WriteMapHeader(3);
+                JsonRpcError? msgPackMessage = value as JsonRpcError;
+
+                int mapElementCount = 3;
+                mapElementCount += msgPackMessage?.MsgPackTopLevelPropertyBag?.PropertyCount ?? 0;
+                writer.WriteMapHeader(mapElementCount);
 
                 WriteProtocolVersionPropertyAndValue(ref writer, value.Version);
 
@@ -1998,6 +2052,8 @@ namespace StreamJsonRpc
 
                 ErrorPropertyName.Write(ref writer);
                 options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
+
+                msgPackMessage?.MsgPackTopLevelPropertyBag?.WritePropertiesAndClear(ref writer);
             }
         }
 
@@ -2135,6 +2191,98 @@ namespace StreamJsonRpc
             }
         }
 
+        private class TopLevelPropertyBag
+        {
+            private readonly MessagePackSerializerOptions serializerOptions;
+            private readonly IReadOnlyDictionary<string, ReadOnlySequence<byte>>? inboundUnknownProperties;
+            private Dictionary<string, Sequence<byte>>? outboundUnknownProperties;
+            private bool outboundPropertiesAlreadyWritten;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TopLevelPropertyBag"/> class
+            /// for an incoming message.
+            /// </summary>
+            /// <param name="userDataSerializationOptions">The serializer options to use for this data.</param>
+            /// <param name="inboundUnknownProperties">The map of unrecognized inbound properties.</param>
+            internal TopLevelPropertyBag(MessagePackSerializerOptions userDataSerializationOptions, IReadOnlyDictionary<string, ReadOnlySequence<byte>> inboundUnknownProperties)
+            {
+                this.serializerOptions = userDataSerializationOptions;
+                this.inboundUnknownProperties = inboundUnknownProperties;
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TopLevelPropertyBag"/> class
+            /// for an outbound message.
+            /// </summary>
+            /// <param name="serializerOptions">The serializer options to use for this data.</param>
+            internal TopLevelPropertyBag(MessagePackSerializerOptions serializerOptions)
+            {
+                this.serializerOptions = serializerOptions;
+                this.outboundUnknownProperties = new Dictionary<string, Sequence<byte>>();
+            }
+
+            internal int PropertyCount => this.outboundUnknownProperties?.Count ?? this.inboundUnknownProperties?.Count ?? 0;
+
+            /// <summary>
+            /// Writes the properties tracked by this collection to a messagepack writer.
+            /// </summary>
+            /// <param name="writer">The writer to use.</param>
+            internal void WritePropertiesAndClear(ref MessagePackWriter writer)
+            {
+                if (this.outboundUnknownProperties is null)
+                {
+                    throw new InvalidOperationException(Resources.OutboundMessageOnly);
+                }
+
+                Verify.Operation(!this.outboundPropertiesAlreadyWritten, Resources.UsableOnceOnly);
+
+                foreach (KeyValuePair<string, Sequence<byte>> entry in this.outboundUnknownProperties)
+                {
+                    writer.Write(entry.Key);
+                    writer.WriteRaw(entry.Value);
+                    entry.Value.Reset();
+                }
+
+                this.outboundUnknownProperties.Clear();
+
+                // Throw if this method is called again, since recycling memory here means the operation cannot be repeated.
+                this.outboundPropertiesAlreadyWritten = true;
+            }
+
+            internal bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            {
+                if (this.inboundUnknownProperties is null)
+                {
+                    throw new InvalidOperationException(Resources.InboundMessageOnly);
+                }
+
+                value = default;
+
+                if (this.inboundUnknownProperties.TryGetValue(name, out ReadOnlySequence<byte> serializedValue) is true)
+                {
+                    var reader = new MessagePackReader(serializedValue);
+                    value = MessagePackSerializer.Deserialize<T>(ref reader, this.serializerOptions);
+                    return true;
+                }
+
+                return false;
+            }
+
+            internal void SetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                if (this.outboundUnknownProperties is null)
+                {
+                    throw new InvalidOperationException(Resources.OutboundMessageOnly);
+                }
+
+                Sequence<byte> buffer = new();
+                MessagePackWriter writer = new(buffer);
+                MessagePackSerializer.Serialize(ref writer, value, this.serializerOptions);
+                writer.Flush();
+                this.outboundUnknownProperties[name] = buffer;
+            }
+        }
+
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
         private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
@@ -2158,6 +2306,8 @@ namespace StreamJsonRpc
 
             internal IReadOnlyList<ReadOnlySequence<byte>>? MsgPackPositionalArguments { get; set; }
 
+            internal TopLevelPropertyBag? MsgPackTopLevelPropertyBag { get; set; }
+
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
                 Assumes.True(message == this);
@@ -2165,6 +2315,7 @@ namespace StreamJsonRpc
                 // Clear references to buffers that we are no longer entitled to.
                 this.MsgPackNamedArguments = null;
                 this.MsgPackPositionalArguments = null;
+                this.MsgPackTopLevelPropertyBag = null;
                 this.MsgPackArguments = default;
                 this.OriginalMessagePack = default;
             }
@@ -2239,6 +2390,25 @@ namespace StreamJsonRpc
                     this.formatter.deserializingMessageWithId = default;
                 }
             }
+
+            public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                value = default;
+                return this.MsgPackTopLevelPropertyBag is not null && this.MsgPackTopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            }
+
+            public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                this.MsgPackTopLevelPropertyBag ??= new TopLevelPropertyBag(this.formatter.userDataSerializationOptions);
+                this.MsgPackTopLevelPropertyBag.SetTopLevelProperty(name, value);
+                return true;
+            }
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
@@ -2251,12 +2421,14 @@ namespace StreamJsonRpc
 
             internal JsonRpcResult(MessagePackSerializerOptions serializerOptions)
             {
-                this.serializerOptions = serializerOptions ?? throw new ArgumentNullException(nameof(serializerOptions));
+                this.serializerOptions = serializerOptions;
             }
 
             public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
 
             internal ReadOnlySequence<byte> MsgPackResult { get; set; }
+
+            internal TopLevelPropertyBag? MsgPackTopLevelPropertyBag { get; set; }
 
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
@@ -2275,6 +2447,25 @@ namespace StreamJsonRpc
                 return this.MsgPackResult.IsEmpty
                     ? (T)this.Result!
                     : MessagePackSerializer.Deserialize<T>(this.MsgPackResult, this.serializerOptions);
+            }
+
+            public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                value = default;
+                return this.MsgPackTopLevelPropertyBag is not null && this.MsgPackTopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            }
+
+            public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                this.MsgPackTopLevelPropertyBag ??= new TopLevelPropertyBag(this.serializerOptions);
+                this.MsgPackTopLevelPropertyBag.SetTopLevelProperty(name, value);
+                return true;
             }
 
             protected internal override void SetExpectedResultType(Type resultType)
@@ -2299,7 +2490,16 @@ namespace StreamJsonRpc
         [DataContract]
         private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager, IJsonRpcMessagePackRetention
         {
+            private readonly MessagePackSerializerOptions serializerOptions;
+
+            public JsonRpcError(MessagePackSerializerOptions serializerOptions)
+            {
+                this.serializerOptions = serializerOptions;
+            }
+
             public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }
+
+            internal TopLevelPropertyBag? MsgPackTopLevelPropertyBag { get; set; }
 
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
@@ -2310,6 +2510,25 @@ namespace StreamJsonRpc
                 }
 
                 this.OriginalMessagePack = default;
+            }
+
+            public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                value = default;
+                return this.MsgPackTopLevelPropertyBag is not null && this.MsgPackTopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            }
+
+            public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                this.MsgPackTopLevelPropertyBag ??= new TopLevelPropertyBag(this.serializerOptions);
+                this.MsgPackTopLevelPropertyBag.SetTopLevelProperty(name, value);
+                return true;
             }
 
             [DataContract]
