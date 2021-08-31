@@ -90,7 +90,7 @@ public class JsonRpcDelegatedDispatchTests : TestBase
 
     public class DelegatedJsonRpc : JsonRpc
     {
-        private List<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new List<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+        private AsyncQueue<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new AsyncQueue<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
 
         public DelegatedJsonRpc(IJsonRpcMessageHandler handler)
             : base(handler)
@@ -108,20 +108,21 @@ public class JsonRpcDelegatedDispatchTests : TestBase
 
         public async Task FlushRequestQueueAsync(int expectedCount)
         {
-            while (this.requestSignalQueue.Count != expectedCount)
+            var requests = new List<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+
+            for (int i = 0; i < expectedCount; i++)
             {
-                await Task.Delay(100);
+                var entry = await this.requestSignalQueue.DequeueAsync();
+                requests.Add(entry);
             }
 
             // For test purposes, lets dispatch messages in reverse order
-            this.requestSignalQueue.Reverse();
-            foreach (var entry in this.requestSignalQueue)
+            requests.Reverse();
+            foreach (var entry in requests)
             {
                 entry.Item1.SetResult(true);
                 await entry.Item2;
             }
-
-            this.requestSignalQueue.Clear();
         }
 
         protected override async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
@@ -133,7 +134,7 @@ public class JsonRpcDelegatedDispatchTests : TestBase
             {
                 TaskCompletionSource<bool> signalTask = new TaskCompletionSource<bool>();
                 completionTcs = new TaskCompletionSource<JsonRpcMessage>();
-                this.requestSignalQueue.Add((signalTask, completionTcs.Task));
+                this.requestSignalQueue.TryEnqueue((signalTask, completionTcs.Task));
 
                 await signalTask.Task;
             }

@@ -347,9 +347,9 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
-    public void TopLevelPropertiesCanBeSerialized()
+    public void TopLevelPropertiesCanBeSerializedRequest()
     {
-        var requestMessage = this.formatter.CreateRequestMessage();
+        var requestMessage = ((IJsonRpcMessageFactory)this.formatter).CreateRequestMessage();
         Assert.NotNull(requestMessage);
 
         requestMessage.Method = "test";
@@ -365,9 +365,45 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
+    public void TopLevelPropertiesCanBeSerializedResult()
+    {
+        var message = ((IJsonRpcMessageFactory)this.formatter).CreateResultMessage();
+        Assert.NotNull(message);
+
+        message.Result = "test";
+        Assert.True(message.TrySetTopLevelProperty("testProperty", "testValue"));
+        Assert.True(message.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
+
+        var roundTripMessage = this.Roundtrip(message);
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
+        Assert.Equal(25, customObject?.Age);
+    }
+
+    [Fact]
+    public void TopLevelPropertiesCanBeSerializedError()
+    {
+        var message = ((IJsonRpcMessageFactory)this.formatter).CreateErrorMessage();
+        Assert.NotNull(message);
+
+        message.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
+        Assert.True(message.TrySetTopLevelProperty("testProperty", "testValue"));
+        Assert.True(message.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
+
+        var roundTripMessage = this.Roundtrip(message);
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
+        Assert.Equal("testValue", value);
+
+        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
+        Assert.Equal(25, customObject?.Age);
+    }
+
+    [Fact]
     public void TopLevelPropertiesWithNullValue()
     {
-        var requestMessage = this.formatter.CreateRequestMessage();
+        var requestMessage = ((IJsonRpcMessageFactory)this.formatter).CreateRequestMessage();
         Assert.NotNull(requestMessage);
 
         requestMessage.Method = "test";
