@@ -358,22 +358,13 @@ namespace StreamJsonRpc
         public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack, this.messageSerializationOptions) : throw new NotSupportedException();
 
         /// <inheritdoc/>
-        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage()
-        {
-            return new JsonRpcRequest(this);
-        }
+        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new JsonRpcRequest(this);
 
         /// <inheritdoc/>
-        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage()
-        {
-            return new JsonRpcError(this);
-        }
+        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this);
 
         /// <inheritdoc/>
-        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage()
-        {
-            return new JsonRpcResult(this, this.messageSerializationOptions);
-        }
+        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this, this.messageSerializationOptions);
 
         void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
         {

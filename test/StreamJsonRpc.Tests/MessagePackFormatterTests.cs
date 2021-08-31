@@ -349,7 +349,8 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void TopLevelPropertiesCanBeSerializedRequest()
     {
-        var requestMessage = ((IJsonRpcMessageFactory)this.formatter).CreateRequestMessage();
+        IJsonRpcMessageFactory factory = this.formatter;
+        var requestMessage = factory.CreateRequestMessage();
         Assert.NotNull(requestMessage);
 
         requestMessage.Method = "test";
@@ -367,7 +368,8 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void TopLevelPropertiesCanBeSerializedResult()
     {
-        var message = ((IJsonRpcMessageFactory)this.formatter).CreateResultMessage();
+        IJsonRpcMessageFactory factory = this.formatter;
+        var message = factory.CreateResultMessage();
         Assert.NotNull(message);
 
         message.Result = "test";
@@ -385,7 +387,8 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void TopLevelPropertiesCanBeSerializedError()
     {
-        var message = ((IJsonRpcMessageFactory)this.formatter).CreateErrorMessage();
+        IJsonRpcMessageFactory factory = this.formatter;
+        var message = factory.CreateErrorMessage();
         Assert.NotNull(message);
 
         message.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
@@ -403,7 +406,8 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void TopLevelPropertiesWithNullValue()
     {
-        var requestMessage = ((IJsonRpcMessageFactory)this.formatter).CreateRequestMessage();
+        IJsonRpcMessageFactory factory = this.formatter;
+        var requestMessage = factory.CreateRequestMessage();
         Assert.NotNull(requestMessage);
 
         requestMessage.Method = "test";

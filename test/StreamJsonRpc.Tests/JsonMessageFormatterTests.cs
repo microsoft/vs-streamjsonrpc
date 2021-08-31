@@ -234,7 +234,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesCanBeSerialized()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonRequest = ((IJsonRpcMessageFactory)formatter).CreateRequestMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
         Assert.NotNull(jsonRequest);
 
         jsonRequest.Method = "test";
@@ -255,7 +256,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesCanBeSerializedInError()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonError = ((IJsonRpcMessageFactory)formatter).CreateErrorMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonError = factory.CreateErrorMessage();
         jsonError.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
 
         Assert.True(jsonError.TrySetTopLevelProperty("testProperty", "testValue"));
@@ -271,7 +273,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesCanBeSerializedInResult()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonResult = ((IJsonRpcMessageFactory)formatter).CreateResultMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonResult = factory.CreateResultMessage();
         Assert.True(jsonResult.TrySetTopLevelProperty("testProperty", "testValue"));
         var messageJsonObject = formatter.Serialize(jsonResult);
         var jsonMessage = (JsonRpcResult)formatter.Deserialize(messageJsonObject);
@@ -283,7 +286,8 @@ public class JsonMessageFormatterTests : TestBase
     public void TopLevelPropertiesWithNullValue()
     {
         var formatter = new JsonMessageFormatter();
-        var jsonRequest = ((IJsonRpcMessageFactory)formatter).CreateRequestMessage();
+        IJsonRpcMessageFactory factory = formatter;
+        var jsonRequest = factory.CreateRequestMessage();
         Assert.NotNull(jsonRequest);
 
         jsonRequest.Method = "test";

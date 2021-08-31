@@ -497,22 +497,13 @@ namespace StreamJsonRpc
         public object GetJsonText(JsonRpcMessage message) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage()
-        {
-            return new JsonRpcRequest(this);
-        }
+        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new JsonRpcRequest(this);
 
         /// <inheritdoc/>
-        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage()
-        {
-            return new JsonRpcError(this.JsonSerializer);
-        }
+        Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.JsonSerializer);
 
         /// <inheritdoc/>
-        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage()
-        {
-            return new JsonRpcResult(this.JsonSerializer);
-        }
+        Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.JsonSerializer);
 
         /// <inheritdoc/>
         public void Dispose()
