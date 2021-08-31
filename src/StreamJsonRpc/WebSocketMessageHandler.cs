@@ -88,14 +88,14 @@ namespace StreamJsonRpc
         /// <inheritdoc />
         protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
         {
-#if NETCOREAPP2_1
+#if NETSTANDARD2_1_OR_GREATER
             ValueWebSocketReceiveResult result;
 #else
             WebSocketReceiveResult result;
 #endif
             do
             {
-#if NETCOREAPP2_1
+#if NETSTANDARD2_1_OR_GREATER
                 Memory<byte> memory = this.contentSequenceBuilder.GetMemory(this.sizeHint);
                 result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
                 this.contentSequenceBuilder.Advance(result.Count);
@@ -161,7 +161,7 @@ namespace StreamJsonRpc
                 foreach (ReadOnlyMemory<byte> memory in contentSequence)
                 {
                     bool endOfMessage = bytesCopied + memory.Length == contentSequence.Length;
-#if NETCOREAPP2_1
+#if NETSTANDARD2_1_OR_GREATER
                     await this.WebSocket.SendAsync(memory, messageType, endOfMessage, cancellationToken).ConfigureAwait(false);
 #else
                     if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))

@@ -548,7 +548,7 @@ namespace StreamJsonRpc
         private static void ReadUnknownProperty(ref MessagePackReader reader, ref Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties, ReadOnlySpan<byte> stringKey)
         {
             topLevelProperties ??= new Dictionary<string, ReadOnlySequence<byte>>(StringComparer.Ordinal);
-#if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1
+#if NETSTANDARD2_1_OR_GREATER
             string name = Encoding.UTF8.GetString(stringKey);
 #else
             string name = Encoding.UTF8.GetString(stringKey.ToArray());
