@@ -19,7 +19,7 @@ namespace StreamJsonRpc {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -259,6 +259,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This operation is only appropriate for inbound messages..
+        /// </summary>
+        internal static string InboundMessageOnly {
+            get {
+                return ResourceManager.GetString("InboundMessageOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This operation is not allowed after listening for messages has started..
         /// </summary>
         internal static string InvalidAfterListenHasStarted {
@@ -367,6 +376,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This operation is only appropriate for outbound messages..
+        /// </summary>
+        internal static string OutboundMessageOnly {
+            get {
+                return ResourceManager.GetString("OutboundMessageOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Parameter is not in the form of a single object.
         /// </summary>
         internal static string ParameterNotObject {
@@ -426,6 +444,15 @@ namespace StreamJsonRpc {
         internal static string RequiredArgumentMissing {
             get {
                 return ResourceManager.GetString("RequiredArgumentMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This property name is reserved by the JSON-RPC spec or this library..
+        /// </summary>
+        internal static string ReservedPropertyName {
+            get {
+                return ResourceManager.GetString("ReservedPropertyName", resourceCulture);
             }
         }
         
@@ -651,6 +678,15 @@ namespace StreamJsonRpc {
         internal static string UnsupportedPropertiesOnClientProxyInterface {
             get {
                 return ResourceManager.GetString("UnsupportedPropertiesOnClientProxyInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This operation can only be performed once on this object..
+        /// </summary>
+        internal static string UsableOnceOnly {
+            get {
+                return ResourceManager.GetString("UsableOnceOnly", resourceCulture);
             }
         }
     }

@@ -208,6 +208,11 @@ namespace StreamJsonRpc
             }
         }
 
+        private interface IMessageWithTopLevelPropertyBag
+        {
+            TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
+        }
+
         /// <summary>
         /// Gets or sets the encoding to use for transmitted messages.
         /// </summary>
@@ -455,23 +460,10 @@ namespace StreamJsonRpc
                     json["id"] = JValue.CreateNull();
                 }
 
-                JsonRpcTopLevelPropertyBag? topLevelPropertyBag = null;
-                if (message is JsonRpcResult result)
+                // Copy over extra top-level properties.
+                if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: { } bag })
                 {
-                    topLevelPropertyBag = result.TopLevelPropertyBag;
-                }
-                else if (message is JsonRpcRequest jsonRequest)
-                {
-                    topLevelPropertyBag = jsonRequest.TopLevelPropertyBag;
-                }
-                else if (message is JsonRpcError error)
-                {
-                    topLevelPropertyBag = error.TopLevelPropertyBag;
-                }
-
-                if (topLevelPropertyBag is not null)
-                {
-                    foreach (JProperty property in topLevelPropertyBag.Properties)
+                    foreach (JProperty property in bag.Properties)
                     {
                         if (json[property.Name] is null)
                         {
@@ -758,7 +750,7 @@ namespace StreamJsonRpc
                 Arguments = arguments,
                 TraceParent = json.Value<string>("traceparent"),
                 TraceState = json.Value<string>("tracestate"),
-                TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.JsonSerializer, json as JObject),
+                TopLevelPropertyBag = new TopLevelPropertyBag(this.JsonSerializer, (JObject)json),
             };
         }
 
@@ -773,7 +765,7 @@ namespace StreamJsonRpc
             {
                 RequestId = id,
                 Result = result,
-                TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.JsonSerializer, json as JObject),
+                TopLevelPropertyBag = new TopLevelPropertyBag(this.JsonSerializer, (JObject)json),
             };
         }
 
@@ -794,7 +786,7 @@ namespace StreamJsonRpc
                     Message = error.Value<string>("message"),
                     Data = error["data"], // leave this as a JToken. We deserialize inside GetData<T>
                 },
-                TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.JsonSerializer, json as JObject),
+                TopLevelPropertyBag = new TopLevelPropertyBag(this.JsonSerializer, (JObject)json),
             };
         }
 
@@ -820,59 +812,61 @@ namespace StreamJsonRpc
             return id;
         }
 
-        private class JsonRpcTopLevelPropertyBag
+        private class TopLevelPropertyBag
         {
             private readonly JsonSerializer jsonSerializer;
 
-            private JObject? json;
+            /// <summary>
+            /// The incoming message or the envelope used to store the top-level properties to add to the outbound message.
+            /// </summary>
+            private JObject envelope;
 
-            public JsonRpcTopLevelPropertyBag(JsonSerializer jsonSerializer, JObject? json = null)
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TopLevelPropertyBag"/> class
+            /// for use with an incoming message.
+            /// </summary>
+            /// <param name="jsonSerializer">The serializer to use.</param>
+            /// <param name="incomingMessage">The incoming message.</param>
+            internal TopLevelPropertyBag(JsonSerializer jsonSerializer, JObject incomingMessage)
             {
-                this.jsonSerializer = Requires.NotNull(jsonSerializer, nameof(jsonSerializer));
-                this.json = json;
+                this.jsonSerializer = jsonSerializer;
+                this.envelope = incomingMessage;
             }
 
-            public IEnumerable<JProperty> Properties
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TopLevelPropertyBag"/> class
+            /// for use with an outcoming message.
+            /// </summary>
+            /// <param name="jsonSerializer">The serializer to use.</param>
+            internal TopLevelPropertyBag(JsonSerializer jsonSerializer)
             {
-                get
-                {
-                    return this.json is not null ? this.json.Properties() : Enumerable.Empty<JProperty>();
-                }
+                this.jsonSerializer = jsonSerializer;
+                this.envelope = new JObject();
             }
 
-            public bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+            internal IEnumerable<JProperty> Properties => this.envelope?.Properties() ?? throw new InvalidOperationException(Resources.OutboundMessageOnly);
+
+            internal bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
             {
-                Requires.NotNullOrEmpty(name, nameof(name));
-
-                value = default;
-
-                JToken? serializedValue = null;
-                if (this.json?.TryGetValue(name, out serializedValue) is true)
+                if (this.envelope.TryGetValue(name, out JToken? serializedValue) is true)
                 {
                     value = serializedValue is null ? default : serializedValue.ToObject<T>(this.jsonSerializer);
                     return true;
                 }
 
+                value = default;
                 return false;
             }
 
-            public bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            internal void SetTopLevelProperty<T>(string name, [MaybeNull] T value)
             {
-                Requires.NotNullOrEmpty(name, nameof(name));
-
-                if (this.json is null)
-                {
-                    this.json = new JObject();
-                }
-
-                this.json[name] = value is null ? null : JToken.FromObject(value, this.jsonSerializer);
-                return true;
+                this.envelope[name] = value is null ? null : JToken.FromObject(value, this.jsonSerializer);
             }
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
-        private class JsonRpcRequest : Protocol.JsonRpcRequest
+        private class JsonRpcRequest : Protocol.JsonRpcRequest, IMessageWithTopLevelPropertyBag
         {
             private readonly JsonMessageFormatter formatter;
 
@@ -883,7 +877,7 @@ namespace StreamJsonRpc
 
             [JsonIgnore]
             [IgnoreDataMember]
-            internal JsonRpcTopLevelPropertyBag? TopLevelPropertyBag { get; set; }
+            public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
@@ -960,37 +954,27 @@ namespace StreamJsonRpc
 
             public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
             {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
                 value = default;
                 return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
             }
 
             public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
             {
-                if (this.TopLevelPropertyBag is null)
-                {
-                    this.TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.formatter.JsonSerializer);
-                }
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
-                return !IsPropertyReserved(name) && this.TopLevelPropertyBag.TrySetTopLevelProperty<T>(name, value);
-            }
-
-            internal static bool IsPropertyReserved(string propertyName)
-            {
-                Requires.NotNull(propertyName, nameof(propertyName));
-
-                return
-                    propertyName.Equals("jsonrpc", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("method", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("params", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("traceparent", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("tracestate", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("id", StringComparison.InvariantCultureIgnoreCase);
+                this.TopLevelPropertyBag ??= new TopLevelPropertyBag(this.formatter.JsonSerializer);
+                this.TopLevelPropertyBag.SetTopLevelProperty<T>(name, value);
+                return true;
             }
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
         [DataContract]
-        private class JsonRpcResult : Protocol.JsonRpcResult
+        private class JsonRpcResult : Protocol.JsonRpcResult, IMessageWithTopLevelPropertyBag
         {
             private readonly JsonSerializer jsonSerializer;
 
@@ -1001,7 +985,7 @@ namespace StreamJsonRpc
 
             [JsonIgnore]
             [IgnoreDataMember]
-            internal JsonRpcTopLevelPropertyBag? TopLevelPropertyBag { get; set; }
+            public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
 
             public override T GetResult<T>()
             {
@@ -1025,32 +1009,25 @@ namespace StreamJsonRpc
 
             public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
             {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
                 value = default;
                 return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
             }
 
             public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
             {
-                if (this.TopLevelPropertyBag is null)
-                {
-                    this.TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.jsonSerializer);
-                }
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
-                return !IsPropertyReserved(name) && this.TopLevelPropertyBag.TrySetTopLevelProperty<T>(name, value);
-            }
-
-            internal static bool IsPropertyReserved(string propertyName)
-            {
-                Requires.NotNull(propertyName, nameof(propertyName));
-
-                return
-                    propertyName.Equals("jsonrpc", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("result", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("id", StringComparison.InvariantCultureIgnoreCase);
+                this.TopLevelPropertyBag ??= new TopLevelPropertyBag(this.jsonSerializer);
+                this.TopLevelPropertyBag.SetTopLevelProperty<T>(name, value);
+                return true;
             }
         }
 
-        private class JsonRpcError : Protocol.JsonRpcError
+        private class JsonRpcError : Protocol.JsonRpcError, IMessageWithTopLevelPropertyBag
         {
             private readonly JsonSerializer jsonSerializer;
 
@@ -1060,32 +1037,26 @@ namespace StreamJsonRpc
             }
 
             [JsonIgnore]
-            internal JsonRpcTopLevelPropertyBag? TopLevelPropertyBag { get; set; }
+            [IgnoreDataMember]
+            public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
 
             public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
             {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
                 value = default;
                 return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
             }
 
             public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
             {
-                if (this.TopLevelPropertyBag is null)
-                {
-                    this.TopLevelPropertyBag = new JsonRpcTopLevelPropertyBag(this.jsonSerializer);
-                }
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
-                return !IsPropertyReserved(name) && this.TopLevelPropertyBag.TrySetTopLevelProperty<T>(name, value);
-            }
-
-            internal static bool IsPropertyReserved(string propertyName)
-            {
-                Requires.NotNull(propertyName, nameof(propertyName));
-
-                return
-                    propertyName.Equals("jsonrpc", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("error", StringComparison.InvariantCultureIgnoreCase) ||
-                    propertyName.Equals("id", StringComparison.InvariantCultureIgnoreCase);
+                this.TopLevelPropertyBag ??= new TopLevelPropertyBag(this.jsonSerializer);
+                this.TopLevelPropertyBag.SetTopLevelProperty<T>(name, value);
+                return true;
             }
         }
 

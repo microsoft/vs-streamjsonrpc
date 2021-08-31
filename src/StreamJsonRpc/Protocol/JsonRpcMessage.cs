@@ -41,6 +41,9 @@ namespace StreamJsonRpc.Protocol
         /// <see langword="true" /> if the <see cref="IJsonRpcMessageFormatter"/> supports this extensibility
         /// and the property was present on the message; otherwise <see langword="false" />.
         /// </returns>
+        /// <exception cref="InvalidOperationException">May be thrown when called on an outbound message.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is reserved by the JSON-RPC spec.</exception>
         public virtual bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
         {
             Requires.NotNullOrEmpty(name, nameof(name));
@@ -58,6 +61,9 @@ namespace StreamJsonRpc.Protocol
         /// <see langword="true" /> if the formatter supports setting top-level properties;
         /// <see langword="false" /> otherwise.
         /// </returns>
+        /// <exception cref="InvalidOperationException">May be thrown when called on an inbound message.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is reserved by the JSON-RPC spec.</exception>
         public virtual bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
         {
             Requires.NotNullOrEmpty(name, nameof(name));
