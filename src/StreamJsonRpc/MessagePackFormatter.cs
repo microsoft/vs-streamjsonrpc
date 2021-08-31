@@ -1732,7 +1732,7 @@ namespace StreamJsonRpc
 
                 if (topLevelProperties is not null)
                 {
-                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { Properties = topLevelProperties };
+                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { InboundProperties = topLevelProperties };
                 }
 
                 // If method is $/progress, get the progress instance from the dictionary and call Report
@@ -1777,10 +1777,7 @@ namespace StreamJsonRpc
                 }
 
                 JsonRpcRequest? msgPackRequest = value as JsonRpcRequest;
-                if (msgPackRequest?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    mapElementCount += msgPackRequest.MsgPackTopLevelPropertyBag.Properties.Count;
-                }
+                mapElementCount += msgPackRequest?.MsgPackTopLevelPropertyBag?.OutboundPropertyCount ?? 0;
 
                 writer.WriteMapHeader(mapElementCount);
 
@@ -1845,14 +1842,7 @@ namespace StreamJsonRpc
                     }
                 }
 
-                if (msgPackRequest?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    foreach (KeyValuePair<string, ReadOnlySequence<byte>> entry in msgPackRequest.MsgPackTopLevelPropertyBag.Properties)
-                    {
-                        writer.Write(entry.Key);
-                        writer.WriteRaw(entry.Value);
-                    }
-                }
+                msgPackRequest?.MsgPackTopLevelPropertyBag?.WriteOutboundProperties(ref writer);
             }
 
             private static void WriteTraceState(ref MessagePackWriter writer, string traceState)
@@ -1966,7 +1956,7 @@ namespace StreamJsonRpc
 
                 if (topLevelProperties is not null)
                 {
-                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { Properties = topLevelProperties };
+                    result.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { InboundProperties = topLevelProperties };
                 }
 
                 reader.Depth--;
@@ -1975,13 +1965,8 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcResult value, MessagePackSerializerOptions options)
             {
-                int headerCount = 3;
-
                 JsonRpcResult? msgPackMessage = value as JsonRpcResult;
-                if (msgPackMessage?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    headerCount += msgPackMessage.MsgPackTopLevelPropertyBag.Properties.Count;
-                }
+                int headerCount = 3 + (msgPackMessage?.MsgPackTopLevelPropertyBag?.OutboundPropertyCount ?? 0);
 
                 writer.WriteMapHeader(headerCount);
 
@@ -2000,14 +1985,7 @@ namespace StreamJsonRpc
                     DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Result, this.formatter.userDataSerializationOptions);
                 }
 
-                if (msgPackMessage?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    foreach (KeyValuePair<string, ReadOnlySequence<byte>> entry in msgPackMessage.MsgPackTopLevelPropertyBag.Properties)
-                    {
-                        writer.Write(entry.Key);
-                        writer.WriteRaw(entry.Value);
-                    }
-                }
+                msgPackMessage?.MsgPackTopLevelPropertyBag?.WriteOutboundProperties(ref writer);
             }
         }
 
@@ -2059,7 +2037,7 @@ namespace StreamJsonRpc
 
                 if (topLevelProperties is not null)
                 {
-                    error.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { Properties = topLevelProperties };
+                    error.MsgPackTopLevelPropertyBag = new TopLevelPropertyBag(this.formatter) { InboundProperties = topLevelProperties };
                 }
 
                 reader.Depth--;
@@ -2068,13 +2046,8 @@ namespace StreamJsonRpc
 
             public void Serialize(ref MessagePackWriter writer, Protocol.JsonRpcError value, MessagePackSerializerOptions options)
             {
-                int headerCount = 3;
-
                 JsonRpcError? msgPackMessage = value as JsonRpcError;
-                if (msgPackMessage?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    headerCount += msgPackMessage.MsgPackTopLevelPropertyBag.Properties.Count;
-                }
+                int headerCount = 3 + (msgPackMessage?.MsgPackTopLevelPropertyBag?.OutboundPropertyCount ?? 0);
 
                 writer.WriteMapHeader(headerCount);
 
@@ -2086,14 +2059,7 @@ namespace StreamJsonRpc
                 ErrorPropertyName.Write(ref writer);
                 options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcError.ErrorDetail?>().Serialize(ref writer, value.Error, options);
 
-                if (msgPackMessage?.MsgPackTopLevelPropertyBag?.Properties is not null)
-                {
-                    foreach (KeyValuePair<string, ReadOnlySequence<byte>> entry in msgPackMessage.MsgPackTopLevelPropertyBag.Properties)
-                    {
-                        writer.Write(entry.Key);
-                        writer.WriteRaw(entry.Value);
-                    }
-                }
+                msgPackMessage?.MsgPackTopLevelPropertyBag?.WriteOutboundProperties(ref writer);
             }
         }
 
@@ -2234,17 +2200,23 @@ namespace StreamJsonRpc
         private class TopLevelPropertyBag
         {
             private readonly MessagePackFormatter formatter;
-            private Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties;
+            private Dictionary<string, ReadOnlySequence<byte>>? inboundProperties;
+            private Dictionary<string, Sequence<byte>>? outboundProperties;
 
             public TopLevelPropertyBag(MessagePackFormatter formatter)
             {
                 this.formatter = Requires.NotNull(formatter, nameof(formatter));
             }
 
-            internal IReadOnlyDictionary<string, ReadOnlySequence<byte>>? Properties
+            internal IReadOnlyDictionary<string, ReadOnlySequence<byte>>? InboundProperties
             {
-                get => this.topLevelProperties;
-                set => this.topLevelProperties = value is null ? null : value.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                get => this.inboundProperties;
+                set => this.inboundProperties = value is null ? null : value.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
+            internal int OutboundPropertyCount
+            {
+                get => this.outboundProperties?.Count ?? 0;
             }
 
             public bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
@@ -2254,7 +2226,7 @@ namespace StreamJsonRpc
                 value = default;
 
                 ReadOnlySequence<byte> serializedValue = default;
-                if (this.topLevelProperties?.TryGetValue(name, out serializedValue) is true)
+                if (this.inboundProperties?.TryGetValue(name, out serializedValue) is true)
                 {
                     var reader = new MessagePackReader(serializedValue);
                     try
@@ -2275,17 +2247,32 @@ namespace StreamJsonRpc
             {
                 Requires.NotNullOrEmpty(name, nameof(name));
 
-                if (this.topLevelProperties is null)
+                if (this.outboundProperties is null)
                 {
-                    this.topLevelProperties = new Dictionary<string, ReadOnlySequence<byte>>();
+                    this.outboundProperties = new Dictionary<string, Sequence<byte>>();
                 }
 
                 var buffer = new Sequence<byte>();
                 var writer = new MessagePackWriter(buffer);
                 MessagePackSerializer.Serialize(typeof(T), ref writer, value, this.formatter.userDataSerializationOptions);
                 writer.Flush();
-                this.topLevelProperties[name] = buffer;
+                this.outboundProperties[name] = buffer;
                 return true;
+            }
+
+            public void WriteOutboundProperties(ref MessagePackWriter writer)
+            {
+                if (this.outboundProperties is not null)
+                {
+                    foreach (KeyValuePair<string, Sequence<byte>> entry in this.outboundProperties)
+                    {
+                        writer.Write(entry.Key);
+                        writer.WriteRaw(entry.Value);
+                        entry.Value.Reset();
+                    }
+
+                    this.outboundProperties = null;
+                }
             }
         }
 
