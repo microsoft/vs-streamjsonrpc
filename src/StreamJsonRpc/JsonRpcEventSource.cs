@@ -3,7 +3,7 @@
 
 namespace StreamJsonRpc
 {
-    using System.Collections;
+    using System;
     using System.Diagnostics.Tracing;
     using System.Text;
     using StreamJsonRpc.Protocol;
@@ -99,6 +99,11 @@ namespace StreamJsonRpc
         private const int MessageHandlerReceivedEvent = 33;
 
         /// <summary>
+        /// A flag indicating whether to force tracing to be on.
+        /// </summary>
+        private static readonly bool AlwaysOn = Environment.GetEnvironmentVariable("StreamJsonRpc_TestWithEventSource") == "1";
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpcEventSource"/> class.
         /// </summary>
         /// <remarks>
@@ -107,6 +112,9 @@ namespace StreamJsonRpc
         private JsonRpcEventSource()
         {
         }
+
+        /// <inheritdoc cref="EventSource.IsEnabled(EventLevel, EventKeywords)"/>
+        public new bool IsEnabled(EventLevel level, EventKeywords keywords) => AlwaysOn || base.IsEnabled(level, keywords);
 
         /// <summary>
         /// Signals the transmission of a notification.

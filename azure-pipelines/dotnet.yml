@@ -12,6 +12,16 @@ steps:
     arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog"
     testRunTitle: net472-$(Agent.JobName)
   condition: ne(variables['OptProf'], 'true')
+  
+- task: DotNetCoreCLI@2
+  displayName: dotnet test -f net472 (+EventSource)
+  inputs:
+    command: test
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog"
+    testRunTitle: net472-$(Agent.JobName)-etw
+  env:
+    StreamJsonRpc_TestWithEventSource: 1
+  condition: ne(variables['OptProf'], 'true')
 
 - task: DotNetCoreCLI@2
   displayName: dotnet test -f netcoreapp3.1
