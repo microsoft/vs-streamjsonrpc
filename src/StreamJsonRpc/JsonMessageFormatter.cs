@@ -489,7 +489,7 @@ namespace StreamJsonRpc
         public object GetJsonText(JsonRpcMessage message) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new JsonRpcRequest(this);
+        Protocol.JsonRpcRequest IJsonRpcMessageFactory.CreateRequestMessage() => new OutboundJsonRpcRequest(this);
 
         /// <inheritdoc/>
         Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.JsonSerializer);
@@ -861,6 +861,32 @@ namespace StreamJsonRpc
             internal void SetTopLevelProperty<T>(string name, [MaybeNull] T value)
             {
                 this.envelope[name] = value is null ? null : JToken.FromObject(value, this.jsonSerializer);
+            }
+        }
+
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
+        [DataContract]
+        private class OutboundJsonRpcRequest : Protocol.JsonRpcRequest, IMessageWithTopLevelPropertyBag
+        {
+            private readonly JsonMessageFormatter formatter;
+
+            internal OutboundJsonRpcRequest(JsonMessageFormatter formatter)
+            {
+                this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+            }
+
+            [JsonIgnore]
+            [IgnoreDataMember]
+            public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
+
+            public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+            {
+                Requires.NotNullOrEmpty(name, nameof(name));
+                Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+
+                this.TopLevelPropertyBag ??= new TopLevelPropertyBag(this.formatter.JsonSerializer);
+                this.TopLevelPropertyBag.SetTopLevelProperty<T>(name, value);
+                return true;
             }
         }
 
