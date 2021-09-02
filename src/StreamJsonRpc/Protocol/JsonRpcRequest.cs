@@ -161,6 +161,12 @@ namespace StreamJsonRpc.Protocol
         public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
         /// <summary>
+        /// Gets the sequence of argument names, if applicable.
+        /// </summary>
+        [IgnoreDataMember]
+        public virtual IEnumerable<string>? ArgumentNames => this.NamedArguments?.Keys;
+
+        /// <summary>
         /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>traceparent</c> value.
         /// </summary>
         [DataMember(Name = "traceparent", EmitDefaultValue = false)]
@@ -207,9 +213,9 @@ namespace StreamJsonRpc.Protocol
                 ParameterInfo parameter = parameters[i];
                 if (this.TryGetArgumentByNameOrIndex(parameter.Name, i, parameter.ParameterType, out object? argument))
                 {
-                    if (argument == null)
+                    if (argument is null)
                     {
-                        if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) == null)
+                        if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) is null)
                         {
                             // We cannot pass a null value to a value type parameter.
                             return ArgumentMatchResult.ParameterArgumentTypeMismatch;
@@ -251,11 +257,11 @@ namespace StreamJsonRpc.Protocol
         /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
         public virtual bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
-            if (this.NamedArguments != null && name != null)
+            if (this.NamedArguments is not null && name is not null)
             {
                 return this.NamedArguments.TryGetValue(name, out value);
             }
-            else if (this.ArgumentsList != null && position < this.ArgumentsList.Count && position >= 0)
+            else if (this.ArgumentsList is not null && position < this.ArgumentsList.Count && position >= 0)
             {
                 value = this.ArgumentsList[position];
                 return true;

@@ -320,7 +320,7 @@ namespace StreamJsonRpc
                 }
 
                 var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
-                if (mediaType.CharSet != null)
+                if (mediaType.CharSet is not null)
                 {
                     // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
                     // accepted here so StreamJsonRpc can be used to support remote language servers following common language protocol.
@@ -330,7 +330,7 @@ namespace StreamJsonRpc
                     }
 
                     Encoding contentEncoding = Encoding.GetEncoding(mediaType.CharSet);
-                    if (contentEncoding == null)
+                    if (contentEncoding is null)
                     {
                         throw new BadRpcHeaderException($"Unrecognized charset value: '{mediaType.CharSet}'");
                     }

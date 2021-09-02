@@ -126,7 +126,7 @@ namespace StreamJsonRpc
 
         private static void ContributeStackTrace(StringBuilder builder, CommonErrorData errorData)
         {
-            if (errorData.StackTrace != null)
+            if (errorData.StackTrace is not null)
             {
                 using (var sr = new StringReader(errorData.StackTrace))
                 {

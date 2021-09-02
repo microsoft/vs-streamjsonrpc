@@ -35,13 +35,13 @@ namespace StreamJsonRpc.Reflection
                             // When OnError or OnCompleted is called, per IObserver<T> patterns that's implicitly a termination of the connection.
                             if (methodName == nameof(IObserver<int>.OnError) || methodName == nameof(IObserver<int>.OnCompleted))
                             {
-                                ((IDisposable)sender).Dispose();
+                                ((IDisposable)sender!).Dispose();
                             }
                         };
                         proxy.CallingMethod += (sender, methodName) =>
                         {
                             // Any RPC method call on IObserver<T> shouldn't happen if it has already been completed.
-                            Verify.NotDisposed((IDisposableObservable)sender);
+                            Verify.NotDisposed((IDisposableObservable)sender!);
                         };
                     },
                 },

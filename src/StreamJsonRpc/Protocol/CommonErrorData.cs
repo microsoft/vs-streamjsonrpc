@@ -34,7 +34,7 @@ namespace StreamJsonRpc.Protocol
             this.StackTrace = copyFrom.StackTrace;
             this.HResult = copyFrom.HResult;
             this.TypeName = copyFrom.GetType().FullName;
-            this.Inner = copyFrom.InnerException != null ? new CommonErrorData(copyFrom.InnerException) : null;
+            this.Inner = copyFrom.InnerException is not null ? new CommonErrorData(copyFrom.InnerException) : null;
         }
 
         /// <summary>

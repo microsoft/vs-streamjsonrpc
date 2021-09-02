@@ -21,7 +21,7 @@ namespace StreamJsonRpc
             {
                 return name =>
                 {
-                    if (name == null)
+                    if (name is null)
                     {
 #pragma warning disable CA1065 // Do not raise exceptions in unexpected locations
                         throw new ArgumentNullException();

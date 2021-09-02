@@ -65,8 +65,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test", new { Bar = "value" });
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Array, request["params"].Type);
-        Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
+        Assert.Equal(JTokenType.Array, request["params"]?.Type);
+        Assert.Equal("value", ((JArray?)request["params"])?[0]["Bar"]?.ToString());
     }
 
     [Fact]
@@ -74,8 +74,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.NotifyAsync("test");
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Array, request["params"].Type);
-        Assert.Empty((JArray)request["params"]);
+        Assert.Equal(JTokenType.Array, request["params"]?.Type);
+        Assert.Empty((JArray?)request["params"]);
     }
 
     [Fact]
@@ -83,8 +83,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.NotifyWithParameterObjectAsync("test", new { Bar = "value" });
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Object, request["params"].Type);
-        Assert.Equal("value", request["params"]["Bar"].ToString());
+        Assert.Equal(JTokenType.Object, request["params"]?.Type);
+        Assert.Equal("value", request["params"]?["Bar"]?.ToString());
     }
 
     [Fact]
@@ -100,8 +100,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test", new { Bar = "value" });
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Array, request["params"].Type);
-        Assert.Equal("value", ((JArray)request["params"])[0]["Bar"].ToString());
+        Assert.Equal(JTokenType.Array, request["params"]?.Type);
+        Assert.Equal("value", ((JArray?)request["params"])?[0]["Bar"]?.ToString());
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Array, request["params"].Type);
-        Assert.Empty((JArray)request["params"]);
+        Assert.Equal(JTokenType.Array, request["params"]!.Type);
+        Assert.Empty((JArray?)request["params"]);
     }
 
     [Fact]
@@ -140,8 +140,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" });
         JToken request = await this.ReceiveAsync();
-        Assert.Equal(JTokenType.Object, request["params"].Type);
-        Assert.Equal("value", request["params"]["Bar"].ToString());
+        Assert.Equal(JTokenType.Object, request["params"]?.Type);
+        Assert.Equal("value", request["params"]?["Bar"]?.ToString());
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
         JToken request = await this.ReceiveAsync();
 
-        JToken progressID = request["params"][1];
+        JToken? progressID = request["params"]?[1];
 
         // Send responses as $/progress
         int sum2 = 0;
@@ -214,7 +214,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
         JToken request = await this.ReceiveAsync();
 
-        long progressID = request["params"]["Progress"].Value<long>();
+        long progressID = request["params"]!["Progress"]!.Value<long>();
 
         // Send responses as $/progress
         int sum2 = 0;
@@ -236,7 +236,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         this.Send(new
         {
             jsonrpc = "2.0",
-            id = request["id"].Value<long>(),
+            id = request["id"]!.Value<long>(),
             result = sum,
         });
 
@@ -304,7 +304,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>();
-        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
+        Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
     }
 
     [Fact]
@@ -330,8 +330,8 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>();
-        Assert.Equal(errorObject.error.data.stack, commonErrorData.StackTrace);
-        Assert.Equal(-2147467261, commonErrorData.HResult);
+        Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
+        Assert.Equal(-2147467261, commonErrorData?.HResult);
     }
 
     [Fact]
@@ -359,7 +359,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         JToken errorDataToken = (JToken)ex.ErrorData!;
         Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
-        Assert.Equal(errorData.stack.foo, errorDataToken["stack"].Value<int>("foo"));
+        Assert.Equal(errorData.stack.foo, errorDataToken["stack"]?.Value<int>("foo"));
     }
 
     [Fact]
