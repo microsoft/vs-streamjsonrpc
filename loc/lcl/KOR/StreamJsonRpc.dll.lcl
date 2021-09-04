@@ -214,6 +214,9 @@
       <Item ItemId=";InboundMessageOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is only appropriate for inbound messages.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[이 작업은 인바운드 메시지에만 적합합니다.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -328,6 +331,9 @@
       <Item ItemId=";OutboundMessageOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is only appropriate for outbound messages.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[이 작업은 아웃바운드 메시지에만 적합합니다.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -397,6 +403,9 @@
       <Item ItemId=";ReservedPropertyName" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This property name is reserved by the JSON-RPC spec or this library.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[이 속성 이름은 JSON-RPC 사양 또는 이 라이브러리에 의해 예약됩니다.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -628,6 +637,9 @@
       <Item ItemId=";UsableOnceOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation can only be performed once on this object.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[이 작업은이 개체에 대해 한 번만 수행할 수 있습니다.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -638,6 +650,9 @@
     <Item ItemId=";Comments" ItemType="0" PsrId="211" Leaf="true">
       <Str Cat="Text">
         <Val><![CDATA[A cross-platform .NETStandard library that implements the JSON-RPC wire protocol and can use System.IO.Stream, System.IO.Pipelines or WebSocket so you can use it with any transport.]]></Val>
+        <Tgt Cat="Text" Stat="Loc" Orig="New">
+          <Val><![CDATA[JSON-RPC 유선 프로토콜을 구현하고 System.IO.Stream, System.IO.Pipelines 또는 WebSocket을 사용하여 모든 전송에 사용할 수 있는 플랫폼 간 .NETStandard 라이브러리입니다.]]></Val>
+        </Tgt>
       </Str>
       <Disp Icon="Str" />
     </Item>
@@ -653,6 +668,9 @@
     <Item ItemId=";FileDescription" ItemType="0" PsrId="211" Leaf="true">
       <Str Cat="Text">
         <Val><![CDATA[StreamJsonRpc]]></Val>
+        <Tgt Cat="Text" Stat="Loc" Orig="New">
+          <Val><![CDATA[StreamJsonRpc]]></Val>
+        </Tgt>
       </Str>
       <Disp Icon="Str" />
     </Item>
@@ -680,6 +698,9 @@
     <Item ItemId=";ProductName" ItemType="0" PsrId="211" Leaf="true">
       <Str Cat="Text">
         <Val><![CDATA[StreamJsonRpc]]></Val>
+        <Tgt Cat="Text" Stat="Loc" Orig="New">
+          <Val><![CDATA[StreamJsonRpc]]></Val>
+        </Tgt>
       </Str>
       <Disp Icon="Str" />
     </Item>
