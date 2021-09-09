@@ -9,15 +9,15 @@ steps:
   displayName: dotnet test -f net472
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog"
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472.txt"
     testRunTitle: net472-$(Agent.JobName)
   condition: ne(variables['OptProf'], 'true')
-  
+
 - task: DotNetCoreCLI@2
   displayName: dotnet test -f net472 (+EventSource)
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog"
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472_etw.txt"
     testRunTitle: net472-$(Agent.JobName)-etw
   env:
     StreamJsonRpc_TestWithEventSource: 1
@@ -27,7 +27,7 @@ steps:
   displayName: dotnet test -f netcoreapp3.1
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f netcoreapp3.1 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_netcoreapp3.1.binlog"
+    arguments: --no-build -c $(BuildConfiguration) -f netcoreapp3.1 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_netcoreapp3.1.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/netcoreapp3.1.txt"
     testRunTitle: netcoreapp3.1-$(Agent.JobName)
   condition: ne(variables['OptProf'], 'true')
 
@@ -35,7 +35,7 @@ steps:
   displayName: dotnet test -f net5.0
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net5.0 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net5.0.binlog"
+    arguments: --no-build -c $(BuildConfiguration) -f net5.0 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net5.0.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net5.txt"
     testRunTitle: net5.0-$(Agent.JobName)
   condition: ne(variables['OptProf'], 'true')
 
