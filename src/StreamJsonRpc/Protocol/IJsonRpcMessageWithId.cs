@@ -3,7 +3,10 @@
 
 namespace StreamJsonRpc.Protocol
 {
-    internal interface IJsonRpcMessageWithId
+    /// <summary>
+    /// An interface found on JSON-RPC protocol messages that contain an <pre>id</pre> field.
+    /// </summary>
+    public interface IJsonRpcMessageWithId
     {
         /// <summary>
         /// Gets or sets the ID on a message.
