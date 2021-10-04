@@ -15,9 +15,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MessagePack" Version="2.3.75" />
-    <PackageReference Include="MessagePackAnalyzer" Version="2.3.75" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="16.10.56" />
+    <PackageReference Include="MessagePack" Version="2.3.85" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.0.63" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" PrivateAssets="compile" />
     <PackageReference Include="Nerdbank.Streams" Version="2.8.46" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
