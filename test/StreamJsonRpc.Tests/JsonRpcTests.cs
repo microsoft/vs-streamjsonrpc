@@ -2444,6 +2444,26 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task DeserializeExceptionsWithUntypedData()
+    {
+        Exception exception = new Exception
+        {
+            Data =
+            {
+                { "harmlessCustomType", new Version("1.2.3.4") },
+            },
+        };
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new object[] { exception }, this.TimeoutToken);
+
+        // Assert that the data was received, but not typed as the sender intended.
+        // This is important because the received data should not determine which types are deserialized
+        // for security reasons.
+        object? harmlessCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
+        Assert.IsNotType<Version>(harmlessCustomType);
+        this.Logger.WriteLine("harmlessCustomType type: {0}", harmlessCustomType?.GetType().FullName);
+    }
+
+    [Fact]
     public void CancellationStrategy_ConfigurationLocked()
     {
         Assert.Throws<InvalidOperationException>(() => this.clientRpc.CancellationStrategy = null);
