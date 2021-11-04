@@ -159,6 +159,11 @@ namespace StreamJsonRpc
         private JsonRpc? rpc;
 
         /// <summary>
+        /// The message whose arguments are being deserialized.
+        /// </summary>
+        private JsonRpcMessage? deserializingMessage;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
         /// that uses JsonProgress (without the preamble) for its text encoding.
         /// </summary>
@@ -905,28 +910,18 @@ namespace StreamJsonRpc
             [IgnoreDataMember]
             public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
 
+            internal JsonRpcMethodAttribute? ApplicableMethodAttribute { get; private set; }
+
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
-                if (parameters.Length == 1 && this.NamedArguments is not null)
+                // Consider the attribute applied to the particular overload that we're considering right now.
+                this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
+                try
                 {
-                    // Special support for accepting a single JToken instead of all parameters individually.
-                    if (parameters[0].ParameterType == typeof(JToken))
+                    if (parameters.Length == 1 && this.NamedArguments is not null)
                     {
-                        var obj = new JObject();
-                        foreach (KeyValuePair<string, object?> property in this.NamedArguments)
-                        {
-                            obj.Add(new JProperty(property.Key, property.Value));
-                        }
-
-                        typedArguments[0] = obj;
-                        return ArgumentMatchResult.Success;
-                    }
-
-                    // Support for opt-in to deserializing all named arguments into a single parameter.
-                    if (this.Method is not null)
-                    {
-                        JsonRpcMethodAttribute? attribute = this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters);
-                        if (attribute?.UseSingleObjectParameterDeserialization ?? false)
+                        // Special support for accepting a single JToken instead of all parameters individually.
+                        if (parameters[0].ParameterType == typeof(JToken))
                         {
                             var obj = new JObject();
                             foreach (KeyValuePair<string, object?> property in this.NamedArguments)
@@ -934,13 +929,34 @@ namespace StreamJsonRpc
                                 obj.Add(new JProperty(property.Key, property.Value));
                             }
 
-                            typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                            typedArguments[0] = obj;
                             return ArgumentMatchResult.Success;
                         }
-                    }
-                }
 
-                return base.TryGetTypedArguments(parameters, typedArguments);
+                        // Support for opt-in to deserializing all named arguments into a single parameter.
+                        if (this.Method is not null)
+                        {
+                            if (this.ApplicableMethodAttribute?.UseSingleObjectParameterDeserialization ?? false)
+                            {
+                                var obj = new JObject();
+                                foreach (KeyValuePair<string, object?> property in this.NamedArguments)
+                                {
+                                    obj.Add(new JProperty(property.Key, property.Value));
+                                }
+
+                                typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                                return ArgumentMatchResult.Success;
+                            }
+                        }
+                    }
+
+                    return base.TryGetTypedArguments(parameters, typedArguments);
+                }
+                finally
+                {
+                    // Clear this, because we might choose another overload with a different attribute, and we don't want to 'leak' an attribute that isn't on the overload that is ultimately picked.
+                    this.ApplicableMethodAttribute = null;
+                }
             }
 
             public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
@@ -953,6 +969,7 @@ namespace StreamJsonRpc
                         // Deserialization of messages should never occur concurrently for a single instance of a formatter.
                         Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
                         this.formatter.deserializingMessageWithId = this.RequestId;
+                        this.formatter.deserializingMessage = this;
                         try
                         {
                             value = token?.ToObject(typeHint!, this.formatter.JsonSerializer); // Null typeHint is allowed (https://github.com/JamesNK/Newtonsoft.Json/pull/2562)
@@ -960,6 +977,7 @@ namespace StreamJsonRpc
                         finally
                         {
                             this.formatter.deserializingMessageWithId = default;
+                            this.formatter.deserializingMessage = null;
                         }
 
                         return true;
@@ -1197,7 +1215,8 @@ namespace StreamJsonRpc
 
                 Assumes.NotNull(this.formatter.rpc);
                 JToken token = JToken.Load(reader);
-                return this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, objectType);
+                bool clientRequiresNamedArgs = this.formatter.deserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
+                return this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, objectType, clientRequiresNamedArgs);
             }
 
             public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)

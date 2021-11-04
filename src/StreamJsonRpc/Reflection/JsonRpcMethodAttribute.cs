@@ -54,8 +54,20 @@ namespace StreamJsonRpc
         public string? Name { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into this method's first parameter.
+        /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into the RPC method's first parameter.
         /// </summary>
-        public bool UseSingleObjectParameterDeserialization { get; set;  }
+        public bool UseSingleObjectParameterDeserialization { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether JSON-RPC named arguments should be used in callbacks sent back to the client.
+        /// </summary>
+        /// <value>The default value is <see langword="false"/>.</value>
+        /// <remarks>
+        /// An example of impact of this setting is when the client sends an <see cref="IProgress{T}"/> argument and this server
+        /// will call <see cref="IProgress{T}.Report(T)"/> on that argument.
+        /// The notification that the server then sends back to the client may use positional or named arguments in that notification.
+        /// Named arguments are used if and only if this property is set to <see langword="true" />.
+        /// </remarks>
+        public bool ClientRequiresNamedArguments { get; set; }
     }
 }

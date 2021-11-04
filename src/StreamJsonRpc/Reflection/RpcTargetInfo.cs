@@ -22,7 +22,7 @@ namespace StreamJsonRpc.Reflection
     {
         private const string ImpliedMethodNameAsyncSuffix = "Async";
         private static readonly Dictionary<TypeInfo, MethodNameMap> MethodNameMaps = new Dictionary<TypeInfo, MethodNameMap>();
-        private static readonly Dictionary<(TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization), Dictionary<string, List<MethodSignature>>> RequestMethodToClrMethodMap = new Dictionary<(TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization), Dictionary<string, List<MethodSignature>>>();
+        private static readonly Dictionary<(TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization, bool ClientRequiresNamedArguments), Dictionary<string, List<MethodSignature>>> RequestMethodToClrMethodMap = new();
         private readonly JsonRpc jsonRpc;
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace StreamJsonRpc.Reflection
         {
             RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
             options = options ?? JsonRpcTargetOptions.Default;
-            IReadOnlyDictionary<string, List<MethodSignature>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), options.AllowNonPublicInvocation, options.UseSingleObjectParameterDeserialization);
+            IReadOnlyDictionary<string, List<MethodSignature>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), options.AllowNonPublicInvocation, options.UseSingleObjectParameterDeserialization, options.ClientRequiresNamedArguments);
 
             lock (this.SyncObject)
             {
@@ -336,12 +336,13 @@ namespace StreamJsonRpc.Reflection
         /// <param name="exposedMembersOnType">Type to reflect over and analyze its methods.</param>
         /// <param name="allowNonPublicInvocation"><inheritdoc cref="JsonRpcTargetOptions.AllowNonPublicInvocation" path="/summary"/></param>
         /// <param name="useSingleObjectParameterDeserialization"><inheritdoc cref="JsonRpcTargetOptions.UseSingleObjectParameterDeserialization" path="/summary"/></param>
+        /// <param name="clientRequiresNamedArguments"><inheritdoc cref="JsonRpcTargetOptions.ClientRequiresNamedArguments" path="/summary"/></param>
         /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-        private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, bool allowNonPublicInvocation, bool useSingleObjectParameterDeserialization)
+        private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, bool allowNonPublicInvocation, bool useSingleObjectParameterDeserialization, bool clientRequiresNamedArguments)
         {
             Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
 
-            (TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization) key = (exposedMembersOnType, allowNonPublicInvocation, useSingleObjectParameterDeserialization);
+            (TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization, bool ClientRequiresNamedArguments) key = (exposedMembersOnType, allowNonPublicInvocation, useSingleObjectParameterDeserialization, clientRequiresNamedArguments);
             Dictionary<string, List<MethodSignature>>? requestMethodToDelegateMap;
             lock (RequestMethodToClrMethodMap)
             {
@@ -424,9 +425,13 @@ namespace StreamJsonRpc.Reflection
 
                     JsonRpcMethodAttribute? attribute = mapping.FindAttribute(method);
 
-                    if (attribute is null && key.UseSingleObjectParameterDeserialization)
+                    if (attribute is null && (key.UseSingleObjectParameterDeserialization || key.ClientRequiresNamedArguments))
                     {
-                        attribute = new JsonRpcMethodAttribute(null) { UseSingleObjectParameterDeserialization = true };
+                        attribute = new JsonRpcMethodAttribute(null)
+                        {
+                            UseSingleObjectParameterDeserialization = key.UseSingleObjectParameterDeserialization,
+                            ClientRequiresNamedArguments = key.ClientRequiresNamedArguments,
+                        };
                     }
 
                     // Skip this method if its signature matches one from a derived type we have already scanned.
