@@ -147,6 +147,11 @@ namespace StreamJsonRpc
         private RequestId deserializingMessageWithId;
 
         /// <summary>
+        /// The message whose arguments are being deserialized.
+        /// </summary>
+        private JsonRpcMessage? deserializingMessage;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingRequest"/> property.
         /// </summary>
         private bool serializingRequest;
@@ -1027,7 +1032,8 @@ namespace StreamJsonRpc
 
                     Assumes.NotNull(this.formatter.rpc);
                     RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                    return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass));
+                    bool clientRequiresNamedArgs = this.formatter.deserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
+                    return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass), clientRequiresNamedArgs);
                 }
 
                 public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
@@ -2337,6 +2343,8 @@ namespace StreamJsonRpc
 
             internal IReadOnlyList<ReadOnlySequence<byte>>? MsgPackPositionalArguments { get; set; }
 
+            internal JsonRpcMethodAttribute? ApplicableMethodAttribute { get; private set; }
+
             void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
             {
                 Assumes.True(message == this);
@@ -2351,27 +2359,36 @@ namespace StreamJsonRpc
 
             public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
             {
-                if (parameters.Length == 1 && this.MsgPackNamedArguments is not null)
+                // Consider the attribute applied to the particular overload that we're considering right now.
+                this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
+                try
                 {
-                    Assumes.NotNull(this.Method);
-
-                    JsonRpcMethodAttribute? attribute = this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters);
-                    if (attribute?.UseSingleObjectParameterDeserialization ?? false)
+                    if (parameters.Length == 1 && this.MsgPackNamedArguments is not null)
                     {
-                        var reader = new MessagePackReader(this.MsgPackArguments);
-                        try
+                        Assumes.NotNull(this.Method);
+
+                        if (this.ApplicableMethodAttribute?.UseSingleObjectParameterDeserialization ?? false)
                         {
-                            typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
-                            return ArgumentMatchResult.Success;
-                        }
-                        catch (MessagePackSerializationException)
-                        {
-                            return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                            var reader = new MessagePackReader(this.MsgPackArguments);
+                            try
+                            {
+                                typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
+                                return ArgumentMatchResult.Success;
+                            }
+                            catch (MessagePackSerializationException)
+                            {
+                                return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                            }
                         }
                     }
-                }
 
-                return base.TryGetTypedArguments(parameters, typedArguments);
+                    return base.TryGetTypedArguments(parameters, typedArguments);
+                }
+                finally
+                {
+                    // Clear this, because we might choose another overload with a different attribute, and we don't want to 'leak' an attribute that isn't on the overload that is ultimately picked.
+                    this.ApplicableMethodAttribute = null;
+                }
             }
 
             public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
@@ -2401,7 +2418,7 @@ namespace StreamJsonRpc
                     // Deserialization of messages should never occur concurrently for a single instance of a formatter.
                     Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
                     this.formatter.deserializingMessageWithId = this.RequestId;
-
+                    this.formatter.deserializingMessage = this;
                     value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
                     return true;
                 }
@@ -2417,6 +2434,7 @@ namespace StreamJsonRpc
                 finally
                 {
                     this.formatter.deserializingMessageWithId = default;
+                    this.formatter.deserializingMessage = null;
                 }
             }
 

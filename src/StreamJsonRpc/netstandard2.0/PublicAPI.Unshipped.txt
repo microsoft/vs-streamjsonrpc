@@ -27,6 +27,10 @@ StreamJsonRpc.JsonRpc.ExceptionStrategy.get -> StreamJsonRpc.ExceptionProcessing
 StreamJsonRpc.JsonRpc.ExceptionStrategy.set -> void
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotDeserializable = 21 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.JsonRpc.TraceEvents.ExceptionNotSerializable = 20 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments.get -> bool
+StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments.set -> void
+StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments.get -> bool
+StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments.set -> void
 StreamJsonRpc.Protocol.IJsonRpcMessageWithId
 StreamJsonRpc.Protocol.IJsonRpcMessageWithId.RequestId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.Protocol.IJsonRpcMessageWithId.RequestId.set -> void
@@ -35,6 +39,8 @@ StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.get -> string?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceParent.set -> void
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.get -> string?
 StreamJsonRpc.Protocol.JsonRpcRequest.TraceState.set -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc! rpc, object! token, System.Type! valueType, bool clientRequiresNamedArguments) -> object!
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc! rpc, object! token, bool clientRequiresNamedArguments) -> System.IProgress<T>!
 StreamJsonRpc.RemoteInvocationException.RemoteInvocationException(string? message, int errorCode, System.Exception! innerException) -> void
 StreamJsonRpc.RequestId.RequestId() -> void
 StreamJsonRpc.TargetMethod
