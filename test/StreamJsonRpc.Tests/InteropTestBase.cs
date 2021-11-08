@@ -25,6 +25,12 @@ public class InteropTestBase : TestBase
         this.messageHandler = new DirectMessageHandler();
     }
 
+    protected void UseTypeHandling()
+    {
+        this.messageHandler.Formatter.JsonSerializer.TypeNameHandling = TypeNameHandling.Objects;
+        this.messageHandler.Formatter.JsonSerializer.TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple;
+    }
+
     protected ValueTask<JToken> RequestAsync(object request)
     {
         this.Send(request);
