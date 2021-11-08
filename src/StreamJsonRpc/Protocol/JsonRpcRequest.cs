@@ -141,7 +141,7 @@ namespace StreamJsonRpc.Protocol
         [IgnoreDataMember]
         public IReadOnlyList<object?>? ArgumentsList
         {
-            get => this.Arguments as IReadOnlyList<object>;
+            get => this.Arguments as IReadOnlyList<object?>;
             set => this.Arguments = value;
         }
 

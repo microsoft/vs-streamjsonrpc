@@ -2450,17 +2450,26 @@ public abstract class JsonRpcTests : TestBase
         {
             Data =
             {
-                { "harmlessCustomType", new Version("1.2.3.4") },
+                { "harmlessCustomType", new CustomISerializableData(1) },
             },
         };
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new object[] { exception }, this.TimeoutToken);
 
-        // Assert that the data was received, but not typed as the sender intended.
+        // Assert that the data was received, but not typed as the sender intended unless type handling was turned on.
         // This is important because the received data should not determine which types are deserialized
         // for security reasons.
-        object? harmlessCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
-        Assert.IsNotType<Version>(harmlessCustomType);
-        this.Logger.WriteLine("harmlessCustomType type: {0}", harmlessCustomType?.GetType().FullName);
+        object? objectOfCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
+
+        if (this.serverMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } })
+        {
+            Assert.IsType<CustomISerializableData>(objectOfCustomType);
+        }
+        else
+        {
+            Assert.IsNotType<CustomISerializableData>(objectOfCustomType);
+        }
+
+        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName);
     }
 
     [Fact]
@@ -3409,6 +3418,29 @@ public abstract class JsonRpcTests : TestBase
         [JsonIgnore]
         [IgnoreDataMember]
         public string? Value { get; set; }
+    }
+
+    [Serializable, DataContract]
+    public class CustomISerializableData : ISerializable
+    {
+        [SerializationConstructor]
+        public CustomISerializableData(int major)
+        {
+            this.Major = major;
+        }
+
+        protected CustomISerializableData(SerializationInfo info, StreamingContext context)
+        {
+            this.Major = info.GetInt32(nameof(this.Major));
+        }
+
+        [DataMember]
+        public int Major { get; set; }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue(nameof(this.Major), this.Major);
+        }
     }
 
     [DataContract]
