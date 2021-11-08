@@ -24,8 +24,8 @@ namespace StreamJsonRpc
         protected StreamMessageHandler(Stream? sendingStream, Stream? receivingStream, IJsonRpcMessageFormatter formatter)
             : base(formatter)
         {
-            Requires.Argument(sendingStream == null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
-            Requires.Argument(receivingStream == null || receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
+            Requires.Argument(sendingStream is null || sendingStream.CanWrite, nameof(sendingStream), Resources.StreamMustBeWriteable);
+            Requires.Argument(receivingStream is null || receivingStream.CanRead, nameof(receivingStream), Resources.StreamMustBeReadable);
 
             this.SendingStream = sendingStream;
             this.ReceivingStream = receivingStream;
@@ -34,12 +34,12 @@ namespace StreamJsonRpc
         /// <summary>
         /// Gets a value indicating whether this message handler has a receiving stream.
         /// </summary>
-        public override bool CanRead => this.ReceivingStream != null;
+        public override bool CanRead => this.ReceivingStream is not null;
 
         /// <summary>
         /// Gets a value indicating whether this message handler has a sending stream.
         /// </summary>
-        public override bool CanWrite => this.SendingStream != null;
+        public override bool CanWrite => this.SendingStream is not null;
 
         /// <summary>
         /// Gets the stream used to transmit messages. May be null.
@@ -72,7 +72,7 @@ namespace StreamJsonRpc
         /// <returns>A <see cref="Task"/> that completes when the write buffer has been transmitted.</returns>
         protected override ValueTask FlushAsync(CancellationToken cancellationToken)
         {
-            Verify.Operation(this.SendingStream != null, "No sending stream.");
+            Verify.Operation(this.SendingStream is not null, "No sending stream.");
             return new ValueTask(this.SendingStream.FlushAsync(cancellationToken));
         }
     }

@@ -42,7 +42,6 @@ stages:
 - stage: Build
   variables:
     TreatWarningsAsErrors: true
-    UpdateXlfOnBuild: false # force build breaks if xlf files aren't updated on dev box with resx changes
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     BuildConfiguration: Release
     BuildPlatform: Any CPU
@@ -52,7 +51,7 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEngSS-MicroBuild2019
+      windowsPool: VSEngSS-MicroBuild2019-1ES
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
       includeMacOS: ${{ parameters.includeMacOS }}
 
@@ -61,7 +60,7 @@ stages:
   condition: and(succeeded(), eq(dependencies.Build.outputs['Windows.SetPipelineVariables.SignType'], 'Real'))
   jobs:
   - job: archive
-    pool: VSEng-ReleasePool
+    pool: VSEng-ReleasePool-1ES
     steps:
     - download: current
       artifact: Variables-Windows

@@ -38,7 +38,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(enumerable, nameof(enumerable));
 
-            if (settings == null)
+            if (settings is null)
             {
                 return enumerable;
             }
@@ -160,7 +160,9 @@ namespace StreamJsonRpc
             return (enumerable as RpcEnumerable<T>)?.TearOffPrefetchedElements() ?? (Array.Empty<T>(), false);
         }
 
+#pragma warning disable VSTHRD200 // Use "Async" suffix for async methods
         private static RpcEnumerable<T> GetRpcEnumerable<T>(IAsyncEnumerable<T> enumerable) => enumerable as RpcEnumerable<T> ?? new RpcEnumerable<T>(enumerable);
+#pragma warning restore VSTHRD200 // Use "Async" suffix for async methods
 
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
         private class RpcEnumerable<T> : IAsyncEnumerable<T>, IRpcEnumerable
@@ -247,7 +249,7 @@ namespace StreamJsonRpc
                 internal async Task PrefetchAsync(int count, CancellationToken cancellationToken)
                 {
                     Requires.Range(count >= 0, nameof(count));
-                    Verify.Operation(this.prefetchedElements == null, Resources.ElementsAlreadyPrefetched);
+                    Verify.Operation(this.prefetchedElements is null, Resources.ElementsAlreadyPrefetched);
 
                     // Arrange to cancel the entire enumerator if the prefetch is canceled.
                     using CancellationTokenRegistration ctr = this.LinkToCancellation(cancellationToken);
@@ -263,7 +265,7 @@ namespace StreamJsonRpc
                     this.prefetchedElements = prefetchedElements;
                 }
 
-                private CancellationTokenRegistration LinkToCancellation(CancellationToken cancellationToken) => cancellationToken.Register(cts => ((CancellationTokenSource)cts).Cancel(), this.cancellationTokenSource);
+                private CancellationTokenRegistration LinkToCancellation(CancellationToken cancellationToken) => cancellationToken.Register(cts => ((CancellationTokenSource)cts!).Cancel(), this.cancellationTokenSource);
             }
         }
     }

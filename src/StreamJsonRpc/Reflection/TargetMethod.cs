@@ -16,7 +16,10 @@ namespace StreamJsonRpc
     using Newtonsoft.Json.Linq;
     using StreamJsonRpc.Protocol;
 
-    internal sealed class TargetMethod
+    /// <summary>
+    /// Represents the dispatch target of an incoming request.
+    /// </summary>
+    public sealed class TargetMethod
     {
         private readonly JsonRpcRequest request;
         private readonly object? target;
@@ -80,7 +83,7 @@ namespace StreamJsonRpc
         /// </summary>
         internal AggregateException? ArgumentDeserializationFailures { get; }
 
-        internal bool IsFound => this.signature != null;
+        internal bool IsFound => this.signature is not null;
 
         internal bool AcceptsCancellationToken => this.signature?.HasCancellationTokenParameter ?? false;
 
@@ -103,12 +106,12 @@ namespace StreamJsonRpc
         /// <inheritdoc/>
         public override string ToString()
         {
-            return this.signature != null ? $"{this.signature.MethodInfo.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+            return this.signature is not null ? $"{this.signature.MethodInfo.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
         }
 
         internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
         {
-            if (this.signature == null)
+            if (this.signature is null)
             {
                 throw new InvalidOperationException(this.LookupErrorMessage);
             }
@@ -124,11 +127,11 @@ namespace StreamJsonRpc
             return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
         }
 
-        private string? GetParameterSignature() => this.signature != null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
+        private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
 
         private void AddErrorMessage(string message)
         {
-            if (this.errorMessages == null)
+            if (this.errorMessages is null)
             {
                 this.errorMessages = new HashSet<string>(StringComparer.Ordinal);
             }

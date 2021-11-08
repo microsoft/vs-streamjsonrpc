@@ -193,6 +193,9 @@
   <data name="HeaderValueTooLarge" xml:space="preserve">
     <value>The size of the message header exceeds the maximum supported size.</value>
   </data>
+  <data name="InboundMessageOnly" xml:space="preserve">
+    <value>This operation is only appropriate for inbound messages.</value>
+  </data>
   <data name="InvalidAfterListenHasStarted" xml:space="preserve">
     <value>This operation is not allowed after listening for messages has started.</value>
   </data>
@@ -232,6 +235,9 @@
   <data name="NotSupportedWithoutMultiplexingStream" xml:space="preserve">
     <value>Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?</value>
   </data>
+  <data name="OutboundMessageOnly" xml:space="preserve">
+    <value>This operation is only appropriate for outbound messages.</value>
+  </data>
   <data name="ParameterNotObject" xml:space="preserve">
     <value>Parameter is not in the form of a single object</value>
   </data>
@@ -253,6 +259,9 @@
   </data>
   <data name="RequiredArgumentMissing" xml:space="preserve">
     <value>An argument was not supplied for a required parameter.</value>
+  </data>
+  <data name="ReservedPropertyName" xml:space="preserve">
+    <value>This property name is reserved by the JSON-RPC spec or this library.</value>
   </data>
   <data name="ResponseIsNotError" xml:space="preserve">
     <value>Response is not error.</value>
@@ -338,5 +347,8 @@
   </data>
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
+  </data>
+  <data name="UsableOnceOnly" xml:space="preserve">
+    <value>This operation can only be performed once on this object.</value>
   </data>
 </root>

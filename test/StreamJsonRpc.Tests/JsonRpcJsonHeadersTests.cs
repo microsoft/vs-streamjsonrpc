@@ -178,8 +178,8 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         var errorDataJToken = (JToken?)exception.ErrorData;
         Assert.NotNull(errorDataJToken);
         var errorData = errorDataJToken!.ToObject<CommonErrorData>();
-        Assert.NotNull(errorData.StackTrace);
-        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
+        Assert.NotNull(errorData?.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
@@ -224,28 +224,28 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     {
         public override bool CanConvert(Type objectType) => objectType == typeof(CustomSerializedType);
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             return new CustomSerializedType
             {
-                Value = (string)reader.Value,
+                Value = (string?)reader.Value,
             };
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            writer.WriteValue(((CustomSerializedType)value).Value);
+            writer.WriteValue(((CustomSerializedType?)value)!.Value);
         }
     }
 
     public class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
     {
-        public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             throw CreateExceptionToBeThrownByDeserializer();
         }
 
-        public override void WriteJson(JsonWriter writer, TypeThrowsWhenDeserialized value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, TypeThrowsWhenDeserialized? value, JsonSerializer serializer)
         {
             writer.WriteStartObject();
             writer.WriteEndObject();
@@ -275,16 +275,16 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     {
         public override bool CanConvert(Type objectType) => objectType == typeof(string);
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
-            string decoded = Encoding.UTF8.GetString(Convert.FromBase64String((string)reader.Value));
+            string decoded = Encoding.UTF8.GetString(Convert.FromBase64String((string)reader.Value!));
             return decoded;
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            var stringValue = (string)value;
-            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue));
+            var stringValue = (string?)value;
+            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue!));
             writer.WriteValue(encoded);
         }
     }

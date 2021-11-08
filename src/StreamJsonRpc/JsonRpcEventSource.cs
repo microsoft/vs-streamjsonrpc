@@ -3,7 +3,7 @@
 
 namespace StreamJsonRpc
 {
-    using System.Collections.Generic;
+    using System;
     using System.Diagnostics.Tracing;
     using System.Text;
     using StreamJsonRpc.Protocol;
@@ -99,6 +99,11 @@ namespace StreamJsonRpc
         private const int MessageHandlerReceivedEvent = 33;
 
         /// <summary>
+        /// A flag indicating whether to force tracing to be on.
+        /// </summary>
+        private static readonly bool AlwaysOn = Environment.GetEnvironmentVariable("StreamJsonRpc_TestWithEventSource") == "1";
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="JsonRpcEventSource"/> class.
         /// </summary>
         /// <remarks>
@@ -107,6 +112,9 @@ namespace StreamJsonRpc
         private JsonRpcEventSource()
         {
         }
+
+        /// <inheritdoc cref="EventSource.IsEnabled(EventLevel, EventKeywords)"/>
+        public new bool IsEnabled(EventLevel level, EventKeywords keywords) => AlwaysOn || base.IsEnabled(level, keywords);
 
         /// <summary>
         /// Signals the transmission of a notification.
@@ -267,38 +275,88 @@ namespace StreamJsonRpc
         /// <summary>
         /// Creates a string representation of arguments of max 200 characters for logging.
         /// </summary>
-        /// <param name="arguments">A single argument or an array of arguments.</param>
+        /// <param name="request">The request whose arguments are to be logged.</param>
         /// <returns>String representation of first argument only.</returns>
-        internal static string GetArgumentsString(object? arguments)
+        internal static string GetArgumentsString(JsonRpcRequest request)
         {
-            if (arguments == null)
-            {
-                return string.Empty;
-            }
-
             const int maxLength = 128;
 
-            if (arguments is object?[] args)
+            if (request.ArgumentCount == 0)
+            {
+                return "[]";
+            }
+
+            if (request.ArgumentNames is null)
             {
                 var stringBuilder = new StringBuilder();
-                if (args != null && args.Length > 0)
+                stringBuilder.Append('[');
+                for (int i = 0; i < request.ArgumentCount; ++i)
                 {
-                    for (int i = 0; i < args.Length; ++i)
+                    if (request.TryGetArgumentByNameOrIndex(null, i, null, out object? value))
                     {
-                        stringBuilder.Append($"arg{i}: {args[i]}, ");
-                        if (stringBuilder.Length > maxLength)
-                        {
-                            return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
-                        }
+                        Format(stringBuilder, value);
+                        stringBuilder.Append(", ");
+                    }
+                    else
+                    {
+                        stringBuilder.Append("<unformattable>");
+                    }
+
+                    if (stringBuilder.Length > maxLength)
+                    {
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
                     }
                 }
 
+                stringBuilder.Length -= 2; // Trim trailing comma
+                stringBuilder.Append(']');
                 return stringBuilder.ToString();
             }
             else
             {
-                string? retVal = arguments.ToString();
-                return (retVal?.Length > maxLength) ? $"{retVal.Substring(0, maxLength)}...(truncated)" : (retVal ?? "(null)");
+                var stringBuilder = new StringBuilder();
+                stringBuilder.Append('{');
+                foreach (string key in request.ArgumentNames)
+                {
+                    if (request.TryGetArgumentByNameOrIndex(key, -1, null, out object? value))
+                    {
+                        stringBuilder.Append(key);
+                        stringBuilder.Append(": ");
+                        Format(stringBuilder, value);
+                        stringBuilder.Append(", ");
+                    }
+                    else
+                    {
+                        stringBuilder.Append("<unformattable>");
+                    }
+
+                    if (stringBuilder.Length > maxLength)
+                    {
+                        return $"{stringBuilder.ToString(0, maxLength)}...(truncated)";
+                    }
+                }
+
+                stringBuilder.Length -= 2; // Trim trailing comma
+                stringBuilder.Append('}');
+                return stringBuilder.ToString();
+            }
+
+            static void Format(StringBuilder builder, object? value)
+            {
+                switch (value)
+                {
+                    case null:
+                        builder.Append("null");
+                        break;
+                    case string s:
+                        builder.Append("\"");
+                        builder.Append(s);
+                        builder.Append("\"");
+                        break;
+                    default:
+                        builder.Append(value);
+                        break;
+                }
             }
         }
 

@@ -14,8 +14,8 @@ namespace StreamJsonRpc
         {
             switch (reader.TokenType)
             {
-                case JsonToken.Integer: return new RequestId(reader.Value is int i ? i : (long)reader.Value);
-                case JsonToken.String: return new RequestId((string)reader.Value);
+                case JsonToken.Integer: return new RequestId(reader.Value is int i ? i : (long)reader.Value!);
+                case JsonToken.String: return new RequestId((string?)reader.Value);
                 case JsonToken.Null: return RequestId.Null;
                 default: throw new JsonSerializationException("Unexpected token type for request ID: " + reader.TokenType);
             }

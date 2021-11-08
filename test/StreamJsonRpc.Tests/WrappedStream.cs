@@ -24,7 +24,7 @@ internal class WrappedStream : Stream
     {
         add
         {
-            if (value != null)
+            if (value is not null)
             {
                 this.disconnectedListeners += value;
                 this.UpdateConnectedState();

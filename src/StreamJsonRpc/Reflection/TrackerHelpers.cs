@@ -58,7 +58,7 @@ namespace StreamJsonRpc.Reflection
         /// </summary>
         /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
         /// <returns>true if given <see cref="Type"/> implements <typeparamref name="TInterface"/>; otherwise, false.</returns>
-        internal static bool CanSerialize(Type objectType) => FindInterfaceImplementedBy(objectType) != null;
+        internal static bool CanSerialize(Type objectType) => FindInterfaceImplementedBy(objectType) is not null;
 
         /// <summary>
         /// Checks whether the given type is an interface compatible with <typeparamref name="TInterface"/>.

@@ -20,6 +20,9 @@
     Per-machine requires elevation and will download and install all SDKs and runtimes to machine-wide locations so all applications can find it.
 .PARAMETER NoPrerequisites
     Skips the installation of prerequisite software (e.g. SDKs, tools).
+.PARAMETER NoNuGetCredProvider
+    Skips the installation of the NuGet credential provider. Useful in pipelines with the `NuGetAuthenticate` task, as a workaround for https://github.com/microsoft/artifacts-credprovider/issues/244.
+    This switch is ignored and installation is skipped when -NoPrerequisites is specified.
 .PARAMETER UpgradePrerequisites
     Takes time to install prerequisites even if they are already present in case they need to be upgraded.
     No effect if -NoPrerequisites is specified.
@@ -27,6 +30,11 @@
     Skips the package restore step.
 .PARAMETER Signing
     Install the MicroBuild signing plugin for building test-signed builds on desktop machines.
+.PARAMETER Localization
+    Install the MicroBuild localization plugin for building loc builds on desktop machines.
+    The environment is configured to build pseudo-loc for JPN only, but may be used to build
+    all languages with shipping-style loc by using the `/p:loctype=full,loclanguages=vs`
+    when building.
 .PARAMETER OptProf
     Install the MicroBuild OptProf plugin for building optimized assemblies on desktop machines.
 .PARAMETER AccessToken
@@ -39,11 +47,15 @@ Param (
     [Parameter()]
     [switch]$NoPrerequisites,
     [Parameter()]
+    [switch]$NoNuGetCredProvider,
+    [Parameter()]
     [switch]$UpgradePrerequisites,
     [Parameter()]
     [switch]$NoRestore,
     [Parameter()]
     [switch]$Signing,
+    [Parameter()]
+    [switch]$Localization,
     [Parameter()]
     [switch]$OptProf,
     [Parameter()]
@@ -53,7 +65,10 @@ Param (
 $EnvVars = @{}
 
 if (!$NoPrerequisites) {
-    & "$PSScriptRoot\tools\Install-NuGetCredProvider.ps1" -AccessToken $AccessToken -Force:$UpgradePrerequisites
+    if (!$NoNuGetCredProvider) {
+        & "$PSScriptRoot\tools\Install-NuGetCredProvider.ps1" -AccessToken $AccessToken -Force:$UpgradePrerequisites
+    }
+
     & "$PSScriptRoot\tools\Install-DotNetSdk.ps1" -InstallLocality $InstallLocality
     if ($LASTEXITCODE -eq 3010) {
         Exit 3010
@@ -85,17 +100,29 @@ try {
     $InstallNuGetPkgScriptPath = ".\azure-pipelines\Install-NuGetPackage.ps1"
     $nugetVerbosity = 'quiet'
     if ($Verbose) { $nugetVerbosity = 'normal' }
-    $MicroBuildPackageSource = 'https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
+    $MicroBuildPackageSource = 'https://pkgs.dev.azure.com/devdiv/_packaging/MicroBuildToolset%40Local/nuget/v3/index.json'
     if ($Signing) {
         Write-Host "Installing MicroBuild signing plugin" -ForegroundColor $HeaderColor
         & $InstallNuGetPkgScriptPath MicroBuild.Plugins.Signing -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
         $EnvVars['SignType'] = "Test"
     }
 
+    if ($Localization) {
+        Write-Host "Installing MicroBuild localization plugin" -ForegroundColor $HeaderColor
+        & $InstallNuGetPkgScriptPath MicroBuild.Plugins.Localization -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
+        $EnvVars['LocType'] = "Pseudo"
+        $EnvVars['LocLanguages'] = "JPN"
+    }
+
     if ($OptProf) {
         Write-Host "Installing MicroBuild OptProf plugin" -ForegroundColor $HeaderColor
         & $InstallNuGetPkgScriptPath MicroBuild.Plugins.OptProf -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
         $EnvVars['OptProfEnabled'] = '1'
+    }
+
+    # This is a workaround for https://dev.azure.com/devdiv/DevDiv/_workitems/edit/1283978
+    if ($Signing -or $Setup -or $OptProf -or $Localization) {
+        & $InstallNuGetPkgScriptPath MicroBuild.Core.Sentinel -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
     }
 
     & "$PSScriptRoot/tools/Set-EnvVars.ps1" -Variables $EnvVars | Out-Null

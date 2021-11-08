@@ -149,24 +149,31 @@ namespace StreamJsonRpc.Reflection
             }
         }
 
-        /// <summary>
-        /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.
-        /// </summary>
+        /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
+        /// <remarks>
+        /// This overload creates an <see cref="IProgress{T}"/> that does <em>not</em> use named arguments in its notifications.
+        /// </remarks>
+        public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token) => this.CreateProgress<T>(rpc, token, clientRequiresNamedArguments: false);
+
+        /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
         /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
-        /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
-        /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
-#pragma warning disable CA1822 // Mark members as static
-        public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token) => new JsonProgress<T>(rpc, token);
-#pragma warning restore CA1822 // Mark members as static
+        public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new JsonProgress<T>(rpc, token, clientRequiresNamedArguments);
+
+        /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
+        /// <remarks>
+        /// This overload creates an <see cref="IProgress{T}"/> that does <em>not</em> use named arguments in its notifications.
+        /// </remarks>
+        public object CreateProgress(JsonRpc rpc, object token, Type valueType) => this.CreateProgress(rpc, token, valueType, clientRequiresNamedArguments: false);
 
         /// <summary>
         /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.
         /// </summary>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
-        /// <param name="valueType">The type that the <see cref="IProgress{T}"/> intance will report.</param>
+        /// <param name="valueType">A generic type whose first generic type argument is to serve as the type argument for the created <see cref="IProgress{T}"/>.</param>
+        /// <param name="clientRequiresNamedArguments"><see langword="true"/> to issue $/progress notifications using named args; <see langword="false"/> to use positional arguments.</param>
 #pragma warning disable CA1822 // Mark members as static
-        public object CreateProgress(JsonRpc rpc, object token, Type valueType)
+        public object CreateProgress(JsonRpc rpc, object token, Type valueType, bool clientRequiresNamedArguments)
 #pragma warning restore CA1822 // Mark members as static
         {
             Requires.NotNull(rpc, nameof(rpc));
@@ -174,7 +181,7 @@ namespace StreamJsonRpc.Reflection
             Requires.NotNull(valueType, nameof(valueType));
 
             Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
-            return Activator.CreateInstance(progressType, new object[] { rpc, token })!;
+            return Activator.CreateInstance(progressType, new object[] { rpc, token, clientRequiresNamedArguments })!;
         }
 
         private void CleanUpResources(RequestId requestId)
@@ -220,7 +227,7 @@ namespace StreamJsonRpc.Reflection
 
                 Type? iProgressOfTType = FindIProgressOfT(progressObject.GetType());
 
-                Verify.Operation(iProgressOfTType != null, Resources.FindIProgressOfTError);
+                Verify.Operation(iProgressOfTType is not null, Resources.FindIProgressOfTError);
 
                 this.ValueType = iProgressOfTType.GenericTypeArguments[0];
                 this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;
@@ -257,16 +264,19 @@ namespace StreamJsonRpc.Reflection
         {
             private readonly JsonRpc rpc;
             private readonly object token;
+            private readonly bool useNamedArguments;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="JsonProgress{T}"/> class.
             /// </summary>
             /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
             /// <param name="token">The progress token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
-            public JsonProgress(JsonRpc rpc, object token)
+            /// <param name="useNamedArguments"><see langword="true"/> to use named arguments; <see langword="false"/> to use positional arguments.</param>
+            public JsonProgress(JsonRpc rpc, object token, bool useNamedArguments)
             {
                 this.rpc = rpc ?? throw new ArgumentNullException(nameof(rpc));
                 this.token = token ?? throw new ArgumentNullException(nameof(token));
+                this.useNamedArguments = useNamedArguments;
             }
 
             /// <summary>
@@ -275,10 +285,30 @@ namespace StreamJsonRpc.Reflection
             /// <param name="value">The typed value that will be send in the notification to be reported by the original <see cref="IProgress{T}"/> instance.</param>
             public void Report(T value)
             {
-                var arguments = new object?[] { this.token, value };
-                var argumentDeclaredTypes = new Type[] { this.token.GetType(), typeof(T) };
-                this.rpc.NotifyAsync(ProgressRequestSpecialMethod, arguments, argumentDeclaredTypes).ContinueWith(
-                    (t, s) => ((JsonRpc)s).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception.InnerException ?? t.Exception),
+                Task notifyTask;
+                if (this.useNamedArguments)
+                {
+                    var arguments = new Dictionary<string, object?>
+                    {
+                        { "token",  this.token },
+                        { "value", value },
+                    };
+                    var argumentDeclaredTypes = new Dictionary<string, Type>
+                    {
+                        { "token", this.token.GetType() },
+                        { "value", typeof(T) },
+                    };
+                    notifyTask = this.rpc.NotifyWithParameterObjectAsync(ProgressRequestSpecialMethod, arguments, argumentDeclaredTypes);
+                }
+                else
+                {
+                    var arguments = new object?[] { this.token, value };
+                    var argumentDeclaredTypes = new Type[] { this.token.GetType(), typeof(T) };
+                    notifyTask = this.rpc.NotifyAsync(ProgressRequestSpecialMethod, arguments, argumentDeclaredTypes);
+                }
+
+                notifyTask.ContinueWith(
+                    (t, s) => ((JsonRpc)s!).TraceSource.TraceEvent(System.Diagnostics.TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, "Failed to send progress update. {0}", t.Exception!.InnerException ?? t.Exception),
                     this.rpc,
                     CancellationToken.None,
                     TaskContinuationOptions.OnlyOnFaulted,

@@ -31,6 +31,7 @@ namespace StreamJsonRpc
             this.NotifyClientOfEvents = copyFrom.NotifyClientOfEvents;
             this.AllowNonPublicInvocation = copyFrom.AllowNonPublicInvocation;
             this.UseSingleObjectParameterDeserialization = copyFrom.UseSingleObjectParameterDeserialization;
+            this.ClientRequiresNamedArguments = copyFrom.ClientRequiresNamedArguments;
             this.DisposeOnDisconnect = copyFrom.DisposeOnDisconnect;
         }
 
@@ -63,10 +64,17 @@ namespace StreamJsonRpc
         /// </remarks>
         public bool AllowNonPublicInvocation { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether JSON-RPC named arguments should all be deserialized into the RPC method's first parameter.
-        /// </summary>
+        /// <inheritdoc cref="JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization" />
+        /// <remarks>
+        /// This value serves as a default for <see cref="JsonRpcMethodAttribute.UseSingleObjectParameterDeserialization"/> for members that have no <see cref="JsonRpcMethodAttribute"/> applied.
+        /// </remarks>
         public bool UseSingleObjectParameterDeserialization { get; set; }
+
+        /// <inheritdoc cref="JsonRpcMethodAttribute.ClientRequiresNamedArguments" />
+        /// <remarks>
+        /// This value serves as a default for <see cref="JsonRpcMethodAttribute.ClientRequiresNamedArguments"/> for members that have no <see cref="JsonRpcMethodAttribute"/> applied.
+        /// </remarks>
+        public bool ClientRequiresNamedArguments { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to dispose of the target object

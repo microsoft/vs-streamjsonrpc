@@ -136,9 +136,9 @@ To improve performance across a network, this behavior can be modified:
    This improves performance when the time to generate the values is significant.
 1. **Prefetch**: The generator collects some number of values up front and _includes_ them
    in the initial message with the token for acquiring more values.
-   While "read ahead" reduces the time the consumer must wait while the generator produces the values
-   for each request, this prefetch setting entirely eliminates the latency of a round-trip for just
-   the first set of items.
+   While "read ahead" may increase the time the consumer must wait while the generator produces the values
+   for initial request, this prefetch setting entirely eliminates the latency of a round-trip for
+   the initial set of items.
 
 The above optimizations are configured individually and may be used in combination.
 

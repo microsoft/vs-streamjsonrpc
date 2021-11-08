@@ -85,7 +85,7 @@ namespace StreamJsonRpc.Reflection
                 TypeCode.Int64 => formatterConverter.ToInt64(value),
                 TypeCode.SByte => formatterConverter.ToSByte(value),
                 TypeCode.Single => formatterConverter.ToSingle(value),
-                TypeCode.String => formatterConverter.ToString(value),
+                TypeCode.String => formatterConverter.ToString(value)!,
                 TypeCode.UInt16 => formatterConverter.ToUInt16(value),
                 TypeCode.UInt32 => formatterConverter.ToUInt32(value),
                 TypeCode.UInt64 => formatterConverter.ToUInt64(value),

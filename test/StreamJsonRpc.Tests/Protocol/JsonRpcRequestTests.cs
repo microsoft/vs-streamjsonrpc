@@ -73,5 +73,13 @@ public class JsonRpcRequestTests
         };
         Assert.Null(request.ArgumentsArray);
     }
+
+    [Fact]
+    public void DefaultRequestDoesNotSupportTopLevelProperties()
+    {
+        var request = new JsonRpcRequest();
+        Assert.False(request.TrySetTopLevelProperty("test", "test"));
+        Assert.False(request.TryGetTopLevelProperty<string>("test", out string? value));
+    }
 #pragma warning restore CS0618 // Type or member is obsolete
 }

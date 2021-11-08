@@ -43,12 +43,14 @@ stages:
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEngSS-MicroBuild2019
+      windowsPool: VSEngSS-MicroBuild2019-1ES
       ShouldSkipOptimize: true
+      OptProf: true
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
-    pool: VSEng-ReleasePool
+    pool:
+      vmImage: windows-latest
     variables:
       InsertPayloadName: vs-streamjsonrpc
       InsertTopicBranch: team/VS-IDE/vs-StreamJsonRpc-OptProf-run-$(Build.BuildId)
