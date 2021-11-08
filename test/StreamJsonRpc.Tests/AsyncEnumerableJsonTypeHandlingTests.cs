@@ -15,20 +15,20 @@ public class AsyncEnumerableJsonTypeHandlingTests : AsyncEnumerableJsonTests
 
     protected override void InitializeFormattersAndHandlers()
     {
-        this.serverMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        this.serverMessageFormatter = new JsonMessageFormatter
         {
             JsonSerializer =
             {
-                TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects,
+                TypeNameHandling = TypeNameHandling.Objects,
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             },
         };
 
-        this.clientMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        this.clientMessageFormatter = new JsonMessageFormatter
         {
             JsonSerializer =
             {
-                TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects,
+                TypeNameHandling = TypeNameHandling.Objects,
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             },
         };

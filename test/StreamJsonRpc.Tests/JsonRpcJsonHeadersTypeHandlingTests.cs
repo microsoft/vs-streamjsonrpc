@@ -15,32 +15,6 @@ public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
     {
     }
 
-    /// <summary>
-    /// Method overriden because anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
-    /// </summary>
-    [Fact]
-    public override async Task CanPassAndCallPrivateMethodsObjects()
-    {
-        var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
-    }
-
-    [Fact]
-    public override Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
-    {
-        // This method is not tested because TypeHandling will prevent this from working. Types have to match.
-        return Task.CompletedTask;
-    }
-
-    [Fact]
-    public override Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
-    {
-        // This method is not tested because TypeHandling will prevent this from working. Types have to match.
-        return Task.CompletedTask;
-    }
-
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.serverMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))

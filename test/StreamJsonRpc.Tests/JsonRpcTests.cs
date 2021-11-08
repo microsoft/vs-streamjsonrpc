@@ -96,6 +96,8 @@ public abstract class JsonRpcTests : TestBase
         bool MethodOnDerived();
     }
 
+    protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } };
+
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
     {
@@ -1443,9 +1445,10 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [Fact]
-    public virtual async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
+    [SkippableFact]
+    public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
+        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
@@ -1464,9 +1467,10 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [Fact]
-    public virtual async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
+    [SkippableFact]
+    public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
+        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }

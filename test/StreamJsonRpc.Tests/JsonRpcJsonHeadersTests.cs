@@ -132,17 +132,21 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public virtual async Task CanPassAndCallPrivateMethodsObjects()
+    public async Task CanPassAndCallPrivateMethodsObjects()
     {
         var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
         Assert.NotNull(result);
         Assert.Equal("bar!", result.Bar);
         Assert.Equal(1001, result.Bazz);
 
-        result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
+        // anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
+        if (!this.IsTypeNameHandlingEnabled)
+        {
+            result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
+            Assert.NotNull(result);
+            Assert.Equal("bar!", result.Bar);
+            Assert.Equal(1001, result.Bazz);
+        }
     }
 
     [Fact]
@@ -220,7 +224,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         public string? TheArgument { get; set; }
     }
 
-    public class UnserializableTypeConverter : JsonConverter
+    protected class UnserializableTypeConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType) => objectType == typeof(CustomSerializedType);
 
@@ -238,7 +242,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         }
     }
 
-    public class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
+    protected class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
     {
         public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
@@ -252,7 +256,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         }
     }
 
-    internal class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
+    protected class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
     {
         public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
             : base(stream, formatter)

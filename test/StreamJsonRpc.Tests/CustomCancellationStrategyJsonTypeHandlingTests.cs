@@ -6,9 +6,9 @@ using Newtonsoft.Json;
 using StreamJsonRpc;
 using Xunit.Abstractions;
 
-public class CustomCancellationStratetyJsonTypeHandlingTests : CustomCancellationStrategyTests
+public class CustomCancellationStrategyJsonTypeHandlingTests : CustomCancellationStrategyTests
 {
-    public CustomCancellationStratetyJsonTypeHandlingTests(ITestOutputHelper logger)
+    public CustomCancellationStrategyJsonTypeHandlingTests(ITestOutputHelper logger)
         : base(logger)
     {
     }
