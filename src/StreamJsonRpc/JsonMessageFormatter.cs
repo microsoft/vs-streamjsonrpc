@@ -686,12 +686,32 @@ namespace StreamJsonRpc
 
             if (declaredType is object && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableImplicitConverter? converter))
             {
-                using var jsonWriter = new JTokenWriter();
+                using JTokenWriter jsonWriter = this.CreateJTokenWriter();
                 converter.WriteJson(jsonWriter, value, this.JsonSerializer);
                 return jsonWriter.Token!;
             }
 
             return JToken.FromObject(value, this.JsonSerializer);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JTokenWriter"/> class
+        /// with settings initialized to those set on the <see cref="JsonSerializer"/> object.
+        /// </summary>
+        /// <returns>The initialized instance of <see cref="JTokenWriter"/>.</returns>
+        private JTokenWriter CreateJTokenWriter()
+        {
+            return new JTokenWriter
+            {
+                // This same set of properties comes from Newtonsoft.Json's own JsonSerialize.SerializeInternal method.
+                Formatting = this.JsonSerializer.Formatting,
+                DateFormatHandling = this.JsonSerializer.DateFormatHandling,
+                DateTimeZoneHandling = this.JsonSerializer.DateTimeZoneHandling,
+                FloatFormatHandling = this.JsonSerializer.FloatFormatHandling,
+                StringEscapeHandling = this.JsonSerializer.StringEscapeHandling,
+                Culture = this.JsonSerializer.Culture,
+                DateFormatString = this.JsonSerializer.DateFormatString,
+            };
         }
 
         private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableImplicitConverter? converter)
