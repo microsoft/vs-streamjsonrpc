@@ -969,9 +969,20 @@ namespace StreamJsonRpc
                                     obj.Add(new JProperty(property.Key, property.Value));
                                 }
 
+                                // Deserialization of messages should never occur concurrently for a single instance of a formatter.
+                                Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
+                                this.formatter.deserializingMessageWithId = this.RequestId;
                                 this.formatter.deserializingMessage = this;
-                                typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
-                                this.formatter.deserializingMessage = null;
+                                try
+                                {
+                                    typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                                }
+                                finally
+                                {
+                                    this.formatter.deserializingMessageWithId = default;
+                                    this.formatter.deserializingMessage = null;
+                                }
+
                                 return ArgumentMatchResult.Success;
                             }
                         }

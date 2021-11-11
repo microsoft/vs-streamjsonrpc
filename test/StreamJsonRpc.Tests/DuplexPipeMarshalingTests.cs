@@ -341,6 +341,16 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task PassStreamWithArgsAsSingleObject()
+    {
+        MemoryStream ms = new();
+        ms.Write(new byte[] { 1, 2, 3 }, 0, 3);
+        ms.Position = 0;
+        int bytesRead = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.AcceptStreamArgInFirstParam), new { innerStream = ms }, this.TimeoutToken);
+        Assert.Equal(ms.Length, bytesRead);
+    }
+
+    [Fact]
     public async Task ServerStreamIsDisposedWhenClientDisconnects_DuplexStream()
     {
         await this.ServerStreamIsDisposedWhenClientDisconnects(nameof(Server.ServerMethodThatReturnsAndSavesTwoWayStream));
@@ -944,6 +954,27 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             streamPair.Item1.Dispose();
 
             return stream;
+        }
+
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
+        public async Task<int> AcceptStreamArgInFirstParam(StreamContainingClass allArgs)
+        {
+            Requires.NotNull(allArgs.InnerStream, nameof(allArgs.InnerStream));
+
+            int totalBytesRead = 0;
+            byte[] buffer = new byte[128];
+            while (true)
+            {
+                int bytesRead = await allArgs.InnerStream.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                totalBytesRead += bytesRead;
+            }
+
+            return totalBytesRead;
         }
 
         public Stream ServerMethodThatReturnsAndSavesTwoWayStream() => this.ReturnedStream = new MonitoringStream(FullDuplexStream.CreatePair().Item1);
