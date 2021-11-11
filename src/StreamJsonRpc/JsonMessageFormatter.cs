@@ -636,35 +636,18 @@ namespace StreamJsonRpc
                                 throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
                             }
 
-                            JObject tokenizedArgumentsObject = new();
-                            if (request.NamedArguments is not null)
+                            // Tokenize the user data using the user-supplied serializer.
+                            JObject? paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
+
+                            // Json.Net TypeHandling could insert a $type child JToken to the paramsObject above.
+                            // This $type JToken should not be there to maintain Json RPC Spec compatibility. We will
+                            // strip the token out here.
+                            if (this.JsonSerializer.TypeNameHandling != TypeNameHandling.None)
                             {
-                                foreach (KeyValuePair<string, object?> pair in request.NamedArguments)
-                                {
-                                    Type? declaredType = null;
-                                    request.NamedArgumentDeclaredTypes?.TryGetValue(pair.Key, out declaredType);
-                                    tokenizedArgumentsObject.Add(pair.Key, this.TokenizeUserData(declaredType, pair.Value));
-                                }
-                            }
-                            else if (DefaultSerializer.ContractResolver.ResolveContract(request.Arguments.GetType()) is JsonObjectContract contract)
-                            {
-                                // The arguments should be interpreted as named arguments,
-                                // but as they were not detected as in a dictionary,
-                                // it may be an anonymous type. Allow Newtonsoft.Json to determine the property names and values.
-                                foreach (JsonProperty property in contract.Properties)
-                                {
-                                    if (property.PropertyName is not null && property.ValueProvider is not null)
-                                    {
-                                        tokenizedArgumentsObject.Add(property.PropertyName, this.TokenizeUserData(property.PropertyType, property.ValueProvider.GetValue(request.Arguments)));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                throw new JsonSerializationException("Unsupported arguments object type: " + request.Arguments.GetType());
+                                paramsObject.Remove("$type");
                             }
 
-                            request.Arguments = tokenizedArgumentsObject;
+                            request.Arguments = paramsObject;
                         }
 
                         break;
@@ -703,12 +686,32 @@ namespace StreamJsonRpc
 
             if (declaredType is object && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableImplicitConverter? converter))
             {
-                using var jsonWriter = new JTokenWriter();
+                using JTokenWriter jsonWriter = this.CreateJTokenWriter();
                 converter.WriteJson(jsonWriter, value, this.JsonSerializer);
                 return jsonWriter.Token!;
             }
 
             return JToken.FromObject(value, this.JsonSerializer);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="JTokenWriter"/> class
+        /// with settings initialized to those set on the <see cref="JsonSerializer"/> object.
+        /// </summary>
+        /// <returns>The initialized instance of <see cref="JTokenWriter"/>.</returns>
+        private JTokenWriter CreateJTokenWriter()
+        {
+            return new JTokenWriter
+            {
+                // This same set of properties comes from Newtonsoft.Json's own JsonSerialize.SerializeInternal method.
+                Formatting = this.JsonSerializer.Formatting,
+                DateFormatHandling = this.JsonSerializer.DateFormatHandling,
+                DateTimeZoneHandling = this.JsonSerializer.DateTimeZoneHandling,
+                FloatFormatHandling = this.JsonSerializer.FloatFormatHandling,
+                StringEscapeHandling = this.JsonSerializer.StringEscapeHandling,
+                Culture = this.JsonSerializer.Culture,
+                DateFormatString = this.JsonSerializer.DateFormatString,
+            };
         }
 
         private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableImplicitConverter? converter)
