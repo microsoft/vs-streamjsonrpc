@@ -300,6 +300,21 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Null(value);
     }
 
+    [Fact]
+    public void CustomParametersObjectWithJsonConverterProperties()
+    {
+        const string localPathUri = "file:///c:/foo";
+        var formatter = new JsonMessageFormatter();
+        JToken token = formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { Uri = new Uri(localPathUri) } });
+        this.Logger.WriteLine(token.ToString(Formatting.Indented));
+        Assert.Equal(CustomConverter.CustomPrefix + localPathUri, token["params"]![nameof(CustomTypeWithJsonConverterProperties.Uri)]!.ToString());
+
+        token = formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { } });
+        this.Logger.WriteLine(token.ToString(Formatting.Indented));
+        Assert.Equal(JTokenType.Null, token["params"]![nameof(CustomTypeWithJsonConverterProperties.Uri)]!.Type);
+        Assert.Null(token["params"]![nameof(CustomTypeWithJsonConverterProperties.UriIgnorable)]);
+    }
+
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
     {
         var builder = new Sequence<byte>();
@@ -314,5 +329,49 @@ public class JsonMessageFormatterTests : TestBase
     public class CustomType
     {
         public int Age { get; set; }
+    }
+
+    public class CustomTypeWithJsonConverterProperties
+    {
+        [JsonConverter(typeof(CustomConverter))]
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public Uri? Uri { get; set; }
+
+        [JsonConverter(typeof(CustomConverter))]
+        public Uri? UriIgnorable { get; set; }
+    }
+
+    private class CustomConverter : JsonConverter
+    {
+        internal const string CustomPrefix = "custom: ";
+
+        public override bool CanConvert(Type objectType) => objectType == typeof(Uri);
+
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        {
+            string? value = reader.ReadAsString();
+            if (value?.StartsWith(CustomPrefix, StringComparison.Ordinal) is true)
+            {
+                return new Uri(value.Substring(CustomPrefix.Length));
+            }
+
+            throw new InvalidOperationException("Unexpected format.");
+        }
+
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        {
+            if (value is null)
+            {
+                writer.WriteValue(CustomPrefix + "null");
+            }
+            else if (value is Uri uri)
+            {
+                writer.WriteValue(CustomPrefix + uri.AbsoluteUri);
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+        }
     }
 }
