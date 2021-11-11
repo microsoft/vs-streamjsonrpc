@@ -969,7 +969,9 @@ namespace StreamJsonRpc
                                     obj.Add(new JProperty(property.Key, property.Value));
                                 }
 
+                                this.formatter.deserializingMessage = this;
                                 typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+                                this.formatter.deserializingMessage = null;
                                 return ArgumentMatchResult.Success;
                             }
                         }
