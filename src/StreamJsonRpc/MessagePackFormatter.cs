@@ -2372,12 +2372,21 @@ namespace StreamJsonRpc
                             var reader = new MessagePackReader(this.MsgPackArguments);
                             try
                             {
+                                // Deserialization of messages should never occur concurrently for a single instance of a formatter.
+                                Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
+                                this.formatter.deserializingMessageWithId = this.RequestId;
+                                this.formatter.deserializingMessage = this;
                                 typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
                                 return ArgumentMatchResult.Success;
                             }
                             catch (MessagePackSerializationException)
                             {
                                 return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                            }
+                            finally
+                            {
+                                this.formatter.deserializingMessageWithId = default;
+                                this.formatter.deserializingMessage = null;
                             }
                         }
                     }

@@ -3,6 +3,8 @@
 
 using System;
 using System.Threading.Tasks;
+
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using Xunit;
@@ -127,6 +129,35 @@ public class JsonRpcServerInteropTests : InteropTestBase
         }
     }
 
+    [Theory, PairwiseData]
+    public async Task ServerEmitsProgressNotificationsWithNamedArguments_WithNamedArgumentsInput_WithSingleObjectParameterDeserialization(bool useSingleObjectParameterDeserialization)
+    {
+        this.InitializeServer(new JsonRpcTargetOptions { ClientRequiresNamedArguments = true, UseSingleObjectParameterDeserialization = useSingleObjectParameterDeserialization });
+
+        var methodToSend = useSingleObjectParameterDeserialization ? nameof(Server.SendProgressNotificationSingleObject) : nameof(Server.SendProgressNotificationMultipleParam);
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            method = methodToSend,
+            @params = new { firstParam = 1, progress = 5 },
+            id = "abc",
+        });
+
+        JToken notification = await this.ReceiveAsync();
+        JToken result = await this.ReceiveAsync();
+
+        // Assert that the server emitting no error, to start with.
+        Assert.Equal(JTokenType.Null, result["result"]?.Type);
+
+        this.Logger.WriteLine("Notification:\n{0}", notification);
+        Assert.Equal("$/progress", notification.Value<string>("method"));
+
+        // Assert that the progress notification came using named args in all combinations.
+        JObject paramsObject = Assert.IsType<JObject>(notification["params"]);
+        Assert.Equal(5, paramsObject.Value<int>("token"));
+        Assert.Equal(useSingleObjectParameterDeserialization ? 6 : 7, paramsObject.Value<int>("value"));
+    }
+
     [Fact]
     public async Task ServerAlwaysReturnsResultEvenIfNull()
     {
@@ -162,5 +193,18 @@ public class JsonRpcServerInteropTests : InteropTestBase
         public string EchoSuccessWithProgressParam(IProgress<int> progress) => "Success!";
 
         public void SendProgressNotificationParam(IProgress<int> progress) => progress.Report(8);
+
+        public void SendProgressNotificationMultipleParam(int firstParam, IProgress<int> progress) => progress.Report(7);
+
+        public void SendProgressNotificationSingleObject(InputParam input) => input.Progress?.Report(6);
+
+        internal class InputParam
+        {
+            [JsonProperty("firstParam")]
+            public int FirstParam { get; set; }
+
+            [JsonProperty("progress")]
+            public IProgress<int>? Progress { get; set; }
+        }
     }
 }
