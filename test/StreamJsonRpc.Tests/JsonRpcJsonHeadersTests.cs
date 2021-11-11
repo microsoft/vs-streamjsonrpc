@@ -139,10 +139,14 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         Assert.Equal("bar!", result.Bar);
         Assert.Equal(1001, result.Bazz);
 
-        result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
+        // anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
+        if (!this.IsTypeNameHandlingEnabled)
+        {
+            result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
+            Assert.NotNull(result);
+            Assert.Equal("bar!", result.Bar);
+            Assert.Equal(1001, result.Bazz);
+        }
     }
 
     [Fact]
@@ -220,7 +224,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         public string? TheArgument { get; set; }
     }
 
-    private class UnserializableTypeConverter : JsonConverter
+    protected class UnserializableTypeConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType) => objectType == typeof(CustomSerializedType);
 
@@ -238,7 +242,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         }
     }
 
-    private class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
+    protected class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
     {
         public override TypeThrowsWhenDeserialized ReadJson(JsonReader reader, Type objectType, TypeThrowsWhenDeserialized? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
@@ -249,6 +253,25 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         {
             writer.WriteStartObject();
             writer.WriteEndObject();
+        }
+    }
+
+    protected class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
+    {
+        public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
+            : base(stream, formatter)
+        {
+        }
+
+        public AsyncAutoResetEvent FlushEntered { get; } = new AsyncAutoResetEvent();
+
+        public AsyncManualResetEvent AllowFlushAsyncExit { get; } = new AsyncManualResetEvent();
+
+        protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
+        {
+            this.FlushEntered.Set();
+            await this.AllowFlushAsyncExit.WaitAsync();
+            await base.FlushAsync(cancellationToken);
         }
     }
 
@@ -267,25 +290,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
             var stringValue = (string?)value;
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue!));
             writer.WriteValue(encoded);
-        }
-    }
-
-    private class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
-    {
-        public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
-            : base(stream, formatter)
-        {
-        }
-
-        public AsyncAutoResetEvent FlushEntered { get; } = new AsyncAutoResetEvent();
-
-        public AsyncManualResetEvent AllowFlushAsyncExit { get; } = new AsyncManualResetEvent();
-
-        protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
-        {
-            this.FlushEntered.Set();
-            await this.AllowFlushAsyncExit.WaitAsync();
-            await base.FlushAsync(cancellationToken);
         }
     }
 }

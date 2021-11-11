@@ -96,6 +96,8 @@ public abstract class JsonRpcTests : TestBase
         bool MethodOnDerived();
     }
 
+    protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } };
+
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
     {
@@ -1443,9 +1445,10 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
+        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
@@ -1464,9 +1467,10 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
+        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
@@ -2450,17 +2454,26 @@ public abstract class JsonRpcTests : TestBase
         {
             Data =
             {
-                { "harmlessCustomType", new Version("1.2.3.4") },
+                { "harmlessCustomType", new CustomISerializableData(1) },
             },
         };
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new object[] { exception }, this.TimeoutToken);
 
-        // Assert that the data was received, but not typed as the sender intended.
+        // Assert that the data was received, but not typed as the sender intended unless type handling was turned on.
         // This is important because the received data should not determine which types are deserialized
         // for security reasons.
-        object? harmlessCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
-        Assert.IsNotType<Version>(harmlessCustomType);
-        this.Logger.WriteLine("harmlessCustomType type: {0}", harmlessCustomType?.GetType().FullName);
+        object? objectOfCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
+
+        if (this.serverMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } })
+        {
+            Assert.IsType<CustomISerializableData>(objectOfCustomType);
+        }
+        else
+        {
+            Assert.IsNotType<CustomISerializableData>(objectOfCustomType);
+        }
+
+        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName);
     }
 
     [Fact]
@@ -2697,6 +2710,27 @@ public abstract class JsonRpcTests : TestBase
         return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
     }
 
+    protected void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false)
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers(controlledFlushingClient);
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.clientRpc = new JsonRpc(this.clientMessageHandler);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
+        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
+        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
+    }
+
     private static void AssertExceptionEquality(Exception? expected, Exception? actual, bool compareType = true)
     {
         Assert.Equal(expected is null, actual is null);
@@ -2738,27 +2772,6 @@ public abstract class JsonRpcTests : TestBase
             yield return errorData;
             errorData = errorData.Inner;
         }
-    }
-
-    private void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false)
-    {
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.InitializeFormattersAndHandlers(controlledFlushingClient);
-
-        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
-        this.clientRpc = new JsonRpc(this.clientMessageHandler);
-
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-
-        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-
-        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
-        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
     }
 
     private void StartListening()
@@ -3409,6 +3422,29 @@ public abstract class JsonRpcTests : TestBase
         [JsonIgnore]
         [IgnoreDataMember]
         public string? Value { get; set; }
+    }
+
+    [Serializable, DataContract]
+    public class CustomISerializableData : ISerializable
+    {
+        [SerializationConstructor]
+        public CustomISerializableData(int major)
+        {
+            this.Major = major;
+        }
+
+        protected CustomISerializableData(SerializationInfo info, StreamingContext context)
+        {
+            this.Major = info.GetInt32(nameof(this.Major));
+        }
+
+        [DataMember]
+        public int Major { get; set; }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue(nameof(this.Major), this.Major);
+        }
     }
 
     [DataContract]

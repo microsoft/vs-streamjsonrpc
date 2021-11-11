@@ -636,10 +636,35 @@ namespace StreamJsonRpc
                                 throw new NotSupportedException(Resources.ParameterObjectsNotSupportedInJsonRpc10);
                             }
 
-                            // Tokenize the user data using the user-supplied serializer.
-                            // TODO: add declared type handling to this branch too.
-                            var paramsObject = JObject.FromObject(request.Arguments, this.JsonSerializer);
-                            request.Arguments = paramsObject;
+                            JObject tokenizedArgumentsObject = new();
+                            if (request.NamedArguments is not null)
+                            {
+                                foreach (KeyValuePair<string, object?> pair in request.NamedArguments)
+                                {
+                                    Type? declaredType = null;
+                                    request.NamedArgumentDeclaredTypes?.TryGetValue(pair.Key, out declaredType);
+                                    tokenizedArgumentsObject.Add(pair.Key, this.TokenizeUserData(declaredType, pair.Value));
+                                }
+                            }
+                            else if (DefaultSerializer.ContractResolver.ResolveContract(request.Arguments.GetType()) is JsonObjectContract contract)
+                            {
+                                // The arguments should be interpreted as named arguments,
+                                // but as they were not detected as in a dictionary,
+                                // it may be an anonymous type. Allow Newtonsoft.Json to determine the property names and values.
+                                foreach (JsonProperty property in contract.Properties)
+                                {
+                                    if (property.PropertyName is not null && property.ValueProvider is not null)
+                                    {
+                                        tokenizedArgumentsObject.Add(property.PropertyName, this.TokenizeUserData(property.PropertyType, property.ValueProvider.GetValue(request.Arguments)));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                throw new JsonSerializationException("Unsupported arguments object type: " + request.Arguments.GetType());
+                            }
+
+                            request.Arguments = tokenizedArgumentsObject;
                         }
 
                         break;
