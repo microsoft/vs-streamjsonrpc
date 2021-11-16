@@ -1626,7 +1626,7 @@ namespace StreamJsonRpc
                         }
 
                         JToken? value = reader.TokenType == JsonToken.Null ? null : JToken.Load(reader);
-                        info.AddValue(name, value);
+                        info.AddSafeValue(name, value);
                     }
                     else
                     {
@@ -1648,7 +1648,7 @@ namespace StreamJsonRpc
                 SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(serializer));
                 ExceptionSerializationHelpers.Serialize(value, info);
                 writer.WriteStartObject();
-                foreach (SerializationEntry element in info)
+                foreach (SerializationEntry element in info.GetSafeMembers())
                 {
                     writer.WritePropertyName(element.Name);
                     serializer.Serialize(writer, element.Value);

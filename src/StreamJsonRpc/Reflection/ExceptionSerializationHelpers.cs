@@ -4,6 +4,7 @@
 namespace StreamJsonRpc.Reflection
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
@@ -11,6 +12,15 @@ namespace StreamJsonRpc.Reflection
 
     internal static class ExceptionSerializationHelpers
     {
+        /// <summary>
+        /// The name of the value stored by exceptions that stores watson bucket information.
+        /// </summary>
+        /// <remarks>
+        /// This value should be suppressed when writing or reading exceptions as it is irrelevant to
+        /// remote parties and otherwise adds to the size to the payload.
+        /// </remarks>
+        internal const string WatsonBucketsKey = "WatsonBuckets";
+
         private const string AssemblyNameKeyName = "AssemblyName";
 
         private static readonly Type[] DeserializingConstructorParameterTypes = new Type[] { typeof(SerializationInfo), typeof(StreamingContext) };
@@ -91,6 +101,37 @@ namespace StreamJsonRpc.Reflection
                 TypeCode.UInt64 => formatterConverter.ToUInt64(value),
                 _ => throw new NotSupportedException("Unsupported type code: " + typeCode),
             };
+        }
+
+        /// <summary>
+        /// Gets a value like <see cref="SerializationInfo.MemberCount"/>
+        /// but omits members that should not be serialized.
+        /// </summary>
+        internal static int GetSafeMemberCount(this SerializationInfo info) => info.GetSafeMembers().Count();
+
+        /// <summary>
+        /// Gets a member enumerator that omits members that should not be serialized.
+        /// </summary>
+        internal static IEnumerable<SerializationEntry> GetSafeMembers(this SerializationInfo info)
+        {
+            foreach (SerializationEntry element in info)
+            {
+                if (element.Name != WatsonBucketsKey)
+                {
+                    yield return element;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a member if it isn't among those that should not be deserialized.
+        /// </summary>
+        internal static void AddSafeValue(this SerializationInfo info, string name, object? value)
+        {
+            if (name != WatsonBucketsKey)
+            {
+                info.AddValue(name, value);
+            }
         }
 
         private static void EnsureSerializableAttribute(Type runtimeType)

@@ -1557,7 +1557,7 @@ namespace StreamJsonRpc
                         // are represented as null instead of this boxed struct.
                         var value = reader.TryReadNil() ? null : (object)RawMessagePack.ReadRaw(ref reader, false);
 
-                        info.AddValue(name, value);
+                        info.AddSafeValue(name, value);
                     }
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
@@ -1575,8 +1575,8 @@ namespace StreamJsonRpc
 
                     var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
                     ExceptionSerializationHelpers.Serialize(value, info);
-                    writer.WriteMapHeader(info.MemberCount);
-                    foreach (SerializationEntry element in info)
+                    writer.WriteMapHeader(info.GetSafeMemberCount());
+                    foreach (SerializationEntry element in info.GetSafeMembers())
                     {
                         writer.Write(element.Name);
                         MessagePackSerializer.Serialize(element.ObjectType, ref writer, element.Value, options);
