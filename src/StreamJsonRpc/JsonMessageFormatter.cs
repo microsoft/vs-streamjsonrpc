@@ -1589,6 +1589,11 @@ namespace StreamJsonRpc
 
         private class ExceptionConverter : JsonConverter<Exception?>
         {
+            /// <summary>
+            /// Tracks recursion count while serializing or deserializing an exception.
+            /// </summary>
+            private static ThreadLocal<int> exceptionRecursionCounter = new();
+
             private readonly JsonMessageFormatter formatter;
 
             internal ExceptionConverter(JsonMessageFormatter formatter)
@@ -1604,37 +1609,53 @@ namespace StreamJsonRpc
                     return null;
                 }
 
-                if (reader.TokenType != JsonToken.StartObject)
+                exceptionRecursionCounter.Value++;
+                try
                 {
-                    throw new InvalidOperationException("Expected a StartObject token.");
-                }
-
-                SerializationInfo? info = new SerializationInfo(objectType, new JsonConverterFormatter(serializer));
-                while (reader.Read())
-                {
-                    if (reader.TokenType == JsonToken.EndObject)
+                    if (reader.TokenType != JsonToken.StartObject)
                     {
-                        break;
+                        throw new InvalidOperationException("Expected a StartObject token.");
                     }
 
-                    if (reader.TokenType == JsonToken.PropertyName)
+                    if (exceptionRecursionCounter.Value > this.formatter.rpc.ExceptionOptions.RecursionLimit)
                     {
-                        string name = (string)reader.Value!;
-                        if (!reader.Read())
+                        // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
+                        // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
+                        reader.Skip();
+                        return null;
+                    }
+
+                    SerializationInfo? info = new SerializationInfo(objectType, new JsonConverterFormatter(serializer));
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType == JsonToken.EndObject)
                         {
-                            throw new EndOfStreamException();
+                            break;
                         }
 
-                        JToken? value = reader.TokenType == JsonToken.Null ? null : JToken.Load(reader);
-                        info.AddSafeValue(name, value);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Expected PropertyName token but encountered: " + reader.TokenType);
-                    }
-                }
+                        if (reader.TokenType == JsonToken.PropertyName)
+                        {
+                            string name = (string)reader.Value!;
+                            if (!reader.Read())
+                            {
+                                throw new EndOfStreamException();
+                            }
 
-                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.rpc, info, this.formatter.rpc?.TraceSource);
+                            JToken? value = reader.TokenType == JsonToken.Null ? null : JToken.Load(reader);
+                            info.AddSafeValue(name, value);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Expected PropertyName token but encountered: " + reader.TokenType);
+                        }
+                    }
+
+                    return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.rpc, info, this.formatter.rpc?.TraceSource);
+                }
+                finally
+                {
+                    exceptionRecursionCounter.Value--;
+                }
             }
 
             public override void WriteJson(JsonWriter writer, Exception? value, JsonSerializer serializer)
@@ -1645,16 +1666,33 @@ namespace StreamJsonRpc
                     return;
                 }
 
-                SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(serializer));
-                ExceptionSerializationHelpers.Serialize(value, info);
-                writer.WriteStartObject();
-                foreach (SerializationEntry element in info.GetSafeMembers())
+                // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
+                // Each exception in the russian doll is a new serialization job from its perspective.
+                exceptionRecursionCounter.Value++;
+                try
                 {
-                    writer.WritePropertyName(element.Name);
-                    serializer.Serialize(writer, element.Value);
-                }
+                    if (exceptionRecursionCounter.Value > this.formatter.rpc?.ExceptionOptions.RecursionLimit)
+                    {
+                        // Exception recursion has gone too deep. Skip this value and write null as if there were no inner exception.
+                        writer.WriteNull();
+                        return;
+                    }
 
-                writer.WriteEndObject();
+                    SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(serializer));
+                    ExceptionSerializationHelpers.Serialize(value, info);
+                    writer.WriteStartObject();
+                    foreach (SerializationEntry element in info.GetSafeMembers())
+                    {
+                        writer.WritePropertyName(element.Name);
+                        serializer.Serialize(writer, element.Value);
+                    }
+
+                    writer.WriteEndObject();
+                }
+                finally
+                {
+                    exceptionRecursionCounter.Value--;
+                }
             }
         }
 

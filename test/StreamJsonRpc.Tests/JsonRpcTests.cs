@@ -2347,6 +2347,89 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public void ExceptionOptions()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.ExceptionOptions = ExceptionSettings.UntrustedData);
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionOptions = this.clientRpc.ExceptionOptions with { RecursionLimit = this.clientRpc.ExceptionOptions.RecursionLimit };
+    }
+
+    [Fact]
+    public async Task ExceptionRecursionLimit_ArgumentSerialization()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionOptions = this.clientRpc.ExceptionOptions with { RecursionLimit = 2 };
+
+        // Create a russian doll of exceptions that are one level deeper than the client should allow.
+        Exception? outerException = CreateRecursiveException(this.clientRpc.ExceptionOptions.RecursionLimit + 1);
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { outerException }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Verify that the inner exceptions were truncated beyond a point.
+        Assert.Equal(this.clientRpc.ExceptionOptions.RecursionLimit, CountRecursionLevel(this.server.ReceivedException));
+    }
+
+    [Fact]
+    public async Task ExceptionRecursionLimit_ArgumentDeserialization()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ExceptionOptions = this.serverRpc.ExceptionOptions with { RecursionLimit = 2 };
+
+        // Create a russian doll of exceptions that are one level deeper than the server should allow.
+        Exception? outerException = CreateRecursiveException(this.serverRpc.ExceptionOptions.RecursionLimit + 1);
+
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { outerException }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Verify that the inner exceptions were truncated beyond a point.
+        Assert.Equal(this.serverRpc.ExceptionOptions.RecursionLimit, CountRecursionLevel(this.server.ReceivedException));
+    }
+
+    [Fact]
+    public async Task ExceptionRecursionLimit_ThrownSerialization()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.ExceptionOptions = this.clientRpc.ExceptionOptions with { RecursionLimit = 2 };
+
+        RemoteInvocationException ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ThrowException), new object?[] { this.clientRpc.ExceptionOptions.RecursionLimit + 1 }, this.TimeoutToken));
+
+        // Verify that the inner exceptions were truncated beyond a point.
+        int actualRecursionLevel = CountRecursionLevel(ex.InnerException);
+        Assert.Equal(this.clientRpc.ExceptionOptions.RecursionLimit, actualRecursionLevel);
+    }
+
+    [Fact]
+    public async Task ExceptionRecursionLimit_ThrownDeserialization()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionOptions = this.serverRpc.ExceptionOptions with { RecursionLimit = 2 };
+
+        RemoteInvocationException ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.ThrowException), new object?[] { this.serverRpc.ExceptionOptions.RecursionLimit + 1 }, this.TimeoutToken));
+
+        // Verify that the inner exceptions were truncated beyond a point.
+        int actualRecursionLevel = CountRecursionLevel(ex.InnerException);
+        Assert.Equal(this.serverRpc.ExceptionOptions.RecursionLimit, actualRecursionLevel);
+    }
+
+    [Fact]
+    public async Task ExceptionCanDeserializeExtensibility()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ExceptionOptions = new ExceptionFilter(ExceptionSettings.UntrustedData.RecursionLimit);
+
+        Exception originalException = new TaskCanceledException();
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { originalException }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Verify that the server received only the base type of the exception we sent.
+        Assert.IsType<OperationCanceledException>(this.server.ReceivedException);
+    }
+
+    [Fact]
     public async Task ArgumentOutOfRangeException_WithNullArgValue()
     {
         Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "msg");
@@ -2772,6 +2855,45 @@ public abstract class JsonRpcTests : TestBase
             yield return errorData;
             errorData = errorData.Inner;
         }
+    }
+
+    private static Exception CreateRecursiveException(int recursionCount)
+    {
+        Requires.Range(recursionCount > 0, nameof(recursionCount));
+        Exception? outerException = null;
+        for (int i = recursionCount; i >= 1; i--)
+        {
+            string message = $"Exception #{i}";
+
+            // We mix up the exception types to verify that any recursion counting in the library isn't dependent on the exception type being consistent.
+            outerException = i % 2 == 0 ? new Exception(message, outerException) : new InvalidOperationException(message, outerException);
+        }
+
+        return outerException!;
+    }
+
+    private static int CountRecursionLevel(Exception? ex)
+    {
+        int recursionLevel = 0;
+        while (ex is object)
+        {
+            recursionLevel++;
+            ex = ex.InnerException;
+        }
+
+        return recursionLevel;
+    }
+
+    private static int CountRecursionLevel(CommonErrorData? error)
+    {
+        int recursionLevel = 0;
+        while (error is object)
+        {
+            recursionLevel++;
+            error = error.Inner;
+        }
+
+        return recursionLevel;
     }
 
     private void StartListening()
@@ -3303,6 +3425,8 @@ public abstract class JsonRpcTests : TestBase
             this.ReceivedException = ex;
         }
 
+        public void ThrowException(int recursionCount) => throw CreateRecursiveException(recursionCount);
+
         public Guid GetCorrelationManagerActivityId() => Trace.CorrelationManager.ActivityId;
 
         public string? GetParentActivityId() => Activity.Current?.ParentId;
@@ -3752,5 +3876,15 @@ public abstract class JsonRpcTests : TestBase
             await this.AllowWrites.WaitAsync(cancellationToken);
             await this.inner.WriteAsync(buffer, offset, count, cancellationToken);
         }
+    }
+
+    private record ExceptionFilter : ExceptionSettings
+    {
+        public ExceptionFilter(int recursionLimit)
+            : base(recursionLimit)
+        {
+        }
+
+        public override bool CanDeserialize(Type type) => typeof(Exception).IsAssignableFrom(type) && !typeof(TaskCanceledException).IsAssignableFrom(type);
     }
 }

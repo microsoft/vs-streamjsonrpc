@@ -55,16 +55,33 @@ namespace StreamJsonRpc.Reflection
             }
 
             // Find the nearest exception type that implements the deserializing constructor and is deserializable.
-            ConstructorInfo? ctor;
-            while (runtimeType.GetCustomAttribute<SerializableAttribute>() is null || (ctor = FindDeserializingConstructor(runtimeType)) is null)
+            ConstructorInfo? ctor = null;
+            Type? originalRuntimeType = runtimeType;
+            while (runtimeType is object)
             {
-                string errorMessage = $"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))}).";
-                traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
-                runtimeType = runtimeType.BaseType;
-                if (runtimeType is null)
+                string? errorMessage =
+                    runtimeType.GetCustomAttribute<SerializableAttribute>() is null ? $"{runtimeType.FullName} is not annotated with a {nameof(SerializableAttribute)}." :
+                    !jsonRpc.ExceptionOptions.CanDeserialize(runtimeType) ? $"{runtimeType.FullName} is not an allowed type to deserialize." :
+                    (ctor = FindDeserializingConstructor(runtimeType)) is null ? $"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))})." :
+                    null;
+                if (errorMessage is null)
                 {
-                    throw new NotSupportedException(errorMessage);
+                    break;
                 }
+
+                if (runtimeType.BaseType is Type baseType)
+                {
+                    errorMessage += $" {baseType.FullName} will be deserialized instead, if possible.";
+                }
+
+                traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
+
+                runtimeType = runtimeType.BaseType;
+            }
+
+            if (ctor is null)
+            {
+                throw new NotSupportedException($"{originalRuntimeType.FullName} is not a supported exception type to deserialize and no adequate substitute could be found.");
             }
 
             return (T)ctor.Invoke(new object?[] { info, Context });

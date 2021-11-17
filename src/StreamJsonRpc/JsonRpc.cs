@@ -129,6 +129,11 @@ namespace StreamJsonRpc
         private ExceptionProcessing exceptionStrategy;
 
         /// <summary>
+        /// Backing field for <see cref="ExceptionOptions"/>.
+        /// </summary>
+        private ExceptionSettings exceptionSettings = ExceptionSettings.UntrustedData;
+
+        /// <summary>
         /// Backing field for the <see cref="IJsonRpcFormatterCallbacks.RequestTransmissionAborted"/> event.
         /// </summary>
         private EventHandler<JsonRpcMessageEventArgs>? requestTransmissionAborted;
@@ -546,6 +551,20 @@ namespace StreamJsonRpc
             {
                 this.ThrowIfConfigurationLocked();
                 this.exceptionStrategy = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the settings to use for serializing/deserializing exceptions.
+        /// </summary>
+        public ExceptionSettings ExceptionOptions
+        {
+            get => this.exceptionSettings;
+            set
+            {
+                Requires.NotNull(value, nameof(value));
+                this.ThrowIfConfigurationLocked();
+                this.exceptionSettings = value;
             }
         }
 
