@@ -6,7 +6,7 @@ or the instance `JsonRpc.Attach<T>()` method.
 
 Generated proxies have the following behaviors:
 
-1. They always pass arguments using positional arguments rather than named arguments.
+1. They default to passing arguments using positional arguments, with an option to send requests with named arguments instead.
 1. Methods are sent as ordinary requests (not notifications).
 1. Events on the interface are raised locally when a notification with the same name is received from the other party.
 1. Implement `IDisposable` if created using the *static* `JsonRpc.Attach<T>` method, and terminate the connection when `Dispose()` is invoked.
