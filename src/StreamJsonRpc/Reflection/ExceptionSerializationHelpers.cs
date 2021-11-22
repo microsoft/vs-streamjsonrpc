@@ -4,6 +4,7 @@
 namespace StreamJsonRpc.Reflection
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
@@ -11,6 +12,15 @@ namespace StreamJsonRpc.Reflection
 
     internal static class ExceptionSerializationHelpers
     {
+        /// <summary>
+        /// The name of the value stored by exceptions that stores watson bucket information.
+        /// </summary>
+        /// <remarks>
+        /// This value should be suppressed when writing or reading exceptions as it is irrelevant to
+        /// remote parties and otherwise adds to the size to the payload.
+        /// </remarks>
+        internal const string WatsonBucketsKey = "WatsonBuckets";
+
         private const string AssemblyNameKeyName = "AssemblyName";
 
         private static readonly Type[] DeserializingConstructorParameterTypes = new Type[] { typeof(SerializationInfo), typeof(StreamingContext) };
@@ -45,16 +55,33 @@ namespace StreamJsonRpc.Reflection
             }
 
             // Find the nearest exception type that implements the deserializing constructor and is deserializable.
-            ConstructorInfo? ctor;
-            while (runtimeType.GetCustomAttribute<SerializableAttribute>() is null || (ctor = FindDeserializingConstructor(runtimeType)) is null)
+            ConstructorInfo? ctor = null;
+            Type? originalRuntimeType = runtimeType;
+            while (runtimeType is object)
             {
-                string errorMessage = $"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))}).";
-                traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
-                runtimeType = runtimeType.BaseType;
-                if (runtimeType is null)
+                string? errorMessage =
+                    runtimeType.GetCustomAttribute<SerializableAttribute>() is null ? $"{runtimeType.FullName} is not annotated with a {nameof(SerializableAttribute)}." :
+                    !jsonRpc.ExceptionOptions.CanDeserialize(runtimeType) ? $"{runtimeType.FullName} is not an allowed type to deserialize." :
+                    (ctor = FindDeserializingConstructor(runtimeType)) is null ? $"{runtimeType.FullName} does not declare a deserializing constructor with signature ({string.Join(", ", DeserializingConstructorParameterTypes.Select(t => t.FullName))})." :
+                    null;
+                if (errorMessage is null)
                 {
-                    throw new NotSupportedException(errorMessage);
+                    break;
                 }
+
+                if (runtimeType.BaseType is Type baseType)
+                {
+                    errorMessage += $" {baseType.FullName} will be deserialized instead, if possible.";
+                }
+
+                traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
+
+                runtimeType = runtimeType.BaseType;
+            }
+
+            if (ctor is null)
+            {
+                throw new NotSupportedException($"{originalRuntimeType.FullName} is not a supported exception type to deserialize and no adequate substitute could be found.");
             }
 
             return (T)ctor.Invoke(new object?[] { info, Context });
@@ -91,6 +118,37 @@ namespace StreamJsonRpc.Reflection
                 TypeCode.UInt64 => formatterConverter.ToUInt64(value),
                 _ => throw new NotSupportedException("Unsupported type code: " + typeCode),
             };
+        }
+
+        /// <summary>
+        /// Gets a value like <see cref="SerializationInfo.MemberCount"/>
+        /// but omits members that should not be serialized.
+        /// </summary>
+        internal static int GetSafeMemberCount(this SerializationInfo info) => info.GetSafeMembers().Count();
+
+        /// <summary>
+        /// Gets a member enumerator that omits members that should not be serialized.
+        /// </summary>
+        internal static IEnumerable<SerializationEntry> GetSafeMembers(this SerializationInfo info)
+        {
+            foreach (SerializationEntry element in info)
+            {
+                if (element.Name != WatsonBucketsKey)
+                {
+                    yield return element;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds a member if it isn't among those that should not be deserialized.
+        /// </summary>
+        internal static void AddSafeValue(this SerializationInfo info, string name, object? value)
+        {
+            if (name != WatsonBucketsKey)
+            {
+                info.AddValue(name, value);
+            }
         }
 
         private static void EnsureSerializableAttribute(Type runtimeType)

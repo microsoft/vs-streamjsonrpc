@@ -16,6 +16,7 @@ namespace StreamJsonRpc
     using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
     using System.Text;
+    using System.Threading;
     using MessagePack;
     using MessagePack.Formatters;
     using MessagePack.Resolvers;
@@ -1494,6 +1495,15 @@ namespace StreamJsonRpc
         /// </remarks>
         private class MessagePackExceptionResolver : IFormatterResolver
         {
+            /// <summary>
+            /// Tracks recursion count while serializing or deserializing an exception.
+            /// </summary>
+            /// <devremarks>
+            /// This is placed here (<em>outside</em> the generic <see cref="ExceptionFormatter{T}"/> class)
+            /// so that it's one counter shared across all exception types that may be serialized or deserialized.
+            /// </devremarks>
+            private static ThreadLocal<int> exceptionRecursionCounter = new();
+
             private readonly object[] formatterActivationArgs;
 
             private readonly Dictionary<Type, object?> formatterCache = new Dictionary<Type, object?>();
@@ -1545,24 +1555,42 @@ namespace StreamJsonRpc
                         return null;
                     }
 
-                    var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
-                    int memberCount = reader.ReadMapHeader();
-                    for (int i = 0; i < memberCount; i++)
+                    // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
+                    // Each exception in the russian doll is a new serialization job from its perspective.
+                    exceptionRecursionCounter.Value++;
+                    try
                     {
-                        string name = reader.ReadString();
+                        if (exceptionRecursionCounter.Value > this.formatter.rpc.ExceptionOptions.RecursionLimit)
+                        {
+                            // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
+                            // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
+                            reader.Skip();
+                            return null;
+                        }
 
-                        // SerializationInfo.GetValue(string, typeof(object)) does not call our formatter,
-                        // so the caller will get a boxed RawMessagePack struct in that case.
-                        // Although we can't do much about *that* in general, we can at least ensure that null values
-                        // are represented as null instead of this boxed struct.
-                        var value = reader.TryReadNil() ? null : (object)RawMessagePack.ReadRaw(ref reader, false);
+                        var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
+                        int memberCount = reader.ReadMapHeader();
+                        for (int i = 0; i < memberCount; i++)
+                        {
+                            string name = reader.ReadString();
 
-                        info.AddValue(name, value);
+                            // SerializationInfo.GetValue(string, typeof(object)) does not call our formatter,
+                            // so the caller will get a boxed RawMessagePack struct in that case.
+                            // Although we can't do much about *that* in general, we can at least ensure that null values
+                            // are represented as null instead of this boxed struct.
+                            var value = reader.TryReadNil() ? null : (object)RawMessagePack.ReadRaw(ref reader, false);
+
+                            info.AddSafeValue(name, value);
+                        }
+
+                        var resolverWrapper = options.Resolver as ResolverWrapper;
+                        Report.If(resolverWrapper is null, "Unexpected resolver type.");
+                        return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.rpc, info, resolverWrapper?.Formatter.rpc?.TraceSource);
                     }
-
-                    var resolverWrapper = options.Resolver as ResolverWrapper;
-                    Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.rpc, info, resolverWrapper?.Formatter.rpc?.TraceSource);
+                    finally
+                    {
+                        exceptionRecursionCounter.Value--;
+                    }
                 }
 
                 public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
@@ -1573,13 +1601,28 @@ namespace StreamJsonRpc
                         return;
                     }
 
-                    var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
-                    ExceptionSerializationHelpers.Serialize(value, info);
-                    writer.WriteMapHeader(info.MemberCount);
-                    foreach (SerializationEntry element in info)
+                    exceptionRecursionCounter.Value++;
+                    try
                     {
-                        writer.Write(element.Name);
-                        MessagePackSerializer.Serialize(element.ObjectType, ref writer, element.Value, options);
+                        if (exceptionRecursionCounter.Value > this.formatter.rpc?.ExceptionOptions.RecursionLimit)
+                        {
+                            // Exception recursion has gone too deep. Skip this value and write null as if there were no inner exception.
+                            writer.WriteNil();
+                            return;
+                        }
+
+                        var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(options));
+                        ExceptionSerializationHelpers.Serialize(value, info);
+                        writer.WriteMapHeader(info.GetSafeMemberCount());
+                        foreach (SerializationEntry element in info.GetSafeMembers())
+                        {
+                            writer.Write(element.Name);
+                            MessagePackSerializer.Serialize(element.ObjectType, ref writer, element.Value, options);
+                        }
+                    }
+                    finally
+                    {
+                        exceptionRecursionCounter.Value--;
                     }
                 }
             }
