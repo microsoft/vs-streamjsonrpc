@@ -1,8 +1,12 @@
 parameters:
-  windowsPool: Hosted Windows 2019 with VS2019
-  ShouldSkipOptimize:
-  includeMacOS:
-  OptProf: false
+- name: windowsPool
+  type: object
+  default:
+    vmImage: windows-2022
+- name: ShouldSkipOptimize
+- name: includeMacOS
+- name: OptProf
+  default: false
 
 jobs:
 - job: Windows
@@ -33,9 +37,8 @@ jobs:
 
 - ${{ if ne(parameters.OptProf, 'true') }}:
   - job: Linux
-    condition: ne(variables['OptProf'], 'true')
     pool:
-      vmImage: Ubuntu 18.04
+      vmImage: Ubuntu 20.04
     steps:
     - checkout: self
       clean: true
@@ -58,7 +61,8 @@ jobs:
     - Linux
     - macOS
     pool:
-      vmImage: Ubuntu 18.04
+      vmImage: Ubuntu 20.04
+    condition: succeededOrFailed()
     steps:
     - checkout: self
       clean: true
@@ -68,4 +72,3 @@ jobs:
     - template: publish-codecoverage.yml
       parameters:
         includeMacOS: ${{ parameters.includeMacOS }}
-    - template: publish-deployables.yml

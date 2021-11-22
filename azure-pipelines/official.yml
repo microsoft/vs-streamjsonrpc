@@ -44,14 +44,14 @@ stages:
     TreatWarningsAsErrors: true
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     BuildConfiguration: Release
-    BuildPlatform: Any CPU
     push_to_ci: true
     NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
     SignTypeSelection: ${{ parameters.SignTypeSelection }}
+
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEngSS-MicroBuild2019-1ES
+      windowsPool: VSEngSS-MicroBuild2022-1ES
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
       includeMacOS: ${{ parameters.includeMacOS }}
 
@@ -74,7 +74,7 @@ stages:
       artifact: symbols-Windows
       displayName: Download symbols-Windows artifact
     - task: MicroBuildArchiveSymbols@1
-      displayName: Archive $(SymbolsFeatureName) on Symweb
+      displayName: Archive symbols to Symweb
       inputs:
         SymbolsFeatureName: $(SymbolsFeatureName)
         SymbolsSymwebProject: VS
