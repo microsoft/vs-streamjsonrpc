@@ -63,6 +63,7 @@ Param (
 )
 
 $EnvVars = @{}
+$PrependPath = @()
 
 if (!$NoPrerequisites) {
     if (!$NoNuGetCredProvider) {
@@ -107,6 +108,12 @@ try {
         $EnvVars['SignType'] = "Test"
     }
 
+    if ($OptProf) {
+        Write-Host "Installing MicroBuild OptProf plugin" -ForegroundColor $HeaderColor
+        & $InstallNuGetPkgScriptPath MicroBuild.Plugins.OptProf -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
+        $EnvVars['OptProfEnabled'] = '1'
+    }
+
     if ($Localization) {
         Write-Host "Installing MicroBuild localization plugin" -ForegroundColor $HeaderColor
         & $InstallNuGetPkgScriptPath MicroBuild.Plugins.Localization -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
@@ -114,18 +121,7 @@ try {
         $EnvVars['LocLanguages'] = "JPN"
     }
 
-    if ($OptProf) {
-        Write-Host "Installing MicroBuild OptProf plugin" -ForegroundColor $HeaderColor
-        & $InstallNuGetPkgScriptPath MicroBuild.Plugins.OptProf -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
-        $EnvVars['OptProfEnabled'] = '1'
-    }
-
-    # This is a workaround for https://dev.azure.com/devdiv/DevDiv/_workitems/edit/1283978
-    if ($Signing -or $Setup -or $OptProf -or $Localization) {
-        & $InstallNuGetPkgScriptPath MicroBuild.Core.Sentinel -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
-    }
-
-    & "$PSScriptRoot/tools/Set-EnvVars.ps1" -Variables $EnvVars | Out-Null
+    & "$PSScriptRoot/tools/Set-EnvVars.ps1" -Variables $EnvVars -PrependPath $PrependPath | Out-Null
 }
 catch {
     Write-Error $error[0]
