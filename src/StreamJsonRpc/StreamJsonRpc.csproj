@@ -18,7 +18,7 @@
     <PackageReference Include="IsExternalInit" Version="1.0.1" PrivateAssets="all" />
     <PackageReference Include="MessagePack" Version="2.3.85" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.3.85" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.0.63" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.0.64" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" PrivateAssets="compile" />
     <PackageReference Include="Nerdbank.Streams" Version="2.8.50" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
