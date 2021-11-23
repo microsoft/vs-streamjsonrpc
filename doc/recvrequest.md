@@ -20,7 +20,7 @@ RPC server methods may:
 1. Accept a `CancellationToken` as a last parameter, which signals that the client requested cancellation.
 1. Define parameters with default values (e.g. `void Foo(string v, bool end = false)`), which makes them optional.
 1. Be implemented synchronously, or be async by returning a `Task` or `Task<T>`.
-1. Have multiple overloads.
+1. Have multiple overloads, but [with caveats](#OverloadCaveats).
 
 **Important notes**:
 
@@ -175,6 +175,32 @@ The following changes to a method's signature can be considered **non**-breaking
 1. Adding optional parameters
 1. Adding an overload
 1. Changing the parameter type, if it remains compatible with the wire format representation fo the value (e.g. `int` to `double`)
+
+### <a name="OverloadCaveats"></a>Method overloading
+
+Method overloading is when you declare multiple methods with the same name but a different signature.
+In StreamJsonRpc we support method overloads on the server-side, with some caveats.
+
+When a client invokes a method on an object that overloads that method, in a typical program the compiler will choose the most appropriate overload based on the argument count and types being passed into the method.
+Once compiled, the program will always invoke that particular method on the target object.
+In JSON-RPC however where types are not specified and there is no compiler, a different overload resolution process is required.
+In fact the overload resolution occurs on the server-side at runtime instead of the client side as would happen in a typical program during compilation.
+
+When StreamJsonRpc receives an RPC request with a method name that has more than one exposed overload, the StreamJsonRpc server begins the process of overload resolution.
+The process goes as follows:
+
+1. Obtain the subset of server RPC methods with the name that matches the one in the RPC request.
+1. Reject a method overload if it has fewer parameters than the number of arguments included in the request.
+1. Reject a method overload if it has more required parameters than the number of arguments included in the request. Required parameters exclude a trailing `CancellationToken` and other parameters that include a default value (e.g. `string v = ""`).
+1. If the request uses *named arguments* (instead of positional arguments), reject any method that has a required parameter whose name does not appear in the request's named arguments.
+1. Iterate through each method parameter and request argument pair and attempt to deserialize to the parameter type. Reject any overload that fails deserialization of any argument. The success of this test depends on the serializer being used. For example Newtonsoft.Json may be very forgiving and allow an integer argument to deserialize as a string, whereas a MessagePack serializer would reject doing so.
+1. Given a method overload that passes all the above criteria, choose it immediately, without further evaluating the remaining overload candidates.
+
+**Advice**: From the foregoing, the following guidelines for defining RPC methods may help you avoid method overload mis-resolution:
+
+1. Avoid overloading methods. This is the simplest way to avoid ever having a bad resolution take place. Simply give each method a unique name.
+1. Give each overload a unique number of required parameters. This leads to the fast and simple path of choosing the right overload.
+1. Ensure that overloads with the same number of required parameters have at least one parameter whose argument value could not possibly be deserialized as the parameter type of any other overload. This would leverage the slowest path on StreamJsonRpc as it tries to deserialize each argument into each overload's parameters and will pick the first working overload it finds. Write tests for each overload that leverages StreamJsonRpc to verify that every overload can be correctly invoked from the client.
 
 ### Notifications
 
