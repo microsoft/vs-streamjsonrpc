@@ -3,10 +3,26 @@
   "suppressionSets": {
     "falsepositives": {
       "name": "falsepositives",
-      "createdDate": "2021-12-03 00:23:08Z",
-      "lastUpdatedDate": "2021-12-03 00:23:08Z"
+      "createdDate": "2021-12-04 13:44:31Z",
+      "lastUpdatedDate": "2021-12-04 13:44:31Z"
     }
   },
   "results": {
+    "1a16aa9483f5e231d7752acab742c307290e6984e855810f9799f02f6ecef7ce": {
+      "signature": "1a16aa9483f5e231d7752acab742c307290e6984e855810f9799f02f6ecef7ce",
+      "alternativeSignatures": [
+        "ad8debd5159bf5995c89a18408ab058ab4a168f17d7a5aaffb1d94a1a5d99cfc"
+      ],
+      "target": "streamjsonrpc/release/netstandard2.0/streamjsonrpc.dll",
+      "memberOf": [
+        "falsepositives"
+      ],
+      "tool": "apiscan",
+      "ruleId": "documentationnotfound",
+      "justification": null,
+      "createdDate": "2021-12-04 13:44:31Z",
+      "expirationDate": null,
+      "type": null
+    }
   }
 }
