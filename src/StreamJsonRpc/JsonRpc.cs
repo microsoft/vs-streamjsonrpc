@@ -1631,6 +1631,65 @@ namespace StreamJsonRpc
                 : this.HandleInvocationTaskResult(request, resultingTask);
         }
 
+        /// <summary>
+        /// Sends the JSON-RPC message to <see cref="IJsonRpcMessageHandler"/> intance to be transmitted.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        /// <param name="cancellationToken">A token to cancel the send request.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <remarks>
+        /// Overrides of this method are expected to call this base method for core functionality.
+        /// Overrides should call the base method before any yielding await in order to maintain consistent message ordering
+        /// unless the goal of the override is specifically to alter ordering of outgoing messages.
+        /// </remarks>
+        protected virtual async ValueTask SendAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            try
+            {
+                bool etwEnabled = JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None);
+                if (etwEnabled)
+                {
+                    JsonRpcEventSource.Instance.TransmissionQueued();
+                }
+
+                await this.MessageHandler.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+
+                if (etwEnabled)
+                {
+                    JsonRpcEventSource.Instance.TransmissionCompleted();
+                }
+            }
+            catch (Exception exception)
+            {
+                if ((this.MessageHandler as IDisposableObservable)?.IsDisposed ?? false)
+                {
+                    var e = new JsonRpcDisconnectedEventArgs(
+                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, exception.GetType().Name, exception.Message),
+                        DisconnectedReason.StreamError,
+                        exception);
+
+                    // Fatal error. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(e);
+                }
+
+                if (exception is OperationCanceledException)
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.TransmissionFailed, "Message transmission was canceled.");
+                }
+                else
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
+                }
+
+                if (message is JsonRpcRequest request)
+                {
+                    this.OnRequestTransmissionAborted(request);
+                }
+
+                throw;
+            }
+        }
+
         private static Exception StripExceptionToInnerException(Exception exception)
         {
             if ((exception is TargetInvocationException || exception is AggregateException) && exception.InnerException is object)
@@ -1728,7 +1787,10 @@ namespace StreamJsonRpc
                             JsonRpcEventSource.Instance.SendingNotification(request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
 
-                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                        // IMPORTANT: This should be the first await in this async code path.
+                        //            This is crucial to the guarantee that overrides of SendAsync can assume they are executed
+                        //            before the first await when a JsonRpc call is made.
+                        await this.SendAsync(request, cts.Token).ConfigureAwait(false);
                         return default;
                     }
 
@@ -1812,7 +1874,10 @@ namespace StreamJsonRpc
                             JsonRpcEventSource.Instance.SendingRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request));
                         }
 
-                        await this.TransmitAsync(request, cts.Token).ConfigureAwait(false);
+                        // IMPORTANT: This should be the first await in this async code path.
+                        //            This is crucial to the guarantee that overrides of SendAsync can assume they are executed
+                        //            before the first await when a JsonRpc call is made.
+                        await this.SendAsync(request, cts.Token).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -2402,7 +2467,7 @@ namespace StreamJsonRpc
                         bool responseSent = false;
                         try
                         {
-                            await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                            await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
                             responseSent = true;
                         }
                         catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
@@ -2419,7 +2484,7 @@ namespace StreamJsonRpc
                             if (!this.DisconnectedToken.IsCancellationRequested)
                             {
                                 result = this.CreateErrorForResponseTransmissionFailure(request, exception);
-                                await this.TransmitAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                                await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
                                 responseSent = true;
                             }
                         }
@@ -2532,54 +2597,6 @@ namespace StreamJsonRpc
             Requires.NotNull(state, nameof(state));
             var requestId = (RequestId)state;
             this.CancellationStrategy?.CancelOutboundRequest(requestId);
-        }
-
-        private async ValueTask TransmitAsync(JsonRpcMessage message, CancellationToken cancellationToken)
-        {
-            try
-            {
-                bool etwEnabled = JsonRpcEventSource.Instance.IsEnabled(System.Diagnostics.Tracing.EventLevel.Informational, System.Diagnostics.Tracing.EventKeywords.None);
-                if (etwEnabled)
-                {
-                    JsonRpcEventSource.Instance.TransmissionQueued();
-                }
-
-                await this.MessageHandler.WriteAsync(message, cancellationToken).ConfigureAwait(false);
-
-                if (etwEnabled)
-                {
-                    JsonRpcEventSource.Instance.TransmissionCompleted();
-                }
-            }
-            catch (Exception exception)
-            {
-                if ((this.MessageHandler as IDisposableObservable)?.IsDisposed ?? false)
-                {
-                    var e = new JsonRpcDisconnectedEventArgs(
-                        string.Format(CultureInfo.CurrentCulture, Resources.ErrorWritingJsonRpcMessage, exception.GetType().Name, exception.Message),
-                        DisconnectedReason.StreamError,
-                        exception);
-
-                    // Fatal error. Raise disconnected event.
-                    this.OnJsonRpcDisconnected(e);
-                }
-
-                if (exception is OperationCanceledException)
-                {
-                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.TransmissionFailed, "Message transmission was canceled.");
-                }
-                else
-                {
-                    this.TraceSource.TraceEvent(TraceEventType.Error, (int)TraceEvents.TransmissionFailed, "Exception thrown while transmitting message: {0}", exception);
-                }
-
-                if (message is JsonRpcRequest request)
-                {
-                    this.OnRequestTransmissionAborted(request);
-                }
-
-                throw;
-            }
         }
 
         /// <summary>
