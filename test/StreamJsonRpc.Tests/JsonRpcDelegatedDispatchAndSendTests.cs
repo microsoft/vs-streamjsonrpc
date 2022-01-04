@@ -12,13 +12,13 @@ using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcDelegatedDispatchTests : TestBase
+public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 {
     private readonly Server server;
     private readonly DelegatedJsonRpc clientRpc;
     private readonly DelegatedJsonRpc serverRpc;
 
-    public JsonRpcDelegatedDispatchTests(ITestOutputHelper logger)
+    public JsonRpcDelegatedDispatchAndSendTests(ITestOutputHelper logger)
         : base(logger)
     {
         this.server = new Server();
@@ -45,10 +45,9 @@ public class JsonRpcDelegatedDispatchTests : TestBase
     }
 
     [Fact]
-    public async Task DelegatedDispatcherCanDispatchInReverseOrder()
+    public async Task DelegatedDispatcherCanDispatchInReverseOrderBasedOnTopLevelProperty()
     {
         this.serverRpc.EnableBuffering = true;
-
         var totalCallCount = 10;
         var taskList = new List<Task<int>>();
 
@@ -90,7 +89,10 @@ public class JsonRpcDelegatedDispatchTests : TestBase
 
     public class DelegatedJsonRpc : JsonRpc
     {
-        private AsyncQueue<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new AsyncQueue<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+        private const string MessageOrderPropertyName = "messageOrder";
+
+        private AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+        private int messageCounter = 0;
 
         public DelegatedJsonRpc(IJsonRpcMessageHandler handler)
             : base(handler)
@@ -108,17 +110,18 @@ public class JsonRpcDelegatedDispatchTests : TestBase
 
         public async Task FlushRequestQueueAsync(int expectedCount)
         {
-            var requests = new List<(TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+            var requests = new SortedList<int, (TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
 
             for (int i = 0; i < expectedCount; i++)
             {
                 var entry = await this.requestSignalQueue.DequeueAsync();
-                requests.Add(entry);
+                Assert.True(entry.Item1.TryGetTopLevelProperty<int>(MessageOrderPropertyName, out int messageOrder));
+
+                Assert.False(requests.ContainsKey(messageOrder));
+                requests.Add(messageOrder, (entry.Item2, entry.Item3));
             }
 
-            // For test purposes, lets dispatch messages in reverse order
-            requests.Reverse();
-            foreach (var entry in requests)
+            foreach (var entry in requests.Values.Reverse())
             {
                 entry.Item1.SetResult(true);
                 await entry.Item2;
@@ -128,13 +131,13 @@ public class JsonRpcDelegatedDispatchTests : TestBase
         protected override async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
         {
             this.LastRequestDispatched = request;
-
             TaskCompletionSource<JsonRpcMessage>? completionTcs = null;
+
             if (this.EnableBuffering)
             {
                 TaskCompletionSource<bool> signalTask = new TaskCompletionSource<bool>();
                 completionTcs = new TaskCompletionSource<JsonRpcMessage>();
-                this.requestSignalQueue.TryEnqueue((signalTask, completionTcs.Task));
+                this.requestSignalQueue.TryEnqueue((request, signalTask, completionTcs.Task));
 
                 await signalTask.Task;
             }
@@ -142,6 +145,16 @@ public class JsonRpcDelegatedDispatchTests : TestBase
             JsonRpcMessage result = await base.DispatchRequestAsync(request, targetMethod, cancellationToken);
             completionTcs?.SetResult(result);
             return result;
+        }
+
+        protected override ValueTask SendAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            if (message is JsonRpcRequest request)
+            {
+                Assert.True(request.TrySetTopLevelProperty<int>(MessageOrderPropertyName, this.messageCounter++));
+            }
+
+            return base.SendAsync(message, cancellationToken);
         }
     }
 
