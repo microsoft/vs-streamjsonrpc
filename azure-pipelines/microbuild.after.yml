@@ -1,5 +1,9 @@
 parameters:
-  OptProf: false
+- name: EnableAPIScan
+  type: boolean
+- name: OptProf
+  type: boolean
+  default: false
 
 steps:
 - task: MicroBuildCodesignVerify@3
@@ -11,9 +15,6 @@ steps:
 - task: MicroBuildCleanup@1
   condition: succeededOrFailed()
   displayName: MicroBuild Cleanup
-
-- task: ComponentGovernanceComponentDetection@0
-  displayName: Component Detection
 
 - task: ms-vscs-artifact.build-tasks.artifactDropTask-1.artifactDropTask@0
   inputs:
@@ -49,3 +50,5 @@ steps:
 
 - ${{ if ne(parameters.OptProf, 'true') }}:
   - template: secure-development-tools.yml
+    parameters:
+      EnableAPIScan: ${{ parameters.EnableAPIScan }}
