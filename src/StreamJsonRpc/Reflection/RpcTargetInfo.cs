@@ -5,13 +5,12 @@ namespace StreamJsonRpc.Reflection
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.Linq;
     using System.Reflection;
     using System.Runtime.ExceptionServices;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft;
@@ -389,6 +388,16 @@ namespace StreamJsonRpc.Reflection
                         continue;
                     }
 
+                    if (mapping.FindIgnoreAttribute(method) is object)
+                    {
+                        if (mapping.FindMethodAttribute(method) is object)
+                        {
+                            throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.JsonRpcMethodAndIgnoreAttributesFound, method.Name));
+                        }
+
+                        continue;
+                    }
+
                     var requestName = mapping.GetRpcMethodName(method);
 
                     if (!requestMethodToDelegateMap.TryGetValue(requestName, out List<MethodSignature>? methodList))
@@ -423,7 +432,7 @@ namespace StreamJsonRpc.Reflection
                         requestMethodToClrMethodNameMap.Add(requestName, method.Name);
                     }
 
-                    JsonRpcMethodAttribute? attribute = mapping.FindAttribute(method);
+                    JsonRpcMethodAttribute? attribute = mapping.FindMethodAttribute(method);
 
                     if (attribute is null && (key.UseSingleObjectParameterDeserialization || key.ClientRequiresNamedArguments))
                     {
@@ -494,6 +503,7 @@ namespace StreamJsonRpc.Reflection
         {
             private readonly ReadOnlyMemory<InterfaceMapping> interfaceMaps;
             private readonly Dictionary<MethodInfo, JsonRpcMethodAttribute?> methodAttributes = new Dictionary<MethodInfo, JsonRpcMethodAttribute?>();
+            private readonly Dictionary<MethodInfo, JsonRpcIgnoreAttribute?> ignoreAttributes = new Dictionary<MethodInfo, JsonRpcIgnoreAttribute?>();
 
             internal MethodNameMap(TypeInfo typeInfo)
             {
@@ -506,15 +516,15 @@ namespace StreamJsonRpc.Reflection
             {
                 Requires.NotNull(method, nameof(method));
 
-                return this.FindAttribute(method)?.Name ?? method.Name;
+                return this.FindMethodAttribute(method)?.Name ?? method.Name;
             }
 
             /// <summary>
-            /// Get the custom attribute, which may appear on the method itself or the interface definition of the method where applicable.
+            /// Get the <see cref="JsonRpcMethodAttribute"/>, which may appear on the method itself or the interface definition of the method where applicable.
             /// </summary>
             /// <param name="method">The method to search for the attribute.</param>
             /// <returns>The attribute, if found.</returns>
-            internal JsonRpcMethodAttribute? FindAttribute(MethodInfo method)
+            internal JsonRpcMethodAttribute? FindMethodAttribute(MethodInfo method)
             {
                 Requires.NotNull(method, nameof(method));
 
@@ -533,6 +543,35 @@ namespace StreamJsonRpc.Reflection
                 lock (this.methodAttributes)
                 {
                     this.methodAttributes[method] = attribute;
+                }
+
+                return attribute;
+            }
+
+            /// <summary>
+            /// Get the <see cref="JsonRpcIgnoreAttribute"/>, which may appear on the method itself or the interface definition of the method where applicable.
+            /// </summary>
+            /// <param name="method">The method to search for the attribute.</param>
+            /// <returns>The attribute, if found.</returns>
+            internal JsonRpcIgnoreAttribute? FindIgnoreAttribute(MethodInfo method)
+            {
+                Requires.NotNull(method, nameof(method));
+
+                JsonRpcIgnoreAttribute? attribute;
+                lock (this.ignoreAttributes)
+                {
+                    if (this.ignoreAttributes.TryGetValue(method, out attribute))
+                    {
+                        return attribute;
+                    }
+                }
+
+                attribute = (JsonRpcIgnoreAttribute?)method.GetCustomAttribute(typeof(JsonRpcIgnoreAttribute))
+                    ?? (JsonRpcIgnoreAttribute?)this.FindMethodOnInterface(method)?.GetCustomAttribute(typeof(JsonRpcIgnoreAttribute));
+
+                lock (this.ignoreAttributes)
+                {
+                    this.ignoreAttributes[method] = attribute;
                 }
 
                 return attribute;

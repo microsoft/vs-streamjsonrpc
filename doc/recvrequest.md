@@ -80,6 +80,10 @@ rpc.AddLocalRpcTarget(
 rpc.StartListening();
 ```
 
+### Blocking invocation of specific methods
+
+When a method on a target object would normally be exposed to the RPC client (either because it is `public` or because `JsonRpcTargetOptions.AllowNonPublicInvocation` has been set to `true`) and that method should *not* be exposed to RPC, apply the `[JsonRpcIgnore]` attribute to the method.
+
 ### Server events
 
 When a server object defines public events, those events become notifications for the client.
