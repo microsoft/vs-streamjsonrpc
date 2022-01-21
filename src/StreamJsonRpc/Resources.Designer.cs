@@ -295,6 +295,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Conflicting JsonRpcMethodAttribute and JsonRpcIgnoreAttribute found on the same method: {0}..
+        /// </summary>
+        internal static string JsonRpcMethodAndIgnoreAttributesFound {
+            get {
+                return ResourceManager.GetString("JsonRpcMethodAndIgnoreAttributesFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This tracked object cannot be included in a notification. Only messages including an &quot;id&quot; property are supported..
         /// </summary>
         internal static string MarshaledObjectInNotificationError {

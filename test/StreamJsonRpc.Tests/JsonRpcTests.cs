@@ -62,6 +62,12 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    public interface IServerWithIgnoredMethod
+    {
+        [JsonRpcIgnore]
+        void IgnoredMethod();
+    }
+
     protected interface IControlledFlushHandler : IJsonRpcMessageHandler
     {
         /// <summary>
@@ -89,6 +95,9 @@ public abstract class JsonRpcTests : TestBase
         int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields);
 
         int Add_ExplicitInterfaceImplementation(int a, int b);
+
+        [JsonRpcIgnore]
+        void InterfaceIgnoredMethod();
     }
 
     private interface IServerDerived : IServer
@@ -732,6 +741,68 @@ public abstract class JsonRpcTests : TestBase
         {
             await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => invocationAttempt);
         }
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task PublicIgnoredMethodCannotBeInvoked()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.PublicIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task PublicMethodIgnoredByInterfaceCannotBeInvoked()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.InterfaceIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task IgnoredMethodCanBeInvokedByClientWhenAddedExplicitly()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcMethod(typeof(Server).GetMethod(nameof(Server.PublicIgnoredMethod))!, this.server, null);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.PublicIgnoredMethod), cancellationToken: this.TimeoutToken);
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task InternalIgnoredMethodCannotBeInvoked()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.clientRpc = new JsonRpc(this.clientStream);
+
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = true });
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.InternalIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public void ConflictedIgnoreMethodThrows()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.serverRpc = new JsonRpc(this.serverStream);
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributes()));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public void ConflictedIgnoreMethodViaInterfaceThrows()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.serverRpc = new JsonRpc(this.serverStream);
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributesViaInheritance()));
     }
 
     [Fact]
@@ -3437,6 +3508,15 @@ public abstract class JsonRpcTests : TestBase
 
         public bool MethodOnDerived() => true;
 
+        [JsonRpcIgnore]
+        public void PublicIgnoredMethod()
+        {
+        }
+
+        public void InterfaceIgnoredMethod()
+        {
+        }
+
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
         internal void InternalMethod()
@@ -3448,6 +3528,11 @@ public abstract class JsonRpcTests : TestBase
         internal void InternalMethodWithAttribute()
         {
             this.ServerMethodReached.Set();
+        }
+
+        [JsonRpcIgnore]
+        internal void InternalIgnoredMethod()
+        {
         }
     }
 #pragma warning restore CA1801 // use all parameters
@@ -3527,6 +3612,22 @@ public abstract class JsonRpcTests : TestBase
         public int PlusTwo(int arg)
         {
             return arg + 2;
+        }
+    }
+
+    public class ServerWithConflictingAttributes
+    {
+        [JsonRpcMethod, JsonRpcIgnore]
+        public void BadMethod()
+        {
+        }
+    }
+
+    public class ServerWithConflictingAttributesViaInheritance : IServerWithIgnoredMethod
+    {
+        [JsonRpcMethod]
+        public void IgnoredMethod()
+        {
         }
     }
 
