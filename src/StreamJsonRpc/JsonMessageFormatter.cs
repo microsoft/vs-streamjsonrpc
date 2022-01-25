@@ -69,9 +69,10 @@ namespace StreamJsonRpc
         /// </summary>
         /// <remarks>
         /// This is useful when calling such APIs as <see cref="JToken.FromObject(object, JsonSerializer)"/>
-        /// because <see cref="JToken.FromObject(object)"/> allocates a new serializer with each invocation.
+        /// to avoid the simpler overloads that rely on <see cref="JsonConvert.DefaultSettings"/> which is a mutable static.
+        /// By sharing this reliably untainted instance, we avoid allocating a new serializer with each invocation.
         /// </remarks>
-        private static readonly JsonSerializer DefaultSerializer = JsonSerializer.CreateDefault();
+        private static readonly JsonSerializer DefaultSerializer = JsonSerializer.Create();
 
         private readonly IReadOnlyDictionary<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledTypes;
 
@@ -734,7 +735,7 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
-            RequestId id = json["id"]?.ToObject<RequestId>() ?? default;
+            RequestId id = json["id"]?.ToObject<RequestId>(DefaultSerializer) ?? default;
 
             // We leave arguments as JTokens at this point, so that we can try deserializing them
             // to more precise .NET types as required by the method we're invoking.
@@ -831,7 +832,7 @@ namespace StreamJsonRpc
                 throw this.CreateProtocolNonComplianceException(json, "\"id\" property missing.");
             }
 
-            RequestId id = this.NormalizeId(idToken.ToObject<RequestId>());
+            RequestId id = this.NormalizeId(idToken.ToObject<RequestId>(DefaultSerializer));
             return id;
         }
 

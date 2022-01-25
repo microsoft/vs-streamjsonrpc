@@ -1,0 +1,5 @@
+M:Newtonsoft.Json.JsonSerializer.CreateDefault(); depends on JsonConvert.DefaultSettings
+M:Newtonsoft.Json.Linq.JObject.FromObject(System.Object); depends on JsonConvert.DefaultSettings
+M:Newtonsoft.Json.Linq.JToken.FromObject(System.Object); depends on JsonConvert.DefaultSettings
+M:Newtonsoft.Json.Linq.JToken.ToObject(System.Type); depends on JsonConvert.DefaultSettings
+M:Newtonsoft.Json.Linq.JToken.ToObject``1; depends on JsonConvert.DefaultSettings
