@@ -145,16 +145,18 @@ public class JsonMessageFormatterTests : TestBase
     public void ServerReturnsErrorWithNullId()
     {
         var formatter = new JsonMessageFormatter();
-        JsonRpcMessage? message = formatter.Deserialize(JObject.FromObject(new
-        {
-            jsonrpc = "2.0",
-            error = new
+        JsonRpcMessage? message = formatter.Deserialize(JObject.FromObject(
+            new
             {
-                code = -1,
-                message = "Some message",
+                jsonrpc = "2.0",
+                error = new
+                {
+                    code = -1,
+                    message = "Some message",
+                },
+                id = (object?)null,
             },
-            id = (object?)null,
-        }));
+            new JsonSerializer()));
         var error = Assert.IsAssignableFrom<JsonRpcError>(message);
         Assert.True(error.RequestId.IsNull);
     }
@@ -183,14 +185,16 @@ public class JsonMessageFormatterTests : TestBase
     public void DeserializingResultWithMissingIdFails()
     {
         var formatter = new JsonMessageFormatter();
-        var resultWithNoId = JObject.FromObject(new
-        {
-            jsonrpc = "2.0",
-            result = new
+        var resultWithNoId = JObject.FromObject(
+            new
             {
-                asdf = "abc",
+                jsonrpc = "2.0",
+                result = new
+                {
+                    asdf = "abc",
+                },
             },
-        });
+            new JsonSerializer());
         var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(resultWithNoId)).InnerException?.Message;
         Assert.Contains("\"id\" property missing.", message);
     }
@@ -199,15 +203,17 @@ public class JsonMessageFormatterTests : TestBase
     public void DeserializingErrorWithMissingIdFails()
     {
         var formatter = new JsonMessageFormatter();
-        var errorWithNoId = JObject.FromObject(new
-        {
-            jsonrpc = "2.0",
-            error = new
+        var errorWithNoId = JObject.FromObject(
+            new
             {
-                code = -1,
-                message = "Some message",
+                jsonrpc = "2.0",
+                error = new
+                {
+                    code = -1,
+                    message = "Some message",
+                },
             },
-        });
+            new JsonSerializer());
         var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(errorWithNoId)).InnerException?.Message;
         Assert.Contains("\"id\" property missing.", message);
     }

@@ -177,7 +177,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
 
         var errorDataJToken = (JToken?)exception.ErrorData;
         Assert.NotNull(errorDataJToken);
-        var errorData = errorDataJToken!.ToObject<CommonErrorData>();
+        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonSerializer());
         Assert.NotNull(errorData?.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }

@@ -35,7 +35,7 @@ public class InteropTestBase : TestBase
     {
         Requires.NotNull(message, nameof(message));
 
-        var json = JToken.FromObject(message);
+        var json = JToken.FromObject(message, new JsonSerializer());
         this.messageHandler.MessagesToRead.Enqueue(json);
     }
 

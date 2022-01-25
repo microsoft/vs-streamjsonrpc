@@ -303,7 +303,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
     }
 
@@ -329,7 +329,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
         Assert.Equal(-2147467261, commonErrorData?.HResult);
     }
@@ -358,7 +358,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         JToken errorDataToken = (JToken)ex.ErrorData!;
-        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
+        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>(new JsonSerializer()));
         Assert.Equal(errorData.stack.foo, errorDataToken["stack"]?.Value<int>("foo"));
     }
 
