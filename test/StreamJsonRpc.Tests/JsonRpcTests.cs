@@ -2772,7 +2772,6 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-#if !NETCOREAPP2_1
     /// <summary>
     /// Sets up <see cref="JsonRpc"/> on both sides to record activity traces as XML so an engineer can manually validate
     /// that <see href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/service-trace-viewer-tool-svctraceviewer-exe#using-the-service-trace-viewer-tool">Service Trace Viewer</see>
@@ -2829,7 +2828,6 @@ public abstract class JsonRpcTests : TestBase
             };
         }
     }
-#endif
 
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
