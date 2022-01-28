@@ -2664,6 +2664,31 @@ public abstract class JsonRpcTests : TestBase
     }
 #endif
 
+    /// <summary>
+    /// Verifies that an activity representing an incoming RPC request lasts the full duration of the async server method
+    /// rather than just till its first yield.
+    /// </summary>
+    [Fact]
+    public async Task IncomingActivityStopsAfterAsyncTargetMethodCompletes()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        TaskCompletionSource<object?> started = new();
+        TaskCompletionSource<object?> stopped = new();
+        this.serverRpc.ActivityTracingStrategy = new MockActivityTracingStrategy
+        {
+            Inbound = req =>
+            {
+                started.SetResult(null);
+                return new DisposableAction(() => stopped.SetResult(null));
+            },
+        };
+        Task task = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "arg" }, this.TimeoutToken);
+        await started.Task.WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<TimeoutException>(() => stopped.Task.WithTimeout(ExpectedTimeout));
+        this.server.AllowServerMethodToReturn.Set();
+        await stopped.Task.WithCancellation(this.TimeoutToken);
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -3481,6 +3506,17 @@ public abstract class JsonRpcTests : TestBase
     [DataContract]
     internal class InternalClass
     {
+    }
+
+    protected class MockActivityTracingStrategy : IActivityTracingStrategy
+    {
+        internal Func<JsonRpcRequest, IDisposable>? Inbound { get; set; }
+
+        internal Action<JsonRpcRequest>? Outbound { get; set; }
+
+        public IDisposable? ApplyInboundActivity(JsonRpcRequest request) => this.Inbound?.Invoke(request);
+
+        public void ApplyOutboundActivity(JsonRpcRequest request) => this.Outbound?.Invoke(request);
     }
 
     /// <summary>

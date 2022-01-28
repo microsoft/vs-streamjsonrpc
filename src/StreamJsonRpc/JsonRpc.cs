@@ -1555,20 +1555,19 @@ namespace StreamJsonRpc
         protected virtual async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
         {
             object? result;
-            using (IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request))
+            using IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request);
+
+            try
             {
-                try
-                {
-                    // IMPORTANT: This should be the first await in this async method,
-                    //            and no other await should be between this one and actually invoking the target method.
-                    //            This is crucial to the guarantee that method invocation order is preserved from client to server
-                    //            when a single-threaded SynchronizationContext is applied.
-                    result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
-                {
-                    return this.CreateCancellationResponse(request);
-                }
+                // IMPORTANT: This should be the first await in this async method,
+                //            and no other await should be between this one and actually invoking the target method.
+                //            This is crucial to the guarantee that method invocation order is preserved from client to server
+                //            when a single-threaded SynchronizationContext is applied.
+                result = await targetMethod.InvokeAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException)
+            {
+                return this.CreateCancellationResponse(request);
             }
 
             // Convert ValueTask to Task or ValueTask<T> to Task<T>
