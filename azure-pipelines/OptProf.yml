@@ -51,7 +51,8 @@ stages:
   jobs:
   - job: QueueOptProf
     pool:
-      vmImage: windows-latest
+      name: AzurePipelines-EO
+      vmImage: AzurePipelinesWindows2022compliant
     variables:
       InsertPayloadName: vs-streamjsonrpc
       InsertTopicBranch: team/VS-IDE/vs-StreamJsonRpc-OptProf-run-$(Build.BuildId)
