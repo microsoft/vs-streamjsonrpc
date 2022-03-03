@@ -1219,7 +1219,7 @@ namespace StreamJsonRpc
                 {
                     typeDeclaringAssembly = Assembly.Load(assemblyName);
                 }
-                catch (FileLoadException)
+                catch (Exception ex) when (ex is FileNotFoundException or FileLoadException)
                 {
                     // Try removing the version from the AssemblyName and try again, in case the message came from a newer version.
                     var an = new AssemblyName(assemblyName);
@@ -1230,7 +1230,7 @@ namespace StreamJsonRpc
                         {
                             typeDeclaringAssembly = Assembly.Load(an.FullName);
                         }
-                        catch (FileLoadException)
+                        catch (Exception exRedux) when (exRedux is FileNotFoundException or FileLoadException)
                         {
                             // If we fail again, we'll just try to load the exception type from the AppDomain without an assembly's context.
                         }
