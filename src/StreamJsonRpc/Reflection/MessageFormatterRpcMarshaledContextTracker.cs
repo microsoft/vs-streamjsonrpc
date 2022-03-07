@@ -4,6 +4,7 @@
 namespace StreamJsonRpc.Reflection
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
@@ -18,7 +19,7 @@ namespace StreamJsonRpc.Reflection
     /// </summary>
     internal class MessageFormatterRpcMarshaledContextTracker
     {
-        internal static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> ImplicitlyMarshaledTypes = new (Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)[]
+        private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> ImplicitlyMarshaledTypes = new (Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)[]
         {
             (typeof(IDisposable), new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }, new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
 
@@ -48,6 +49,8 @@ namespace StreamJsonRpc.Reflection
                 new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }),
         };
 
+        private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> MarshaledTypes = new ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)>();
+        private static readonly (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) RpcMarshalableInterfaceDefaultOptions = (new JsonRpcProxyOptions(), new JsonRpcTargetOptions { NotifyClientOfEvents = false, DisposeOnDisconnect = true });
         private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
         private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();
@@ -85,6 +88,62 @@ namespace StreamJsonRpc.Reflection
         {
             MarshallingProxyBackToOwner = 0,
             MarshallingRealObject = 1,
+        }
+
+        internal static bool TryGetMarshalOptionsForType(Type type, [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions, [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions)
+        {
+            proxyOptions = null;
+            targetOptions = null;
+            if (type.IsInterface is false)
+            {
+                return false;
+            }
+
+            if (MarshaledTypes.TryGetValue(type, out (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) options))
+            {
+                proxyOptions = options.ProxyOptions;
+                targetOptions = options.TargetOptions;
+                return true;
+            }
+
+            foreach ((Type implicitlyMarshaledType, JsonRpcProxyOptions typeProxyOptions, JsonRpcTargetOptions typeTargetOptions) in ImplicitlyMarshaledTypes)
+            {
+                if (implicitlyMarshaledType == type ||
+                    (implicitlyMarshaledType.IsGenericTypeDefinition &&
+                     type.IsConstructedGenericType &&
+                     implicitlyMarshaledType == type.GetGenericTypeDefinition()))
+                {
+                    proxyOptions = typeProxyOptions;
+                    targetOptions = typeTargetOptions;
+                    MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions));
+                    return true;
+                }
+            }
+
+            if (type.GetCustomAttribute<RpcMarshalableAttribute>() is not null)
+            {
+                if (typeof(IDisposable).IsAssignableFrom(type) is false)
+                {
+                    throw new NotSupportedException(Resources.MarshalableInterfaceNotDisposable);
+                }
+
+                if (type.GetEvents().Length > 0)
+                {
+                    throw new NotSupportedException(Resources.MarshalableInterfaceHasEvents);
+                }
+
+                if (type.GetProperties().Length > 0)
+                {
+                    throw new NotSupportedException(Resources.MarshalableInterfaceHasProperties);
+                }
+
+                proxyOptions = RpcMarshalableInterfaceDefaultOptions.ProxyOptions;
+                targetOptions = RpcMarshalableInterfaceDefaultOptions.TargetOptions;
+                MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions));
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

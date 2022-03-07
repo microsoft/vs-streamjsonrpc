@@ -599,7 +599,7 @@ namespace StreamJsonRpc
                 this.exceptionResolver,
 
                 // Support for marshalled objects.
-                new RpcMarshalableImplicitResolver(this, MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes),
+                new RpcMarshalableImplicitResolver(this),
             };
 
             // Wrap the resolver in another class as a way to pass information to our custom formatters.
@@ -1389,13 +1389,11 @@ namespace StreamJsonRpc
         private class RpcMarshalableImplicitResolver : IFormatterResolver
         {
             private readonly MessagePackFormatter formatter;
-            private readonly IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes;
             private readonly Dictionary<Type, object> formatters = new Dictionary<Type, object>();
 
-            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter, IReadOnlyCollection<(Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> implicitlyMarshaledTypes)
+            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter)
             {
                 this.formatter = formatter;
-                this.implicitlyMarshaledTypes = implicitlyMarshaledTypes;
             }
 
             public IMessagePackFormatter<T>? GetFormatter<T>()
@@ -1413,37 +1411,26 @@ namespace StreamJsonRpc
                     }
                 }
 
-                (Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)? matchingCandidate = null;
-                foreach ((Type Type, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) candidate in this.implicitlyMarshaledTypes)
+                if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
                 {
-                    if (candidate.Type == typeof(T) ||
-                        (candidate.Type.IsGenericTypeDefinition && typeof(T).IsConstructedGenericType && candidate.Type == typeof(T).GetGenericTypeDefinition()))
+                    object formatter = Activator.CreateInstance(
+                        typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
+                        this.formatter,
+                        proxyOptions,
+                        targetOptions)!;
+
+                    lock (this.formatters)
                     {
-                        matchingCandidate = candidate;
-                        break;
+                        if (!this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
+                        {
+                            this.formatters.Add(typeof(T), cachedFormatter = formatter);
+                        }
+
+                        return (IMessagePackFormatter<T>)cachedFormatter;
                     }
                 }
 
-                if (!matchingCandidate.HasValue)
-                {
-                    return null;
-                }
-
-                object formatter = Activator.CreateInstance(
-                    typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
-                    this.formatter,
-                    matchingCandidate.Value.ProxyOptions,
-                    matchingCandidate.Value.TargetOptions)!;
-
-                lock (this.formatters)
-                {
-                    if (!this.formatters.TryGetValue(typeof(T), out object? cachedFormatter))
-                    {
-                        this.formatters.Add(typeof(T), cachedFormatter = formatter);
-                    }
-
-                    return (IMessagePackFormatter<T>)cachedFormatter;
-                }
+                return null;
             }
         }
 

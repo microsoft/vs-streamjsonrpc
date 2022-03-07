@@ -74,8 +74,6 @@ namespace StreamJsonRpc
         /// </remarks>
         private static readonly JsonSerializer DefaultSerializer = JsonSerializer.Create();
 
-        private readonly IReadOnlyDictionary<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledTypes;
-
         /// <summary>
         /// The reusable <see cref="TextWriter"/> to use with newtonsoft.json's serializer.
         /// </summary>
@@ -199,19 +197,9 @@ namespace StreamJsonRpc
                     new PipeWriterConverter(this),
                     new StreamConverter(this),
                     new ExceptionConverter(this),
+                    new RpcMarshalableReadConverter(this),
                 },
             };
-
-            var camelCaseProxyOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            var camelCaseTargetOptions = new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase };
-            this.implicitlyMarshaledTypes = MessageFormatterRpcMarshaledContextTracker.ImplicitlyMarshaledTypes.ToDictionary(
-                t => t.ImplicitlyMarshaledType,
-                t => new RpcMarshalableImplicitConverter(t.ImplicitlyMarshaledType, this, t.ProxyOptions, t.TargetOptions));
-
-            foreach (KeyValuePair<Type, RpcMarshalableImplicitConverter> implicitlyMarshaledType in this.implicitlyMarshaledTypes)
-            {
-                this.JsonSerializer.Converters.Add(implicitlyMarshaledType.Value);
-            }
         }
 
         private interface IMessageWithTopLevelPropertyBag
@@ -685,7 +673,7 @@ namespace StreamJsonRpc
                 return JValue.CreateNull();
             }
 
-            if (declaredType is object && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableImplicitConverter? converter))
+            if (declaredType is not null && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableConverter? converter))
             {
                 using JTokenWriter jsonWriter = this.CreateJTokenWriter();
                 converter.WriteJson(jsonWriter, value, this.JsonSerializer);
@@ -715,19 +703,15 @@ namespace StreamJsonRpc
             };
         }
 
-        private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableImplicitConverter? converter)
+        private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
         {
-            if (this.implicitlyMarshaledTypes.TryGetValue(type, out converter))
+            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
             {
+                converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions);
                 return true;
             }
 
-            if (type.IsConstructedGenericType && this.implicitlyMarshaledTypes.TryGetValue(type.GetGenericTypeDefinition(), out converter))
-            {
-                converter = converter.WithClosedType(type);
-                return true;
-            }
-
+            converter = null;
             return false;
         }
 
@@ -1477,31 +1461,58 @@ namespace StreamJsonRpc
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-        private class RpcMarshalableImplicitConverter : JsonConverter
+        private class RpcMarshalableReadConverter : JsonConverter
         {
-            private readonly Type implicitlyConvertedType;
+            private readonly JsonMessageFormatter jsonMessageFormatter;
+
+            public RpcMarshalableReadConverter(JsonMessageFormatter jsonMessageFormatter)
+            {
+                this.jsonMessageFormatter = jsonMessageFormatter;
+            }
+
+            public override bool CanWrite => false;
+
+            private string DebuggerDisplay => $"Read-only converter for marshalable interfaces";
+
+            public override bool CanConvert(Type objectType) =>
+                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(objectType, out _, out _);
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(objectType, out JsonRpcProxyOptions? proxyOptions, out _))
+                {
+                    var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
+                    return this.jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
+                }
+
+                throw new InvalidOperationException($"Type {objectType.FullName} is not marshalable");
+            }
+
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+            {
+                throw new NotSupportedException($"{nameof(RpcMarshalableReadConverter)} doesn't have write capabilities.");
+            }
+        }
+
+        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
+        private class RpcMarshalableConverter : JsonConverter
+        {
+            private readonly Type interfaceType;
             private readonly JsonMessageFormatter jsonMessageFormatter;
             private readonly JsonRpcProxyOptions proxyOptions;
             private readonly JsonRpcTargetOptions targetOptions;
 
-            public RpcMarshalableImplicitConverter(Type implicitlyConvertedType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            public RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
             {
-                this.implicitlyConvertedType = implicitlyConvertedType;
+                this.interfaceType = interfaceType;
                 this.jsonMessageFormatter = jsonMessageFormatter;
                 this.proxyOptions = proxyOptions;
                 this.targetOptions = targetOptions;
             }
 
-            private RpcMarshalableImplicitConverter(RpcMarshalableImplicitConverter copyFrom, Type implicitlyConvertedType)
-                : this(implicitlyConvertedType, copyFrom.jsonMessageFormatter, copyFrom.proxyOptions, copyFrom.targetOptions)
-            {
-            }
+            private string DebuggerDisplay => $"Converter for marshalable objects of type {this.interfaceType.FullName}";
 
-            private string DebuggerDisplay => $"Implicit converter for: {this.implicitlyConvertedType.Name}";
-
-            public override bool CanConvert(Type objectType) =>
-                objectType == this.implicitlyConvertedType ||
-                (this.implicitlyConvertedType.IsGenericTypeDefinition && objectType.IsGenericType && objectType.GetGenericTypeDefinition() == this.implicitlyConvertedType);
+            public override bool CanConvert(Type objectType) => objectType == this.interfaceType;
 
             public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
             {
@@ -1515,25 +1526,16 @@ namespace StreamJsonRpc
                 {
                     writer.WriteNull();
                 }
+                else if (this.interfaceType.IsAssignableFrom(value.GetType()) is false)
+                {
+                    throw new InvalidOperationException($"Type {value.GetType().FullName} doens't implement {this.interfaceType.FullName}");
+                }
                 else
                 {
-                    IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(this.implicitlyConvertedType, value, this.targetOptions);
+                    IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(this.interfaceType, value, this.targetOptions);
                     MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(context);
                     serializer.Serialize(writer, token);
                 }
-            }
-
-            internal RpcMarshalableImplicitConverter WithClosedType(Type implicitlyMarshaledType)
-            {
-                if (this.implicitlyConvertedType == implicitlyMarshaledType ||
-                    !this.implicitlyConvertedType.IsGenericType ||
-                    this.implicitlyConvertedType.IsConstructedGenericType)
-                {
-                    return this;
-                }
-
-                Assumes.True(implicitlyMarshaledType.GetGenericTypeDefinition().Equals(this.implicitlyConvertedType.GetGenericTypeDefinition()));
-                return new RpcMarshalableImplicitConverter(this, implicitlyMarshaledType);
             }
         }
 
@@ -1719,7 +1721,7 @@ namespace StreamJsonRpc
                                 continue;
                             }
 
-                            if (property.PropertyType is object && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableImplicitConverter? converter))
+                            if (property.PropertyType is not null && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? converter))
                             {
                                 property.Converter = converter;
                             }
