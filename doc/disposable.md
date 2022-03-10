@@ -2,9 +2,6 @@
 
 StreamJsonRpc allows marshaling `IDisposable` objects in arguments and return values.
 
-An `IDisposable` object may also implement `INotifyDisposable` on the sender side
-so the sender can terminate the lifetime of the marshalled object to release resources.
-
 ## Use cases
 
 In all cases, the special handling of an `IDisposable` value only occurs if the container of that value is typed as `IDisposable`.
