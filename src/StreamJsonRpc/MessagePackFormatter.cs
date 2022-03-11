@@ -587,6 +587,9 @@ namespace StreamJsonRpc
             // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
             var resolvers = new IFormatterResolver[]
             {
+                // Support for marshalled objects.
+                new RpcMarshalableImplicitResolver(this),
+
                 userSuppliedOptions.Resolver,
 
                 // Add stateless, non-specialized resolvers that help basic functionality to "just work".
@@ -597,9 +600,6 @@ namespace StreamJsonRpc
                 this.asyncEnumerableFormatterResolver,
                 this.pipeFormatterResolver,
                 this.exceptionResolver,
-
-                // Support for marshalled objects.
-                new RpcMarshalableImplicitResolver(this),
             };
 
             // Wrap the resolver in another class as a way to pass information to our custom formatters.

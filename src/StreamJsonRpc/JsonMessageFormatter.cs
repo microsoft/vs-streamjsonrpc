@@ -197,7 +197,6 @@ namespace StreamJsonRpc
                     new PipeWriterConverter(this),
                     new StreamConverter(this),
                     new ExceptionConverter(this),
-                    new RpcMarshalableReadConverter(this),
                 },
             };
         }
@@ -1461,40 +1460,6 @@ namespace StreamJsonRpc
         }
 
         [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-        private class RpcMarshalableReadConverter : JsonConverter
-        {
-            private readonly JsonMessageFormatter jsonMessageFormatter;
-
-            public RpcMarshalableReadConverter(JsonMessageFormatter jsonMessageFormatter)
-            {
-                this.jsonMessageFormatter = jsonMessageFormatter;
-            }
-
-            public override bool CanWrite => false;
-
-            private string DebuggerDisplay => $"Read-only converter for marshalable interfaces";
-
-            public override bool CanConvert(Type objectType) =>
-                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(objectType, out _, out _);
-
-            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-            {
-                if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(objectType, out JsonRpcProxyOptions? proxyOptions, out _))
-                {
-                    var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
-                    return this.jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
-                }
-
-                throw new InvalidOperationException($"Type {objectType.FullName} is not marshalable");
-            }
-
-            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-            {
-                throw new NotSupportedException($"{nameof(RpcMarshalableReadConverter)} doesn't have write capabilities.");
-            }
-        }
-
-        [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
         private class RpcMarshalableConverter : JsonConverter
         {
             private readonly Type interfaceType;
@@ -1710,6 +1675,15 @@ namespace StreamJsonRpc
 
             public override JsonContract ResolveContract(Type type)
             {
+                if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(type, out RpcMarshalableConverter? converter))
+                {
+                    return new JsonObjectContract(type)
+                    {
+                        Converter = converter,
+                        CreatedType = type,
+                    };
+                }
+
                 JsonContract? result = base.ResolveContract(type);
                 switch (result)
                 {
@@ -1721,9 +1695,9 @@ namespace StreamJsonRpc
                                 continue;
                             }
 
-                            if (property.PropertyType is not null && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? converter))
+                            if (property.PropertyType is not null && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
                             {
-                                property.Converter = converter;
+                                property.Converter = propertyConverter;
                             }
                         }
 

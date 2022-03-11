@@ -44,6 +44,43 @@ public abstract class MarshalableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
+    [RpcMarshalable]
+    [JsonConverter(typeof(MarshalableConverter))]
+    [MessagePackFormatter(typeof(MarshalableFormatter))]
+    public interface IMarshalableAndSerializable : IMarshalable
+    {
+        private class MarshalableConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return typeof(IMarshalableAndSerializable).IsAssignableFrom(objectType);
+            }
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private class MarshalableFormatter : MessagePack.Formatters.IMessagePackFormatter<IMarshalableAndSerializable>
+        {
+            public IMarshalableAndSerializable Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Serialize(ref MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
+            {
+                throw new NotImplementedException();
+            }
+        }
+    }
+
     public interface INonMarshalable : IDisposable
     {
         Task DoSomethingAsync();
@@ -89,13 +126,19 @@ public abstract class MarshalableProxyTests : TestBase
 
         Task<IGenericMarshalable<int>?> GetGenericMarshalableAsync(bool returnNull = false);
 
+        Task<IMarshalableAndSerializable?> GetMarshalableAndSerializableAsync(bool returnNull = false);
+
         Task AcceptProxyAsync(IMarshalable marshalable, bool dispose = true);
 
         Task AcceptGenericProxyAsync(IGenericMarshalable<int> marshalable, bool dispose = true);
 
+        Task AcceptMarshalableAndSerializableProxyAsync(IMarshalableAndSerializable marshalable, bool dispose = true);
+
         Task AcceptProxyContainerAsync(ProxyContainer<IMarshalable> marshalableContainer, bool dispose = true);
 
         Task AcceptGenericProxyContainerAsync(ProxyContainer<IGenericMarshalable<int>> marshalableContainer, bool dispose = true);
+
+        Task AcceptMarshalableAndSerializableProxyContainerAsync(ProxyContainer<IMarshalableAndSerializable> marshalableContainer, bool dispose = true);
 
         Task<int> AcceptDataAsync(Data data);
 
@@ -250,6 +293,16 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task MarshalableAndSerializableReturnValue_CanCallMethods()
+    {
+        IMarshalableAndSerializable? proxy = await this.client.GetMarshalableAndSerializableAsync(returnNull: false);
+        MarshalableAndSerializable returnedMarshalable = (MarshalableAndSerializable)this.server.ReturnedMarshalable!;
+        Assert.False(returnedMarshalable.DoSomethingCalled);
+        await proxy!.DoSomethingAsync();
+        Assert.True(returnedMarshalable.DoSomethingCalled);
+    }
+
+    [Fact]
     public async Task GenericMarshalableReturnValue_CanCallMethods()
     {
         IGenericMarshalable<int>? proxy = await this.client.GetGenericMarshalableAsync(returnNull: false);
@@ -295,6 +348,16 @@ public abstract class MarshalableProxyTests : TestBase
     {
         var data = new NonDataContractMarshalable();
         await this.client.AcceptProxyAsync(data, false);
+        Assert.False(data.DoSomethingCalled);
+        await this.server.ReceivedProxy!.DoSomethingAsync();
+        Assert.True(data.DoSomethingCalled);
+    }
+
+    [Fact]
+    public async Task MarshalableAndSerializableArg_CanCallMethods()
+    {
+        var data = new MarshalableAndSerializable();
+        await this.client.AcceptMarshalableAndSerializableProxyAsync(data, false);
         Assert.False(data.DoSomethingCalled);
         await this.server.ReceivedProxy!.DoSomethingAsync();
         Assert.True(data.DoSomethingCalled);
@@ -347,6 +410,16 @@ public abstract class MarshalableProxyTests : TestBase
     {
         var data = new NonDataContractMarshalable();
         await this.client.AcceptProxyContainerAsync(new ProxyContainer<IMarshalable>() { Marshalable = data }, false);
+        Assert.False(data.DoSomethingCalled);
+        await this.server.ReceivedProxy!.DoSomethingAsync();
+        Assert.True(data.DoSomethingCalled);
+    }
+
+    [Fact]
+    public async Task MarshalableAndSerializableWithinArg_CanCallMethods()
+    {
+        var data = new MarshalableAndSerializable();
+        await this.client.AcceptMarshalableAndSerializableProxyContainerAsync(new ProxyContainer<IMarshalableAndSerializable>() { Marshalable = data }, false);
         Assert.False(data.DoSomethingCalled);
         await this.server.ReceivedProxy!.DoSomethingAsync();
         Assert.True(data.DoSomethingCalled);
@@ -458,7 +531,25 @@ public abstract class MarshalableProxyTests : TestBase
             return Task.FromResult<IMarshalable?>(marshalable);
         }
 
+        public Task<IMarshalableAndSerializable?> GetMarshalableAndSerializableAsync(bool returnNull = false)
+        {
+            var marshalable = returnNull ? null : new MarshalableAndSerializable();
+            this.ReturnedMarshalable = marshalable;
+            return Task.FromResult<IMarshalableAndSerializable?>(marshalable);
+        }
+
         public Task AcceptProxyAsync(IMarshalable marshalable, bool dispose = true)
+        {
+            this.ReceivedProxy = marshalable;
+            if (dispose)
+            {
+                marshalable.Dispose();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task AcceptMarshalableAndSerializableProxyAsync(IMarshalableAndSerializable marshalable, bool dispose = true)
         {
             this.ReceivedProxy = marshalable;
             if (dispose)
@@ -481,6 +572,17 @@ public abstract class MarshalableProxyTests : TestBase
         }
 
         public Task AcceptProxyContainerAsync(ProxyContainer<IMarshalable> marshalableContainer, bool dispose = true)
+        {
+            this.ReceivedProxy = marshalableContainer.Marshalable;
+            if (dispose)
+            {
+                marshalableContainer.Marshalable?.Dispose();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task AcceptMarshalableAndSerializableProxyContainerAsync(ProxyContainer<IMarshalableAndSerializable> marshalableContainer, bool dispose = true)
         {
             this.ReceivedProxy = marshalableContainer.Marshalable;
             if (dispose)
@@ -576,16 +678,25 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class NonDataContractMarshalable : INonMarshalableDerivedFromMarshalable
     {
-        public bool IsDisposed { get; private set; }
-
         public bool DoSomethingCalled { get; private set; }
 
         public void Dispose()
         {
-            if (this.IsDisposed is false)
-            {
-                this.IsDisposed = true;
-            }
+        }
+
+        public Task DoSomethingAsync()
+        {
+            this.DoSomethingCalled = true;
+            return Task.CompletedTask;
+        }
+    }
+
+    public class MarshalableAndSerializable : IMarshalableAndSerializable
+    {
+        public bool DoSomethingCalled { get; private set; }
+
+        public void Dispose()
+        {
         }
 
         public Task DoSomethingAsync()
