@@ -34,11 +34,11 @@ class Counter : ICounter
     {
         if (IsDisposed)
         {
-            throw new ObjectDisposedException();
+            throw new ObjectDisposedException(null);
         }
 
         count++;
-        InterfaceEvent?.Raise(this, EventArgs.Empty);
+        IncrementedEvent?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
 
@@ -51,14 +51,14 @@ class Counter : ICounter
     {
         if (IsDisposed is false)
         {
-            DisposedEvent?.Raise(this, EventArgs.Empty);
+            DisposedEvent?.Invoke(this, EventArgs.Empty);
             IsDisposed = true;
         }
     }
 }
 
 [RpcMarshalable]
-class ICounter : IDisposable
+interface ICounter : IDisposable
 {
     Task IncrementAsync(CancellationToken ct);
 
@@ -71,7 +71,12 @@ class ICounter : IDisposable
 In the simplest case, the RPC server returns a marshalable interface object.
 
 ```cs
-class RpcServer
+interface IRpcServer
+{
+    ICounter GetCounter();
+}
+
+class RpcServer : IRpcServer
 {
     private int activeCounters;
 
@@ -171,7 +176,7 @@ class ByValueCounter : ICounter
     {
         if (IsDisposed)
         {
-            throw new ObjectDisposedException();
+            throw new ObjectDisposedException(null);
         }
 
         Count++;
