@@ -1,6 +1,7 @@
 # `RpcMarshalableAttribute` support
 
-StreamJsonRpc allows the definition of marshalable interfaces: interfaces marked with `RpcMarshalableAttribute`.
+StreamJsonRpc typically *serializes* values that are passed in arguments or return values of RPC methods, which effectively transmits the data of an object or struct to the remote party.
+By applying the `RpcMarshalableAttribute` to an interface, it a proxy can be sent to effectively marshal *behavior* to the remote party instead of data, similar to other [exotic types](exotic_types.md).
 
 StreamJsonRpc allows transmitting marshalable objects (i.e., objects implementing a marshalable interface) in arguments and return values.
 
@@ -8,13 +9,13 @@ Marshalable interfaces must:
 
 1. Extend `IDisposable`.
 1. Not include any properties.
-1. Not include any event.
+1. Not include any events.
 
-The marshalable object can include properties and events as well as other additional members but only the methods defined by the marshalable interface will be available on the proxy.
+The object that implements a marshalable interface may include properties and events as well as other additional members but only the methods defined by the marshalable interface will be available on the proxy, and the data will not be serialized.
 
 ## Use cases
 
-In all cases, the special handling of a marshalable object only occurs if the container of that value is typed as the corrsponding marshalable interface.
+In all cases, the special handling of a marshalable object only occurs if the container of that value is typed as the corresponding marshalable interface.
 This means that an object that implements a marshalable interface will not necessarily be marshaled instead of serialized.
 
 For each use case, assume `Counter` is a class defined for demonstration purposes like this:
@@ -142,7 +143,7 @@ var arg = new SomeClass
 await client.ProvideClassAsync(arg);
 ```
 
-While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an `IDisposable` value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
+⚠️ While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an `IDisposable` value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
 
 ### As an argument without a proxy for an RPC interface
 
@@ -228,13 +229,13 @@ In each of these cases, the receiving part will get a `ByValueCounter` object, b
 
 ## Resource leaks concerns
 
-When an marshalable object instance is sent over RPC, resources are held by both parties to marshal interactions
+When a marshalable object instance is sent over RPC, resources are held by both parties to marshal interactions
 with that object.
 
 These resources are released and the `IDisposable.Dispose()` method is invoked on the sender's marshalable object when any of these occur:
 
-1. The receiver calls `IDisposable.Dispose()` on the proxy.
-1. The JSON-RPC connection is closed.
+* The receiver calls `IDisposable.Dispose()` on the proxy.
+* The JSON-RPC connection is closed.
 
 ## Protocol
 
