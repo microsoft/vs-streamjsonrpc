@@ -236,4 +236,3 @@ These resources are released and the `IDisposable.Dispose()` method is invoked o
 The protocol for proxying a disposable object is based on [general marshaled objects](general_marshaled_objects.md).
 
 The responsibility to release resources is on the receiver of the proxy.
-That is, when the proxy holder calls either of these methods, it should also send the `$/releaseMarshaledObject` message back to the target object owner. When the proxy holder is using StreamJsonRpc, this is handled automatically when `IDisposable.Dispose()` is invoked on the proxy.

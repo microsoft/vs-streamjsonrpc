@@ -185,7 +185,7 @@ namespace StreamJsonRpc
                 NullValueHandling = NullValueHandling.Ignore,
                 ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
                 DateParseHandling = DateParseHandling.None,
-                ContractResolver = new ImplicitMarshalContractResolver(this),
+                ContractResolver = new MarshalContractResolver(this),
                 Converters =
                 {
                     new JsonProgressServerConverter(this),
@@ -672,7 +672,7 @@ namespace StreamJsonRpc
                 return JValue.CreateNull();
             }
 
-            if (declaredType is not null && this.TryGetImplicitlyMarshaledJsonConverter(declaredType, out RpcMarshalableConverter? converter))
+            if (declaredType is not null && this.TryGetMarshaledJsonConverter(declaredType, out RpcMarshalableConverter? converter))
             {
                 using JTokenWriter jsonWriter = this.CreateJTokenWriter();
                 converter.WriteJson(jsonWriter, value, this.JsonSerializer);
@@ -702,7 +702,7 @@ namespace StreamJsonRpc
             };
         }
 
-        private bool TryGetImplicitlyMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
+        private bool TryGetMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
         {
             if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
             {
@@ -1491,7 +1491,7 @@ namespace StreamJsonRpc
                 {
                     writer.WriteNull();
                 }
-                else if (this.interfaceType.IsAssignableFrom(value.GetType()) is false)
+                else if (!this.interfaceType.IsAssignableFrom(value.GetType()))
                 {
                     throw new InvalidOperationException($"Type {value.GetType().FullName} doens't implement {this.interfaceType.FullName}");
                 }
@@ -1664,18 +1664,18 @@ namespace StreamJsonRpc
             }
         }
 
-        private class ImplicitMarshalContractResolver : DefaultContractResolver
+        private class MarshalContractResolver : DefaultContractResolver
         {
             private readonly JsonMessageFormatter formatter;
 
-            public ImplicitMarshalContractResolver(JsonMessageFormatter formatter)
+            public MarshalContractResolver(JsonMessageFormatter formatter)
             {
                 this.formatter = formatter;
             }
 
             public override JsonContract ResolveContract(Type type)
             {
-                if (this.formatter.TryGetImplicitlyMarshaledJsonConverter(type, out RpcMarshalableConverter? converter))
+                if (this.formatter.TryGetMarshaledJsonConverter(type, out RpcMarshalableConverter? converter))
                 {
                     return new JsonObjectContract(type)
                     {
@@ -1695,7 +1695,7 @@ namespace StreamJsonRpc
                                 continue;
                             }
 
-                            if (property.PropertyType is not null && this.formatter.TryGetImplicitlyMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
+                            if (property.PropertyType is not null && this.formatter.TryGetMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
                             {
                                 property.Converter = propertyConverter;
                             }

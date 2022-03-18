@@ -588,7 +588,7 @@ namespace StreamJsonRpc
             var resolvers = new IFormatterResolver[]
             {
                 // Support for marshalled objects.
-                new RpcMarshalableImplicitResolver(this),
+                new RpcMarshalableResolver(this),
 
                 userSuppliedOptions.Resolver,
 
@@ -1386,12 +1386,12 @@ namespace StreamJsonRpc
             }
         }
 
-        private class RpcMarshalableImplicitResolver : IFormatterResolver
+        private class RpcMarshalableResolver : IFormatterResolver
         {
             private readonly MessagePackFormatter formatter;
             private readonly Dictionary<Type, object> formatters = new Dictionary<Type, object>();
 
-            internal RpcMarshalableImplicitResolver(MessagePackFormatter formatter)
+            internal RpcMarshalableResolver(MessagePackFormatter formatter)
             {
                 this.formatter = formatter;
             }
@@ -1414,7 +1414,7 @@ namespace StreamJsonRpc
                 if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
                 {
                     object formatter = Activator.CreateInstance(
-                        typeof(RpcMarshalableImplicitFormatter<>).MakeGenericType(typeof(T)),
+                        typeof(RpcMarshalableFormatter<>).MakeGenericType(typeof(T)),
                         this.formatter,
                         proxyOptions,
                         targetOptions)!;
@@ -1435,7 +1435,7 @@ namespace StreamJsonRpc
         }
 
 #pragma warning disable CA1812
-        private class RpcMarshalableImplicitFormatter<T> : IMessagePackFormatter<T?>
+        private class RpcMarshalableFormatter<T> : IMessagePackFormatter<T?>
             where T : class
 #pragma warning restore CA1812
         {
@@ -1443,7 +1443,7 @@ namespace StreamJsonRpc
             private JsonRpcProxyOptions proxyOptions;
             private JsonRpcTargetOptions targetOptions;
 
-            public RpcMarshalableImplicitFormatter(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            public RpcMarshalableFormatter(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
             {
                 this.messagePackFormatter = messagePackFormatter;
                 this.proxyOptions = proxyOptions;
