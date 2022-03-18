@@ -8,6 +8,7 @@ Some types are not serializable but are specially recognized and marshaled by St
 * [`IAsyncEnumerable<T>`](asyncenumerable.md)
 * [`IObserver<T>`](observer.md)
 * [`IDisposable`](disposable.md)
+* [Interfaces marked with `RpcMarshalableAttribute`](rpc_marshalable_objects.md)
 * [General marshalable object support](general_marshaled_objects.md)
 
 The `CancellationToken` support is built into the `JsonRpc` class itself so that it works in any configuration, provided the remote side also supports it.

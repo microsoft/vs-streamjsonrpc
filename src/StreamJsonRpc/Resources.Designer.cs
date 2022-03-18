@@ -304,6 +304,33 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Interfaces with events cannot be marshaled..
+        /// </summary>
+        internal static string MarshalableInterfaceHasEvents {
+            get {
+                return ResourceManager.GetString("MarshalableInterfaceHasEvents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Interfaces with properties cannot be marshaled..
+        /// </summary>
+        internal static string MarshalableInterfaceHasProperties {
+            get {
+                return ResourceManager.GetString("MarshalableInterfaceHasProperties", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Marshaled interfaces must extend IDisposable..
+        /// </summary>
+        internal static string MarshalableInterfaceNotDisposable {
+            get {
+                return ResourceManager.GetString("MarshalableInterfaceNotDisposable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This tracked object cannot be included in a notification. Only messages including an &quot;id&quot; property are supported..
         /// </summary>
         internal static string MarshaledObjectInNotificationError {
