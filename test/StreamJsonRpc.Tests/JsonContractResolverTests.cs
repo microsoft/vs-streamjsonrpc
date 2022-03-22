@@ -41,17 +41,31 @@ public partial class JsonContractResolverTest : TestBase
     {
         Task GiveObserver(IObserver<int> observer);
 
-        Task GiveObserverContainer(ObserverContainer observerContainer);
+        Task GiveObserverContainer(Container<IObserver<int>> observerContainer);
 
         Task<IObserver<int>> GetObserver();
 
-        Task<ObserverContainer> GetObserverContainer();
+        Task<Container<IObserver<int>>> GetObserverContainer();
+
+        Task GiveMarshalable(IMarshalable marshalable);
+
+        Task GiveMarshalableContainer(Container<IMarshalable> marshalableContainer);
+
+        Task<IMarshalable> GetMarshalable();
+
+        Task<Container<IMarshalable>> GetMarshalableContainer();
+    }
+
+    [RpcMarshalable]
+    private interface IMarshalable : IDisposable
+    {
+        void DoSomething();
     }
 
     [Fact]
     public async Task GiveObserverTest()
     {
-        var observer = new MockObserver<int>();
+        var observer = new MockObserver();
         await Task.Run(() => this.client.GiveObserver(observer)).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
     }
@@ -59,8 +73,8 @@ public partial class JsonContractResolverTest : TestBase
     [Fact]
     public async Task GiveObserverContainerTest()
     {
-        var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.GiveObserverContainer(new ObserverContainer { Observer = observer })).WithCancellation(this.TimeoutToken);
+        var observer = new MockObserver();
+        await Task.Run(() => this.client.GiveObserverContainer(new Container<IObserver<int>> { Field = observer })).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
     }
 
@@ -75,9 +89,41 @@ public partial class JsonContractResolverTest : TestBase
     [Fact]
     public async Task GetObserverContainerTest()
     {
-        var observer = (await this.client.GetObserverContainer()).Observer!;
+        var observer = (await this.client.GetObserverContainer()).Field!;
         observer.OnCompleted();
         await this.server.Observer.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GiveMarshalableTest()
+    {
+        var marshalable = new MockMarshalable();
+        await Task.Run(() => this.client.GiveMarshalable(marshalable)).WithCancellation(this.TimeoutToken);
+        await marshalable.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GiveMarshalableContainerTest()
+    {
+        var marshalable = new MockMarshalable();
+        await Task.Run(() => this.client.GiveMarshalableContainer(new Container<IMarshalable> { Field = marshalable })).WithCancellation(this.TimeoutToken);
+        await marshalable.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GetMarshalableTest()
+    {
+        var marshalable = await this.client.GetMarshalable();
+        marshalable.DoSomething();
+        await this.server.Marshalable.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GetMarshalableContainerTest()
+    {
+        var marshalable = (await this.client.GetMarshalableContainer()).Field!;
+        marshalable.DoSomething();
+        await this.server.Marshalable.Completion.WithCancellation(this.TimeoutToken);
     }
 
     private IJsonRpcMessageFormatter CreateFormatter()
@@ -90,7 +136,9 @@ public partial class JsonContractResolverTest : TestBase
 
     private class Server : IServer
     {
-        internal MockObserver<int> Observer { get; } = new MockObserver<int>();
+        internal MockObserver Observer { get; } = new MockObserver();
+
+        internal MockMarshalable Marshalable { get; } = new MockMarshalable();
 
         public Task GiveObserver(IObserver<int> observer)
         {
@@ -98,15 +146,31 @@ public partial class JsonContractResolverTest : TestBase
             return Task.CompletedTask;
         }
 
-        public Task GiveObserverContainer(ObserverContainer observerContainer)
+        public Task GiveObserverContainer(Container<IObserver<int>> observerContainer)
         {
-            observerContainer.Observer?.OnCompleted();
+            observerContainer.Field?.OnCompleted();
             return Task.CompletedTask;
         }
 
         public Task<IObserver<int>> GetObserver() => Task.FromResult<IObserver<int>>(this.Observer);
 
-        public Task<ObserverContainer> GetObserverContainer() => Task.FromResult(new ObserverContainer() { Observer = this.Observer });
+        public Task<Container<IObserver<int>>> GetObserverContainer() => Task.FromResult(new Container<IObserver<int>>() { Field = this.Observer });
+
+        public Task GiveMarshalable(IMarshalable marshalable)
+        {
+            marshalable.DoSomething();
+            return Task.CompletedTask;
+        }
+
+        public Task GiveMarshalableContainer(Container<IMarshalable> marshalableContainer)
+        {
+            marshalableContainer.Field?.DoSomething();
+            return Task.CompletedTask;
+        }
+
+        public Task<IMarshalable> GetMarshalable() => Task.FromResult<IMarshalable>(this.Marshalable);
+
+        public Task<Container<IMarshalable>> GetMarshalableContainer() => Task.FromResult(new Container<IMarshalable>() { Field = this.Marshalable });
 
         void IDisposable.Dispose()
         {
@@ -114,25 +178,38 @@ public partial class JsonContractResolverTest : TestBase
     }
 
     [DataContract]
-    private class ObserverContainer
+    private class Container<T>
+        where T : class
     {
         [DataMember]
-        public IObserver<int>? Observer { get; set; }
+        public T? Field { get; set; }
     }
 
-    private class MockObserver<T> : IObserver<T>
+    private class MockObserver : IObserver<int>
     {
         private readonly TaskCompletionSource<bool> completed = new TaskCompletionSource<bool>();
 
-        internal event EventHandler<T>? Next;
+        internal event EventHandler<int>? Next;
 
-        [System.Runtime.Serialization.IgnoreDataMember]
         internal Task Completion => this.completed.Task;
 
         public void OnCompleted() => this.completed.SetResult(true);
 
         public void OnError(Exception error) => throw new NotImplementedException();
 
-        public void OnNext(T value) => throw new NotImplementedException();
+        public void OnNext(int value) => throw new NotImplementedException();
+    }
+
+    private class MockMarshalable : IMarshalable
+    {
+        private readonly TaskCompletionSource<bool> completed = new TaskCompletionSource<bool>();
+
+        internal Task Completion => this.completed.Task;
+
+        public void DoSomething() => this.completed.SetResult(true);
+
+        public void Dispose()
+        {
+        }
     }
 }
