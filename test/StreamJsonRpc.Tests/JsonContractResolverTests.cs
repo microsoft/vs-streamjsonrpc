@@ -189,8 +189,6 @@ public partial class JsonContractResolverTest : TestBase
     {
         private readonly TaskCompletionSource<bool> completed = new TaskCompletionSource<bool>();
 
-        internal event EventHandler<int>? Next;
-
         internal Task Completion => this.completed.Task;
 
         public void OnCompleted() => this.completed.SetResult(true);
