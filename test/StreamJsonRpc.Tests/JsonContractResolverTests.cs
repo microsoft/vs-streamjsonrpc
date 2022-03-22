@@ -37,7 +37,7 @@ public partial class JsonContractResolverTest : TestBase
         this.serverRpc.StartListening();
     }
 
-    private interface IServer : IDisposable
+    protected interface IServer : IDisposable
     {
         Task GiveObserver(IObserver<int> observer);
 
@@ -57,7 +57,7 @@ public partial class JsonContractResolverTest : TestBase
     }
 
     [RpcMarshalable]
-    private interface IMarshalable : IDisposable
+    protected interface IMarshalable : IDisposable
     {
         void DoSomething();
     }
@@ -134,6 +134,14 @@ public partial class JsonContractResolverTest : TestBase
         return formatter;
     }
 
+    [DataContract]
+    protected class Container<T>
+    where T : class
+    {
+        [DataMember]
+        public T? Field { get; set; }
+    }
+
     private class Server : IServer
     {
         internal MockObserver Observer { get; } = new MockObserver();
@@ -175,14 +183,6 @@ public partial class JsonContractResolverTest : TestBase
         void IDisposable.Dispose()
         {
         }
-    }
-
-    [DataContract]
-    private class Container<T>
-        where T : class
-    {
-        [DataMember]
-        public T? Field { get; set; }
     }
 
     private class MockObserver : IObserver<int>
