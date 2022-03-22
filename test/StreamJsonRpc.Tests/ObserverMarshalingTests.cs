@@ -1,12 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
@@ -362,10 +359,8 @@ public abstract partial class ObserverMarshalingTests : TestBase
 
         internal event EventHandler<T>? Next;
 
-        [System.Runtime.Serialization.IgnoreDataMember]
         internal ImmutableList<T> ReceivedValues { get; private set; } = ImmutableList<T>.Empty;
 
-        [System.Runtime.Serialization.IgnoreDataMember]
         internal Task<ImmutableList<T>> Completion => this.completed.Task;
 
         internal AsyncAutoResetEvent ItemReceived { get; } = new AsyncAutoResetEvent();
