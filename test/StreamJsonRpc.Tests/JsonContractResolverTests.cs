@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Serialization;
@@ -12,12 +12,10 @@ using Xunit.Abstractions;
 
 public partial class JsonContractResolverTest : TestBase
 {
-    protected readonly Server server = new Server();
-    protected readonly JsonRpc serverRpc;
-    protected readonly JsonRpc clientRpc;
-    protected readonly IServer client;
-
-    private const string ExceptionMessage = "Some exception";
+    private readonly Server server = new Server();
+    private readonly JsonRpc serverRpc;
+    private readonly JsonRpc clientRpc;
+    private readonly IServer client;
 
     public JsonContractResolverTest(ITestOutputHelper logger)
         : base(logger)
@@ -39,21 +37,50 @@ public partial class JsonContractResolverTest : TestBase
         this.serverRpc.StartListening();
     }
 
-    protected interface IServer : IDisposable
+    private interface IServer : IDisposable
     {
-        Task PushCompleteAndReturn(IObserver<int> observer);
+        Task GiveObserver(IObserver<int> observer);
+
+        Task GiveObserverContainer(ObserverContainer observerContainer);
+
+        Task<IObserver<int>> GetObserver();
+
+        Task<ObserverContainer> GetObserverContainer();
     }
 
     [Fact]
-    public async Task PushCompleteAndReturn()
+    public async Task GiveObserverTest()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.PushCompleteAndReturn(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.GiveObserver(observer)).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
-        ImmutableList<int> result = await observer.Completion;
     }
 
-    protected IJsonRpcMessageFormatter CreateFormatter()
+    [Fact]
+    public async Task GiveObserverContainerTest()
+    {
+        var observer = new MockObserver<int>();
+        await Task.Run(() => this.client.GiveObserverContainer(new ObserverContainer { Observer = observer })).WithCancellation(this.TimeoutToken);
+        await observer.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GetObserverTest()
+    {
+        var observer = await this.client.GetObserver();
+        observer.OnCompleted();
+        await this.server.Observer.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task GetObserverContainerTest()
+    {
+        var observer = (await this.client.GetObserverContainer()).Observer!;
+        observer.OnCompleted();
+        await this.server.Observer.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    private IJsonRpcMessageFormatter CreateFormatter()
     {
         var formatter = new JsonMessageFormatter();
         formatter.JsonSerializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -61,48 +88,51 @@ public partial class JsonContractResolverTest : TestBase
         return formatter;
     }
 
-    protected class Server : IServer
+    private class Server : IServer
     {
-        public Task PushCompleteAndReturn(IObserver<int> observer)
-        {
-            for (int i = 1; i <= 3; i++)
-            {
-                observer.OnNext(i);
-            }
+        internal MockObserver<int> Observer { get; } = new MockObserver<int>();
 
+        public Task GiveObserver(IObserver<int> observer)
+        {
             observer.OnCompleted();
             return Task.CompletedTask;
         }
+
+        public Task GiveObserverContainer(ObserverContainer observerContainer)
+        {
+            observerContainer.Observer?.OnCompleted();
+            return Task.CompletedTask;
+        }
+
+        public Task<IObserver<int>> GetObserver() => Task.FromResult<IObserver<int>>(this.Observer);
+
+        public Task<ObserverContainer> GetObserverContainer() => Task.FromResult(new ObserverContainer() { Observer = this.Observer });
 
         void IDisposable.Dispose()
         {
         }
     }
 
-    protected class MockObserver<T> : IObserver<T>
+    [DataContract]
+    private class ObserverContainer
     {
-        private readonly TaskCompletionSource<ImmutableList<T>> completed = new TaskCompletionSource<ImmutableList<T>>();
+        [DataMember]
+        public IObserver<int>? Observer { get; set; }
+    }
+
+    private class MockObserver<T> : IObserver<T>
+    {
+        private readonly TaskCompletionSource<bool> completed = new TaskCompletionSource<bool>();
 
         internal event EventHandler<T>? Next;
 
         [System.Runtime.Serialization.IgnoreDataMember]
-        internal ImmutableList<T> ReceivedValues { get; private set; } = ImmutableList<T>.Empty;
+        internal Task Completion => this.completed.Task;
 
-        [System.Runtime.Serialization.IgnoreDataMember]
-        internal Task<ImmutableList<T>> Completion => this.completed.Task;
+        public void OnCompleted() => this.completed.SetResult(true);
 
-        internal AsyncAutoResetEvent ItemReceived { get; } = new AsyncAutoResetEvent();
+        public void OnError(Exception error) => throw new NotImplementedException();
 
-        public void OnCompleted() => this.completed.SetResult(this.ReceivedValues);
-
-        public void OnError(Exception error) => this.completed.SetException(error);
-
-        public void OnNext(T value)
-        {
-            Assert.False(this.completed.Task.IsCompleted);
-            this.ReceivedValues = this.ReceivedValues.Add(value);
-            this.Next?.Invoke(this, value);
-            this.ItemReceived.Set();
-        }
+        public void OnNext(T value) => throw new NotImplementedException();
     }
 }
