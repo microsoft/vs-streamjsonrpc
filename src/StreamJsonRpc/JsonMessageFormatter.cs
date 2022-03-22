@@ -13,6 +13,7 @@ namespace StreamJsonRpc
     using System.IO.Pipelines;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Runtime.ExceptionServices;
     using System.Runtime.Serialization;
     using System.Text;
@@ -161,6 +162,16 @@ namespace StreamJsonRpc
         /// The message whose arguments are being deserialized.
         /// </summary>
         private JsonRpcMessage? deserializingMessage;
+
+        /// <summary>
+        /// Whether <see cref="EnforceFormatterIsInitialized"/> has been executed.
+        /// </summary>
+        private bool formatterInitializationChecked;
+
+        /// <summary>
+        /// Object used to lock when running <see cref="EnforceFormatterIsInitialized"/>.
+        /// </summary>
+        private object formatterInitializationLock = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
@@ -390,6 +401,8 @@ namespace StreamJsonRpc
         {
             Requires.NotNull(json, nameof(json));
 
+            this.EnforceFormatterIsInitialized();
+
             try
             {
                 switch (this.ProtocolVersion.Major)
@@ -432,6 +445,8 @@ namespace StreamJsonRpc
         /// <returns>The JSON of the message.</returns>
         public JToken Serialize(JsonRpcMessage message)
         {
+            this.EnforceFormatterIsInitialized();
+
             try
             {
                 this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String is not null;
@@ -526,6 +541,25 @@ namespace StreamJsonRpc
             }
 
             return jtokenArray;
+        }
+
+        private void EnforceFormatterIsInitialized()
+        {
+            if (!this.formatterInitializationChecked)
+            {
+                lock (this.formatterInitializationLock)
+                {
+                    if (!this.formatterInitializationChecked)
+                    {
+                        this.formatterInitializationChecked = true;
+                        IContractResolver? originalContractResolver = this.JsonSerializer.ContractResolver;
+                        if (originalContractResolver is not MarshalContractResolver)
+                        {
+                            this.JsonSerializer.ContractResolver = new MarshalContractResolver(this, originalContractResolver);
+                        }
+                    }
+                }
+            }
         }
 
         private void VerifyProtocolCompliance(bool condition, JToken message, string? explanation = null)
@@ -1667,10 +1701,17 @@ namespace StreamJsonRpc
         private class MarshalContractResolver : DefaultContractResolver
         {
             private readonly JsonMessageFormatter formatter;
+            private readonly IContractResolver? userProvidedContractResolver;
 
             public MarshalContractResolver(JsonMessageFormatter formatter)
             {
                 this.formatter = formatter;
+            }
+
+            public MarshalContractResolver(JsonMessageFormatter formatter, IContractResolver? userProvidedContractResolver)
+            {
+                this.formatter = formatter;
+                this.userProvidedContractResolver = userProvidedContractResolver;
             }
 
             public override JsonContract ResolveContract(Type type)
@@ -1684,7 +1725,10 @@ namespace StreamJsonRpc
                     };
                 }
 
-                JsonContract? result = base.ResolveContract(type);
+                JsonContract? result = this.userProvidedContractResolver is not null ?
+                    this.userProvidedContractResolver.ResolveContract(type) :
+                    base.ResolveContract(type);
+
                 switch (result)
                 {
                     case JsonObjectContract objectContract:
