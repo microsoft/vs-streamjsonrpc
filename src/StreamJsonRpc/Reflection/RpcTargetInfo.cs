@@ -226,38 +226,34 @@ namespace StreamJsonRpc.Reflection
                 if (options.NotifyClientOfEvents)
                 {
                     HashSet<string>? eventsDiscovered = null;
-                    for (TypeInfo? t = exposingMembersOn.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                    IReadOnlyList<EventInfo> events = GetEventInfos(exposingMembersOn.GetTypeInfo());
+
+                    foreach (EventInfo evt in events)
                     {
-                        foreach (EventInfo evt in t.DeclaredEvents)
+                        if (this.eventReceivers is null)
                         {
-                            if (evt.AddMethod is object && (evt.AddMethod.IsPublic || exposingMembersOn.IsInterface) && !evt.AddMethod.IsStatic)
-                            {
-                                if (this.eventReceivers is null)
-                                {
-                                    this.eventReceivers = new List<EventReceiver>();
-                                }
-
-                                if (eventsDiscovered is null)
-                                {
-                                    eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
-                                }
-
-                                if (!eventsDiscovered.Add(evt.Name))
-                                {
-                                    // Do not add the same event again. It can appear multiple times in a type hierarchy.
-                                    continue;
-                                }
-
-                                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                                {
-                                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
-                                }
-
-                                var eventReceiver = new EventReceiver(this.jsonRpc, target, evt, options);
-                                revert?.RecordEventReceiver(eventReceiver);
-                                this.eventReceivers.Add(eventReceiver);
-                            }
+                            this.eventReceivers = new List<EventReceiver>();
                         }
+
+                        if (eventsDiscovered is null)
+                        {
+                            eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
+                        }
+
+                        if (!eventsDiscovered.Add(evt.Name))
+                        {
+                            // Do not add the same event again. It can appear multiple times in a type hierarchy.
+                            continue;
+                        }
+
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
+                        }
+
+                        var eventReceiver = new EventReceiver(this.jsonRpc, target, evt, options);
+                        revert?.RecordEventReceiver(eventReceiver);
+                        this.eventReceivers.Add(eventReceiver);
                     }
                 }
 
@@ -487,6 +483,45 @@ namespace StreamJsonRpc.Reflection
             }
 
             return requestMethodToDelegateMap;
+        }
+
+        /// <summary>
+        /// Given a type it will extract all events in the type hierarchy. It deals correctly with
+        /// interfaces. Note that it will return duplicates if they appear multiple times in the hierarchy.
+        /// </summary>
+        /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
+        /// <returns>A list of EventInfos found.</returns>
+        private static IReadOnlyList<EventInfo> GetEventInfos(TypeInfo exposedMembersOnType)
+        {
+            List<EventInfo> eventInfos = new List<EventInfo>();
+
+            for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+            {
+                foreach (EventInfo evt in t.DeclaredEvents)
+                {
+                    if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
+                    {
+                        eventInfos.Add(evt);
+                    }
+                }
+            }
+
+            if (exposedMembersOnType.IsInterface)
+            {
+                Type[] ifaces = exposedMembersOnType.GetInterfaces();
+                foreach (Type iface in ifaces)
+                {
+                    foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
+                    {
+                        if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
+                        {
+                            eventInfos.Add(evt);
+                        }
+                    }
+                }
+            }
+
+            return eventInfos;
         }
 
         private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
