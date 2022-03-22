@@ -85,7 +85,7 @@ namespace StreamJsonRpc
         private readonly SequenceTextReader sequenceTextReader = new SequenceTextReader();
 
         /// <summary>
-        /// Object used to lock when running mutually exclusive operations related to this <see cref="JsonMessageFormatter" instance./>.
+        /// Object used to lock when running mutually exclusive operations related to this <see cref="JsonMessageFormatter"/> instance.
         /// </summary>
         private readonly object syncObject = new();
 
