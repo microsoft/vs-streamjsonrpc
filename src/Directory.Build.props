@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <PackageIcon>PackageIcon.png</PackageIcon>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <ItemGroup>
