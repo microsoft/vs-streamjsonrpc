@@ -25,7 +25,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.3" PrivateAssets="all" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
-    <PackageReference Include="System.IO.Pipelines" Version="6.0.2" />
+    <PackageReference Include="System.IO.Pipelines" Version="6.0.3" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" PrivateAssets="compile" />
   </ItemGroup>
   <ItemGroup>
