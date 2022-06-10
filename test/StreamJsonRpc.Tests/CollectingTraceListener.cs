@@ -77,7 +77,7 @@ public class CollectingTraceListener : TraceListener
         }
     }
 
-    public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string format, params object?[]? args)
+    public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string? format, params object?[]? args)
     {
         lock (this.traceEventIds)
         {
@@ -86,7 +86,7 @@ public class CollectingTraceListener : TraceListener
 
         lock (this.events)
         {
-            this.events.Add((eventType, string.Format(CultureInfo.InvariantCulture, format, args ?? Array.Empty<object?>())));
+            this.events.Add((eventType, format is null ? null : string.Format(CultureInfo.InvariantCulture, format, args ?? Array.Empty<object?>())));
         }
 
         base.TraceEvent(eventCache, source, eventType, id, format, args);
