@@ -87,12 +87,15 @@ namespace StreamJsonRpc
             CheckForNonPublicTypes(typeInfo, assembliesDeclaringInternalTypes, visitedTypes);
 
             // Enumerate members on the interface that we're going to need to implement.
-            foreach (MethodInfo methodInfo in typeInfo.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy))
+            foreach (TypeInfo iteratedTypeInfo in ThisAndBaseTypes(typeInfo))
             {
-                CheckForNonPublicTypes(methodInfo.ReturnType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
-                foreach (ParameterInfo parameter in methodInfo.GetParameters())
+                foreach (MethodInfo methodInfo in iteratedTypeInfo.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
                 {
-                    CheckForNonPublicTypes(parameter.ParameterType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                    CheckForNonPublicTypes(methodInfo.ReturnType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                    foreach (ParameterInfo parameter in methodInfo.GetParameters())
+                    {
+                        CheckForNonPublicTypes(parameter.ParameterType.GetTypeInfo(), assembliesDeclaringInternalTypes, visitedTypes);
+                    }
                 }
             }
 
@@ -128,6 +131,25 @@ namespace StreamJsonRpc
             {
                 var cab = new CustomAttributeBuilder(this.GetMagicAttributeCtor(), new object[] { assemblyNameArg });
                 this.assemblyBuilder.SetCustomAttribute(cab);
+            }
+        }
+
+        private static IEnumerable<TypeInfo> ThisAndBaseTypes(TypeInfo startingPoint)
+        {
+            if (startingPoint.IsInterface)
+            {
+                yield return startingPoint.GetTypeInfo();
+                foreach (Type iface in startingPoint.GetInterfaces())
+                {
+                    yield return iface.GetTypeInfo();
+                }
+            }
+            else
+            {
+                for (TypeInfo? t = startingPoint.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+                {
+                    yield return t;
+                }
             }
         }
 
