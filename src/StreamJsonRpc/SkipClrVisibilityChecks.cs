@@ -134,22 +134,13 @@ namespace StreamJsonRpc
             }
         }
 
-        private static IEnumerable<TypeInfo> ThisAndBaseTypes(TypeInfo startingPoint)
+        private static IEnumerable<TypeInfo> ThisAndBaseTypes(TypeInfo interfaceType)
         {
-            if (startingPoint.IsInterface)
+            Assumes.True(interfaceType.IsInterface);
+            yield return interfaceType.GetTypeInfo();
+            foreach (Type iface in interfaceType.GetInterfaces())
             {
-                yield return startingPoint.GetTypeInfo();
-                foreach (Type iface in startingPoint.GetInterfaces())
-                {
-                    yield return iface.GetTypeInfo();
-                }
-            }
-            else
-            {
-                for (TypeInfo? t = startingPoint.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
-                {
-                    yield return t;
-                }
+                yield return iface.GetTypeInfo();
             }
         }
 
