@@ -152,7 +152,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public void Tomas_Internal()
+    public void InternalInterface_DerivingFromInternalInterfaceInOtherAssembly()
     {
         JsonRpc.Attach<IRemoteService.ICallback>(new MemoryStream());
     }
