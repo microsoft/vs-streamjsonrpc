@@ -52,6 +52,7 @@ stages:
     NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
     SignTypeSelection: ${{ parameters.SignTypeSelection }}
     Packaging.EnableSBOMSigning: false
+    Codeql.Enabled: ${{ eq(variables['Build.SourceBranch'], 'main') }}
 
   jobs:
   - template: build.yml
