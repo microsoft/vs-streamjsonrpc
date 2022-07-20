@@ -29,7 +29,7 @@ parameters:
 # The prefix naming of the OptimizationInputs drop
 - name: optimizationDropPrefix
   type: string
-  default: OptimizationInputs/DevDiv/microsoft/vs-StreamJsonRpc
+  default: OptimizationInputs/$(System.TeamProject)/$(Build.Repository.Name)
 
 stages:
 - template: \templates\stages\visual-studio\single-runsettings.yml@DartLabOptProfTemplates
