@@ -483,7 +483,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         // Assert that if the RPC server tries to enumerate more values after it returns that it gets the right exception.
         this.server.AllowEnumeratorToContinue.Set();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn).WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn ?? Task.CompletedTask).WithCancellation(this.TimeoutToken);
     }
 
     [SkippableFact]

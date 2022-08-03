@@ -75,7 +75,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.NotifyAsync("test");
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"]?.Type);
-        Assert.Empty((JArray?)request["params"]);
+        Assert.Empty((JArray?)request["params"]!);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"]!.Type);
-        Assert.Empty((JArray?)request["params"]);
+        Assert.Empty((JArray?)request["params"]!);
     }
 
     [Fact]
