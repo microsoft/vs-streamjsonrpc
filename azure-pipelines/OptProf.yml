@@ -47,6 +47,7 @@ stages:
       includeMacOS: false
       ShouldSkipOptimize: true
       OptProf: true
+      RunTests: false
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
