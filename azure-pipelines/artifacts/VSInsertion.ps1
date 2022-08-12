@@ -47,11 +47,6 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-if (!(Test-Path $PackagesRoot)) {
-    Write-Warning "Skipping because packages haven't been built yet."
-    return @{}
-}
-
 @{
     "$NuGetPackages" = (Get-ChildItem $NuGetPackages -Recurse)
     "$CoreXTPackages" = (Get-ChildItem "$CoreXTPackages\StreamJsonRpc.VSInsertionMetadata.$InsertionMetadataVersion.nupkg");
