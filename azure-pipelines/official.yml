@@ -34,8 +34,16 @@ parameters:
   displayName: Build on macOS
   type: boolean
   default: false # macOS is often bogged down in Azure Pipelines
+- name: RunTests
+  displayName: Run tests
+  type: boolean
+  default: true
+- name: EnableCompliance
+  displayName: Run Compliance Tools
+  type: boolean
+  default: true
 - name: EnableAPIScan
-  displayName: Run APIScan
+  displayName: Include APIScan with Compliance tools
   type: boolean
   default: true
 
@@ -57,10 +65,12 @@ stages:
   jobs:
   - template: build.yml
     parameters:
+      EnableCompliance: ${{ parameters.EnableCompliance }}
       EnableAPIScan: ${{ parameters.EnableAPIScan }}
       windowsPool: VSEngSS-MicroBuild2022-1ES
       ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
       includeMacOS: ${{ parameters.includeMacOS }}
+      RunTests: ${{ parameters.RunTests }}
 
 - stage: symbol_archive
   displayName: Symbol archival

@@ -11,23 +11,29 @@ trigger:
     - '*.md'
     - .vscode/
     - .github/
+    - azure-pipelines/release.yml
 
 parameters:
 - name: includeMacOS
   displayName: Build on macOS
   type: boolean
   default: false # macOS is often bogged down in Azure Pipelines
+- name: RunTests
+  displayName: Run tests
+  type: boolean
+  default: true
 
 variables:
   TreatWarningsAsErrors: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   BuildConfiguration: Release
   codecov_token: 9a7c2ba3-0a4b-4479-96e8-3bfd01a982f6
-  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages
+  NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages/
 
 jobs:
 - template: azure-pipelines/build.yml
   parameters:
     includeMacOS: ${{ parameters.includeMacOS }}
+    RunTests: ${{ parameters.RunTests }}
     ShouldSkipOptimize:
 - template: azure-pipelines/richnav.yml

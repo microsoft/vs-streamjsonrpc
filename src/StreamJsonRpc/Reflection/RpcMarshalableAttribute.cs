@@ -3,8 +3,6 @@
 
 namespace StreamJsonRpc;
 
-using System;
-
 /// <summary>
 /// Designates an interface that is used in an RPC contract to marshal the object so the receiver can invoke remote methods on it instead of serializing the object to send its data to the remote end.
 /// </summary>

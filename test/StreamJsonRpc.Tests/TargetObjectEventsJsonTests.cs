@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft;
+﻿using Microsoft;
 using Newtonsoft.Json;
 using StreamJsonRpc;
 using Xunit.Abstractions;

@@ -3,8 +3,6 @@
 
 namespace StreamJsonRpc.Tests.ExternalAssembly
 {
-    using System.Threading.Tasks;
-
     internal interface IInternalGenericInterface<TOptions>
     {
         Task<TOptions> GetOptionsAsync(InternalStruct id, CancellationToken cancellationToken);
