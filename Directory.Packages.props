@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <MicroBuildVersion>2.0.73</MicroBuildVersion>
+    <MicroBuildVersion>2.0.82</MicroBuildVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.1" />
