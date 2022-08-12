@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Generic;
+using Microsoft;
+
 namespace StreamJsonRpc
 {
-    using System.Collections.Generic;
-    using Microsoft;
-
     /// <summary>
     /// Provides customizations on performance characteristics of an <see cref="IAsyncEnumerable{T}"/> that is passed over JSON-RPC.
     /// </summary>

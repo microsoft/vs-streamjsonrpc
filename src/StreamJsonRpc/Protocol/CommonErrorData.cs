@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text;
+using Microsoft;
+
 namespace StreamJsonRpc.Protocol
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.Serialization;
-    using System.Text;
-    using Microsoft;
-
     /// <summary>
     /// A class that describes useful data that may be found in the JSON-RPC error message's error.data property.
     /// </summary>

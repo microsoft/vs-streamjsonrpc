@@ -1,19 +1,19 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft;
+using Microsoft.VisualStudio.Threading;
+using Nerdbank.Streams;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Diagnostics.CodeAnalysis;
-    using System.IO.Pipelines;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft;
-    using Microsoft.VisualStudio.Threading;
-    using Nerdbank.Streams;
-
     /// <summary>
     /// Assists <see cref="IJsonRpcMessageFormatter"/> implementations with supporting marshaling <see cref="IDuplexPipe"/> over JSON-RPC.
     /// </summary>

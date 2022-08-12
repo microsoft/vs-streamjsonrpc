@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using Microsoft;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using Microsoft;
-
     /// <summary>
     /// Attribute which changes the name by which this method can be invoked over JSON-RPC.
     /// If applied on a method, the method's CLR name can no longer be used for remote invocation.

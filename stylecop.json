@@ -8,7 +8,7 @@
         "licenseName": "MIT",
         "licenseFile": "LICENSE"
       },
-      "fileNamingConvention": "metadata",
+      "fileNamingConvention": "stylecop",
       "xmlHeader": false
     },
     "namingRules": {

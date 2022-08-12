@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using Microsoft;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using System.Runtime.CompilerServices;
-    using System.Threading;
-    using Microsoft;
-
     /// <summary>
     /// A collection of extension methods to support special awaiters.
     /// </summary>

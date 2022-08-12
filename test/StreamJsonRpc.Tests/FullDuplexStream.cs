@@ -1,12 +1,12 @@
-﻿namespace Nerdbank
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft;
 
+namespace Nerdbank
+{
     // CONSIDER: switch back to Nerdbank.FullDuplexStream when https://github.com/AArnott/Nerdbank.FullDuplexStream/issues/2 is fixed.
     public delegate void BeforeWriteToFullDuplexStreamDelegate(FullDuplexStream stream, byte[] buffer, int offset, int count);
 

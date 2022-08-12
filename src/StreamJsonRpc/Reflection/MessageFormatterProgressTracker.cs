@@ -1,18 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft;
+using Microsoft.VisualStudio.Threading;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Diagnostics.CodeAnalysis;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft;
-    using Microsoft.VisualStudio.Threading;
-
     /// <summary>
     /// Class containing useful methods to help message formatters implement support for <see cref="IProgress{T}"/>.
     /// </summary>

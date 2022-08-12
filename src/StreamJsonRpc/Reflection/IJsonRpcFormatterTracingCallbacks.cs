@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System.Buffers;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// Optionally implemented by a <see cref="IJsonRpcMessageFormatter"/> when it needs the fully serialized sequence in order to trace the JSON representation of the message.
     /// </summary>

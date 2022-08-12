@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using Microsoft;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using Microsoft;
-
     /// <summary>
     /// Options that may customize how a dynamically generated client proxy object calls into a <see cref="JsonRpc"/> instance.
     /// </summary>

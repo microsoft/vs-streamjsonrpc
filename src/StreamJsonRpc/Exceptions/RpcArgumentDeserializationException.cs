@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Globalization;
+using System.Runtime.Serialization;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using System.Globalization;
-    using System.Runtime.Serialization;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// An exception thrown from <see cref="JsonRpcRequest.TryGetArgumentByNameOrIndex(string?, int, Type?, out object?)"/>
     /// when the argument cannot be deserialized to the requested type, typically due to an incompatibility or exception thrown from the deserializer.

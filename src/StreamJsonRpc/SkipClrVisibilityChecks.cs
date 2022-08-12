@@ -1,5 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices;
+using Microsoft;
+
 /*
  * This class was copied from https://github.com/AArnott/vs-mef/blob/master/src/Microsoft.VisualStudio.Composition/Reflection/SkipClrVisibilityChecks.cs
  * and should ideally be kept in sync.
@@ -8,15 +17,6 @@
 
 namespace StreamJsonRpc
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Linq;
-    using System.Reflection;
-    using System.Reflection.Emit;
-    using System.Runtime.InteropServices;
-    using Microsoft;
-
     /// <summary>
     /// Gives a dynamic assembly the ability to skip CLR visibility checks,
     /// allowing the assembly to access private members of another assembly.

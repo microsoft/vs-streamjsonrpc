@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.Serialization;
+using Microsoft;
+using Newtonsoft.Json.Linq;
+using StreamJsonRpc.Reflection;
+
 namespace StreamJsonRpc.Protocol
 {
-    using System;
-    using System.Diagnostics;
-    using System.Runtime.Serialization;
-    using Microsoft;
-    using Newtonsoft.Json.Linq;
-    using StreamJsonRpc.Reflection;
-
     /// <summary>
     /// Describes the error resulting from a <see cref="JsonRpcRequest"/> that failed on the server.
     /// </summary>

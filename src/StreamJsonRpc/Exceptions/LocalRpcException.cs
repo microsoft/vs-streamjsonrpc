@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Text;
+using Microsoft;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using System.Text;
-    using Microsoft;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// An exception that may be thrown within a locally invoked server method, and carries with it data that influences the JSON-RPC error message's error object.
     /// </summary>

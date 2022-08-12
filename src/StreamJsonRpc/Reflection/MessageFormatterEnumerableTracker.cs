@@ -1,25 +1,25 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+using System.Xml.Serialization;
+using Microsoft;
+using Microsoft.VisualStudio.Threading;
+using Nerdbank.Streams;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System;
-    using System.Buffers;
-    using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Linq;
-    using System.Reflection;
-    using System.Runtime.ExceptionServices;
-    using System.Runtime.Serialization;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
-    using System.Xml.Serialization;
-    using Microsoft;
-    using Microsoft.VisualStudio.Threading;
-    using Nerdbank.Streams;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// A helper class that <see cref="IJsonRpcMessageFormatter"/> implementations may use to support <see cref="IAsyncEnumerable{T}"/> return values from RPC methods.
     /// </summary>

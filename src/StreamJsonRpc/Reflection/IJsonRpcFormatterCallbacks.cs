@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System;
-
     /// <summary>
     /// Implemented by <see cref="JsonRpc"/> to expose callbacks allowing an <see cref="IJsonRpcMessageFormatter"/> to perform resource cleanup.
     /// </summary>

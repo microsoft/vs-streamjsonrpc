@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+
 namespace StreamJsonRpc
 {
-    using System;
-
 #pragma warning disable CA1032 // Implement standard exception constructors
     internal class UnexpectedEmptyEnumerableResponseException : RemoteRpcException
 #pragma warning restore CA1032 // Implement standard exception constructors

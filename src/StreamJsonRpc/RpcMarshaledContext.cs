@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+
 namespace StreamJsonRpc
 {
-    using System;
-
     /// <inheritdoc cref="IRpcMarshaledContext{T}"/>
     internal class RpcMarshaledContext<T> : IRpcMarshaledContext<T>
         where T : class

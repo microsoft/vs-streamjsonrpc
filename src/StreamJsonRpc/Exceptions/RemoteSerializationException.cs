@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// An exception thrown from back to the client from various <see cref="JsonRpc"/> request methods when the server failed to serialize the response.
     /// </summary>

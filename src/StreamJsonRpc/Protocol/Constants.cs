@@ -1,10 +1,10 @@
-﻿#pragma warning disable SA1303 // Const field names should begin with upper-case letter
+﻿using System;
+using Microsoft;
+
+#pragma warning disable SA1303 // Const field names should begin with upper-case letter
 
 namespace StreamJsonRpc.Protocol
 {
-    using System;
-    using Microsoft;
-
     internal static class Constants
     {
         internal const string jsonrpc = "jsonrpc";

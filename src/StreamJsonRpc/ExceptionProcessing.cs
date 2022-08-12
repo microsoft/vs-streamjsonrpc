@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc
 {
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// Enumerates the exception handling behaviors that are built into the <see cref="JsonRpc"/> class.
     /// </summary>

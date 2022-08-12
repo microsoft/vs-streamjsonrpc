@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc.Reflection
 {
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// An interface that may be found on an <see cref="IJsonRpcMessageHandler"/> object to request notification of when
     /// message deserialization is completed so buffers can be released or safely recycled.

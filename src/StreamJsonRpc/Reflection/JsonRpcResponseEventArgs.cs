@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using Microsoft;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc.Reflection
 {
-    using System;
-    using Microsoft;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// Carries the <see cref="RequestId"/> and success status of response messages.
     /// </summary>

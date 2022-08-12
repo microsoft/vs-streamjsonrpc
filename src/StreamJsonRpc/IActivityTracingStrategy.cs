@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System;
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc
 {
-    using System;
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// Synchronizes contextual activities between an RPC client and server
     /// consistent with the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> specification.

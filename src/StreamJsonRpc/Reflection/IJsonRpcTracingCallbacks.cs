@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using StreamJsonRpc.Protocol;
+
 namespace StreamJsonRpc.Reflection
 {
-    using StreamJsonRpc.Protocol;
-
     /// <summary>
     /// An interface implemented by <see cref="JsonRpc"/> for <see cref="IJsonRpcMessageFormatter"/> implementations to use to facilitate message tracing.
     /// </summary>
