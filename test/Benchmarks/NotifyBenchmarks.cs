@@ -8,33 +8,32 @@ using BenchmarkDotNet.Attributes;
 using Microsoft;
 using StreamJsonRpc;
 
-namespace Benchmarks
+namespace Benchmarks;
+
+[MemoryDiagnoser]
+public class NotifyBenchmarks
 {
-    [MemoryDiagnoser]
-    public class NotifyBenchmarks
+    private JsonRpc clientRpc = null!;
+
+    [Params("JSON", "MessagePack")]
+    public string Formatter { get; set; } = null!;
+
+    [GlobalSetup]
+    public void Setup()
     {
-        private JsonRpc clientRpc = null!;
+        this.clientRpc = new JsonRpc(CreateHandler(Stream.Null));
 
-        [Params("JSON", "MessagePack")]
-        public string Formatter { get; set; } = null!;
-
-        [GlobalSetup]
-        public void Setup()
+        IJsonRpcMessageHandler CreateHandler(Stream pipe)
         {
-            this.clientRpc = new JsonRpc(CreateHandler(Stream.Null));
-
-            IJsonRpcMessageHandler CreateHandler(Stream pipe)
+            return this.Formatter switch
             {
-                return this.Formatter switch
-                {
-                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
-                    "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
-                    _ => throw Assumes.NotReachable(),
-                };
-            }
+                "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
+                _ => throw Assumes.NotReachable(),
+            };
         }
-
-        [Benchmark]
-        public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());
     }
+
+    [Benchmark]
+    public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());
 }

@@ -4,33 +4,32 @@
 using System;
 using Newtonsoft.Json;
 
-namespace StreamJsonRpc
-{
-#pragma warning disable CA1812
-    internal class RequestIdJsonConverter : JsonConverter<RequestId>
-#pragma warning restore CA1812
-    {
-        public override RequestId ReadJson(JsonReader reader, Type objectType, RequestId existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            switch (reader.TokenType)
-            {
-                case JsonToken.Integer: return new RequestId(reader.Value is int i ? i : (long)reader.Value!);
-                case JsonToken.String: return new RequestId((string?)reader.Value);
-                case JsonToken.Null: return RequestId.Null;
-                default: throw new JsonSerializationException("Unexpected token type for request ID: " + reader.TokenType);
-            }
-        }
+namespace StreamJsonRpc;
 
-        public override void WriteJson(JsonWriter writer, RequestId value, JsonSerializer serializer)
+#pragma warning disable CA1812
+internal class RequestIdJsonConverter : JsonConverter<RequestId>
+#pragma warning restore CA1812
+{
+    public override RequestId ReadJson(JsonReader reader, Type objectType, RequestId existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        switch (reader.TokenType)
         {
-            if (value.Number.HasValue)
-            {
-                writer.WriteValue(value.Number.Value);
-            }
-            else
-            {
-                writer.WriteValue(value.String);
-            }
+            case JsonToken.Integer: return new RequestId(reader.Value is int i ? i : (long)reader.Value!);
+            case JsonToken.String: return new RequestId((string?)reader.Value);
+            case JsonToken.Null: return RequestId.Null;
+            default: throw new JsonSerializationException("Unexpected token type for request ID: " + reader.TokenType);
+        }
+    }
+
+    public override void WriteJson(JsonWriter writer, RequestId value, JsonSerializer serializer)
+    {
+        if (value.Number.HasValue)
+        {
+            writer.WriteValue(value.Number.Value);
+        }
+        else
+        {
+            writer.WriteValue(value.String);
         }
     }
 }

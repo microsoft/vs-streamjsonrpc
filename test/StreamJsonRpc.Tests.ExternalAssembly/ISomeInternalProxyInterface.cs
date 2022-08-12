@@ -3,10 +3,9 @@
 
 using System.Threading.Tasks;
 
-namespace StreamJsonRpc.Tests.ExternalAssembly
+namespace StreamJsonRpc.Tests.ExternalAssembly;
+
+internal interface ISomeInternalProxyInterface
 {
-    internal interface ISomeInternalProxyInterface
-    {
-        Task<int> SubtractAsync(int a, int b);
-    }
+    Task<int> SubtractAsync(int a, int b);
 }

@@ -3,29 +3,28 @@
 
 using StreamJsonRpc.Protocol;
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc;
+
+/// <summary>
+/// An interface that allows <see cref="IJsonRpcMessageFormatter"/> instances to act as a factory for <see cref="JsonRpcMessage"/>-derived types.
+/// </summary>
+public interface IJsonRpcMessageFactory
 {
     /// <summary>
-    /// An interface that allows <see cref="IJsonRpcMessageFormatter"/> instances to act as a factory for <see cref="JsonRpcMessage"/>-derived types.
+    /// Creates an instance of <see cref="JsonRpcRequest"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
     /// </summary>
-    public interface IJsonRpcMessageFactory
-    {
-        /// <summary>
-        /// Creates an instance of <see cref="JsonRpcRequest"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
-        /// </summary>
-        /// <returns>An instance of <see cref="JsonRpcRequest"/>.</returns>
-        JsonRpcRequest CreateRequestMessage();
+    /// <returns>An instance of <see cref="JsonRpcRequest"/>.</returns>
+    JsonRpcRequest CreateRequestMessage();
 
-        /// <summary>
-        /// Creates an instance of <see cref="JsonRpcError"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
-        /// </summary>
-        /// <returns>An instance of <see cref="JsonRpcError"/>.</returns>
-        JsonRpcError CreateErrorMessage();
+    /// <summary>
+    /// Creates an instance of <see cref="JsonRpcError"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
+    /// </summary>
+    /// <returns>An instance of <see cref="JsonRpcError"/>.</returns>
+    JsonRpcError CreateErrorMessage();
 
-        /// <summary>
-        /// Creates an instance of <see cref="JsonRpcResult"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
-        /// </summary>
-        /// <returns>An instance of <see cref="JsonRpcResult"/>.</returns>
-        JsonRpcResult CreateResultMessage();
-    }
+    /// <summary>
+    /// Creates an instance of <see cref="JsonRpcResult"/> suitable for transmission over the <see cref="IJsonRpcMessageFormatter"/>.
+    /// </summary>
+    /// <returns>An instance of <see cref="JsonRpcResult"/>.</returns>
+    JsonRpcResult CreateResultMessage();
 }

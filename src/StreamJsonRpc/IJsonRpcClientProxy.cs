@@ -3,17 +3,16 @@
 
 using System;
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc;
+
+/// <summary>
+/// Implemented by dynamically generated proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
+/// to provide access to additional JSON-RPC functionality.
+/// </summary>
+public interface IJsonRpcClientProxy : IDisposable
 {
     /// <summary>
-    /// Implemented by dynamically generated proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
-    /// to provide access to additional JSON-RPC functionality.
+    /// Gets the <see cref="StreamJsonRpc.JsonRpc"/> instance behind this proxy.
     /// </summary>
-    public interface IJsonRpcClientProxy : IDisposable
-    {
-        /// <summary>
-        /// Gets the <see cref="StreamJsonRpc.JsonRpc"/> instance behind this proxy.
-        /// </summary>
-        JsonRpc JsonRpc { get; }
-    }
+    JsonRpc JsonRpc { get; }
 }

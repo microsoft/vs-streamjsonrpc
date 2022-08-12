@@ -3,29 +3,28 @@
 
 using System;
 
-namespace StreamJsonRpc.Reflection
+namespace StreamJsonRpc.Reflection;
+
+/// <summary>
+/// Implemented by <see cref="JsonRpc"/> to expose callbacks allowing an <see cref="IJsonRpcMessageFormatter"/> to perform resource cleanup.
+/// </summary>
+public interface IJsonRpcFormatterCallbacks
 {
     /// <summary>
-    /// Implemented by <see cref="JsonRpc"/> to expose callbacks allowing an <see cref="IJsonRpcMessageFormatter"/> to perform resource cleanup.
+    /// Occurs when <see cref="JsonRpc"/> aborts the transmission of an outbound request (that was not a notification).
     /// </summary>
-    public interface IJsonRpcFormatterCallbacks
-    {
-        /// <summary>
-        /// Occurs when <see cref="JsonRpc"/> aborts the transmission of an outbound request (that was not a notification).
-        /// </summary>
-        /// <remarks>
-        /// This usually occurs because of an exception during serialization or transmission, possibly due to cancellation.
-        /// </remarks>
-        event EventHandler<JsonRpcMessageEventArgs> RequestTransmissionAborted;
+    /// <remarks>
+    /// This usually occurs because of an exception during serialization or transmission, possibly due to cancellation.
+    /// </remarks>
+    event EventHandler<JsonRpcMessageEventArgs> RequestTransmissionAborted;
 
-        /// <summary>
-        /// Occurs when <see cref="JsonRpc"/> receives a response to a previously sent request.
-        /// </summary>
-        event EventHandler<JsonRpcResponseEventArgs> ResponseReceived;
+    /// <summary>
+    /// Occurs when <see cref="JsonRpc"/> receives a response to a previously sent request.
+    /// </summary>
+    event EventHandler<JsonRpcResponseEventArgs> ResponseReceived;
 
-        /// <summary>
-        /// Occurs when <see cref="JsonRpc"/> transmits a response message.
-        /// </summary>
-        event EventHandler<JsonRpcResponseEventArgs> ResponseSent;
-    }
+    /// <summary>
+    /// Occurs when <see cref="JsonRpc"/> transmits a response message.
+    /// </summary>
+    event EventHandler<JsonRpcResponseEventArgs> ResponseSent;
 }

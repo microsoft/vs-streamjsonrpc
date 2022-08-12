@@ -8,34 +8,33 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 
-namespace Benchmarks
+namespace Benchmarks;
+
+internal static class Program
 {
-    internal static class Program
+    private static async Task Main(string[] args)
     {
-        private static async Task Main(string[] args)
+        // Allow a special "manual" argument for convenient perfview.exe-monitored runs for GC pressure analysis.
+        if (args.Length == 1 && args[0] == "manual")
         {
-            // Allow a special "manual" argument for convenient perfview.exe-monitored runs for GC pressure analysis.
-            if (args.Length == 1 && args[0] == "manual")
+            var b = new InvokeBenchmarks { Formatter = "MessagePack" };
+            b.Setup();
+            await b.InvokeAsync_NoArgs();
+
+            await Task.Delay(2000);
+
+            for (int i = 0; i < 1000; i++)
             {
-                var b = new InvokeBenchmarks { Formatter = "MessagePack" };
-                b.Setup();
                 await b.InvokeAsync_NoArgs();
-
-                await Task.Delay(2000);
-
-                for (int i = 0; i < 1000; i++)
-                {
-                    await b.InvokeAsync_NoArgs();
-                }
             }
-            else
-            {
-                IConfig? config = null;
+        }
+        else
+        {
+            IConfig? config = null;
 #if DEBUG
-                config = new DebugInProcessConfig();
+            config = new DebugInProcessConfig();
 #endif
-                IEnumerable<Summary>? summaries = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
-            }
+            IEnumerable<Summary>? summaries = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
         }
     }
 }

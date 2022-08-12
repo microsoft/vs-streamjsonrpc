@@ -8,21 +8,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using StreamJsonRpc.Protocol;
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc;
+
+/// <summary>
+/// An interface that offers <see cref="JsonRpcMessage"/> serialization to an <see cref="IBufferWriter{T}"/> and asynchronous deserialization
+/// and formats messages as JSON (text).
+/// </summary>
+public interface IJsonRpcAsyncMessageTextFormatter : IJsonRpcAsyncMessageFormatter, IJsonRpcMessageTextFormatter
 {
     /// <summary>
-    /// An interface that offers <see cref="JsonRpcMessage"/> serialization to an <see cref="IBufferWriter{T}"/> and asynchronous deserialization
-    /// and formats messages as JSON (text).
+    /// Deserializes a sequence of bytes to a <see cref="JsonRpcMessage"/>.
     /// </summary>
-    public interface IJsonRpcAsyncMessageTextFormatter : IJsonRpcAsyncMessageFormatter, IJsonRpcMessageTextFormatter
-    {
-        /// <summary>
-        /// Deserializes a sequence of bytes to a <see cref="JsonRpcMessage"/>.
-        /// </summary>
-        /// <param name="reader">The reader to deserialize from.</param>
-        /// <param name="encoding">The encoding to read the bytes from <paramref name="reader"/> with. Must not be null.</param>
-        /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns>The deserialized message.</returns>
-        ValueTask<JsonRpcMessage> DeserializeAsync(PipeReader reader, Encoding encoding, CancellationToken cancellationToken);
-    }
+    /// <param name="reader">The reader to deserialize from.</param>
+    /// <param name="encoding">The encoding to read the bytes from <paramref name="reader"/> with. Must not be null.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The deserialized message.</returns>
+    ValueTask<JsonRpcMessage> DeserializeAsync(PipeReader reader, Encoding encoding, CancellationToken cancellationToken);
 }
