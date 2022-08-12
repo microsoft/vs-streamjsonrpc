@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;

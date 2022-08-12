@@ -43,5 +43,8 @@
       <Generator />
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Microsoft"/>
+  </ItemGroup>
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>

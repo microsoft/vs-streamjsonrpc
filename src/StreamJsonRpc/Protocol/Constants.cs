@@ -1,7 +1,4 @@
-﻿using System;
-using Microsoft;
-
-#pragma warning disable SA1303 // Const field names should begin with upper-case letter
+﻿#pragma warning disable SA1303 // Const field names should begin with upper-case letter
 
 namespace StreamJsonRpc.Protocol;
 

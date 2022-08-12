@@ -2,10 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using StreamJsonRpc;
-using Xunit;
 using Xunit.Abstractions;
 
 public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests

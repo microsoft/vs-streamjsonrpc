@@ -3,8 +3,6 @@
 
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
