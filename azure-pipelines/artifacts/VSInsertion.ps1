@@ -1,17 +1,29 @@
 # This artifact captures everything needed to insert into VS (NuGet packages, insertion metadata, etc.)
 
+[CmdletBinding()]
+Param (
+)
+
 if ($IsMacOS -or $IsLinux) {
     # We only package up for insertions on Windows agents since they are where optprof can happen.
-    Write-Verbose "Skipping VSInsertion artifact since we're not on Windows"
+    Write-Verbose "Skipping VSInsertion artifact since we're not on Windows."
     return @{}
 }
 
 $RepoRoot = [System.IO.Path]::GetFullPath("$PSScriptRoot\..\..")
-$config = 'Debug'
-if ($env:BUILDCONFIGURATION) { $config = $env:BUILDCONFIGURATION }
-$NuGetPackages = "$RepoRoot\bin\Packages\$config\NuGet"
-$CoreXTPackages = "$RepoRoot\bin\Packages\$config\CoreXT"
-if (-not (Test-Path $NuGetPackages)) { Write-Error "No NuGet packages found. Has a build been run?"; return @{} }
+$BuildConfiguration = $env:BUILDCONFIGURATION
+if (!$BuildConfiguration) {
+    $BuildConfiguration = 'Debug'
+}
+
+$NuGetPackages = "$RepoRoot\bin\Packages\$BuildConfiguration\NuGet"
+$CoreXTPackages = "$RepoRoot\bin\Packages\$BuildConfiguration\CoreXT"
+
+if (!(Test-Path $NuGetPackages)) {
+    Write-Warning "Skipping because NuGet packages haven't been built yet."
+    return @{}
+}
+
 $ArtifactBasePath = "$RepoRoot\obj\_artifacts"
 $ArtifactPath = "$ArtifactBasePath\VSInsertion"
 if (-not (Test-Path $ArtifactPath)) { New-Item -ItemType Directory -Path $ArtifactPath | Out-Null }
@@ -36,6 +48,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 @{
-    "$NuGetPackages" = (Get-ChildItem "$NuGetPackages\*.nupkg");
+    "$NuGetPackages" = (Get-ChildItem $NuGetPackages -Recurse)
     "$CoreXTPackages" = (Get-ChildItem "$CoreXTPackages\StreamJsonRpc.VSInsertionMetadata.$InsertionMetadataVersion.nupkg");
 }

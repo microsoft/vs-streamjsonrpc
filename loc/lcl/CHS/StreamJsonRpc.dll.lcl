@@ -247,6 +247,42 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";JsonRpcMethodAndIgnoreAttributesFound" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Conflicting JsonRpcMethodAttribute and JsonRpcIgnoreAttribute found on the same method: {0}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[在同一方法上发现冲突的 JsonRpcMethodAttribute 和 JsonRpcIgnoreAttribute: {0}。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasEvents" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[无法封送具有事件的接口。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasProperties" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[无法封送具有属性的接口。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceNotDisposable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[封送的接口必须扩展 IDisposable。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";MarshaledObjectInNotificationError" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>

@@ -247,6 +247,42 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";JsonRpcMethodAndIgnoreAttributesFound" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Conflicting JsonRpcMethodAttribute and JsonRpcIgnoreAttribute found on the same method: {0}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Ve stejné metodě byly nalezeny konfliktní atributy JsonRpcMethodAttribute a JsonRpcIgnoreAttribute: {0}.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasEvents" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Rozhraní s událostmi nelze zařadit.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasProperties" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Rozhraní s vlastnostmi nelze zařadit.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceNotDisposable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Zařazovaná rozhraní musí rozšířit rozhraní IDisposable.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";MarshaledObjectInNotificationError" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>

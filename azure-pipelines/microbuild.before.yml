@@ -2,6 +2,15 @@ parameters:
 - name: ShouldSkipOptimize
 
 steps:
+- task: ComponentGovernanceComponentDetection@0
+  displayName: 🔍 Component Detection
+
+- task: notice@0
+  displayName: 🛠️ Generate NOTICE file
+  inputs:
+    outputfile: $(System.DefaultWorkingDirectory)/obj/NOTICE
+    outputformat: text
+
 - task: MicroBuildOptProfPlugin@6
   inputs:
     ProfilingInputsDropName: ProfilingInputs/$(System.TeamProject)/$(Build.Repository.Name)/$(Build.SourceBranchName)/$(Build.BuildNumber)
@@ -9,14 +18,18 @@ steps:
     DropNamePrefix: OptimizationInputs/$(System.TeamProject)/$(Build.Repository.Name)
     ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
     AccessToken: $(System.AccessToken)
-  displayName: Install OptProf Plugin
+  displayName: 🔧 Install OptProf Plugin
 
 - task: MicroBuildSigningPlugin@3
   inputs:
     signType: $(SignType)
-  displayName: Install MicroBuild Signing Plugin
+    zipSources: false
+  displayName: 🔧 Install MicroBuild Signing Plugin
+
+- task: MicroBuildSbomPlugin@1
+  displayName: 🔧 Install MicroBuild Sbom Plugin
 
 - task: MicroBuildLocalizationPlugin@3
   inputs:
     languages: $(LocLanguages)
-  displayName: Install MicroBuild Localization Plugin
+  displayName: 🔧 Install MicroBuild Localization Plugin

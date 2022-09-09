@@ -1,55 +1,52 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace Benchmarks
+using System.IO.Pipelines;
+using BenchmarkDotNet.Attributes;
+using Microsoft;
+using Nerdbank.Streams;
+using StreamJsonRpc;
+
+namespace Benchmarks;
+
+[MemoryDiagnoser]
+public class InvokeBenchmarks
 {
-    using System;
-    using System.IO.Pipelines;
-    using System.Threading.Tasks;
-    using BenchmarkDotNet.Attributes;
-    using Microsoft;
-    using Nerdbank.Streams;
-    using StreamJsonRpc;
+    private JsonRpc clientRpc = null!;
+    private JsonRpc serverRpc = null!;
 
-    [MemoryDiagnoser]
-    public class InvokeBenchmarks
+    [Params("JSON", "MessagePack")]
+    public string Formatter { get; set; } = null!;
+
+    [GlobalSetup]
+    public void Setup()
     {
-        private JsonRpc clientRpc = null!;
-        private JsonRpc serverRpc = null!;
+        (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
+        this.clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
+        this.clientRpc.StartListening();
 
-        [Params("JSON", "MessagePack")]
-        public string Formatter { get; set; } = null!;
+        this.serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
+        this.serverRpc.AddLocalRpcTarget(new Server());
+        this.serverRpc.StartListening();
 
-        [GlobalSetup]
-        public void Setup()
+        IJsonRpcMessageHandler CreateHandler(IDuplexPipe pipe)
         {
-            (IDuplexPipe, IDuplexPipe) duplex = FullDuplexStream.CreatePipePair();
-            this.clientRpc = new JsonRpc(CreateHandler(duplex.Item1));
-            this.clientRpc.StartListening();
-
-            this.serverRpc = new JsonRpc(CreateHandler(duplex.Item2));
-            this.serverRpc.AddLocalRpcTarget(new Server());
-            this.serverRpc.StartListening();
-
-            IJsonRpcMessageHandler CreateHandler(IDuplexPipe pipe)
+            return this.Formatter switch
             {
-                return this.Formatter switch
-                {
-                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
-                    "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
-                    _ => throw Assumes.NotReachable(),
-                };
-            }
+                "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+                _ => throw Assumes.NotReachable(),
+            };
         }
+    }
 
-        [Benchmark]
-        public Task InvokeAsync_NoArgs() => this.clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
+    [Benchmark]
+    public Task InvokeAsync_NoArgs() => this.clientRpc.InvokeAsync(nameof(Server.NoOp), Array.Empty<object>());
 
-        private class Server
+    private class Server
+    {
+        public void NoOp()
         {
-            public void NoOp()
-            {
-            }
         }
     }
 }

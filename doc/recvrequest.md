@@ -25,7 +25,7 @@ RPC server methods may:
 **Important notes**:
 
 1. When an RPC-invoked server method throws an exception, StreamJsonRpc will handle the exception and (when applicable) send an error response to the client with a description of the failure. [Learn more about this and how to customize error handling behavior](exceptions.md).
-1. RPC servers may be invoked multiple times concurrently to keep up with incoming client requests.
+1. RPC servers may be invoked multiple times concurrently to keep up with incoming client requests. By default, requests are dispatched one at a time, in order. When an async RPC method yields (i.e. returns a Task, whether complete or incomplete) the next request can be dispatched. Therefore concurrency of request handling can only happen when RPC server methods are implemented asynchronously. To achieve concurrent dispatch (where order is _not_ preserved) even when RPC server methods are implemented synchronously, set [`JsonRpc.SynchronizationContext`](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.synchronizationcontext) to `null` before calling [`JsonRpc.StartListening`](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.startlistening).
 
 [Learn more about writing resilient servers](resiliency.md).
 
@@ -79,6 +79,10 @@ rpc.AddLocalRpcTarget(
     });
 rpc.StartListening();
 ```
+
+### Blocking invocation of specific methods
+
+When a method on a target object would normally be exposed to the RPC client (either because it is `public` or because `JsonRpcTargetOptions.AllowNonPublicInvocation` has been set to `true`) and that method should *not* be exposed to RPC, apply the `[JsonRpcIgnore]` attribute to the method.
 
 ### Server events
 

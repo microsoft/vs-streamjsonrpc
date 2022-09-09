@@ -1,16 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
+using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
 
 public class JsonRpcProxyGenerationTests : TestBase
 {
@@ -137,14 +134,27 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal : StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface, IServerInternalWithInternalTypesFromOtherAssemblies
+    internal interface IServerInternal : ExAssembly.ISomeInternalProxyInterface, IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<int> AddAsync(int a, int b);
     }
 
     internal interface IServerInternalWithInternalTypesFromOtherAssemblies
     {
-        Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync();
+        Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync();
+    }
+
+    internal interface IRemoteService
+    {
+        internal interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
+        {
+        }
+    }
+
+    [Fact]
+    public void InternalInterface_DerivingFromInternalInterfaceInOtherAssembly()
+    {
+        JsonRpc.Attach<IRemoteService.ICallback>(new MemoryStream());
     }
 
     [Fact]
@@ -428,7 +438,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = JsonRpc.Attach(streams.Item1);
 
         // Try the first internal interface, which is external to this test assembly
-        var proxy1 = clientRpc.Attach<StreamJsonRpc.Tests.ExternalAssembly.ISomeInternalProxyInterface>();
+        var proxy1 = clientRpc.Attach<ExAssembly.ISomeInternalProxyInterface>();
         Assert.Equal(-1, await proxy1.SubtractAsync(1, 2).WithCancellation(this.TimeoutToken));
 
         // Now create a proxy for another interface that is internal within this assembly, but derives from the external assembly's internal interface.
@@ -815,11 +825,17 @@ public class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
 
-        public Task<StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType> SomeMethodAsync()
+        public Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync()
         {
-            return Task.FromResult(new StreamJsonRpc.Tests.ExternalAssembly.SomeOtherInternalType());
+            return Task.FromResult(new ExAssembly.SomeOtherInternalType());
         }
 
         public Task<int> SubtractAsync(int a, int b) => Task.FromResult(a - b);
+    }
+
+    internal class Callback : IRemoteService.ICallback
+    {
+        public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
+            => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
     }
 }

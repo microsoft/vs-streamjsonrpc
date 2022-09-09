@@ -1,40 +1,36 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace Benchmarks
+using BenchmarkDotNet.Attributes;
+using Microsoft;
+using StreamJsonRpc;
+
+namespace Benchmarks;
+
+[MemoryDiagnoser]
+public class NotifyBenchmarks
 {
-    using System;
-    using System.IO;
-    using System.Threading.Tasks;
-    using BenchmarkDotNet.Attributes;
-    using Microsoft;
-    using StreamJsonRpc;
+    private JsonRpc clientRpc = null!;
 
-    [MemoryDiagnoser]
-    public class NotifyBenchmarks
+    [Params("JSON", "MessagePack")]
+    public string Formatter { get; set; } = null!;
+
+    [GlobalSetup]
+    public void Setup()
     {
-        private JsonRpc clientRpc = null!;
+        this.clientRpc = new JsonRpc(CreateHandler(Stream.Null));
 
-        [Params("JSON", "MessagePack")]
-        public string Formatter { get; set; } = null!;
-
-        [GlobalSetup]
-        public void Setup()
+        IJsonRpcMessageHandler CreateHandler(Stream pipe)
         {
-            this.clientRpc = new JsonRpc(CreateHandler(Stream.Null));
-
-            IJsonRpcMessageHandler CreateHandler(Stream pipe)
+            return this.Formatter switch
             {
-                return this.Formatter switch
-                {
-                    "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
-                    "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
-                    _ => throw Assumes.NotReachable(),
-                };
-            }
+                "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
+                "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
+                _ => throw Assumes.NotReachable(),
+            };
         }
-
-        [Benchmark]
-        public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());
     }
+
+    [Benchmark]
+    public Task NotifyAsync_NoArgs() => this.clientRpc.NotifyAsync("NoOp", Array.Empty<object>());
 }

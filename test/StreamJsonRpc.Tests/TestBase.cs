@@ -1,13 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,7 +11,7 @@ public abstract class TestBase : IDisposable
 {
     protected static readonly TimeSpan ExpectedTimeout = TimeSpan.FromMilliseconds(200);
 
-    protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10);
+    protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(20);
 
     protected static readonly CancellationToken PrecanceledToken = new CancellationToken(canceled: true);
 

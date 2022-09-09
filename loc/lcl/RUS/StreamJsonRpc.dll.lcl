@@ -247,6 +247,42 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";JsonRpcMethodAndIgnoreAttributesFound" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Conflicting JsonRpcMethodAttribute and JsonRpcIgnoreAttribute found on the same method: {0}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Конфликтующие атрибуты JsonRpcMethodAttribute и JsonRpcIgnoreAttribute найдены у одного и того же метода: {0}.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasEvents" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Интерфейсы с событиями невозможно маршалировать.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceHasProperties" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Интерфейсы со свойствами невозможно маршалировать.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";MarshalableInterfaceNotDisposable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Маршалированные интерфейсы должны расширять IDisposable.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";MarshaledObjectInNotificationError" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>

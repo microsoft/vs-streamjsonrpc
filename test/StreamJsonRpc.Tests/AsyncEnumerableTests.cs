@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using MessagePack;
 using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
@@ -483,7 +479,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         // Assert that if the RPC server tries to enumerate more values after it returns that it gets the right exception.
         this.server.AllowEnumeratorToContinue.Set();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn).WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn ?? Task.CompletedTask).WithCancellation(this.TimeoutToken);
     }
 
     [SkippableFact]

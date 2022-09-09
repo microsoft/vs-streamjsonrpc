@@ -1,18 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using MessagePack;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
@@ -62,6 +56,12 @@ public abstract class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
     }
 
+    public interface IServerWithIgnoredMethod
+    {
+        [JsonRpcIgnore]
+        void IgnoredMethod();
+    }
+
     protected interface IControlledFlushHandler : IJsonRpcMessageHandler
     {
         /// <summary>
@@ -89,6 +89,9 @@ public abstract class JsonRpcTests : TestBase
         int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields);
 
         int Add_ExplicitInterfaceImplementation(int a, int b);
+
+        [JsonRpcIgnore]
+        void InterfaceIgnoredMethod();
     }
 
     private interface IServerDerived : IServer
@@ -732,6 +735,68 @@ public abstract class JsonRpcTests : TestBase
         {
             await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => invocationAttempt);
         }
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task PublicIgnoredMethodCannotBeInvoked()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.PublicIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task PublicMethodIgnoredByInterfaceCannotBeInvoked()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.InterfaceIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task IgnoredMethodCanBeInvokedByClientWhenAddedExplicitly()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcMethod(typeof(Server).GetMethod(nameof(Server.PublicIgnoredMethod))!, this.server, null);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.PublicIgnoredMethod), cancellationToken: this.TimeoutToken);
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public async Task InternalIgnoredMethodCannotBeInvoked()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.clientRpc = new JsonRpc(this.clientStream);
+
+        this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = true });
+
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.InternalIgnoredMethod), cancellationToken: this.TimeoutToken));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public void ConflictedIgnoreMethodThrows()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.serverRpc = new JsonRpc(this.serverStream);
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributes()));
+    }
+
+    [Fact]
+    [Trait("JsonRpcIgnore", "")]
+    public void ConflictedIgnoreMethodViaInterfaceThrows()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.serverRpc = new JsonRpc(this.serverStream);
+        Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributesViaInheritance()));
     }
 
     [Fact]
@@ -2701,7 +2766,6 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-#if !NETCOREAPP2_1
     /// <summary>
     /// Sets up <see cref="JsonRpc"/> on both sides to record activity traces as XML so an engineer can manually validate
     /// that <see href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/service-trace-viewer-tool-svctraceviewer-exe#using-the-service-trace-viewer-tool">Service Trace Viewer</see>
@@ -2758,7 +2822,31 @@ public abstract class JsonRpcTests : TestBase
             };
         }
     }
-#endif
+
+    /// <summary>
+    /// Verifies that an activity representing an incoming RPC request lasts the full duration of the async server method
+    /// rather than just till its first yield.
+    /// </summary>
+    [Fact]
+    public async Task IncomingActivityStopsAfterAsyncTargetMethodCompletes()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+        TaskCompletionSource<object?> started = new();
+        TaskCompletionSource<object?> stopped = new();
+        this.serverRpc.ActivityTracingStrategy = new MockActivityTracingStrategy
+        {
+            Inbound = req =>
+            {
+                started.SetResult(null);
+                return new DisposableAction(() => stopped.SetResult(null));
+            },
+        };
+        Task task = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new object?[] { "arg" }, this.TimeoutToken);
+        await started.Task.WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<TimeoutException>(() => stopped.Task.WithTimeout(ExpectedTimeout));
+        this.server.AllowServerMethodToReturn.Set();
+        await stopped.Task.WithCancellation(this.TimeoutToken);
+    }
 
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
@@ -3437,6 +3525,15 @@ public abstract class JsonRpcTests : TestBase
 
         public bool MethodOnDerived() => true;
 
+        [JsonRpcIgnore]
+        public void PublicIgnoredMethod()
+        {
+        }
+
+        public void InterfaceIgnoredMethod()
+        {
+        }
+
         int IServer.Add_ExplicitInterfaceImplementation(int a, int b) => a + b;
 
         internal void InternalMethod()
@@ -3448,6 +3545,11 @@ public abstract class JsonRpcTests : TestBase
         internal void InternalMethodWithAttribute()
         {
             this.ServerMethodReached.Set();
+        }
+
+        [JsonRpcIgnore]
+        internal void InternalIgnoredMethod()
+        {
         }
     }
 #pragma warning restore CA1801 // use all parameters
@@ -3527,6 +3629,22 @@ public abstract class JsonRpcTests : TestBase
         public int PlusTwo(int arg)
         {
             return arg + 2;
+        }
+    }
+
+    public class ServerWithConflictingAttributes
+    {
+        [JsonRpcMethod, JsonRpcIgnore]
+        public void BadMethod()
+        {
+        }
+    }
+
+    public class ServerWithConflictingAttributesViaInheritance : IServerWithIgnoredMethod
+    {
+        [JsonRpcMethod]
+        public void IgnoredMethod()
+        {
         }
     }
 
@@ -3641,6 +3759,17 @@ public abstract class JsonRpcTests : TestBase
     [DataContract]
     internal class InternalClass
     {
+    }
+
+    protected class MockActivityTracingStrategy : IActivityTracingStrategy
+    {
+        internal Func<JsonRpcRequest, IDisposable>? Inbound { get; set; }
+
+        internal Action<JsonRpcRequest>? Outbound { get; set; }
+
+        public IDisposable? ApplyInboundActivity(JsonRpcRequest request) => this.Inbound?.Invoke(request);
+
+        public void ApplyOutboundActivity(JsonRpcRequest request) => this.Outbound?.Invoke(request);
     }
 
     /// <summary>

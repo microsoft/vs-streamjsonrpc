@@ -1,48 +1,45 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace StreamJsonRpc
+namespace StreamJsonRpc;
+
+/// <summary>
+/// An exception thrown when a deserialized message has a bad header.
+/// </summary>
+/// <seealso cref="RemoteRpcException" />
+[Serializable]
+#pragma warning disable CA1032 // Implement standard exception constructors
+public class BadRpcHeaderException : RemoteRpcException
+#pragma warning restore CA1032 // Implement standard exception constructors
 {
-    using System;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
+    /// </summary>
+    /// <param name="message">The message.</param>
+    public BadRpcHeaderException(string? message)
+        : base(message)
+    {
+    }
 
     /// <summary>
-    /// An exception thrown when a deserialized message has a bad header.
+    /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
     /// </summary>
-    /// <seealso cref="RemoteRpcException" />
-    [Serializable]
-#pragma warning disable CA1032 // Implement standard exception constructors
-    public class BadRpcHeaderException : RemoteRpcException
-#pragma warning restore CA1032 // Implement standard exception constructors
+    /// <param name="message">The message.</param>
+    /// <param name="innerException">The inner exception.</param>
+    public BadRpcHeaderException(string? message, Exception? innerException)
+        : base(message, innerException)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        public BadRpcHeaderException(string? message)
-            : base(message)
-        {
-        }
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        /// <param name="innerException">The inner exception.</param>
-        public BadRpcHeaderException(string? message, Exception? innerException)
-            : base(message, innerException)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
-        /// </summary>
-        /// <param name="info">Serialization info.</param>
-        /// <param name="context">Streaming context.</param>
-        protected BadRpcHeaderException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context)
-            : base(info, context)
-        {
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BadRpcHeaderException"/> class.
+    /// </summary>
+    /// <param name="info">Serialization info.</param>
+    /// <param name="context">Streaming context.</param>
+    protected BadRpcHeaderException(
+      System.Runtime.Serialization.SerializationInfo info,
+      System.Runtime.Serialization.StreamingContext context)
+        : base(info, context)
+    {
     }
 }

@@ -1,79 +1,45 @@
+parameters:
+  RunTests:
+
 steps:
-- script: dotnet build --no-restore -c $(BuildConfiguration) /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
-  displayName: dotnet build
 
-- script: dotnet pack --no-build -c $(BuildConfiguration) /v:m /bl:"$(Build.ArtifactStagingDirectory)/build_logs/pack.binlog"
-  displayName: dotnet pack
+- script: dotnet build -t:build,pack --no-restore -c $(BuildConfiguration) /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+  displayName: 🛠 dotnet build
 
-- task: DotNetCoreCLI@2
-  displayName: dotnet test -f net472
-  inputs:
-    command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472.txt"
-    testRunTitle: net472-$(Agent.JobName)
-  condition: ne(variables['OptProf'], 'true')
+- powershell: azure-pipelines/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
+  displayName: 🧪 dotnet test
+  condition: and(succeeded(), ${{ parameters.RunTests }})
 
 - task: DotNetCoreCLI@2
-  displayName: dotnet test -f net472 (+EventSource)
+  displayName: 🧪 dotnet test -f net472 (+EventSource)
   inputs:
     command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472_etw.txt"
-    testRunTitle: net472-$(Agent.JobName)-etw
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472_etw.txt"
+    testRunTitle: streamjsonrpc.tests-etw (net472, $(Agent.JobName))
   env:
     StreamJsonRpc_TestWithEventSource: 1
-  condition: ne(variables['OptProf'], 'true')
-
-- task: DotNetCoreCLI@2
-  displayName: dotnet test -f netcoreapp3.1
-  inputs:
-    command: test
-    arguments: --no-build -c $(BuildConfiguration) -f netcoreapp3.1 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_netcoreapp3.1.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/netcoreapp3.1.txt"
-    testRunTitle: netcoreapp3.1-$(Agent.JobName)
-  condition: ne(variables['OptProf'], 'true')
-
-- task: DotNetCoreCLI@2
-  displayName: dotnet test -f net5.0
-  inputs:
-    command: test
-    arguments: --no-build -c $(BuildConfiguration) -f net5.0 --filter "TestCategory!=FailsInCloudTest" -v n /p:CollectCoverage=true --settings "$(Build.Repository.LocalPath)/azure-pipelines/$(Agent.OS).runsettings" /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net5.0.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net5.txt"
-    testRunTitle: net5.0-$(Agent.JobName)
-  condition: ne(variables['OptProf'], 'true')
+  condition: and(succeeded(), ne(variables['OptProf'], 'true'))
 
 # We have to artifically run this script so that the extra .nupkg is produced for variables/InsertConfigValues.ps1 to notice.
 - powershell: azure-pipelines\artifacts\VSInsertion.ps1
-  displayName: Prepare VSInsertion artifact
+  displayName: ⚙ Prepare VSInsertion artifact
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: azure-pipelines/variables/_pipelines.ps1
   failOnStderr: true
-  displayName: Update pipeline variables based on build outputs
+  displayName: ⚙ Update pipeline variables based on build outputs
   condition: succeededOrFailed()
 
-- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)"
+- powershell: azure-pipelines/artifacts/_pipelines.ps1 -ArtifactNameSuffix "-$(Agent.JobName)" -Verbose
   failOnStderr: true
-  displayName: Publish artifacts
+  displayName: 📢 Publish artifacts
   condition: succeededOrFailed()
 
-- task: PublishSymbols@2
-  inputs:
-    SymbolsFolder: $(Build.ArtifactStagingDirectory)/symbols-$(Agent.JobName)
-    SearchPattern: '**/*.pdb'
-    IndexSources: false
-    SymbolServerType: TeamServices
-  displayName: Publish symbols to symbol server
-  condition: eq(variables['Agent.OS'], 'Windows_NT') # Execute on failed test runs too. Windows-only till https://github.com/microsoft/azure-pipelines-tasks/issues/13821 is fixed.
-
-- task: PublishSymbols@2
-  inputs:
-    SymbolsFolder: $(Build.ArtifactStagingDirectory)/test_symbols-$(Agent.JobName)
-    SearchPattern: '**/*.pdb'
-    IndexSources: false
-    SymbolServerType: TeamServices
-  displayName: Publish test symbols to symbol server
-  condition: and(failed(), eq(variables['Agent.OS'], 'Windows_NT')) # Execute on failed test runs only.
-
-- bash: bash <(curl -s https://codecov.io/bash)
-  displayName: Publish code coverage results to codecov.io
+- powershell: |
+    $ArtifactStagingFolder = & "azure-pipelines/Get-ArtifactsStagingDirectory.ps1"
+    $CoverageResultsFolder = Join-Path $ArtifactStagingFolder "coverageResults-$(Agent.JobName)"
+    azure-pipelines/publish-CodeCov.ps1 -CodeCovToken "$(codecov_token)" -PathToCodeCoverage "$CoverageResultsFolder" -Name "$(Agent.JobName) Coverage Results" -Flags "$(Agent.JobName)Host,$(BuildConfiguration)"
+  displayName: 📢 Publish code coverage results to codecov.io
   condition: ne(variables['codecov_token'], '')
   timeoutInMinutes: 3
   continueOnError: true

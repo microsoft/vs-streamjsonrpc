@@ -37,13 +37,15 @@
     when building.
 .PARAMETER OptProf
     Install the MicroBuild OptProf plugin for building optimized assemblies on desktop machines.
+.PARAMETER Sbom
+    Install the MicroBuild SBOM plugin.
 .PARAMETER AccessToken
     An optional access token for authenticating to Azure Artifacts authenticated feeds.
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding(SupportsShouldProcess = $true)]
 Param (
-    [ValidateSet('repo','user','machine')]
-    [string]$InstallLocality='user',
+    [ValidateSet('repo', 'user', 'machine')]
+    [string]$InstallLocality = 'user',
     [Parameter()]
     [switch]$NoPrerequisites,
     [Parameter()]
@@ -58,6 +60,8 @@ Param (
     [switch]$Localization,
     [Parameter()]
     [switch]$OptProf,
+    [Parameter()]
+    [switch]$SBOM,
     [Parameter()]
     [string]$AccessToken
 )
@@ -83,8 +87,8 @@ if (!$NoPrerequisites) {
 }
 
 # Workaround nuget credential provider bug that causes very unreliable package restores on Azure Pipelines
-$env:NUGET_PLUGIN_HANDSHAKE_TIMEOUT_IN_SECONDS=20
-$env:NUGET_PLUGIN_REQUEST_TIMEOUT_IN_SECONDS=20
+$env:NUGET_PLUGIN_HANDSHAKE_TIMEOUT_IN_SECONDS = 20
+$env:NUGET_PLUGIN_REQUEST_TIMEOUT_IN_SECONDS = 20
 
 Push-Location $PSScriptRoot
 try {
@@ -119,6 +123,14 @@ try {
         & $InstallNuGetPkgScriptPath MicroBuild.Plugins.Localization -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
         $EnvVars['LocType'] = "Pseudo"
         $EnvVars['LocLanguages'] = "JPN"
+    }
+
+    if ($SBOM) {
+        Write-Host "Installing MicroBuild SBOM plugin" -ForegroundColor $HeaderColor
+        & $InstallNuGetPkgScriptPath MicroBuild.Plugins.Sbom -source $MicroBuildPackageSource -Verbosity $nugetVerbosity
+        $PkgMicrosoft_ManifestTool_CrossPlatform = & $InstallNuGetPkgScriptPath Microsoft.ManifestTool.CrossPlatform -source 'https://1essharedassets.pkgs.visualstudio.com/1esPkgs/_packaging/SBOMTool/nuget/v3/index.json' -Verbosity $nugetVerbosity
+        $EnvVars['GenerateSBOM'] = "true"
+        $EnvVars['PkgMicrosoft_ManifestTool_CrossPlatform'] = $PkgMicrosoft_ManifestTool_CrossPlatform
     }
 
     & "$PSScriptRoot/tools/Set-EnvVars.ps1" -Variables $EnvVars -PrependPath $PrependPath | Out-Null

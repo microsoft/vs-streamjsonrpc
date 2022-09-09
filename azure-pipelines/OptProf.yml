@@ -33,8 +33,6 @@ variables:
 - name: SignType
   value: real
 - group: Library.Template
-- name: NugetSecurityAnalysisWarningLevel
-  value: none # nuget.config requires signed packages by trusted owners
 
 stages:
 - stage: Library
@@ -47,11 +45,11 @@ stages:
       includeMacOS: false
       ShouldSkipOptimize: true
       OptProf: true
+      RunTests: false
 - stage: QueueVSBuild
   jobs:
   - job: QueueOptProf
-    pool:
-      vmImage: windows-latest
+    pool: VSEngSS-MicroBuild2022-1ES
     variables:
       InsertPayloadName: vs-streamjsonrpc
       InsertTopicBranch: team/VS-IDE/vs-StreamJsonRpc-OptProf-run-$(Build.BuildId)

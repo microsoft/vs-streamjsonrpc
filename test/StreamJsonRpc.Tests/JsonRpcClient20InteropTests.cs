@@ -1,12 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -75,7 +72,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.NotifyAsync("test");
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"]?.Type);
-        Assert.Empty((JArray?)request["params"]);
+        Assert.Empty((JArray?)request["params"]!);
     }
 
     [Fact]
@@ -110,7 +107,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Task notifyTask = this.clientRpc.InvokeAsync<object>("test");
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"]!.Type);
-        Assert.Empty((JArray?)request["params"]);
+        Assert.Empty((JArray?)request["params"]!);
     }
 
     [Fact]
@@ -302,7 +299,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
     }
 
@@ -328,7 +325,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>();
+        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
         Assert.Equal(-2147467261, commonErrorData?.HResult);
     }
@@ -357,7 +354,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         JToken errorDataToken = (JToken)ex.ErrorData!;
-        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>());
+        Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>(new JsonSerializer()));
         Assert.Equal(errorData.stack.foo, errorDataToken["stack"]?.Value<int>("foo"));
     }
 

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
@@ -48,6 +45,11 @@ public abstract class TargetObjectEventsTests : TestBase
         event EventHandler InterfaceEvent;
 
         event EventHandler ExplicitInterfaceImplementation_Event;
+    }
+
+    public interface IServerDerived : IServer
+    {
+        event EventHandler DerivedInterfaceEvent;
     }
 
     [Theory]
@@ -255,6 +257,45 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [Fact]
+    public async Task AddLocalRpcTarget_OfT_DerivedInterface()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc.AddLocalRpcTarget<IServerDerived>(this.server, null);
+        this.serverRpc.StartListening();
+
+        this.clientRpc = new JsonRpc(this.clientStream);
+        var eventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServerDerived.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
+        var derivedEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServerDerived.DerivedInterfaceEvent), new Action<EventArgs>(derivedEventRaised.SetResult));
+        var explicitEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(IServerDerived.ExplicitInterfaceImplementation_Event), new Action<EventArgs>(explicitEventRaised.SetResult));
+        var classOnlyEventRaised = new TaskCompletionSource<EventArgs>();
+        this.clientRpc.AddLocalRpcMethod(nameof(Server.ServerEvent), new Action<EventArgs>(classOnlyEventRaised.SetResult));
+        this.clientRpc.StartListening();
+
+        // Verify that ordinary interface events can be raised.
+        this.server.TriggerInterfaceEvent(new EventArgs());
+        await eventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that an event in the derived class still works.
+        this.server.TriggerDerivedInterfaceEvent(new EventArgs());
+        await derivedEventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that explicit interface implementation events can also be raised.
+        this.server.TriggerExplicitInterfaceImplementationEvent(new EventArgs());
+        await explicitEventRaised.Task.WithCancellation(this.TimeoutToken);
+
+        // Verify that events that are NOT on the interface cannot be raised.
+        this.server.TriggerEvent(new EventArgs());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => classOnlyEventRaised.Task.WithCancellation(ExpectedTimeoutToken));
+    }
+
+    [Fact]
     public async Task AddLocalRpcTarget_OfT_ActualClass()
     {
         var streams = FullDuplexStream.CreateStreams();
@@ -358,7 +399,7 @@ public abstract class TargetObjectEventsTests : TestBase
         public abstract event EventHandler? AbstractBaseEvent;
     }
 
-    protected class Server : ServerBase, IServer
+    protected class Server : ServerBase, IServerDerived
     {
         private EventHandler? explicitInterfaceImplementationEvent;
 
@@ -378,6 +419,8 @@ public abstract class TargetObjectEventsTests : TestBase
         public event EventHandler? InterfaceEvent;
 
         public event EventHandler<IFruit>? IFruitEvent;
+
+        public event EventHandler? DerivedInterfaceEvent;
 
         public override event EventHandler? AbstractBaseEvent
         {
@@ -416,6 +459,8 @@ public abstract class TargetObjectEventsTests : TestBase
         public void TriggerServerEventWithCustomGenericDelegateAndArgs(MessageEventArgs<string> args) => this.OnServerEventWithCustomGenericDelegateAndArgs(args);
 
         public void TriggerInterfaceEvent(EventArgs args) => this.InterfaceEvent?.Invoke(this, args);
+
+        public void TriggerDerivedInterfaceEvent(EventArgs args) => this.DerivedInterfaceEvent?.Invoke(this, args);
 
         public void TriggerIFruitEvent(IFruit args) => this.IFruitEvent?.Invoke(this, args);
 
