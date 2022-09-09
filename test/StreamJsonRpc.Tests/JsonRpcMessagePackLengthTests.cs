@@ -29,6 +29,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Task ProgressUnionType(IProgress<UnionBaseClass> progress, CancellationToken cancellationToken);
 
         IAsyncEnumerable<UnionBaseClass> GetAsyncEnumerableOfUnionType(CancellationToken cancellationToken);
+
+        Task<bool> IsExtensionArgNonNull(CustomExtensionType extensionValue);
     }
 
     [Fact]
@@ -363,6 +365,25 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.IsType<UnionDerivedClass>(actualItem);
     }
 
+    /// <summary>
+    /// Verifies that an argument that cannot be deserialized by the msgpack primitive formatter will not cause a failure.
+    /// </summary>
+    /// <remarks>
+    /// <para>This is a regression test for <see href="https://github.com/microsoft/vs-streamjsonrpc/issues/841">a bug</see> where
+    /// verbose ETW tracing would fail to deserialize arguments with the primitive formatter that deserialize just fine for the actual method dispatch.</para>
+    /// <para>This test is effective because custom msgpack extensions cause the <see cref="PrimitiveObjectFormatter"/> to throw an exception when deserializing.</para>
+    /// </remarks>
+    [Theory, PairwiseData]
+    public async Task VerboseLoggingDoesNotFailWhenArgsDoNotDeserializePrimitively(bool namedArguments)
+    {
+        var server = new MessagePackServer();
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLocalRpcTarget(server);
+        var clientProxy = this.clientRpc.Attach<IMessagePackServer>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = namedArguments });
+
+        Assert.True(await clientProxy.IsExtensionArgNonNull(new CustomExtensionType()));
+    }
+
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.serverMessageFormatter = new MessagePackFormatter();
@@ -370,7 +391,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         var options = MessagePackFormatter.DefaultUserDataSerializationOptions
             .WithResolver(CompositeResolver.Create(
-                new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter() },
+                new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter(), new CustomExtensionFormatter() },
                 new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
         ((MessagePackFormatter)this.serverMessageFormatter).SetMessagePackSerializerOptions(options);
         ((MessagePackFormatter)this.clientMessageFormatter).SetMessagePackSerializerOptions(options);
@@ -390,6 +411,40 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     [MessagePackObject]
     public class UnionDerivedClass : UnionBaseClass
     {
+    }
+
+    internal class CustomExtensionType
+    {
+    }
+
+    private class CustomExtensionFormatter : IMessagePackFormatter<CustomExtensionType?>
+    {
+        public CustomExtensionType? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            if (reader.TryReadNil())
+            {
+                return null;
+            }
+
+            if (reader.ReadExtensionFormat() is { Header: { TypeCode: 1, Length: 0 } })
+            {
+                return new();
+            }
+
+            throw new Exception("Unexpected extension header.");
+        }
+
+        public void Serialize(ref MessagePackWriter writer, CustomExtensionType? value, MessagePackSerializerOptions options)
+        {
+            if (value is null)
+            {
+                writer.WriteNil();
+            }
+            else
+            {
+                writer.WriteExtensionFormat(new ExtensionResult(1, default(Memory<byte>)));
+            }
+        }
     }
 
     private class UnserializableTypeFormatter : IMessagePackFormatter<CustomSerializedType>
@@ -448,6 +503,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
             await Task.Yield();
             yield return new UnionDerivedClass();
         }
+
+        public Task<bool> IsExtensionArgNonNull(CustomExtensionType extensionValue) => Task.FromResult(extensionValue is not null);
     }
 
     private class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler

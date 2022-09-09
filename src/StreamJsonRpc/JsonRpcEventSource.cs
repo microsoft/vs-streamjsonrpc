@@ -291,12 +291,22 @@ internal sealed class JsonRpcEventSource : EventSource
             stringBuilder.Append('[');
             for (int i = 0; i < request.ArgumentCount; ++i)
             {
-                if (request.TryGetArgumentByNameOrIndex(null, i, null, out object? value))
+                bool formatted = false;
+                try
                 {
-                    Format(stringBuilder, value);
-                    stringBuilder.Append(", ");
+                    if (request.TryGetArgumentByNameOrIndex(null, i, null, out object? value))
+                    {
+                        Format(stringBuilder, value);
+                        stringBuilder.Append(", ");
+                        formatted = true;
+                    }
                 }
-                else
+                catch
+                {
+                    // Swallow exceptions when deserializing args for ETW logging. It's never worth causing a functional failure.
+                }
+
+                if (!formatted)
                 {
                     stringBuilder.Append("<unformattable>");
                 }
@@ -317,14 +327,24 @@ internal sealed class JsonRpcEventSource : EventSource
             stringBuilder.Append('{');
             foreach (string key in request.ArgumentNames)
             {
-                if (request.TryGetArgumentByNameOrIndex(key, -1, null, out object? value))
+                bool formatted = false;
+                try
                 {
-                    stringBuilder.Append(key);
-                    stringBuilder.Append(": ");
-                    Format(stringBuilder, value);
-                    stringBuilder.Append(", ");
+                    if (request.TryGetArgumentByNameOrIndex(key, -1, null, out object? value))
+                    {
+                        stringBuilder.Append(key);
+                        stringBuilder.Append(": ");
+                        Format(stringBuilder, value);
+                        stringBuilder.Append(", ");
+                        formatted = true;
+                    }
                 }
-                else
+                catch
+                {
+                    // Swallow exceptions when deserializing args for ETW logging. It's never worth causing a functional failure.
+                }
+
+                if (!formatted)
                 {
                     stringBuilder.Append("<unformattable>");
                 }
