@@ -1521,8 +1521,7 @@ public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcF
             }
             else
             {
-                IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(this.interfaceType, value, this.targetOptions);
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(context);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, this.interfaceType);
                 serializer.Serialize(writer, token);
             }
         }

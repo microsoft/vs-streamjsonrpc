@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json.Linq;
 using static System.FormattableString;
 
 namespace StreamJsonRpc.Reflection;
@@ -146,9 +147,11 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <summary>
     /// Prepares a local object to be marshaled over the wire.
     /// </summary>
-    /// <param name="marshaledContext">The object and metadata to be marshaled.</param>
-    /// <returns>A token to be serialized so the remote party can invoke methods on the object within <paramref name="marshaledContext"/>.</returns>
-    internal MarshalToken GetToken(IRpcMarshaledContext<object> marshaledContext)
+    /// <param name="marshaledObject">The object to be exposed over RPC.</param>
+    /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <param name="declaredType">The marshalable interface type of <paramref name="marshaledObject"/> as declared in the RPC contract.</param>
+    /// <returns>A token to be serialized so the remote party can invoke methods on the marshaled object.</returns>
+    internal MarshalToken GetToken(object marshaledObject, JsonRpcTargetOptions options, Type declaredType)
     {
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
         {
@@ -157,20 +160,34 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         long handle = this.nextUniqueHandle++;
 
+        Type actualInterface = declaredType;
+        int? subTypeCode = null;
+        foreach (RpcMarshalableKnownSubtypeAttribute attribute in declaredType.GetCustomAttributes(typeof(RpcMarshalableKnownSubtypeAttribute), inherit: false))
+        {
+            if (attribute.SubType.IsAssignableFrom(marshaledObject.GetType()))
+            {
+                subTypeCode = attribute.SubTypeCode;
+                actualInterface = attribute.SubType;
+                break;
+            }
+        }
+
+        IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(actualInterface, marshaledObject, options);
+
         IDisposable? revert = this.jsonRpc.AddLocalRpcTargetInternal(
-            marshaledContext.GetType().GenericTypeArguments[0],
-            marshaledContext.Proxy,
-            new JsonRpcTargetOptions(marshaledContext.JsonRpcTargetOptions)
+            actualInterface,
+            context.Proxy,
+            new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
             {
                 NotifyClientOfEvents = false, // We don't support this yet.
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{marshaledContext.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
+                MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{context.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
             },
             requestRevertOption: true);
         Assumes.NotNull(revert);
 
         lock (this.marshaledObjects)
         {
-            this.marshaledObjects.Add(handle, (marshaledContext, revert));
+            this.marshaledObjects.Add(handle, (context, revert));
         }
 
         if (this.formatterState.SerializingRequest)
@@ -182,7 +199,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 (key, value) => value.Add(handle));
         }
 
-        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null);
+        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null, subTypeCode);
     }
 
     /// <summary>
@@ -210,16 +227,37 @@ internal class MessageFormatterRpcMarshaledContextTracker
             throw new NotSupportedException("Receiving marshaled objects scoped to the lifetime of a single RPC request is not yet supported.");
         }
 
+        Type actualInterfaceType = interfaceType;
+        if (token.Value.SubTypeCode.HasValue)
+        {
+            Type? matchedSubType = null;
+            foreach (RpcMarshalableKnownSubtypeAttribute attribute in interfaceType.GetCustomAttributes(typeof(RpcMarshalableKnownSubtypeAttribute), inherit: false))
+            {
+                if (attribute.SubTypeCode == token.Value.SubTypeCode.Value)
+                {
+                    matchedSubType = attribute.SubType;
+                    break;
+                }
+            }
+
+            if (matchedSubType is null)
+            {
+                throw new NotSupportedException("Receiving marshaled objects back to the owner is not yet supported.");
+            }
+
+            actualInterfaceType = matchedSubType;
+        }
+
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
         object result = this.jsonRpc.Attach(
-            interfaceType,
+            actualInterfaceType,
             new JsonRpcProxyOptions(options)
             {
                 MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
                 OnDispose = delegate
                 {
                     // Only forward the Dispose call if the marshaled interface derives from IDisposable.
-                    if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                    if (typeof(IDisposable).IsAssignableFrom(actualInterfaceType))
                     {
                         this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
                     }
@@ -279,12 +317,13 @@ internal class MessageFormatterRpcMarshaledContextTracker
     {
         [MessagePack.SerializationConstructor]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime)
+        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime, int? subTypeCode)
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
         {
             this.Marshaled = __jsonrpc_marshaled;
             this.Handle = handle;
             this.Lifetime = lifetime;
+            this.SubTypeCode = subTypeCode;
         }
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
@@ -295,6 +334,9 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
         public string? Lifetime { get; }
+
+        [DataMember(Name = "subTypeCode", EmitDefaultValue = false)]
+        public int? SubTypeCode { get; }
     }
 
     /// <summary>
