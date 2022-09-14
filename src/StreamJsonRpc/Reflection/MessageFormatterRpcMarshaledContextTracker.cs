@@ -326,7 +326,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <summary>
     /// Releases memory associated with marshaled objects.
     /// </summary>
-    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(IRpcMarshaledContext{object})"/> method.</param>
+    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(object, JsonRpcTargetOptions, Type)"/> method.</param>
     /// <param name="ownedBySender"><c>true</c> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <c>false</c> if the token and object was created locally.</param>
 #pragma warning disable CA1801 // Review unused parameters -- Signature is dicated by protocol extension server method.
     private void ReleaseMarshaledObject(long handle, bool ownedBySender)
