@@ -285,6 +285,24 @@
     <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
     <comment>{0} is the response message.</comment>
   </data>
+  <data name="RpcMarshalableDuplicatedSubType" xml:space="preserve">
+    <value>Duplicated sub-type declaration for {0}.</value>
+  </data>
+  <data name="RpcMarshalableDuplicatedSubTypeCode" xml:space="preserve">
+    <value>Duplicated sub-type code for {0}.</value>
+  </data>
+  <data name="RpcMarshalableImplementsMultipleSubTypes" xml:space="preserve">
+    <value>Marshalable object {0} implements multiple known sub-types of {1}.</value>
+  </data>
+  <data name="RpcMarshalableReceivedObjectImplementingMultipleSubTypes" xml:space="preserve">
+    <value>Receiving marshaled objects implementing multiple sub-type interfaces is currently not supported.</value>
+  </data>
+  <data name="RpcMarshalableSubTypeExtendsAnotherSubType" xml:space="preserve">
+    <value>A known sub-type of {0} extends another known sub-type of the same interface.</value>
+  </data>
+  <data name="RpcMarshalableSubTypeNotExtendingDeclaredType" xml:space="preserve">
+    <value>One of the declared sub-types of {0} doesn't extend {0}.</value>
+  </data>
   <data name="RpcMethodNameNotFound" xml:space="preserve">
     <value>No method by the name '{0}' is found.</value>
   </data>

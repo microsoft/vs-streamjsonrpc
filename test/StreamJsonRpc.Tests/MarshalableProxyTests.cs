@@ -118,8 +118,8 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    [RpcMarshalableKnownSubtype(typeof(IMarshalableSubType1), subTypeCode: 1)]
-    [RpcMarshalableKnownSubtype(typeof(IMarshalableSubType2), subTypeCode: 2)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1), subTypeCode: 1)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType2), subTypeCode: 2)]
     public interface IMarshalableWithSubTypes : IDisposable
     {
         Task<int> GetAsync(int value);
@@ -130,9 +130,16 @@ public abstract class MarshalableProxyTests : TestBase
         Task<int> GetPlusOneAsync(int value);
     }
 
+    [RpcMarshalable]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType3), subTypeCode: 3)]
     public interface IMarshalableSubType2 : IMarshalableWithSubTypes
     {
         Task<int> GetPlusTwoAsync(int value);
+    }
+
+    public interface IMarshalableSubType3 : IMarshalableSubType2
+    {
+        Task<int> GetPlusThreeAsync(int value);
     }
 
     public interface IMarshalableUnknownSubType : IMarshalableWithSubTypes
@@ -524,24 +531,22 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task SubTypeMarshalable_CanCallMethods()
+    public async Task RpcMarshalableKnownSubType()
     {
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableWithSubTypes();
         IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-    }
+        Assert.False(proxy is IMarshalableSubType1);
+        Assert.False(proxy is IMarshalableSubType2);
 
-    [Fact]
-    public async Task SubTypeMarshalable_SubType1_CanCallMethods()
-    {
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1();
-        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
-        Assert.Equal(1, await proxy!.GetAsync(1));
-        Assert.Equal(2, await proxy!.GetPlusOneAsync(1));
+        IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy1!.GetAsync(1));
+        Assert.Equal(2, await proxy1!.GetPlusOneAsync(1));
     }
 
     [Fact]
-    public async Task SubTypeMarshalable_SubType2_CanCallMethods()
+    public async Task RpcMarshalableKnownSubType_WithExplicitImplementation_WithRpcMarshalableAttribute_CanCallMethods()
     {
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType2();
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
@@ -550,11 +555,21 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task SubTypeMarshalable_UnknownSubType_CanCallMethods()
+    public async Task RpcMarshalableKnownSubType_UnknownSubType()
     {
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableUnknownSubType();
         IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableKnownSubType_OnlyAttibutesOnDeclaredTypeAreHonored()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType3();
+        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(3, await proxy!.GetPlusTwoAsync(1));
+        Assert.False(proxy is IMarshalableSubType3);
     }
 
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
@@ -816,9 +831,22 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class MarshalableSubType2 : IMarshalableSubType2
     {
+        Task<int> IMarshalableWithSubTypes.GetAsync(int value) => Task.FromResult(value);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubType3 : IMarshalableSubType3
+    {
         public Task<int> GetAsync(int value) => Task.FromResult(value);
 
         public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3);
 
         public void Dispose()
         {
