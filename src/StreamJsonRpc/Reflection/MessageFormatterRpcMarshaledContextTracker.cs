@@ -180,6 +180,11 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypeExtendsAnotherSubType, declaredType.FullName));
             }
 
+            if (attributes.Any(a => a.SubType.GetCustomAttribute<RpcMarshalableAttribute>() is null))
+            {
+                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypesMustBeMarshalable, declaredType.FullName));
+            }
+
             return attributes;
         });
     }
@@ -274,15 +279,15 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         Type? actualInterfaceType = interfaceType;
-        if ((token.Value.SubTypes?.Length ?? 0) > 0)
+        if ((token.Value.SubTypeCodes?.Length ?? 0) > 0)
         {
-            if (token.Value.SubTypes!.Length > 1)
+            if (token.Value.SubTypeCodes!.Length > 1)
             {
                 throw new NotSupportedException(Resources.RpcMarshalableReceivedObjectImplementingMultipleSubTypes);
             }
 
             // If we don't find a match for subTypeCode, we return a proxy that implements the base interface
-            int subTypeCode = token.Value.SubTypes[0];
+            int subTypeCode = token.Value.SubTypeCodes[0];
             foreach (RpcMarshalableKnownSubTypeAttribute attribute in GetMarshalableKnownSubtypes(interfaceType))
             {
                 if (attribute.SubTypeCode == subTypeCode)
@@ -368,7 +373,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
             this.Marshaled = __jsonrpc_marshaled;
             this.Handle = handle;
             this.Lifetime = lifetime;
-            this.SubTypes = subTypes;
+            this.SubTypeCodes = subTypes;
         }
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
@@ -381,7 +386,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
         public string? Lifetime { get; }
 
         [DataMember(Name = "subTypes", EmitDefaultValue = false)]
-        public int[]? SubTypes { get; }
+        public int[]? SubTypeCodes { get; }
     }
 
     /// <summary>

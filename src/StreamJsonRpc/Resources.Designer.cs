@@ -574,6 +574,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to One of the sub-types of {0} is not marked with the RpcMarshalable attribute..
+        /// </summary>
+        internal static string RpcMarshalableSubTypesMustBeMarshalable {
+            get {
+                return ResourceManager.GetString("RpcMarshalableSubTypesMustBeMarshalable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No method by the name &apos;{0}&apos; is found..
         /// </summary>
         internal static string RpcMethodNameNotFound {

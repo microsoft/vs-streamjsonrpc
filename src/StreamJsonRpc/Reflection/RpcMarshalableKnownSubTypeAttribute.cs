@@ -5,26 +5,37 @@ namespace StreamJsonRpc;
 
 /// <summary>
 /// Attribute to be used on an interface marked with <see cref="RpcMarshalableAttribute"/> to indicate that a known
-/// inherited interface exists.
-///
+/// inheriting interface exists.
+/// </summary>
+/// <remarks><para>
 /// When an object that implements <see cref="SubType"/> is marshaled as its base interface marked with
 /// <see cref="RpcMarshalableKnownSubTypeAttribute"/>, <see cref="SubTypeCode"/> is included in the StreamJsonRpc
 /// message allowing the creation of a proxy which implements <see cref="SubType"/>.
-/// </summary>
-/// <remarks>
-/// If an object implements more than one of the <see cref="SubType"/> insterfaces, the behavior is undefined.
-///
-/// In an object doesn't implement any of the <see cref="SubType"/> interfaces,
-/// <see cref="RpcMarshalableKnownSubTypeAttribute"/> attributes are simply ignored.
-/// </remarks>
+/// </para><para>
+/// Marshaling an object that implements multiple sub-type interfaces is not supported.
+/// </para><para>
+/// Defining a sub-type that extends another sub-type of the same interface is not supported.
+/// </para><para>
+/// If a message is received containing no <see cref="SubTypeCode"/>, or an unknown <see cref="SubTypeCode"/>, for a
+/// marshalable interface that has known sub-types, a proxy will be created using the base interface.
+/// </para><para>
+/// <see cref="RpcMarshalableKnownSubTypeAttribute"/> is honored only when an object is marshaled through an RPC method
+/// that used exactly the interface the attribute is assigned to: <see cref="RpcMarshalableKnownSubTypeAttribute"/>
+/// attributes applied to interfaces extending or extended from the one the attribute is assigned to are ignored.
+/// </para></remarks>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true, Inherited = false)]
 public class RpcMarshalableKnownSubTypeAttribute : Attribute
 {
     /// <summary>
-    /// 
+    /// Initializes a new instance of the <see cref="RpcMarshalableKnownSubTypeAttribute"/> class.
     /// </summary>
-    /// <param name="subType"></param>
-    /// <param name="subTypeCode"></param>
+    /// <param name="subType">The <see cref="Type"/> of the known interface that extends the interface this attribute
+    /// is applied to.</param>
+    /// <param name="subTypeCode">The code to be serialized to specify that the marshaled object proxy should be
+    /// generated implementing the <paramref name="subType"/> interface. <paramref name="subTypeCode"/> values must be
+    /// unique across the different know sub-types of the interface this attribute is applied to. Because
+    /// <paramref name="subTypeCode"/> is serialized when transmitting a marshaled object, its value should never be
+    /// reassigned to a different sub-type when updating RPC interfaces.</param>
     public RpcMarshalableKnownSubTypeAttribute(Type subType, int subTypeCode)
     {
         this.SubType = subType;
@@ -32,7 +43,7 @@ public class RpcMarshalableKnownSubTypeAttribute : Attribute
     }
 
     /// <summary>
-    /// 
+    /// Gets the <see cref="Type"/> of the known interface that extends the interface this attribute is applied to.
     /// </summary>
     public Type SubType { get; }
 

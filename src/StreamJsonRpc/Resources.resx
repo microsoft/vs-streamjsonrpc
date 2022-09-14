@@ -303,6 +303,9 @@
   <data name="RpcMarshalableSubTypeNotExtendingDeclaredType" xml:space="preserve">
     <value>One of the declared sub-types of {0} doesn't extend {0}.</value>
   </data>
+  <data name="RpcMarshalableSubTypesMustBeMarshalable" xml:space="preserve">
+    <value>One of the sub-types of {0} is not marked with the RpcMarshalable attribute.</value>
+  </data>
   <data name="RpcMethodNameNotFound" xml:space="preserve">
     <value>No method by the name '{0}' is found.</value>
   </data>

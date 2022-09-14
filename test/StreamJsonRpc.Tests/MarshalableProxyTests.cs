@@ -125,6 +125,7 @@ public abstract class MarshalableProxyTests : TestBase
         Task<int> GetAsync(int value);
     }
 
+    [RpcMarshalable]
     public interface IMarshalableSubType1 : IMarshalableWithSubTypes
     {
         Task<int> GetPlusOneAsync(int value);
@@ -137,11 +138,13 @@ public abstract class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
+    [RpcMarshalable]
     public interface IMarshalableSubType3 : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
 
+    [RpcMarshalable]
     public interface IMarshalableUnknownSubType : IMarshalableWithSubTypes
     {
     }
@@ -538,11 +541,25 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
         Assert.False(proxy is IMarshalableSubType2);
+        Assert.False(proxy is IMarshalableSubType3);
 
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1();
         IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy1!.GetAsync(1));
-        Assert.Equal(2, await proxy1!.GetPlusOneAsync(1));
+        Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
+        Assert.False(proxy1 is IMarshalableSubType2);
+        Assert.False(proxy1 is IMarshalableSubType3);
+    }
+
+    [Fact]
+    public async Task RpcMarshalableKnownSubType_IndirectInterfaceImplementation()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1Indirect();
+        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(2, await proxy.GetPlusOneAsync(1));
+        Assert.False(proxy is IMarshalableSubType2);
+        Assert.False(proxy is IMarshalableSubType3);
     }
 
     [Fact]
@@ -551,7 +568,9 @@ public abstract class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType2();
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        Assert.Equal(3, await proxy!.GetPlusTwoAsync(1));
+        Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
+        Assert.False(proxy is IMarshalableSubType1);
+        Assert.False(proxy is IMarshalableSubType3);
     }
 
     [Fact]
@@ -560,6 +579,9 @@ public abstract class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableUnknownSubType();
         IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.False(proxy is IMarshalableSubType1);
+        Assert.False(proxy is IMarshalableSubType2);
+        Assert.False(proxy is IMarshalableSubType3);
     }
 
     [Fact]
@@ -568,7 +590,7 @@ public abstract class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType3();
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        Assert.Equal(3, await proxy!.GetPlusTwoAsync(1));
+        Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         Assert.False(proxy is IMarshalableSubType3);
     }
 
@@ -827,6 +849,10 @@ public abstract class MarshalableProxyTests : TestBase
         public void Dispose()
         {
         }
+    }
+
+    public class MarshalableSubType1Indirect : MarshalableSubType1
+    {
     }
 
     public class MarshalableSubType2 : IMarshalableSubType2
