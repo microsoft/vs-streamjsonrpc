@@ -185,6 +185,11 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 throw new NotSupportedException(Resources.MarshalableInterfaceHasProperties);
             }
 
+            if (attributes.Any(a => !typeof(IDisposable).IsAssignableFrom(a.SubType)))
+            {
+                throw new NotSupportedException(Resources.MarshalableInterfaceNotDisposable);
+            }
+
             return attributes;
         });
     }
