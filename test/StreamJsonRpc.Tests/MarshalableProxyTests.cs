@@ -120,26 +120,61 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalable]
     [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1), subTypeCode: 1)]
     [RpcMarshalableKnownSubType(typeof(IMarshalableSubType2), subTypeCode: 2)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1Extended), subTypeCode: 3)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableNonExtendingBase), subTypeCode: 4)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubTypesCombined), subTypeCode: 5)]
     public interface IMarshalableWithSubTypes : IDisposable
     {
         Task<int> GetAsync(int value);
     }
 
     [RpcMarshalable]
+    public interface IMarshalableNonExtendingBase : IDisposable
+    {
+        Task<int> GetPlusFourAsync(int value);
+    }
+
+    [RpcMarshalable]
     public interface IMarshalableSubType1 : IMarshalableWithSubTypes
     {
         Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetMinusOneAsync(int value);
     }
 
     [RpcMarshalable]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType3), subTypeCode: 3)]
+    public interface IMarshalableSubType1Extended : IMarshalableSubType1
+    {
+        new Task<int> GetAsync(int value);
+
+        new Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetPlusThreeAsync(int value);
+
+        new Task<int> GetMinusOneAsync(int value);
+
+        Task<int> GetMinusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
+    {
+        Task<int> GetPlusFiveAsync(int value);
+    }
+
+    [RpcMarshalable]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType2Extended), subTypeCode: 99)]
     public interface IMarshalableSubType2 : IMarshalableWithSubTypes
     {
         Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetMinusTwoAsync(int value);
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubType3 : IMarshalableSubType2
+    public interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
@@ -541,14 +576,14 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
         Assert.False(proxy is IMarshalableSubType2);
-        Assert.False(proxy is IMarshalableSubType3);
+        Assert.False(proxy is IMarshalableSubType2Extended);
 
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1();
         IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
         Assert.False(proxy1 is IMarshalableSubType2);
-        Assert.False(proxy1 is IMarshalableSubType3);
+        Assert.False(proxy1 is IMarshalableSubType2Extended);
     }
 
     [Fact]
@@ -559,7 +594,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(2, await proxy.GetPlusOneAsync(1));
         Assert.False(proxy is IMarshalableSubType2);
-        Assert.False(proxy is IMarshalableSubType3);
+        Assert.False(proxy is IMarshalableSubType2Extended);
     }
 
     [Fact]
@@ -570,7 +605,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
-        Assert.False(proxy is IMarshalableSubType3);
+        Assert.False(proxy is IMarshalableSubType2Extended);
     }
 
     [Fact]
@@ -581,17 +616,83 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
         Assert.False(proxy is IMarshalableSubType2);
-        Assert.False(proxy is IMarshalableSubType3);
+        Assert.False(proxy is IMarshalableSubType2Extended);
     }
 
     [Fact]
     public async Task RpcMarshalableKnownSubType_OnlyAttibutesOnDeclaredTypeAreHonored()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType3();
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType2Extended();
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
-        Assert.False(proxy is IMarshalableSubType3);
+        Assert.False(proxy is IMarshalableSubType2Extended);
+    }
+
+    [Fact]
+    public async Task RpcMarshalableKnownSubType_MarshalableNonExtendingBase()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableNonExtendingBase();
+        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableKnownSubType_MultipleImplementations()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypeMultipleImplementations();
+        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+
+        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
+        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableKnownSubType_MultipleImplementationsCombined()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypesCombined();
+        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+
+        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
+        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypesCombined)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubTypesCombined)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubTypesCombined)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubTypesCombined)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(6, await ((IMarshalableSubTypesCombined)proxy).GetPlusFiveAsync(1));
     }
 
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
@@ -846,6 +947,8 @@ public abstract class MarshalableProxyTests : TestBase
 
         public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1);
 
+        public Task<int> GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
         public void Dispose()
         {
         }
@@ -861,18 +964,22 @@ public abstract class MarshalableProxyTests : TestBase
 
         Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
 
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2);
+
         public void Dispose()
         {
         }
     }
 
-    public class MarshalableSubType3 : IMarshalableSubType3
+    public class MarshalableSubType2Extended : IMarshalableSubType2Extended
     {
         public Task<int> GetAsync(int value) => Task.FromResult(value);
 
         public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
 
         public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2);
 
         public void Dispose()
         {
@@ -882,6 +989,73 @@ public abstract class MarshalableProxyTests : TestBase
     public class MarshalableUnknownSubType : IMarshalableUnknownSubType
     {
         public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableNonExtendingBase : IMarshalableWithSubTypes, IMarshalableNonExtendingBase
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypeMultipleImplementations : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithSubTypes and IMarshalableSubType1Extended (new keyword)
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
+
+        Task<int> IMarshalableSubType1.GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetPlusOneAsync(int value) => Task.FromResult(-value - 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetMinusOneAsync(int value) => Task.FromResult(-value + 1);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2); // From both IMarshalableSubType2 and IMarshalableSubType1Extended
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4); // From IMarshalableNonExtendingBase
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypesCombined : IMarshalableSubTypesCombined
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithSubTypes and IMarshalableSubType1Extended (new keyword)
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
+
+        Task<int> IMarshalableSubType1.GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetPlusOneAsync(int value) => Task.FromResult(-value - 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetMinusOneAsync(int value) => Task.FromResult(-value + 1);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2); // From both IMarshalableSubType2 and IMarshalableSubType1Extended
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4); // From IMarshalableNonExtendingBase
+
+        public Task<int> GetPlusFiveAsync(int value) => Task.FromResult(value + 5); // From IMarshalableSubTypesCombined
 
         public void Dispose()
         {

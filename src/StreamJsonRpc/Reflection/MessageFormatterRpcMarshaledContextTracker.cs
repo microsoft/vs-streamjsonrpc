@@ -170,11 +170,6 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableDuplicatedSubType, declaredType.FullName));
             }
 
-            if (attributes.Any(a => !declaredType.IsAssignableFrom(a.SubType)))
-            {
-                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypeNotExtendingDeclaredType, declaredType.FullName));
-            }
-
             if (attributes.Any(a => a.SubType.GetCustomAttribute<RpcMarshalableAttribute>() is null))
             {
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypesMustBeMarshalable, declaredType.FullName));

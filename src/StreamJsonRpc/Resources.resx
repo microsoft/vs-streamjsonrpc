@@ -291,9 +291,6 @@
   <data name="RpcMarshalableDuplicatedSubTypeCode" xml:space="preserve">
     <value>Duplicated sub-type code for {0}.</value>
   </data>
-  <data name="RpcMarshalableSubTypeNotExtendingDeclaredType" xml:space="preserve">
-    <value>One of the declared sub-types of {0} doesn't extend {0}.</value>
-  </data>
   <data name="RpcMarshalableSubTypesMustBeMarshalable" xml:space="preserve">
     <value>One of the sub-types of {0} is not marked with the RpcMarshalable attribute.</value>
   </data>

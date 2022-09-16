@@ -538,15 +538,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to One of the declared sub-types of {0} doesn&apos;t extend {0}..
-        /// </summary>
-        internal static string RpcMarshalableSubTypeNotExtendingDeclaredType {
-            get {
-                return ResourceManager.GetString("RpcMarshalableSubTypeNotExtendingDeclaredType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to One of the sub-types of {0} is not marked with the RpcMarshalable attribute..
         /// </summary>
         internal static string RpcMarshalableSubTypesMustBeMarshalable {

@@ -456,7 +456,7 @@ internal static class ProxyGeneration
 
         int CompareRpcInterfaces((TypeInfo Type, int? Code, int InheritanceWeight) a, (TypeInfo Type, int? Code, int InheritanceWeight) b)
         {
-            int weightComparison = -a.InheritanceWeight.CompareTo(b.InheritanceWeight);
+            int weightComparison = a.InheritanceWeight.CompareTo(b.InheritanceWeight);
             return (weightComparison, a.Code, b.Code) switch
             {
                 (_, _, _) when weightComparison != 0 => weightComparison,
