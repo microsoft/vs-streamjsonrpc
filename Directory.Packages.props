@@ -3,7 +3,7 @@
     <MicroBuildVersion>2.0.82</MicroBuildVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.1" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.2" />
     <PackageVersion Include="coverlet.msbuild" Version="3.1.2" />
     <PackageVersion Include="CSharpIsNullAnalyzer" Version="0.1.329" />
     <PackageVersion Include="IsExternalInit" Version="1.0.3" />
