@@ -10,14 +10,11 @@ namespace StreamJsonRpc;
 /// <remarks><para>
 /// When an object that implements <see cref="SubType"/> is marshaled as its base interface marked with
 /// <see cref="RpcMarshalableKnownSubTypeAttribute"/>, <see cref="SubTypeCode"/> is included in the StreamJsonRpc
-/// message allowing the creation of a proxy which implements <see cref="SubType"/>.
+/// message allowing the creation of a proxy which also implements <see cref="SubType"/>.
 /// </para><para>
-/// Marshaling an object that implements multiple sub-type interfaces is not supported.
-/// </para><para>
-/// Defining a sub-type that extends another sub-type of the same interface is not supported.
-/// </para><para>
-/// If a message is received containing no <see cref="SubTypeCode"/>, or an unknown <see cref="SubTypeCode"/>, for a
-/// marshalable interface that has known sub-types, a proxy will be created using the base interface.
+/// If a message is received containing no <see cref="SubTypeCode"/>, for a marshalable interface that has known
+/// sub-types, a proxy will be created using the base interface. Unkonow <see cref="SubTypeCode"/> values will be
+/// ignored when creating the proxy.
 /// </para><para>
 /// <see cref="RpcMarshalableKnownSubTypeAttribute"/> is honored only when an object is marshaled through an RPC method
 /// that used exactly the interface the attribute is assigned to: <see cref="RpcMarshalableKnownSubTypeAttribute"/>
@@ -48,8 +45,8 @@ public class RpcMarshalableKnownSubTypeAttribute : Attribute
     public Type SubType { get; }
 
     /// <summary>
-    /// Gets the code to be serialized to specify that the marshaled object proxy should be generated implementing the
-    /// <see cref="SubType"/> interface.
+    /// Gets the code to be serialized to specify that the marshaled object proxy should be generated also
+    /// implementing the <see cref="SubType"/> interface.
     /// </summary>
     public int SubTypeCode { get; }
 }

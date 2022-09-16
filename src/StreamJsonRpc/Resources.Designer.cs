@@ -538,33 +538,6 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Marshalable object {0} implements multiple known sub-types of {1}..
-        /// </summary>
-        internal static string RpcMarshalableImplementsMultipleSubTypes {
-            get {
-                return ResourceManager.GetString("RpcMarshalableImplementsMultipleSubTypes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Receiving marshaled objects implementing multiple sub-type interfaces is currently not supported..
-        /// </summary>
-        internal static string RpcMarshalableReceivedObjectImplementingMultipleSubTypes {
-            get {
-                return ResourceManager.GetString("RpcMarshalableReceivedObjectImplementingMultipleSubTypes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to A known sub-type of {0} extends another known sub-type of the same interface..
-        /// </summary>
-        internal static string RpcMarshalableSubTypeExtendsAnotherSubType {
-            get {
-                return ResourceManager.GetString("RpcMarshalableSubTypeExtendsAnotherSubType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to One of the declared sub-types of {0} doesn&apos;t extend {0}..
         /// </summary>
         internal static string RpcMarshalableSubTypeNotExtendingDeclaredType {

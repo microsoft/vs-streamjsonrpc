@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Protocol;
 
@@ -187,35 +188,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         lock (this.SyncObject)
         {
-            foreach (KeyValuePair<string, List<MethodSignature>> item in mapping)
-            {
-                string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
-                Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
-                bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
-                if (!alreadyExists)
-                {
-                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, existingList = new List<MethodSignatureAndTarget>());
-                }
-
-                // Only add methods that do not have equivalent signatures to what we already have.
-                foreach (MethodSignature newMethod in item.Value)
-                {
-                    if (!alreadyExists || !existingList.Any(e => e.Equals(newMethod)))
-                    {
-                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, null);
-                        this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
-                        revert?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                        existingList!.Add(signatureAndTarget);
-                    }
-                    else
-                    {
-                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                        {
-                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
-                        }
-                    }
-                }
-            }
+            this.AddRpcInterfaceToTarget(mapping, target, options, revert);
 
             if (options.NotifyClientOfEvents)
             {
@@ -264,6 +237,27 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
 
         return revert;
+    }
+
+    /// <summary>
+    /// Adds a new RPC interface to an existing target registering additional RPC methods.
+    /// </summary>
+    /// <param name="exposingMembersOn">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
+    /// <param name="target">Target to invoke when incoming messages are received.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object. This object is returned by an earlier call to <see cref="AddRpcInterfaceToTarget(Type, object, JsonRpcTargetOptions?, IDisposable?)"/>.</param>
+    internal void AddRpcInterfaceToTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, IDisposable? revertAddLocalRpcTarget)
+    {
+        RevertAddLocalRpcTarget? revert = revertAddLocalRpcTarget as RevertAddLocalRpcTarget;
+        if (revertAddLocalRpcTarget is not null && revert is null)
+        {
+            throw new ArgumentException(nameof(revertAddLocalRpcTarget));
+        }
+
+        options = options ?? JsonRpcTargetOptions.Default;
+        IReadOnlyDictionary<string, List<MethodSignature>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), options.AllowNonPublicInvocation, options.UseSingleObjectParameterDeserialization, options.ClientRequiresNamedArguments);
+
+        this.AddRpcInterfaceToTarget(mapping, target, options, revert);
     }
 
     /// <summary>
@@ -516,6 +510,49 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
 
         return eventInfos;
+    }
+
+    /// <summary>
+    /// Adds a new RPC interface to an existing target registering RPC methods.
+    /// </summary>
+    /// <param name="mapping">The methods to bers of the <paramref name="target"/> object.</param>
+    /// <param name="target">Target to invoke when incoming messages are received.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object. This object is returned by an earlier call to <see cref="AddRpcInterfaceToTarget(Type, object, JsonRpcTargetOptions?, IDisposable?)"/>.</param>
+    private void AddRpcInterfaceToTarget(IReadOnlyDictionary<string, List<MethodSignature>> mapping, object target, JsonRpcTargetOptions options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    {
+        lock (this.SyncObject)
+        {
+            foreach (KeyValuePair<string, List<MethodSignature>> item in mapping)
+            {
+                string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
+                Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
+                if (!alreadyExists)
+                {
+                    this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, existingList = new List<MethodSignatureAndTarget>());
+                }
+
+                // Only add methods that do not have equivalent signatures to what we already have.
+                foreach (MethodSignature newMethod in item.Value)
+                {
+                    if (!alreadyExists || !existingList.Any(e => e.Equals(newMethod)))
+                    {
+                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, null);
+                        this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
+                        revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
+                        existingList!.Add(signatureAndTarget);
+                    }
+                    else
+                    {
+                        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)

@@ -32,7 +32,7 @@ internal static class ProxyGeneration
     private static readonly ConstructorInfo ObjectCtor = typeof(object).GetTypeInfo().DeclaredConstructors.Single();
     private static readonly ConstructorInfo ObjectDisposedExceptionCtor = typeof(ObjectDisposedException).GetTypeInfo().DeclaredConstructors.Single(ctor => ctor.GetParameters() is { } p && p.Length == 1 && p[0].ParameterType == typeof(string));
     private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetRuntimeMethod(nameof(Type.GetTypeFromHandle), new Type[] { typeof(RuntimeTypeHandle) }) ?? throw Assumes.NotReachable();
-    private static readonly Dictionary<TypeInfo, TypeInfo> GeneratedProxiesByInterface = new Dictionary<TypeInfo, TypeInfo>();
+    private static readonly Dictionary<GeneratedProxiesByInterfaceKey, TypeInfo> GeneratedProxiesByInterface = new Dictionary<GeneratedProxiesByInterfaceKey, TypeInfo>();
     private static readonly MethodInfo CompareExchangeMethod = (from method in typeof(Interlocked).GetRuntimeMethods()
                                                                 where method.Name == nameof(Interlocked.CompareExchange)
                                                                 let parameters = method.GetParameters()
@@ -55,38 +55,54 @@ internal static class ProxyGeneration
     /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
     /// </summary>
     /// <param name="serviceInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
+    /// <param name="additionalInterfaces">Additional proxy interfaces that the client proxy should implement. This parameter is used
+    /// only when creating a proxy for a marshalable interface.</param>
     /// <returns>The generated type.</returns>
-    internal static TypeInfo Get(TypeInfo serviceInterface)
+    internal static TypeInfo Get(TypeInfo serviceInterface, (TypeInfo Type, int Code)[]? additionalInterfaces = null)
     {
         Requires.NotNull(serviceInterface, nameof(serviceInterface));
         VerifySupported(serviceInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, serviceInterface);
+        if (additionalInterfaces is not null)
+        {
+            foreach ((TypeInfo type, _) in additionalInterfaces)
+            {
+                VerifySupported(type.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, type);
+            }
+        }
+
+        var rpcInterfaces = new List<(TypeInfo Type, int? Code)>
+            {
+                (serviceInterface, (int?)null),
+            };
+        if (additionalInterfaces is not null)
+        {
+            rpcInterfaces.AddRange(additionalInterfaces.Select(i => (i.Type, (int?)i.Code)));
+        }
+
+        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their extensions.
+        SortRpcInterfaces(rpcInterfaces);
 
         TypeInfo? generatedType;
+        GeneratedProxiesByInterfaceKey generatedProxyKey = new(serviceInterface, additionalInterfaces?.Select(i => i.Code));
 
         lock (BuilderLock)
         {
-            if (GeneratedProxiesByInterface.TryGetValue(serviceInterface, out generatedType))
+            if (GeneratedProxiesByInterface.TryGetValue(generatedProxyKey, out generatedType))
             {
                 return generatedType;
             }
 
             ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(serviceInterface);
 
-            RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(serviceInterface);
-
-            var interfaces = new List<Type>
-            {
-                serviceInterface.AsType(),
-            };
-
-            interfaces.Add(typeof(IJsonRpcClientProxy));
-            interfaces.Add(typeof(IJsonRpcClientProxyInternal));
+            var proxyInterfaces = rpcInterfaces.Select(i => i.Type.AsType()).ToList();
+            proxyInterfaces.Add(typeof(IJsonRpcClientProxy));
+            proxyInterfaces.Add(typeof(IJsonRpcClientProxyInternal));
 
             TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
                 string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
                 TypeAttributes.Public,
                 typeof(object),
-                interfaces.ToArray());
+                proxyInterfaces.ToArray());
             Type proxyType = proxyTypeBuilder;
 
             const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
@@ -99,7 +115,7 @@ internal static class ProxyGeneration
 
             VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
-            // Implement events
+            // Implement events, we don't implement events for the additional interfaces because we don't support events in marshaled interfaces
             var ctorActions = new List<Action<ILGenerator>>();
             foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredEvents))
             {
@@ -231,169 +247,182 @@ internal static class ProxyGeneration
             IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
             MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 2);
 
-            foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
+            HashSet<MethodInfo> implementedMethods = new() { DisposeMethod };
+            foreach ((TypeInfo rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
             {
-                // Check for specially supported methods from derived interfaces.
-                if (Equals(DisposeMethod, method))
+                RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(rpcInterface);
+                foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(rpcInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
-                    // This is unconditionally implemented earlier.
-                    continue;
-                }
-
-                bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-                bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
-                bool returnTypeIsIAsyncEnumerable = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
-                bool returnTypeIsVoid = method.ReturnType == typeof(void);
-                VerifySupported(returnTypeIsVoid || returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
-                VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
-
-                bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
-                Type? invokeResultTypeArgument = hasReturnValue
-                    ? (returnTypeIsIAsyncEnumerable ? method.ReturnType : method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
-                    : null;
-
-                ParameterInfo[] methodParameters = method.GetParameters();
-                MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
-                    method.Name,
-                    MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                    method.ReturnType,
-                    methodParameters.Select(p => p.ParameterType).ToArray());
-                ILGenerator il = methodBuilder.GetILGenerator();
-
-                EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
-
-                EmitRaiseCallEvent(il, callingMethodField, method.Name);
-
-                // this.rpc
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, jsonRpcField);
-
-                // First argument to InvokeAsync and NotifyAsync is the method name.
-                // Run it through the method name transform.
-                // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, optionsField);
-                il.EmitCall(OpCodes.Callvirt, MethodNameTransformPropertyGetter, null);
-                il.Emit(OpCodes.Ldstr, methodNameMap.GetRpcMethodName(method));
-                il.EmitCall(OpCodes.Callvirt, MethodNameTransformInvoke, null);
-
-                Label positionalArgsLabel = il.DefineLabel();
-
-                ParameterInfo cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
-                int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter is not null ? 1 : 0);
-                VerifySupported(cancellationTokenParameter is null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
-
-                // if (this.options.ServerRequiresNamedArguments) {
-                il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Ldfld, optionsField);
-                il.EmitCall(OpCodes.Callvirt, ServerRequiresNamedArgumentsPropertyGetter, null);
-                il.Emit(OpCodes.Brfalse, positionalArgsLabel);
-
-                // The second argument is a single parameter object.
-                {
-                    if (argumentCountExcludingCancellationToken > 0)
+                    if (implementedMethods.Contains(method))
                     {
-                        ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray());
-                        for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                        continue;
+                    }
+
+                    implementedMethods.Add(method);
+
+                    bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+                    bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
+                    bool returnTypeIsIAsyncEnumerable = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>);
+                    bool returnTypeIsVoid = method.ReturnType == typeof(void);
+                    VerifySupported(returnTypeIsVoid || returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
+                    VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
+
+                    bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
+                    Type? invokeResultTypeArgument = hasReturnValue
+                        ? (returnTypeIsIAsyncEnumerable ? method.ReturnType : method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
+                        : null;
+
+                    string methodName = method.Name;
+                    string rpcMethodName = methodNameMap.GetRpcMethodName(method);
+                    if (rpcInterfaceCode.HasValue)
+                    {
+                        methodName = rpcInterfaceCode + "." + rpcMethodName;
+                        rpcMethodName = rpcInterfaceCode + "." + rpcMethodName;
+                    }
+
+                    ParameterInfo[] methodParameters = method.GetParameters();
+                    MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
+                        methodName,
+                        MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+                        method.ReturnType,
+                        methodParameters.Select(p => p.ParameterType).ToArray());
+                    ILGenerator il = methodBuilder.GetILGenerator();
+
+                    EmitThrowIfDisposed(proxyTypeBuilder, il, disposedField);
+
+                    EmitRaiseCallEvent(il, callingMethodField, methodName);
+
+                    // this.rpc
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, jsonRpcField);
+
+                    // First argument to InvokeAsync and NotifyAsync is the method name.
+                    // Run it through the method name transform.
+                    // this.options.MethodNameTransform.Invoke("clrOrAttributedMethodName")
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, optionsField);
+                    il.EmitCall(OpCodes.Callvirt, MethodNameTransformPropertyGetter, null);
+                    il.Emit(OpCodes.Ldstr, rpcMethodName);
+                    il.EmitCall(OpCodes.Callvirt, MethodNameTransformInvoke, null);
+
+                    Label positionalArgsLabel = il.DefineLabel();
+
+                    ParameterInfo cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
+                    int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter is not null ? 1 : 0);
+                    VerifySupported(cancellationTokenParameter is null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
+
+                    // if (this.options.ServerRequiresNamedArguments) {
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, optionsField);
+                    il.EmitCall(OpCodes.Callvirt, ServerRequiresNamedArgumentsPropertyGetter, null);
+                    il.Emit(OpCodes.Brfalse, positionalArgsLabel);
+
+                    // The second argument is a single parameter object.
+                    {
+                        if (argumentCountExcludingCancellationToken > 0)
                         {
-                            il.Emit(OpCodes.Ldarg, i + 1);
-                        }
-
-                        il.Emit(OpCodes.Newobj, paramObjectCtor);
-                    }
-                    else
-                    {
-                        il.Emit(OpCodes.Ldnull);
-                    }
-
-                    // Note that we do NOT need to load in a dictionary of named parameter types
-                    // because of our specialized parameter object that strongly types all arguments for us.
-
-                    // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                    MethodInfo invokingMethod =
-                        invokeResultTypeArgument is not null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
-                        returnTypeIsVoid ? notifyWithParameterObjectAsyncOfTaskMethodInfo :
-                        invokeWithParameterObjectAsyncOfTaskMethodInfo;
-
-                    CompleteCall(invokingMethod);
-                }
-
-                // The second argument is an array of arguments for the RPC method.
-                il.MarkLabel(positionalArgsLabel);
-                {
-                    if (argumentCountExcludingCancellationToken == 0)
-                    {
-                        // No args, so avoid creating an array.
-                        il.Emit(OpCodes.Ldnull);
-                    }
-                    else
-                    {
-                        il.Emit(OpCodes.Ldc_I4, argumentCountExcludingCancellationToken);
-                        il.Emit(OpCodes.Newarr, typeof(object));
-
-                        for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
-                        {
-                            il.Emit(OpCodes.Dup); // duplicate the array on the stack
-                            il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
-                            il.Emit(OpCodes.Ldarg, i + 1); // push the associated argument
-                            if (methodParameters[i].ParameterType.GetTypeInfo().IsValueType)
+                            ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray());
+                            for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
                             {
-                                il.Emit(OpCodes.Box, methodParameters[i].ParameterType); // box if the argument is a value type
+                                il.Emit(OpCodes.Ldarg, i + 1);
                             }
 
-                            il.Emit(OpCodes.Stelem_Ref); // set the array element.
-                        }
-                    }
-
-                    // The third argument is a Type[] describing each parameter type.
-                    LoadParameterTypeArrayField(proxyTypeBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), il);
-
-                    // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
-                    MethodInfo invokingMethod =
-                        invokeResultTypeArgument is object ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
-                        returnTypeIsVoid ? NotifyAsyncOfTaskMethodInfo :
-                        invokeWithCancellationAsyncOfTaskMethodInfo;
-
-                    CompleteCall(invokingMethod);
-                }
-
-                proxyTypeBuilder.DefineMethodOverride(methodBuilder, method);
-
-                void CompleteCall(MethodInfo invokingMethod)
-                {
-                    // Only pass in the CancellationToken argument if we're NOT calling the Notify method (which doesn't take one).
-                    if (!returnTypeIsVoid)
-                    {
-                        if (cancellationTokenParameter is not null)
-                        {
-                            il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
+                            il.Emit(OpCodes.Newobj, paramObjectCtor);
                         }
                         else
                         {
-                            il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
+                            il.Emit(OpCodes.Ldnull);
                         }
+
+                        // Note that we do NOT need to load in a dictionary of named parameter types
+                        // because of our specialized parameter object that strongly types all arguments for us.
+
+                        // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
+                        MethodInfo invokingMethod =
+                            invokeResultTypeArgument is not null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                            returnTypeIsVoid ? notifyWithParameterObjectAsyncOfTaskMethodInfo :
+                            invokeWithParameterObjectAsyncOfTaskMethodInfo;
+
+                        CompleteCall(invokingMethod);
                     }
 
-                    il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
-
-                    if (returnTypeIsVoid)
+                    // The second argument is an array of arguments for the RPC method.
+                    il.MarkLabel(positionalArgsLabel);
                     {
-                        // Disregard the Task returned by NotifyAsync.
-                        il.Emit(OpCodes.Pop);
+                        if (argumentCountExcludingCancellationToken == 0)
+                        {
+                            // No args, so avoid creating an array.
+                            il.Emit(OpCodes.Ldnull);
+                        }
+                        else
+                        {
+                            il.Emit(OpCodes.Ldc_I4, argumentCountExcludingCancellationToken);
+                            il.Emit(OpCodes.Newarr, typeof(object));
+
+                            for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                            {
+                                il.Emit(OpCodes.Dup); // duplicate the array on the stack
+                                il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
+                                il.Emit(OpCodes.Ldarg, i + 1); // push the associated argument
+                                if (methodParameters[i].ParameterType.GetTypeInfo().IsValueType)
+                                {
+                                    il.Emit(OpCodes.Box, methodParameters[i].ParameterType); // box if the argument is a value type
+                                }
+
+                                il.Emit(OpCodes.Stelem_Ref); // set the array element.
+                            }
+                        }
+
+                        // The third argument is a Type[] describing each parameter type.
+                        LoadParameterTypeArrayField(proxyTypeBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray(), il);
+
+                        // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
+                        MethodInfo invokingMethod =
+                            invokeResultTypeArgument is object ? invokeWithCancellationAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                            returnTypeIsVoid ? NotifyAsyncOfTaskMethodInfo :
+                            invokeWithCancellationAsyncOfTaskMethodInfo;
+
+                        CompleteCall(invokingMethod);
                     }
-                    else
+
+                    proxyTypeBuilder.DefineMethodOverride(methodBuilder, method);
+
+                    void CompleteCall(MethodInfo invokingMethod)
                     {
-                        AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
+                        // Only pass in the CancellationToken argument if we're NOT calling the Notify method (which doesn't take one).
+                        if (!returnTypeIsVoid)
+                        {
+                            if (cancellationTokenParameter is not null)
+                            {
+                                il.Emit(OpCodes.Ldarg, cancellationTokenParameter.Position + 1);
+                            }
+                            else
+                            {
+                                il.Emit(OpCodes.Call, CancellationTokenNonePropertyGetter);
+                            }
+                        }
+
+                        il.EmitCall(OpCodes.Callvirt, invokingMethod, null);
+
+                        if (returnTypeIsVoid)
+                        {
+                            // Disregard the Task returned by NotifyAsync.
+                            il.Emit(OpCodes.Pop);
+                        }
+                        else
+                        {
+                            AdaptReturnType(method, returnTypeIsValueTask, returnTypeIsIAsyncEnumerable, il, invokingMethod, cancellationTokenParameter);
+                        }
+
+                        EmitRaiseCallEvent(il, calledMethodField, method.Name);
+
+                        il.Emit(OpCodes.Ret);
                     }
-
-                    EmitRaiseCallEvent(il, calledMethodField, method.Name);
-
-                    il.Emit(OpCodes.Ret);
                 }
             }
 
             generatedType = proxyTypeBuilder.CreateTypeInfo()!;
-            GeneratedProxiesByInterface.Add(serviceInterface, generatedType);
+            GeneratedProxiesByInterface.Add(generatedProxyKey, generatedType);
 
 #if SaveAssembly
             ((AssemblyBuilder)proxyModuleBuilder.Assembly).Save(proxyModuleBuilder.ScopeName);
@@ -403,6 +432,40 @@ internal static class ProxyGeneration
         }
 
         return generatedType;
+    }
+
+    /// <summary>
+    /// Sorts <paramref name="list"/> so that:
+    /// <list type="number">
+    /// <item><description>interfaces that are extending a lesser number of other interfaces in <paramref name="list"/> come first;</description></item>
+    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by sub-type subType with
+    /// <subType>null</subType> coming first.</description></item>
+    /// </list>
+    /// </summary>
+    /// <param name="list">The list of RPC interfaces to be sorted.</param>
+    private static void SortRpcInterfaces(List<(TypeInfo Type, int? Code)> list)
+    {
+        (TypeInfo Type, int? Code, int InheritanceWeight)[] weightedList
+            = list.Select(i => (i.Type, i.Code, list.Count(i2 => i2.Type.IsAssignableFrom(i.Type)))).ToArray();
+        Array.Sort(weightedList, CompareRpcInterfaces);
+
+        for (int i = 0; i < weightedList.Length; i++)
+        {
+            list[i] = (weightedList[i].Type, weightedList[i].Code);
+        }
+
+        int CompareRpcInterfaces((TypeInfo Type, int? Code, int InheritanceWeight) a, (TypeInfo Type, int? Code, int InheritanceWeight) b)
+        {
+            int weightComparison = -a.InheritanceWeight.CompareTo(b.InheritanceWeight);
+            return (weightComparison, a.Code, b.Code) switch
+            {
+                (_, _, _) when weightComparison != 0 => weightComparison,
+                (_, null, null) => 0,
+                (_, null, _) => -1,
+                (_, _, null) => 1,
+                (_, _, _) => a.Code.Value.CompareTo(b.Code.Value),
+            };
+        }
     }
 
     private static void EmitRaiseCallEvent(ILGenerator il, FieldBuilder eventHandlerField, string methodName)
@@ -602,7 +665,7 @@ internal static class ProxyGeneration
     /// <summary>
     /// Converts the value on the stack to one compatible with the method's return type.
     /// </summary>
-    /// <param name="method">The interface method that we're generating code for.</param>
+    /// <param name="method">The interface method that we're generating subType for.</param>
     /// <param name="returnTypeIsValueTask"><c>true</c> if the return type is <see cref="ValueTask"/> or <see cref="ValueTask{TResult}"/>; <c>false</c> otherwise.</param>
     /// <param name="returnTypeIsIAsyncEnumerable"><c>true</c> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <c>false</c> otherwise.</param>
     /// <param name="il">The IL emitter for the method.</param>
@@ -664,7 +727,7 @@ internal static class ProxyGeneration
 
         // As long as we're going to start a new module, let's maximize the chance that this is the last one
         // by skipping visibility checks on ALL assemblies loaded so far.
-        // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking code.
+        // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking subType.
         ////skipVisibilityCheckAssemblies = skipVisibilityCheckAssemblies.Union(AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName()));
 
         AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
@@ -835,6 +898,56 @@ internal static class ProxyGeneration
 
         IEnumerable<T> result = oneInterfaceQuery(interfaceType);
         return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
+    }
+
+    /// <summary>
+    /// Dictionary key for <see cref="GeneratedProxiesByInterface"/>.
+    /// </summary>
+    private struct GeneratedProxiesByInterfaceKey : IEquatable<GeneratedProxiesByInterfaceKey>
+    {
+        private readonly TypeInfo baseInterfaceType;
+
+        private readonly int[]? implementedSubTypes;
+
+        private int? hashCode = null;
+
+        public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, IEnumerable<int>? implementedSubTypes)
+        {
+            this.baseInterfaceType = baseInterfaceType;
+            this.implementedSubTypes = implementedSubTypes?.OrderBy(n => n).ToArray();
+        }
+
+        public bool Equals(GeneratedProxiesByInterfaceKey other)
+        {
+            return this.baseInterfaceType == other.baseInterfaceType &&
+                   !(this.implementedSubTypes is not null ^ other.implementedSubTypes is not null) &&
+                   (this.implementedSubTypes?.SequenceEqual(other.implementedSubTypes) ?? true);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is GeneratedProxiesByInterfaceKey other && this.Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            if (this.hashCode.HasValue)
+            {
+                return this.hashCode.Value;
+            }
+
+            int hashCode = this.baseInterfaceType.GetHashCode();
+            if (this.implementedSubTypes is not null)
+            {
+                foreach (int subType in this.implementedSubTypes)
+                {
+                    hashCode = (hashCode * 31) + subType.GetHashCode();
+                }
+            }
+
+            this.hashCode ??= hashCode;
+            return hashCode;
+        }
     }
 
     /// <summary>

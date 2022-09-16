@@ -175,14 +175,19 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypeNotExtendingDeclaredType, declaredType.FullName));
             }
 
-            if (attributes.Any(a => attributes.Any(b => b.SubTypeCode != a.SubTypeCode && b.SubType.IsAssignableFrom(a.SubType))))
-            {
-                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypeExtendsAnotherSubType, declaredType.FullName));
-            }
-
             if (attributes.Any(a => a.SubType.GetCustomAttribute<RpcMarshalableAttribute>() is null))
             {
                 throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableSubTypesMustBeMarshalable, declaredType.FullName));
+            }
+
+            if (attributes.Any(a => a.SubType.GetEvents().Length > 0))
+            {
+                throw new NotSupportedException(Resources.MarshalableInterfaceHasEvents);
+            }
+
+            if (attributes.Any(a => a.SubType.GetProperties().Length > 0))
+            {
+                throw new NotSupportedException(Resources.MarshalableInterfaceHasProperties);
             }
 
             return attributes;
@@ -205,27 +210,10 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         long handle = this.nextUniqueHandle++;
 
-        Type objectType = marshaledObject.GetType();
-        Type? actualInterface = declaredType;
-        int? subTypeCode = null;
-        foreach (RpcMarshalableKnownSubTypeAttribute attribute in GetMarshalableKnownSubtypes(declaredType))
-        {
-            if (attribute.SubType.IsAssignableFrom(objectType))
-            {
-                if (subTypeCode.HasValue)
-                {
-                    throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableImplementsMultipleSubTypes, objectType.FullName, declaredType.FullName));
-                }
-
-                subTypeCode = attribute.SubTypeCode;
-                actualInterface = attribute.SubType;
-            }
-        }
-
-        IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(actualInterface, marshaledObject, options);
+        IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(declaredType, marshaledObject, options);
 
         IDisposable? revert = this.jsonRpc.AddLocalRpcTargetInternal(
-            actualInterface,
+            declaredType,
             context.Proxy,
             new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
             {
@@ -234,6 +222,27 @@ internal class MessageFormatterRpcMarshaledContextTracker
             },
             requestRevertOption: true);
         Assumes.NotNull(revert);
+
+        Type objectType = marshaledObject.GetType();
+        List<int>? subTypeCodes = null;
+        foreach (RpcMarshalableKnownSubTypeAttribute attribute in GetMarshalableKnownSubtypes(declaredType))
+        {
+            if (attribute.SubType.IsAssignableFrom(objectType))
+            {
+                subTypeCodes ??= new();
+                subTypeCodes.Add(attribute.SubTypeCode);
+
+                this.jsonRpc.AddRpcInterfaceToTargetInternal(
+                    attribute.SubType,
+                    context.Proxy,
+                    new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
+                    {
+                        NotifyClientOfEvents = false, // We don't support this yet.
+                        MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{attribute.SubTypeCode}.{context.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
+                    },
+                    revert);
+            }
+        }
 
         lock (this.marshaledObjects)
         {
@@ -249,8 +258,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 (key, value) => value.Add(handle));
         }
 
-        int[]? subTypeCodes = subTypeCode.HasValue ? new int[] { subTypeCode.Value } : null;
-        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null, subTypeCodes);
+        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null, subTypeCodes?.ToArray());
     }
 
     /// <summary>
@@ -278,43 +286,42 @@ internal class MessageFormatterRpcMarshaledContextTracker
             throw new NotSupportedException("Receiving marshaled objects scoped to the lifetime of a single RPC request is not yet supported.");
         }
 
-        Type? actualInterfaceType = interfaceType;
+        List<(TypeInfo Type, int Code)>? additionalInterfaces = null;
         if ((token.Value.SubTypeCodes?.Length ?? 0) > 0)
         {
-            if (token.Value.SubTypeCodes!.Length > 1)
-            {
-                throw new NotSupportedException(Resources.RpcMarshalableReceivedObjectImplementingMultipleSubTypes);
-            }
-
             // If we don't find a match for subTypeCode, we return a proxy that implements the base interface
-            int subTypeCode = token.Value.SubTypeCodes[0];
-            foreach (RpcMarshalableKnownSubTypeAttribute attribute in GetMarshalableKnownSubtypes(interfaceType))
+            foreach (int subTypeCode in token.Value.SubTypeCodes.Distinct())
             {
-                if (attribute.SubTypeCode == subTypeCode)
+                foreach (RpcMarshalableKnownSubTypeAttribute attribute in GetMarshalableKnownSubtypes(interfaceType))
                 {
-                    actualInterfaceType = attribute.SubType;
-                    break;
+                    if (attribute.SubTypeCode == subTypeCode)
+                    {
+                        additionalInterfaces ??= new();
+                        additionalInterfaces.Add((attribute.SubType.GetTypeInfo(), attribute.SubTypeCode));
+                        break;
+                    }
                 }
             }
         }
 
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
         object result = this.jsonRpc.Attach(
-            actualInterfaceType,
+            interfaceType,
             new JsonRpcProxyOptions(options)
             {
                 MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
                 OnDispose = delegate
                 {
                     // Only forward the Dispose call if the marshaled interface derives from IDisposable.
-                    if (typeof(IDisposable).IsAssignableFrom(actualInterfaceType))
+                    if (typeof(IDisposable).IsAssignableFrom(interfaceType))
                     {
                         this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
                     }
 
                     this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
                 },
-            });
+            },
+            additionalInterfaces?.ToArray());
         if (options.OnProxyConstructed is object)
         {
             options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);

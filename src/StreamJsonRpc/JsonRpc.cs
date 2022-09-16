@@ -1171,6 +1171,22 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
+    /// </summary>
+    /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
+    /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+    /// <param name="additionalInterfaces">Additional proxy interfaces that the client proxy should implement. This parameter is used only when
+    /// creating a proxy for a marshalable interface.</param>
+    /// <returns>An instance of the generated proxy.</returns>
+    internal object Attach(Type interfaceType, JsonRpcProxyOptions? options, (TypeInfo Type, int Code)[]? additionalInterfaces)
+    {
+        Requires.NotNull(interfaceType, nameof(interfaceType));
+        TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo(), additionalInterfaces);
+        object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
+        return proxy;
+    }
+
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
     /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
     internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
@@ -1183,6 +1199,18 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     internal IDisposable? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
     {
         return this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption);
+    }
+
+    /// <summary>
+    /// Adds a new RPC interface to an existing target registering additional RPC methods.
+    /// </summary>
+    /// <param name="exposingMembersOn">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
+    /// <param name="target">Target to invoke when incoming messages are received.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object. This object is returned by an earlier call to <see cref="AddRpcInterfaceToTargetInternal(Type, object, JsonRpcTargetOptions?, IDisposable?)"/>.</param>
+    internal void AddRpcInterfaceToTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, IDisposable? revertAddLocalRpcTarget)
+    {
+        this.rpcTargetInfo.AddRpcInterfaceToTarget(exposingMembersOn, target, options, revertAddLocalRpcTarget);
     }
 
     /// <summary>
