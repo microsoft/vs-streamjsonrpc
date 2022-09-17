@@ -123,6 +123,7 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1Extended), subTypeCode: 3)]
     [RpcMarshalableKnownSubType(typeof(IMarshalableNonExtendingBase), subTypeCode: 4)]
     [RpcMarshalableKnownSubType(typeof(IMarshalableSubTypesCombined), subTypeCode: 5)]
+    [RpcMarshalableKnownSubType(typeof(IMarshalableSubTypeWithIntermediateInterface), subTypeCode: 6)]
     public interface IMarshalableWithSubTypes : IDisposable
     {
         Task<int> GetAsync(int value);
@@ -132,6 +133,22 @@ public abstract class MarshalableProxyTests : TestBase
     public interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
+    }
+
+    // This is non-RpcMarshalable
+    public interface IMarshalableSubTypeIntermediateInterface : IMarshalableWithSubTypes
+    {
+        Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetPlusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
+    {
+        new Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetPlusThreeAsync(int value);
     }
 
     [RpcMarshalable]
@@ -640,6 +657,27 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task RpcMarshalableKnownSubType_IntermediateNonMarshalableInterface()
+    {
+        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypeWithIntermediateInterface();
+        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetPlusOneAsync(1));
+
+        // This should return 3, since MarshalableSubTypeWithIntermediateInterface implements this method explicitly
+        // but StreamJsonRpc doesn't know about the IMarshalableSubTypeIntermediateInterface because it is not part
+        // of the RPC contract, so IMarshalableSubTypeWithIntermediateInterface.GetPlusTwoAsync is invoked instead.
+        Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetPlusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusOneAsync(1));
+        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusThreeAsync(1));
+    }
+
+    [Fact]
     public async Task RpcMarshalableKnownSubType_MultipleImplementations()
     {
         this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypeMultipleImplementations();
@@ -1000,6 +1038,23 @@ public abstract class MarshalableProxyTests : TestBase
         public Task<int> GetAsync(int value) => Task.FromResult(value);
 
         public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeWithIntermediateInterface
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2);
+
+        Task<int> IMarshalableSubTypeIntermediateInterface.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3);
 
         public void Dispose()
         {

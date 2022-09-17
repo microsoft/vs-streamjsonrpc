@@ -36,6 +36,7 @@ Any marshaled object is encoded as a JSON object with the following properties:
 - `__jsonrpc_marshaled` - required
 - `handle` - required
 - `lifetime` - optional
+- `subtypes` - optional
 
 The `__jsonrpc_marshaled` property is a number that may be one of the following values:
 
@@ -55,6 +56,8 @@ Value | Explanation
 `"call"` | The marshaled object may only be invoked until the containing RPC call completes. This value is only allowed when used within a JSON-RPC argument. No explicit release using `$/releaseMarshaledObject` is required.
 `"explicit"` | The marshaled object may be invoked until `$/releaseMarshaledObject` releases it. **This is the default behavior when the `lifetime` property is omitted.**
 
+The `subtypes` property is an array of integers that MAY be included to specify that the marshaled object implements additional known interfaces: each integer represents one of these interfaces.
+
 ### Marshaling an object
 
 Consider this example where `SomeMethod(int a, ISomething b, int c)` is invoked with a marshaled object for the second parameter:
@@ -66,7 +69,7 @@ Consider this example where `SomeMethod(int a, ISomething b, int c)` is invoked 
     "method": "SomeMethod",
     "params": [
         1,
-        { "__jsonrpc_marshaled": 1, "handle": 5 },
+        { "__jsonrpc_marshaled": 1, "handle": 5, "subtypes": [1] },
         3,
     ]
 }
@@ -83,6 +86,17 @@ The receiver of the above request can invoke `DoSomething` on the marshaled `ISo
     "jsonrpc": "2.0",
     "id": 15,
     "method": "$/invokeProxy/5/DoSomething",
+    "params": []
+}
+```
+
+The receiver of the above request can also invoke `DoSomethingElse`, defined by the additional known interfaces `1`, with a request such as this:
+
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 20,
+    "method": "$/invokeProxy/5/1.DoSomethingElse",
     "params": []
 }
 ```
