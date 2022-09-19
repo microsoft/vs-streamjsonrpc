@@ -298,9 +298,6 @@ The `subTypeCode` values used in `RpcMarshalableKnownSubType` attributes are use
 When a method is invoked on a marshalable object proxy, it is traslated into an RPC call to the best-matching interface method.
 
 For example, given the interfaces defined below:
-
-
-
 - a call to `((IFoo)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IFoo` interface.
 - a call to `((IBaz)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
 - a call to `((IBar)proxy).DoBarAsync()` would result in an RPC call to the `DoBarAsync` method as defined by the `IBaz` interface (due to it extending `IBar`), if the marshalable object implements `IBaz`.
