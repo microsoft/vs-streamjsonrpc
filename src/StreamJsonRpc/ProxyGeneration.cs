@@ -115,7 +115,8 @@ internal static class ProxyGeneration
 
             VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
 
-            // Implement events, we don't implement events for the additional interfaces because we don't support events in marshaled interfaces
+            // Implement events only on the main interface.
+            // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
             var ctorActions = new List<Action<ILGenerator>>();
             foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredEvents))
             {
@@ -253,12 +254,10 @@ internal static class ProxyGeneration
                 RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(rpcInterface);
                 foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(rpcInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
-                    if (implementedMethods.Contains(method))
+                    if (!implementedMethods.Add(method))
                     {
                         continue;
                     }
-
-                    implementedMethods.Add(method);
 
                     bool returnTypeIsTask = method.ReturnType == typeof(Task) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
                     bool returnTypeIsValueTask = method.ReturnType == typeof(ValueTask) || (method.ReturnType.GetTypeInfo().IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
@@ -438,8 +437,8 @@ internal static class ProxyGeneration
     /// Sorts <paramref name="list"/> so that:
     /// <list type="number">
     /// <item><description>interfaces that are extending a lesser number of other interfaces in <paramref name="list"/> come first;</description></item>
-    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by sub-type subType with
-    /// <subType>null</subType> coming first.</description></item>
+    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by sub-type;
+    /// where a <see langword="null" /> subType comes first.</description></item>
     /// </list>
     /// </summary>
     /// <param name="list">The list of RPC interfaces to be sorted.</param>
@@ -665,7 +664,7 @@ internal static class ProxyGeneration
     /// <summary>
     /// Converts the value on the stack to one compatible with the method's return type.
     /// </summary>
-    /// <param name="method">The interface method that we're generating subType for.</param>
+    /// <param name="method">The interface method that we're generating code for.</param>
     /// <param name="returnTypeIsValueTask"><c>true</c> if the return type is <see cref="ValueTask"/> or <see cref="ValueTask{TResult}"/>; <c>false</c> otherwise.</param>
     /// <param name="returnTypeIsIAsyncEnumerable"><c>true</c> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <c>false</c> otherwise.</param>
     /// <param name="il">The IL emitter for the method.</param>
@@ -727,7 +726,7 @@ internal static class ProxyGeneration
 
         // As long as we're going to start a new module, let's maximize the chance that this is the last one
         // by skipping visibility checks on ALL assemblies loaded so far.
-        // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking subType.
+        // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking code.
         ////skipVisibilityCheckAssemblies = skipVisibilityCheckAssemblies.Union(AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName()));
 
         AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
