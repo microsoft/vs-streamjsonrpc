@@ -437,8 +437,8 @@ internal static class ProxyGeneration
     /// Sorts <paramref name="list"/> so that:
     /// <list type="number">
     /// <item><description>interfaces that are extending a lesser number of other interfaces in <paramref name="list"/> come first;</description></item>
-    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by sub-type;
-    /// where a <see langword="null" /> subType comes first.</description></item>
+    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by optional interface code;
+    /// where a <see langword="null" /> code comes first.</description></item>
     /// </list>
     /// </summary>
     /// <param name="list">The list of RPC interfaces to be sorted.</param>
@@ -906,21 +906,21 @@ internal static class ProxyGeneration
     {
         private readonly TypeInfo baseInterfaceType;
 
-        private readonly int[]? implementedSubTypes;
+        private readonly int[]? implementedOptionalInterfaces;
 
         private int? hashCode = null;
 
-        public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, IEnumerable<int>? implementedSubTypes)
+        public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, IEnumerable<int>? implementedOptionalInterfaces)
         {
             this.baseInterfaceType = baseInterfaceType;
-            this.implementedSubTypes = implementedSubTypes?.OrderBy(n => n).ToArray();
+            this.implementedOptionalInterfaces = implementedOptionalInterfaces?.OrderBy(n => n).ToArray();
         }
 
         public bool Equals(GeneratedProxiesByInterfaceKey other)
         {
             return this.baseInterfaceType == other.baseInterfaceType &&
-                   !(this.implementedSubTypes is not null ^ other.implementedSubTypes is not null) &&
-                   (this.implementedSubTypes?.SequenceEqual(other.implementedSubTypes) ?? true);
+                   !(this.implementedOptionalInterfaces is not null ^ other.implementedOptionalInterfaces is not null) &&
+                   (this.implementedOptionalInterfaces?.SequenceEqual(other.implementedOptionalInterfaces) ?? true);
         }
 
         public override bool Equals(object obj)
@@ -936,9 +936,9 @@ internal static class ProxyGeneration
             }
 
             int hashCode = this.baseInterfaceType.GetHashCode();
-            if (this.implementedSubTypes is not null)
+            if (this.implementedOptionalInterfaces is not null)
             {
-                foreach (int subType in this.implementedSubTypes)
+                foreach (int subType in this.implementedOptionalInterfaces)
                 {
                     hashCode = (hashCode * 31) + subType.GetHashCode();
                 }

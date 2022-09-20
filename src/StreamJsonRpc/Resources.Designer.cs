@@ -304,7 +304,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Interfaces with events cannot be marshaled..
+        ///   Looks up a localized string similar to {0} is not a valid marshaled interface because it has events..
         /// </summary>
         internal static string MarshalableInterfaceHasEvents {
             get {
@@ -313,7 +313,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Interfaces with properties cannot be marshaled..
+        ///   Looks up a localized string similar to {0} is not a valid marshaled interface because it has properties..
         /// </summary>
         internal static string MarshalableInterfaceHasProperties {
             get {
@@ -322,7 +322,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Marshaled interfaces must extend IDisposable..
+        ///   Looks up a localized string similar to {0} is not a valid marshaled interface because doesn&apos;t extend IDisposable..
         /// </summary>
         internal static string MarshalableInterfaceNotDisposable {
             get {
@@ -520,29 +520,29 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated sub-type declaration for {0}..
+        ///   Looks up a localized string similar to Duplicated optional interface declaration for {0}..
         /// </summary>
-        internal static string RpcMarshalableDuplicatedSubType {
+        internal static string RpcMarshalableDuplicatedOptionalInterface {
             get {
-                return ResourceManager.GetString("RpcMarshalableDuplicatedSubType", resourceCulture);
+                return ResourceManager.GetString("RpcMarshalableDuplicatedOptionalInterface", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated sub-type code for {0}..
+        ///   Looks up a localized string similar to Duplicated optional interface code for {0}..
         /// </summary>
-        internal static string RpcMarshalableDuplicatedSubTypeCode {
+        internal static string RpcMarshalableDuplicatedOptionalInterfaceCode {
             get {
-                return ResourceManager.GetString("RpcMarshalableDuplicatedSubTypeCode", resourceCulture);
+                return ResourceManager.GetString("RpcMarshalableDuplicatedOptionalInterfaceCode", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to One of the sub-types of {0} is not marked with the RpcMarshalable attribute..
+        ///   Looks up a localized string similar to {0} is not marked with the RpcMarshalable attribute..
         /// </summary>
-        internal static string RpcMarshalableSubTypesMustBeMarshalable {
+        internal static string RpcMarshalableOptionalInterfaceMustBeMarshalable {
             get {
-                return ResourceManager.GetString("RpcMarshalableSubTypesMustBeMarshalable", resourceCulture);
+                return ResourceManager.GetString("RpcMarshalableOptionalInterfaceMustBeMarshalable", resourceCulture);
             }
         }
         

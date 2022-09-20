@@ -17,8 +17,8 @@ StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJs
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc! rpc, object! token, bool clientRequiresNamedArguments) -> System.IProgress<T>!
 StreamJsonRpc.RpcMarshalableAttribute
 StreamJsonRpc.RpcMarshalableAttribute.RpcMarshalableAttribute() -> void
-StreamJsonRpc.RpcMarshalableKnownSubTypeAttribute
-StreamJsonRpc.RpcMarshalableKnownSubTypeAttribute.RpcMarshalableKnownSubTypeAttribute(System.Type! subType, int subTypeCode) -> void
-StreamJsonRpc.RpcMarshalableKnownSubTypeAttribute.SubType.get -> System.Type!
-StreamJsonRpc.RpcMarshalableKnownSubTypeAttribute.SubTypeCode.get -> int
+StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute
+StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterface.get -> System.Type!
+StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode.get -> int
+StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(System.Type! optionalInterface, int optionalInterfaceCode) -> void
 virtual StreamJsonRpc.JsonRpc.SendAsync(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

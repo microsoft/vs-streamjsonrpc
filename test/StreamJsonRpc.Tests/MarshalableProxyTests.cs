@@ -118,13 +118,13 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1), subTypeCode: 1)]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType2), subTypeCode: 2)]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType1Extended), subTypeCode: 3)]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableNonExtendingBase), subTypeCode: 4)]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubTypesCombined), subTypeCode: 5)]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubTypeWithIntermediateInterface), subTypeCode: 6)]
-    public interface IMarshalableWithSubTypes : IDisposable
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubType1), optionalInterfaceCode: 1)]
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubType2), optionalInterfaceCode: 2)]
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubType1Extended), optionalInterfaceCode: 3)]
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableNonExtendingBase), optionalInterfaceCode: 4)]
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubTypesCombined), optionalInterfaceCode: 5)]
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubTypeWithIntermediateInterface), optionalInterfaceCode: 6)]
+    public interface IMarshalableWithOptionalInterfaces : IDisposable
     {
         Task<int> GetAsync(int value);
     }
@@ -136,7 +136,7 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     // This is non-RpcMarshalable
-    public interface IMarshalableSubTypeIntermediateInterface : IMarshalableWithSubTypes
+    public interface IMarshalableSubTypeIntermediateInterface : IMarshalableWithOptionalInterfaces
     {
         Task<int> GetPlusOneAsync(int value);
 
@@ -152,7 +152,7 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubType1 : IMarshalableWithSubTypes
+    public interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces
     {
         Task<int> GetPlusOneAsync(int value);
 
@@ -182,8 +182,8 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    [RpcMarshalableKnownSubType(typeof(IMarshalableSubType2Extended), subTypeCode: 99)]
-    public interface IMarshalableSubType2 : IMarshalableWithSubTypes
+    [RpcMarshalableOptionalInterface(typeof(IMarshalableSubType2Extended), optionalInterfaceCode: 99)]
+    public interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces
     {
         Task<int> GetPlusTwoAsync(int value);
 
@@ -197,7 +197,7 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableUnknownSubType : IMarshalableWithSubTypes
+    public interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces
     {
     }
 
@@ -205,7 +205,7 @@ public abstract class MarshalableProxyTests : TestBase
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);
 
-        Task<IMarshalableWithSubTypes?> GetMarshalableWithSubTypesAsync();
+        Task<IMarshalableWithOptionalInterfaces?> GetMarshalableWithOptionalInterfacesAsync();
 
         Task<IMarshalable?> GetNonDataContractMarshalableAsync(bool returnNull = false);
 
@@ -586,17 +586,17 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType()
+    public async Task RpcMarshalableOptionalInterface()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableWithSubTypes();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
         Assert.False(proxy is IMarshalableSubType2);
         Assert.False(proxy is IMarshalableSubType2Extended);
 
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1();
-        IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
+        IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
         Assert.False(proxy1 is IMarshalableSubType2);
@@ -604,10 +604,18 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_IndirectInterfaceImplementation()
+    public async Task RpcMarshalableOptionalInterface_Null()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType1Indirect();
-        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = null;
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Null(proxy);
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_IndirectInterfaceImplementation()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1Indirect();
+        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(2, await proxy.GetPlusOneAsync(1));
         Assert.False(proxy is IMarshalableSubType2);
@@ -615,10 +623,10 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_WithExplicitImplementation_WithRpcMarshalableAttribute_CanCallMethods()
+    public async Task RpcMarshalableOptionalInterface_WithExplicitImplementation()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType2();
-        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2();
+        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
@@ -626,10 +634,10 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_UnknownSubType()
+    public async Task RpcMarshalableOptionalInterface_UnknownSubType()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableUnknownSubType();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableUnknownSubType();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.False(proxy is IMarshalableSubType1);
         Assert.False(proxy is IMarshalableSubType2);
@@ -637,30 +645,30 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_OnlyAttibutesOnDeclaredTypeAreHonored()
+    public async Task RpcMarshalableOptionalInterface_OnlyAttibutesOnDeclaredTypeAreHonored()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubType2Extended();
-        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2Extended();
+        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         Assert.False(proxy is IMarshalableSubType2Extended);
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_MarshalableNonExtendingBase()
+    public async Task RpcMarshalableOptionalInterface_OptionalInterfaceNotExtendingBase()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableNonExtendingBase();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableNonExtendingBase();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
         Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_IntermediateNonMarshalableInterface()
+    public async Task RpcMarshalableOptionalInterface_IntermediateNonMarshalableInterface()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypeWithIntermediateInterface();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeWithIntermediateInterface();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
         Assert.Equal(1, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetAsync(1));
@@ -678,10 +686,10 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_MultipleImplementations()
+    public async Task RpcMarshalableOptionalInterface_MultipleImplementations()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypeMultipleImplementations();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeMultipleImplementations();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
         Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
@@ -703,10 +711,10 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
-    public async Task RpcMarshalableKnownSubType_MultipleImplementationsCombined()
+    public async Task RpcMarshalableOptionalInterface_MultipleImplementationsCombined()
     {
-        this.server.ReturnedMarshalableWithSubTypes = new MarshalableSubTypesCombined();
-        IMarshalableWithSubTypes? proxy = await this.client.GetMarshalableWithSubTypesAsync();
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypesCombined();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
         Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
@@ -743,7 +751,7 @@ public abstract class MarshalableProxyTests : TestBase
 
         internal IMarshalable? ReceivedProxy { get; set; }
 
-        internal IMarshalableWithSubTypes? ReturnedMarshalableWithSubTypes { get; set; }
+        internal IMarshalableWithOptionalInterfaces? ReturnedMarshalableWithOptionalInterfaces { get; set; }
 
         public Task<IMarshalable?> GetMarshalableAsync(bool returnNull)
         {
@@ -752,9 +760,9 @@ public abstract class MarshalableProxyTests : TestBase
             return Task.FromResult<IMarshalable?>(marshalable);
         }
 
-        public Task<IMarshalableWithSubTypes?> GetMarshalableWithSubTypesAsync()
+        public Task<IMarshalableWithOptionalInterfaces?> GetMarshalableWithOptionalInterfacesAsync()
         {
-            return Task.FromResult(this.ReturnedMarshalableWithSubTypes);
+            return Task.FromResult(this.ReturnedMarshalableWithOptionalInterfaces);
         }
 
         public Task<IGenericMarshalable<int>?> GetGenericMarshalableAsync(bool returnNull)
@@ -970,7 +978,7 @@ public abstract class MarshalableProxyTests : TestBase
         }
     }
 
-    public class MarshalableWithSubTypes : IMarshalableWithSubTypes
+    public class MarshalableWithOptionalInterfaces : IMarshalableWithOptionalInterfaces
     {
         public Task<int> GetAsync(int value) => Task.FromResult(value);
 
@@ -998,7 +1006,7 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class MarshalableSubType2 : IMarshalableSubType2
     {
-        Task<int> IMarshalableWithSubTypes.GetAsync(int value) => Task.FromResult(value);
+        Task<int> IMarshalableWithOptionalInterfaces.GetAsync(int value) => Task.FromResult(value);
 
         Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
 
@@ -1033,7 +1041,7 @@ public abstract class MarshalableProxyTests : TestBase
         }
     }
 
-    public class MarshalableNonExtendingBase : IMarshalableWithSubTypes, IMarshalableNonExtendingBase
+    public class MarshalableNonExtendingBase : IMarshalableWithOptionalInterfaces, IMarshalableNonExtendingBase
     {
         public Task<int> GetAsync(int value) => Task.FromResult(value);
 
@@ -1063,7 +1071,7 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class MarshalableSubTypeMultipleImplementations : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
-        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithSubTypes and IMarshalableSubType1Extended (new keyword)
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithOptionalInterfaces and IMarshalableSubType1Extended (new keyword)
 
         public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
 
@@ -1090,7 +1098,7 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class MarshalableSubTypesCombined : IMarshalableSubTypesCombined
     {
-        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithSubTypes and IMarshalableSubType1Extended (new keyword)
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithOptionalInterfaces and IMarshalableSubType1Extended (new keyword)
 
         public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
 
