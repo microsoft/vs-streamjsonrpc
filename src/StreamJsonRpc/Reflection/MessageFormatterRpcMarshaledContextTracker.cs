@@ -287,7 +287,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         List<(TypeInfo Type, int Code)>? additionalInterfaces = null;
-        if ((token.Value.SubTypeCodes?.Length ?? 0) > 0)
+        if (token.Value.SubTypeCodes?.Length > 0)
         {
             // If we don't find a match for subTypeCode, we return a proxy that implements the base interface
             foreach (int subTypeCode in token.Value.SubTypeCodes.Distinct())

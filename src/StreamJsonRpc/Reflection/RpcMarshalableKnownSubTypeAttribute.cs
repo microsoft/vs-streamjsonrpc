@@ -13,12 +13,14 @@ namespace StreamJsonRpc;
 /// message allowing the creation of a proxy which also implements <see cref="SubType"/>.
 /// </para><para>
 /// If a message is received containing no <see cref="SubTypeCode"/>, for a marshalable interface that has known
-/// sub-types, a proxy will be created using the base interface. Unkonow <see cref="SubTypeCode"/> values will be
+/// sub-types, a proxy will be created using the base interface. Unknown <see cref="SubTypeCode"/> values will be
 /// ignored when creating the proxy.
 /// </para><para>
 /// <see cref="RpcMarshalableKnownSubTypeAttribute"/> is honored only when an object is marshaled through an RPC method
 /// that used exactly the interface the attribute is assigned to: <see cref="RpcMarshalableKnownSubTypeAttribute"/>
 /// attributes applied to interfaces extending or extended from the one the attribute is assigned to are ignored.
+/// In other words, you cannot distribute this attribute across your type hierarchy tree and expect them all to be honored
+/// at one location.
 /// </para></remarks>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true, Inherited = false)]
 public class RpcMarshalableKnownSubTypeAttribute : Attribute

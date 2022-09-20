@@ -237,27 +237,27 @@ These resources are released and the `IDisposable.Dispose()` method is invoked o
 * The receiver calls `IDisposable.Dispose()` on the proxy.
 * The JSON-RPC connection is closed.
 
-## `RpcMarshalableKnownSubType` attribute
+## `RpcMarshalableKnownSubTypeAttribute`
 
-StreamJsonRpc provides the `RpcMarshalableKnownSubType` attribute to specify that marshalable objects implementing an RPC interface can optionally implement additional intefaces.
+StreamJsonRpc provides the `RpcMarshalableKnownSubTypeAttribute` to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
 
-The `RpcMarshalableKnownSubType` attribute is applied to the interface used in the RPC contract: the same interface that has the `RpcMarshalable` attribute. Only `RpcMarshalableKnownSubType` attributes applied to the interface used in the RPC contract are honored.
+`RpcMarshalableKnownSubTypeAttribute` is applied to the interface used in the RPC contract.
+Such an interface must also apply the `RpcMarshalableAttribute`.
 
-The interfaces `RpcMarshalableKnownSubType` attributes reference must have the `RpcMarshalable` attribute and must adhere to all the requirements of marshalable interfaces:
-1. Must extend `IDisposable`.
-1. Must not include any properties.
-1. Must not include any events.
+An interface that `RpcMarshalableKnownSubTypeAttribute` references must have the `RpcMarshalableAttribute` attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
 
-The proxy object created for the marshalable object will only implement the subset of interfaces described by `RpcMarshalableKnownSubType` attributes that are applied to the interface type used in the RPC method declaration. The receiver of the proxy can use the [is](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/is) operator to check if an optional interface is implemented. Casting a proxy object to an unimplemented interface will result in an `InvalidCastException`.
+The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with `RpcMarshalableKnownSubTypeAttribute` on the interface type used in the RPC contract.
+The receiver of the proxy can use the [is](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/is) operator to check if an optional interface is implemented without throwing an `InvalidCastException` when the interface is not implemented.
 
 ### Use cases
 
-`RpcMarshalableKnownSubType` is useful in a few scenarios:
-1. adding new methods to an existing marshalable interface without breaking backward compatibility,
-1. creating an RPC method that return marshalable objects which implement different interfaces to accomodate for different behaviors,
-1. creating an RPC method that return marshalable objects which may optionally implement additional functionalities.
+`RpcMarshalableKnownSubTypeAttribute` is useful in a few scenarios:
 
-For example, the following code shows how `RpcMarshalableKnownSubType` attributes can be added to the `ICounter` interface from the earlier sample.
+1. when adding new methods to an existing marshalable interface would breaking backward compatibility for another scenario,
+1. when the host of the marshaled object may deem it appropriate to expose different behaviors based on the scenario,
+1. when an RPC method returns marshalable objects which may optionally implement additional functionality based on the arguments passed to that method.
+
+For example, the following code shows how `RpcMarshalableKnownSubTypeAttribute` can be added to the `ICounter` interface from the earlier sample:
 
 ```cs
 [RpcMarshalable]
@@ -283,27 +283,26 @@ interface IDecrementable : IDisposable
 }
 ```
 
-This change doesn't require any modification to the declarations of RPC methods that exchange `ICounter` object and is fully backward compatible. A client that uses an earlier RPC contract definition will simply ignore any unknow additional interface.
+This change doesn't require any modification to the declarations of RPC methods that exchange `ICounter` object and is fully backward compatible.
+A client that uses an earlier RPC contract definition will simply ignore any unknown additional interface.
 
 A marshalable object implementing `ICounter` can also implement `IAdvancedCounter`, `IDecrementable`, both or neither.
+The proxy receiver will be able to perceive through type checks which interfaces are available.
 
 ### Caveats
 
 #### Backward compatibility
 
-The `subTypeCode` values used in `RpcMarshalableKnownSubType` attributes are used as part of the wire protocol. While it is backward compatible to remove an `RpcMarshalableKnownSubType` attribute from an interface, its `subTypeCode` value should never be reused to add a different additional interface to the same interface declaration.
+The `subTypeCode` values used in `RpcMarshalableKnownSubTypeAttribute` are used as part of the wire protocol.
+While it can be backward compatible to remove an `RpcMarshalableKnownSubTypeAttribute` from an interface, its `subTypeCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
 
 #### Method name conflicts and non-marshalable interfaces
 
-When a method is invoked on a marshalable object proxy, it is traslated into an RPC call to the best-matching interface method.
+When a method is invoked on a marshalable object proxy, it is translated into an RPC call to the best-matching interface method.
 
-For example, given the interfaces defined below:
-- a call to `((IFoo)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IFoo` interface.
-- a call to `((IBaz)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
-- a call to `((IBar)proxy).DoBarAsync()` would result in an RPC call to the `DoBarAsync` method as defined by the `IBaz` interface (due to it extending `IBar`), if the marshalable object implements `IBaz`.
-- a call to `((IBaz)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
-
-⚠️ A call to `((IBar)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface because `IBar` is not listed in one of the `RpcMarshalableKnownSubType` attributes of `IFoo`. This is only a problem if the marshalable object explicitly implements `IBar.DoFooAsync()` and `IBaz.DoFooAsync()` as two separate methods.
+We'll use a few interfaces to describe interesting corner cases.
+Note that we do *not* recommend reusing method names across interfaces or redeclaring the same methods in derived interfaces, but we include them here to document behaviors you can expect from doing so.
+Consider these interfaces:
 
 ```cs
 [RpcMarshalable]
@@ -329,12 +328,22 @@ interface IBaz : IBar
 }
 ```
 
-Consider following these best practices when defining RPC marshalable interfaces:
-- avoid multiple methods having the same name,
-- when possible, include all interfaces in the inheritance chain in `RpcMarshalableKnownSubType` attributes of the base interface used by the RPC contract method,
-- avoid marshalable objects explicitly implementing methods having the same name, defined by different interfaces, as separate methods.
+Given the interfaces above, RPC calls would have these behaviors:
 
-A proxy has unexpected behavior only when all three of the above best practices are violated.
+* a call to `((IFoo)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IFoo` interface.
+* a call to `((IBaz)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
+* a call to `((IBar)proxy).DoBarAsync()` would result in an RPC call to the `DoBarAsync` method as defined by the `IBaz` interface (due to it extending `IBar`), if the marshalable object implements `IBaz`.
+* a call to `((IBaz)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
+* ⚠️ A call to `((IBar)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface because `IBar` is not listed in one of the `RpcMarshalableKnownSubType` attributes of `IFoo`. This is only a problem if the marshalable object explicitly implements `IBar.DoFooAsync()` and `IBaz.DoFooAsync()` as two separate methods.
+* ⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableKnownSubTypeAttribute`.
+
+Consider following these best practices when defining RPC marshalable interfaces:
+
+* Avoid multiple methods having the same name.
+* When possible, include all interfaces in the inheritance chain in `RpcMarshalableKnownSubType` attributes of the base interface used by the RPC contract method.
+* Avoid marshalable objects explicitly implementing methods having the same name, defined by different interfaces, as separate methods.
+
+In short, when all three of the above best practices are violated, the method chosen on a host object to respond to a request may surprise you.
 
 When invoking methods on a proxy, avoid casting the proxy to an interface that is not included in one of the `RpcMarshalableKnownSubType` attributes, especially if the method has a name conflict with a method of a descendant interface.
 
