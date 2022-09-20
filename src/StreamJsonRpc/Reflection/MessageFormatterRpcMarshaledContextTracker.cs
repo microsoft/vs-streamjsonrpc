@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json.Linq;
 using static System.FormattableString;
 
 namespace StreamJsonRpc.Reflection;
@@ -194,7 +193,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(declaredType, marshaledObject, options);
 
-        IDisposable? revert = this.jsonRpc.AddLocalRpcTargetInternal(
+        RpcTargetInfo.RevertAddLocalRpcTarget? revert = this.jsonRpc.AddLocalRpcTargetInternal(
             declaredType,
             context.Proxy,
             new JsonRpcTargetOptions(context.JsonRpcTargetOptions)

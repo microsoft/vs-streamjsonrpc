@@ -61,6 +61,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AddRpcInterfaceToTarget parameter is not an interface.
+        /// </summary>
+        internal static string AddRpcInterfaceToTargetParameterNotInterface {
+            get {
+                return ResourceManager.GetString("AddRpcInterfaceToTargetParameterNotInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Both readable and writable are null..
         /// </summary>
         internal static string BothReadableWritableAreNull {
@@ -520,7 +529,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated optional interface declaration for {0}..
+        ///   Looks up a localized string similar to Optional interface declarations should be unique. {0} has the same optional interface declared multiple times..
         /// </summary>
         internal static string RpcMarshalableDuplicatedOptionalInterface {
             get {
@@ -529,7 +538,7 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Duplicated optional interface code for {0}..
+        ///   Looks up a localized string similar to Optional interface codes should be unique. {0} has the same optional interface code used multiple times..
         /// </summary>
         internal static string RpcMarshalableDuplicatedOptionalInterfaceCode {
             get {

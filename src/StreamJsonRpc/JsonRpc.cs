@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
+using static StreamJsonRpc.Reflection.RpcTargetInfo;
 
 namespace StreamJsonRpc;
 
@@ -1195,7 +1196,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
-    internal IDisposable? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+    internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
     {
         return this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption);
     }
@@ -1208,9 +1209,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null" />, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">
     /// An optional object that may be disposed of to revert the addition of the target object.
-    /// This object is returned by an earlier call to <see cref="AddRpcInterfaceToTargetInternal(Type, object, JsonRpcTargetOptions?, IDisposable?)"/>.
     /// </param>
-    internal void AddRpcInterfaceToTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, IDisposable? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
         this.rpcTargetInfo.AddRpcInterfaceToTarget(exposingMembersOn, target, options, revertAddLocalRpcTarget);
     }
