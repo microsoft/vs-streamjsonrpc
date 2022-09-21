@@ -253,7 +253,7 @@ The receiver of the proxy can use the [is](https://learn.microsoft.com/dotnet/cs
 
 `RpcMarshalableOptionalInterfaceAttribute` is useful in a few scenarios:
 
-1. when adding new methods to an existing marshalable interface would breaking backward compatibility for another scenario,
+1. when adding new methods to an existing marshalable interface would break backward compatibility for another scenario,
 1. when the host of the marshaled object may deem it appropriate to expose different behaviors based on the scenario,
 1. when an RPC method returns marshalable objects which may optionally implement additional functionality based on the arguments passed to that method.
 
@@ -283,7 +283,7 @@ interface IDecrementable : IDisposable
 }
 ```
 
-This change doesn't require any modification to the declarations of RPC methods that exchange `ICounter` object and is fully backward compatible.
+This change doesn't require any modification to the declarations of RPC methods that exchange `ICounter` objects and is fully backward compatible.
 A client that uses an earlier RPC contract definition will simply ignore any unknown additional interface.
 
 A marshalable object implementing `ICounter` can also implement `IAdvancedCounter`, `IDecrementable`, both or neither.
@@ -339,20 +339,27 @@ interface IBaz2 : IBar
 
 Given the interfaces above, RPC calls would have these behaviors:
 
-* a call to `((IFoo)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IFoo` interface.
-* a call to `((IBaz)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
-* a call to `((IBaz2)proxy).DoFooAsync()` would result in an RPC call to the `DoFooAsync` method as defined by the `IBaz2` interface, if the marshalable object implements `IBaz2`.
-* a call to `((IBaz)proxy).DoBarAsync()`, `((IBaz2)proxy).DoBarAsync()` or `((IBar)proxy).DoBarAsync()` would result in an RPC call to the `DoBarAsync` method as defined by the `IBar` interface, if the marshalable object implements required interfaces (`IBaz`, `IBaz2`, or any of `IBaz` or `IBar`, respectively).
-* a call to `((IBaz)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
-* a call to `((IBaz2)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz2` interface, if the marshalable object implements `IBaz2`.
+* A call to any of the following methods behave as expected:
+
+Method call | Invoked server-side method | Conditions
+------ | ------ | ------
+`((IFoo)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IFoo` |
+`((IBaz)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
+`((IBar)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz`, `IBa2`, or both
+`((IBaz)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz2`
+`((IBaz)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
+
 * ⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableOptionalInterfaceAttribute`.
 * ⚠️ A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
 
-Implemented interfaces | Result
+Implemented interfaces | Invoked server-side method
 ------ | ------
-`IBaz` | RPC call to the `DoFooAsync` method as defined by the `IBaz` interface
-`IBaz2` | RPC call to the `DoFooAsync` method as defined by the `IBaz2` interface
-`IBaz, IBaz2` | **Undefined behavior**: RPC call to the the `DoFooAsync` method as defined by the either `IBaz` or `IBaz2` interface
+`IBaz` | `DoFooAsync` as defined by `IBaz`
+`IBaz2` | `DoFooAsync` as defined by `IBaz2`
+`IBaz` and `IBaz2` | **Undefined behavior**: `DoFooAsync` as defined by either `IBaz` or `IBaz2`
 
 The issue described above is only a problem if the marshalable object explicitly implements any of the `IBar.DoFooAsync()`, `IBaz.DoFooAsync()` or `IBaz2.DoFooAsync()` methods.
 
@@ -366,7 +373,7 @@ In short, when all three of the above best practices are violated, the method ch
 
 When invoking methods on a proxy, avoid casting the proxy to an interface that is not included in one of the `RpcMarshalableOptionalInterface` attributes, especially if the method has a name conflict with a method of a descendant interface.
 
-An especially troublesome occurrence of this issue can happen if a marshalable object explicitly implements separately two methods with the same name from two different interfaces that are not declared in one of the `RpcMarshalableOptionalInterface` attributes. For example, referencing the code below, a call to `((IOther1)proxy).DoSomethingAsync()` would be indistinguishable from a call to `((IOther2)proxy).DoSomethingAsync()` and would be dispatched randomly to one of the two methods.
+An especially troublesome occurrence of this issue can happen if a marshalable object explicitly implements separately two methods with the same name from two different interfaces that are not declared in one of the `RpcMarshalableOptionalInterface` attributes. For example, referencing the code below, a call to `((IOther1)proxy).DoSomethingAsync()` would be indistinguishable from a call to `((IOther2)proxy).DoSomethingAsync()` and would be dispatched to one of the two methods in an undefined manner.
 
 ```cs
 class MyMarshalableObject : IMerged
