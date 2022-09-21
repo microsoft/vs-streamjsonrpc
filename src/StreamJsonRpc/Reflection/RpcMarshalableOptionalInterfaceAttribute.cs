@@ -27,18 +27,18 @@ public class RpcMarshalableOptionalInterfaceAttribute : Attribute
     /// <summary>
     /// Initializes a new instance of the <see cref="RpcMarshalableOptionalInterfaceAttribute"/> class.
     /// </summary>
-    /// <param name="optionalInterface">The <see cref="Type"/> of the known optional interface that the marshalable
-    /// object may implement.</param>
     /// <param name="optionalInterfaceCode">The code to be serialized to specify that the marshaled object proxy should
     /// be generated implementing the <paramref name="optionalInterface"/> interface.
     /// <paramref name="optionalInterfaceCode"/> values must be unique across the different optional interfaces of the
     /// type this attribute is applied to. Because <paramref name="optionalInterfaceCode"/> is serialized when
     /// transmitting a marshaled object, its value should never be reassigned to a different optional interface when
     /// updating RPC interfaces.</param>
-    public RpcMarshalableOptionalInterfaceAttribute(Type optionalInterface, int optionalInterfaceCode)
+    /// <param name="optionalInterface">The <see cref="Type"/> of the known optional interface that the marshalable
+    /// object may implement.</param>
+    public RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, Type optionalInterface)
     {
-        this.OptionalInterface = optionalInterface;
         this.OptionalInterfaceCode = optionalInterfaceCode;
+        this.OptionalInterface = optionalInterface;
     }
 
     /// <summary>

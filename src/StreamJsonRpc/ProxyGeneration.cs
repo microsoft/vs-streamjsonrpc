@@ -54,17 +54,16 @@ internal static class ProxyGeneration
     /// <summary>
     /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
     /// </summary>
-    /// <param name="serviceInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
-    /// <param name="additionalInterfaces">Additional proxy interfaces that the client proxy should implement. This parameter is used
-    /// only when creating a proxy for a marshalable interface.</param>
+    /// <param name="contractInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
+    /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
     /// <returns>The generated type.</returns>
-    internal static TypeInfo Get(TypeInfo serviceInterface, (TypeInfo Type, int Code)[]? additionalInterfaces = null)
+    internal static TypeInfo Get(TypeInfo contractInterface, (TypeInfo Type, int Code)[]? implementedOptionalInterfaces = null)
     {
-        Requires.NotNull(serviceInterface, nameof(serviceInterface));
-        VerifySupported(serviceInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, serviceInterface);
-        if (additionalInterfaces is not null)
+        Requires.NotNull(contractInterface, nameof(contractInterface));
+        VerifySupported(contractInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, contractInterface);
+        if (implementedOptionalInterfaces is not null)
         {
-            foreach ((TypeInfo type, _) in additionalInterfaces)
+            foreach ((TypeInfo type, _) in implementedOptionalInterfaces)
             {
                 VerifySupported(type.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, type);
             }
@@ -72,18 +71,18 @@ internal static class ProxyGeneration
 
         var rpcInterfaces = new List<(TypeInfo Type, int? Code)>
             {
-                (serviceInterface, (int?)null),
+                (contractInterface, (int?)null),
             };
-        if (additionalInterfaces is not null)
+        if (implementedOptionalInterfaces is not null)
         {
-            rpcInterfaces.AddRange(additionalInterfaces.Select(i => (i.Type, (int?)i.Code)));
+            rpcInterfaces.AddRange(implementedOptionalInterfaces.Select(i => (i.Type, (int?)i.Code)));
         }
 
-        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their extensions.
+        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
         SortRpcInterfaces(rpcInterfaces);
 
         TypeInfo? generatedType;
-        GeneratedProxiesByInterfaceKey generatedProxyKey = new(serviceInterface, additionalInterfaces?.Select(i => i.Code));
+        GeneratedProxiesByInterfaceKey generatedProxyKey = new(contractInterface, implementedOptionalInterfaces?.Select(i => i.Code));
 
         lock (BuilderLock)
         {
@@ -92,14 +91,14 @@ internal static class ProxyGeneration
                 return generatedType;
             }
 
-            ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(serviceInterface);
+            ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(contractInterface);
 
             var proxyInterfaces = rpcInterfaces.Select(i => i.Type.AsType()).ToList();
             proxyInterfaces.Add(typeof(IJsonRpcClientProxy));
             proxyInterfaces.Add(typeof(IJsonRpcClientProxyInternal));
 
             TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
-                string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", serviceInterface.FullName, Guid.NewGuid()),
+                string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", contractInterface.FullName, Guid.NewGuid()),
                 TypeAttributes.Public,
                 typeof(object),
                 proxyInterfaces.ToArray());
@@ -113,12 +112,12 @@ internal static class ProxyGeneration
             FieldBuilder callingMethodField = proxyTypeBuilder.DefineField("callingMethod", typeof(EventHandler<string>), FieldAttributes.Private);
             FieldBuilder calledMethodField = proxyTypeBuilder.DefineField("calledMethod", typeof(EventHandler<string>), FieldAttributes.Private);
 
-            VerifySupported(!FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, serviceInterface);
+            VerifySupported(!FindAllOnThisAndOtherInterfaces(contractInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, contractInterface);
 
             // Implement events only on the main interface.
             // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
             var ctorActions = new List<Action<ILGenerator>>();
-            foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(serviceInterface, i => i.DeclaredEvents))
+            foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contractInterface, i => i.DeclaredEvents))
             {
                 VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
 
@@ -275,7 +274,7 @@ internal static class ProxyGeneration
                     string rpcMethodName = methodNameMap.GetRpcMethodName(method);
                     if (rpcInterfaceCode.HasValue)
                     {
-                        methodName = rpcInterfaceCode + "." + rpcMethodName;
+                        methodName = rpcInterfaceCode + "." + method.Name;
                         rpcMethodName = rpcInterfaceCode + "." + rpcMethodName;
                     }
 
@@ -908,8 +907,6 @@ internal static class ProxyGeneration
 
         private readonly int[]? implementedOptionalInterfaces;
 
-        private int? hashCode = null;
-
         public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, IEnumerable<int>? implementedOptionalInterfaces)
         {
             this.baseInterfaceType = baseInterfaceType;
@@ -930,11 +927,6 @@ internal static class ProxyGeneration
 
         public override int GetHashCode()
         {
-            if (this.hashCode.HasValue)
-            {
-                return this.hashCode.Value;
-            }
-
             int hashCode = this.baseInterfaceType.GetHashCode();
             if (this.implementedOptionalInterfaces is not null)
             {
@@ -944,7 +936,6 @@ internal static class ProxyGeneration
                 }
             }
 
-            this.hashCode ??= hashCode;
             return hashCode;
         }
     }

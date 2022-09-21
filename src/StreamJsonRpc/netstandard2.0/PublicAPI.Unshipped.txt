@@ -20,5 +20,5 @@ StreamJsonRpc.RpcMarshalableAttribute.RpcMarshalableAttribute() -> void
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterface.get -> System.Type!
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode.get -> int
-StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(System.Type! optionalInterface, int optionalInterfaceCode) -> void
+StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, System.Type! optionalInterface) -> void
 virtual StreamJsonRpc.JsonRpc.SendAsync(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

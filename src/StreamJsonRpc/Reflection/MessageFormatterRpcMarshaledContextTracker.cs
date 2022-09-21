@@ -288,6 +288,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
         object result = this.jsonRpc.Attach(
             interfaceType,
+            optionalInterfaces?.ToArray(),
             new JsonRpcProxyOptions(options)
             {
                 MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
@@ -301,8 +302,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
                     this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
                 },
-            },
-            optionalInterfaces?.ToArray());
+            });
         if (options.OnProxyConstructed is object)
         {
             options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);

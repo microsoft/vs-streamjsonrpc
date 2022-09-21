@@ -1175,14 +1175,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <summary>
     /// Creates a JSON-RPC client proxy that implements a given set of interfaces.
     /// </summary>
-    /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
+    /// <param name="contractInterface">The interface that describes the functions available on the remote end.</param>
+    /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null" />, default options will be used.</param>
-    /// <param name="additionalInterfaces">Additional proxy interfaces that the client proxy should implement. This parameter is used only when
-    /// creating a proxy for a marshalable interface.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    internal object Attach(Type interfaceType, JsonRpcProxyOptions? options, (TypeInfo Type, int Code)[]? additionalInterfaces)
+    internal object Attach(Type contractInterface, (TypeInfo Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options)
     {
-        TypeInfo proxyType = ProxyGeneration.Get(interfaceType.GetTypeInfo(), additionalInterfaces);
+        TypeInfo proxyType = ProxyGeneration.Get(contractInterface.GetTypeInfo(), implementedOptionalInterfaces);
         object proxy = Activator.CreateInstance(proxyType.AsType(), this, options ?? JsonRpcProxyOptions.Default, options?.OnDispose)!;
         return proxy;
     }

@@ -261,8 +261,8 @@ For example, the following code shows how `RpcMarshalableOptionalInterfaceAttrib
 
 ```cs
 [RpcMarshalable]
-[RpcMarshalableOptionalInterface(typeof(IAdvancedCounter, optionalInterfaceCode: 1))]
-[RpcMarshalableOptionalInterface(typeof(IDecrementable, optionalInterfaceCode: 2))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IAdvancedCounter))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 2, typeof(IDecrementable))]
 interface ICounter : IDisposable
 {
     Task IncrementAsync(CancellationToken ct);
@@ -306,8 +306,8 @@ Consider these interfaces:
 
 ```cs
 [RpcMarshalable]
-[RpcMarshalableOptionalInterface(typeof(IBaz, optionalInterfaceCode: 1))]
-[RpcMarshalableOptionalInterface(typeof(IBaz2, optionalInterfaceCode: 1))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IBaz))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 2, typeof(IBaz2))]
 interface IFoo : IDisposable
 {
     Task DoFooAsync();
@@ -384,7 +384,7 @@ class MyMarshalableObject : IMerged
 }
 
 [RpcMarshalable]
-[RpcMarshalableOptionalInterface(typeof(IMerged, optionalInterfaceCode: 1))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IMerged))]
 interface IBase : IDisposable
 {
 }
