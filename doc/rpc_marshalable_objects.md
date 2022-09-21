@@ -237,32 +237,32 @@ These resources are released and the `IDisposable.Dispose()` method is invoked o
 * The receiver calls `IDisposable.Dispose()` on the proxy.
 * The JSON-RPC connection is closed.
 
-## `RpcMarshalableKnownSubTypeAttribute`
+## `RpcMarshalableOptionalInterfaceAttribute`
 
-StreamJsonRpc provides the `RpcMarshalableKnownSubTypeAttribute` to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
+StreamJsonRpc provides the `RpcMarshalableOptionalInterfaceAttribute` to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
 
-`RpcMarshalableKnownSubTypeAttribute` is applied to the interface used in the RPC contract.
+`RpcMarshalableOptionalInterfaceAttribute` is applied to the interface used in the RPC contract.
 Such an interface must also apply the `RpcMarshalableAttribute`.
 
-An interface that `RpcMarshalableKnownSubTypeAttribute` references must have the `RpcMarshalableAttribute` attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
+An interface that `RpcMarshalableOptionalInterfaceAttribute` references must have the `RpcMarshalableAttribute` attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
 
-The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with `RpcMarshalableKnownSubTypeAttribute` on the interface type used in the RPC contract.
+The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with `RpcMarshalableOptionalInterfaceAttribute` on the interface type used in the RPC contract.
 The receiver of the proxy can use the [is](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/is) operator to check if an optional interface is implemented without throwing an `InvalidCastException` when the interface is not implemented.
 
 ### Use cases
 
-`RpcMarshalableKnownSubTypeAttribute` is useful in a few scenarios:
+`RpcMarshalableOptionalInterfaceAttribute` is useful in a few scenarios:
 
 1. when adding new methods to an existing marshalable interface would breaking backward compatibility for another scenario,
 1. when the host of the marshaled object may deem it appropriate to expose different behaviors based on the scenario,
 1. when an RPC method returns marshalable objects which may optionally implement additional functionality based on the arguments passed to that method.
 
-For example, the following code shows how `RpcMarshalableKnownSubTypeAttribute` can be added to the `ICounter` interface from the earlier sample:
+For example, the following code shows how `RpcMarshalableOptionalInterfaceAttribute` can be added to the `ICounter` interface from the earlier sample:
 
 ```cs
 [RpcMarshalable]
-[RpcMarshalableKnownSubType(typeof(IAdvancedCounter, subTypeCode: 1))]
-[RpcMarshalableKnownSubType(typeof(IDecrementable, subTypeCode: 2))]
+[RpcMarshalableOptionalInterface(typeof(IAdvancedCounter, optionalInterfaceCode: 1))]
+[RpcMarshalableOptionalInterface(typeof(IDecrementable, optionalInterfaceCode: 2))]
 interface ICounter : IDisposable
 {
     Task IncrementAsync(CancellationToken ct);
@@ -293,8 +293,8 @@ The proxy receiver will be able to perceive through type checks which interfaces
 
 #### Backward compatibility
 
-The `subTypeCode` values used in `RpcMarshalableKnownSubTypeAttribute` are used as part of the wire protocol.
-While it can be backward compatible to remove an `RpcMarshalableKnownSubTypeAttribute` from an interface, its `subTypeCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
+The `optionalInterfaceCode` values used in `RpcMarshalableOptionalInterfaceAttribute` are used as part of the wire protocol.
+While it can be backward compatible to remove an `RpcMarshalableOptionalInterfaceAttribute` from an interface, its `optionalInterfaceCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
 
 #### Method name conflicts and non-marshalable interfaces
 
@@ -306,8 +306,8 @@ Consider these interfaces:
 
 ```cs
 [RpcMarshalable]
-[RpcMarshalableKnownSubType(typeof(IBaz, subTypeCode: 1))]
-[RpcMarshalableKnownSubType(typeof(IBaz2, subTypeCode: 1))]
+[RpcMarshalableOptionalInterface(typeof(IBaz, optionalInterfaceCode: 1))]
+[RpcMarshalableOptionalInterface(typeof(IBaz2, optionalInterfaceCode: 1))]
 interface IFoo : IDisposable
 {
     Task DoFooAsync();
@@ -345,7 +345,7 @@ Given the interfaces above, RPC calls would have these behaviors:
 * a call to `((IBaz)proxy).DoBarAsync()`, `((IBaz2)proxy).DoBarAsync()` or `((IBar)proxy).DoBarAsync()` would result in an RPC call to the `DoBarAsync` method as defined by the `IBar` interface, if the marshalable object implements required interfaces (`IBaz`, `IBaz2`, or any of `IBaz` or `IBar`, respectively).
 * a call to `((IBaz)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz` interface, if the marshalable object implements `IBaz`.
 * a call to `((IBaz2)proxy).DoBazAsync()` would result in an RPC call to the `DoBazAsync` method as defined by the `IBaz2` interface, if the marshalable object implements `IBaz2`.
-* ⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableKnownSubTypeAttribute`.
+* ⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableOptionalInterfaceAttribute`.
 * ⚠️ A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
 
 Implemented interfaces | Result
@@ -359,14 +359,14 @@ The issue described above is only a problem if the marshalable object explicitly
 Consider following these best practices when defining RPC marshalable interfaces:
 
 * Avoid multiple methods having the same name.
-* When possible, include all interfaces in the inheritance chain in `RpcMarshalableKnownSubType` attributes of the base interface used by the RPC contract method.
+* When possible, include all interfaces in the inheritance chain in `RpcMarshalableOptionalInterface` attributes of the base interface used by the RPC contract method.
 * Avoid marshalable objects explicitly implementing methods having the same name, defined by different interfaces, as separate methods.
 
 In short, when all three of the above best practices are violated, the method chosen on a host object to respond to a request may surprise you.
 
-When invoking methods on a proxy, avoid casting the proxy to an interface that is not included in one of the `RpcMarshalableKnownSubType` attributes, especially if the method has a name conflict with a method of a descendant interface.
+When invoking methods on a proxy, avoid casting the proxy to an interface that is not included in one of the `RpcMarshalableOptionalInterface` attributes, especially if the method has a name conflict with a method of a descendant interface.
 
-An especially troublesome occurrence of this issue can happen if a marshalable object explicitly implements separately two methods with the same name from two different interfaces that are not declared in one of the `RpcMarshalableKnownSubType` attributes. For example, referencing the code below, a call to `((IOther1)proxy).DoSomethingAsync()` would be indistinguishable from a call to `((IOther2)proxy).DoSomethingAsync()` and would be dispatched randomly to one of the two methods.
+An especially troublesome occurrence of this issue can happen if a marshalable object explicitly implements separately two methods with the same name from two different interfaces that are not declared in one of the `RpcMarshalableOptionalInterface` attributes. For example, referencing the code below, a call to `((IOther1)proxy).DoSomethingAsync()` would be indistinguishable from a call to `((IOther2)proxy).DoSomethingAsync()` and would be dispatched randomly to one of the two methods.
 
 ```cs
 class MyMarshalableObject : IMerged
@@ -377,7 +377,7 @@ class MyMarshalableObject : IMerged
 }
 
 [RpcMarshalable]
-[RpcMarshalableKnownSubType(typeof(IMerged, subTypeCode: 1))]
+[RpcMarshalableOptionalInterface(typeof(IMerged, optionalInterfaceCode: 1))]
 interface IBase : IDisposable
 {
 }

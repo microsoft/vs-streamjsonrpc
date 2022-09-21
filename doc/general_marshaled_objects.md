@@ -36,7 +36,7 @@ Any marshaled object is encoded as a JSON object with the following properties:
 - `__jsonrpc_marshaled` - required
 - `handle` - required
 - `lifetime` - optional
-- `subtypes` - optional
+- `optionalInterfaces` - optional
 
 The `__jsonrpc_marshaled` property is a number that may be one of the following values:
 
@@ -56,8 +56,8 @@ Value | Explanation
 `"call"` | The marshaled object may only be invoked until the containing RPC call completes. This value is only allowed when used within a JSON-RPC argument. No explicit release using `$/releaseMarshaledObject` is required.
 `"explicit"` | The marshaled object may be invoked until `$/releaseMarshaledObject` releases it. **This is the default behavior when the `lifetime` property is omitted.**
 
-The `subtypes` property is an array of integers that MAY be included to specify that the marshaled object implements additional known interfaces, where each array element represents one of these interfaces.
-Each element is expected to add to some base functionality that is assumed to be present for this object if `subtypes` were omitted.
+The `optionalInterfaces` property is an array of integers that MAY be included to specify that the marshaled object implements additional known interfaces, where each array element represents one of these interfaces.
+Each element is expected to add to some base functionality that is assumed to be present for this object if `optionalInterfaces` were omitted.
 These integers MUST be within the range of a signed, 32-bit integer.
 Each element in the array SHOULD be unique.
 A receiver MUST NOT consider order of the integers to be significant, and MUST NOT assume they will be sorted.
@@ -73,7 +73,7 @@ Consider this example where `SomeMethod(int a, ISomething b, int c)` is invoked 
     "method": "SomeMethod",
     "params": [
         1,
-        { "__jsonrpc_marshaled": 1, "handle": 5, "subtypes": [1] },
+        { "__jsonrpc_marshaled": 1, "handle": 5, "optionalInterfaces": [1] },
         3,
     ]
 }
@@ -81,7 +81,7 @@ Consider this example where `SomeMethod(int a, ISomething b, int c)` is invoked 
 
 If the RPC server returns a JSON-RPC error response (for any reason), all objects marshalled in the arguments of the request are released immediately to mitigate memory leaks since the server cannot be expected to have recognized the arguments as requiring a special release notification to be sent from the server back to the client.
 
-Receivers SHOULD ignore unrecognized integers in the `subtypes` array.
+Receivers SHOULD ignore unrecognized integers in the `optionalInterfaces` array.
 
 ### Invoking a method on a marshaled object
 
@@ -97,7 +97,7 @@ The receiver of the above request can invoke `DoSomething` on the marshaled `ISo
 ```
 
 In the above `DoSomething` example, we might suppose that `DoSomething` is always defined on this object.
-We might further suppose that because `subtypes: [1]` was specified, that some optional functionality is also exposed on that object.
+We might further suppose that because `optionalInterfaces: [1]` was specified, that some optional functionality is also exposed on that object.
 The functionality designated by `1` would be documented by the RPC contract owner and is outside the scope of this general protocol documentation.
 But supposing that `1` meant that the marshaled object also offered a `DoSomethingElse` method, the receiver of this object could then invoke:
 
@@ -114,7 +114,7 @@ Note the `1.` prefix added to the leaf method name.
 This allows distinguishing groups of functionality on the object that may otherwise have colliding method names.
 Hosts of marshaled objects MUST support this prefix.
 Hosts MAY also support requests that omit the prefix, but should be prepared to handle any ambiguities that may arise.
-Receivers of marshaled objects SHOULD use this prefix when invoking methods on optional functionality that comes from `subtypes`.
+Receivers of marshaled objects SHOULD use this prefix when invoking methods on optional functionality that comes from `optionalInterfaces`.
 
 ### Referencing a marshaled object
 
