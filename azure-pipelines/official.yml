@@ -17,7 +17,6 @@ schedules:
   branches:
     include:
     - main
-    - 'v?.*'
 
 parameters:
 - name: SignTypeSelection
@@ -33,9 +32,6 @@ parameters:
   displayName: Build on macOS
   type: boolean
   default: false # macOS is often bogged down in Azure Pipelines
-
-variables:
-  NugetSecurityAnalysisWarningLevel: none # nuget.config requires signed packages by trusted owners
 
 stages:
 
