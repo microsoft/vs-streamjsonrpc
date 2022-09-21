@@ -18,7 +18,6 @@ schedules:
   branches:
     include:
     - main
-    - 'v?.*'
 
 parameters:
 - name: SignTypeSelection
@@ -38,9 +37,6 @@ parameters:
   displayName: Run APIScan
   type: boolean
   default: true
-
-variables:
-  NugetSecurityAnalysisWarningLevel: none # nuget.config requires signed packages by trusted owners
 
 stages:
 
