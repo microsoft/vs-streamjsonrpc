@@ -337,9 +337,7 @@ interface IBaz2 : IBar
 }
 ```
 
-Given the interfaces above, RPC calls would have these behaviors:
-
-* A call to any of the following methods behave as expected:
+Given the interfaces above, a call to any of the following methods behave as expected:
 
 Method call | Invoked server-side method | Conditions
 ------ | ------ | ------
