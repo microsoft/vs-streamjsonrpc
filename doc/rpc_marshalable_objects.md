@@ -352,8 +352,9 @@ Method call | Invoked server-side method | Conditions
 `((IBaz)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
 `((IBaz2)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
 
-* ⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableOptionalInterfaceAttribute`.
-* ⚠️ A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
+⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz`, since `IBaz` is the only optional interface with an `RpcMarshalableOptionalInterfaceAttribute`.
+
+A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
 
 Implemented interfaces | Invoked server-side method
 ------ | ------

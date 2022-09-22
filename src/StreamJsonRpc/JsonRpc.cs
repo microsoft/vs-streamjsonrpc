@@ -11,7 +11,6 @@ using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
-using static StreamJsonRpc.Reflection.RpcTargetInfo;
 
 namespace StreamJsonRpc;
 
