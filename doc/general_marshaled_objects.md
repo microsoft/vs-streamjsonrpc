@@ -57,7 +57,7 @@ Value | Explanation
 `"explicit"` | The marshaled object may be invoked until `$/releaseMarshaledObject` releases it. **This is the default behavior when the `lifetime` property is omitted.**
 
 The `optionalInterfaces` property is an array of integers that MAY be included to specify that the marshaled object implements additional known interfaces, where each array element represents one of these interfaces.
-Each element is expected to add to some base functionality that is assumed to be present for this object if `optionalInterfaces` were omitted.
+Each element is expected to add to some base functionality that is assumed to be present for this object even if `optionalInterfaces` were omitted.
 These integers MUST be within the range of a signed, 32-bit integer.
 Each element in the array SHOULD be unique.
 A receiver MUST NOT consider order of the integers to be significant, and MUST NOT assume they will be sorted.
