@@ -26,7 +26,7 @@ internal static class TrackerHelpers<TInterface>
     /// Extracts some interface from a given <see cref="Type"/>, if it is implemented.
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
-    /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <c>null</c>  if no such interface was found in the given <paramref name="objectType" />.</returns>
+    /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
     internal static Type? FindInterfaceImplementedBy(Type objectType)
     {
         Requires.NotNull(objectType, nameof(objectType));
@@ -60,13 +60,13 @@ internal static class TrackerHelpers<TInterface>
     /// Checks whether the given type is an interface compatible with <typeparamref name="TInterface"/>.
     /// </summary>
     /// <param name="objectType">The type that may be deserialized.</param>
-    /// <returns><c>true</c> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <see langword="false"/> otherwise.</returns>
     internal static bool CanDeserialize(Type objectType) => IsActualInterfaceMatch(objectType);
 
     /// <summary>
     /// Checks whether the given type is an interface compatible with <typeparamref name="TInterface"/>.
     /// </summary>
     /// <param name="objectType">The type that may be deserialized.</param>
-    /// <returns><c>true</c> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <see langword="false"/> otherwise.</returns>
     internal static bool IsActualInterfaceMatch(Type objectType) => Requires.NotNull(objectType, nameof(objectType)).IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(InterfaceGenericTypeDefinition);
 }

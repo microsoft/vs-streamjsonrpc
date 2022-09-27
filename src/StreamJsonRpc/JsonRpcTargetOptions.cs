@@ -48,16 +48,16 @@ public class JsonRpcTargetOptions
     /// Gets or sets a value indicating whether events raised on the target object
     /// should be relayed to the client via a JSON-RPC notify message.
     /// </summary>
-    /// <value>The default is <c>true</c>.</value>
+    /// <value>The default is <see langword="true"/>.</value>
     public bool NotifyClientOfEvents { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether non-public methods/events on target objects can be invoked
     /// by remote clients.
     /// </summary>
-    /// <value>The default value is <c>false</c>.</value>
+    /// <value>The default value is <see langword="false"/>.</value>
     /// <remarks>
-    /// The default for this property was <c>true</c> in the 1.x versions.
+    /// The default for this property was <see langword="true"/> in the 1.x versions.
     /// </remarks>
     public bool AllowNonPublicInvocation { get; set; }
 

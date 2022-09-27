@@ -76,7 +76,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Gets or sets the multiplexing stream used to create and accept channels.
     /// </summary>
     /// <remarks>
-    /// If this is <c>null</c>, some public methods will throw <see cref="NotSupportedException"/>.
+    /// If this is <see langword="null"/>, some public methods will throw <see cref="NotSupportedException"/>.
     /// </remarks>
     public MultiplexingStream? MultiplexingStream { get; set; }
 
@@ -102,7 +102,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates a token to represent an <see cref="IDuplexPipe"/> as it is transmitted from the client to an RPC server as a method argument.
     /// </summary>
     /// <param name="duplexPipe">The client pipe that is to be shared with the RPC server. May be null.</param>
-    /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="duplexPipe"/> was <c>null</c>.</returns>
+    /// <returns>The token to use as the RPC method argument; or <see langword="null"/> if <paramref name="duplexPipe"/> was <see langword="null"/>.</returns>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
     [return: NotNullIfNotNull("duplexPipe")]
     public ulong? GetULongToken(IDuplexPipe? duplexPipe)
@@ -150,7 +150,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates a token to represent a <see cref="PipeReader"/> as it is transmitted from the client to an RPC server as a method argument.
     /// </summary>
     /// <param name="reader">The client pipe that is to be shared with the RPC server. May be null.</param>
-    /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="reader"/> was <c>null</c>.</returns>
+    /// <returns>The token to use as the RPC method argument; or <see langword="null"/> if <paramref name="reader"/> was <see langword="null"/>.</returns>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
     [return: NotNullIfNotNull("reader")]
     public ulong? GetULongToken(PipeReader? reader) => this.GetULongToken(reader is not null ? new DuplexPipe(reader) : null);
@@ -164,7 +164,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates a token to represent a <see cref="PipeWriter"/> as it is transmitted from the client to an RPC server as a method argument.
     /// </summary>
     /// <param name="writer">The client pipe that is to be shared with the RPC server. May be null.</param>
-    /// <returns>The token to use as the RPC method argument; or <c>null</c> if <paramref name="writer"/> was <c>null</c>.</returns>
+    /// <returns>The token to use as the RPC method argument; or <see langword="null"/> if <paramref name="writer"/> was <see langword="null"/>.</returns>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor or when serializing a message without an ID property.</exception>
     [return: NotNullIfNotNull("writer")]
     public ulong? GetULongToken(PipeWriter? writer) => this.GetULongToken(writer is not null ? new DuplexPipe(writer) : null);
@@ -178,7 +178,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates an <see cref="IDuplexPipe"/> from a given token as it is received at the RPC server as a method argument.
     /// </summary>
     /// <param name="token">The method argument, which was originally obtained by the client using the <see cref="GetToken(IDuplexPipe)"/> method.</param>
-    /// <returns>The <see cref="IDuplexPipe"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
+    /// <returns>The <see cref="IDuplexPipe"/> from the token; or <see langword="null"/> if <paramref name="token"/> was <see langword="null"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
     [return: NotNullIfNotNull("token")]
@@ -223,7 +223,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates a <see cref="PipeReader"/> from a given token as it is received at the RPC server as a method argument.
     /// </summary>
     /// <param name="token">The method argument, which was originally obtained by the client using the <see cref="GetToken(IDuplexPipe)"/> method.</param>
-    /// <returns>The <see cref="PipeReader"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
+    /// <returns>The <see cref="PipeReader"/> from the token; or <see langword="null"/> if <paramref name="token"/> was <see langword="null"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
     [return: NotNullIfNotNull("token")]
@@ -248,7 +248,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// Creates a <see cref="PipeWriter"/> from a given token as it is received at the RPC server as a method argument.
     /// </summary>
     /// <param name="token">The method argument, which was originally obtained by the client using the <see cref="GetToken(IDuplexPipe)"/> method.</param>
-    /// <returns>The <see cref="PipeWriter"/> from the token; or <c>null</c> if <paramref name="token"/> was <c>null</c>.</returns>
+    /// <returns>The <see cref="PipeWriter"/> from the token; or <see langword="null"/> if <paramref name="token"/> was <see langword="null"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the token does not match up with an out of band channel offered by the client.</exception>
     /// <exception cref="NotSupportedException">Thrown if no <see cref="MultiplexingStream"/> was provided to the constructor.</exception>
     [return: NotNullIfNotNull("token")]
@@ -274,7 +274,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// <summary>
     /// Disposes managed and native resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> if being disposed; <see langword="false"/> if being finalized.</param>
     protected virtual void Dispose(bool disposing)
     {
         this.isDisposed = true;
@@ -339,7 +339,7 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     }
 
     /// <summary>
-    /// Throws <see cref="NotSupportedException"/> if <see cref="MultiplexingStream"/> is <c>null</c>.
+    /// Throws <see cref="NotSupportedException"/> if <see cref="MultiplexingStream"/> is <see langword="null"/>.
     /// </summary>
     private MultiplexingStream GetMultiplexingStreamOrThrow()
     {

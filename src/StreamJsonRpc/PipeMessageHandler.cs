@@ -160,13 +160,13 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// Reads from the <see cref="Reader"/> until at least a specified number of bytes are available.
     /// </summary>
     /// <param name="requiredBytes">The number of bytes that must be available.</param>
-    /// <param name="allowEmpty"><c>true</c> to allow returning 0 bytes if the end of the stream is encountered before any bytes are read.</param>
+    /// <param name="allowEmpty"><see langword="true"/> to allow returning 0 bytes if the end of the stream is encountered before any bytes are read.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The <see cref="ReadResult"/> containing at least <paramref name="requiredBytes"/> bytes.</returns>
     /// <exception cref="OperationCanceledException">Thrown if <see cref="ReadResult.IsCanceled"/>.</exception>
     /// <exception cref="EndOfStreamException">
     /// Thrown if <see cref="ReadResult.IsCompleted"/> before we have <paramref name="requiredBytes"/> bytes.
-    /// Not thrown if 0 bytes were read and <paramref name="allowEmpty"/> is <c>true</c>.
+    /// Not thrown if 0 bytes were read and <paramref name="allowEmpty"/> is <see langword="true"/>.
     /// </exception>
     protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
     {
@@ -206,7 +206,7 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// </summary>
     /// <param name="contentLength">The length of the JSON-RPC message.</param>
     /// <param name="specificEncoding">The encoding to use during deserialization, as specified in a header for this particular message.</param>
-    /// <param name="defaultEncoding">The encoding to use when <paramref name="specificEncoding"/> is <c>null</c> if the <see cref="MessageHandlerBase.Formatter"/> supports encoding.</param>
+    /// <param name="defaultEncoding">The encoding to use when <paramref name="specificEncoding"/> is <see langword="null"/> if the <see cref="MessageHandlerBase.Formatter"/> supports encoding.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The deserialized message.</returns>
     /// <exception cref="NotSupportedException">Thrown if <paramref name="specificEncoding"/> is non-null and the formatter does not implement the appropriate interface to supply the encoding.</exception>

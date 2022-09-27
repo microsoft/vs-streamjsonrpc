@@ -51,7 +51,7 @@ internal static class AwaitExtensions
         /// Gets a value indicating whether the caller is already on the desired context.
         /// </summary>
         /// <remarks>
-        /// We always return <c>false</c> because we use this to invoke server methods and we *always* want to
+        /// We always return <see langword="false"/> because we use this to invoke server methods and we *always* want to
         /// yield before invoking them, even if this is the default SynchronizationContext that the caller is on.
         /// </remarks>
         public bool IsCompleted => false;

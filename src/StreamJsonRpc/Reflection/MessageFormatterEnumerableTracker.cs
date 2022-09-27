@@ -133,7 +133,7 @@ public class MessageFormatterEnumerableTracker
     /// and gets all its values from a remote generator.
     /// </summary>
     /// <typeparam name="T">The type of value that is produced by the enumerable.</typeparam>
-    /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator. May be <c>null</c> to indicate there will be no more values.</param>
+    /// <param name="handle">The handle specified by the generator that is used to obtain more values or dispose of the enumerator. May be <see langword="null"/> to indicate there will be no more values.</param>
     /// <param name="prefetchedItems">The list of items that are included with the enumerable handle.</param>
     /// <returns>The enumerator.</returns>
 #pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.

@@ -507,7 +507,7 @@ public class JsonMessageFormatter : IJsonRpcAsyncMessageTextFormatter, IJsonRpcF
     /// <summary>
     /// Disposes managed and native resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> if being disposed; <see langword="false"/> if being finalized.</param>
     protected virtual void Dispose(bool disposing)
     {
         this.duplexPipeTracker?.Dispose();
