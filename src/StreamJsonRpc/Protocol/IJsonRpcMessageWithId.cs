@@ -4,7 +4,7 @@
 namespace StreamJsonRpc.Protocol;
 
 /// <summary>
-/// An interface found on JSON-RPC protocol messages that contain an <pre>id</pre> field.
+/// An interface found on JSON-RPC protocol messages that contain an <c>id</c> field.
 /// </summary>
 public interface IJsonRpcMessageWithId
 {

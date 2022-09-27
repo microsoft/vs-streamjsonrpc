@@ -69,7 +69,7 @@ public class RpcArgumentDeserializationException : RemoteRpcException
     /// Gets the name of the argument from the JSON-RPC request that failed to deserialize, if available.
     /// </summary>
     /// <remarks>
-    /// This value will be <c>null</c> when the JSON-RPC request uses positional arguments.
+    /// This value will be <see langword="null"/> when the JSON-RPC request uses positional arguments.
     /// </remarks>
     public string? ArgumentName { get; private set; }
 
@@ -77,7 +77,7 @@ public class RpcArgumentDeserializationException : RemoteRpcException
     /// Gets the 0-based index of the argument from the JSON-RPC request that failed to deserialize, if available.
     /// </summary>
     /// <remarks>
-    /// This value will be <c>null</c> when the JSON-RPC request uses named arguments.
+    /// This value will be <see langword="null"/> when the JSON-RPC request uses named arguments.
     /// </remarks>
     public int? ArgumentPosition { get; private set; }
 

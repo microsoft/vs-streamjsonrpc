@@ -69,7 +69,7 @@ public class MessageFormatterProgressTracker
     /// Converts given <see cref="Type"/> to its <see cref="IProgress{T}"/> type.
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
-    /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <c>null</c>  if no such interface was found in the given <paramref name="objectType" />.</returns>
+    /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
     public static Type? FindIProgressOfT(Type objectType) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
 
     /// <summary>

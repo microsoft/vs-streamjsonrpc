@@ -24,9 +24,10 @@ jobs:
   variables:
   - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
     # https://dev.azure.com/devdiv/DevDiv/_wiki/wikis/DevDiv.wiki/25351/APIScan-step-by-step-guide-to-setting-up-a-Pipeline
-    - group: VSExtensibility-APIScan
+    - group: VSExtensibility-APIScan # Expected to provide ApiScanClientId, ApiScanSecret, ApiScanTenant
   steps:
   - checkout: self
+    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     clean: true
 
   - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
@@ -64,6 +65,7 @@ jobs:
       vmImage: Ubuntu 20.04
     steps:
     - checkout: self
+      fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
       clean: true
     - template: install-dependencies.yml
     - template: dotnet.yml
@@ -73,9 +75,10 @@ jobs:
   - job: macOS
     condition: ${{ parameters.includeMacOS }}
     pool:
-      vmImage: macOS-10.15
+      vmImage: macOS-12
     steps:
     - checkout: self
+      fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
       clean: true
     - template: install-dependencies.yml
     - template: dotnet.yml
@@ -91,6 +94,7 @@ jobs:
     condition: succeededOrFailed()
     steps:
     - checkout: self
+      fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
       clean: true
     - template: install-dependencies.yml
       parameters:
