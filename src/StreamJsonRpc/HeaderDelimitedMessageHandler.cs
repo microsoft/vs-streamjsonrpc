@@ -282,7 +282,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// Extracts the content encoding from a Content-Type header.
     /// </summary>
     /// <param name="contentTypeValue">The value of the Content-Type header.</param>
-    /// <returns>The Encoding, if the header specified one; otherwise <c>null</c>.</returns>
+    /// <returns>The Encoding, if the header specified one; otherwise <see langword="null"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)] // keep System.Net.Http dependency in its own method to avoid loading it if there is no such header.
     private static unsafe Encoding? ParseEncodingFromContentTypeHeader(ReadOnlySequence<byte> contentTypeValue)
     {

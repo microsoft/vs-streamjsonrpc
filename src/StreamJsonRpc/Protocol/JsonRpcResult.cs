@@ -34,7 +34,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// <summary>
     /// Gets or sets an identifier established by the client if a response to the request is expected.
     /// </summary>
-    /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>
+    /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <see langword="null"/>.</value>
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
     public object? Id

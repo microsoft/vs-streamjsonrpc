@@ -115,8 +115,8 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     /// Reads a distinct and complete message from the transport, waiting for one if necessary.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the read request.</param>
-    /// <returns>The received message, or <c>null</c> if the underlying transport ends before beginning another message.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanRead"/> returns <c>false</c>.</exception>
+    /// <returns>The received message, or <see langword="null"/> if the underlying transport ends before beginning another message.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanRead"/> returns <see langword="false"/>.</exception>
     /// <exception cref="System.IO.EndOfStreamException">Thrown if the transport ends while reading a message.</exception>
     /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before a new message is received.</exception>
     /// <remarks>
@@ -166,7 +166,7 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     /// <param name="content">The message to write.</param>
     /// <param name="cancellationToken">A token to cancel the write request.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <see langword="false"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before message transmission begins.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed before or during transmission.</exception>
     /// <remarks>
@@ -270,7 +270,7 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     /// <summary>
     /// Disposes resources allocated by this instance that are common to both reading and writing.
     /// </summary>
-    /// <param name="disposing"><c>true</c> when being disposed; <c>false</c> when being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> when being disposed; <see langword="false"/> when being finalized.</param>
     /// <remarks>
     /// <para>
     /// This method is called by <see cref="DisposeAsync"/> after both <see cref="DisposeReader"/> and <see cref="DisposeWriter"/> have completed.

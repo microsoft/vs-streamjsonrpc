@@ -274,7 +274,7 @@ public class FullDuplexStream : Stream
         /// and should be removed from the queue.
         /// </summary>
         /// <remarks>
-        /// This returns <c>false</c> if the buffer was originally empty,
+        /// This returns <see langword="false"/> if the buffer was originally empty,
         /// since that signifies that the other party closed their sending stream.
         /// </remarks>
         public bool IsConsumed => this.Position == this.Buffer.Length && this.Buffer.Length > 0;

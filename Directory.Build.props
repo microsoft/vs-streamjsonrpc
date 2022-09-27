@@ -36,7 +36,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CSharpIsNullAnalyzer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Internal.MicroBuild.VisualStudio" PrivateAssets="all" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
@@ -44,6 +43,8 @@
     <PackageReference Include="Nullable" PrivateAssets="all" />
     <!-- Use the Unstable package ID so that update tools will help us keep it current even though it seems to be ever-unstable lately. -->
     <PackageReference Include="StyleCop.Analyzers.Unstable" PrivateAssets="all" />
+    <PackageReference Include="DotNetAnalyzers.DocumentationAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="CSharpIsNullAnalyzer" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

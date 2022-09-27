@@ -51,8 +51,8 @@ public abstract class TestBase : IDisposable
     /// </summary>
     /// <typeparam name="TException">The type of exception sought.</typeparam>
     /// <param name="ex">The exception to search.</param>
-    /// <param name="exactTypeMatch"><c>true</c> to require an exact match; <c>false</c> to allow match on derived types of <typeparamref name="TException"/>.</param>
-    /// <returns><c>true</c> if an exception of type <typeparamref name="TException"/> was found at or under <paramref name="ex"/>.</returns>
+    /// <param name="exactTypeMatch"><see langword="true"/> to require an exact match; <see langword="false"/> to allow match on derived types of <typeparamref name="TException"/>.</param>
+    /// <returns><see langword="true"/> if an exception of type <typeparamref name="TException"/> was found at or under <paramref name="ex"/>.</returns>
     protected static bool IsExceptionOrInnerOfType<TException>(Exception? ex, bool exactTypeMatch = false) => FindExceptionOrInner(ex, x => exactTypeMatch ? (x.GetType() == typeof(TException)) : x is TException) is object;
 
     /// <summary>
@@ -60,7 +60,7 @@ public abstract class TestBase : IDisposable
     /// </summary>
     /// <param name="ex">The starting exception to search.</param>
     /// <param name="predicate">The test for whether this exception is the one sought for.</param>
-    /// <returns>The first in the exception tree for which <paramref name="predicate"/> returns <c>true</c>, or <c>null</c> if the <paramref name="predicate"/> never returned <c>true</c>.</returns>
+    /// <returns>The first in the exception tree for which <paramref name="predicate"/> returns <see langword="true"/>, or <see langword="null"/> if the <paramref name="predicate"/> never returned <see langword="true"/>.</returns>
     protected static Exception? FindExceptionOrInner(Exception? ex, Func<Exception, bool> predicate)
     {
         if (ex is null)
