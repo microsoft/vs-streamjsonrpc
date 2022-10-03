@@ -248,7 +248,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <param name="interfaceType">The interface the proxy must implement.</param>
     /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
     /// <param name="options">The options to feed into proxy generation.</param>
-    /// <returns>The generated proxy, or <c>null</c> if <paramref name="token"/> is null.</returns>
+    /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
     [return: NotNullIfNotNull("token")]
     internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
     {
@@ -341,7 +341,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// Releases memory associated with marshaled objects.
     /// </summary>
     /// <param name="handle">The handle to the object as created by the <see cref="GetToken(object, JsonRpcTargetOptions, Type)"/> method.</param>
-    /// <param name="ownedBySender"><c>true</c> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <c>false</c> if the token and object was created locally.</param>
+    /// <param name="ownedBySender"><see langword="true"/> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <see langword="false"/> if the token and object was created locally.</param>
 #pragma warning disable CA1801 // Review unused parameters -- Signature is dicated by protocol extension server method.
     private void ReleaseMarshaledObject(long handle, bool ownedBySender)
 #pragma warning restore CA1801 // Review unused parameters

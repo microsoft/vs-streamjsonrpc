@@ -25,7 +25,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
 
     /// <summary>
-    /// A list of event handlers we've registered on target objects that define events. May be <c>null</c> if there are no handlers.
+    /// A list of event handlers we've registered on target objects that define events. May be <see langword="null"/> if there are no handlers.
     /// </summary>
     private List<EventReceiver>? eventReceivers;
 
@@ -174,9 +174,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// If this type is not an interface, only public members become invokable unless <see cref="JsonRpcTargetOptions.AllowNonPublicInvocation"/> is set to true on the <paramref name="options"/> argument.
     /// </param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
-    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
-    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <c>false</c>.</returns>
+    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <see langword="false"/>.</returns>
     /// <remarks>
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
@@ -267,7 +267,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="methodRpcSettings">
     /// A description for how this method should be treated.
     /// It need not be an attribute that was actually applied to <paramref name="handler"/>.
-    /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <c>null</c>.
+    /// An attribute will *not* be discovered via reflection on the <paramref name="handler"/>, even if this value is <see langword="null"/>.
     /// </param>
     /// <param name="synchronizationContext">The <see cref="System.Threading.SynchronizationContext"/> to schedule the method invocation on instead of the default one specified by the <see cref="SynchronizationContext"/> property.</param>
     internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)

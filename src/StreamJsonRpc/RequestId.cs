@@ -41,7 +41,7 @@ public struct RequestId : IEquatable<RequestId>
     public static RequestId NotSpecified => default;
 
     /// <summary>
-    /// Gets the special value for an explicitly specified <c>null</c> request ID.
+    /// Gets the special value for an explicitly specified <see langword="null"/> request ID.
     /// </summary>
     public static RequestId Null => new RequestId(null);
 
@@ -86,7 +86,7 @@ public struct RequestId : IEquatable<RequestId>
     /// </summary>
     /// <param name="first">The first value.</param>
     /// <param name="second">The second value.</param>
-    /// <returns><c>true</c> if the values are equal; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if the values are equal; <see langword="false"/> otherwise.</returns>
     public static bool operator ==(RequestId first, RequestId second) => first.Equals(second);
 
     /// <summary>
@@ -94,7 +94,7 @@ public struct RequestId : IEquatable<RequestId>
     /// </summary>
     /// <param name="first">The first value.</param>
     /// <param name="second">The second value.</param>
-    /// <returns><c>false</c> if the values are equal; <c>true</c> otherwise.</returns>
+    /// <returns><see langword="false"/> if the values are equal; <see langword="true"/> otherwise.</returns>
     public static bool operator !=(RequestId first, RequestId second) => !(first == second);
 
     /// <inheritdoc/>

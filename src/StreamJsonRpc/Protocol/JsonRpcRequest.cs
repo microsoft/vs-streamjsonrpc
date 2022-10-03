@@ -63,7 +63,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// <summary>
     /// Gets or sets an identifier established by the client if a response to the request is expected.
     /// </summary>
-    /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <c>null</c>.</value>
+    /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <see langword="null"/>.</value>
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
     public object? Id
@@ -108,7 +108,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 
     /// <summary>
     /// Gets or sets a dictionary of <see cref="Type"/> objects indexed by the property name that describe how each element in <see cref="NamedArguments"/> is expected by the server to be typed.
-    /// If specified, this must have exactly the same size as <see cref="NamedArguments"/> and contain no <c>null</c> values.
+    /// If specified, this must have exactly the same size as <see cref="NamedArguments"/> and contain no <see langword="null"/> values.
     /// </summary>
     /// <remarks>
     /// This property is *not* serialized into the JSON-RPC message.
@@ -144,7 +144,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 
     /// <summary>
     /// Gets or sets a list of <see cref="Type"/> objects that describe how each element in <see cref="ArgumentsList"/> is expected by the server to be typed.
-    /// If specified, this must have exactly the same length as <see cref="ArgumentsList"/> and contain no <c>null</c> elements.
+    /// If specified, this must have exactly the same length as <see cref="ArgumentsList"/> and contain no <see langword="null"/> elements.
     /// </summary>
     /// <remarks>
     /// This property is *not* serialized into the JSON-RPC message.
@@ -188,7 +188,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
     /// The length of this span must equal the length of <paramref name="parameters"/>.
     /// </param>
-    /// <returns><c>true</c> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <see langword="false"/> otherwise.</returns>
     /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
     public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
     {
@@ -246,7 +246,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// <param name="position">The index of the parameter that requires an argument. May be -1 for an argument with no position.</param>
     /// <param name="typeHint">The type of the parameter that requires an argument. May be null if the type need not be coerced.</param>
     /// <param name="value">Receives the value of the argument, if it exists. It MAY be returned even if it does not conform to <paramref name="typeHint"/>.</param>
-    /// <returns><c>true</c> if an argument is available for a parameter with the given name or position; <c>false</c> otherwise.</returns>
+    /// <returns><see langword="true"/> if an argument is available for a parameter with the given name or position; <see langword="false"/> otherwise.</returns>
     /// <remarks>
     /// A derived-type may override this method in order to consider the <paramref name="typeHint"/>
     /// and deserialize the required argument on-demand such that it can satisfy the type requirement.

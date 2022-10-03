@@ -664,8 +664,8 @@ internal static class ProxyGeneration
     /// Converts the value on the stack to one compatible with the method's return type.
     /// </summary>
     /// <param name="method">The interface method that we're generating code for.</param>
-    /// <param name="returnTypeIsValueTask"><c>true</c> if the return type is <see cref="ValueTask"/> or <see cref="ValueTask{TResult}"/>; <c>false</c> otherwise.</param>
-    /// <param name="returnTypeIsIAsyncEnumerable"><c>true</c> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <c>false</c> otherwise.</param>
+    /// <param name="returnTypeIsValueTask"><see langword="true"/> if the return type is <see cref="ValueTask"/> or <see cref="ValueTask{TResult}"/>; <see langword="false"/> otherwise.</param>
+    /// <param name="returnTypeIsIAsyncEnumerable"><see langword="true"/> if the return type is <see cref="IAsyncEnumerable{TResult}"/>; <see langword="false"/> otherwise.</param>
     /// <param name="il">The IL emitter for the method.</param>
     /// <param name="invokingMethod">The Invoke method on <see cref="JsonRpc"/> that IL was just emitted to invoke.</param>
     /// <param name="cancellationTokenParameter">The <see cref="CancellationToken"/> parameter in the proxy method, if there is one.</param>

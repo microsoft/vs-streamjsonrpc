@@ -466,14 +466,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// can be changed after <see cref="StartListening"/> or <see cref="Attach(Stream, object)"/>
     /// has been called.
     /// </summary>
-    /// <value>The default is <c>false</c>.</value>
+    /// <value>The default is <see langword="false"/>.</value>
     /// <remarks>
     /// By default, all configuration such as target objects and target methods must be set
     /// before listening starts to avoid a race condition whereby we receive a method invocation
     /// message before we have wired up a handler for it and must reject the call.
     /// But in some advanced scenarios, it may be necessary to add target methods after listening
     /// has started (e.g. in response to an invocation that enables additional functionality),
-    /// in which case setting this property to <c>true</c> is appropriate.
+    /// in which case setting this property to <see langword="true"/> is appropriate.
     /// </remarks>
     public bool AllowModificationWhileListening { get; set; }
 
@@ -702,7 +702,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <param name="handler">The message handler to use.</param>
-    /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>
     /// An instance of the generated proxy.
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
@@ -733,7 +733,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
-    /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
@@ -754,7 +754,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Creates a JSON-RPC client proxy that conforms to the specified server interface.
     /// </summary>
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
-    /// <param name="options">A set of customizations for how the client proxy is wired up. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
@@ -776,7 +776,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
-    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     public void AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options)
     {
         Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
@@ -814,7 +814,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// The method or delegate to invoke when a matching RPC message arrives.
     /// This method may accept parameters from the incoming JSON-RPC message.
     /// </param>
-    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     public void AddLocalRpcMethod(string? rpcMethodName, Delegate handler)
     {
         Requires.NotNull(handler, nameof(handler));
@@ -833,7 +833,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// This method may accept parameters from the incoming JSON-RPC message.
     /// </param>
     /// <param name="target">An instance of the type that defines <paramref name="handler"/> which should handle the invocation.</param>
-    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     public void AddLocalRpcMethod(string? rpcMethodName, MethodInfo handler, object? target) => this.AddLocalRpcMethod(handler, target, new JsonRpcMethodAttribute(rpcMethodName));
 
     /// <inheritdoc cref="AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
@@ -959,7 +959,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="argument">An object whose properties match the names of parameters on the target method. Must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>.</param>
     /// <param name="argumentDeclaredTypes">
     /// A dictionary of <see cref="Type"/> objects that describe how each entry in the <see cref="IReadOnlyDictionary{TKey, TValue}"/> provided in <paramref name="argument"/> is expected by the server to be typed.
-    /// If specified, this must have exactly the same set of keys as <paramref name="argument"/> and contain no <c>null</c> values.
+    /// If specified, this must have exactly the same set of keys as <paramref name="argument"/> and contain no <see langword="null"/> values.
     /// </param>
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
@@ -1186,7 +1186,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
-    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
     {
         this.ThrowIfConfigurationLocked();
@@ -1266,7 +1266,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <summary>
     /// Disposes managed and native resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> if being disposed; <see langword="false"/> if being finalized.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (!this.IsDisposed)
@@ -1297,7 +1297,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="request">The request that led to the invocation that ended up failing.</param>
     /// <param name="exception">The exception thrown from the RPC method.</param>
-    /// <returns>The error details to return to the client. Must not be <c>null</c>.</returns>
+    /// <returns>The error details to return to the client. Must not be <see langword="null"/>.</returns>
     /// <remarks>
     /// This method may be overridden in a derived class to change the way error details are expressed.
     /// </remarks>
@@ -1360,7 +1360,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="error">The received error message.</param>
     /// <returns>
-    /// The type, or <c>null</c> if the type is unknown.
+    /// The type, or <see langword="null"/> if the type is unknown.
     /// </returns>
     /// <remarks>
     /// The default implementation matches what <see cref="CreateErrorDetails(JsonRpcRequest, Exception)"/> does
@@ -1433,15 +1433,15 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <typeparam name="TResult">RPC method return type.</typeparam>
     /// <param name="id">An identifier established by the Client. If the default value is given, it is assumed to be a notification.</param>
     /// <param name="targetName">Name of the method to invoke. Must not be null or empty.</param>
-    /// <param name="arguments">Arguments to pass to the invoked method. They must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>. If <c>null</c>, no arguments are passed.</param>
+    /// <param name="arguments">Arguments to pass to the invoked method. They must be serializable using the selected <see cref="IJsonRpcMessageFormatter"/>. If <see langword="null"/>, no arguments are passed.</param>
     /// <param name="positionalArgumentDeclaredTypes">
     /// A list of <see cref="Type"/> objects that describe how each element in <paramref name="arguments"/> is expected by the server to be typed.
-    /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <c>null</c> elements.
+    /// If specified, this must have exactly the same length as <paramref name="arguments"/> and contain no <see langword="null"/> elements.
     /// This value is ignored when <paramref name="isParameterObject"/> is true.
     /// </param>
     /// <param name="namedArgumentDeclaredTypes">
     /// A dictionary of <see cref="Type"/> objects that describe how each entry in the <see cref="IReadOnlyDictionary{TKey, TValue}"/> provided in the only element of <paramref name="arguments"/> is expected by the server to be typed.
-    /// If specified, this must have exactly the same set of keys as the dictionary contained in the first element of <paramref name="arguments"/>, and contain no <c>null</c> values.
+    /// If specified, this must have exactly the same set of keys as the dictionary contained in the first element of <paramref name="arguments"/>, and contain no <see langword="null"/> values.
     /// </param>
     /// <param name="cancellationToken">The token whose cancellation should signal the server to stop processing this request.</param>
     /// <param name="isParameterObject">Value which indicates if parameter should be passed as an object.</param>
@@ -1727,7 +1727,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
     /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
-    /// <returns><c>true</c> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <c>false</c>.</returns>
+    /// <returns><see langword="true"/> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <see langword="false"/>.</returns>
     private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, [NotNullWhen(true)] out TypeInfo? taskOfTTypeInfo)
     {
         Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
@@ -1755,8 +1755,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Convert a <see cref="ValueTask"/> or <see cref="ValueTask{T}"/> into a <see cref="Task"/> if possible.
     /// </summary>
     /// <param name="result">The result from the RPC method invocation.</param>
-    /// <param name="task">Receives the converted <see cref="Task"/> object, if conversion was possible; otherwise <c>null</c>.</param>
-    /// <returns><c>true</c> if conversion succeeded; <c>false</c> otherwise.</returns>
+    /// <param name="task">Receives the converted <see cref="Task"/> object, if conversion was possible; otherwise <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> if conversion succeeded; <see langword="false"/> otherwise.</returns>
     private static bool TryGetTaskFromValueTask(object? result, [NotNullWhen(true)] out Task? task)
     {
         if (result is ValueTask resultingValueTask)
@@ -2621,9 +2621,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
     /// <summary>
     /// Throws an exception if we have already started listening,
-    /// unless <see cref="AllowModificationWhileListening"/> is <c>true</c>.
+    /// unless <see cref="AllowModificationWhileListening"/> is <see langword="true"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown if <see cref="HasListeningStarted"/> is <c>true</c> and <see cref="AllowModificationWhileListening"/> is <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if <see cref="HasListeningStarted"/> is <see langword="true"/> and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     private void ThrowIfConfigurationLocked()
     {
         // PERF: This can get called a lot in scenarios where connections are short-lived and frequent.

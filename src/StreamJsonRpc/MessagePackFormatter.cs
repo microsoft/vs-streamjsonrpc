@@ -391,7 +391,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
     /// <summary>
     /// Disposes managed and native resources held by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> if being disposed; <c>false</c> if being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> if being disposed; <see langword="false"/> if being finalized.</param>
     protected virtual void Dispose(bool disposing)
     {
         this.duplexPipeTracker?.Dispose();
@@ -401,7 +401,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
     /// Extracts a dictionary of property names and values from the specified params object.
     /// </summary>
     /// <param name="paramsObject">The params object.</param>
-    /// <returns>A dictionary of argument values and another of declared argument types, or <c>null</c> if <paramref name="paramsObject"/> is null.</returns>
+    /// <returns>A dictionary of argument values and another of declared argument types, or <see langword="null"/> if <paramref name="paramsObject"/> is null.</returns>
     /// <remarks>
     /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
     /// </remarks>
@@ -743,7 +743,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         /// Reads one raw messagepack token.
         /// </summary>
         /// <param name="reader">The reader to use.</param>
-        /// <param name="copy"><c>true</c> if the token must outlive the lifetime of the reader's underlying buffer; <c>false</c> otherwise.</param>
+        /// <param name="copy"><see langword="true"/> if the token must outlive the lifetime of the reader's underlying buffer; <see langword="false"/> otherwise.</param>
         /// <returns>The raw messagepack slice.</returns>
         internal static RawMessagePack ReadRaw(ref MessagePackReader reader, bool copy)
         {

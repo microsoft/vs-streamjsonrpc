@@ -47,7 +47,7 @@ public class JsonRpcMethodAttribute : Attribute
     /// <summary>
     /// Gets the public RPC name by which this method will be invoked.
     /// </summary>
-    /// <value>May be <c>null</c> if the method's name has not been overridden.</value>
+    /// <value>May be <see langword="null"/> if the method's name has not been overridden.</value>
     public string? Name { get; }
 
     /// <summary>

@@ -29,8 +29,8 @@ public interface IJsonRpcMessageHandler
     /// Reads a distinct and complete message from the transport, waiting for one if necessary.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the read request.</param>
-    /// <returns>The received message, or <c>null</c> if the underlying transport ends before beginning another message.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanRead"/> returns <c>false</c>.</exception>
+    /// <returns>The received message, or <see langword="null"/> if the underlying transport ends before beginning another message.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanRead"/> returns <see langword="false"/>.</exception>
     /// <exception cref="System.IO.EndOfStreamException">Thrown if the transport ends while reading a message.</exception>
     /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before a new message is received.</exception>
     /// <remarks>
@@ -45,7 +45,7 @@ public interface IJsonRpcMessageHandler
     /// <param name="jsonRpcMessage">The message to write.</param>
     /// <param name="cancellationToken">A token to cancel the write request.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <c>false</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="CanWrite"/> returns <see langword="false"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown if <paramref name="cancellationToken"/> is canceled before message transmission begins.</exception>
     /// <remarks>
     /// Implementations should expect this method to be invoked concurrently

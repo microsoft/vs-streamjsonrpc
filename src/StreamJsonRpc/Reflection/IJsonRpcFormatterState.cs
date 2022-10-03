@@ -23,7 +23,7 @@ public interface IJsonRpcFormatterState
     /// Gets a value indicating whether a <see cref="Protocol.JsonRpcRequest"/> is being serialized.
     /// </summary>
     /// <remarks>
-    /// A response is being serialized if this property's value is <c>false</c> while <see cref="SerializingMessageWithId"/> is non-empty.
+    /// A response is being serialized if this property's value is <see langword="false"/> while <see cref="SerializingMessageWithId"/> is non-empty.
     /// </remarks>
     public bool SerializingRequest { get; }
 }

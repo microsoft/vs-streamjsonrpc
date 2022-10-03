@@ -50,7 +50,7 @@ public abstract class StreamMessageHandler : MessageHandlerBase
     /// <summary>
     /// Disposes resources allocated by this instance.
     /// </summary>
-    /// <param name="disposing"><c>true</c> when being disposed; <c>false</c> when being finalized.</param>
+    /// <param name="disposing"><see langword="true"/> when being disposed; <see langword="false"/> when being finalized.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing)
