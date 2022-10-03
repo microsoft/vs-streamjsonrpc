@@ -244,7 +244,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposingMembersOn">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
-    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object..</param>
     internal void AddRpcInterfaceToTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
@@ -513,7 +513,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="mapping">The methods to bers of the <paramref name="target"/> object.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
-    /// <param name="options">A set of customizations for how the target object is registered. If <c>null</c>, default options will be used.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object.</param>
     private void AddRpcInterfaceToTarget(IReadOnlyDictionary<string, List<MethodSignature>> mapping, object target, JsonRpcTargetOptions options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
