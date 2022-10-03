@@ -237,6 +237,173 @@ These resources are released and the `IDisposable.Dispose()` method is invoked o
 * The receiver calls `IDisposable.Dispose()` on the proxy.
 * The JSON-RPC connection is closed.
 
+## `RpcMarshalableOptionalInterfaceAttribute`
+
+StreamJsonRpc provides the `RpcMarshalableOptionalInterfaceAttribute` to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
+
+`RpcMarshalableOptionalInterfaceAttribute` is applied to the interface used in the RPC contract.
+Such an interface must also apply the `RpcMarshalableAttribute`.
+
+An interface that `RpcMarshalableOptionalInterfaceAttribute` references must have the `RpcMarshalableAttribute` attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
+
+The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with `RpcMarshalableOptionalInterfaceAttribute` on the interface type used in the RPC contract.
+The receiver of the proxy can use the [is](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/is) operator to check if an optional interface is implemented without throwing an `InvalidCastException` when the interface is not implemented.
+
+### Use cases
+
+`RpcMarshalableOptionalInterfaceAttribute` is useful in a few scenarios:
+
+1. when adding new methods to an existing marshalable interface would break backward compatibility for another scenario,
+1. when the host of the marshaled object may deem it appropriate to expose different behaviors based on the scenario,
+1. when an RPC method returns marshalable objects which may optionally implement additional functionality based on the arguments passed to that method.
+
+For example, the following code shows how `RpcMarshalableOptionalInterfaceAttribute` can be added to the `ICounter` interface from the earlier sample:
+
+```cs
+[RpcMarshalable]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IAdvancedCounter))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 2, typeof(IDecrementable))]
+interface ICounter : IDisposable
+{
+    Task IncrementAsync(CancellationToken ct);
+
+    Task<int> GetCountAsync(CancellationToken ct);
+}
+
+[RpcMarshalable]
+interface IAdvancedCounter : ICounter
+{
+    Task IncrementAsync(int count, CancellationToken ct);
+}
+
+[RpcMarshalable]
+interface IDecrementable : IDisposable
+{
+    Task DecrementAsync(CancellationToken ct);
+}
+```
+
+This change doesn't require any modification to the declarations of RPC methods that exchange `ICounter` objects and is fully backward compatible.
+A client that uses an earlier RPC contract definition will simply ignore any unknown additional interface.
+
+A marshalable object implementing `ICounter` can also implement `IAdvancedCounter`, `IDecrementable`, both or neither.
+The proxy receiver will be able to perceive through type checks which interfaces are available.
+
+### Caveats
+
+#### Backward compatibility
+
+The `optionalInterfaceCode` values used in `RpcMarshalableOptionalInterfaceAttribute` are used as part of the wire protocol.
+While it can be backward compatible to remove an `RpcMarshalableOptionalInterfaceAttribute` from an interface, its `optionalInterfaceCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
+
+#### Method name conflicts and non-marshalable interfaces
+
+When a method is invoked on a marshalable object proxy, it is translated into an RPC call to the best-matching interface method.
+
+We'll use a few interfaces to describe interesting corner cases.
+Note that we do *not* recommend reusing method names across interfaces or redeclaring the same methods in derived interfaces, but we include them here to document behaviors you can expect from doing so.
+Consider these interfaces:
+
+```cs
+[RpcMarshalable]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IBaz))]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 2, typeof(IBaz2))]
+interface IFoo : IDisposable
+{
+    Task DoFooAsync();
+}
+
+interface IBar : IFoo
+{
+    new Task DoFooAsync();
+
+    Task DoBarAsync();
+}
+
+[RpcMarshalable]
+interface IBaz : IBar
+{
+    new Task DoFooAsync();
+
+    Task DoBazAsync();
+}
+
+[RpcMarshalable]
+interface IBaz2 : IBar
+{
+    new Task DoFooAsync();
+
+    Task DoBazAsync();
+}
+```
+
+Given the interfaces above, a call to any of the following methods behave as expected:
+
+Method call | Invoked server-side method | Conditions
+------ | ------ | ------
+`((IFoo)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IFoo` |
+`((IBaz)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoFooAsync()` | `DoFooAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
+`((IBar)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz`, `IBa2`, or both
+`((IBaz)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoBarAsync()` | `DoBarAsync` as defined by `IBar` | If the marshalable object implements `IBaz2`
+`((IBaz)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
+`((IBaz2)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
+
+⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz` or  `IBaz2`, since `IBar` is not listed in an `RpcMarshalableOptionalInterfaceAttribute` of `IFoo`.
+
+A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
+
+Implemented interfaces | Invoked server-side method
+------ | ------
+`IBaz` | `DoFooAsync` as defined by `IBaz`
+`IBaz2` | `DoFooAsync` as defined by `IBaz2`
+`IBaz` and `IBaz2` | **Undefined behavior**: `DoFooAsync` as defined by either `IBaz` or `IBaz2`
+
+The issue described above is only a problem if the marshalable object explicitly implements any of the `IBar.DoFooAsync()`, `IBaz.DoFooAsync()` or `IBaz2.DoFooAsync()` methods.
+
+Consider following these best practices when defining RPC marshalable interfaces:
+
+* Avoid multiple methods having the same name.
+* When possible, include all interfaces in the inheritance chain in `RpcMarshalableOptionalInterface` attributes of the base interface used by the RPC contract method.
+* Avoid marshalable objects explicitly implementing methods having the same name, defined by different interfaces, as separate methods.
+
+In short, when all three of the above best practices are violated, the method chosen on a host object to respond to a request may surprise you.
+
+When invoking methods on a proxy, avoid casting the proxy to an interface that is not included in one of the `RpcMarshalableOptionalInterface` attributes, especially if the method has a name conflict with a method of a descendant interface.
+
+An especially troublesome occurrence of this issue can happen if a marshalable object explicitly implements separately two methods with the same name from two different interfaces that are not declared in one of the `RpcMarshalableOptionalInterface` attributes. For example, referencing the code below, a call to `((IOther1)proxy).DoSomethingAsync()` would be indistinguishable from a call to `((IOther2)proxy).DoSomethingAsync()` and would be dispatched to one of the two methods in an undefined manner.
+
+```cs
+class MyMarshalableObject : IMerged
+{
+    async Task IOther1.DoSomethingAsync() {}
+    async Task IOther2.DoSomethingAsync() {}
+    public void Dispose() {}
+}
+
+[RpcMarshalable]
+[RpcMarshalableOptionalInterface(optionalInterfaceCode: 1, typeof(IMerged))]
+interface IBase : IDisposable
+{
+}
+
+interface IOther1
+{
+    Task DoSomethingAsync();
+}
+
+interface IOther2
+{
+    Task DoSomethingAsync();
+}
+
+[RpcMarshalable]
+interface IMerged : IBase, IOther1, IOther2
+{
+}
+```
+
 ## Protocol
 
 The protocol for proxying a disposable object is based on [general marshaled objects](general_marshaled_objects.md).

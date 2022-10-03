@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AddRpcInterfaceToTargetParameterNotInterface" xml:space="preserve">
+    <value>AddRpcInterfaceToTarget parameter is not an interface</value>
+  </data>
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
   </data>
@@ -209,13 +212,13 @@
     <value>Conflicting JsonRpcMethodAttribute and JsonRpcIgnoreAttribute found on the same method: {0}.</value>
   </data>
   <data name="MarshalableInterfaceHasEvents" xml:space="preserve">
-    <value>Interfaces with events cannot be marshaled.</value>
+    <value>{0} is not a valid marshaled interface because it has events.</value>
   </data>
   <data name="MarshalableInterfaceHasProperties" xml:space="preserve">
-    <value>Interfaces with properties cannot be marshaled.</value>
+    <value>{0} is not a valid marshaled interface because it has properties.</value>
   </data>
   <data name="MarshalableInterfaceNotDisposable" xml:space="preserve">
-    <value>Marshaled interfaces must extend IDisposable.</value>
+    <value>{0} is not a valid marshaled interface because doesn't extend IDisposable.</value>
   </data>
   <data name="MarshaledObjectInNotificationError" xml:space="preserve">
     <value>This tracked object cannot be included in a notification. Only messages including an "id" property are supported.</value>
@@ -284,6 +287,15 @@
   <data name="ResponseUnexpectedFormat" xml:space="preserve">
     <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
     <comment>{0} is the response message.</comment>
+  </data>
+  <data name="RpcMarshalableDuplicatedOptionalInterface" xml:space="preserve">
+    <value>Optional interface declarations should be unique. {0} has the same optional interface declared multiple times.</value>
+  </data>
+  <data name="RpcMarshalableDuplicatedOptionalInterfaceCode" xml:space="preserve">
+    <value>Optional interface codes should be unique. {0} has the same optional interface code used multiple times.</value>
+  </data>
+  <data name="RpcMarshalableOptionalInterfaceMustBeMarshalable" xml:space="preserve">
+    <value>{0} is not marked with the RpcMarshalable attribute.</value>
   </data>
   <data name="RpcMethodNameNotFound" xml:space="preserve">
     <value>No method by the name '{0}' is found.</value>

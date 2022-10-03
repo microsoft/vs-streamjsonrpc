@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
@@ -49,6 +50,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)> MarshaledTypes = new ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions)>();
     private static readonly (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) RpcMarshalableInterfaceDefaultOptions = (new JsonRpcProxyOptions(), new JsonRpcTargetOptions { NotifyClientOfEvents = false, DisposeOnDisconnect = true });
     private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
+    private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]>();
 
     private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
@@ -119,20 +121,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         if (type.GetCustomAttribute<RpcMarshalableAttribute>() is not null)
         {
-            if (typeof(IDisposable).IsAssignableFrom(type) is false)
-            {
-                throw new NotSupportedException(Resources.MarshalableInterfaceNotDisposable);
-            }
-
-            if (type.GetEvents().Length > 0)
-            {
-                throw new NotSupportedException(Resources.MarshalableInterfaceHasEvents);
-            }
-
-            if (type.GetProperties().Length > 0)
-            {
-                throw new NotSupportedException(Resources.MarshalableInterfaceHasProperties);
-            }
+            ValidateMarshalableInterface(type);
 
             proxyOptions = RpcMarshalableInterfaceDefaultOptions.ProxyOptions;
             targetOptions = RpcMarshalableInterfaceDefaultOptions.TargetOptions;
@@ -144,11 +133,56 @@ internal class MessageFormatterRpcMarshaledContextTracker
     }
 
     /// <summary>
+    /// Returns the cached list of <see cref="RpcMarshalableOptionalInterfaceAttribute"/> applied to
+    /// <paramref name="declaredType"/>.
+    /// </summary>
+    /// <param name="declaredType">The type to get attributes from.</param>
+    /// <returns>The list of <see cref="RpcMarshalableOptionalInterfaceAttribute"/> applied to
+    /// <paramref name="declaredType"/>.</returns>
+    /// <exception cref="NotSupportedException">If an invalid set of
+    /// <see cref="RpcMarshalableOptionalInterfaceAttribute"/> attributes are applied to
+    /// <paramref name="declaredType"/>. This could happen if
+    /// <see cref="RpcMarshalableOptionalInterfaceAttribute.OptionalInterface"/> or
+    /// <see cref="RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode"/> values are duplicated, or if an
+    /// optional interface is not marked with <see cref="RpcMarshalableAttribute"/> or it is not a valid marshalable
+    /// interface.</exception>
+    internal static RpcMarshalableOptionalInterfaceAttribute[] GetMarshalableOptionalInterfaces(Type declaredType)
+    {
+        return MarshalableOptionalInterfaces.GetOrAdd(declaredType, declaredType =>
+        {
+            RpcMarshalableOptionalInterfaceAttribute[] attributes = declaredType.GetCustomAttributes<RpcMarshalableOptionalInterfaceAttribute>(inherit: false).ToArray();
+            if (attributes.Select(a => a.OptionalInterfaceCode).Distinct().Count() != attributes.Length)
+            {
+                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableDuplicatedOptionalInterfaceCode, declaredType.FullName));
+            }
+
+            if (attributes.Select(a => a.OptionalInterface).Distinct().Count() != attributes.Length)
+            {
+                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableDuplicatedOptionalInterface, declaredType.FullName));
+            }
+
+            foreach (RpcMarshalableOptionalInterfaceAttribute attribute in attributes)
+            {
+                if (attribute.OptionalInterface.GetCustomAttribute<RpcMarshalableAttribute>() is null)
+                {
+                    throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableOptionalInterfaceMustBeMarshalable, attribute.OptionalInterface.FullName));
+                }
+
+                ValidateMarshalableInterface(attribute.OptionalInterface);
+            }
+
+            return attributes;
+        });
+    }
+
+    /// <summary>
     /// Prepares a local object to be marshaled over the wire.
     /// </summary>
-    /// <param name="marshaledContext">The object and metadata to be marshaled.</param>
-    /// <returns>A token to be serialized so the remote party can invoke methods on the object within <paramref name="marshaledContext"/>.</returns>
-    internal MarshalToken GetToken(IRpcMarshaledContext<object> marshaledContext)
+    /// <param name="marshaledObject">The object to be exposed over RPC.</param>
+    /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <param name="declaredType">The marshalable interface type of <paramref name="marshaledObject"/> as declared in the RPC contract.</param>
+    /// <returns>A token to be serialized so the remote party can invoke methods on the marshaled object.</returns>
+    internal MarshalToken GetToken(object marshaledObject, JsonRpcTargetOptions options, Type declaredType)
     {
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
         {
@@ -157,20 +191,43 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         long handle = this.nextUniqueHandle++;
 
-        IDisposable? revert = this.jsonRpc.AddLocalRpcTargetInternal(
-            marshaledContext.GetType().GenericTypeArguments[0],
-            marshaledContext.Proxy,
-            new JsonRpcTargetOptions(marshaledContext.JsonRpcTargetOptions)
+        IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(declaredType, marshaledObject, options);
+
+        RpcTargetInfo.RevertAddLocalRpcTarget? revert = this.jsonRpc.AddLocalRpcTargetInternal(
+            declaredType,
+            context.Proxy,
+            new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
             {
                 NotifyClientOfEvents = false, // We don't support this yet.
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{marshaledContext.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
+                MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{context.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
             },
             requestRevertOption: true);
         Assumes.NotNull(revert);
 
+        Type objectType = marshaledObject.GetType();
+        List<int>? optionalInterfacesCodes = null;
+        foreach (RpcMarshalableOptionalInterfaceAttribute attribute in GetMarshalableOptionalInterfaces(declaredType))
+        {
+            if (attribute.OptionalInterface.IsAssignableFrom(objectType))
+            {
+                optionalInterfacesCodes ??= new();
+                optionalInterfacesCodes.Add(attribute.OptionalInterfaceCode);
+
+                this.jsonRpc.AddRpcInterfaceToTargetInternal(
+                    attribute.OptionalInterface,
+                    context.Proxy,
+                    new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
+                    {
+                        NotifyClientOfEvents = false, // We don't support this yet.
+                        MethodNameTransform = mn => Invariant($"$/invokeProxy/{handle}/{attribute.OptionalInterfaceCode}.{context.JsonRpcTargetOptions.MethodNameTransform?.Invoke(mn) ?? mn}"),
+                    },
+                    revert);
+            }
+        }
+
         lock (this.marshaledObjects)
         {
-            this.marshaledObjects.Add(handle, (marshaledContext, revert));
+            this.marshaledObjects.Add(handle, (context, revert));
         }
 
         if (this.formatterState.SerializingRequest)
@@ -182,7 +239,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 (key, value) => value.Add(handle));
         }
 
-        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null);
+        return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime: null, optionalInterfacesCodes?.ToArray());
     }
 
     /// <summary>
@@ -210,9 +267,28 @@ internal class MessageFormatterRpcMarshaledContextTracker
             throw new NotSupportedException("Receiving marshaled objects scoped to the lifetime of a single RPC request is not yet supported.");
         }
 
+        List<(TypeInfo Type, int Code)>? optionalInterfaces = null;
+        if (token.Value.OptionalInterfacesCodes?.Length > 0)
+        {
+            // We ignore unknown optional interface codes
+            foreach (int optionalInterfacesCode in token.Value.OptionalInterfacesCodes.Distinct())
+            {
+                foreach (RpcMarshalableOptionalInterfaceAttribute attribute in GetMarshalableOptionalInterfaces(interfaceType))
+                {
+                    if (attribute.OptionalInterfaceCode == optionalInterfacesCode)
+                    {
+                        optionalInterfaces ??= new();
+                        optionalInterfaces.Add((attribute.OptionalInterface.GetTypeInfo(), attribute.OptionalInterfaceCode));
+                        break;
+                    }
+                }
+            }
+        }
+
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
         object result = this.jsonRpc.Attach(
             interfaceType,
+            optionalInterfaces?.ToArray(),
             new JsonRpcProxyOptions(options)
             {
                 MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
@@ -236,9 +312,35 @@ internal class MessageFormatterRpcMarshaledContextTracker
     }
 
     /// <summary>
+    /// Throws <see cref="NotSupportedException"/> if <paramref name="type"/> is not a valid marshalable interface.
+    /// This method doesn't validate that <paramref name="type"/> has the <see cref="RpcMarshalableAttribute"/>
+    /// attribute.
+    /// </summary>
+    /// <param name="type">The interface <see cref="Type"/> to validate.</param>
+    /// <exception cref="NotSupportedException">When <paramref name="type"/> is not a valid marshalable interface: this
+    /// can happen if <paramref name="type"/> has properties, events or it is not disposable.</exception>
+    private static void ValidateMarshalableInterface(Type type)
+    {
+        if (typeof(IDisposable).IsAssignableFrom(type) is false)
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceNotDisposable, type.FullName));
+        }
+
+        if (type.GetEvents().Length > 0)
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasEvents, type.FullName));
+        }
+
+        if (type.GetProperties().Length > 0)
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasProperties, type.FullName));
+        }
+    }
+
+    /// <summary>
     /// Releases memory associated with marshaled objects.
     /// </summary>
-    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(IRpcMarshaledContext{object})"/> method.</param>
+    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(object, JsonRpcTargetOptions, Type)"/> method.</param>
     /// <param name="ownedBySender"><see langword="true"/> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <see langword="false"/> if the token and object was created locally.</param>
 #pragma warning disable CA1801 // Review unused parameters -- Signature is dicated by protocol extension server method.
     private void ReleaseMarshaledObject(long handle, bool ownedBySender)
@@ -279,12 +381,13 @@ internal class MessageFormatterRpcMarshaledContextTracker
     {
         [MessagePack.SerializationConstructor]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime)
+        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime, int[]? optionalInterfaces)
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
         {
             this.Marshaled = __jsonrpc_marshaled;
             this.Handle = handle;
             this.Lifetime = lifetime;
+            this.OptionalInterfacesCodes = optionalInterfaces;
         }
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
@@ -295,6 +398,9 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
         public string? Lifetime { get; }
+
+        [DataMember(Name = "optionalInterfaces", EmitDefaultValue = false)]
+        public int[]? OptionalInterfacesCodes { get; }
     }
 
     /// <summary>

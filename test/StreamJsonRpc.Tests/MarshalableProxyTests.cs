@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 using MessagePack;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
@@ -12,6 +13,7 @@ using Newtonsoft.Json;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
+using static JsonRpcTests;
 
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
@@ -117,9 +119,116 @@ public abstract class MarshalableProxyTests : TestBase
         event EventHandler? Foo;
     }
 
+    [RpcMarshalable]
+    [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
+    [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))]
+    [RpcMarshalableOptionalInterface(3, typeof(IMarshalableSubType1Extended))]
+    [RpcMarshalableOptionalInterface(4, typeof(IMarshalableNonExtendingBase))]
+    [RpcMarshalableOptionalInterface(5, typeof(IMarshalableSubTypesCombined))]
+    [RpcMarshalableOptionalInterface(6, typeof(IMarshalableSubTypeWithIntermediateInterface))]
+    [RpcMarshalableOptionalInterface(7, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
+    public interface IMarshalableWithOptionalInterfaces : IDisposable
+    {
+        Task<int> GetAsync(int value);
+
+        [JsonRpcMethod("RemamedAsync")]
+        Task<string> ToBeRenamedAsync(string s);
+    }
+
+    [RpcMarshalable]
+    [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
+    [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubTypeWithIntermediateInterface))]
+    public interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
+    {
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableNonExtendingBase : IDisposable
+    {
+        Task<int> GetPlusFourAsync(int value);
+    }
+
+    // This is non-RpcMarshalable
+    public interface IMarshalableSubTypeIntermediateInterface : IMarshalableWithOptionalInterfaces2
+    {
+        Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetPlusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
+    {
+        new Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetPlusThreeAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
+    {
+        new Task<int> GetPlusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
+    {
+        Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetMinusOneAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubType1Extended : IMarshalableSubType1
+    {
+        new Task<int> GetAsync(int value);
+
+        new Task<int> GetPlusOneAsync(int value);
+
+        Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetPlusThreeAsync(int value);
+
+        new Task<int> GetMinusOneAsync(int value);
+
+        Task<int> GetMinusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
+    {
+        Task<int> GetPlusFiveAsync(int value);
+    }
+
+    [RpcMarshalable]
+    [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
+    public interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
+    {
+        Task<int> GetPlusTwoAsync(int value);
+
+        Task<int> GetMinusTwoAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableSubType2Extended : IMarshalableSubType2
+    {
+        Task<int> GetPlusThreeAsync(int value);
+    }
+
+    [RpcMarshalable]
+    public interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
+    {
+    }
+
     public interface IServer
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);
+
+        Task<IMarshalableWithOptionalInterfaces?> GetMarshalableWithOptionalInterfacesAsync();
+
+        Task<IMarshalableWithOptionalInterfaces2?> GetMarshalableWithOptionalInterfaces2Async();
+
+        Task<IMarshalableSubType2?> GetMarshalableSubType2Async();
 
         Task<IMarshalable?> GetNonDataContractMarshalableAsync(bool returnNull = false);
 
@@ -499,7 +608,274 @@ public abstract class MarshalableProxyTests : TestBase
         await disposed.WaitAsync(this.TimeoutToken);
     }
 
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
+        IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy1!.GetAsync(1));
+        Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
+        AssertIsNot(proxy1, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_JsonRpcMethodAttribute()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal("foo", await proxy!.ToBeRenamedAsync("foo"));
+
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/0/RemamedAsync", "foo"));
+
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
+        IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal("foo", await proxy1!.ToBeRenamedAsync("foo"));
+        Assert.Equal("foo", await ((IMarshalableSubType1)proxy1)!.ToBeRenamedAsync("foo"));
+
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RemamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RemamedAsync", "foo"));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_MethodNameTransform_Prefix()
+    {
+        var server = new Server();
+        server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
+
+        var streams = FullDuplexStream.CreatePair();
+        var localRpc = JsonRpc.Attach(streams.Item2);
+        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+
+        serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        localRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+
+        serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { MethodNameTransform = n => "one." + n });
+        serverRpc.StartListening();
+
+        var proxy = await localRpc.InvokeAsync<IMarshalableWithOptionalInterfaces>("one." + nameof(IServer.GetMarshalableWithOptionalInterfacesAsync));
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+
+        // The MethodNameTransform doesn't apply to the marshaled objects
+        Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
+        Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/1.GetAsync", 1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_MethodNameTransform_CamelCase()
+    {
+        var server = new Server();
+        server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
+
+        var streams = FullDuplexStream.CreatePair();
+        var localRpc = JsonRpc.Attach(streams.Item2);
+        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+
+        serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        localRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
+
+        serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
+        serverRpc.StartListening();
+
+        var proxy = await localRpc.InvokeAsync<IMarshalableWithOptionalInterfaces>("getMarshalableWithOptionalInterfacesAsync");
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+
+        // The MethodNameTransform doesn't apply to the marshaled objects
+        Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
+        Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/1.GetAsync", 1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_Null()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = null;
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Null(proxy);
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_IndirectInterfaceImplementation()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1Indirect();
+        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(2, await proxy.GetPlusOneAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_WithExplicitImplementation()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2();
+        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_UnknownSubType()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableUnknownSubType();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_OnlyAttibutesOnDeclaredTypeAreHonored()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2Extended();
+        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+        Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
+        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+
+        IMarshalableSubType2? proxy1 = await this.client.GetMarshalableSubType2Async();
+        Assert.Equal(1, await proxy1!.GetAsync(1));
+        Assert.Equal(3, await proxy1.GetPlusTwoAsync(1));
+        Assert.Equal(4, await ((IMarshalableSubType2Extended)proxy1).GetPlusThreeAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_OptionalInterfaceNotExtendingBase()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableNonExtendingBase();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_IntermediateNonMarshalableInterface()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeWithIntermediateInterface();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetPlusOneAsync(1));
+
+        // This should return 3, since MarshalableSubTypeWithIntermediateInterface implements this method explicitly
+        // but StreamJsonRpc doesn't know about the IMarshalableSubTypeIntermediateInterface because it is not part
+        // of the RPC contract, so IMarshalableSubTypeWithIntermediateInterface.GetPlusTwoAsync is invoked instead.
+        Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetPlusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusOneAsync(1));
+        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusThreeAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_MultipleIntermediateInterfaces()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeWithIntermediateInterface1And2();
+        IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        IMarshalableWithOptionalInterfaces2? proxy2 = await this.client.GetMarshalableWithOptionalInterfaces2Async();
+
+        Assert.Equal(3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy1!).GetPlusTwoAsync(1));
+        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface2)proxy1).GetPlusTwoAsync(1));
+
+        Assert.Equal(3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy2!).GetPlusTwoAsync(1));
+        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface2)proxy2).GetPlusTwoAsync(1));
+
+        // Since MarshalableSubTypeWithIntermediateInterface1And2 implements the GetPlusTwoAsync methods explicitly
+        // and IMarshalableSubTypeIntermediateInterface is not a known optional interface, a call to
+        // IMarshalableSubTypeIntermediateInterface.GetPlusTwoAsync is dispatched to an undefined method:
+        // either IMarshalableSubTypeWithIntermediateInterface.GetPlusTwoAsync or
+        // either IMarshalableSubTypeWithIntermediateInterface2.GetPlusTwoAsync.
+        // While the behavior is undefined, we don't want it to change over time: whatever the behavior is, we want it
+        // to be consistent. So this test covers this arbitrary behavior to avoid it being changed in the future.
+        // IMarshalableWithOptionalInterfaces and IMarshalableWithOptionalInterfaces2 have opposite
+        // RpcMarshalableOptionalInterface definitions (the order of the optionalInterfaceCode values is inverted)
+        // resulting in inverted dispatching.
+        Assert.Equal(3, await ((IMarshalableSubTypeIntermediateInterface)proxy1).GetPlusTwoAsync(1));
+        Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy2).GetPlusTwoAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_MultipleImplementations()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeMultipleImplementations();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+
+        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
+        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+    }
+
+    [Fact]
+    public async Task RpcMarshalableOptionalInterface_MultipleImplementationsCombined()
+    {
+        this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypesCombined();
+        IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        Assert.Equal(1, await proxy!.GetAsync(1));
+
+        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
+        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+
+        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
+        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
+        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+
+        Assert.Equal(1, await ((IMarshalableSubTypesCombined)proxy).GetAsync(1));
+        Assert.Equal(-2, await ((IMarshalableSubTypesCombined)proxy).GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await ((IMarshalableSubTypesCombined)proxy).GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(4, await ((IMarshalableSubTypesCombined)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(6, await ((IMarshalableSubTypesCombined)proxy).GetPlusFiveAsync(1));
+    }
+
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
+
+    private static void AssertIsNot(object obj, Type type)
+    {
+        Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not assignable to {type.FullName}");
+    }
 
     public class Server : IServer
     {
@@ -509,11 +885,28 @@ public abstract class MarshalableProxyTests : TestBase
 
         internal IMarshalable? ReceivedProxy { get; set; }
 
+        internal IMarshalableWithOptionalInterfaces? ReturnedMarshalableWithOptionalInterfaces { get; set; }
+
         public Task<IMarshalable?> GetMarshalableAsync(bool returnNull)
         {
             var marshalable = returnNull ? null : new Data(() => this.ReturnedMarshalableDisposed.Set());
             this.ReturnedMarshalable = marshalable;
             return Task.FromResult<IMarshalable?>(marshalable);
+        }
+
+        public Task<IMarshalableWithOptionalInterfaces?> GetMarshalableWithOptionalInterfacesAsync()
+        {
+            return Task.FromResult(this.ReturnedMarshalableWithOptionalInterfaces);
+        }
+
+        public Task<IMarshalableWithOptionalInterfaces2?> GetMarshalableWithOptionalInterfaces2Async()
+        {
+            return Task.FromResult((IMarshalableWithOptionalInterfaces2?)this.ReturnedMarshalableWithOptionalInterfaces);
+        }
+
+        public Task<IMarshalableSubType2?> GetMarshalableSubType2Async()
+        {
+            return Task.FromResult((IMarshalableSubType2?)this.ReturnedMarshalableWithOptionalInterfaces);
         }
 
         public Task<IGenericMarshalable<int>?> GetGenericMarshalableAsync(bool returnNull)
@@ -723,6 +1116,192 @@ public abstract class MarshalableProxyTests : TestBase
 #pragma warning disable CS0067 // The event is never used
         public event EventHandler? Foo;
 #pragma warning restore CS0067 // The event is never used
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableWithOptionalInterfaces : IMarshalableWithOptionalInterfaces
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubType1 : IMarshalableSubType1
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1);
+
+        public Task<int> GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubType1Indirect : MarshalableSubType1
+    {
+    }
+
+    public class MarshalableSubType2 : IMarshalableSubType2
+    {
+        Task<int> IMarshalableWithOptionalInterfaces.GetAsync(int value) => Task.FromResult(value);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubType2Extended : IMarshalableSubType2Extended
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableUnknownSubType : IMarshalableUnknownSubType
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableNonExtendingBase : IMarshalableWithOptionalInterfaces, IMarshalableNonExtendingBase
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeWithIntermediateInterface
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value);
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2);
+
+        Task<int> IMarshalableSubTypeIntermediateInterface.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3);
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypeWithIntermediateInterface1And2 : IMarshalableSubTypeWithIntermediateInterface, IMarshalableSubTypeWithIntermediateInterface2
+    {
+        Task<int> IMarshalableSubTypeWithIntermediateInterface.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        Task<int> IMarshalableSubTypeWithIntermediateInterface2.GetPlusTwoAsync(int value) => Task.FromResult(-value - 2);
+
+        Task<int> IMarshalableSubTypeIntermediateInterface.GetPlusTwoAsync(int value) => throw new NotImplementedException();
+
+        public Task<int> GetAsync(int value) => throw new NotImplementedException();
+
+        public Task<int> GetPlusOneAsync(int value) => throw new NotImplementedException();
+
+        public Task<int> GetPlusThreeAsync(int value) => throw new NotImplementedException();
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypeMultipleImplementations : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithOptionalInterfaces and IMarshalableSubType1Extended (new keyword)
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
+
+        Task<int> IMarshalableSubType1.GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetPlusOneAsync(int value) => Task.FromResult(-value - 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetMinusOneAsync(int value) => Task.FromResult(-value + 1);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2); // From both IMarshalableSubType2 and IMarshalableSubType1Extended
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4); // From IMarshalableNonExtendingBase
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    public class MarshalableSubTypesCombined : IMarshalableSubTypesCombined
+    {
+        public Task<int> GetAsync(int value) => Task.FromResult(value); // From both IMarshalableWithOptionalInterfaces and IMarshalableSubType1Extended (new keyword)
+
+        public Task<int> GetPlusOneAsync(int value) => Task.FromResult(value + 1); // From IMarshalableSubType1
+
+        Task<int> IMarshalableSubType1.GetMinusOneAsync(int value) => Task.FromResult(value - 1);
+
+        Task<int> IMarshalableSubType2.GetPlusTwoAsync(int value) => Task.FromResult(value + 2);
+
+        public Task<int> GetPlusThreeAsync(int value) => Task.FromResult(value + 3); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetPlusOneAsync(int value) => Task.FromResult(-value - 1);
+
+        public Task<int> GetPlusTwoAsync(int value) => Task.FromResult(-value - 2); // From IMarshalableSubType1Extended
+
+        Task<int> IMarshalableSubType1Extended.GetMinusOneAsync(int value) => Task.FromResult(-value + 1);
+
+        public Task<int> GetMinusTwoAsync(int value) => Task.FromResult(value - 2); // From both IMarshalableSubType2 and IMarshalableSubType1Extended
+
+        public Task<int> GetPlusFourAsync(int value) => Task.FromResult(value + 4); // From IMarshalableNonExtendingBase
+
+        public Task<int> GetPlusFiveAsync(int value) => Task.FromResult(value + 5); // From IMarshalableSubTypesCombined
+
+        public Task<string> ToBeRenamedAsync(string value) => Task.FromResult(value);
 
         public void Dispose()
         {
