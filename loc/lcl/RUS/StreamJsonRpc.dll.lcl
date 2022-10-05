@@ -13,6 +13,15 @@
     <Disp Icon="Expand" Expand="true" Disp="true" LocTbl="false" Path=" \ ;Managed Resources \ 0 \ 0" />
     <Item ItemId=";Strings" ItemType="0" PsrId="211" Leaf="false">
       <Disp Icon="Str" Disp="true" LocTbl="false" />
+      <Item ItemId=";AddRpcInterfaceToTargetParameterNotInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[AddRpcInterfaceToTarget parameter is not an interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Параметр AddRpcInterfaceToTarget не является интерфейсом]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";BothReadableWritableAreNull" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Both readable and writable are null.]]></Val>
@@ -258,28 +267,37 @@
       </Item>
       <Item ItemId=";MarshalableInterfaceHasEvents" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because it has events.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Интерфейсы с событиями невозможно маршалировать.]]></Val>
+            <Val><![CDATA[{0} не является допустимым маршалируемым интерфейсом, так как содержит события.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";MarshalableInterfaceHasProperties" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because it has properties.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Интерфейсы со свойствами невозможно маршалировать.]]></Val>
+            <Val><![CDATA[{0} не является допустимым маршалируемым интерфейсом, так как он имеет свойства.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";MarshalableInterfaceNotDisposable" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because doesn't extend IDisposable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Маршалированные интерфейсы должны расширять IDisposable.]]></Val>
+            <Val><![CDATA[{0} не является допустимым маршалируемым интерфейсом, так как не расширяет IDisposable.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -468,6 +486,33 @@
           <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Непредвиденный формат ответа. Поддерживаются только ошибки и результаты: {0}]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableDuplicatedOptionalInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Optional interface declarations should be unique. {0} has the same optional interface declared multiple times.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Необязательные объявления интерфейса должны быть уникальными. {0} Содержит один необязательный интерфейс, объявленный несколько раз.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableDuplicatedOptionalInterfaceCode" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Optional interface codes should be unique. {0} has the same optional interface code used multiple times.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Необязательные коды интерфейса должны быть уникальными. {0} содержит один необязательный код интерфейса, используемый несколько раз.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableOptionalInterfaceMustBeMarshalable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[{0} is not marked with the RpcMarshalable attribute.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[{0} не помечен атрибутом RpcMarshalable.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
