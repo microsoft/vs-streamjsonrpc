@@ -13,6 +13,15 @@
     <Disp Icon="Expand" Expand="true" Disp="true" LocTbl="false" Path=" \ ;Managed Resources \ 0 \ 0" />
     <Item ItemId=";Strings" ItemType="0" PsrId="211" Leaf="false">
       <Disp Icon="Str" Disp="true" LocTbl="false" />
+      <Item ItemId=";AddRpcInterfaceToTargetParameterNotInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[AddRpcInterfaceToTarget parameter is not an interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Parametr AddRpcInterfaceToTarget není rozhraní.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";BothReadableWritableAreNull" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Both readable and writable are null.]]></Val>
@@ -258,28 +267,37 @@
       </Item>
       <Item ItemId=";MarshalableInterfaceHasEvents" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because it has events.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Rozhraní s událostmi nelze zařadit.]]></Val>
+            <Val><![CDATA[{0} není platné zařazované rozhraní, protože obsahuje události.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Interfaces with events cannot be marshaled.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";MarshalableInterfaceHasProperties" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because it has properties.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Rozhraní s vlastnostmi nelze zařadit.]]></Val>
+            <Val><![CDATA[{0} není platné zařazované rozhraní, protože obsahuje vlastnosti.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Interfaces with properties cannot be marshaled.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";MarshalableInterfaceNotDisposable" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          <Val><![CDATA[{0} is not a valid marshaled interface because doesn't extend IDisposable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Zařazovaná rozhraní musí rozšířit rozhraní IDisposable.]]></Val>
+            <Val><![CDATA[{0} není platné zařazované rozhraní, protože nerozšiřuje rozhraní IDisposable.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Marshaled interfaces must extend IDisposable.]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -468,6 +486,33 @@
           <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Odpověď je v neočekávaném formátu. Podporují se jenom chyby a výsledky: {0}]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableDuplicatedOptionalInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Optional interface declarations should be unique. {0} has the same optional interface declared multiple times.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Deklarace nepovinných rozhraní by měly být jedinečné. {0} má stejné nepovinné rozhraní deklarované vícekrát.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableDuplicatedOptionalInterfaceCode" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Optional interface codes should be unique. {0} has the same optional interface code used multiple times.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Kódy nepovinných rozhraní by měly být jedinečné. {0} má stejný kód nepovinného rozhraní použitý vícekrát.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";RpcMarshalableOptionalInterfaceMustBeMarshalable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[{0} is not marked with the RpcMarshalable attribute.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[{0} není označen atributem RpcMarshalable.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
