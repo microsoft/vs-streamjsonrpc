@@ -159,7 +159,7 @@ public class JsonRpcEnumerableSettings
 
     /// <summary>
     /// Gets or sets the number of elements that should be precomputed and provided in the initial JSON-RPC message
-    /// so the receiving party does not neet to request the initial few elements.
+    /// so the receiving party does not need to request the initial few elements.
     /// </summary>
     /// <remarks>
     /// <para>This should only be used for <see cref="IAsyncEnumerable{T}"/> objects returned directly from an RPC method.</para>
