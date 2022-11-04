@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.2" />
-    <PackageVersion Include="coverlet.msbuild" Version="3.1.2" />
+    <PackageVersion Include="coverlet.msbuild" Version="3.2.0" />
     <PackageVersion Include="CSharpIsNullAnalyzer" Version="0.1.329" />
     <PackageVersion Include="IsExternalInit" Version="1.0.3" />
     <PackageVersion Include="MessagePack" Version="2.4.35" />
