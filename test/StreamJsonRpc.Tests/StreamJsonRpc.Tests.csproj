@@ -28,7 +28,6 @@
     <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="Microsoft.AspNetCore" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
