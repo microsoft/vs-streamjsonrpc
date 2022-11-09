@@ -241,9 +241,12 @@ public class MessageFormatterEnumerableTracker
                                 T element = await this.readAheadElements.ReceiveAsync(cancellationToken).ConfigureAwait(false);
                                 results.Add(element);
                             }
-                            catch (InvalidOperationException) when (this.readAheadElements.Completion.IsCompleted)
+                            catch (InvalidOperationException)
                             {
                                 // Race condition. The sequence is over.
+                                // Per https://github.com/microsoft/vs-streamjsonrpc/issues/867, we do *not* confirm this
+                                // block has completed because in fact the completion signal can come in asynchronously.
+                                // But per API documentation on the block, this exception should only be thrown in this case.
                                 finished = true;
                                 break;
                             }
