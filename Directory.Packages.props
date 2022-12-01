@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.2" />
     <PackageVersion Include="IsExternalInit" Version="1.0.3" />
-    <PackageVersion Include="MessagePack" Version="2.4.35" />
+    <PackageVersion Include="MessagePack" Version="2.4.59" />
     <PackageVersion Include="MessagePackAnalyzer" Version="2.4.35" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.2.0" />
