@@ -145,9 +145,7 @@ public sealed class TargetMethod
         }
 
         // When there is a CancellationToken parameter, we require that it always be the last parameter.
-        Span<ParameterInfo> methodParametersExcludingCancellationToken = Utilities.IsRunningOnMono
-            ? method.Parameters.Take(method.TotalParamCountExcludingCancellationToken).ToArray()
-            : method.Parameters.AsSpan(0, method.TotalParamCountExcludingCancellationToken);
+        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = new(method.Parameters, 0, method.TotalParamCountExcludingCancellationToken);
         Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
         if (method.HasCancellationTokenParameter)
         {

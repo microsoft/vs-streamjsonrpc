@@ -9,11 +9,6 @@ namespace StreamJsonRpc;
 internal static class Utilities
 {
     /// <summary>
-    /// Gets a value indicating whether the mono runtime is executing this code.
-    /// </summary>
-    internal static bool IsRunningOnMono => Type.GetType("Mono.Runtime") is not null;
-
-    /// <summary>
     /// Reads an <see cref="int"/> value from a buffer using big endian.
     /// </summary>
     /// <param name="sequence">The sequence of bytes to read from. Must be at least 4 bytes long.</param>
