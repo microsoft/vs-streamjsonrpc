@@ -2387,6 +2387,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         try
         {
             this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ListeningStarted, "Listening started.");
+            Exception? loopBreakingException = null;
 
             while (!this.IsDisposed && !this.DisconnectedToken.IsCancellationRequested)
             {
@@ -2400,12 +2401,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                         return;
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested)
                 {
+                    loopBreakingException = ex;
                     break;
                 }
-                catch (ObjectDisposedException)
+                catch (ObjectDisposedException ex) when (this.IsDisposed)
                 {
+                    loopBreakingException = ex;
                     break;
                 }
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -2426,7 +2429,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 (this.MessageHandler as IJsonRpcMessageBufferManager)?.DeserializationComplete(protocolMessage);
             }
 
-            this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed));
+            this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(Resources.StreamDisposed, DisconnectedReason.LocallyDisposed, loopBreakingException));
         }
         catch (Exception ex)
         {
