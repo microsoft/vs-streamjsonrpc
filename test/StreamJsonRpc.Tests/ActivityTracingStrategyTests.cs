@@ -124,4 +124,62 @@ public class ActivityTracingStrategyTests : TestBase
             testActivity.Stop();
         }
     }
+
+    [Fact]
+    public void Inbound_WithActivitySource_WithListener()
+    {
+        string activitySourceName = "testSource";
+        ActivitySource source = new ActivitySource(activitySourceName);
+        using (ActivityListener listener = new ActivityListener())
+        {
+            listener.ShouldListenTo = (activitySource) => activitySource.Name == activitySourceName;
+            listener.Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData;
+            ActivitySource.AddActivityListener(listener);
+            ActivityTracingStrategy strategy = new ActivityTracingStrategy(source);
+
+            this.request.TraceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+            using (IDisposable? state = strategy.ApplyInboundActivity(this.request))
+            {
+                Assert.Equal(this.request.TraceParent, Activity.Current?.ParentId);
+                Assert.Equal(activitySourceName, Activity.Current?.Source.Name);
+            }
+        }
+
+        Assert.Null(Activity.Current);
+    }
+
+    [Fact]
+    public void Inbound_WithActivitySource_WithoutListener()
+    {
+        string activitySourceName = "testSource";
+        ActivitySource source = new ActivitySource(activitySourceName);
+        ActivityTracingStrategy strategy = new ActivityTracingStrategy(source);
+
+        this.request.TraceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+        using (IDisposable? state = strategy.ApplyInboundActivity(this.request))
+        {
+            Assert.Equal(this.request.TraceParent, Activity.Current?.ParentId);
+            Assert.Equal(string.Empty, Activity.Current?.Source.Name);
+        }
+
+        Assert.Null(Activity.Current);
+    }
+
+    [Fact]
+    public void Inbound_WithoutActivitySource()
+    {
+        ActivityTracingStrategy strategy = new ActivityTracingStrategy(null);
+
+        this.request.TraceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+        using (IDisposable? state = strategy.ApplyInboundActivity(this.request))
+        {
+            Assert.Equal(this.request.TraceParent, Activity.Current?.ParentId);
+            Assert.Equal(string.Empty, Activity.Current?.Source.Name);
+        }
+
+        Assert.Null(Activity.Current);
+    }
 }
