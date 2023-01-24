@@ -12,7 +12,7 @@ namespace StreamJsonRpc;
 /// <seealso cref="CorrelationManagerTracingStrategy"/>
 public class ActivityTracingStrategy : IActivityTracingStrategy
 {
-    private readonly ActivitySource activitySource;
+    private readonly ActivitySource? activitySource;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ActivityTracingStrategy"/> class.
@@ -26,7 +26,7 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
     /// Initializes a new instance of the <see cref="ActivityTracingStrategy"/> class.
     /// </summary>
     /// <param name="activitySource">The <see cref="ActivitySource"/> to use for creating activities.</param>
-    public ActivityTracingStrategy(ActivitySource activitySource)
+    public ActivityTracingStrategy(ActivitySource? activitySource)
     {
         this.activitySource = activitySource;
     }

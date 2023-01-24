@@ -1,5 +1,5 @@
 #nullable enable
-StreamJsonRpc.ActivityTracingStrategy.ActivityTracingStrategy(System.Diagnostics.ActivitySource! activitySource) -> void
+StreamJsonRpc.ActivityTracingStrategy.ActivityTracingStrategy(System.Diagnostics.ActivitySource activitySource) -> void
 StreamJsonRpc.BadRpcHeaderException
 StreamJsonRpc.BadRpcHeaderException.BadRpcHeaderException(System.Runtime.Serialization.SerializationInfo! info, System.Runtime.Serialization.StreamingContext context) -> void
 StreamJsonRpc.DisconnectedReason
