@@ -12,6 +12,25 @@ namespace StreamJsonRpc;
 /// <seealso cref="CorrelationManagerTracingStrategy"/>
 public class ActivityTracingStrategy : IActivityTracingStrategy
 {
+    private readonly ActivitySource? activitySource;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ActivityTracingStrategy"/> class.
+    /// </summary>
+    public ActivityTracingStrategy()
+        : this(null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ActivityTracingStrategy"/> class.
+    /// </summary>
+    /// <param name="activitySource">The <see cref="ActivitySource"/> to use for creating activities.</param>
+    public ActivityTracingStrategy(ActivitySource? activitySource)
+    {
+        this.activitySource = activitySource;
+    }
+
     /// <inheritdoc/>
     public void ApplyOutboundActivity(JsonRpcRequest request)
     {
@@ -29,7 +48,7 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
     {
         Requires.NotNull(request, nameof(request));
 
-        var state = new State(new Activity(request.Method!));
+        var state = new State(this.CreateNewActivity(request.Method!));
         state.NewActivity.TraceStateString = request.TraceState;
         if (request.TraceParent is object)
         {
@@ -39,6 +58,8 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
         state.NewActivity.Start();
         return state;
     }
+
+    private Activity CreateNewActivity(string name) => this.activitySource?.StartActivity(name) ?? new Activity(name);
 
     private class State : IDisposable
     {
