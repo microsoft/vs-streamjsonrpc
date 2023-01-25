@@ -59,21 +59,7 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
         return state;
     }
 
-    private Activity CreateNewActivity(string name)
-    {
-        Activity? activity = null;
-        if (this.activitySource is object)
-        {
-            activity = this.activitySource.StartActivity(name);
-        }
-
-        if (activity is null)
-        {
-            activity = new Activity(name);
-        }
-
-        return activity;
-    }
+    private Activity CreateNewActivity(string name) => this.activitySource?.StartActivity(name) ?? new Activity(name);
 
     private class State : IDisposable
     {
