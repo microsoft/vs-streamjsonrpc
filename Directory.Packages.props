@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
-    <MicroBuildVersion>2.0.87</MicroBuildVersion>
+    <MicroBuildVersion>2.0.107</MicroBuildVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.2" />
