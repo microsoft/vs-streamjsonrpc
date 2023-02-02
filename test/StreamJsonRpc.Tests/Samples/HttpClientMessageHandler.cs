@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;

@@ -1130,7 +1130,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 Serialize_Shared(this.mainFormatter, ref writer, value, options);
             }
 
-            internal static MessagePackWriter Serialize_Shared(MessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, MessagePackSerializerOptions options)
+            internal static void Serialize_Shared(MessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, MessagePackSerializerOptions options)
             {
                 if (value is null)
                 {
@@ -1166,8 +1166,6 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                         options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Serialize(ref writer, prefetched.Elements, options);
                     }
                 }
-
-                return writer;
             }
         }
 
@@ -1193,7 +1191,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
 
             public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
             {
-                writer = PreciseTypeFormatter<TElement>.Serialize_Shared(this.mainFormatter, ref writer, value, options);
+                PreciseTypeFormatter<TElement>.Serialize_Shared(this.mainFormatter, ref writer, value, options);
             }
         }
     }
