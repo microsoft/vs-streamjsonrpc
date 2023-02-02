@@ -1,3 +1,3 @@
 @pushd "%~dp0\"
-dotnet run -f netcoreapp3.1 -c release -- --runtimes net472 netcoreapp2.1 netcoreapp3.1 %*
+dotnet run -f net6.0 -c release -- --runtimes net472 net6.0 %*
 @popd
