@@ -121,7 +121,7 @@ To trigger a remote method named "foo" which takes parameters `hair` and `age`,
 without regard to its result:
 
 ```cs
-await rpc.NotifyWithParameterObjectAsync("bar", new { age = 5, hair = "brown" });
+await rpc.NotifyWithParameterObjectAsync("foo", new { age = 5, hair = "brown" });
 ```
 
 ## Strongly-typed requests
