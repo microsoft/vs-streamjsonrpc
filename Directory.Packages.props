@@ -8,7 +8,7 @@
     <VisualStudioThreadingVersion>17.6.29-alpha</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.2" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.5" />
     <PackageVersion Include="IsExternalInit" Version="1.0.3" />
     <PackageVersion Include="MessagePack" Version="2.4.59" />
     <PackageVersion Include="MessagePackAnalyzer" Version="2.4.59" />
