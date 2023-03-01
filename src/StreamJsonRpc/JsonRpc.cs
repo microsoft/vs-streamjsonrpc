@@ -24,6 +24,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     internal static readonly SynchronizationContext DefaultSynchronizationContext = new SynchronizationContext();
 
+    /// <summary>
+    /// The name of the top-level field that we add to JSON-RPC messages to track JoinableTask context to mitigate deadlocks.
+    /// </summary>
+    private const string JoinableTaskTokenHeaderName = "joinableTaskToken";
+
     private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -79,6 +84,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private readonly RpcTargetInfo rpcTargetInfo;
 
     /// <summary>
+    /// Carries the value from a <see cref="JoinableTaskTokenHeaderName"/> when <see cref="JoinableTaskFactory"/> has not been set.
+    /// </summary>
+    private readonly System.Threading.AsyncLocal<string?> joinableTaskTokenWithoutJtf = new();
+
+    /// <summary>
     /// List of remote RPC targets to call if connection should be relayed.
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
@@ -105,6 +115,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private SynchronizationContext? synchronizationContext;
+
+    /// <summary>
+    /// Backing field for the <see cref="JoinableTaskFactory"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private JoinableTaskFactory? joinableTaskFactory;
 
     /// <summary>
     /// Backing field for the <see cref="CancellationStrategy"/> property.
@@ -426,6 +442,21 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             this.ThrowIfConfigurationLocked();
             this.synchronizationContext = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the <see cref="JoinableTaskFactory"/> to participate in to mitigate deadlocks with the main thread.
+    /// </summary>
+    /// <value>Defaults to null.</value>
+    public JoinableTaskFactory? JoinableTaskFactory
+    {
+        get => this.joinableTaskFactory;
+
+        set
+        {
+            this.ThrowIfConfigurationLocked();
+            this.joinableTaskFactory = value;
         }
     }
 
@@ -1894,6 +1925,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                         JsonRpcEventSource.Instance.SendingRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request));
                     }
 
+                    string? parentToken = this.JoinableTaskFactory is not null ? this.JoinableTaskFactory.Context.Capture() : this.joinableTaskTokenWithoutJtf.Value;
+                    if (parentToken is not null)
+                    {
+                        request.TrySetTopLevelProperty(JoinableTaskTokenHeaderName, parentToken);
+                    }
+
                     // IMPORTANT: This should be the first await in this async code path.
                     //            This is crucial to the guarantee that overrides of SendAsync can assume they are executed
                     //            before the first await when a JsonRpc call is made.
@@ -2044,7 +2081,23 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                     }
                 }
 
-                return await this.DispatchRequestAsync(request, targetMethod, cancellationToken).ConfigureAwait(false);
+                request.TryGetTopLevelProperty<string>(JoinableTaskTokenHeaderName, out string? parentToken);
+                if (this.JoinableTaskFactory is null)
+                {
+                    this.joinableTaskTokenWithoutJtf.Value = parentToken;
+                }
+
+                if (this.JoinableTaskFactory is null || parentToken is null)
+                {
+                    return await this.DispatchRequestAsync(request, targetMethod, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    return await this.JoinableTaskFactory.RunAsync(
+                        async () => await this.DispatchRequestAsync(request, targetMethod, cancellationToken).ConfigureAwait(false),
+                        parentToken,
+                        JoinableTaskCreationOptions.None);
+                }
             }
             else
             {
