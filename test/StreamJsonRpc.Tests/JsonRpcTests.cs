@@ -2848,6 +2848,65 @@ public abstract class JsonRpcTests : TestBase
         await stopped.Task.WithCancellation(this.TimeoutToken);
     }
 
+    [Fact]
+    public void JoinableTaskFactory_ThrowsAfterRunning()
+    {
+        Assert.Throws<InvalidOperationException>(() => this.clientRpc.JoinableTaskFactory = null);
+    }
+
+    /// <summary>
+    /// Asserts that when both client and server are JTF-aware, that no deadlock occurs when the client blocks the main thread that the server needs.
+    /// </summary>
+    [UIFact]
+    public void JoinableTaskFactory_IntegrationBothSides()
+    {
+        // Set up a main thread and JoinableTaskContext.
+        JoinableTaskContext jtc = new();
+
+        // Configure the client and server to understand JTF.
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.JoinableTaskFactory = jtc.Factory;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.JoinableTaskFactory = jtc.Factory;
+
+        // Tell the server to require the main thread to get something done.
+        this.server.JoinableTaskFactory = jtc.Factory;
+
+        jtc.Factory.Run(async delegate
+        {
+            string result = await this.clientRpc.InvokeWithCancellationAsync<string>(nameof(this.server.AsyncMethod), new object?[] { "hi" }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+            Assert.Equal("hi!", result);
+        });
+    }
+
+    /// <summary>
+    /// Asserts that when only the client is JTF-aware, that no deadlock occurs when the client blocks the main thread
+    /// and the server calls back to the client for something that needs the main thread as part of processing the client's request.
+    /// </summary>
+    [UIFact]
+    public void JoinableTaskFactory_IntegrationClientSideOnly()
+    {
+        // Set up a main thread and JoinableTaskContext.
+        JoinableTaskContext jtc = new();
+
+        // Configure the client and server to understand JTF.
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.JoinableTaskFactory = jtc.Factory;
+
+        const string CallbackMethodName = "ClientNeedsMainThread";
+        this.clientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
+        {
+            await jtc.Factory.SwitchToMainThreadAsync();
+        }));
+
+        this.server.Tests = this;
+
+        jtc.Factory.Run(async delegate
+        {
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.Callback), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+        });
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -3058,6 +3117,8 @@ public abstract class JsonRpcTests : TestBase
         internal JsonRpcTests? Tests { get; set; }
 
         internal TraceSource? TraceSource { get; set; }
+
+        internal JoinableTaskFactory? JoinableTaskFactory { get; set; }
 
         public static string ServerMethod(string argument)
         {
@@ -3300,6 +3361,11 @@ public abstract class JsonRpcTests : TestBase
 
         public async Task<string> AsyncMethod(string arg)
         {
+            if (this.JoinableTaskFactory is not null)
+            {
+                await this.JoinableTaskFactory.SwitchToMainThreadAsync();
+            }
+
             await Task.Yield();
             return arg + "!";
         }

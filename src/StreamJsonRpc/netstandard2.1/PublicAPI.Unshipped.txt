@@ -7,6 +7,8 @@ StreamJsonRpc.ExceptionSettings.RecursionLimit.get -> int
 StreamJsonRpc.ExceptionSettings.RecursionLimit.init -> void
 StreamJsonRpc.JsonRpc.ExceptionOptions.get -> StreamJsonRpc.ExceptionSettings!
 StreamJsonRpc.JsonRpc.ExceptionOptions.set -> void
+StreamJsonRpc.JsonRpc.JoinableTaskFactory.get -> Microsoft.VisualStudio.Threading.JoinableTaskFactory?
+StreamJsonRpc.JsonRpc.JoinableTaskFactory.set -> void
 StreamJsonRpc.JsonRpcIgnoreAttribute
 StreamJsonRpc.JsonRpcIgnoreAttribute.JsonRpcIgnoreAttribute() -> void
 StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments.get -> bool
