@@ -14,6 +14,7 @@ The rest of our documentation are organized around use case.
 1. [Remote Targets](remotetargets.md)
 1. [Pass certain special types in arguments or return values](exotic_types.md)
 1. [Trace context](tracecontext.md)
+1. [JoinableTaskFactory integration](joinableTaskFactory.md)
 1. [Troubleshoot](troubleshooting.md)
 
 See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes
