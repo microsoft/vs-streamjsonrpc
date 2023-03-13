@@ -664,6 +664,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unexpected null key encountered while deserializing map..
+        /// </summary>
+        internal static string UnexpectedNullValueInMap {
+            get {
+                return ResourceManager.GetString("UnexpectedNullValueInMap", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A response was received without a request having been sent..
         /// </summary>
         internal static string UnexpectedResponseWithNoMatchingRequest {

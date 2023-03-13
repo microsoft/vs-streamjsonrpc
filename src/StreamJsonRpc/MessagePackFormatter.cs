@@ -765,7 +765,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             }
         }
 
-        internal object Deserialize(Type type, MessagePackSerializerOptions options)
+        internal object? Deserialize(Type type, MessagePackSerializerOptions options)
         {
             return this.rawSequence.IsEmpty
                 ? MessagePackSerializer.Deserialize(type, this.rawMemory, options)
@@ -792,7 +792,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
 
         internal MessagePackFormatter Formatter { get; }
 
-        public IMessagePackFormatter<T> GetFormatter<T>() => this.inner.GetFormatter<T>();
+        public IMessagePackFormatter<T>? GetFormatter<T>() => this.inner.GetFormatter<T>();
     }
 
     private class MessagePackFormatterConverter : IFormatterConverter
@@ -804,7 +804,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             this.options = options;
         }
 
-        public object Convert(object value, Type type) => ((RawMessagePack)value).Deserialize(type, this.options);
+        public object? Convert(object value, Type type) => ((RawMessagePack)value).Deserialize(type, this.options);
 
         public object Convert(object value, TypeCode typeCode)
         {
@@ -1550,7 +1550,11 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                     int memberCount = reader.ReadMapHeader();
                     for (int i = 0; i < memberCount; i++)
                     {
-                        string name = reader.ReadString();
+                        string? name = reader.ReadString();
+                        if (name is null)
+                        {
+                            throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
+                        }
 
                         // SerializationInfo.GetValue(string, typeof(object)) does not call our formatter,
                         // so the caller will get a boxed RawMessagePack struct in that case.
@@ -1733,7 +1737,12 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                             var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
                             for (int i = 0; i < namedArgsCount; i++)
                             {
-                                string propertyName = reader.ReadString();
+                                string? propertyName = reader.ReadString();
+                                if (propertyName is null)
+                                {
+                                    throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
+                                }
+
                                 namedArgs.Add(propertyName, GetSliceForNextToken(ref reader));
                             }
 
