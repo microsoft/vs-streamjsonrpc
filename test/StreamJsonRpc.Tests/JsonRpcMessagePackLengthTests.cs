@@ -48,7 +48,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException))).WithCancellation(this.TimeoutToken);
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
-        object myCustomData = data!["myCustomData"];
+        Assert.NotNull(data);
+        object myCustomData = data["myCustomData"];
         string actual = (string)myCustomData;
         Assert.Equal("hi", actual);
     }
