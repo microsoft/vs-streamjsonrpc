@@ -162,5 +162,5 @@ When an RPC _result_ references a released marshaled object, the RPC client libr
 
 ### No nesting of marshaled object lifetimes
 
-Although object B may be marshaled in RPC messages that target marshaled object B, marshaled object B's lifetime is _not_ nested within A's.
+Although object B may be marshaled in RPC messages that target marshaled object A, marshaled object B's lifetime is _not_ nested within A's.
 Each marshaled object must be indepenently released.

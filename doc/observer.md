@@ -1,6 +1,6 @@
 # `IObserver<T>` support
 
-StreamJsonRpc allows transmitting `IObserver<T>` objects in arguments and return values.
+StreamJsonRpc allows transmitting [`IObserver<T>`](https://learn.microsoft.com/dotnet/api/system.iobserver-1) objects in arguments and return values.
 
 StreamJsonRpc supports standard .NET events on target objects and interface-backed dynamic proxies.
 But .NET events have several limitations:
@@ -148,6 +148,13 @@ since the client gets no feedback from the server in either of these cases.
 ## Protocol
 
 The protocol for proxying a disposable object is based on [general marshaled objects](general_marshaled_objects.md).
+
+Camel case method name transforms are applied to the methods on the `IObserver<T>` interface.
+Other implementations seeking to interop with StreamJsonRpc should therefore support these methods:
+
+* `onNext(T)`
+* `onCompleted()`
+* `onError(Exception)`
 
 The responsibility to release resources when `IObserver<T>.OnCompleted()` or `IObserver<T>.OnError(Exception)` is called is on the receiver of the proxy.
 That is, when the proxy holder calls either of these methods, it should also send the `$/releaseMarshaledObject` message back to the target object owner. When the proxy holder is using StreamJsonRpc, this is handled automatically.
