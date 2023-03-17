@@ -3,8 +3,6 @@ jobs:
   displayName: Rich Code Navigation Upload to Production
   pool: 
     vmImage: windows-2022
-  variables:
-    System.Debug: true
   steps:
   - template: install-dependencies.yml
   - task: RichCodeNavIndexer@0
