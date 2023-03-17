@@ -339,6 +339,9 @@
     <value>Unexpected error processing JSON-RPC message: {0}</value>
     <comment>{0} is the exception message.</comment>
   </data>
+  <data name="UnexpectedNullValueInMap" xml:space="preserve">
+    <value>Unexpected null key encountered while deserializing map.</value>
+  </data>
   <data name="UnexpectedResponseWithNoMatchingRequest" xml:space="preserve">
     <value>A response was received without a request having been sent.</value>
   </data>
