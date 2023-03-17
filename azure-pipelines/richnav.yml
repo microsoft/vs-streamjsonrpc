@@ -1,7 +1,9 @@
 jobs:
 - job: RichCodeNavUpload
   displayName: Rich Code Navigation Upload to Production
-  pool: Hosted Windows 2019 with VS2019
+  pool: windows-2022
+  variables:
+    System.Debug: true
   steps:
   - template: install-dependencies.yml
   - task: RichCodeNavIndexer@0
