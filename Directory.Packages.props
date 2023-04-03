@@ -5,7 +5,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
     <MessagePackVersion>2.5.108</MessagePackVersion>
-    <MicroBuildVersion>2.0.113</MicroBuildVersion>
+    <MicroBuildVersion>2.0.115</MicroBuildVersion>
     <VisualStudioThreadingVersion>17.6.40</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -17,7 +17,6 @@
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
-    <PackageVersion Include="Microsoft.CodeCoverage" Version="17.5.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="$(VisualStudioThreadingVersion)" />

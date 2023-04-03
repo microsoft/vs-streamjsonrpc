@@ -21,7 +21,7 @@ steps:
     AccessToken: $(System.AccessToken)
   displayName: 🔧 Install OptProf Plugin
 
-- task: MicroBuildSigningPlugin@3
+- task: MicroBuildSigningPlugin@4
   inputs:
     signType: $(SignType)
     zipSources: false
