@@ -2,7 +2,7 @@
 
 StreamJsonRpc can help mitigate deadlocks that may occur when a JSON-RPC client blocks the main thread of an application during an outbound RPC call and the RPC server requires the main thread in order to complete the operation through integrating with the application's `JoinableTaskFactory`.
 
-[Learn more about `JoinableTaskFactory` and how it can mitigate deadlocks for your application](https://aakaka.ms/vsthreading).
+[Learn more about `JoinableTaskFactory` and how it can mitigate deadlocks for your application](https://aka.ms/vsthreading).
 _This_ topic will focus on the JSON-RPC aspects of deadlock mitigation.
 
 ## Problem statement
