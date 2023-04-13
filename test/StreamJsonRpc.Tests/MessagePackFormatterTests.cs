@@ -413,6 +413,38 @@ public class MessagePackFormatterTests : TestBase
         Assert.Null(value);
     }
 
+    [Fact]
+    public void StringsInUserDataAreInterned()
+    {
+        var dynamic = new
+        {
+            jsonrpc = "2.0",
+            method = "something",
+            extra = (object?)null,
+            @params = new object[] { "hi" },
+        };
+        var request1 = this.Read<JsonRpcRequest>(dynamic);
+        var request2 = this.Read<JsonRpcRequest>(dynamic);
+        Assert.True(request1.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg1));
+        Assert.True(request2.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg2));
+        Assert.Same(arg2, arg1); // reference equality to ensure it was interned.
+    }
+
+    [Fact]
+    public void StringValuesOfStandardPropertiesAreInterned()
+    {
+        var dynamic = new
+        {
+            jsonrpc = "2.0",
+            method = "something",
+            extra = (object?)null,
+            @params = Array.Empty<object?>(),
+        };
+        var request1 = this.Read<JsonRpcRequest>(dynamic);
+        var request2 = this.Read<JsonRpcRequest>(dynamic);
+        Assert.Same(request1.Method, request2.Method); // reference equality to ensure it was interned.
+    }
+
     private T Read<T>(object anonymousObject)
         where T : JsonRpcMessage
     {
