@@ -90,6 +90,11 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         EventArgsFormatter.Instance);
 
     /// <summary>
+    /// The resolver to include when we want to enable string interning.
+    /// </summary>
+    private static readonly IFormatterResolver StringInterningResolver = CompositeResolver.Create(new StringInterningFormatter());
+
+    /// <summary>
     /// The options to use for serializing top-level RPC messages.
     /// </summary>
     private readonly MessagePackSerializerOptions messageSerializationOptions;
@@ -584,6 +589,9 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             // Support for marshalled objects.
             new RpcMarshalableResolver(this),
 
+            // Intern strings to reduce memory usage.
+            StringInterningResolver,
+
             userSuppliedOptions.Resolver,
 
             // Add stateless, non-specialized resolvers that help basic functionality to "just work".
@@ -618,6 +626,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         };
         var resolvers = new IFormatterResolver[]
         {
+            StringInterningResolver,
             StandardResolverAllowPrivate.Instance,
         };
         return CompositeResolver.Create(formatters, resolvers);
@@ -903,6 +912,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             }
             else
             {
+                // Do *not* read as an interned string here because this ID should be unique.
                 return new RequestId(reader.ReadString());
             }
         }
@@ -1087,6 +1097,16 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         private class PreciseTypeFormatter<T> : IMessagePackFormatter<IAsyncEnumerable<T>?>
 #pragma warning restore CA1812
         {
+            /// <summary>
+            /// The constant "token", in its various forms.
+            /// </summary>
+            private static readonly CommonString TokenPropertyName = new(MessageFormatterEnumerableTracker.TokenPropertyName);
+
+            /// <summary>
+            /// The constant "values", in its various forms.
+            /// </summary>
+            private static readonly CommonString ValuesPropertyName = new(MessageFormatterEnumerableTracker.ValuesPropertyName);
+
             private MessagePackFormatter mainFormatter;
 
             public PreciseTypeFormatter(MessagePackFormatter mainFormatter)
@@ -1107,17 +1127,18 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 int propertyCount = reader.ReadMapHeader();
                 for (int i = 0; i < propertyCount; i++)
                 {
-                    switch (reader.ReadString())
+                    ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                    if (TokenPropertyName.TryRead(stringKey))
                     {
-                        case MessageFormatterEnumerableTracker.TokenPropertyName:
-                            token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                            break;
-                        case MessageFormatterEnumerableTracker.ValuesPropertyName:
-                            initialElements = options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Deserialize(ref reader, options);
-                            break;
-                        default:
-                            reader.Skip();
-                            break;
+                        token = RawMessagePack.ReadRaw(ref reader, copy: true);
+                    }
+                    else if (ValuesPropertyName.TryRead(stringKey))
+                    {
+                        initialElements = options.Resolver.GetFormatterWithVerify<IReadOnlyList<T>>().Deserialize(ref reader, options);
+                    }
+                    else
+                    {
+                        reader.Skip();
                     }
                 }
 
@@ -1550,7 +1571,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                     int memberCount = reader.ReadMapHeader();
                     for (int i = 0; i < memberCount; i++)
                     {
-                        string? name = reader.ReadString();
+                        string? name = options.Resolver.GetFormatterWithVerify<string>().Deserialize(ref reader, options);
                         if (name is null)
                         {
                             throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
@@ -1714,7 +1735,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 }
                 else if (MethodPropertyName.TryRead(stringKey))
                 {
-                    result.Method = reader.ReadString();
+                    result.Method = options.Resolver.GetFormatterWithVerify<string>().Deserialize(ref reader, options);
                 }
                 else if (ParamsPropertyName.TryRead(stringKey))
                 {
@@ -1737,7 +1758,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                             var namedArgs = new Dictionary<string, ReadOnlySequence<byte>>(namedArgsCount);
                             for (int i = 0; i < namedArgsCount; i++)
                             {
-                                string? propertyName = reader.ReadString();
+                                string? propertyName = options.Resolver.GetFormatterWithVerify<string>().Deserialize(ref reader, options);
                                 if (propertyName is null)
                                 {
                                     throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
@@ -1765,7 +1786,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 }
                 else if (TraceStatePropertyName.TryRead(stringKey))
                 {
-                    result.TraceState = ReadTraceState(ref reader);
+                    result.TraceState = ReadTraceState(ref reader, options);
                 }
                 else
                 {
@@ -1925,7 +1946,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             }
         }
 
-        private static unsafe string ReadTraceState(ref MessagePackReader reader)
+        private static unsafe string ReadTraceState(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
             int elements = reader.ReadArrayHeader();
             if (elements % 2 != 0)
@@ -1942,7 +1963,9 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                     resultBuilder.Append(',');
                 }
 
-                resultBuilder.Append(reader.ReadString());
+                // We assume the key is a frequent string, and the value is unique,
+                // so we optimize whether to use string interning or not on that basis.
+                resultBuilder.Append(options.Resolver.GetFormatterWithVerify<string>().Deserialize(ref reader, options));
                 resultBuilder.Append('=');
                 resultBuilder.Append(reader.ReadString());
             }
@@ -2100,9 +2123,9 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
 
     private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
     {
-        private const string CodePropertyName = "code";
-        private const string MessagePropertyName = "message";
-        private const string DataPropertyName = "data";
+        private static readonly CommonString CodePropertyName = new("code");
+        private static readonly CommonString MessagePropertyName = new("message");
+        private static readonly CommonString DataPropertyName = new("data");
         private readonly MessagePackFormatter formatter;
 
         internal JsonRpcErrorDetailFormatter(MessagePackFormatter formatter)
@@ -2118,20 +2141,22 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             int propertyCount = reader.ReadMapHeader();
             for (int propertyIdx = 0; propertyIdx < propertyCount; propertyIdx++)
             {
-                switch (reader.ReadString())
+                ReadOnlySpan<byte> stringKey = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                if (CodePropertyName.TryRead(stringKey))
                 {
-                    case CodePropertyName:
-                        result.Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options);
-                        break;
-                    case MessagePropertyName:
-                        result.Message = reader.ReadString();
-                        break;
-                    case DataPropertyName:
-                        result.MsgPackData = GetSliceForNextToken(ref reader);
-                        break;
-                    default:
-                        reader.Skip();
-                        break;
+                    result.Code = options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Deserialize(ref reader, options);
+                }
+                else if (MessagePropertyName.TryRead(stringKey))
+                {
+                    result.Message = options.Resolver.GetFormatterWithVerify<string>().Deserialize(ref reader, options);
+                }
+                else if (DataPropertyName.TryRead(stringKey))
+                {
+                    result.MsgPackData = GetSliceForNextToken(ref reader);
+                }
+                else
+                {
+                    reader.Skip();
                 }
             }
 
@@ -2143,13 +2168,13 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         {
             writer.WriteMapHeader(3);
 
-            writer.Write(CodePropertyName);
+            CodePropertyName.Write(ref writer);
             options.Resolver.GetFormatterWithVerify<JsonRpcErrorCode>().Serialize(ref writer, value.Code, options);
 
-            writer.Write(MessagePropertyName);
+            MessagePropertyName.Write(ref writer);
             writer.Write(value.Message);
 
-            writer.Write(DataPropertyName);
+            DataPropertyName.Write(ref writer);
             DynamicObjectTypeFallbackFormatter.Instance.Serialize(ref writer, value.Data, this.formatter.userDataSerializationOptions);
         }
     }
