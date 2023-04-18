@@ -1,2 +1,0 @@
-StreamJsonRpc.JsonRpc.JoinableTaskFactory.get -> Microsoft.VisualStudio.Threading.JoinableTaskFactory?
-StreamJsonRpc.JsonRpc.JoinableTaskFactory.set -> void

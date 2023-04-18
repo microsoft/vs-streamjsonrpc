@@ -594,3 +594,5 @@ StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, System.Type! optionalInterface) -> void
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterface.get -> System.Type!
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode.get -> int
+StreamJsonRpc.JsonRpc.JoinableTaskFactory.get -> Microsoft.VisualStudio.Threading.JoinableTaskFactory?
+StreamJsonRpc.JsonRpc.JoinableTaskFactory.set -> void
