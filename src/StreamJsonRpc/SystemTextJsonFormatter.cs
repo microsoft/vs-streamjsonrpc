@@ -80,10 +80,11 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             JsonRpcError error = new()
             {
                 RequestId = ReadRequestId(),
-                Error = new JsonRpcError.ErrorDetail
+                Error = new JsonRpcError.ErrorDetail(this)
                 {
                     Code = (JsonRpcErrorCode)errorElement.GetProperty(Utf8Strings.code).GetInt64(),
                     Message = errorElement.GetProperty(Utf8Strings.message).GetString(),
+                    JsonData = errorElement.TryGetProperty(Utf8Strings.data, out JsonElement dataElement) ? dataElement : null,
                 },
             };
 
@@ -150,7 +151,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
                 WriteResult(result);
                 writer.WriteEndObject();
                 break;
-            case JsonRpcError error:
+            case Protocol.JsonRpcError error:
                 WriteId(error.RequestId);
                 WriteError(error);
                 writer.WriteEndObject();
@@ -222,7 +223,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             WriteUserData(result.Result);
         }
 
-        void WriteError(JsonRpcError error)
+        void WriteError(Protocol.JsonRpcError error)
         {
             if (error.Error is null)
             {
@@ -370,6 +371,75 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             {
                 // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
                 this.resultDeserializationException = ex;
+            }
+        }
+    }
+
+    private class JsonRpcError : Protocol.JsonRpcError, IJsonRpcMessageBufferManager
+    {
+        internal new ErrorDetail? Error
+        {
+            get => (ErrorDetail?)base.Error;
+            set => base.Error = value;
+        }
+
+        public void DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+
+            // Clear references to buffers that we are no longer entitled to.
+            if (this.Error is { } detail)
+            {
+                detail.JsonData = null;
+            }
+        }
+
+        internal new class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
+        {
+            private readonly SystemTextJsonFormatter formatter;
+
+            internal ErrorDetail(SystemTextJsonFormatter formatter)
+            {
+                this.formatter = formatter;
+            }
+
+            internal JsonElement? JsonData { get; set; }
+
+            public override object? GetData(Type dataType)
+            {
+                Requires.NotNull(dataType, nameof(dataType));
+                if (this.JsonData is null)
+                {
+                    return this.Data;
+                }
+
+                try
+                {
+                    return this.JsonData.Value.Deserialize(dataType, this.formatter.JsonSerializerOptions);
+                }
+                catch (JsonException)
+                {
+                    // Deserialization failed. Try returning array/dictionary based primitive objects.
+                    try
+                    {
+                        return this.JsonData.Value.Deserialize<object>(this.formatter.JsonSerializerOptions);
+                    }
+                    catch (JsonException)
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            protected internal override void SetExpectedDataType(Type dataType)
+            {
+                Verify.Operation(this.JsonData is not null, "Data is no longer available or has already been deserialized.");
+
+                this.Data = this.GetData(dataType);
+
+                // Clear the source now that we've deserialized to prevent GetData from attempting
+                // deserialization later when the buffer may be recycled on another thread.
+                this.JsonData = default;
             }
         }
     }
