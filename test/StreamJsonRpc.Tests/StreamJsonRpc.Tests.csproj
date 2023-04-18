@@ -13,6 +13,7 @@
     <Compile Update="ObserverMarshalingJsonTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
     <Compile Update="ObserverMarshalingMessagePackTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
     <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="JsonRpcSystemTextJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="AsyncEnumerableJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
