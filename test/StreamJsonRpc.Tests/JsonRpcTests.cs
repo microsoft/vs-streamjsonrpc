@@ -2907,6 +2907,71 @@ public abstract class JsonRpcTests : TestBase
         });
     }
 
+    [Fact]
+    public async Task CanInvokeServerMethodWithParameterPassedAsObject()
+    {
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
+        Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_WithRenamingAttributes()
+    {
+        var param = new ParamsObjectWithCustomNames { TheArgument = "hello" };
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.ServerMethod), param, this.TimeoutToken);
+        Assert.Equal(param.TheArgument + "!", result);
+    }
+
+    [Fact]
+    public async Task CanInvokeServerMethodWithParameterPassedAsArray()
+    {
+        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
+        Assert.Equal("object test", result1);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_AndCancel()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
+            cts.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
+    public virtual async Task CanPassAndCallPrivateMethodsObjects()
+    {
+        var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
+        Assert.NotNull(result);
+        Assert.Equal("bar!", result.Bar);
+        Assert.Equal(1001, result.Bazz);
+
+        // anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
+        if (!this.IsTypeNameHandlingEnabled)
+        {
+            result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
+            Assert.NotNull(result);
+            Assert.Equal("bar!", result.Bar);
+            Assert.Equal(1001, result.Bazz);
+        }
+    }
+
+    [Fact]
+    public virtual async Task CanPassExceptionFromServer_ErrorData()
+    {
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
+        Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
+
+        var errorDataJToken = (JToken?)exception.ErrorData;
+        Assert.NotNull(errorDataJToken);
+        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonSerializer());
+        Assert.NotNull(errorData?.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -3660,6 +3725,13 @@ public abstract class JsonRpcTests : TestBase
 
             return default;
         }
+    }
+
+    [DataContract]
+    public class ParamsObjectWithCustomNames
+    {
+        [DataMember(Name = "argument")]
+        public string? TheArgument { get; set; }
     }
 
     public class VsThreadingAsyncDisposableServer : Microsoft.VisualStudio.Threading.IAsyncDisposable

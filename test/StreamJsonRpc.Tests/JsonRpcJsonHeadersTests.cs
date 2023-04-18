@@ -45,13 +45,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task CanInvokeServerMethodWithParameterPassedAsObject()
-    {
-        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
-        Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
-    }
-
-    [Fact]
     public async Task InvokeWithParameterObjectAsync_AndCancel()
     {
         using (var cts = new CancellationTokenSource())
@@ -88,33 +81,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task InvokeWithParameterObject_WithRenamingAttributes()
-    {
-        var param = new ParamsObjectWithCustomNames { TheArgument = "hello" };
-        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.ServerMethod), param, this.TimeoutToken);
-        Assert.Equal(param.TheArgument + "!", result);
-    }
-
-    [Fact]
-    public async Task CanInvokeServerMethodWithParameterPassedAsArray()
-    {
-        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
-        Assert.Equal("object test", result1);
-    }
-
-    [Fact]
-    public async Task InvokeWithCancellationAsync_AndCancel()
-    {
-        using (var cts = new CancellationTokenSource())
-        {
-            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
-            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
-            cts.Cancel();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
-        }
-    }
-
-    [Fact]
     public async Task InvokeWithCancellationAsync_AndComplete()
     {
         using (var cts = new CancellationTokenSource())
@@ -127,24 +93,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task CanPassAndCallPrivateMethodsObjects()
-    {
-        var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
-        Assert.NotNull(result);
-        Assert.Equal("bar!", result.Bar);
-        Assert.Equal(1001, result.Bazz);
-
-        // anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
-        if (!this.IsTypeNameHandlingEnabled)
-        {
-            result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
-            Assert.NotNull(result);
-            Assert.Equal("bar!", result.Bar);
-            Assert.Equal(1001, result.Bazz);
-        }
-    }
-
-    [Fact]
     public async Task Completion_FaultsOnFatalError()
     {
         Task completion = this.serverRpc.Completion;
@@ -153,32 +101,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         await this.clientStream.FlushAsync().WithCancellation(this.TimeoutToken);
         await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion).WithCancellation(this.TimeoutToken);
         Assert.Same(completion, this.serverRpc.Completion);
-    }
-
-    [Fact]
-    public async Task ExceptionControllingErrorData()
-    {
-        var exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.ThrowLocalRpcException)));
-
-        // C# dynamic is infamously unstable. If this test ends up being unstable, yet the dump clearly shows the fields are there even though the exception claims it isn't,
-        // that's consistent with the instability I've seen before. Switching to using JToken APIs will fix the instability, but it relies on using the JsonMessageFormatter.
-        dynamic? data = exception.ErrorData;
-        dynamic myCustomData = data!.myCustomData;
-        string actual = myCustomData;
-        Assert.Equal("hi", actual);
-    }
-
-    [Fact]
-    public async Task CanPassExceptionFromServer_ErrorData()
-    {
-        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
-        Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
-
-        var errorDataJToken = (JToken?)exception.ErrorData;
-        Assert.NotNull(errorDataJToken);
-        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonSerializer());
-        Assert.NotNull(errorData?.StackTrace);
-        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
@@ -210,13 +132,6 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         this.clientMessageHandler = controlledFlushingClient
             ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
             : new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
-    }
-
-    [DataContract]
-    public class ParamsObjectWithCustomNames
-    {
-        [DataMember(Name = "argument")]
-        public string? TheArgument { get; set; }
     }
 
     protected class UnserializableTypeConverter : JsonConverter

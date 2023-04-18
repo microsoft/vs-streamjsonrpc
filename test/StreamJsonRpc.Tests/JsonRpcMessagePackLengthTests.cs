@@ -34,7 +34,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task CanPassAndCallPrivateMethodsObjects()
+    public override async Task CanPassAndCallPrivateMethodsObjects()
     {
         var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
         Assert.NotNull(result);
@@ -55,7 +55,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     }
 
     [Fact]
-    public async Task CanPassExceptionFromServer_ErrorData()
+    public override async Task CanPassExceptionFromServer_ErrorData()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
