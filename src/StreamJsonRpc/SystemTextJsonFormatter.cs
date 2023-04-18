@@ -5,39 +5,41 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
 public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter
 {
-    private static JsonWriterOptions WriterOptions = new();
+    private static readonly JsonWriterOptions WriterOptions = new() { };
 
-    private static JsonReaderOptions ReaderOptions = new();
+    private static readonly JsonReaderOptions ReaderOptions = new() { };
 
-    private static JsonSerializerOptions SerializerOptions = new() { TypeInfoResolver = SourceGenerated.Default };
+    ////private static readonly JsonSerializerOptions SerializerOptions = new() { TypeInfoResolver = SourceGenerated.Default };
 
-    private static JsonSerializerOptions UserDataSerializerOptions = new();
+    private static readonly JsonSerializerOptions UserDataSerializerOptions = new();
 
-    private static JsonDocumentOptions DocumentOptions = new();
+    private static readonly JsonDocumentOptions DocumentOptions = new() { };
 
     /// <summary>
     /// UTF-8 encoding without a preamble.
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    /// <inheritdoc/>
     public Encoding Encoding
     {
         get => DefaultEncoding;
         set => throw new NotSupportedException();
     }
 
+    /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
     {
         throw new NotImplementedException();
     }
 
+    /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
     {
         if (encoding is not UTF8Encoding)
@@ -252,11 +254,11 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         }
     }
 
-    [JsonSerializable(typeof(JsonRpcMessage))]
-    [JsonSerializable(typeof(JsonRpcRequest))]
-    private partial class SourceGenerated : JsonSerializerContext
-    {
-    }
+    ////[JsonSerializable(typeof(JsonRpcMessage))]
+    ////[JsonSerializable(typeof(JsonRpcRequest))]
+    ////private partial class SourceGenerated : JsonSerializerContext
+    ////{
+    ////}
 
     private static class Utf8Strings
     {
