@@ -19,10 +19,6 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
     private static readonly JsonReaderOptions ReaderOptions = new() { };
 
-    ////private static readonly JsonSerializerOptions SerializerOptions = new() { TypeInfoResolver = SourceGenerated.Default };
-
-    private static readonly JsonSerializerOptions UserDataSerializerOptions = new();
-
     private static readonly JsonDocumentOptions DocumentOptions = new() { };
 
     /// <summary>
@@ -37,6 +33,11 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         set => throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Gets or sets the options to use when serializing and deserializing JSON containing user data.
+    /// </summary>
+    public JsonSerializerOptions JsonSerializerOptions { get; set; } = new();
+
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
 
@@ -48,28 +49,16 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             throw new NotSupportedException("Only our default encoding is supported.");
         }
 
-        Utf8JsonReader reader = new(contentBuffer, ReaderOptions);
-
-        if (!reader.Read())
-        {
-            throw new Exception("Unexpected end of message.");
-        }
-
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            throw new Exception("Expected start of object.");
-        }
-
         JsonDocument document = JsonDocument.Parse(contentBuffer, DocumentOptions);
         if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
-            throw new Exception("Expected a JSON object at the root of the message.");
+            throw new JsonException("Expected a JSON object at the root of the message.");
         }
 
         JsonRpcMessage returnValue;
         if (document.RootElement.TryGetProperty(Utf8Strings.method, out JsonElement methodElement))
         {
-            JsonRpcRequest request = new()
+            JsonRpcRequest request = new(this)
             {
                 RequestId = ReadRequestId(),
                 Method = methodElement.GetString(),
@@ -79,7 +68,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         }
         else if (document.RootElement.TryGetProperty(Utf8Strings.result, out JsonElement resultElement))
         {
-            JsonRpcResult result = new()
+            JsonRpcResult result = new(this)
             {
                 RequestId = ReadRequestId(),
                 JsonResult = resultElement,
@@ -102,12 +91,12 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         }
         else
         {
-            throw new Exception("Expected a request, result, or error message.");
+            throw new JsonException("Expected a request, result, or error message.");
         }
 
         if (document.RootElement.TryGetProperty(Utf8Strings.jsonrpc, out JsonElement jsonRpcElement))
         {
-            returnValue.Version = jsonRpcElement.ValueEquals(Utf8Strings.v2_0) ? "2.0" : (jsonRpcElement.GetString() ?? throw new Exception("Unexpected null value for jsonrpc property."));
+            returnValue.Version = jsonRpcElement.ValueEquals(Utf8Strings.v2_0) ? "2.0" : (jsonRpcElement.GetString() ?? throw new JsonException("Unexpected null value for jsonrpc property."));
         }
         else
         {
@@ -124,7 +113,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
                     JsonValueKind.Number => new RequestId(idElement.GetInt64()),
                     JsonValueKind.String => new RequestId(idElement.GetString()),
                     JsonValueKind.Null => new RequestId(null),
-                    _ => throw new Exception("Unexpected value kind for id property: " + idElement.ValueKind),
+                    _ => throw new JsonException("Unexpected value kind for id property: " + idElement.ValueKind),
                 };
             }
             else
@@ -254,15 +243,9 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
         void WriteUserData(object? value)
         {
-            JsonSerializer.Serialize(writer, value, UserDataSerializerOptions);
+            JsonSerializer.Serialize(writer, value, this.JsonSerializerOptions);
         }
     }
-
-    ////[JsonSerializable(typeof(JsonRpcMessage))]
-    ////[JsonSerializable(typeof(JsonRpcRequest))]
-    ////private partial class SourceGenerated : JsonSerializerContext
-    ////{
-    ////}
 
     private static class Utf8Strings
     {
@@ -291,6 +274,13 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
     private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
     {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal JsonRpcRequest(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter;
+        }
+
         internal JsonElement? JsonArguments { get; set; }
 
         public void DeserializationComplete(JsonRpcMessage message)
@@ -326,17 +316,24 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
                     break;
                 default:
-                    throw new Exception("Unexpected value kind for arguments: " + this.JsonArguments?.ValueKind ?? "null");
+                    throw new JsonException("Unexpected value kind for arguments: " + this.JsonArguments?.ValueKind ?? "null");
             }
 
-            value = valueElement?.Deserialize(typeHint ?? typeof(object));
+            value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.JsonSerializerOptions);
             return valueElement.HasValue;
         }
     }
 
     private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager
     {
+        private readonly SystemTextJsonFormatter formatter;
+
         private Exception? resultDeserializationException;
+
+        internal JsonRpcResult(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter;
+        }
 
         internal JsonElement? JsonResult { get; set; }
 
@@ -357,7 +354,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
             return this.JsonResult is null
                 ? (T)this.Result!
-                : this.JsonResult.Value.Deserialize<T>()!;
+                : this.JsonResult.Value.Deserialize<T>(this.formatter.JsonSerializerOptions)!;
         }
 
         protected internal override void SetExpectedResultType(Type resultType)
@@ -366,7 +363,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
             try
             {
-                this.Result = this.JsonResult.Value.Deserialize(resultType);
+                this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.JsonSerializerOptions);
                 this.JsonResult = default;
             }
             catch (Exception ex)
