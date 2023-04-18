@@ -1,4 +1,0 @@
-StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute
-StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, System.Type! optionalInterface) -> void
-StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterface.get -> System.Type!
-StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode.get -> int
