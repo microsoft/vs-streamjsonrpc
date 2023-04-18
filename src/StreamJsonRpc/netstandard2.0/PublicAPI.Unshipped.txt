@@ -1,0 +1,8 @@
+StreamJsonRpc.SystemTextJsonFormatter
+StreamJsonRpc.SystemTextJsonFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
+StreamJsonRpc.SystemTextJsonFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer, System.Text.Encoding! encoding) -> StreamJsonRpc.Protocol.JsonRpcMessage!
+StreamJsonRpc.SystemTextJsonFormatter.Encoding.get -> System.Text.Encoding!
+StreamJsonRpc.SystemTextJsonFormatter.Encoding.set -> void
+StreamJsonRpc.SystemTextJsonFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
+StreamJsonRpc.SystemTextJsonFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.SystemTextJsonFormatter.SystemTextJsonFormatter() -> void

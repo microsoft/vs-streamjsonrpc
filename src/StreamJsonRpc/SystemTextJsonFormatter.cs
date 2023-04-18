@@ -2,13 +2,17 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using StreamJsonRpc.Protocol;
+using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
 
+/// <summary>
+/// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
+/// </summary>
 public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
@@ -34,10 +38,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
     }
 
     /// <inheritdoc/>
-    public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
-    {
-        throw new NotImplementedException();
-    }
+    public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
 
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
@@ -72,6 +73,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             {
                 RequestId = ReadRequestId(),
                 Method = methodElement.GetString(),
+                JsonArguments = document.RootElement.TryGetProperty(Utf8Strings.@params, out JsonElement paramsElement) ? paramsElement : null,
             };
             returnValue = request;
         }
@@ -80,7 +82,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             JsonRpcResult result = new()
             {
                 RequestId = ReadRequestId(),
-                Result = null, // TODO
+                JsonResult = resultElement,
             };
             returnValue = result;
         }
@@ -134,11 +136,13 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         return returnValue;
     }
 
+    /// <inheritdoc/>
     public object GetJsonText(JsonRpcMessage message)
     {
         throw new NotImplementedException();
     }
 
+    /// <inheritdoc/>
     public void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
     {
         using Utf8JsonWriter writer = new(bufferWriter, WriterOptions);
@@ -146,13 +150,13 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
         WriteVersion();
         switch (message)
         {
-            case JsonRpcRequest request:
+            case Protocol.JsonRpcRequest request:
                 WriteId(request.RequestId);
                 writer.WriteString(Utf8Strings.method, request.Method);
                 WriteArguments(request);
                 writer.WriteEndObject();
                 break;
-            case JsonRpcResult result:
+            case Protocol.JsonRpcResult result:
                 WriteId(result.RequestId);
                 WriteResult(result);
                 writer.WriteEndObject();
@@ -198,7 +202,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             }
         }
 
-        void WriteArguments(JsonRpcRequest request)
+        void WriteArguments(Protocol.JsonRpcRequest request)
         {
             if (request.ArgumentsList is not null)
             {
@@ -223,7 +227,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             }
         }
 
-        void WriteResult(JsonRpcResult result)
+        void WriteResult(Protocol.JsonRpcResult result)
         {
             writer.WritePropertyName(Utf8Strings.result);
             WriteUserData(result.Result);
@@ -283,5 +287,93 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
         internal static ReadOnlySpan<byte> data => "data"u8;
 #pragma warning restore SA1300 // Element should begin with upper-case letter
+    }
+
+    private class JsonRpcRequest : Protocol.JsonRpcRequest, IJsonRpcMessageBufferManager
+    {
+        internal JsonElement? JsonArguments { get; set; }
+
+        public void DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+
+            // Clear references to buffers that we are no longer entitled to.
+            this.JsonArguments = null;
+        }
+
+        public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
+        {
+            JsonElement? valueElement = null;
+            switch (this.JsonArguments?.ValueKind)
+            {
+                case JsonValueKind.Object when name is not null:
+                    if (this.JsonArguments.Value.TryGetProperty(name, out JsonElement propertyValue))
+                    {
+                        valueElement = propertyValue;
+                    }
+
+                    break;
+                case JsonValueKind.Array:
+                    int elementIndex = 0;
+                    foreach (JsonElement arrayElement in this.JsonArguments.Value.EnumerateArray())
+                    {
+                        if (elementIndex++ == position)
+                        {
+                            valueElement = arrayElement;
+                            break;
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new Exception("Unexpected value kind for arguments: " + this.JsonArguments?.ValueKind ?? "null");
+            }
+
+            value = valueElement?.Deserialize(typeHint ?? typeof(object));
+            return valueElement.HasValue;
+        }
+    }
+
+    private class JsonRpcResult : Protocol.JsonRpcResult, IJsonRpcMessageBufferManager
+    {
+        private Exception? resultDeserializationException;
+
+        internal JsonElement? JsonResult { get; set; }
+
+        public void DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+
+            // Clear references to buffers that we are no longer entitled to.
+            this.JsonResult = null;
+        }
+
+        public override T GetResult<T>()
+        {
+            if (this.resultDeserializationException is not null)
+            {
+                ExceptionDispatchInfo.Capture(this.resultDeserializationException).Throw();
+            }
+
+            return this.JsonResult is null
+                ? (T)this.Result!
+                : this.JsonResult.Value.Deserialize<T>()!;
+        }
+
+        protected internal override void SetExpectedResultType(Type resultType)
+        {
+            Verify.Operation(this.JsonResult is not null, "Result is no longer available or has already been deserialized.");
+
+            try
+            {
+                this.Result = this.JsonResult.Value.Deserialize(resultType);
+                this.JsonResult = default;
+            }
+            catch (Exception ex)
+            {
+                // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
+                this.resultDeserializationException = ex;
+            }
+        }
     }
 }
