@@ -45,6 +45,32 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     }
 
     [Fact]
+    public async Task CanInvokeServerMethodWithParameterPassedAsObject()
+    {
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
+        Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
+    }
+
+    [Fact]
+    public async Task CanInvokeServerMethodWithParameterPassedAsArray()
+    {
+        string result1 = await this.clientRpc.InvokeAsync<string>(nameof(Server.TestParameter), "test");
+        Assert.Equal("object test", result1);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_AndCancel()
+    {
+        using (var cts = new CancellationTokenSource())
+        {
+            var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithJTokenAndCancellation), new[] { "a" }, cts.Token);
+            await Task.WhenAny(invokeTask, this.server.ServerMethodReached.WaitAsync(this.TimeoutToken));
+            cts.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        }
+    }
+
+    [Fact]
     public async Task InvokeWithParameterObjectAsync_AndCancel()
     {
         using (var cts = new CancellationTokenSource())

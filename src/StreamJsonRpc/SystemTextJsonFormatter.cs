@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -17,14 +18,33 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
 
-    private static readonly JsonReaderOptions ReaderOptions = new() { };
-
     private static readonly JsonDocumentOptions DocumentOptions = new() { };
+
+    /// <summary>
+    /// The <see cref="JsonSerializerOptions"/> to use for the envelope and built-in types.
+    /// </summary>
+    private static readonly JsonSerializerOptions BuiltInSerializerOptions = new()
+    {
+        Converters =
+        {
+            RequestIdJsonConverter.Instance,
+        },
+    };
 
     /// <summary>
     /// UTF-8 encoding without a preamble.
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+    private JsonSerializerOptions massagedUserDataSerializerOptions;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SystemTextJsonFormatter"/> class.
+    /// </summary>
+    public SystemTextJsonFormatter()
+    {
+        this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new());
+    }
 
     /// <inheritdoc/>
     public Encoding Encoding
@@ -34,9 +54,12 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
     }
 
     /// <summary>
-    /// Gets or sets the options to use when serializing and deserializing JSON containing user data.
+    /// Sets the options to use when serializing and deserializing JSON containing user data.
     /// </summary>
-    public JsonSerializerOptions JsonSerializerOptions { get; set; } = new();
+    public JsonSerializerOptions JsonSerializerOptions
+    {
+        set => this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new(value));
+    }
 
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer) => this.Deserialize(contentBuffer, this.Encoding);
@@ -107,20 +130,9 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
         RequestId ReadRequestId()
         {
-            if (document.RootElement.TryGetProperty(Utf8Strings.id, out JsonElement idElement))
-            {
-                return idElement.ValueKind switch
-                {
-                    JsonValueKind.Number => new RequestId(idElement.GetInt64()),
-                    JsonValueKind.String => new RequestId(idElement.GetString()),
-                    JsonValueKind.Null => new RequestId(null),
-                    _ => throw new JsonException("Unexpected value kind for id property: " + idElement.ValueKind),
-                };
-            }
-            else
-            {
-                return RequestId.NotSpecified;
-            }
+            return document.RootElement.TryGetProperty(Utf8Strings.id, out JsonElement idElement)
+                ? idElement.Deserialize<RequestId>(BuiltInSerializerOptions)
+                : RequestId.NotSpecified;
         }
 
         return returnValue;
@@ -176,19 +188,12 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             }
         }
 
-        void WriteId(RequestId requestId)
+        void WriteId(RequestId id)
         {
-            if (requestId.Number is long idNumber)
+            if (!id.IsEmpty)
             {
-                writer.WriteNumber(Utf8Strings.id, idNumber);
-            }
-            else if (requestId.String is string idString)
-            {
-                writer.WriteString(Utf8Strings.id, idString);
-            }
-            else
-            {
-                writer.WriteNull(Utf8Strings.id);
+                writer.WritePropertyName(Utf8Strings.id);
+                RequestIdJsonConverter.Instance.Write(writer, id, BuiltInSerializerOptions);
             }
         }
 
@@ -244,8 +249,14 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
         void WriteUserData(object? value)
         {
-            JsonSerializer.Serialize(writer, value, this.JsonSerializerOptions);
+            JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
         }
+    }
+
+    private JsonSerializerOptions MassageUserDataSerializerOptions(JsonSerializerOptions options)
+    {
+        options.Converters.Add(RequestIdJsonConverter.Instance);
+        return options;
     }
 
     private static class Utf8Strings
@@ -277,19 +288,36 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
     {
         private readonly SystemTextJsonFormatter formatter;
 
+        private int argumentCount;
+
+        private JsonElement? jsonArguments;
+
         internal JsonRpcRequest(SystemTextJsonFormatter formatter)
         {
             this.formatter = formatter;
         }
 
-        internal JsonElement? JsonArguments { get; set; }
+        public override int ArgumentCount => this.argumentCount;
+
+        internal JsonElement? JsonArguments
+        {
+            get => this.jsonArguments;
+            init
+            {
+                this.jsonArguments = value;
+                if (value.HasValue)
+                {
+                    this.argumentCount = CountArguments(value.Value);
+                }
+            }
+        }
 
         public void DeserializationComplete(JsonRpcMessage message)
         {
             Assumes.True(message == this);
 
             // Clear references to buffers that we are no longer entitled to.
-            this.JsonArguments = null;
+            this.jsonArguments = null;
         }
 
         public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
@@ -320,8 +348,42 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
                     throw new JsonException("Unexpected value kind for arguments: " + this.JsonArguments?.ValueKind ?? "null");
             }
 
-            value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.JsonSerializerOptions);
+            try
+            {
+                value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions);
+            }
+            catch (JsonException ex)
+            {
+                throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
+            }
+
             return valueElement.HasValue;
+        }
+
+        private static int CountArguments(JsonElement arguments)
+        {
+            int count = 0;
+            switch (arguments.ValueKind)
+            {
+                case JsonValueKind.Array:
+                    foreach (JsonElement element in arguments.EnumerateArray())
+                    {
+                        count++;
+                    }
+
+                    break;
+                case JsonValueKind.Object:
+                    foreach (JsonProperty property in arguments.EnumerateObject())
+                    {
+                        count++;
+                    }
+
+                    break;
+                default:
+                    throw new InvalidOperationException("Unexpected value kind: " + arguments.ValueKind);
+            }
+
+            return count;
         }
     }
 
@@ -355,7 +417,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
             return this.JsonResult is null
                 ? (T)this.Result!
-                : this.JsonResult.Value.Deserialize<T>(this.formatter.JsonSerializerOptions)!;
+                : this.JsonResult.Value.Deserialize<T>(this.formatter.massagedUserDataSerializerOptions)!;
         }
 
         protected internal override void SetExpectedResultType(Type resultType)
@@ -364,7 +426,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
             try
             {
-                this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.JsonSerializerOptions);
+                this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions);
                 this.JsonResult = default;
             }
             catch (Exception ex)
@@ -415,14 +477,14 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
                 try
                 {
-                    return this.JsonData.Value.Deserialize(dataType, this.formatter.JsonSerializerOptions);
+                    return this.JsonData.Value.Deserialize(dataType, this.formatter.massagedUserDataSerializerOptions);
                 }
                 catch (JsonException)
                 {
                     // Deserialization failed. Try returning array/dictionary based primitive objects.
                     try
                     {
-                        return this.JsonData.Value.Deserialize<object>(this.formatter.JsonSerializerOptions);
+                        return this.JsonData.Value.Deserialize<object>(this.formatter.massagedUserDataSerializerOptions);
                     }
                     catch (JsonException)
                     {
@@ -433,13 +495,43 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
             protected internal override void SetExpectedDataType(Type dataType)
             {
-                Verify.Operation(this.JsonData is not null, "Data is no longer available or has already been deserialized.");
-
                 this.Data = this.GetData(dataType);
 
                 // Clear the source now that we've deserialized to prevent GetData from attempting
                 // deserialization later when the buffer may be recycled on another thread.
                 this.JsonData = default;
+            }
+        }
+    }
+
+    private class RequestIdJsonConverter : JsonConverter<RequestId>
+    {
+        internal static readonly RequestIdJsonConverter Instance = new();
+
+        public override RequestId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType switch
+            {
+                JsonTokenType.Number => new RequestId(reader.GetInt64()),
+                JsonTokenType.String => new RequestId(reader.GetString()),
+                JsonTokenType.Null => RequestId.Null,
+                _ => throw new JsonException("Unexpected token type for id property: " + reader.TokenType),
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, RequestId value, JsonSerializerOptions options)
+        {
+            if (value.Number is long idNumber)
+            {
+                writer.WriteNumberValue(idNumber);
+            }
+            else if (value.String is string idString)
+            {
+                writer.WriteStringValue(idString);
+            }
+            else
+            {
+                writer.WriteNullValue();
             }
         }
     }
