@@ -1,5 +1,0 @@
-StreamJsonRpc.JsonRpcIgnoreAttribute
-StreamJsonRpc.JsonRpcIgnoreAttribute.JsonRpcIgnoreAttribute() -> void
-StreamJsonRpc.RpcMarshalableAttribute
-StreamJsonRpc.RpcMarshalableAttribute.RpcMarshalableAttribute() -> void
-

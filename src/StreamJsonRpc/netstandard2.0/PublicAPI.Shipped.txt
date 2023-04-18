@@ -585,3 +585,7 @@ StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments.set -> void
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc! rpc, object! token, System.Type! valueType, bool clientRequiresNamedArguments) -> object!
 StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc! rpc, object! token, bool clientRequiresNamedArguments) -> System.IProgress<T>!
 virtual StreamJsonRpc.JsonRpc.SendAsync(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+StreamJsonRpc.JsonRpcIgnoreAttribute
+StreamJsonRpc.JsonRpcIgnoreAttribute.JsonRpcIgnoreAttribute() -> void
+StreamJsonRpc.RpcMarshalableAttribute
+StreamJsonRpc.RpcMarshalableAttribute.RpcMarshalableAttribute() -> void
