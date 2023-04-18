@@ -1,24 +1,4 @@
-abstract StreamJsonRpc.ExceptionSettings.CanDeserialize(System.Type! type) -> bool
-static readonly StreamJsonRpc.ExceptionSettings.TrustedData -> StreamJsonRpc.ExceptionSettings!
-static readonly StreamJsonRpc.ExceptionSettings.UntrustedData -> StreamJsonRpc.ExceptionSettings!
-StreamJsonRpc.ExceptionSettings
-StreamJsonRpc.ExceptionSettings.ExceptionSettings(int recursionLimit) -> void
-StreamJsonRpc.ExceptionSettings.RecursionLimit.get -> int
-StreamJsonRpc.ExceptionSettings.RecursionLimit.init -> void
-StreamJsonRpc.JsonRpc.ExceptionOptions.get -> StreamJsonRpc.ExceptionSettings!
-StreamJsonRpc.JsonRpc.ExceptionOptions.set -> void
-StreamJsonRpc.JsonRpcIgnoreAttribute
-StreamJsonRpc.JsonRpcIgnoreAttribute.JsonRpcIgnoreAttribute() -> void
-StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments.get -> bool
-StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments.set -> void
-StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments.get -> bool
-StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments.set -> void
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress(StreamJsonRpc.JsonRpc! rpc, object! token, System.Type! valueType, bool clientRequiresNamedArguments) -> object!
-StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CreateProgress<T>(StreamJsonRpc.JsonRpc! rpc, object! token, bool clientRequiresNamedArguments) -> System.IProgress<T>!
-StreamJsonRpc.RpcMarshalableAttribute
-StreamJsonRpc.RpcMarshalableAttribute.RpcMarshalableAttribute() -> void
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, System.Type! optionalInterface) -> void
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterface.get -> System.Type!
 StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute.OptionalInterfaceCode.get -> int
-virtual StreamJsonRpc.JsonRpc.SendAsync(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
