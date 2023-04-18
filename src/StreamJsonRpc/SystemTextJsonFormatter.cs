@@ -2,10 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -43,7 +47,14 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
     /// </summary>
     public SystemTextJsonFormatter()
     {
-        this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new());
+        this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new()
+        {
+            // Fields are important because anonymous types are emitted with fields, not properties.
+            IncludeFields = true,
+
+            // Provide compatibility with DataContractSerializer attributes by default.
+            TypeInfoResolver = DataContractResolver.OnlyDecoratedTypes,
+        });
     }
 
     /// <inheritdoc/>
@@ -220,6 +231,12 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
                 writer.WriteEndObject();
             }
+            else if (request.Arguments is not null)
+            {
+                // This is a custom named arguments object, so we'll just serialize it as-is.
+                writer.WritePropertyName(Utf8Strings.@params);
+                WriteUserData(request.Arguments);
+            }
         }
 
         void WriteResult(Protocol.JsonRpcResult result)
@@ -322,6 +339,12 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
         public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
+            if (this.JsonArguments is null)
+            {
+                value = null;
+                return false;
+            }
+
             JsonElement? valueElement = null;
             switch (this.JsonArguments?.ValueKind)
             {
@@ -345,7 +368,7 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
 
                     break;
                 default:
-                    throw new JsonException("Unexpected value kind for arguments: " + this.JsonArguments?.ValueKind ?? "null");
+                    throw new JsonException("Unexpected value kind for arguments: " + (this.JsonArguments?.ValueKind.ToString() ?? "null"));
             }
 
             try
@@ -532,6 +555,109 @@ public partial class SystemTextJsonFormatter : IJsonRpcMessageFormatter, IJsonRp
             else
             {
                 writer.WriteNullValue();
+            }
+        }
+    }
+
+    private class DataContractResolver : IJsonTypeInfoResolver
+    {
+        internal static readonly DataContractResolver OnlyDecoratedTypes = new(onlyRecognizeDecoratedTypes: true);
+
+        private readonly Dictionary<Type, JsonTypeInfo?> typeInfoCache = new();
+
+        private readonly bool onlyRecognizeDecoratedTypes;
+
+        private readonly DefaultJsonTypeInfoResolver fallbackResolver = new();
+
+        private DataContractResolver(bool onlyRecognizeDecoratedTypes)
+        {
+            this.onlyRecognizeDecoratedTypes = onlyRecognizeDecoratedTypes;
+        }
+
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            if (!this.typeInfoCache.TryGetValue(type, out JsonTypeInfo? typeInfo))
+            {
+                DataContractAttribute? dataContractAttribute = type.GetCustomAttribute<DataContractAttribute>();
+                if (dataContractAttribute is not null || !this.onlyRecognizeDecoratedTypes)
+                {
+                    typeInfo = JsonTypeInfo.CreateJsonTypeInfo(type, options);
+
+                    typeInfo.CreateObject = () => FormatterServices.GetUninitializedObject(type);
+                    PopulateMembersInfos(type, typeInfo, dataContractAttribute);
+                }
+                else
+                {
+                    typeInfo = this.fallbackResolver.GetTypeInfo(type, options);
+                }
+
+                this.typeInfoCache.Add(type, typeInfo);
+            }
+
+            return typeInfo;
+        }
+
+        private static void PopulateMembersInfos(Type type, JsonTypeInfo jsonTypeInfo, DataContractAttribute? dataContractAttribute)
+        {
+            BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance;
+
+            // When the type is decorated with DataContractAttribute, we can consider non-public members.
+            if (dataContractAttribute is not null)
+            {
+                bindingFlags |= BindingFlags.NonPublic;
+            }
+
+            foreach (PropertyInfo propertyInfo in type.GetProperties(bindingFlags))
+            {
+                if (TryCreateJsonPropertyInfo(propertyInfo, propertyInfo.PropertyType, out JsonPropertyInfo? jsonPropertyInfo))
+                {
+                    if (propertyInfo.CanRead)
+                    {
+                        jsonPropertyInfo.Get = propertyInfo.GetValue;
+                    }
+
+                    if (propertyInfo.CanWrite)
+                    {
+                        jsonPropertyInfo.Set = propertyInfo.SetValue;
+                    }
+                }
+            }
+
+            foreach (FieldInfo fieldInfo in type.GetFields(bindingFlags))
+            {
+                if (TryCreateJsonPropertyInfo(fieldInfo, fieldInfo.FieldType, out JsonPropertyInfo? jsonPropertyInfo))
+                {
+                    jsonPropertyInfo.Get = fieldInfo.GetValue;
+                    if (!fieldInfo.IsInitOnly)
+                    {
+                        jsonPropertyInfo.Set = fieldInfo.SetValue;
+                    }
+                }
+            }
+
+            bool TryCreateJsonPropertyInfo(MemberInfo memberInfo, Type propertyType, [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
+            {
+                DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
+                if (dataContractAttribute is null || dataMemberAttribute is not null)
+                {
+                    jsonPropertyInfo = jsonTypeInfo.CreateJsonPropertyInfo(propertyType, dataMemberAttribute?.Name ?? memberInfo.Name);
+                    if (dataMemberAttribute is not null)
+                    {
+                        jsonPropertyInfo.Order = dataMemberAttribute.Order;
+                        jsonPropertyInfo.IsRequired = dataMemberAttribute.IsRequired;
+                        if (!dataMemberAttribute.EmitDefaultValue)
+                        {
+                            object? defaultValue = propertyType.IsValueType ? FormatterServices.GetUninitializedObject(propertyType) : null;
+                            jsonPropertyInfo.ShouldSerialize = (_, value) => !object.Equals(defaultValue, value);
+                        }
+                    }
+
+                    jsonTypeInfo.Properties.Add(jsonPropertyInfo);
+                    return true;
+                }
+
+                jsonPropertyInfo = null;
+                return false;
             }
         }
     }
