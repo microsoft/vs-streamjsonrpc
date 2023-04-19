@@ -818,11 +818,11 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             {
                 if (!this.progressFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
                 {
-                    if (typeof(T).IsConstructedGenericType && typeof(T).GetGenericTypeDefinition().Equals(typeof(IProgress<>)))
+                    if (MessageFormatterProgressTracker.CanDeserialize(typeof(T)))
                     {
                         formatter = new PreciseTypeFormatter<T>(this.mainFormatter);
                     }
-                    else if (MessageFormatterProgressTracker.IsSupportedProgressType(typeof(T)))
+                    else if (MessageFormatterProgressTracker.CanSerialize(typeof(T)))
                     {
                         formatter = new ProgressClientFormatter<T>(this.mainFormatter);
                     }
@@ -889,7 +889,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
                 Assumes.NotNull(this.formatter.JsonRpc);
                 RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                bool clientRequiresNamedArgs = this.formatter.DeserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
+                bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.ClientRequiresNamedArguments is true;
                 return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeof(TClass), clientRequiresNamedArgs);
             }
 
@@ -2220,8 +2220,6 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
         internal IReadOnlyList<ReadOnlySequence<byte>>? MsgPackPositionalArguments { get; set; }
 
-        internal JsonRpcMethodAttribute? ApplicableMethodAttribute { get; private set; }
-
         void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
         {
             Assumes.True(message == this);
@@ -2236,24 +2234,16 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
         public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
         {
-            // Consider the attribute applied to the particular overload that we're considering right now.
-            this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.JsonRpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
-            try
+            using (this.formatter.TrackDeserialization(this, parameters))
             {
                 if (parameters.Length == 1 && this.MsgPackNamedArguments is not null)
                 {
-                    Assumes.NotNull(this.Method);
-
-                    if (this.ApplicableMethodAttribute?.UseSingleObjectParameterDeserialization ?? false)
+                    if (this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization ?? false)
                     {
                         var reader = new MessagePackReader(this.MsgPackArguments);
                         try
                         {
-                            using (this.formatter.TrackDeserialization(this))
-                            {
-                                typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
-                            }
-
+                            typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
                             return ArgumentMatchResult.Success;
                         }
                         catch (MessagePackSerializationException)
@@ -2264,11 +2254,6 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 }
 
                 return base.TryGetTypedArguments(parameters, typedArguments);
-            }
-            finally
-            {
-                // Clear this, because we might choose another overload with a different attribute, and we don't want to 'leak' an attribute that isn't on the overload that is ultimately picked.
-                this.ApplicableMethodAttribute = null;
             }
         }
 

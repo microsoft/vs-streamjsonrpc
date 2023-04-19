@@ -1,7 +1,10 @@
+static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CanDeserialize(System.Type! objectType) -> bool
+static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CanSerialize(System.Type! objectType) -> bool
 StreamJsonRpc.FormatterBase
+StreamJsonRpc.FormatterBase.ApplicableMethodAttributeOnDeserializingMethod.get -> StreamJsonRpc.JsonRpcMethodAttribute?
 StreamJsonRpc.FormatterBase.DeserializationTracking
 StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking() -> void
-StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message, System.ReadOnlySpan<System.Reflection.ParameterInfo!> parameters) -> void
 StreamJsonRpc.FormatterBase.DeserializationTracking.Dispose() -> void
 StreamJsonRpc.FormatterBase.DeserializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.FormatterBase.Dispose() -> void
@@ -18,7 +21,7 @@ StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking() -> voi
 StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
 StreamJsonRpc.FormatterBase.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.FormatterBase.SerializingRequest.get -> bool
-StreamJsonRpc.FormatterBase.TrackDeserialization(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> StreamJsonRpc.FormatterBase.DeserializationTracking
+StreamJsonRpc.FormatterBase.TrackDeserialization(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.ReadOnlySpan<System.Reflection.ParameterInfo!> parameters = default(System.ReadOnlySpan<System.Reflection.ParameterInfo!>)) -> StreamJsonRpc.FormatterBase.DeserializationTracking
 StreamJsonRpc.FormatterBase.TrackSerialization(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> StreamJsonRpc.FormatterBase.SerializationTracking
 StreamJsonRpc.SystemTextJsonFormatter
 StreamJsonRpc.SystemTextJsonFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!

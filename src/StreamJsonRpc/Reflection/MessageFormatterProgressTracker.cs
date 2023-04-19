@@ -77,7 +77,22 @@ public class MessageFormatterProgressTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool IsSupportedProgressType(Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
+    [Obsolete($"Use {nameof(CanSerialize)} instead.")]
+    public static bool IsSupportedProgressType(Type objectType) => CanSerialize(objectType);
+
+    /// <summary>
+    /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
+    /// </summary>
+    /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
+    /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
+    public static bool CanSerialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
+
+    /// <summary>
+    /// Checks if a given <see cref="Type"/> is a closed generic of <see cref="IProgress{T}"/>.
+    /// </summary>
+    /// <param name="objectType">The type which may be <see cref="IProgress{T}"/>.</param>
+    /// <returns>true if given <see cref="Type"/> is <see cref="IProgress{T}"/>; otherwise, false.</returns>
+    public static bool CanDeserialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanDeserialize(objectType);
 
     /// <summary>
     /// Gets a <see cref="long"/> type token to use as replacement of an <see cref="object"/> implementing <see cref="IProgress{T}"/> in the JSON message.

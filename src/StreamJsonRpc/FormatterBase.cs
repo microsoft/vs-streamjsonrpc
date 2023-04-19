@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Reflection;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
@@ -135,6 +136,11 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     }
 
     /// <summary>
+    /// Gets the <see cref="JsonRpcMethodAttribute"/> that is present on the method that may be invoked to serve the incoming request, when applicable.
+    /// </summary>
+    protected JsonRpcMethodAttribute? ApplicableMethodAttributeOnDeserializingMethod { get; private set; }
+
+    /// <summary>
     /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
     /// </summary>
     private protected MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
@@ -173,9 +179,9 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <summary>
     /// Sets up state to track deserialization of a message.
     /// </summary>
-    /// <param name="message">The object being deserialized.</param>
     /// <returns>A value to dispose of when deserialization has completed.</returns>
-    protected DeserializationTracking TrackDeserialization(JsonRpcMessage message) => new(this, message);
+    /// <inheritdoc cref="DeserializationTracking(FormatterBase, JsonRpcMessage, ReadOnlySpan{ParameterInfo})" />
+    protected DeserializationTracking TrackDeserialization(JsonRpcMessage message, ReadOnlySpan<ParameterInfo> parameters = default) => new(this, message, parameters);
 
     /// <summary>
     /// Sets up state to track serialization of a message.
@@ -189,7 +195,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         switch (message)
         {
             case JsonRpcRequest request:
-                // If method is $/progress, get the progress instance from the dictionary and call Report
+                // If method is $/progress, get the progress instance from the dictionary and call Report.
                 if (this.JsonRpc is not null && string.Equals(request.Method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
                 {
                     try
@@ -221,21 +227,28 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// </summary>
     public struct DeserializationTracking : IDisposable
     {
-        private readonly FormatterBase formatter;
+        private readonly FormatterBase? formatter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeserializationTracking"/> struct.
         /// </summary>
         /// <param name="formatter">The formatter.</param>
         /// <param name="message">The message being deserialized.</param>
-        public DeserializationTracking(FormatterBase formatter, JsonRpcMessage message)
+        /// <param name="parameters">The signature of the method that will be invoked for the incoming request, if applicable.</param>
+        public DeserializationTracking(FormatterBase formatter, JsonRpcMessage message, ReadOnlySpan<ParameterInfo> parameters)
         {
             // Deserialization of messages should never occur concurrently for a single instance of a formatter.
-            Assumes.True(formatter.DeserializingMessageWithId.IsEmpty);
+            // But we may be nested in another, in which case, this should do nothing.
+            if (formatter.DeserializingMessageWithId.IsEmpty)
+            {
+                formatter.DeserializingMessage = message;
+                formatter.DeserializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
 
-            this.formatter = formatter;
-            this.formatter.DeserializingMessage = message;
-            this.formatter.DeserializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
+                // Consider the attribute applied to the particular overload that we're considering right now.
+                formatter.ApplicableMethodAttributeOnDeserializingMethod = message is JsonRpcRequest { Method: not null } request ? formatter.JsonRpc?.GetJsonRpcMethodAttribute(request.Method, parameters) : null;
+
+                this.formatter = formatter;
+            }
         }
 
         /// <summary>
@@ -243,8 +256,12 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// </summary>
         public void Dispose()
         {
-            this.formatter.DeserializingMessageWithId = default;
-            this.formatter.DeserializingMessage = null;
+            if (this.formatter is not null)
+            {
+                this.formatter.DeserializingMessageWithId = default;
+                this.formatter.DeserializingMessage = null;
+                this.formatter.ApplicableMethodAttributeOnDeserializingMethod = null;
+            }
         }
     }
 

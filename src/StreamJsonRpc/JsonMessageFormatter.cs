@@ -605,9 +605,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
             null;
 
-        // If method is $/progress, get the progress instance from the dictionary and call Report
-        string? method = json.Value<string>("method");
-
         JsonRpcRequest request = new(this)
         {
             RequestId = id,
@@ -774,13 +771,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         [IgnoreDataMember]
         public TopLevelPropertyBag? TopLevelPropertyBag { get; set; }
 
-        internal JsonRpcMethodAttribute? ApplicableMethodAttribute { get; private set; }
-
         public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
         {
-            // Consider the attribute applied to the particular overload that we're considering right now.
-            this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.JsonRpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
-            try
+            using (this.formatter.TrackDeserialization(this, parameters))
             {
                 if (parameters.Length == 1 && this.NamedArguments is not null)
                 {
@@ -800,7 +793,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                     // Support for opt-in to deserializing all named arguments into a single parameter.
                     if (this.Method is not null)
                     {
-                        if (this.ApplicableMethodAttribute?.UseSingleObjectParameterDeserialization ?? false)
+                        if (this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization ?? false)
                         {
                             var obj = new JObject();
                             foreach (KeyValuePair<string, object?> property in this.NamedArguments)
@@ -808,10 +801,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                                 obj.Add(new JProperty(property.Key, property.Value));
                             }
 
-                            using (this.formatter.TrackDeserialization(this))
-                            {
-                                typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
-                            }
+                            typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
 
                             return ArgumentMatchResult.Success;
                         }
@@ -819,11 +809,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                 }
 
                 return base.TryGetTypedArguments(parameters, typedArguments);
-            }
-            finally
-            {
-                // Clear this, because we might choose another overload with a different attribute, and we don't want to 'leak' an attribute that isn't on the overload that is ultimately picked.
-                this.ApplicableMethodAttribute = null;
             }
         }
 
@@ -1034,7 +1019,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
         }
 
-        public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.IsSupportedProgressType(objectType);
+        public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.CanSerialize(objectType);
 
         public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
@@ -1060,10 +1045,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType.IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(IProgress<>));
-        }
+        public override bool CanConvert(Type objectType) => MessageFormatterProgressTracker.CanDeserialize(objectType);
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
@@ -1074,7 +1056,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
             Assumes.NotNull(this.formatter.JsonRpc);
             JToken token = JToken.Load(reader);
-            bool clientRequiresNamedArgs = this.formatter.DeserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
+            bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.ClientRequiresNamedArguments is true;
             return this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, objectType, clientRequiresNamedArgs);
         }
 
