@@ -1,3 +1,25 @@
+StreamJsonRpc.FormatterBase
+StreamJsonRpc.FormatterBase.DeserializationTracking
+StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking() -> void
+StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.FormatterBase.DeserializationTracking.Dispose() -> void
+StreamJsonRpc.FormatterBase.DeserializingMessageWithId.get -> StreamJsonRpc.RequestId
+StreamJsonRpc.FormatterBase.Dispose() -> void
+StreamJsonRpc.FormatterBase.DuplexPipeTracker.get -> StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker!
+StreamJsonRpc.FormatterBase.EnumerableTracker.get -> StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker!
+StreamJsonRpc.FormatterBase.FormatterBase() -> void
+StreamJsonRpc.FormatterBase.FormatterProgressTracker.get -> StreamJsonRpc.Reflection.MessageFormatterProgressTracker!
+StreamJsonRpc.FormatterBase.JsonRpc.get -> StreamJsonRpc.JsonRpc?
+StreamJsonRpc.FormatterBase.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream?
+StreamJsonRpc.FormatterBase.MultiplexingStream.set -> void
+StreamJsonRpc.FormatterBase.SerializationTracking
+StreamJsonRpc.FormatterBase.SerializationTracking.Dispose() -> void
+StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking() -> void
+StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.FormatterBase.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
+StreamJsonRpc.FormatterBase.SerializingRequest.get -> bool
+StreamJsonRpc.FormatterBase.TrackDeserialization(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> StreamJsonRpc.FormatterBase.DeserializationTracking
+StreamJsonRpc.FormatterBase.TrackSerialization(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> StreamJsonRpc.FormatterBase.SerializationTracking
 StreamJsonRpc.SystemTextJsonFormatter
 StreamJsonRpc.SystemTextJsonFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
 StreamJsonRpc.SystemTextJsonFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer, System.Text.Encoding! encoding) -> StreamJsonRpc.Protocol.JsonRpcMessage!
@@ -7,3 +29,4 @@ StreamJsonRpc.SystemTextJsonFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpc
 StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions.set -> void
 StreamJsonRpc.SystemTextJsonFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
 StreamJsonRpc.SystemTextJsonFormatter.SystemTextJsonFormatter() -> void
+virtual StreamJsonRpc.FormatterBase.Dispose(bool disposing) -> void

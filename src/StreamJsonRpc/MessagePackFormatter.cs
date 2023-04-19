@@ -27,7 +27,7 @@ namespace StreamJsonRpc;
 /// The README on that project site describes use cases and its performance compared to alternative
 /// .NET MessagePack implementations and this one appears to be the best by far.
 /// </remarks>
-public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory, IDisposable
+public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
     /// <summary>
     /// The constant "jsonrpc", in its various forms.
@@ -112,59 +112,9 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
     private readonly ToStringHelper deserializationToStringHelper = new ToStringHelper();
 
     /// <summary>
-    /// Backing field for the <see cref="MultiplexingStream"/> property.
-    /// </summary>
-    private MultiplexingStream? multiplexingStream;
-
-    /// <summary>
-    /// The <see cref="MessageFormatterProgressTracker"/> we use to support <see cref="IProgress{T}"/> method arguments.
-    /// </summary>
-    private MessageFormatterProgressTracker? formatterProgressTracker;
-
-    /// <summary>
-    /// The helper for marshaling pipes as RPC method arguments.
-    /// </summary>
-    private MessageFormatterDuplexPipeTracker? duplexPipeTracker;
-
-    /// <summary>
-    /// The tracker we use to support transmission of <see cref="IAsyncEnumerable{T}"/> types.
-    /// </summary>
-    private MessageFormatterEnumerableTracker? enumerableTracker;
-
-    /// <summary>
-    /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
-    /// </summary>
-    private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
-
-    /// <summary>
-    /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingMessageWithId"/> property.
-    /// </summary>
-    private RequestId serializingMessageWithId;
-
-    /// <summary>
-    /// Backing field for the <see cref="IJsonRpcFormatterState.DeserializingMessageWithId"/> property.
-    /// </summary>
-    private RequestId deserializingMessageWithId;
-
-    /// <summary>
-    /// The message whose arguments are being deserialized.
-    /// </summary>
-    private JsonRpcMessage? deserializingMessage;
-
-    /// <summary>
-    /// Backing field for the <see cref="IJsonRpcFormatterState.SerializingRequest"/> property.
-    /// </summary>
-    private bool serializingRequest;
-
-    /// <summary>
     /// The options to use for serializing user data (e.g. arguments, return values and errors).
     /// </summary>
     private MessagePackSerializerOptions userDataSerializationOptions;
-
-    /// <summary>
-    /// Backing field for the <see cref="IJsonRpcInstanceContainer.Rpc"/> property.
-    /// </summary>
-    private JsonRpc? rpc;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
@@ -213,93 +163,11 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
     public static MessagePackSerializerOptions DefaultUserDataSerializationOptions { get; } = StandardResolverAllowPrivate.Options
         .WithSecurity(MessagePackSecurity.UntrustedData);
 
-    /// <inheritdoc/>
-    JsonRpc IJsonRpcInstanceContainer.Rpc
+    /// <inheritdoc cref="FormatterBase.MultiplexingStream"/>
+    public new MultiplexingStream? MultiplexingStream
     {
-        set
-        {
-            Verify.Operation(this.rpc is null, "This formatter already belongs to another JsonRpc instance. Create a new instance of this formatter for each new JsonRpc instance.");
-
-            this.rpc = value;
-
-            if (value is not null)
-            {
-                this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
-                this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.multiplexingStream };
-                this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this);
-                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets the <see cref="MultiplexingStream"/> that may be used to establish out of band communication (e.g. marshal <see cref="IDuplexPipe"/> arguments).
-    /// </summary>
-    public MultiplexingStream? MultiplexingStream
-    {
-        get => this.multiplexingStream;
-        set
-        {
-            Verify.Operation(this.rpc is null, Resources.FormatterConfigurationLockedAfterJsonRpcAssigned);
-            this.multiplexingStream = value;
-        }
-    }
-
-    /// <inheritdoc/>
-    RequestId IJsonRpcFormatterState.SerializingMessageWithId => this.serializingMessageWithId;
-
-    /// <inheritdoc/>
-    RequestId IJsonRpcFormatterState.DeserializingMessageWithId => this.deserializingMessageWithId;
-
-    /// <inheritdoc/>
-    bool IJsonRpcFormatterState.SerializingRequest => this.serializingRequest;
-
-    /// <summary>
-    /// Gets the <see cref="MessageFormatterProgressTracker"/> instance containing useful methods to help on the implementation of message formatters.
-    /// </summary>
-    private MessageFormatterProgressTracker FormatterProgressTracker
-    {
-        get
-        {
-            Assumes.NotNull(this.formatterProgressTracker); // This should have been set in the Rpc property setter.
-            return this.formatterProgressTracker;
-        }
-    }
-
-    /// <summary>
-    /// Gets the helper for marshaling pipes as RPC method arguments.
-    /// </summary>
-    private MessageFormatterDuplexPipeTracker DuplexPipeTracker
-    {
-        get
-        {
-            Assumes.NotNull(this.duplexPipeTracker); // This should have been set in the Rpc property setter.
-            return this.duplexPipeTracker;
-        }
-    }
-
-    /// <summary>
-    /// Gets the helper for marshaling <see cref="IAsyncEnumerable{T}"/> in RPC method arguments or return values.
-    /// </summary>
-    private MessageFormatterEnumerableTracker EnumerableTracker
-    {
-        get
-        {
-            Assumes.NotNull(this.enumerableTracker); // This should have been set in the Rpc property setter.
-            return this.enumerableTracker;
-        }
-    }
-
-    /// <summary>
-    /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
-    /// </summary>
-    private MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
-    {
-        get
-        {
-            Assumes.NotNull(this.rpcMarshaledContextTracker); // This should have been set in the Rpc property setter.
-            return this.rpcMarshaledContextTracker;
-        }
+        get => base.MultiplexingStream;
+        set => base.MultiplexingStream = value;
     }
 
     /// <summary>
@@ -320,7 +188,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
     {
         JsonRpcMessage message = MessagePackSerializer.Deserialize<JsonRpcMessage>(contentBuffer, this.messageSerializationOptions);
 
-        IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+        IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
         this.deserializationToStringHelper.Activate(contentBuffer, this.messageSerializationOptions);
         try
         {
@@ -374,7 +242,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
 
     void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
     {
-        IJsonRpcTracingCallbacks? tracingCallbacks = this.rpc;
+        IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
         this.serializationToStringHelper.Activate(encodedMessage, this.messageSerializationOptions);
         try
         {
@@ -384,22 +252,6 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         {
             this.serializationToStringHelper.Deactivate();
         }
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        this.Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Disposes managed and native resources held by this instance.
-    /// </summary>
-    /// <param name="disposing"><see langword="true"/> if being disposed; <see langword="false"/> if being finalized.</param>
-    protected virtual void Dispose(bool disposing)
-    {
-        this.duplexPipeTracker?.Dispose();
     }
 
     /// <summary>
@@ -1035,10 +887,10 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                     return default!;
                 }
 
-                Assumes.NotNull(this.formatter.rpc);
+                Assumes.NotNull(this.formatter.JsonRpc);
                 RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
-                bool clientRequiresNamedArgs = this.formatter.deserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
-                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.rpc, token, typeof(TClass), clientRequiresNamedArgs);
+                bool clientRequiresNamedArgs = this.formatter.DeserializingMessage is JsonRpcRequest { ApplicableMethodAttribute: { ClientRequiresNamedArguments: true } };
+                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeof(TClass), clientRequiresNamedArgs);
             }
 
             public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
@@ -1548,7 +1400,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             [return: MaybeNull]
             public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
             {
-                Assumes.NotNull(this.formatter.rpc);
+                Assumes.NotNull(this.formatter.JsonRpc);
                 if (reader.TryReadNil())
                 {
                     return null;
@@ -1559,7 +1411,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 exceptionRecursionCounter.Value++;
                 try
                 {
-                    if (exceptionRecursionCounter.Value > this.formatter.rpc.ExceptionOptions.RecursionLimit)
+                    if (exceptionRecursionCounter.Value > this.formatter.JsonRpc.ExceptionOptions.RecursionLimit)
                     {
                         // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
                         // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
@@ -1588,7 +1440,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.rpc, info, resolverWrapper?.Formatter.rpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
                 }
                 finally
                 {
@@ -1607,7 +1459,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 exceptionRecursionCounter.Value++;
                 try
                 {
-                    if (exceptionRecursionCounter.Value > this.formatter.rpc?.ExceptionOptions.RecursionLimit)
+                    if (exceptionRecursionCounter.Value > this.formatter.JsonRpc?.ExceptionOptions.RecursionLimit)
                     {
                         // Exception recursion has gone too deep. Skip this value and write null as if there were no inner exception.
                         writer.WriteNil();
@@ -1675,13 +1527,11 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         {
             Requires.NotNull(value, nameof(value));
 
-            this.formatter.serializingMessageWithId = value is IJsonRpcMessageWithId msgWithId ? msgWithId.RequestId : default;
-            try
+            using (this.formatter.TrackSerialization(value))
             {
                 switch (value)
                 {
                     case Protocol.JsonRpcRequest request:
-                        this.formatter.serializingRequest = true;
                         options.Resolver.GetFormatterWithVerify<Protocol.JsonRpcRequest>().Serialize(ref writer, request, options);
                         break;
                     case Protocol.JsonRpcResult result:
@@ -1693,11 +1543,6 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                     default:
                         throw new NotSupportedException("Unexpected JsonRpcMessage-derived type: " + value.GetType().Name);
                 }
-            }
-            finally
-            {
-                this.formatter.serializingMessageWithId = default;
-                this.formatter.serializingRequest = false;
             }
         }
     }
@@ -1820,7 +1665,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                 catch (Exception ex)
 #pragma warning restore CA1031 // Do not catch general exception types
                 {
-                    this.formatter.rpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
+                    this.formatter.JsonRpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
                 }
             }
 
@@ -2415,7 +2260,7 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
         public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
         {
             // Consider the attribute applied to the particular overload that we're considering right now.
-            this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.rpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
+            this.ApplicableMethodAttribute = this.Method is not null ? this.formatter.JsonRpc?.GetJsonRpcMethodAttribute(this.Method, parameters) : null;
             try
             {
                 if (parameters.Length == 1 && this.MsgPackNamedArguments is not null)
@@ -2427,21 +2272,16 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
                         var reader = new MessagePackReader(this.MsgPackArguments);
                         try
                         {
-                            // Deserialization of messages should never occur concurrently for a single instance of a formatter.
-                            Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
-                            this.formatter.deserializingMessageWithId = this.RequestId;
-                            this.formatter.deserializingMessage = this;
-                            typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
+                            using (this.formatter.TrackDeserialization(this))
+                            {
+                                typedArguments[0] = MessagePackSerializer.Deserialize(parameters[0].ParameterType, ref reader, this.formatter.userDataSerializationOptions);
+                            }
+
                             return ArgumentMatchResult.Success;
                         }
                         catch (MessagePackSerializationException)
                         {
                             return ArgumentMatchResult.ParameterArgumentTypeMismatch;
-                        }
-                        finally
-                        {
-                            this.formatter.deserializingMessageWithId = default;
-                            this.formatter.deserializingMessage = null;
                         }
                     }
                 }
@@ -2477,28 +2317,22 @@ public class MessagePackFormatter : IJsonRpcMessageFormatter, IJsonRpcInstanceCo
             }
 
             var reader = new MessagePackReader(msgpackArgument);
-            try
+            using (this.formatter.TrackDeserialization(this))
             {
-                // Deserialization of messages should never occur concurrently for a single instance of a formatter.
-                Assumes.True(this.formatter.deserializingMessageWithId.IsEmpty);
-                this.formatter.deserializingMessageWithId = this.RequestId;
-                this.formatter.deserializingMessage = this;
-                value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
-                return true;
-            }
-            catch (MessagePackSerializationException ex)
-            {
-                if (this.formatter.rpc?.TraceSource.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
+                try
                 {
-                    this.formatter.rpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
+                    value = MessagePackSerializer.Deserialize(typeHint ?? typeof(object), ref reader, this.formatter.userDataSerializationOptions);
+                    return true;
                 }
+                catch (MessagePackSerializationException ex)
+                {
+                    if (this.formatter.JsonRpc?.TraceSource.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
+                    {
+                        this.formatter.JsonRpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
+                    }
 
-                throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
-            }
-            finally
-            {
-                this.formatter.deserializingMessageWithId = default;
-                this.formatter.deserializingMessage = null;
+                    throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
+                }
             }
         }
 
