@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using System.IO.Pipelines;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
@@ -182,6 +183,38 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <param name="message">The message being serialized.</param>
     /// <returns>A value to dispose of when serialization has completed.</returns>
     protected SerializationTracking TrackSerialization(JsonRpcMessage message) => new(this, message);
+
+    private protected void TryHandleSpecialIncomingMessage(JsonRpcMessage message)
+    {
+        switch (message)
+        {
+            case JsonRpcRequest request:
+                // If method is $/progress, get the progress instance from the dictionary and call Report
+                if (this.JsonRpc is not null && string.Equals(request.Method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        if (request.TryGetArgumentByNameOrIndex("token", 0, typeof(long), out object? tokenObject) && tokenObject is long progressId)
+                        {
+                            MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
+                            if (this.FormatterProgressTracker.TryGetProgressObject(progressId, out progressInfo))
+                            {
+                                if (request.TryGetArgumentByNameOrIndex("value", 1, progressInfo.ValueType, out object? value))
+                                {
+                                    progressInfo.InvokeReport(value);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        this.JsonRpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
+                    }
+                }
+
+                break;
+        }
+    }
 
     /// <summary>
     /// Tracks deserialization of a message.

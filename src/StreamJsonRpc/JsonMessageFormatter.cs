@@ -608,36 +608,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         // If method is $/progress, get the progress instance from the dictionary and call Report
         string? method = json.Value<string>("method");
 
-        if (this.JsonRpc is not null && string.Equals(method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
-        {
-            try
-            {
-                JToken? progressId =
-                    args is JObject ? args["token"] :
-                    args is JArray ? args[0] :
-                    null;
-
-                JToken? value =
-                    args is JObject ? args["value"] :
-                    args is JArray ? args[1] :
-                    null;
-
-                MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
-                if (progressId is object && this.FormatterProgressTracker.TryGetProgressObject(progressId.Value<long>(), out progressInfo))
-                {
-                    object? typedValue = value?.ToObject(progressInfo.ValueType, this.JsonSerializer);
-                    progressInfo.InvokeReport(typedValue);
-                }
-            }
-#pragma warning disable CA1031 // Do not catch general exception types
-            catch (Exception e)
-#pragma warning restore CA1031 // Do not catch general exception types
-            {
-                this.JsonRpc.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, e);
-            }
-        }
-
-        return new JsonRpcRequest(this)
+        JsonRpcRequest request = new(this)
         {
             RequestId = id,
             Method = json.Value<string>("method"),
@@ -646,6 +617,10 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             TraceState = json.Value<string>("tracestate"),
             TopLevelPropertyBag = new TopLevelPropertyBag(this.JsonSerializer, (JObject)json),
         };
+
+        this.TryHandleSpecialIncomingMessage(request);
+
+        return request;
     }
 
     private JsonRpcResult ReadResult(JToken json)

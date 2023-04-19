@@ -1644,30 +1644,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 result.TopLevelPropertyBag = new TopLevelPropertyBag(this.formatter.userDataSerializationOptions, topLevelProperties);
             }
 
-            // If method is $/progress, get the progress instance from the dictionary and call Report
-            if (string.Equals(result.Method, MessageFormatterProgressTracker.ProgressRequestSpecialMethod, StringComparison.Ordinal))
-            {
-                try
-                {
-                    if (result.TryGetArgumentByNameOrIndex("token", 0, typeof(long), out object? tokenObject) && tokenObject is long progressId)
-                    {
-                        MessageFormatterProgressTracker.ProgressParamInformation? progressInfo = null;
-                        if (this.formatter.FormatterProgressTracker.TryGetProgressObject(progressId, out progressInfo))
-                        {
-                            if (result.TryGetArgumentByNameOrIndex("value", 1, progressInfo.ValueType, out object? value))
-                            {
-                                progressInfo.InvokeReport(value);
-                            }
-                        }
-                    }
-                }
-#pragma warning disable CA1031 // Do not catch general exception types
-                catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
-                {
-                    this.formatter.JsonRpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ProgressNotificationError, ex);
-                }
-            }
+            this.formatter.TryHandleSpecialIncomingMessage(result);
 
             reader.Depth--;
             return result;
