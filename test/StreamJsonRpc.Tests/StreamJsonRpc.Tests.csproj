@@ -23,6 +23,9 @@
     <Compile Update="WebSocketMessageHandlerMessagePackTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
     <Compile Update="MarshalableProxyJsonTests.cs" DependentUpon="MarshalableProxyTests.cs" />
     <Compile Update="MarshalableProxyMessagePackTests.cs" DependentUpon="MarshalableProxyTests.cs" />
+    <Compile Update="SystemTextJsonFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
+    <Compile Update="MessagePackFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
+    <Compile Update="JsonMessageFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
