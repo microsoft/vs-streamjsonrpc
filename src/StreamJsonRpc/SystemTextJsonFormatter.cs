@@ -349,6 +349,22 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.jsonArguments = null;
         }
 
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
+        {
+            using (this.formatter.TrackDeserialization(this, parameters))
+            {
+                // Support for opt-in to deserializing all named arguments into a single parameter.
+                if (parameters.Length == 1 && this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true)
+                {
+                    Assumes.NotNull(this.JsonArguments);
+                    typedArguments[0] = this.JsonArguments.Value.Deserialize(parameters[0].ParameterType, this.formatter.massagedUserDataSerializerOptions);
+                    return ArgumentMatchResult.Success;
+                }
+
+                return base.TryGetTypedArguments(parameters, typedArguments);
+            }
+        }
+
         public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
         {
             if (this.JsonArguments is null)

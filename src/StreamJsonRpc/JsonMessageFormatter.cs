@@ -791,20 +791,17 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                     }
 
                     // Support for opt-in to deserializing all named arguments into a single parameter.
-                    if (this.Method is not null)
+                    if (this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true)
                     {
-                        if (this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization ?? false)
+                        var obj = new JObject();
+                        foreach (KeyValuePair<string, object?> property in this.NamedArguments)
                         {
-                            var obj = new JObject();
-                            foreach (KeyValuePair<string, object?> property in this.NamedArguments)
-                            {
-                                obj.Add(new JProperty(property.Key, property.Value));
-                            }
-
-                            typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
-
-                            return ArgumentMatchResult.Success;
+                            obj.Add(new JProperty(property.Key, property.Value));
                         }
+
+                        typedArguments[0] = obj.ToObject(parameters[0].ParameterType, this.formatter.JsonSerializer);
+
+                        return ArgumentMatchResult.Success;
                     }
                 }
 
