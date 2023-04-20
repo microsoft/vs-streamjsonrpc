@@ -843,7 +843,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty<T>(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
@@ -898,7 +898,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty<T>(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
@@ -931,7 +931,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty<T>(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty<T>(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)

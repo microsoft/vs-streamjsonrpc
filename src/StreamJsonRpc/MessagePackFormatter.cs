@@ -2304,7 +2304,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
@@ -2362,7 +2362,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             Requires.Argument(!Constants.Result.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
@@ -2425,7 +2425,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             Requires.Argument(!Constants.Error.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
 
             value = default;
-            return this.TopLevelPropertyBag is not null && this.TopLevelPropertyBag.TryGetTopLevelProperty(name, out value);
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
         }
 
         public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
