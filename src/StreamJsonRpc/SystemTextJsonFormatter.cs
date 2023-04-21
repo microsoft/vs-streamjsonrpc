@@ -2,12 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using StreamJsonRpc.Protocol;
@@ -65,10 +68,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     /// <summary>
-    /// Sets the options to use when serializing and deserializing JSON containing user data.
+    /// Gets or sets the options to use when serializing and deserializing JSON containing user data.
     /// </summary>
     public JsonSerializerOptions JsonSerializerOptions
     {
+        get => this.massagedUserDataSerializerOptions;
         set => this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new(value));
     }
 
@@ -83,6 +87,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             throw new NotSupportedException("Only our default encoding is supported.");
         }
 
+        // TODO: dispose of the document when we're done with it. This means each JsonRpcMessage will need to dispose of it in ReleaseBuffers since they capture pieces of it.
         JsonDocument document = JsonDocument.Parse(contentBuffer, DocumentOptions);
         if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
@@ -298,6 +303,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         // Add support for exotic types.
         options.Converters.Add(new ProgressConverterFactory(this));
 
+        // Add support for serializing exceptions.
+        options.Converters.Add(new ExceptionConverter(this));
+
         return options;
     }
 
@@ -470,7 +478,19 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 using (this.formatter.TrackDeserialization(this))
                 {
-                    value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions);
+                    try
+                    {
+                        value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (this.formatter.JsonRpc?.TraceSource.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
+                        {
+                            this.formatter.JsonRpc.TraceSource.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.MethodArgumentDeserializationFailure, Resources.FailureDeserializingRpcArgument, name, position, typeHint, ex);
+                        }
+
+                        throw new RpcArgumentDeserializationException(name, position, typeHint, ex);
+                    }
                 }
             }
             catch (JsonException ex)
@@ -553,7 +573,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             catch (Exception ex)
             {
                 // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
-                this.resultDeserializationException = ex;
+                this.resultDeserializationException = new JsonException(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingRpcResult, resultType.Name, ex.GetType().Name, ex.Message), ex);
             }
         }
 
@@ -723,6 +743,204 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value!);
                 writer.WriteNumberValue(progressId);
             }
+        }
+    }
+
+    private class ExceptionConverter : JsonConverter<Exception?>
+    {
+        /// <summary>
+        /// Tracks recursion count while serializing or deserializing an exception.
+        /// </summary>
+        private static ThreadLocal<int> exceptionRecursionCounter = new();
+
+        private readonly SystemTextJsonFormatter formatter;
+
+        public ExceptionConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter;
+        }
+
+        public override bool CanConvert(Type typeToConvert) => typeof(Exception).IsAssignableFrom(typeToConvert);
+
+        public override Exception? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            Assumes.NotNull(this.formatter.JsonRpc);
+            if (reader.TokenType == JsonTokenType.Null)
+            {
+                return null;
+            }
+
+            exceptionRecursionCounter.Value++;
+            try
+            {
+                if (reader.TokenType != JsonTokenType.StartObject)
+                {
+                    throw new InvalidOperationException("Expected a StartObject token.");
+                }
+
+                if (exceptionRecursionCounter.Value > this.formatter.JsonRpc.ExceptionOptions.RecursionLimit)
+                {
+                    // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
+                    // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
+                    reader.Skip();
+                    return null;
+                }
+
+                JsonNode? jsonNode = JsonNode.Parse(ref reader) ?? throw new JsonException("Unexpected null");
+                SerializationInfo? info = new SerializationInfo(typeToConvert, new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions));
+                foreach (KeyValuePair<string, JsonNode?> property in jsonNode.AsObject())
+                {
+                    info.AddSafeValue(property.Key, property.Value);
+                }
+
+                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.JsonRpc, info, this.formatter.JsonRpc?.TraceSource);
+            }
+            finally
+            {
+                exceptionRecursionCounter.Value--;
+            }
+        }
+
+        public override void Write(Utf8JsonWriter writer, Exception? value, JsonSerializerOptions options)
+        {
+            if (value is null)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
+            // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
+            // Each exception in the russian doll is a new serialization job from its perspective.
+            exceptionRecursionCounter.Value++;
+            try
+            {
+                if (exceptionRecursionCounter.Value > this.formatter.JsonRpc?.ExceptionOptions.RecursionLimit)
+                {
+                    // Exception recursion has gone too deep. Skip this value and write null as if there were no inner exception.
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions));
+                ExceptionSerializationHelpers.Serialize(value, info);
+                writer.WriteStartObject();
+                foreach (SerializationEntry element in info.GetSafeMembers())
+                {
+                    writer.WritePropertyName(element.Name);
+                    JsonSerializer.Serialize(writer, element.Value, options);
+                }
+
+                writer.WriteEndObject();
+            }
+            catch (Exception ex)
+            {
+                throw new JsonException(ex.Message, ex);
+            }
+            finally
+            {
+                exceptionRecursionCounter.Value--;
+            }
+        }
+    }
+
+    private class JsonConverterFormatter : IFormatterConverter
+    {
+        private readonly JsonSerializerOptions serializerOptions;
+
+        internal JsonConverterFormatter(JsonSerializerOptions serializerOptions)
+        {
+            this.serializerOptions = serializerOptions;
+        }
+
+        public object? Convert(object value, Type type)
+        {
+            var jsonValue = (JsonNode?)value;
+            if (jsonValue is null)
+            {
+                return null;
+            }
+
+            if (type == typeof(System.Collections.IDictionary))
+            {
+                return DeserializePrimitive(jsonValue);
+            }
+
+            return jsonValue.Deserialize(type, this.serializerOptions)!;
+        }
+
+        public object Convert(object value, TypeCode typeCode)
+        {
+            return typeCode switch
+            {
+                TypeCode.Object => ((JsonNode)value).Deserialize(typeof(object), this.serializerOptions)!,
+                _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
+            };
+        }
+
+        public bool ToBoolean(object value) => ((JsonNode)value).GetValue<bool>();
+
+        public byte ToByte(object value) => ((JsonNode)value).GetValue<byte>();
+
+        public char ToChar(object value) => ((JsonNode)value).GetValue<char>();
+
+        public DateTime ToDateTime(object value) => ((JsonNode)value).GetValue<DateTime>();
+
+        public decimal ToDecimal(object value) => ((JsonNode)value).GetValue<decimal>();
+
+        public double ToDouble(object value) => ((JsonNode)value).GetValue<double>();
+
+        public short ToInt16(object value) => ((JsonNode)value).GetValue<short>();
+
+        public int ToInt32(object value) => ((JsonNode)value).GetValue<int>();
+
+        public long ToInt64(object value) => ((JsonNode)value).GetValue<long>();
+
+        public sbyte ToSByte(object value) => ((JsonNode)value).GetValue<sbyte>();
+
+        public float ToSingle(object value) => ((JsonNode)value).GetValue<float>();
+
+        public string? ToString(object value) => ((JsonNode)value).GetValue<string>();
+
+        public ushort ToUInt16(object value) => ((JsonNode)value).GetValue<ushort>();
+
+        public uint ToUInt32(object value) => ((JsonNode)value).GetValue<uint>();
+
+        public ulong ToUInt64(object value) => ((JsonNode)value).GetValue<ulong>();
+
+        private static object? DeserializePrimitive(JsonNode? node)
+        {
+            return node switch
+            {
+                JsonObject o => DeserializeObjectAsDictionary(o),
+                JsonValue v => DeserializePrimitive(v.GetValue<JsonElement>()),
+                JsonArray a => a.Select(DeserializePrimitive).ToArray(),
+                null => null,
+                _ => throw new NotSupportedException("Unrecognized node type: " + node.GetType().Name),
+            };
+        }
+
+        private static Dictionary<string, object?> DeserializeObjectAsDictionary(JsonNode jsonNode)
+        {
+            Dictionary<string, object?> dictionary = new();
+            foreach (KeyValuePair<string, JsonNode?> property in jsonNode.AsObject())
+            {
+                dictionary.Add(property.Key, DeserializePrimitive(property.Value));
+            }
+
+            return dictionary;
+        }
+
+        private static object? DeserializePrimitive(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt32(out int intValue) ? intValue : element.GetInt64(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null => null,
+                _ => throw new NotSupportedException(),
+            };
         }
     }
 

@@ -1,15 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Runtime.Serialization;
-using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
 {
@@ -18,13 +12,40 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
     {
     }
 
+    protected override Type FormatterExceptionType => typeof(JsonException);
+
+    [Fact]
+    public override async Task CanPassExceptionFromServer_ErrorData()
+    {
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
+        Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
+
+        var errorData = Assert.IsType<CommonErrorData>(exception.ErrorData);
+        Assert.NotNull(errorData.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
+    }
+
     protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
     {
         this.clientMessageFormatter = new SystemTextJsonFormatter
         {
+            JsonSerializerOptions =
+            {
+                Converters =
+                {
+                    new TypeThrowsWhenDeserializedConverter(),
+                },
+            },
         };
         this.serverMessageFormatter = new SystemTextJsonFormatter
         {
+            JsonSerializerOptions =
+            {
+                Converters =
+                {
+                    new TypeThrowsWhenDeserializedConverter(),
+                },
+            },
         };
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
@@ -52,21 +73,17 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         }
     }
 
-    private class StringBase64Converter : JsonConverter
+    private class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
     {
-        public override bool CanConvert(Type objectType) => objectType == typeof(string);
-
-        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        public override TypeThrowsWhenDeserialized? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            string decoded = Encoding.UTF8.GetString(Convert.FromBase64String((string)reader.Value!));
-            return decoded;
+            throw CreateExceptionToBeThrownByDeserializer();
         }
 
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        public override void Write(Utf8JsonWriter writer, TypeThrowsWhenDeserialized value, JsonSerializerOptions options)
         {
-            var stringValue = (string?)value;
-            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue!));
-            writer.WriteValue(encoded);
+            writer.WriteStartObject();
+            writer.WriteEndObject();
         }
     }
 }

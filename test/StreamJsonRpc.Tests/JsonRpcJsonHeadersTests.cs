@@ -1,15 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcJsonHeadersTests : JsonRpcTests
 {
@@ -17,6 +11,8 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         : base(logger)
     {
     }
+
+    protected override Type FormatterExceptionType => typeof(JsonSerializationException);
 
     [Fact]
     public async Task CustomJsonConvertersAreNotAppliedToBaseMessage()

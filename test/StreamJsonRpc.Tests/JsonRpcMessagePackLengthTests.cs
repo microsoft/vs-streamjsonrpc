@@ -6,10 +6,6 @@ using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcMessagePackLengthTests : JsonRpcTests
 {
@@ -32,6 +28,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         Task<bool> IsExtensionArgNonNull(CustomExtensionType extensionValue);
     }
+
+    protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);
 
     [Fact]
     public override async Task CanPassAndCallPrivateMethodsObjects()

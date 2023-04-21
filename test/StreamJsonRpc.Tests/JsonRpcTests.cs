@@ -13,10 +13,6 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class JsonRpcTests : TestBase
 {
@@ -100,6 +96,8 @@ public abstract class JsonRpcTests : TestBase
     }
 
     protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } };
+
+    protected abstract Type FormatterExceptionType { get; }
 
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
@@ -1386,7 +1384,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task NotifyAsync_LeavesTraceEvidenceOnFailure()
     {
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("DoesNotMatter", new TypeThrowsWhenSerialized()));
-        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
+        Assert.IsAssignableFrom(this.FormatterExceptionType, exception);
 
         // Verify that the trace explains what went wrong with the original exception message.
         while (!this.clientTraces.Messages.Any(m => m.Contains("Can't touch this")))
@@ -2196,7 +2194,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task ReturnTypeThrowsOnDeserialization()
     {
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
-        Assert.True(ex is JsonSerializationException || ex is MessagePackSerializationException, $"Exception type was {ex.GetType().Name}");
+        Assert.IsAssignableFrom(this.FormatterExceptionType, ex);
     }
 
     [Fact]
@@ -2560,7 +2558,7 @@ public abstract class JsonRpcTests : TestBase
         // Synthesize an exception message that refers to an exception type that does not exist.
         var exceptionToSend = new NonSerializableException(Server.ExceptionMessage);
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken));
-        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
+        Assert.IsAssignableFrom(this.FormatterExceptionType, exception);
     }
 
     [Fact]
