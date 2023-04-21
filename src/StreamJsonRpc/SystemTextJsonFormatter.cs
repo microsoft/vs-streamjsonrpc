@@ -392,7 +392,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     {
         private readonly SystemTextJsonFormatter formatter;
 
-        private int argumentCount;
+        private int? argumentCount;
 
         private JsonElement? jsonArguments;
 
@@ -401,7 +401,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter = formatter;
         }
 
-        public override int ArgumentCount => this.argumentCount;
+        public override int ArgumentCount => this.argumentCount ?? base.ArgumentCount;
 
         internal JsonElement? JsonArguments
         {
