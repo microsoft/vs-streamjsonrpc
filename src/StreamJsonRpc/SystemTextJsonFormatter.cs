@@ -102,6 +102,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 RequestId = ReadRequestId(),
                 Method = methodElement.GetString(),
                 JsonArguments = document.RootElement.TryGetProperty(Utf8Strings.@params, out JsonElement paramsElement) ? paramsElement : null,
+                TraceParent = document.RootElement.TryGetProperty(Utf8Strings.traceparent, out JsonElement traceParentElement) ? traceParentElement.GetString() : null,
+                TraceState = document.RootElement.TryGetProperty(Utf8Strings.tracestate, out JsonElement traceStateElement) ? traceStateElement.GetString() : null,
             };
             message = request;
         }
@@ -183,6 +185,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                         WriteId(request.RequestId);
                         writer.WriteString(Utf8Strings.method, request.Method);
                         WriteArguments(request);
+                        if (request.TraceParent is not null)
+                        {
+                            writer.WriteString(Utf8Strings.traceparent, request.TraceParent);
+                        }
+
+                        if (request.TraceState is not null)
+                        {
+                            writer.WriteString(Utf8Strings.tracestate, request.TraceState);
+                        }
+
                         break;
                     case Protocol.JsonRpcResult result:
                         WriteId(result.RequestId);
@@ -328,6 +340,10 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         internal static ReadOnlySpan<byte> method => "method"u8;
 
         internal static ReadOnlySpan<byte> @params => "params"u8;
+
+        internal static ReadOnlySpan<byte> traceparent => "traceparent"u8;
+
+        internal static ReadOnlySpan<byte> tracestate => "tracestate"u8;
 
         internal static ReadOnlySpan<byte> result => "result"u8;
 
