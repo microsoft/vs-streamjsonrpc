@@ -2,8 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Reflection;
+using System.Runtime.Serialization;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
@@ -48,6 +50,11 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// </summary>
     public FormatterBase()
     {
+    }
+
+    protected interface IMessageWithTopLevelPropertyBag
+    {
+        TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
     }
 
     /// <inheritdoc  />
@@ -291,6 +298,150 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         {
             this.formatter.SerializingMessageWithId = default;
             this.formatter.SerializingRequest = false;
+        }
+    }
+
+    protected abstract class TopLevelPropertyBagBase
+    {
+        private readonly bool isOutbound;
+        private Dictionary<string, (Type, object?)>? outboundProperties;
+
+        public TopLevelPropertyBagBase(bool isOutbound)
+        {
+            this.isOutbound = isOutbound;
+        }
+
+        protected Dictionary<string, (Type, object?)> OutboundProperties
+        {
+            get
+            {
+                if (!this.isOutbound)
+                {
+                    Verify.FailOperation(Resources.OutboundMessageOnly);
+                }
+
+                return this.outboundProperties ??= new Dictionary<string, (Type, object?)>(StringComparer.Ordinal);
+            }
+        }
+
+        internal static void ValidatePropertyName(string name)
+        {
+            Requires.NotNullOrEmpty(name, nameof(name));
+            Requires.Argument(!Constants.Request.IsPropertyReserved(name), nameof(name), Resources.ReservedPropertyName);
+        }
+
+        internal void SetTopLevelProperty<T>(string name, [MaybeNull] T value)
+        {
+            if (this.OutboundProperties is null)
+            {
+                throw new InvalidOperationException(Resources.OutboundMessageOnly);
+            }
+
+            this.OutboundProperties[name] = (typeof(T), value);
+        }
+
+        protected internal abstract bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value);
+    }
+
+    protected abstract class JsonRpcRequestBase : JsonRpcRequest, IJsonRpcMessageBufferManager, IMessageWithTopLevelPropertyBag
+    {
+        [Newtonsoft.Json.JsonIgnore]
+        [IgnoreDataMember]
+        public TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
+
+        void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+            this.ReleaseBuffers();
+        }
+
+        public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            this.TopLevelPropertyBag ??= this.CreateTopLevelPropertyBag();
+            this.TopLevelPropertyBag?.SetTopLevelProperty(name, value);
+            return this.TopLevelPropertyBag is not null;
+        }
+
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            value = default;
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
+        }
+
+        protected abstract TopLevelPropertyBagBase? CreateTopLevelPropertyBag();
+
+        protected virtual void ReleaseBuffers()
+        {
+        }
+    }
+
+    protected abstract class JsonRpcErrorBase : JsonRpcError, IJsonRpcMessageBufferManager, IMessageWithTopLevelPropertyBag
+    {
+        [Newtonsoft.Json.JsonIgnore]
+        [IgnoreDataMember]
+        public TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
+
+        void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+            this.ReleaseBuffers();
+        }
+
+        public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            this.TopLevelPropertyBag ??= this.CreateTopLevelPropertyBag();
+            this.TopLevelPropertyBag?.SetTopLevelProperty(name, value);
+            return this.TopLevelPropertyBag is not null;
+        }
+
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            value = default;
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
+        }
+
+        protected abstract TopLevelPropertyBagBase? CreateTopLevelPropertyBag();
+
+        protected virtual void ReleaseBuffers()
+        {
+        }
+    }
+
+    protected abstract class JsonRpcResultBase : JsonRpcResult, IJsonRpcMessageBufferManager, IMessageWithTopLevelPropertyBag
+    {
+        [Newtonsoft.Json.JsonIgnore]
+        [IgnoreDataMember]
+        public TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
+
+        void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
+        {
+            Assumes.True(message == this);
+            this.ReleaseBuffers();
+        }
+
+        public override bool TrySetTopLevelProperty<T>(string name, [MaybeNull] T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            this.TopLevelPropertyBag ??= this.CreateTopLevelPropertyBag();
+            this.TopLevelPropertyBag?.SetTopLevelProperty(name, value);
+            return this.TopLevelPropertyBag is not null;
+        }
+
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            value = default;
+            return this.TopLevelPropertyBag?.TryGetTopLevelProperty(name, out value) is true;
+        }
+
+        protected abstract TopLevelPropertyBagBase? CreateTopLevelPropertyBag();
+
+        protected virtual void ReleaseBuffers()
+        {
         }
     }
 }
