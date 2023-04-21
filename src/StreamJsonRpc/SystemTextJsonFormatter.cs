@@ -172,119 +172,126 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     {
         using (this.TrackSerialization(message))
         {
-            using Utf8JsonWriter writer = new(bufferWriter, WriterOptions);
-            writer.WriteStartObject();
-            WriteVersion();
-            switch (message)
+            try
             {
-                case Protocol.JsonRpcRequest request:
-                    WriteId(request.RequestId);
-                    writer.WriteString(Utf8Strings.method, request.Method);
-                    WriteArguments(request);
-                    break;
-                case Protocol.JsonRpcResult result:
-                    WriteId(result.RequestId);
-                    WriteResult(result);
-                    break;
-                case Protocol.JsonRpcError error:
-                    WriteId(error.RequestId);
-                    WriteError(error);
-                    break;
-                default:
-                    throw new ArgumentException("Unknown message type: " + message.GetType().Name, nameof(message));
-            }
-
-            if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
-            {
-                propertyBag.WriteProperties(writer);
-            }
-
-            writer.WriteEndObject();
-
-            void WriteVersion()
-            {
-                switch (message.Version)
+                using Utf8JsonWriter writer = new(bufferWriter, WriterOptions);
+                writer.WriteStartObject();
+                WriteVersion();
+                switch (message)
                 {
-                    case "1.0":
-                        // The 1.0 protocol didn't include the version property at all.
+                    case Protocol.JsonRpcRequest request:
+                        WriteId(request.RequestId);
+                        writer.WriteString(Utf8Strings.method, request.Method);
+                        WriteArguments(request);
                         break;
-                    case "2.0":
-                        writer.WriteString(Utf8Strings.jsonrpc, Utf8Strings.v2_0);
+                    case Protocol.JsonRpcResult result:
+                        WriteId(result.RequestId);
+                        WriteResult(result);
+                        break;
+                    case Protocol.JsonRpcError error:
+                        WriteId(error.RequestId);
+                        WriteError(error);
                         break;
                     default:
-                        writer.WriteString(Utf8Strings.jsonrpc, message.Version);
-                        break;
+                        throw new ArgumentException("Unknown message type: " + message.GetType().Name, nameof(message));
                 }
-            }
 
-            void WriteId(RequestId id)
-            {
-                if (!id.IsEmpty)
+                if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
                 {
-                    writer.WritePropertyName(Utf8Strings.id);
-                    RequestIdJsonConverter.Instance.Write(writer, id, BuiltInSerializerOptions);
+                    propertyBag.WriteProperties(writer);
                 }
-            }
 
-            void WriteArguments(Protocol.JsonRpcRequest request)
-            {
-                if (request.ArgumentsList is not null)
+                writer.WriteEndObject();
+
+                void WriteVersion()
                 {
-                    writer.WriteStartArray(Utf8Strings.@params);
-                    for (int i = 0; i < request.ArgumentsList.Count; i++)
+                    switch (message.Version)
                     {
-                        WriteUserData(request.ArgumentsList[i]);
+                        case "1.0":
+                            // The 1.0 protocol didn't include the version property at all.
+                            break;
+                        case "2.0":
+                            writer.WriteString(Utf8Strings.jsonrpc, Utf8Strings.v2_0);
+                            break;
+                        default:
+                            writer.WriteString(Utf8Strings.jsonrpc, message.Version);
+                            break;
+                    }
+                }
+
+                void WriteId(RequestId id)
+                {
+                    if (!id.IsEmpty)
+                    {
+                        writer.WritePropertyName(Utf8Strings.id);
+                        RequestIdJsonConverter.Instance.Write(writer, id, BuiltInSerializerOptions);
+                    }
+                }
+
+                void WriteArguments(Protocol.JsonRpcRequest request)
+                {
+                    if (request.ArgumentsList is not null)
+                    {
+                        writer.WriteStartArray(Utf8Strings.@params);
+                        for (int i = 0; i < request.ArgumentsList.Count; i++)
+                        {
+                            WriteUserData(request.ArgumentsList[i]);
+                        }
+
+                        writer.WriteEndArray();
+                    }
+                    else if (request.NamedArguments is not null)
+                    {
+                        writer.WriteStartObject(Utf8Strings.@params);
+                        foreach (KeyValuePair<string, object?> argument in request.NamedArguments)
+                        {
+                            writer.WritePropertyName(argument.Key);
+                            WriteUserData(argument.Value);
+                        }
+
+                        writer.WriteEndObject();
+                    }
+                    else if (request.Arguments is not null)
+                    {
+                        // This is a custom named arguments object, so we'll just serialize it as-is.
+                        writer.WritePropertyName(Utf8Strings.@params);
+                        WriteUserData(request.Arguments);
+                    }
+                }
+
+                void WriteResult(Protocol.JsonRpcResult result)
+                {
+                    writer.WritePropertyName(Utf8Strings.result);
+                    WriteUserData(result.Result);
+                }
+
+                void WriteError(Protocol.JsonRpcError error)
+                {
+                    if (error.Error is null)
+                    {
+                        throw new ArgumentException($"{nameof(error.Error)} property must be set.", nameof(message));
                     }
 
-                    writer.WriteEndArray();
-                }
-                else if (request.NamedArguments is not null)
-                {
-                    writer.WriteStartObject(Utf8Strings.@params);
-                    foreach (KeyValuePair<string, object?> argument in request.NamedArguments)
+                    writer.WriteStartObject(Utf8Strings.error);
+                    writer.WriteNumber(Utf8Strings.code, (int)error.Error.Code);
+                    writer.WriteString(Utf8Strings.message, error.Error.Message);
+                    if (error.Error.Data is not null)
                     {
-                        writer.WritePropertyName(argument.Key);
-                        WriteUserData(argument.Value);
+                        writer.WritePropertyName(Utf8Strings.data);
+                        WriteUserData(error.Error.Data);
                     }
 
                     writer.WriteEndObject();
                 }
-                else if (request.Arguments is not null)
+
+                void WriteUserData(object? value)
                 {
-                    // This is a custom named arguments object, so we'll just serialize it as-is.
-                    writer.WritePropertyName(Utf8Strings.@params);
-                    WriteUserData(request.Arguments);
+                    JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
                 }
             }
-
-            void WriteResult(Protocol.JsonRpcResult result)
+            catch (Exception ex)
             {
-                writer.WritePropertyName(Utf8Strings.result);
-                WriteUserData(result.Result);
-            }
-
-            void WriteError(Protocol.JsonRpcError error)
-            {
-                if (error.Error is null)
-                {
-                    throw new ArgumentException($"{nameof(error.Error)} property must be set.", nameof(message));
-                }
-
-                writer.WriteStartObject(Utf8Strings.error);
-                writer.WriteNumber(Utf8Strings.code, (int)error.Error.Code);
-                writer.WriteString(Utf8Strings.message, error.Error.Message);
-                if (error.Error.Data is not null)
-                {
-                    writer.WritePropertyName(Utf8Strings.data);
-                    WriteUserData(error.Error.Data);
-                }
-
-                writer.WriteEndObject();
-            }
-
-            void WriteUserData(object? value)
-            {
-                JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
+                throw new JsonException(Resources.SerializationFailure, ex);
             }
         }
     }
