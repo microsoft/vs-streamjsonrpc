@@ -4,7 +4,7 @@ using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonRpcRemoteTargetTests : InteropTestBase
+public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 {
     private readonly JsonRpc localRpc;
     private readonly RemoteTargetJsonRpc originRpc;
@@ -22,7 +22,7 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
          * remoteRpc* is the RPC connection from remote to local. */
 
         var streams = FullDuplexStream.CreatePair();
-        this.localRpc = new JsonRpc(streams.Item2);
+        this.localRpc = new JsonRpc(this.CreateHandler(streams.Item2, streams.Item2));
         this.localRpc.AllowModificationWhileListening = true;
         this.localRpc.StartListening();
 
@@ -45,10 +45,10 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
         var remoteTarget2 = JsonRpc.Attach(remoteClientStream2, remoteClientStream2, new LocalRelayTarget());
         remoteTarget2.AllowModificationWhileListening = true;
 
-        this.remoteRpc1 = new JsonRpc(remoteServerStream1, remoteServerStream1, new RemoteTargetOne());
+        this.remoteRpc1 = new JsonRpc(this.CreateHandler(remoteServerStream1, remoteServerStream1), new RemoteTargetOne());
         this.remoteRpc1.StartListening();
 
-        this.remoteRpc2 = new JsonRpc(remoteServerStream2, remoteServerStream2, new RemoteTargetTwo());
+        this.remoteRpc2 = new JsonRpc(this.CreateHandler(remoteServerStream2, remoteServerStream2), new RemoteTargetTwo());
         this.remoteRpc2.StartListening();
 
         this.localRpc.AddLocalRpcTarget(new LocalOriginTarget(this.remoteTarget1));
@@ -243,6 +243,10 @@ public class JsonRpcRemoteTargetTests : InteropTestBase
         Assert.Equal(3, relayDelayCallTask.Result);
         Assert.Equal(2, remoteCallTask.Result);
     }
+
+    protected virtual IJsonRpcMessageHandler CreateHandler(Stream sending, Stream receiving) => new HeaderDelimitedMessageHandler(sending, receiving, this.CreateFormatter());
+
+    protected abstract IJsonRpcMessageFormatter CreateFormatter();
 
     public static class Counter
     {

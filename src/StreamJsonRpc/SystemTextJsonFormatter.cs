@@ -357,10 +357,21 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         internal void WriteProperties(Utf8JsonWriter writer)
         {
-            foreach (KeyValuePair<string, (Type, object?)> property in this.OutboundProperties)
+            if (this.incomingMessage is not null)
             {
-                writer.WritePropertyName(property.Key);
-                JsonSerializer.Serialize(writer, property.Value.Item2, this.jsonSerializerOptions);
+                // We're actually re-transmitting an incoming message (remote target feature).
+                // We need to copy all the properties that were in the original message.
+                // Don't implement this without enabling the tests for the scenario found in JsonRpcRemoteTargetSystemTextJsonFormatterTests.cs.
+                // The tests fail for reasons even without this support, so there's work to do beyond just implementing this.
+                throw new NotImplementedException();
+            }
+            else
+            {
+                foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> property in this.OutboundProperties)
+                {
+                    writer.WritePropertyName(property.Key);
+                    JsonSerializer.Serialize(writer, property.Value.Value, this.jsonSerializerOptions);
+                }
             }
         }
 

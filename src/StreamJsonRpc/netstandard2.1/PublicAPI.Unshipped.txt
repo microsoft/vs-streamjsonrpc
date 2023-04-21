@@ -1,3 +1,13 @@
+abstract StreamJsonRpc.FormatterBase.JsonRpcErrorBase.CreateTopLevelPropertyBag() -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+abstract StreamJsonRpc.FormatterBase.JsonRpcRequestBase.CreateTopLevelPropertyBag() -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+abstract StreamJsonRpc.FormatterBase.JsonRpcResultBase.CreateTopLevelPropertyBag() -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+abstract StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase.TryGetTopLevelProperty<T>(string! name, out T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcErrorBase.TryGetTopLevelProperty<T>(string! name, out T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcErrorBase.TrySetTopLevelProperty<T>(string! name, T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcRequestBase.TryGetTopLevelProperty<T>(string! name, out T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcRequestBase.TrySetTopLevelProperty<T>(string! name, T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcResultBase.TryGetTopLevelProperty<T>(string! name, out T value) -> bool
+override StreamJsonRpc.FormatterBase.JsonRpcResultBase.TrySetTopLevelProperty<T>(string! name, T value) -> bool
 static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CanDeserialize(System.Type! objectType) -> bool
 static StreamJsonRpc.Reflection.MessageFormatterProgressTracker.CanSerialize(System.Type! objectType) -> bool
 StreamJsonRpc.FormatterBase
@@ -12,7 +22,22 @@ StreamJsonRpc.FormatterBase.DuplexPipeTracker.get -> StreamJsonRpc.Reflection.Me
 StreamJsonRpc.FormatterBase.EnumerableTracker.get -> StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker!
 StreamJsonRpc.FormatterBase.FormatterBase() -> void
 StreamJsonRpc.FormatterBase.FormatterProgressTracker.get -> StreamJsonRpc.Reflection.MessageFormatterProgressTracker!
+StreamJsonRpc.FormatterBase.IMessageWithTopLevelPropertyBag
+StreamJsonRpc.FormatterBase.IMessageWithTopLevelPropertyBag.TopLevelPropertyBag.get -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+StreamJsonRpc.FormatterBase.IMessageWithTopLevelPropertyBag.TopLevelPropertyBag.set -> void
 StreamJsonRpc.FormatterBase.JsonRpc.get -> StreamJsonRpc.JsonRpc?
+StreamJsonRpc.FormatterBase.JsonRpcErrorBase
+StreamJsonRpc.FormatterBase.JsonRpcErrorBase.JsonRpcErrorBase() -> void
+StreamJsonRpc.FormatterBase.JsonRpcErrorBase.TopLevelPropertyBag.get -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+StreamJsonRpc.FormatterBase.JsonRpcErrorBase.TopLevelPropertyBag.set -> void
+StreamJsonRpc.FormatterBase.JsonRpcRequestBase
+StreamJsonRpc.FormatterBase.JsonRpcRequestBase.JsonRpcRequestBase() -> void
+StreamJsonRpc.FormatterBase.JsonRpcRequestBase.TopLevelPropertyBag.get -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+StreamJsonRpc.FormatterBase.JsonRpcRequestBase.TopLevelPropertyBag.set -> void
+StreamJsonRpc.FormatterBase.JsonRpcResultBase
+StreamJsonRpc.FormatterBase.JsonRpcResultBase.JsonRpcResultBase() -> void
+StreamJsonRpc.FormatterBase.JsonRpcResultBase.TopLevelPropertyBag.get -> StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase?
+StreamJsonRpc.FormatterBase.JsonRpcResultBase.TopLevelPropertyBag.set -> void
 StreamJsonRpc.FormatterBase.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream?
 StreamJsonRpc.FormatterBase.MultiplexingStream.set -> void
 StreamJsonRpc.FormatterBase.SerializationTracking
@@ -21,6 +46,9 @@ StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking() -> voi
 StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
 StreamJsonRpc.FormatterBase.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.FormatterBase.SerializingRequest.get -> bool
+StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase
+StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase.OutboundProperties.get -> System.Collections.Generic.Dictionary<string!, (System.Type! DeclaredType, object? Value)>!
+StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase.TopLevelPropertyBagBase(bool isOutbound) -> void
 StreamJsonRpc.FormatterBase.TrackDeserialization(StreamJsonRpc.Protocol.JsonRpcMessage! message, System.ReadOnlySpan<System.Reflection.ParameterInfo!> parameters = default(System.ReadOnlySpan<System.Reflection.ParameterInfo!>)) -> StreamJsonRpc.FormatterBase.DeserializationTracking
 StreamJsonRpc.FormatterBase.TrackSerialization(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> StreamJsonRpc.FormatterBase.SerializationTracking
 StreamJsonRpc.SystemTextJsonFormatter
@@ -33,3 +61,6 @@ StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions.set -> void
 StreamJsonRpc.SystemTextJsonFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
 StreamJsonRpc.SystemTextJsonFormatter.SystemTextJsonFormatter() -> void
 virtual StreamJsonRpc.FormatterBase.Dispose(bool disposing) -> void
+virtual StreamJsonRpc.FormatterBase.JsonRpcErrorBase.ReleaseBuffers() -> void
+virtual StreamJsonRpc.FormatterBase.JsonRpcRequestBase.ReleaseBuffers() -> void
+virtual StreamJsonRpc.FormatterBase.JsonRpcResultBase.ReleaseBuffers() -> void

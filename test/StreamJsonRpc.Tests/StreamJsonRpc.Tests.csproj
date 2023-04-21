@@ -26,6 +26,9 @@
     <Compile Update="SystemTextJsonFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
     <Compile Update="MessagePackFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
     <Compile Update="JsonMessageFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
+    <Compile Update="JsonRpcRemoteTargetJsonMessageFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
+    <Compile Update="JsonRpcRemoteTargetSystemTextJsonFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
+    <Compile Update="JsonRpcRemoteTargetMessagePackFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />

@@ -716,11 +716,11 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             }
             else
             {
-                foreach (KeyValuePair<string, (Type, object?)> property in this.OutboundProperties)
+                foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> property in this.OutboundProperties)
                 {
                     if (envelope[property.Key] is null)
                     {
-                        envelope[property.Key] = property.Value.Item2 is null ? JValue.CreateNull() : JToken.FromObject(property.Value.Item2, this.jsonSerializer);
+                        envelope[property.Key] = property.Value.Value is null ? JValue.CreateNull() : JToken.FromObject(property.Value.Value, this.jsonSerializer);
                     }
                 }
             }

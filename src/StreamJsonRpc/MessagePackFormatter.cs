@@ -2103,7 +2103,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             this.serializerOptions = serializerOptions;
         }
 
-        internal int PropertyCount => this.OutboundProperties?.Count ?? this.inboundUnknownProperties?.Count ?? 0;
+        internal int PropertyCount => this.inboundUnknownProperties?.Count ?? this.OutboundProperties?.Count ?? 0;
 
         /// <summary>
         /// Writes the properties tracked by this collection to a messagepack writer.
@@ -2111,15 +2111,27 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         /// <param name="writer">The writer to use.</param>
         internal void WriteProperties(ref MessagePackWriter writer)
         {
-            if (this.OutboundProperties is null)
+            if (this.inboundUnknownProperties is not null)
             {
-                throw new InvalidOperationException(Resources.OutboundMessageOnly);
-            }
+                // We're actually re-transmitting an incoming message (remote target feature).
+                // We need to copy all the properties that were in the original message.
+                // Don't implement this without enabling the tests for the scenario found in JsonRpcRemoteTargetMessagePackFormatterTests.cs.
+                // The tests fail for reasons even without this support, so there's work to do beyond just implementing this.
+                throw new NotImplementedException();
 
-            foreach (KeyValuePair<string, (Type, object?)> entry in this.OutboundProperties)
+                ////foreach (KeyValuePair<string, ReadOnlySequence<byte>> entry in this.inboundUnknownProperties)
+                ////{
+                ////    writer.Write(entry.Key);
+                ////    writer.Write(entry.Value);
+                ////}
+            }
+            else
             {
-                writer.Write(entry.Key);
-                MessagePackSerializer.Serialize(entry.Value.Item1, ref writer, entry.Value.Item2, this.serializerOptions);
+                foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> entry in this.OutboundProperties)
+                {
+                    writer.Write(entry.Key);
+                    MessagePackSerializer.Serialize(entry.Value.DeclaredType, ref writer, entry.Value.Value, this.serializerOptions);
+                }
             }
         }
 
