@@ -323,6 +323,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         // Add support for exotic types.
         options.Converters.Add(new ProgressConverterFactory(this));
+        options.Converters.Add(new AsyncEnumerableConverter(this));
         options.Converters.Add(new DuplexPipeConverter(this));
         options.Converters.Add(new PipeReaderConverter(this));
         options.Converters.Add(new PipeWriterConverter(this));
@@ -730,12 +731,14 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter = formatter;
         }
 
-        public override bool CanConvert(Type typeToConvert) => MessageFormatterProgressTracker.CanSerialize(typeToConvert) || MessageFormatterProgressTracker.CanDeserialize(typeToConvert);
+        public override bool CanConvert(Type typeToConvert) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(typeToConvert) is not null;
 
         public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            Type progressType = typeToConvert.GetGenericArguments()[0];
-            Type converterType = typeof(Converter<>).MakeGenericType(progressType);
+            Type? iface = TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(typeToConvert);
+            Assumes.NotNull(iface);
+            Type genericTypeArg = iface.GetGenericArguments()[0];
+            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
@@ -771,6 +774,86 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value!);
                 writer.WriteNumberValue(progressId);
+            }
+        }
+    }
+
+    private class AsyncEnumerableConverter : JsonConverterFactory
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal AsyncEnumerableConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter;
+        }
+
+        public override bool CanConvert(Type typeToConvert) => TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeToConvert) is not null;
+
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+        {
+            Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeToConvert);
+            Assumes.NotNull(iface);
+            Type genericTypeArg = iface.GetGenericArguments()[0];
+            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
+            return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
+        }
+
+        private class Converter<T> : JsonConverter<IAsyncEnumerable<T>?>
+        {
+            private readonly SystemTextJsonFormatter formatter;
+
+            public Converter(SystemTextJsonFormatter formatter)
+            {
+                this.formatter = formatter;
+            }
+
+            public override IAsyncEnumerable<T>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.Null)
+                {
+                    return null;
+                }
+
+                using JsonDocument wrapper = JsonDocument.ParseValue(ref reader);
+                JsonElement? handle = null;
+                if (wrapper.RootElement.TryGetProperty(MessageFormatterEnumerableTracker.TokenPropertyName, out JsonElement enumToken))
+                {
+                    // Copy the token so we can retain it and replay it later.
+                    handle = enumToken.Deserialize<JsonElement>();
+                }
+
+                IReadOnlyList<T>? prefetchedItems = null;
+                if (wrapper.RootElement.TryGetProperty(MessageFormatterEnumerableTracker.ValuesPropertyName, out JsonElement prefetchedElement))
+                {
+                    prefetchedItems = prefetchedElement.Deserialize<IReadOnlyList<T>>(options);
+                }
+
+                return this.formatter.EnumerableTracker.CreateEnumerableProxy(handle, prefetchedItems);
+            }
+
+            public override void Write(Utf8JsonWriter writer, IAsyncEnumerable<T>? value, JsonSerializerOptions options)
+            {
+                if (value is null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                (IReadOnlyList<T> Elements, bool Finished) prefetched = value.TearOffPrefetchedElements();
+                long token = this.formatter.EnumerableTracker.GetToken(value);
+                writer.WriteStartObject();
+                if (!prefetched.Finished)
+                {
+                    writer.WriteNumber(MessageFormatterEnumerableTracker.TokenPropertyName, token);
+                }
+
+                if (prefetched.Elements.Count > 0)
+                {
+                    writer.WritePropertyName(MessageFormatterEnumerableTracker.ValuesPropertyName);
+                    JsonSerializer.Serialize(writer, prefetched.Elements, options);
+                }
+
+                writer.WriteEndObject();
             }
         }
     }
