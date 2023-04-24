@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Runtime.Serialization;
@@ -13,6 +14,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -321,6 +323,10 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         // Add support for exotic types.
         options.Converters.Add(new ProgressConverterFactory(this));
+        options.Converters.Add(new DuplexPipeConverter(this));
+        options.Converters.Add(new PipeReaderConverter(this));
+        options.Converters.Add(new PipeWriterConverter(this));
+        options.Converters.Add(new StreamConverter(this));
 
         // Add support for serializing exceptions.
         options.Converters.Add(new ExceptionConverter(this));
@@ -769,6 +775,130 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
+    private class DuplexPipeConverter : JsonConverter<IDuplexPipe?>
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal DuplexPipeConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+        }
+
+        public override bool CanConvert(Type typeToConvert) => typeof(IDuplexPipe).IsAssignableFrom(typeToConvert);
+
+        public override IDuplexPipe? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType == JsonTokenType.Null
+                ? null
+                : this.formatter.DuplexPipeTracker!.GetPipe(reader.GetUInt64());
+        }
+
+        public override void Write(Utf8JsonWriter writer, IDuplexPipe? value, JsonSerializerOptions options)
+        {
+            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
+            {
+                writer.WriteNumberValue(token);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
+        }
+    }
+
+    private class PipeReaderConverter : JsonConverter<PipeReader?>
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal PipeReaderConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+        }
+
+        public override bool CanConvert(Type typeToConvert) => typeof(PipeReader).IsAssignableFrom(typeToConvert);
+
+        public override PipeReader? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType == JsonTokenType.Null
+                ? null
+                : this.formatter.DuplexPipeTracker!.GetPipeReader(reader.GetUInt64());
+        }
+
+        public override void Write(Utf8JsonWriter writer, PipeReader? value, JsonSerializerOptions options)
+        {
+            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
+            {
+                writer.WriteNumberValue(token);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
+        }
+    }
+
+    private class PipeWriterConverter : JsonConverter<PipeWriter?>
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal PipeWriterConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+        }
+
+        public override bool CanConvert(Type typeToConvert) => typeof(PipeWriter).IsAssignableFrom(typeToConvert);
+
+        public override PipeWriter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType == JsonTokenType.Null
+                ? null
+                : this.formatter.DuplexPipeTracker!.GetPipeWriter(reader.GetUInt64());
+        }
+
+        public override void Write(Utf8JsonWriter writer, PipeWriter? value, JsonSerializerOptions options)
+        {
+            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
+            {
+                writer.WriteNumberValue(token);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
+        }
+    }
+
+    private class StreamConverter : JsonConverter<Stream?>
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        internal StreamConverter(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
+        }
+
+        public override bool CanConvert(Type typeToConvert) => typeof(Stream).IsAssignableFrom(typeToConvert);
+
+        public override Stream? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType == JsonTokenType.Null
+                ? null
+                : this.formatter.DuplexPipeTracker!.GetPipe(reader.GetUInt64()).AsStream();
+        }
+
+        public override void Write(Utf8JsonWriter writer, Stream? value, JsonSerializerOptions options)
+        {
+            if (this.formatter.DuplexPipeTracker.GetULongToken(value?.UsePipe()) is ulong token)
+            {
+                writer.WriteNumberValue(token);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
+        }
+    }
+
     private class ExceptionConverter : JsonConverter<Exception?>
     {
         /// <summary>
@@ -778,7 +908,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         private readonly SystemTextJsonFormatter formatter;
 
-        public ExceptionConverter(SystemTextJsonFormatter formatter)
+        internal ExceptionConverter(SystemTextJsonFormatter formatter)
         {
             this.formatter = formatter;
         }
