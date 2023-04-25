@@ -46,10 +46,18 @@ public class TargetObjectEventsSystemTextJsonTests : TargetObjectEventsTests
                 return null;
             }
 
+            Assert.Equal(JsonTokenType.StartObject, reader.TokenType);
+
             Assumes.True(reader.Read());
             Assumes.True(reader.GetString() == nameof(IFruit.Name));
+
             Assumes.True(reader.Read());
             string? name = reader.GetString();
+
+            // Read to the end object token.
+            reader.Read();
+            Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
+
             return new Fruit(name ?? throw new JsonException("Unexpected null."));
         }
 
