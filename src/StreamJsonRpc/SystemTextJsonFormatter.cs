@@ -300,7 +300,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
                 void WriteUserData(object? value, Type? declaredType)
                 {
-                    if (declaredType is not null)
+                    if (declaredType is not null && value is not null)
                     {
                         JsonSerializer.Serialize(writer, value, declaredType, this.massagedUserDataSerializerOptions);
                     }
