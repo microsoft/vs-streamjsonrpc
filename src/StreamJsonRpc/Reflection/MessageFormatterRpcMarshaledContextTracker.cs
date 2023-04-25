@@ -391,16 +391,16 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
-        public int Marshaled { get; }
+        public int Marshaled { get; set; }
 
         [DataMember(Name = "handle", IsRequired = true)]
-        public long Handle { get; }
+        public long Handle { get; set; }
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
-        public string? Lifetime { get; }
+        public string? Lifetime { get; set; }
 
         [DataMember(Name = "optionalInterfaces", EmitDefaultValue = false)]
-        public int[]? OptionalInterfacesCodes { get; }
+        public int[]? OptionalInterfacesCodes { get; set; }
     }
 
     /// <summary>

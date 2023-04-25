@@ -249,7 +249,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                         writer.WriteStartArray(Utf8Strings.@params);
                         for (int i = 0; i < request.ArgumentsList.Count; i++)
                         {
-                            WriteUserData(request.ArgumentsList[i]);
+                            WriteUserData(request.ArgumentsList[i], request.ArgumentListDeclaredTypes?[i]);
                         }
 
                         writer.WriteEndArray();
@@ -260,7 +260,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                         foreach (KeyValuePair<string, object?> argument in request.NamedArguments)
                         {
                             writer.WritePropertyName(argument.Key);
-                            WriteUserData(argument.Value);
+                            WriteUserData(argument.Value, request.NamedArgumentDeclaredTypes?[argument.Key]);
                         }
 
                         writer.WriteEndObject();
@@ -269,14 +269,14 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     {
                         // This is a custom named arguments object, so we'll just serialize it as-is.
                         writer.WritePropertyName(Utf8Strings.@params);
-                        WriteUserData(request.Arguments);
+                        WriteUserData(request.Arguments, declaredType: null);
                     }
                 }
 
                 void WriteResult(Protocol.JsonRpcResult result)
                 {
                     writer.WritePropertyName(Utf8Strings.result);
-                    WriteUserData(result.Result);
+                    WriteUserData(result.Result, result.ResultDeclaredType);
                 }
 
                 void WriteError(Protocol.JsonRpcError error)
@@ -292,15 +292,22 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     if (error.Error.Data is not null)
                     {
                         writer.WritePropertyName(Utf8Strings.data);
-                        WriteUserData(error.Error.Data);
+                        WriteUserData(error.Error.Data, null);
                     }
 
                     writer.WriteEndObject();
                 }
 
-                void WriteUserData(object? value)
+                void WriteUserData(object? value, Type? declaredType)
                 {
-                    JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
+                    if (declaredType is not null)
+                    {
+                        JsonSerializer.Serialize(writer, value, declaredType, this.massagedUserDataSerializerOptions);
+                    }
+                    else
+                    {
+                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
+                    }
                 }
             }
             catch (Exception ex)
@@ -324,6 +331,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         // Add support for exotic types.
         options.Converters.Add(new ProgressConverterFactory(this));
         options.Converters.Add(new AsyncEnumerableConverter(this));
+        options.Converters.Add(new RpcMarshalableConverterFactory(this));
         options.Converters.Add(new DuplexPipeConverter(this));
         options.Converters.Add(new PipeReaderConverter(this));
         options.Converters.Add(new PipeWriterConverter(this));
@@ -854,6 +862,69 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 }
 
                 writer.WriteEndObject();
+            }
+        }
+    }
+
+    private class RpcMarshalableConverterFactory : JsonConverterFactory
+    {
+        private readonly SystemTextJsonFormatter formatter;
+
+        public RpcMarshalableConverterFactory(SystemTextJsonFormatter formatter)
+        {
+            this.formatter = formatter;
+        }
+
+        public override bool CanConvert(Type typeToConvert)
+        {
+            return MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, out _, out _);
+        }
+
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+        {
+            Assumes.True(MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions));
+            return (JsonConverter)Activator.CreateInstance(
+                typeof(Converter<>).MakeGenericType(typeToConvert),
+                this.formatter,
+                proxyOptions,
+                targetOptions)!;
+        }
+
+        private class Converter<T> : JsonConverter<T?>
+            where T : class
+        {
+            private readonly SystemTextJsonFormatter formatter;
+            private readonly JsonRpcProxyOptions proxyOptions;
+            private readonly JsonRpcTargetOptions targetOptions;
+
+            public Converter(SystemTextJsonFormatter formatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
+            {
+                this.formatter = formatter;
+                this.proxyOptions = proxyOptions;
+                this.targetOptions = targetOptions;
+            }
+
+            public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.Null)
+                {
+                    return null;
+                }
+
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = JsonSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(ref reader, options);
+                return (T?)this.formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions);
+            }
+
+            public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+            {
+                if (value is null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.formatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, typeof(T));
+                JsonSerializer.Serialize(writer, token, options);
             }
         }
     }
