@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -1253,7 +1254,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
     private class DataContractResolver : IJsonTypeInfoResolver
     {
-        private readonly Dictionary<Type, JsonTypeInfo?> typeInfoCache = new();
+        private readonly ConcurrentDictionary<Type, JsonTypeInfo?> typeInfoCache = new();
 
         private readonly bool onlyRecognizeDecoratedTypes;
 
@@ -1281,7 +1282,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     typeInfo = this.fallbackResolver.GetTypeInfo(type, options);
                 }
 
-                this.typeInfoCache.Add(type, typeInfo);
+                this.typeInfoCache.TryAdd(type, typeInfo);
             }
 
             return typeInfo;
