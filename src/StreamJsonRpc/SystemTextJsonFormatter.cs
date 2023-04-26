@@ -24,7 +24,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
-public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
+public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
 
