@@ -51,6 +51,11 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
     private JsonSerializerOptions massagedUserDataSerializerOptions;
 
     /// <summary>
+    /// Retains the message currently being deserialized so that it can be disposed when we're done with it.
+    /// </summary>
+    private JsonDocument? deserializingDocument;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SystemTextJsonFormatter"/> class.
     /// </summary>
     public SystemTextJsonFormatter()
@@ -92,8 +97,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             throw new NotSupportedException("Only our default encoding is supported.");
         }
 
-        // TODO: dispose of the document when we're done with it. This means each JsonRpcMessage will need to dispose of it in ReleaseBuffers since they capture pieces of it.
-        JsonDocument document = JsonDocument.Parse(contentBuffer, DocumentOptions);
+        JsonDocument document = this.deserializingDocument = JsonDocument.Parse(contentBuffer, DocumentOptions);
         if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
             throw new JsonException("Expected a JSON object at the root of the message.");
@@ -562,6 +566,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         {
             base.ReleaseBuffers();
             this.jsonArguments = null;
+            this.formatter.deserializingDocument?.Dispose();
+            this.formatter.deserializingDocument = null;
         }
 
         private static int CountArguments(JsonElement arguments)
@@ -638,6 +644,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         {
             base.ReleaseBuffers();
             this.JsonResult = null;
+            this.formatter.deserializingDocument?.Dispose();
+            this.formatter.deserializingDocument = null;
         }
     }
 
@@ -665,6 +673,9 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             {
                 detail.JsonData = null;
             }
+
+            this.formatter.deserializingDocument?.Dispose();
+            this.formatter.deserializingDocument = null;
         }
 
         internal new class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
