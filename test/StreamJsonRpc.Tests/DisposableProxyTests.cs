@@ -4,14 +4,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using MessagePack;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 #pragma warning disable CA2214 // Do not call virtual methods in constructors
 
@@ -59,6 +53,8 @@ public abstract class DisposableProxyTests : TestBase
 
         Task<int> AcceptDataContainerAsync(DataContainer dataContainer);
     }
+
+    protected abstract Type FormatterExceptionType { get; }
 
     [Fact]
     public async Task NoLeakWhenTransmissionFailsAfterTokenGenerated()
@@ -208,7 +204,7 @@ public abstract class DisposableProxyTests : TestBase
             new object?[] { disposable, new JsonRpcTests.TypeThrowsWhenSerialized() },
             new Type[] { typeof(IDisposable), typeof(JsonRpcTests.TypeThrowsWhenSerialized) },
             this.TimeoutToken));
-        Assert.True(ex is JsonSerializationException || ex is MessagePackSerializationException);
+        Assert.IsAssignableFrom(this.FormatterExceptionType, ex);
         Assert.True(IsExceptionOrInnerOfType<Exception>(ex, exactTypeMatch: true));
 
         return new WeakReference(disposable);
