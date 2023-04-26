@@ -24,7 +24,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
-public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcMessageFactory
+public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcFormatterState, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
 
@@ -45,6 +45,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// UTF-8 encoding without a preamble.
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+    private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
 
     private JsonSerializerOptions massagedUserDataSerializerOptions;
 
@@ -161,16 +163,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             : RequestId.NotSpecified;
         }
 
+        IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
+        tracingCallbacks?.OnMessageDeserialized(message, document.RootElement);
+
         this.TryHandleSpecialIncomingMessage(message);
 
         return message;
     }
 
     /// <inheritdoc/>
-    public object GetJsonText(JsonRpcMessage message)
-    {
-        throw new NotImplementedException();
-    }
+    public object GetJsonText(JsonRpcMessage message) => throw new NotSupportedException();
 
     /// <inheritdoc/>
     public void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
@@ -315,6 +317,20 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 throw new JsonException(Resources.SerializationFailure, ex);
             }
+        }
+    }
+
+    void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
+    {
+        IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
+        this.serializationToStringHelper.Activate(encodedMessage);
+        try
+        {
+            tracingCallbacks?.OnMessageSerialized(message, this.serializationToStringHelper);
+        }
+        finally
+        {
+            this.serializationToStringHelper.Deactivate();
         }
     }
 
@@ -1350,6 +1366,38 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 jsonPropertyInfo = null;
                 return false;
             }
+        }
+    }
+
+    /// <inheritdoc cref="MessagePackFormatter.ToStringHelper"/>
+    private class ToStringHelper
+    {
+        private ReadOnlySequence<byte>? encodedMessage;
+        private string? jsonString;
+
+        public override string ToString()
+        {
+            Verify.Operation(this.encodedMessage.HasValue, "This object has not been activated. It may have already been recycled.");
+
+            using JsonDocument doc = JsonDocument.Parse(this.encodedMessage.Value);
+            return this.jsonString ??= doc.RootElement.ToString();
+        }
+
+        /// <summary>
+        /// Initializes this object to represent a message.
+        /// </summary>
+        internal void Activate(ReadOnlySequence<byte> encodedMessage)
+        {
+            this.encodedMessage = encodedMessage;
+        }
+
+        /// <summary>
+        /// Cleans out this object to release memory and ensure <see cref="ToString"/> throws if someone uses it after deactivation.
+        /// </summary>
+        internal void Deactivate()
+        {
+            this.encodedMessage = null;
+            this.jsonString = null;
         }
     }
 }

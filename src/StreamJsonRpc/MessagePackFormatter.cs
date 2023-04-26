@@ -707,7 +707,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     /// </summary>
     /// <remarks>
     /// In perf traces, creation of this object used to show up as one of the most allocated objects.
-    /// It is used even when tracing isn't active. So we changed its design it to be reused,
+    /// It is used even when tracing isn't active. So we changed its design to be reused,
     /// since its lifetime is only required during a synchronous call to a trace API.
     /// </remarks>
     private class ToStringHelper
