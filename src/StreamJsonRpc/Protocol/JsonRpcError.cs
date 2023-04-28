@@ -3,8 +3,9 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using Newtonsoft.Json.Linq;
 using StreamJsonRpc.Reflection;
+using JsonNET = Newtonsoft.Json.Linq;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
 
@@ -19,6 +20,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets the detail about the error.
     /// </summary>
     [DataMember(Name = "error", Order = 2, IsRequired = true)]
+    [STJ.JsonPropertyName("error"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
     public ErrorDetail? Error { get; set; }
 
     /// <summary>
@@ -27,6 +29,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <see langword="null"/>.</value>
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -37,6 +40,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets an identifier established by the client if a response to the request is expected.
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = true, EmitDefaultValue = true)]
+    [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
     public RequestId RequestId { get; set; }
 
     /// <summary>
@@ -47,13 +51,13 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JObject
+        return new JsonNET.JObject
         {
-            new JProperty("id", this.RequestId.ObjectValue),
-            new JProperty("error", new JObject
+            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
+            new JsonNET.JProperty("error", new JsonNET.JObject
             {
-                new JProperty("code", this.Error?.Code),
-                new JProperty("message", this.Error?.Message),
+                new JsonNET.JProperty("code", this.Error?.Code),
+                new JsonNET.JProperty("message", this.Error?.Message),
             }),
         }.ToString(Newtonsoft.Json.Formatting.None);
     }
@@ -74,6 +78,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// Codes outside that range are available for app-specific error codes.
         /// </value>
         [DataMember(Name = "code", Order = 0, IsRequired = true)]
+        [STJ.JsonPropertyName("code"), STJ.JsonPropertyOrder(0), STJ.JsonRequired]
         public JsonRpcErrorCode Code { get; set; }
 
         /// <summary>
@@ -83,6 +88,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// The message SHOULD be limited to a concise single sentence.
         /// </remarks>
         [DataMember(Name = "message", Order = 1, IsRequired = true)]
+        [STJ.JsonPropertyName("message"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
         public string? Message { get; set; }
 
         /// <summary>
@@ -90,9 +96,8 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// </summary>
         [DataMember(Name = "data", Order = 2, IsRequired = false)]
         [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
-#pragma warning disable CA1721 // Property names should not match get methods
+        [STJ.JsonPropertyName("data"), STJ.JsonPropertyOrder(2)]
         public object? Data { get; set; }
-#pragma warning restore CA1721 // Property names should not match get methods
 
         /// <summary>
         /// Gets the value of the <see cref="Data"/>, taking into account any possible type coercion.

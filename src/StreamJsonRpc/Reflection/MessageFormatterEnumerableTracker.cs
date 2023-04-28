@@ -9,6 +9,7 @@ using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Reflection;
 
@@ -496,9 +497,11 @@ public class MessageFormatterEnumerableTracker
     private class EnumeratorResults<T>
     {
         [DataMember(Name = ValuesPropertyName, Order = 0)]
-        internal IReadOnlyList<T>? Values { get; set; }
+        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
+        public IReadOnlyList<T>? Values { get; set; }
 
         [DataMember(Name = FinishedPropertyName, Order = 1)]
-        internal bool Finished { get; set; }
+        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
+        public bool Finished { get; set; }
     }
 }

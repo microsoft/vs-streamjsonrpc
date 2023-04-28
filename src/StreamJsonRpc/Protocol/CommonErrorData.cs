@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Runtime.Serialization;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
 
@@ -37,29 +38,34 @@ public class CommonErrorData
     /// Gets or sets the type of error (e.g. the full type name of the exception thrown).
     /// </summary>
     [DataMember(Order = 0, Name = "type")]
+    [STJ.JsonPropertyName("type"), STJ.JsonPropertyOrder(0)]
     public string? TypeName { get; set; }
 
     /// <summary>
     /// Gets or sets the message associated with this error.
     /// </summary>
     [DataMember(Order = 1, Name = "message")]
+    [STJ.JsonPropertyName("message"), STJ.JsonPropertyOrder(1)]
     public string? Message { get; set; }
 
     /// <summary>
     /// Gets or sets the stack trace associated with the error.
     /// </summary>
     [DataMember(Order = 2, Name = "stack")]
+    [STJ.JsonPropertyName("stack"), STJ.JsonPropertyOrder(2)]
     public string? StackTrace { get; set; }
 
     /// <summary>
     /// Gets or sets the application error code or HRESULT of the failure.
     /// </summary>
     [DataMember(Order = 3, Name = "code")]
+    [STJ.JsonPropertyName("code"), STJ.JsonPropertyOrder(3)]
     public int HResult { get; set; }
 
     /// <summary>
     /// Gets or sets the inner error information, if any.
     /// </summary>
     [DataMember(Order = 4, Name = "inner")]
+    [STJ.JsonPropertyName("inner"), STJ.JsonPropertyOrder(4)]
     public CommonErrorData? Inner { get; set; }
 }

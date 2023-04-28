@@ -90,9 +90,7 @@ StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
 
 1. `SystemTextJsonFormatter` - Uses the [`System.Text.Json` library][SystemTextJson] to serialize each
     JSON-RPC message as UTF-8 encoded JSON. 
-    All RPC method parameters and return types must be serializable by System.Text.Json,
-    with the additional benefit of `DataContract` and `DataMember` attributes being supported by default
-    within StreamJsonRpc where System.Text.Json alone does not support them.
+    All RPC method parameters and return types must be serializable by System.Text.Json.
     You can leverage `JsonConverter<T>` and add your custom converters via attributes or by
     contributing them to the `SystemTextJsonFormatter.JsonSerializerOptions.Converters` collection.
 

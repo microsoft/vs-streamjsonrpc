@@ -7,12 +7,10 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
-using MessagePack;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using JsonNET = Newtonsoft.Json;
+using STJ = System.Text.Json.Serialization;
 
 public abstract class JsonRpcTests : TestBase
 {
@@ -95,7 +93,7 @@ public abstract class JsonRpcTests : TestBase
         bool MethodOnDerived();
     }
 
-    protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } };
+    protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: JsonNET.TypeNameHandling.Objects } };
 
     protected abstract Type FormatterExceptionType { get; }
 
@@ -2610,7 +2608,7 @@ public abstract class JsonRpcTests : TestBase
         // for security reasons.
         object? objectOfCustomType = this.server.ReceivedException!.Data["harmlessCustomType"];
 
-        if (this.serverMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } })
+        if (this.serverMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: JsonNET.TypeNameHandling.Objects } })
         {
             Assert.IsType<CustomISerializableData>(objectOfCustomType);
         }
@@ -2937,9 +2935,9 @@ public abstract class JsonRpcTests : TestBase
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
         Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
 
-        var errorDataJToken = (JToken?)exception.ErrorData;
+        var errorDataJToken = (JsonNET.Linq.JToken?)exception.ErrorData;
         Assert.NotNull(errorDataJToken);
-        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonSerializer());
+        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonNET.JsonSerializer());
         Assert.NotNull(errorData?.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
@@ -3026,7 +3024,7 @@ public abstract class JsonRpcTests : TestBase
         Requires.NotNull(receivingStream, nameof(receivingStream));
         Requires.NotNull(jsonObject, nameof(jsonObject));
 
-        string json = JsonConvert.SerializeObject(jsonObject);
+        string json = JsonNET.JsonConvert.SerializeObject(jsonObject);
         string header = $"Content-Length: {json.Length}\r\n\r\n";
         byte[] buffer = Encoding.ASCII.GetBytes(header + json);
         receivingStream.Write(buffer, 0, buffer.Length);
@@ -3162,7 +3160,7 @@ public abstract class JsonRpcTests : TestBase
             return argument + "!";
         }
 
-        public static string TestParameter(JToken token)
+        public static string TestParameter(JsonNET.Linq.JToken token)
         {
             return "object " + token.ToString();
         }
@@ -3177,7 +3175,7 @@ public abstract class JsonRpcTests : TestBase
             return "string";
         }
 
-        public static string TestInvalidMethod(JToken test)
+        public static string TestInvalidMethod(JsonNET.Linq.JToken test)
         {
             return "JToken";
         }
@@ -3493,7 +3491,7 @@ public abstract class JsonRpcTests : TestBase
             return arg + "!";
         }
 
-        public async Task<string> AsyncMethodWithJTokenAndCancellation(JToken paramObject, CancellationToken cancellationToken)
+        public async Task<string> AsyncMethodWithJTokenAndCancellation(JsonNET.Linq.JToken paramObject, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
 
@@ -3504,7 +3502,7 @@ public abstract class JsonRpcTests : TestBase
             }
 
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
-            return paramObject.ToString(Formatting.None) + "!";
+            return paramObject.ToString(JsonNET.Formatting.None) + "!";
         }
 
         public async Task<string> AsyncMethodFaultsAfterCancellation(string arg, CancellationToken cancellationToken)
@@ -3703,6 +3701,7 @@ public abstract class JsonRpcTests : TestBase
     public class ParamsObjectWithCustomNames
     {
         [DataMember(Name = "argument")]
+        [STJ.JsonPropertyName("argument")]
         public string? TheArgument { get; set; }
     }
 
@@ -3762,16 +3761,18 @@ public abstract class JsonRpcTests : TestBase
     public class Foo
     {
         [DataMember(Order = 0, IsRequired = true)]
+        [STJ.JsonRequired, STJ.JsonPropertyOrder(0)]
         public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
+        [STJ.JsonPropertyOrder(1)]
         public int Bazz { get; set; }
     }
 
     public class CustomSerializedType
     {
         // Ignore this so default serializers will drop it, proving that custom serializers were used if the value propagates.
-        [JsonIgnore]
+        [JsonNET.JsonIgnore]
         [IgnoreDataMember]
         public string? Value { get; set; }
     }
@@ -3779,7 +3780,7 @@ public abstract class JsonRpcTests : TestBase
     [Serializable, DataContract]
     public class CustomISerializableData : ISerializable
     {
-        [SerializationConstructor]
+        [MessagePack.SerializationConstructor]
         public CustomISerializableData(int major)
         {
             this.Major = major;

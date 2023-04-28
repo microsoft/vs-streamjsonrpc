@@ -4,7 +4,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
-using Newtonsoft.Json.Linq;
+using JsonNET = Newtonsoft.Json.Linq;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
 
@@ -45,6 +46,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets the name of the method to be invoked.
     /// </summary>
     [DataMember(Name = "method", Order = 2, IsRequired = true)]
+    [STJ.JsonPropertyName("method"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
     public string? Method { get; set; }
 
     /// <summary>
@@ -58,6 +60,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// If neither of these, <see cref="ArgumentCount"/> and <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
     /// </value>
     [DataMember(Name = "params", Order = 3, IsRequired = false, EmitDefaultValue = false)]
+    [STJ.JsonPropertyName("params"), STJ.JsonPropertyOrder(3), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
     public object? Arguments { get; set; }
 
     /// <summary>
@@ -66,6 +69,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <see langword="null"/>.</value>
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -76,30 +80,35 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets an identifier established by the client if a response to the request is expected.
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = false, EmitDefaultValue = false)]
+    [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingDefault)]
     public RequestId RequestId { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether a response to this request is expected.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public bool IsResponseExpected => !this.RequestId.IsEmpty;
 
     /// <summary>
     /// Gets a value indicating whether this is a notification, and no response is expected.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public bool IsNotification => this.RequestId.IsEmpty;
 
     /// <summary>
     /// Gets the number of arguments supplied in the request.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public virtual int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsList?.Count ?? 0;
 
     /// <summary>
     /// Gets or sets the dictionary of named arguments, if applicable.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public IReadOnlyDictionary<string, object?>? NamedArguments
     {
         get => this.Arguments as IReadOnlyDictionary<string, object?>;
@@ -117,12 +126,14 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// This list is used for purposes of aiding the <see cref="IJsonRpcMessageFormatter"/> in serialization.
     /// </remarks>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public IReadOnlyDictionary<string, Type>? NamedArgumentDeclaredTypes { get; set; }
 
     /// <summary>
     /// Gets or sets an array of arguments, if applicable.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     [Obsolete("Use " + nameof(ArgumentsList) + " instead.")]
 #pragma warning disable CA1819 // Properties should not return arrays
     public object?[]? ArgumentsArray
@@ -136,6 +147,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets a read only list of arguments, if applicable.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public IReadOnlyList<object?>? ArgumentsList
     {
         get => this.Arguments as IReadOnlyList<object?>;
@@ -155,24 +167,28 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// This list is used for purposes of aiding the <see cref="IJsonRpcMessageFormatter"/> in serialization.
     /// </remarks>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
     /// <summary>
     /// Gets the sequence of argument names, if applicable.
     /// </summary>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public virtual IEnumerable<string>? ArgumentNames => this.NamedArguments?.Keys;
 
     /// <summary>
     /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>traceparent</c> value.
     /// </summary>
     [DataMember(Name = "traceparent", EmitDefaultValue = false)]
+    [STJ.JsonPropertyName("traceparent"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceParent { get; set; }
 
     /// <summary>
     /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>tracestate</c> value.
     /// </summary>
     [DataMember(Name = "tracestate", EmitDefaultValue = false)]
+    [STJ.JsonPropertyName("tracestate"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
     public string? TraceState { get; set; }
 
     /// <summary>
@@ -271,10 +287,10 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JObject
+        return new JsonNET.JObject
         {
-            new JProperty("id", this.RequestId.ObjectValue),
-            new JProperty("method", this.Method),
+            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
+            new JsonNET.JProperty("method", this.Method),
         }.ToString(Newtonsoft.Json.Formatting.None);
     }
 }

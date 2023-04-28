@@ -3,7 +3,8 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using Newtonsoft.Json.Linq;
+using JsonNET = Newtonsoft.Json.Linq;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
 
@@ -18,9 +19,8 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets the value of the result of an invocation, if any.
     /// </summary>
     [DataMember(Name = "result", Order = 2, IsRequired = true, EmitDefaultValue = true)]
-#pragma warning disable CA1721 // Property names should not match get methods
+    [STJ.JsonPropertyName("result"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
     public object? Result { get; set; }
-#pragma warning restore CA1721 // Property names should not match get methods
 
     /// <summary>
     /// Gets or sets the declared type of the return value.
@@ -29,6 +29,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// This value is not serialized, but is used by the RPC server to assist in serialization where necessary.
     /// </remarks>
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public Type? ResultDeclaredType { get; set; }
 
     /// <summary>
@@ -37,6 +38,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// <value>A <see cref="string"/>, an <see cref="int"/>, a <see cref="long"/>, or <see langword="null"/>.</value>
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
+    [STJ.JsonIgnore]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -47,6 +49,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// Gets or sets an identifier established by the client if a response to the request is expected.
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = true)]
+    [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
     public RequestId RequestId { get; set; }
 
     /// <summary>
@@ -68,9 +71,9 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JObject
+        return new JsonNET.JObject
         {
-            new JProperty("id", this.RequestId.ObjectValue),
+            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
         }.ToString(Newtonsoft.Json.Formatting.None);
     }
 
