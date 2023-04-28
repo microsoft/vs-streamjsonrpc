@@ -6,6 +6,7 @@ using System.IO.Pipelines;
 using System.Text;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
+using StreamJsonRpc.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -63,6 +64,7 @@ CRLF +
 
         var readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
         Assert.Equal("test", readContent!.Method);
+        (this.handler as IJsonRpcMessageBufferManager)?.DeserializationComplete(readContent);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
@@ -78,6 +80,7 @@ CRLF +
 
         readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
         Assert.Equal("test", readContent!.Method);
+        (this.handler as IJsonRpcMessageBufferManager)?.DeserializationComplete(readContent);
     }
 
     [Fact]
@@ -96,6 +99,7 @@ CRLF +
 
         var readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
         Assert.Equal("test", readContent!.Method);
+        (this.handler as IJsonRpcMessageBufferManager)?.DeserializationComplete(readContent);
 
         this.receivingStream.Position = 0;
         this.receivingStream.SetLength(0);
@@ -113,6 +117,7 @@ CRLF +
 
         readContent = (JsonRpcRequest?)await this.handler.ReadAsync(CancellationToken.None);
         Assert.Equal("test", readContent!.Method);
+        (this.handler as IJsonRpcMessageBufferManager)?.DeserializationComplete(readContent);
     }
 
     [Fact]

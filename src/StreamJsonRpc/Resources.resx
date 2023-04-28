@@ -300,6 +300,9 @@
   <data name="RpcMethodNameNotFound" xml:space="preserve">
     <value>No method by the name '{0}' is found.</value>
   </data>
+  <data name="SerializationFailure" xml:space="preserve">
+    <value>An error occured during serialization.</value>
+  </data>
   <data name="StreamDisposed" xml:space="preserve">
     <value>Stream has been disposed</value>
   </data>

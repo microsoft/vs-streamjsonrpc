@@ -10,10 +10,8 @@ using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
-public class MessagePackFormatterTests : TestBase
+public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
 {
-    private readonly MessagePackFormatter formatter = new MessagePackFormatter();
-
     public MessagePackFormatterTests(ITestOutputHelper logger)
         : base(logger)
     {
@@ -136,7 +134,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInArray()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalArg = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -154,7 +152,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_AnonymousType()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -172,7 +170,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_DataContractObject()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new DataContractWithSubsetOfMembersIncluded { ExcludedField = "A", ExcludedProperty = "B", IncludedField = "C", IncludedProperty = "D" };
         var originalRequest = new JsonRpcRequest
         {
@@ -192,7 +190,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_RequestArgInNamedArgs_NonDataContractObject()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
         var originalArg = new NonDataContractWithExcludedMembers { ExcludedField = "A", ExcludedProperty = "B", InternalField = "C", InternalProperty = "D", PublicField = "E", PublicProperty = "F" };
         var originalRequest = new JsonRpcRequest
         {
@@ -228,7 +226,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_Result()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalResultValue = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalResult = new JsonRpcResult
         {
@@ -244,7 +242,7 @@ public class MessagePackFormatterTests : TestBase
     [Fact]
     public void Resolver_ErrorData()
     {
-        this.formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalErrorData = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalError = new JsonRpcError
         {
@@ -276,7 +274,7 @@ public class MessagePackFormatterTests : TestBase
         var customFormatter = new CustomFormatter();
         var options = (CustomOptions)new CustomOptions(MessagePackFormatter.DefaultUserDataSerializationOptions) { CustomProperty = 3 }
             .WithResolver(CompositeResolver.Create(customFormatter));
-        this.formatter.SetMessagePackSerializerOptions(options);
+        this.Formatter.SetMessagePackSerializerOptions(options);
         var value = new JsonRpcRequest
         {
             RequestId = new RequestId(1),
@@ -285,7 +283,7 @@ public class MessagePackFormatterTests : TestBase
         };
 
         var sequence = new Sequence<byte>();
-        this.formatter.Serialize(sequence, value);
+        this.Formatter.Serialize(sequence, value);
 
         var observedOptions = Assert.IsType<CustomOptions>(customFormatter.LastObservedOptions);
         Assert.Equal(options.CustomProperty, observedOptions.CustomProperty);
@@ -342,78 +340,6 @@ public class MessagePackFormatterTests : TestBase
     }
 
     [Fact]
-    public void TopLevelPropertiesCanBeSerializedRequest()
-    {
-        IJsonRpcMessageFactory factory = this.formatter;
-        var requestMessage = factory.CreateRequestMessage();
-        Assert.NotNull(requestMessage);
-
-        requestMessage.Method = "test";
-        Assert.True(requestMessage.TrySetTopLevelProperty("testProperty", "testValue"));
-        Assert.True(requestMessage.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
-
-        var roundTripMessage = this.Roundtrip(requestMessage);
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
-        Assert.Equal(25, customObject?.Age);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesCanBeSerializedResult()
-    {
-        IJsonRpcMessageFactory factory = this.formatter;
-        var message = factory.CreateResultMessage();
-        Assert.NotNull(message);
-
-        message.Result = "test";
-        Assert.True(message.TrySetTopLevelProperty("testProperty", "testValue"));
-        Assert.True(message.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
-
-        var roundTripMessage = this.Roundtrip(message);
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
-        Assert.Equal(25, customObject?.Age);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesCanBeSerializedError()
-    {
-        IJsonRpcMessageFactory factory = this.formatter;
-        var message = factory.CreateErrorMessage();
-        Assert.NotNull(message);
-
-        message.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
-        Assert.True(message.TrySetTopLevelProperty("testProperty", "testValue"));
-        Assert.True(message.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
-
-        var roundTripMessage = this.Roundtrip(message);
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
-        Assert.Equal(25, customObject?.Age);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesWithNullValue()
-    {
-        IJsonRpcMessageFactory factory = this.formatter;
-        var requestMessage = factory.CreateRequestMessage();
-        Assert.NotNull(requestMessage);
-
-        requestMessage.Method = "test";
-        Assert.True(requestMessage.TrySetTopLevelProperty<string?>("testProperty", null));
-
-        var roundTripMessage = this.Roundtrip(requestMessage);
-        Assert.True(roundTripMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Null(value);
-    }
-
-    [Fact]
     public void StringsInUserDataAreInterned()
     {
         var dynamic = new
@@ -445,6 +371,8 @@ public class MessagePackFormatterTests : TestBase
         Assert.Same(request1.Method, request2.Method); // reference equality to ensure it was interned.
     }
 
+    protected override MessagePackFormatter CreateFormatter() => new();
+
     private T Read<T>(object anonymousObject)
         where T : JsonRpcMessage
     {
@@ -452,23 +380,7 @@ public class MessagePackFormatterTests : TestBase
         var writer = new MessagePackWriter(sequence);
         MessagePackSerializer.Serialize(ref writer, anonymousObject, MessagePackSerializerOptions.Standard);
         writer.Flush();
-        return (T)this.formatter.Deserialize(sequence);
-    }
-
-    private T Roundtrip<T>(T value)
-        where T : JsonRpcMessage
-    {
-        var sequence = new Sequence<byte>();
-        this.formatter.Serialize(sequence, value);
-        var actual = (T)this.formatter.Deserialize(sequence);
-        return actual;
-    }
-
-    [DataContract]
-    public class CustomType
-    {
-        [DataMember]
-        public int Age { get; set; }
+        return (T)this.Formatter.Deserialize(sequence);
     }
 
     [DataContract]

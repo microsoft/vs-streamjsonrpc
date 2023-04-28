@@ -26,6 +26,7 @@
     <PackageReference Include="System.Collections.Immutable" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="System.IO.Pipelines" />
+    <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" PrivateAssets="compile" />
   </ItemGroup>
   <ItemGroup>

@@ -565,6 +565,15 @@ namespace StreamJsonRpc {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An error occured during serialization..
+        /// </summary>
+        internal static string SerializationFailure {
+            get {
+                return ResourceManager.GetString("SerializationFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Stream has been disposed.
         /// </summary>
         internal static string StreamDisposed {

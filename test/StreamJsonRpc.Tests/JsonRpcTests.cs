@@ -13,10 +13,6 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class JsonRpcTests : TestBase
 {
@@ -100,6 +96,8 @@ public abstract class JsonRpcTests : TestBase
     }
 
     protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: TypeNameHandling.Objects } };
+
+    protected abstract Type FormatterExceptionType { get; }
 
     [Fact]
     public async Task AddLocalRpcTarget_OfT_InterfaceOnly()
@@ -1386,7 +1384,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task NotifyAsync_LeavesTraceEvidenceOnFailure()
     {
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("DoesNotMatter", new TypeThrowsWhenSerialized()));
-        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
+        Assert.IsAssignableFrom(this.FormatterExceptionType, exception);
 
         // Verify that the trace explains what went wrong with the original exception message.
         while (!this.clientTraces.Messages.Any(m => m.Contains("Can't touch this")))
@@ -2196,7 +2194,7 @@ public abstract class JsonRpcTests : TestBase
     public async Task ReturnTypeThrowsOnDeserialization()
     {
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync<TypeThrowsWhenDeserialized>(nameof(Server.GetTypeThrowsWhenDeserialized), cancellationToken: this.TimeoutToken)).WithCancellation(this.TimeoutToken);
-        Assert.True(ex is JsonSerializationException || ex is MessagePackSerializationException, $"Exception type was {ex.GetType().Name}");
+        Assert.IsAssignableFrom(this.FormatterExceptionType, ex);
     }
 
     [Fact]
@@ -2560,7 +2558,7 @@ public abstract class JsonRpcTests : TestBase
         // Synthesize an exception message that refers to an exception type that does not exist.
         var exceptionToSend = new NonSerializableException(Server.ExceptionMessage);
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken));
-        Assert.True(exception is JsonSerializationException || exception is MessagePackSerializationException);
+        Assert.IsAssignableFrom(this.FormatterExceptionType, exception);
     }
 
     [Fact]
@@ -2905,6 +2903,45 @@ public abstract class JsonRpcTests : TestBase
         {
             await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.Callback), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
         });
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterObject_WithRenamingAttributes()
+    {
+        var param = new ParamsObjectWithCustomNames { TheArgument = "hello" };
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.ServerMethod), param, this.TimeoutToken);
+        Assert.Equal(param.TheArgument + "!", result);
+    }
+
+    [Fact]
+    public virtual async Task CanPassAndCallPrivateMethodsObjects()
+    {
+        var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
+        Assert.NotNull(result);
+        Assert.Equal("bar!", result.Bar);
+        Assert.Equal(1001, result.Bazz);
+
+        // anonymous types are not supported when TypeHandling is set to "Object" or "Auto".
+        if (!this.IsTypeNameHandlingEnabled)
+        {
+            result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new { Bar = "bar", Bazz = 1000 });
+            Assert.NotNull(result);
+            Assert.Equal("bar!", result.Bar);
+            Assert.Equal(1001, result.Bazz);
+        }
+    }
+
+    [Fact]
+    public virtual async Task CanPassExceptionFromServer_ErrorData()
+    {
+        RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));
+        Assert.Equal((int)JsonRpcErrorCode.InvocationError, exception.ErrorCode);
+
+        var errorDataJToken = (JToken?)exception.ErrorData;
+        Assert.NotNull(errorDataJToken);
+        var errorData = errorDataJToken!.ToObject<CommonErrorData>(new JsonSerializer());
+        Assert.NotNull(errorData?.StackTrace);
+        Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
@@ -3660,6 +3697,13 @@ public abstract class JsonRpcTests : TestBase
 
             return default;
         }
+    }
+
+    [DataContract]
+    public class ParamsObjectWithCustomNames
+    {
+        [DataMember(Name = "argument")]
+        public string? TheArgument { get; set; }
     }
 
     public class VsThreadingAsyncDisposableServer : Microsoft.VisualStudio.Threading.IAsyncDisposable

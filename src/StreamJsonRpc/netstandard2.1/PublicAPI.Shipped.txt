@@ -305,7 +305,6 @@ StreamJsonRpc.IJsonRpcInstanceContainer
 StreamJsonRpc.IJsonRpcInstanceContainer.Rpc.set -> void
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader! reader, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage!>
 StreamJsonRpc.JsonMessageFormatter.DeserializeAsync(System.IO.Pipelines.PipeReader! reader, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage!>
-StreamJsonRpc.JsonMessageFormatter.Dispose() -> void
 StreamJsonRpc.JsonMessageFormatter.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream?
 StreamJsonRpc.JsonMessageFormatter.MultiplexingStream.set -> void
 StreamJsonRpc.JsonRpc.AddRemoteRpcTarget(StreamJsonRpc.JsonRpc! remoteTarget) -> void
@@ -353,7 +352,6 @@ StreamJsonRpc.JsonRpcTargetOptions.DisposeOnDisconnect.get -> bool
 StreamJsonRpc.JsonRpcTargetOptions.DisposeOnDisconnect.set -> void
 StreamJsonRpc.MessagePackFormatter
 StreamJsonRpc.MessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
-StreamJsonRpc.MessagePackFormatter.Dispose() -> void
 StreamJsonRpc.MessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
 StreamJsonRpc.MessagePackFormatter.MessagePackFormatter() -> void
 StreamJsonRpc.MessagePackFormatter.MultiplexingStream.get -> Nerdbank.Streams.MultiplexingStream?
@@ -520,9 +518,8 @@ override StreamJsonRpc.RemoteRpcException.GetObjectData(System.Runtime.Serializa
 static StreamJsonRpc.MessagePackFormatter.DefaultUserDataSerializationOptions.get -> MessagePack.MessagePackSerializerOptions!
 static StreamJsonRpc.RequestId.operator !=(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
 static StreamJsonRpc.RequestId.operator ==(StreamJsonRpc.RequestId first, StreamJsonRpc.RequestId second) -> bool
-virtual StreamJsonRpc.JsonMessageFormatter.Dispose(bool disposing) -> void
+override StreamJsonRpc.JsonMessageFormatter.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.JsonRpc.CreateExceptionFromRpcError(StreamJsonRpc.Protocol.JsonRpcRequest! request, StreamJsonRpc.Protocol.JsonRpcError! response) -> StreamJsonRpc.RemoteRpcException!
-virtual StreamJsonRpc.MessagePackFormatter.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker.Dispose(bool disposing) -> void
 override StreamJsonRpc.TargetMethod.ToString() -> string!
 static StreamJsonRpc.CorrelationManagerTracingStrategy.TraceState.get -> string?

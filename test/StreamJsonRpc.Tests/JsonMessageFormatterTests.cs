@@ -11,7 +11,7 @@ using StreamJsonRpc.Protocol;
 using Xunit;
 using Xunit.Abstractions;
 
-public class JsonMessageFormatterTests : TestBase
+public class JsonMessageFormatterTests : FormatterTestBase<JsonMessageFormatter>
 {
     public JsonMessageFormatterTests(ITestOutputHelper logger)
         : base(logger)
@@ -21,15 +21,13 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void DefaultEncodingLacksPreamble()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Empty(formatter.Encoding.GetPreamble());
+        Assert.Empty(this.Formatter.Encoding.GetPreamble());
     }
 
     [Fact]
     public void ProtocolVersion_Default()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Equal(new Version(2, 0), formatter.ProtocolVersion);
+        Assert.Equal(new Version(2, 0), this.Formatter.ProtocolVersion);
     }
 
     [Theory]
@@ -48,12 +46,11 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void ProtocolVersion_RejectsOtherVersions()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Throws<ArgumentNullException>(() => formatter.ProtocolVersion = null!);
-        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(0, 0));
-        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(1, 1));
-        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(2, 1));
-        Assert.Throws<NotSupportedException>(() => formatter.ProtocolVersion = new Version(3, 0));
+        Assert.Throws<ArgumentNullException>(() => this.Formatter.ProtocolVersion = null!);
+        Assert.Throws<NotSupportedException>(() => this.Formatter.ProtocolVersion = new Version(0, 0));
+        Assert.Throws<NotSupportedException>(() => this.Formatter.ProtocolVersion = new Version(1, 1));
+        Assert.Throws<NotSupportedException>(() => this.Formatter.ProtocolVersion = new Version(2, 1));
+        Assert.Throws<NotSupportedException>(() => this.Formatter.ProtocolVersion = new Version(3, 0));
     }
 
     [Fact]
@@ -91,9 +88,8 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void SerializerDefaults()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Equal(ConstructorHandling.AllowNonPublicDefaultConstructor, formatter.JsonSerializer.ConstructorHandling);
-        Assert.Equal(NullValueHandling.Ignore, formatter.JsonSerializer.NullValueHandling);
+        Assert.Equal(ConstructorHandling.AllowNonPublicDefaultConstructor, this.Formatter.JsonSerializer.ConstructorHandling);
+        Assert.Equal(NullValueHandling.Ignore, this.Formatter.JsonSerializer.NullValueHandling);
     }
 
     [Fact]
@@ -124,26 +120,24 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public async Task MultiplexingStream()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Null(formatter.MultiplexingStream);
+        Assert.Null(this.Formatter.MultiplexingStream);
 
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
         MultiplexingStream[] mxStreams = await Task.WhenAll(
             Nerdbank.Streams.MultiplexingStream.CreateAsync(streams.Item1, this.TimeoutToken),
             Nerdbank.Streams.MultiplexingStream.CreateAsync(streams.Item2, this.TimeoutToken));
 
-        formatter.MultiplexingStream = mxStreams[0];
-        Assert.Same(mxStreams[0], formatter.MultiplexingStream);
+        this.Formatter.MultiplexingStream = mxStreams[0];
+        Assert.Same(mxStreams[0], this.Formatter.MultiplexingStream);
 
-        formatter.MultiplexingStream = null;
-        Assert.Null(formatter.MultiplexingStream);
+        this.Formatter.MultiplexingStream = null;
+        Assert.Null(this.Formatter.MultiplexingStream);
     }
 
     [Fact]
     public void ServerReturnsErrorWithNullId()
     {
-        var formatter = new JsonMessageFormatter();
-        JsonRpcMessage? message = formatter.Deserialize(JObject.FromObject(
+        JsonRpcMessage? message = this.Formatter.Deserialize(JObject.FromObject(
             new
             {
                 jsonrpc = "2.0",
@@ -162,8 +156,7 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void ErrorResponseOmitsNullDataField()
     {
-        var formatter = new JsonMessageFormatter();
-        JToken jtoken = formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error" } });
+        JToken jtoken = this.Formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error" } });
         this.Logger.WriteLine(jtoken.ToString(Formatting.Indented));
         Assert.Equal((int)JsonRpcErrorCode.InternalError, jtoken["error"]!["code"]);
         Assert.Null(jtoken["error"]!["data"]); // we're testing for an undefined field -- not a field with a null value.
@@ -172,8 +165,7 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void ErrorResponseIncludesNonNullDataField()
     {
-        var formatter = new JsonMessageFormatter();
-        JToken jtoken = formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error", Data = new { more = "info" } } });
+        JToken jtoken = this.Formatter.Serialize(new JsonRpcError { RequestId = new RequestId(1), Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "some error", Data = new { more = "info" } } });
         this.Logger.WriteLine(jtoken.ToString(Formatting.Indented));
         Assert.Equal((int)JsonRpcErrorCode.InternalError, jtoken["error"]!["code"]);
         Assert.Equal("info", jtoken["error"]!["data"]!.Value<string>("more"));
@@ -182,7 +174,6 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void DeserializingResultWithMissingIdFails()
     {
-        var formatter = new JsonMessageFormatter();
         var resultWithNoId = JObject.FromObject(
             new
             {
@@ -193,14 +184,13 @@ public class JsonMessageFormatterTests : TestBase
                 },
             },
             new JsonSerializer());
-        var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(resultWithNoId)).InnerException?.Message;
+        var message = Assert.Throws<JsonSerializationException>(() => this.Formatter.Deserialize(resultWithNoId)).InnerException?.Message;
         Assert.Contains("\"id\" property missing.", message);
     }
 
     [Fact]
     public void DeserializingErrorWithMissingIdFails()
     {
-        var formatter = new JsonMessageFormatter();
         var errorWithNoId = JObject.FromObject(
             new
             {
@@ -212,7 +202,7 @@ public class JsonMessageFormatterTests : TestBase
                 },
             },
             new JsonSerializer());
-        var message = Assert.Throws<JsonSerializationException>(() => formatter.Deserialize(errorWithNoId)).InnerException?.Message;
+        var message = Assert.Throws<JsonSerializationException>(() => this.Formatter.Deserialize(errorWithNoId)).InnerException?.Message;
         Assert.Contains("\"id\" property missing.", message);
     }
 
@@ -222,102 +212,32 @@ public class JsonMessageFormatterTests : TestBase
     [Fact]
     public void DateParseHandling_Default()
     {
-        var formatter = new JsonMessageFormatter();
-        Assert.Equal(DateParseHandling.None, formatter.JsonSerializer.DateParseHandling);
+        Assert.Equal(DateParseHandling.None, this.Formatter.JsonSerializer.DateParseHandling);
 
         // Verify that the behavior matches the setting.
         string jsonRequest = @"{""jsonrpc"":""2.0"",""method"":""asdf"",""params"":[""2019-01-29T03:37:28.4433841Z""]}";
-        ReadOnlySequence<byte> jsonSequence = new ReadOnlySequence<byte>(formatter.Encoding.GetBytes(jsonRequest));
-        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(jsonSequence);
+        ReadOnlySequence<byte> jsonSequence = new ReadOnlySequence<byte>(this.Formatter.Encoding.GetBytes(jsonRequest));
+        var jsonMessage = (JsonRpcRequest)this.Formatter.Deserialize(jsonSequence);
         Assert.True(jsonMessage.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? value));
         Assert.IsType<string>(value);
         Assert.Equal("2019-01-29T03:37:28.4433841Z", value);
     }
 
     [Fact]
-    public void TopLevelPropertiesCanBeSerialized()
-    {
-        var formatter = new JsonMessageFormatter();
-        IJsonRpcMessageFactory factory = formatter;
-        var jsonRequest = factory.CreateRequestMessage();
-        Assert.NotNull(jsonRequest);
-
-        jsonRequest.Method = "test";
-        Assert.True(jsonRequest.TrySetTopLevelProperty("testProperty", "testValue"));
-        Assert.True(jsonRequest.TrySetTopLevelProperty("objectProperty", new CustomType() { Age = 25 }));
-
-        var messageJsonObject = formatter.Serialize(jsonRequest);
-        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
-
-        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-
-        Assert.True(jsonMessage.TryGetTopLevelProperty("objectProperty", out CustomType? customObject));
-        Assert.Equal(25, customObject?.Age);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesCanBeSerializedInError()
-    {
-        var formatter = new JsonMessageFormatter();
-        IJsonRpcMessageFactory factory = formatter;
-        var jsonError = factory.CreateErrorMessage();
-        jsonError.Error = new JsonRpcError.ErrorDetail() { Message = "test" };
-
-        Assert.True(jsonError.TrySetTopLevelProperty("testProperty", "testValue"));
-
-        var messageJsonObject = formatter.Serialize(jsonError);
-        var jsonMessage = (JsonRpcError)formatter.Deserialize(messageJsonObject);
-
-        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesCanBeSerializedInResult()
-    {
-        var formatter = new JsonMessageFormatter();
-        IJsonRpcMessageFactory factory = formatter;
-        var jsonResult = factory.CreateResultMessage();
-        Assert.True(jsonResult.TrySetTopLevelProperty("testProperty", "testValue"));
-        var messageJsonObject = formatter.Serialize(jsonResult);
-        var jsonMessage = (JsonRpcResult)formatter.Deserialize(messageJsonObject);
-        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Equal("testValue", value);
-    }
-
-    [Fact]
-    public void TopLevelPropertiesWithNullValue()
-    {
-        var formatter = new JsonMessageFormatter();
-        IJsonRpcMessageFactory factory = formatter;
-        var jsonRequest = factory.CreateRequestMessage();
-        Assert.NotNull(jsonRequest);
-
-        jsonRequest.Method = "test";
-        Assert.True(jsonRequest.TrySetTopLevelProperty<string?>("testProperty", null));
-
-        var messageJsonObject = formatter.Serialize(jsonRequest);
-        var jsonMessage = (JsonRpcRequest)formatter.Deserialize(messageJsonObject);
-
-        Assert.True(jsonMessage.TryGetTopLevelProperty("testProperty", out string? value));
-        Assert.Null(value);
-    }
-
-    [Fact]
     public void CustomParametersObjectWithJsonConverterProperties()
     {
         const string localPathUri = "file:///c:/foo";
-        var formatter = new JsonMessageFormatter();
-        JToken token = formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { Uri = new Uri(localPathUri) } });
+        JToken token = this.Formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { Uri = new Uri(localPathUri) } });
         this.Logger.WriteLine(token.ToString(Formatting.Indented));
         Assert.Equal(CustomConverter.CustomPrefix + localPathUri, token["params"]![nameof(CustomTypeWithJsonConverterProperties.Uri)]!.ToString());
 
-        token = formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { } });
+        token = this.Formatter.Serialize(new JsonRpcRequest { Method = "test", Arguments = new CustomTypeWithJsonConverterProperties { } });
         this.Logger.WriteLine(token.ToString(Formatting.Indented));
         Assert.Equal(JTokenType.Null, token["params"]![nameof(CustomTypeWithJsonConverterProperties.Uri)]!.Type);
         Assert.Null(token["params"]![nameof(CustomTypeWithJsonConverterProperties.UriIgnorable)]);
     }
+
+    protected override JsonMessageFormatter CreateFormatter() => new();
 
     private static long MeasureLength(JsonRpcRequest msg, JsonMessageFormatter formatter)
     {
@@ -328,11 +248,6 @@ public class JsonMessageFormatterTests : TestBase
         Assert.Equal(msg.Method, readMsg.Method);
 
         return length;
-    }
-
-    public class CustomType
-    {
-        public int Age { get; set; }
     }
 
     public class CustomTypeWithJsonConverterProperties
