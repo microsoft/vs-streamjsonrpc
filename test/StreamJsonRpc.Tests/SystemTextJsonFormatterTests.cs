@@ -5,9 +5,6 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;
-using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using Xunit.Abstractions;
 
 public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonFormatter>
 {
@@ -16,10 +13,31 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
     {
     }
 
-    protected new SystemTextJsonFormatter Formatter => (SystemTextJsonFormatter)base.Formatter;
+    ////[Fact]
+    ////public void DataContractAttributesWinOverSTJAttributes()
+    ////{
+    ////    this.Formatter = new SystemTextJsonFormatter
+    ////    {
+    ////        JsonSerializerOptions =
+    ////        {
+    ////            TypeInfoResolver = new SystemTextJsonFormatter.DataContractResolver(),
+    ////        },
+    ////    };
+    ////    IJsonRpcMessageFactory messageFactory = this.Formatter;
+    ////    JsonRpcRequest requestMessage = messageFactory.CreateRequestMessage();
+    ////    requestMessage.Method = "test";
+    ////    requestMessage.Arguments = new[] { new DCSClass { C = 1 } };
+
+    ////    using Sequence<byte> sequence = new();
+    ////    this.Formatter.Serialize(sequence, requestMessage);
+
+    ////    using JsonDocument doc = JsonDocument.Parse(sequence);
+    ////    this.Logger.WriteLine(doc.RootElement.ToString());
+    ////    Assert.Equal(1, doc.RootElement.GetProperty("params")[0].GetProperty("A").GetInt32());
+    ////}
 
     [Fact]
-    public void DataContractAttributesWinOverSTJAttributes()
+    public void STJAttributesWinOverDataContractAttributesByDefault()
     {
         IJsonRpcMessageFactory messageFactory = this.Formatter;
         JsonRpcRequest requestMessage = messageFactory.CreateRequestMessage();
@@ -31,7 +49,7 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
 
         using JsonDocument doc = JsonDocument.Parse(sequence);
         this.Logger.WriteLine(doc.RootElement.ToString());
-        Assert.Equal(1, doc.RootElement.GetProperty("params")[0].GetProperty("A").GetInt32());
+        Assert.Equal(1, doc.RootElement.GetProperty("params")[0].GetProperty("B").GetInt32());
     }
 
     [Fact]

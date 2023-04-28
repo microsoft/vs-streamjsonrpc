@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
-using Microsoft;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
 
@@ -21,6 +21,7 @@ public abstract class JsonRpcMessage
     /// </summary>
     /// <value>Defaults to "2.0".</value>
     [DataMember(Name = "jsonrpc", Order = 0, IsRequired = true)]
+    [STJ.JsonPropertyName("jsonrpc"), STJ.JsonPropertyOrder(0), STJ.JsonRequired]
     public string Version { get; set; } = "2.0";
 
     /// <summary>

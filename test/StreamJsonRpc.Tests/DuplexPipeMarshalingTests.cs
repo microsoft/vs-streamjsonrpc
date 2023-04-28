@@ -6,12 +6,9 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.Serialization;
 using System.Text;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
+using STJ = System.Text.Json.Serialization;
 
 public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 {
@@ -1107,6 +1104,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             this.innerStream = innerStream;
         }
 
+        [STJ.JsonPropertyName("innerStream")]
         public Stream InnerStream => this.innerStream;
     }
 }

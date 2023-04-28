@@ -64,9 +64,6 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         {
             // Fields are important because anonymous types are emitted with fields, not properties.
             IncludeFields = true,
-
-            // Provide compatibility with DataContractSerializer attributes by default.
-            TypeInfoResolver = new DataContractResolver(onlyRecognizeDecoratedTypes: true),
         });
     }
 
@@ -1203,34 +1200,55 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    /// <summary>
+    /// Adds compatibility with DataContractSerializer attributes.
+    /// </summary>
+    /// <example>
+    /// To enable this resolver, add the following when creating your <see cref="SystemTextJsonFormatter"/> instance:
+    /// <code><![CDATA[
+    /// var formatter = new SystemTextJsonFormatter
+    /// {
+    ///     JsonSerializerOptions =
+    ///     {
+    ///         TypeInfoResolver = new SystemTextJsonFormatter.DataContractResolver(),
+    ///     },
+    /// };
+    /// ]]></code>
+    /// </example>
     private class DataContractResolver : IJsonTypeInfoResolver
     {
         private readonly ConcurrentDictionary<Type, JsonTypeInfo?> typeInfoCache = new();
 
-        private readonly bool onlyRecognizeDecoratedTypes;
-
-        private readonly DefaultJsonTypeInfoResolver fallbackResolver = new();
-
-        internal DataContractResolver(bool onlyRecognizeDecoratedTypes)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DataContractResolver"/> class.
+        /// </summary>
+        public DataContractResolver()
         {
-            this.onlyRecognizeDecoratedTypes = onlyRecognizeDecoratedTypes;
         }
 
+        /// <summary>
+        /// Gets the fallback resolver to use for types lacking a <see cref="DataContractAttribute"/>.
+        /// </summary>
+        /// <value>The default value is an instance of <see cref="DefaultJsonTypeInfoResolver"/>.</value>
+        public IJsonTypeInfoResolver FallbackResolver { get; init; } = new DefaultJsonTypeInfoResolver();
+
+        /// <inheritdoc/>
         public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
         {
             if (!this.typeInfoCache.TryGetValue(type, out JsonTypeInfo? typeInfo))
             {
                 DataContractAttribute? dataContractAttribute = type.GetCustomAttribute<DataContractAttribute>();
-                if (dataContractAttribute is not null || !this.onlyRecognizeDecoratedTypes)
+                if (dataContractAttribute is not null)
                 {
+                    // PERF: Consider using the generic CreateJsonTypeInfo method to avoid boxing.
+                    // But even so, the JsonPropertyInfo<T> generic type is internal, so we can't avoid boxing of property/field values.
                     typeInfo = JsonTypeInfo.CreateJsonTypeInfo(type, options);
-
                     typeInfo.CreateObject = () => FormatterServices.GetUninitializedObject(type);
                     PopulateMembersInfos(type, typeInfo, dataContractAttribute);
                 }
                 else
                 {
-                    typeInfo = this.fallbackResolver.GetTypeInfo(type, options);
+                    typeInfo = this.FallbackResolver.GetTypeInfo(type, options);
                 }
 
                 this.typeInfoCache.TryAdd(type, typeInfo);
@@ -1280,7 +1298,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             bool TryCreateJsonPropertyInfo(MemberInfo memberInfo, Type propertyType, [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
             {
                 DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
-                if (dataContractAttribute is null || dataMemberAttribute is not null)
+                if ((dataContractAttribute is null || dataMemberAttribute is not null) && memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null)
                 {
                     jsonPropertyInfo = jsonTypeInfo.CreateJsonPropertyInfo(propertyType, dataMemberAttribute?.Name ?? memberInfo.Name);
                     if (dataMemberAttribute is not null)

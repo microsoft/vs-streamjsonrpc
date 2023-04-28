@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using static System.FormattableString;
+using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Reflection;
 
@@ -391,15 +392,19 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
+        [STJ.JsonPropertyName("__jsonrpc_marshaled"), STJ.JsonRequired]
         public int Marshaled { get; set; }
 
         [DataMember(Name = "handle", IsRequired = true)]
+        [STJ.JsonPropertyName("handle"), STJ.JsonRequired]
         public long Handle { get; set; }
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
+        [STJ.JsonPropertyName("lifetime"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
         public string? Lifetime { get; set; }
 
         [DataMember(Name = "optionalInterfaces", EmitDefaultValue = false)]
+        [STJ.JsonPropertyName("optionalInterfaces"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
         public int[]? OptionalInterfacesCodes { get; set; }
     }
 
