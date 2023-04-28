@@ -572,17 +572,15 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         private static int CountArguments(JsonElement arguments)
         {
-            int count = 0;
+            int count;
             switch (arguments.ValueKind)
             {
                 case JsonValueKind.Array:
-                    foreach (JsonElement element in arguments.EnumerateArray())
-                    {
-                        count++;
-                    }
+                    count = arguments.GetArrayLength();
 
                     break;
                 case JsonValueKind.Object:
+                    count = 0;
                     foreach (JsonProperty property in arguments.EnumerateObject())
                     {
                         count++;
@@ -778,7 +776,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
-        private class Converter<T> : JsonConverter<IProgress<T>?>
+        private class Converter<T> : JsonConverter<IProgress<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
 
@@ -787,13 +785,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 this.formatter = formatter;
             }
 
-            public override IProgress<T>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override IProgress<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                if (reader.TokenType == JsonTokenType.Null)
-                {
-                    return null;
-                }
-
                 Assumes.NotNull(this.formatter.JsonRpc);
                 object token = reader.TokenType switch
                 {
@@ -803,13 +796,12 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 };
 
                 bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod is { ClientRequiresNamedArguments: true };
-                return (IProgress<T>?)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeToConvert, clientRequiresNamedArgs);
+                return (IProgress<T>)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeToConvert, clientRequiresNamedArgs);
             }
 
-            public override void Write(Utf8JsonWriter writer, IProgress<T>? value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, IProgress<T> value, JsonSerializerOptions options)
             {
-                long progressId = this.formatter.FormatterProgressTracker.GetTokenForProgress(value!);
-                writer.WriteNumberValue(progressId);
+                writer.WriteNumberValue(this.formatter.FormatterProgressTracker.GetTokenForProgress(value));
             }
         }
     }
@@ -834,7 +826,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
-        private class Converter<T> : JsonConverter<IAsyncEnumerable<T>?>
+        private class Converter<T> : JsonConverter<IAsyncEnumerable<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
 
@@ -843,13 +835,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 this.formatter = formatter;
             }
 
-            public override IAsyncEnumerable<T>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override IAsyncEnumerable<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                if (reader.TokenType == JsonTokenType.Null)
-                {
-                    return null;
-                }
-
                 using JsonDocument wrapper = JsonDocument.ParseValue(ref reader);
                 JsonElement? handle = null;
                 if (wrapper.RootElement.TryGetProperty(MessageFormatterEnumerableTracker.TokenPropertyName, out JsonElement enumToken))
@@ -867,14 +854,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 return this.formatter.EnumerableTracker.CreateEnumerableProxy(handle, prefetchedItems);
             }
 
-            public override void Write(Utf8JsonWriter writer, IAsyncEnumerable<T>? value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, IAsyncEnumerable<T> value, JsonSerializerOptions options)
             {
-                if (value is null)
-                {
-                    writer.WriteNullValue();
-                    return;
-                }
-
                 (IReadOnlyList<T> Elements, bool Finished) prefetched = value.TearOffPrefetchedElements();
                 long token = this.formatter.EnumerableTracker.GetToken(value);
                 writer.WriteStartObject();
@@ -918,7 +899,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 targetOptions)!;
         }
 
-        private class Converter<T> : JsonConverter<T?>
+        private class Converter<T> : JsonConverter<T>
             where T : class
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -932,32 +913,21 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 this.targetOptions = targetOptions;
             }
 
-            public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                if (reader.TokenType == JsonTokenType.Null)
-                {
-                    return null;
-                }
-
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken token = JsonSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(ref reader, options);
-                return (T?)this.formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions);
+                return (T)this.formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions);
             }
 
-            public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
-                if (value is null)
-                {
-                    writer.WriteNullValue();
-                    return;
-                }
-
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.formatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, typeof(T));
                 JsonSerializer.Serialize(writer, token, options);
             }
         }
     }
 
-    private class DuplexPipeConverter : JsonConverter<IDuplexPipe?>
+    private class DuplexPipeConverter : JsonConverter<IDuplexPipe>
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -968,27 +938,18 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override bool CanConvert(Type typeToConvert) => typeof(IDuplexPipe).IsAssignableFrom(typeToConvert);
 
-        public override IDuplexPipe? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override IDuplexPipe Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return reader.TokenType == JsonTokenType.Null
-                ? null
-                : this.formatter.DuplexPipeTracker!.GetPipe(reader.GetUInt64());
+            return this.formatter.DuplexPipeTracker.GetPipe(reader.GetUInt64());
         }
 
-        public override void Write(Utf8JsonWriter writer, IDuplexPipe? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, IDuplexPipe value, JsonSerializerOptions options)
         {
-            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
-            {
-                writer.WriteNumberValue(token);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
+            writer.WriteNumberValue(this.formatter.DuplexPipeTracker.GetULongToken(value).Value);
         }
     }
 
-    private class PipeReaderConverter : JsonConverter<PipeReader?>
+    private class PipeReaderConverter : JsonConverter<PipeReader>
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -999,27 +960,18 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override bool CanConvert(Type typeToConvert) => typeof(PipeReader).IsAssignableFrom(typeToConvert);
 
-        public override PipeReader? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override PipeReader Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return reader.TokenType == JsonTokenType.Null
-                ? null
-                : this.formatter.DuplexPipeTracker!.GetPipeReader(reader.GetUInt64());
+            return this.formatter.DuplexPipeTracker!.GetPipeReader(reader.GetUInt64());
         }
 
-        public override void Write(Utf8JsonWriter writer, PipeReader? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, PipeReader value, JsonSerializerOptions options)
         {
-            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
-            {
-                writer.WriteNumberValue(token);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
+            writer.WriteNumberValue(this.formatter.DuplexPipeTracker.GetULongToken(value).Value);
         }
     }
 
-    private class PipeWriterConverter : JsonConverter<PipeWriter?>
+    private class PipeWriterConverter : JsonConverter<PipeWriter>
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -1030,27 +982,18 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override bool CanConvert(Type typeToConvert) => typeof(PipeWriter).IsAssignableFrom(typeToConvert);
 
-        public override PipeWriter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override PipeWriter Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return reader.TokenType == JsonTokenType.Null
-                ? null
-                : this.formatter.DuplexPipeTracker!.GetPipeWriter(reader.GetUInt64());
+            return this.formatter.DuplexPipeTracker.GetPipeWriter(reader.GetUInt64());
         }
 
-        public override void Write(Utf8JsonWriter writer, PipeWriter? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, PipeWriter value, JsonSerializerOptions options)
         {
-            if (this.formatter.DuplexPipeTracker.GetULongToken(value) is ulong token)
-            {
-                writer.WriteNumberValue(token);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
+            writer.WriteNumberValue(this.formatter.DuplexPipeTracker.GetULongToken(value).Value);
         }
     }
 
-    private class StreamConverter : JsonConverter<Stream?>
+    private class StreamConverter : JsonConverter<Stream>
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -1061,27 +1004,18 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override bool CanConvert(Type typeToConvert) => typeof(Stream).IsAssignableFrom(typeToConvert);
 
-        public override Stream? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override Stream Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return reader.TokenType == JsonTokenType.Null
-                ? null
-                : this.formatter.DuplexPipeTracker!.GetPipe(reader.GetUInt64()).AsStream();
+            return this.formatter.DuplexPipeTracker.GetPipe(reader.GetUInt64()).AsStream();
         }
 
-        public override void Write(Utf8JsonWriter writer, Stream? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, Stream value, JsonSerializerOptions options)
         {
-            if (this.formatter.DuplexPipeTracker.GetULongToken(value?.UsePipe()) is ulong token)
-            {
-                writer.WriteNumberValue(token);
-            }
-            else
-            {
-                writer.WriteNullValue();
-            }
+            writer.WriteNumberValue(this.formatter.DuplexPipeTracker.GetULongToken(value.UsePipe()).Value);
         }
     }
 
-    private class ExceptionConverter : JsonConverter<Exception?>
+    private class ExceptionConverter : JsonConverter<Exception>
     {
         /// <summary>
         /// Tracks recursion count while serializing or deserializing an exception.
@@ -1100,10 +1034,6 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         public override Exception? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             Assumes.NotNull(this.formatter.JsonRpc);
-            if (reader.TokenType == JsonTokenType.Null)
-            {
-                return null;
-            }
 
             exceptionRecursionCounter.Value++;
             try
@@ -1136,14 +1066,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             }
         }
 
-        public override void Write(Utf8JsonWriter writer, Exception? value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, Exception value, JsonSerializerOptions options)
         {
-            if (value is null)
-            {
-                writer.WriteNullValue();
-                return;
-            }
-
             // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
             // Each exception in the russian doll is a new serialization job from its perspective.
             exceptionRecursionCounter.Value++;

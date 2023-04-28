@@ -119,10 +119,16 @@ Check out the `BasicJsonRpc` method in our [MessagePackFormatterTests][MessagePa
 When the remote party does not support MessagePack but does support UTF-8 encoded JSON,
 `SystemTextJsonFormatter` offers the most performant choice available.
 
+This formatter is compatible with remote systems that use `JsonMessageFormatter`, provided they use the default UTF-8 encoding.
+The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
+
 #### When to use `JsonMessageFormatter`
 
 This formatter is the default for legacy reasons, and offers compatibility with data types that can only be serialized with Newtonsoft.Json.
 It produces JSON text and allows configuring the text encoding, with UTF-8 being the default.
+
+This formatter is compatible with remote systems that use `SystemTextJsonFormatter` when using the default UTF-8 encoding.
+The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
 
 [MessagePackLibrary]: https://github.com/neuecc/MessagePack-CSharp
 [MessagePackUsage]: ../src/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
