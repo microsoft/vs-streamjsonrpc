@@ -250,6 +250,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// <param name="parameters">The signature of the method that will be invoked for the incoming request, if applicable.</param>
         public DeserializationTracking(FormatterBase formatter, JsonRpcMessage message, ReadOnlySpan<ParameterInfo> parameters)
         {
+            Requires.NotNull(formatter);
+
             // Deserialization of messages should never occur concurrently for a single instance of a formatter.
             // But we may be nested in another, in which case, this should do nothing.
             if (formatter.DeserializingMessageWithId.IsEmpty)
@@ -292,6 +294,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// <param name="message">The message being serialized.</param>
         public SerializationTracking(FormatterBase formatter, JsonRpcMessage message)
         {
+            Requires.NotNull(formatter);
+
             this.formatter = formatter;
             this.formatter.SerializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
             this.formatter.SerializingRequest = message is JsonRpcRequest;

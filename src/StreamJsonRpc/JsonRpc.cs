@@ -1625,6 +1625,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </remarks>
     protected virtual async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
     {
+        Requires.NotNull(request);
+        Requires.NotNull(targetMethod);
+
         object? result;
         using IDisposable? activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request);
 
