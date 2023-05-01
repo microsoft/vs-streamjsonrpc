@@ -178,6 +178,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
     /// <inheritdoc/>
     public void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
     {
+        Requires.NotNull(message);
+
         using (this.TrackSerialization(message))
         {
             try
