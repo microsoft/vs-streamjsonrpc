@@ -60,10 +60,10 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
     /// </summary>
     public SystemTextJsonFormatter()
     {
+        // Take care with any options set *here* instead of in MassageUserDataSerializerOptions,
+        // because any settings made only here will be erased if the user changes the JsonSerializerOptions property.
         this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new()
         {
-            // Fields are important because anonymous types are emitted with fields, not properties.
-            IncludeFields = true,
         });
     }
 
