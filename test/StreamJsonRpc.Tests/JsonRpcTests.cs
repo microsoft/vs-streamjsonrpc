@@ -78,9 +78,9 @@ public abstract class JsonRpcTests : TestBase
         int AddWithNameSubstitution(int a, int b);
 
         [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
-        int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token);
+        int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYProperties fields, CancellationToken token);
 
-        int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields);
+        int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYProperties fields);
 
         int Add_ExplicitInterfaceImplementation(int a, int b);
 
@@ -1306,7 +1306,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithParameterObject_Fields()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
@@ -1422,20 +1422,20 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObject()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameter", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameter", new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
     [Fact]
     public async Task InvokeWithSingleObjectParameter_ServerMethodExpectsObjectButDoesNotSetDeserializationProperty()
     {
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterWithoutDeserializationProperty), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterWithoutDeserializationProperty), new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken));
     }
 
     [Fact]
     public async Task InvokeWithSingleObjectParameter_ServerMethodExpectsObjectButSendingDifferentType()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterVAndW", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterVAndW", new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
 
         Assert.Equal(0, sum);
     }
@@ -1443,20 +1443,20 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithSingleObjectParameter_ServerMethodSetDeserializationPropertyButExpectMoreThanOneParameter()
     {
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithObjectAndExtraParameters", new XAndYFields { x = 2, y = 5 }, this.TimeoutToken));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(async () => await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithObjectAndExtraParameters", new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken));
     }
 
     [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterAndCancellationToken), new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
     [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken_InterfaceMethodAttributed()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYFields { x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
@@ -1475,7 +1475,7 @@ public abstract class JsonRpcTests : TestBase
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
         rpc.StartListening();
 
-        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYFields { x = 1, y = 2 }));
+        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYProperties { x = 1, y = 2 }));
     }
 
     [Fact]
@@ -1484,7 +1484,7 @@ public abstract class JsonRpcTests : TestBase
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYFieldsWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
 
         await progress.WaitAsync();
 
@@ -1498,7 +1498,7 @@ public abstract class JsonRpcTests : TestBase
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
-        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYFieldsWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
         await progress.WaitAsync();
 
@@ -1524,7 +1524,7 @@ public abstract class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithArrayParameters_SendingWithNullProgressProperty()
     {
-        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYFieldsWithProgress { x = 2, y = 5 } }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYPropertiesWithProgress { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
 
@@ -3191,37 +3191,37 @@ public abstract class JsonRpcTests : TestBase
         }
 
         [JsonRpcMethod("test/MethodWithSingleObjectParameter", UseSingleObjectParameterDeserialization = true)]
-        public static int MethodWithSingleObjectParameter(XAndYFields fields)
+        public static int MethodWithSingleObjectParameter(XAndYProperties fields)
         {
             return fields.x + fields.y;
         }
 
-        public static int MethodWithSingleObjectParameterWithoutDeserializationProperty(XAndYFields fields)
+        public static int MethodWithSingleObjectParameterWithoutDeserializationProperty(XAndYProperties fields)
         {
             return fields.x + fields.y;
         }
 
         [JsonRpcMethod("test/MethodWithSingleObjectParameterVAndW", UseSingleObjectParameterDeserialization = true)]
-        public static int MethodWithSingleObjectParameterVAndW(VAndWFields fields)
+        public static int MethodWithSingleObjectParameterVAndW(VAndWProperties fields)
         {
             return fields.v + fields.w;
         }
 
         [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
-        public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
+        public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYProperties fields, CancellationToken token)
         {
             return fields.x + fields.y;
         }
 
         [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
-        public static int MethodWithSingleObjectParameterWithProgress(XAndYFieldsWithProgress fields)
+        public static int MethodWithSingleObjectParameterWithProgress(XAndYPropertiesWithProgress fields)
         {
             fields.p?.Report(fields.x + fields.y);
             return fields.x + fields.y;
         }
 
         [JsonRpcMethod("test/MethodWithObjectAndExtraParameters", UseSingleObjectParameterDeserialization = true)]
-        public static int MethodWithObjectAndExtraParameters(XAndYFields fields, int anotherParameter)
+        public static int MethodWithObjectAndExtraParameters(XAndYProperties fields, int anotherParameter)
         {
             return fields.x + fields.y + anotherParameter;
         }
@@ -3250,7 +3250,7 @@ public abstract class JsonRpcTests : TestBase
             return 1;
         }
 
-        public int MethodWithParameterContainingIProgress(XAndYFieldsWithProgress p)
+        public int MethodWithParameterContainingIProgress(XAndYPropertiesWithProgress p)
         {
             int sum = p.x + p.y;
             p.p?.Report(1);
@@ -3263,12 +3263,12 @@ public abstract class JsonRpcTests : TestBase
             progress2.Report(2);
         }
 
-        public int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYFields fields, CancellationToken token)
+        public int InstanceMethodWithSingleObjectParameterAndCancellationToken(XAndYProperties fields, CancellationToken token)
         {
             return fields.x + fields.y;
         }
 
-        public int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYFields fields)
+        public int InstanceMethodWithSingleObjectParameterButNoAttribute(XAndYProperties fields)
         {
             return fields.x + fields.y;
         }
@@ -3816,55 +3816,61 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [DataContract]
-    public class XAndYFields
+    public class XAndYProperties
     {
-        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
-#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        // We disable SA1300 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1300 // Accessible properties should begin with upper-case letter
         [DataMember]
-        public int x;
+        public int x { get; set; }
+
         [DataMember]
-        public int y;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+        public int y { get; set; }
+#pragma warning restore SA1300 // Accessible properties should begin with upper-case letter
     }
 
     [DataContract]
-    public class VAndWFields
+    public class VAndWProperties
     {
-        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
-#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        // We disable SA1300 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1300 // Accessible properties should begin with upper-case letter
         [DataMember]
-        public int v;
+        public int v { get; set; }
+
         [DataMember]
-        public int w;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+        public int w { get; set; }
+#pragma warning restore SA1300 // Accessible properties should begin with upper-case letter
     }
 
     [DataContract]
-    public class XAndYFieldsWithProgress
+    public class XAndYPropertiesWithProgress
     {
-        // We disable SA1307 because we must use lowercase members as required to match the parameter names.
-#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        // We disable SA1300 because we must use lowercase members as required to match the parameter names.
+#pragma warning disable SA1300 // Accessible properties should begin with upper-case letter
         [DataMember]
-        public int x;
+        public int x { get; set; }
+
         [DataMember]
-        public int y;
+        public int y { get; set; }
+
         [DataMember]
-        public IProgress<int>? p;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+        public IProgress<int>? p { get; set; }
+#pragma warning restore SA1300 // Accessible properties should begin with upper-case letter
     }
 
     [DataContract]
     public class StrongTypedProgressType
     {
-        // We disable SA1307 because we have to match the members of XAndYFieldsWithProgress exactly.
-#pragma warning disable SA1307 // Accessible fields should begin with upper-case letter
+        // We disable SA1300 because we have to match the members of XAndYFieldsWithProgress exactly.
+#pragma warning disable SA1300 // Accessible properties should begin with upper-case letter
         [DataMember]
-        public int x;
+        public int x { get; set; }
+
         [DataMember]
-        public int y;
+        public int y { get; set; }
+
         [DataMember]
-        public ProgressWithCompletion<int>? p;
-#pragma warning restore SA1307 // Accessible fields should begin with upper-case letter
+        public ProgressWithCompletion<int>? p { get; set; }
+#pragma warning restore SA1300 // Accessible properties should begin with upper-case letter
     }
 
     [DataContract]
