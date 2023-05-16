@@ -45,6 +45,12 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// </summary>
     private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
 
+    private RequestId serializingMessageWithId;
+
+    private RequestId deserializingMessageWithId;
+
+    private bool serializingRequest;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatterBase"/> class.
     /// </summary>
@@ -64,13 +70,13 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     }
 
     /// <inheritdoc  />
-    public RequestId SerializingMessageWithId { get; private set; }
+    RequestId IJsonRpcFormatterState.SerializingMessageWithId => this.serializingMessageWithId;
 
     /// <inheritdoc  />
-    public RequestId DeserializingMessageWithId { get; private set; }
+    RequestId IJsonRpcFormatterState.DeserializingMessageWithId => this.deserializingMessageWithId;
 
     /// <inheritdoc  />
-    public bool SerializingRequest { get; private set; }
+    bool IJsonRpcFormatterState.SerializingRequest => this.serializingRequest;
 
     /// <inheritdoc/>
     JsonRpc IJsonRpcInstanceContainer.Rpc
@@ -254,10 +260,10 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
 
             // Deserialization of messages should never occur concurrently for a single instance of a formatter.
             // But we may be nested in another, in which case, this should do nothing.
-            if (formatter.DeserializingMessageWithId.IsEmpty)
+            if (formatter.deserializingMessageWithId.IsEmpty)
             {
                 formatter.DeserializingMessage = message;
-                formatter.DeserializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
+                formatter.deserializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
 
                 // Consider the attribute applied to the particular overload that we're considering right now.
                 formatter.ApplicableMethodAttributeOnDeserializingMethod = message is JsonRpcRequest { Method: not null } request ? formatter.JsonRpc?.GetJsonRpcMethodAttribute(request.Method, parameters) : null;
@@ -273,7 +279,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         {
             if (this.formatter is not null)
             {
-                this.formatter.DeserializingMessageWithId = default;
+                this.formatter.deserializingMessageWithId = default;
                 this.formatter.DeserializingMessage = null;
                 this.formatter.ApplicableMethodAttributeOnDeserializingMethod = null;
             }
@@ -297,8 +303,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
             Requires.NotNull(formatter);
 
             this.formatter = formatter;
-            this.formatter.SerializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
-            this.formatter.SerializingRequest = message is JsonRpcRequest;
+            this.formatter.serializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
+            this.formatter.serializingRequest = message is JsonRpcRequest;
         }
 
         /// <summary>
@@ -306,8 +312,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// </summary>
         public void Dispose()
         {
-            this.formatter.SerializingMessageWithId = default;
-            this.formatter.SerializingRequest = false;
+            this.formatter.serializingMessageWithId = default;
+            this.formatter.serializingRequest = false;
         }
     }
 

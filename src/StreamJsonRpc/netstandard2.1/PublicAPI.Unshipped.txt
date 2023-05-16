@@ -16,7 +16,6 @@ StreamJsonRpc.FormatterBase.DeserializationTracking
 StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking() -> void
 StreamJsonRpc.FormatterBase.DeserializationTracking.DeserializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message, System.ReadOnlySpan<System.Reflection.ParameterInfo!> parameters) -> void
 StreamJsonRpc.FormatterBase.DeserializationTracking.Dispose() -> void
-StreamJsonRpc.FormatterBase.DeserializingMessageWithId.get -> StreamJsonRpc.RequestId
 StreamJsonRpc.FormatterBase.Dispose() -> void
 StreamJsonRpc.FormatterBase.DuplexPipeTracker.get -> StreamJsonRpc.Reflection.MessageFormatterDuplexPipeTracker!
 StreamJsonRpc.FormatterBase.EnumerableTracker.get -> StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker!
@@ -44,8 +43,6 @@ StreamJsonRpc.FormatterBase.SerializationTracking
 StreamJsonRpc.FormatterBase.SerializationTracking.Dispose() -> void
 StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking() -> void
 StreamJsonRpc.FormatterBase.SerializationTracking.SerializationTracking(StreamJsonRpc.FormatterBase! formatter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
-StreamJsonRpc.FormatterBase.SerializingMessageWithId.get -> StreamJsonRpc.RequestId
-StreamJsonRpc.FormatterBase.SerializingRequest.get -> bool
 StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase
 StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase.OutboundProperties.get -> System.Collections.Generic.Dictionary<string!, (System.Type! DeclaredType, object? Value)>!
 StreamJsonRpc.FormatterBase.TopLevelPropertyBagBase.TopLevelPropertyBagBase(bool isOutbound) -> void
