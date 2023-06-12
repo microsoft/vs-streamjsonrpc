@@ -1,12 +1,12 @@
 # Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
 - package-ecosystem: nuget
   directory: /
   schedule:
-    interval: monthly
+    interval: weekly
   ignore:
   - dependency-name: Newtonsoft.Json # This has to match VS and VS rarely updates it
   - dependency-name: Microsoft.AspNetCore.TestHost # Later versions require .NET Core 3.1, which prevents our testing on net472
