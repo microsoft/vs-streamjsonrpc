@@ -3,7 +3,7 @@
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "omnisharp.enableEditorConfigSupport": true,
-  "omnisharp.enableImportCompletion": true,
   "omnisharp.enableRoslynAnalyzers": true,
-  "dotnet.defaultSolution": "StreamJsonRpc.sln"
+  "dotnet.defaultSolution": "StreamJsonRpc.sln",
+  "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true
 }
