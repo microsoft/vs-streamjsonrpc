@@ -5,7 +5,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 
     <MessagePackVersion>2.5.108</MessagePackVersion>
-    <MicroBuildVersion>2.0.125</MicroBuildVersion>
+    <MicroBuildVersion>2.0.127</MicroBuildVersion>
     <VisualStudioThreadingVersion>17.6.40</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
