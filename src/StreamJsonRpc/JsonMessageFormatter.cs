@@ -89,7 +89,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// <remarks>
     /// This is useful to detect whether <see cref="JsonRpc"/> is operating in its default mode of producing
     /// integer-based values for <see cref="Protocol.JsonRpcRequest.RequestId"/>, which informs us whether we should
-    /// type coerce strings in response messages back to integers to accomodate JSON-RPC servers
+    /// type coerce strings in response messages back to integers to accommodate JSON-RPC servers
     /// that improperly convert our integers to strings.
     /// </remarks>
     private bool observedTransmittedRequestWithStringId;
@@ -580,7 +580,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         return false;
     }
 
-    private JsonRpcRequest ReadRequest(JToken json)
+    private InboundJsonRpcRequest ReadRequest(JToken json)
     {
         Requires.NotNull(json, nameof(json));
 
@@ -594,7 +594,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
             null;
 
-        JsonRpcRequest request = new(this)
+        InboundJsonRpcRequest request = new(this)
         {
             RequestId = id,
             Method = json.Value<string>("method"),
@@ -755,11 +755,11 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     [DataContract]
-    private class JsonRpcRequest : JsonRpcRequestBase
+    private class InboundJsonRpcRequest : JsonRpcRequestBase
     {
         private readonly JsonMessageFormatter formatter;
 
-        internal JsonRpcRequest(JsonMessageFormatter formatter)
+        internal InboundJsonRpcRequest(JsonMessageFormatter formatter)
         {
             this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
         }
@@ -1240,7 +1240,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             }
             else if (!this.interfaceType.IsAssignableFrom(value.GetType()))
             {
-                throw new InvalidOperationException($"Type {value.GetType().FullName} doens't implement {this.interfaceType.FullName}");
+                throw new InvalidOperationException($"Type {value.GetType().FullName} doesn't implement {this.interfaceType.FullName}");
             }
             else
             {
