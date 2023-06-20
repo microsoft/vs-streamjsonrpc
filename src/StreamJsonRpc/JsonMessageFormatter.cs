@@ -303,7 +303,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
         try
         {
-            this.observedTransmittedRequestWithStringId |= message is Protocol.JsonRpcRequest request && request.RequestId.String is not null;
+            this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String is not null;
 
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
             this.TokenizeUserData(message);
@@ -580,7 +580,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         return false;
     }
 
-    private JsonRpcRequest ReadRequest(JToken json)
+    private InboundJsonRpcRequest ReadRequest(JToken json)
     {
         Requires.NotNull(json, nameof(json));
 
@@ -594,7 +594,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :
             null;
 
-        JsonRpcRequest request = new(this)
+        InboundJsonRpcRequest request = new(this)
         {
             RequestId = id,
             Method = json.Value<string>("method"),
@@ -755,11 +755,11 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
     [DataContract]
-    private class JsonRpcRequest : JsonRpcRequestBase
+    private class InboundJsonRpcRequest : JsonRpcRequestBase
     {
         private readonly JsonMessageFormatter formatter;
 
-        internal JsonRpcRequest(JsonMessageFormatter formatter)
+        internal InboundJsonRpcRequest(JsonMessageFormatter formatter)
         {
             this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
         }

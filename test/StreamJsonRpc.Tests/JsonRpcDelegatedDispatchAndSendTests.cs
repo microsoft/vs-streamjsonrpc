@@ -34,7 +34,7 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task DispatchRequestIsPassedCorrectTypeOfRequest()
     {
         await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
-        Assert.Equal("StreamJsonRpc.JsonMessageFormatter+JsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
+        Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
     }
 
     [Fact]
