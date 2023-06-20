@@ -303,7 +303,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
         try
         {
-            this.observedTransmittedRequestWithStringId |= message is JsonRpcRequest request && request.RequestId.String is not null;
+            this.observedTransmittedRequestWithStringId |= message is Protocol.JsonRpcRequest request && request.RequestId.String is not null;
 
             // Pre-tokenize the user data so we can use their custom converters for just their data and not for the base message.
             this.TokenizeUserData(message);
