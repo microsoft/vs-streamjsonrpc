@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
+using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -19,6 +20,11 @@ namespace StreamJsonRpc;
 /// </remarks>
 public class NewLineDelimitedMessageHandler : PipeMessageHandler
 {
+    /// <summary>
+    /// The <see cref="IBufferWriter{T}"/> that buffers an outgoing message.
+    /// </summary>
+    private readonly Sequence<byte> contentSequenceBuilder = new Sequence<byte>(ArrayPool<byte>.Shared);
+
     /// <summary>
     /// Backing field for the <see cref="NewLine"/> property.
     /// </summary>
@@ -105,7 +111,22 @@ public class NewLineDelimitedMessageHandler : PipeMessageHandler
         Assumes.NotNull(this.Writer);
 
         cancellationToken.ThrowIfCancellationRequested();
-        this.Formatter.Serialize(this.Writer, content);
+
+        // Some formatters (e.g. MessagePackFormatter) needs the encoded form in order to produce JSON for tracing.
+        // Other formatters (e.g. JsonMessageFormatter) would prefer to do its own tracing while it still has a JToken.
+        // We only help the formatters that need the byte-encoded form here. The rest can do it themselves.
+        if (this.Formatter is IJsonRpcFormatterTracingCallbacks tracer)
+        {
+            this.Formatter.Serialize(this.contentSequenceBuilder, content);
+            tracer.OnSerializationComplete(content, this.contentSequenceBuilder);
+            this.Writer.Write(this.contentSequenceBuilder);
+            this.contentSequenceBuilder.Reset();
+        }
+        else
+        {
+            this.Formatter.Serialize(this.Writer, content);
+        }
+
         this.Writer.Write(this.newLineBytes.Span);
     }
 
@@ -180,13 +201,6 @@ public class NewLineDelimitedMessageHandler : PipeMessageHandler
     /// </summary>
     private void CommonConstructor()
     {
-        if (this.Formatter is IJsonRpcFormatterTracingCallbacks)
-        {
-            // Such a formatter requires that we make their own written bytes available back to them for logging purposes.
-            // We haven't implemented support for such, and the JsonMessageFormatter doesn't need it, so no need to.
-            throw new NotSupportedException("Formatters that implement " + nameof(IJsonRpcFormatterTracingCallbacks) + " are not supported. Try using " + nameof(JsonMessageFormatter) + ".");
-        }
-
         if (this.Formatter.Encoding.WebName != Encoding.UTF8.WebName)
         {
             throw new NotSupportedException("Only UTF-8 formatters are supported.");

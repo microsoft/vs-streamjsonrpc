@@ -53,11 +53,11 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         Assert.Equal(NewLineDelimitedMessageHandler.NewLineStyle.Lf, handler.NewLine);
     }
 
-    [Fact]
-    public async Task Reading_MixedLineEndings()
+    [Theory, PairwiseData]
+    public async Task Reading_MixedLineEndings(bool useSystemTextJson)
     {
         var pipe = new Pipe();
-        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, new JsonMessageFormatter());
+        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, useSystemTextJson ? new SystemTextJsonFormatter() : new JsonMessageFormatter());
 
         // Send messages with mixed line endings to the handler..
         var testFormatter = new JsonMessageFormatter();
@@ -105,11 +105,11 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         Assert.True(msg is JsonRpcRequest);
     }
 
-    [Fact]
-    public async Task Writing_MixedLineEndings()
+    [Theory, PairwiseData]
+    public async Task Writing_MixedLineEndings(bool useSystemTextJson)
     {
         var pipe = new Pipe();
-        var handler = new NewLineDelimitedMessageHandler(pipe.Writer, null, new JsonMessageFormatter());
+        var handler = new NewLineDelimitedMessageHandler(pipe.Writer, null, useSystemTextJson ? new SystemTextJsonFormatter() : new JsonMessageFormatter());
 
         // Use the handler to write out a couple messages with mixed line endings.
         await handler.WriteAsync(this.mockMessages[0], this.TimeoutToken); // CRLF
@@ -119,6 +119,7 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
 
         using var streamReader = new StreamReader(pipe.Reader.AsStream(), handler.Formatter.Encoding);
         string allMessages = await streamReader.ReadToEndAsync();
+        this.Logger.WriteLine(allMessages);
 
         // Use CR and LF counts to quickly figure whether our new line styles were honored.
         Assert.Equal(3, allMessages.Split('\n').Length);
