@@ -291,7 +291,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     public async Task ServerMethodThatReturnsStream()
     {
         using StreamReader result = new StreamReader(await this.clientRpc.InvokeAsync<Stream>(nameof(Server.ServerMethodThatReturnsStream)));
-        string returnedContent = await result.ReadToEndAsync().ConfigureAwait(false);
+        string returnedContent = await result.ReadToEndAsync();
         Assert.Equal("Streamed bits!", returnedContent);
     }
 
@@ -305,11 +305,11 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         var writeOnlyStream = new StreamWriter(remoteStream);
 
         // Read server message
-        var serverReply = await readOnlyStream.ReadLineAsync().ConfigureAwait(false);
+        var serverReply = await readOnlyStream.ReadLineAsync();
         Assert.Equal("Streamed bits!", serverReply);
 
         // Verify server received client response
-        await writeOnlyStream.WriteLineAsync("Returned bytes").ConfigureAwait(false);
+        await writeOnlyStream.WriteLineAsync("Returned bytes");
         await writeOnlyStream.FlushAsync().WithCancellation(this.TimeoutToken);
 
         Assumes.NotNull(this.server.ChatLaterTask);
