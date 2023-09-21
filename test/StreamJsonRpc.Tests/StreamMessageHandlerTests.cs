@@ -82,7 +82,7 @@ public class StreamMessageHandlerTests : TestBase
     {
         await this.handler.DisposeAsync();
         ValueTask result = this.handler.WriteAsync(CreateNotifyMessage(), this.TimeoutToken);
-        Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await result);
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public class StreamMessageHandlerTests : TestBase
     public async Task WriteAsync_PreferOperationCanceledException_AtEntry()
     {
         await this.handler.DisposeAsync();
-        Assert.Throws<OperationCanceledException>(() => this.handler.WriteAsync(CreateNotifyMessage(), PrecanceledToken).GetAwaiter().GetResult());
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await this.handler.WriteAsync(CreateNotifyMessage(), PrecanceledToken));
     }
 
     /// <summary>
@@ -143,8 +143,8 @@ public class StreamMessageHandlerTests : TestBase
     {
         await this.handler.DisposeAsync();
         ValueTask<JsonRpcMessage?> result = this.handler.ReadAsync(this.TimeoutToken);
-        Assert.Throws<ObjectDisposedException>(() => result.GetAwaiter().GetResult());
-        Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await result);
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await this.handler.ReadAsync(PrecanceledToken));
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public class StreamMessageHandlerTests : TestBase
     public async Task ReadAsync_PreferOperationCanceledException_AtEntry()
     {
         await this.handler.DisposeAsync();
-        Assert.Throws<OperationCanceledException>(() => this.handler.ReadAsync(PrecanceledToken).GetAwaiter().GetResult());
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await this.handler.ReadAsync(PrecanceledToken));
     }
 
     /// <summary>

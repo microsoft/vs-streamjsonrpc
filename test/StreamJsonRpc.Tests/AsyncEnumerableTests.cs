@@ -191,7 +191,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
                 // Within a batch, the MoveNextAsync call should absolutely complete synchronously.
                 ValueTask<bool> valueTask = enumerator.MoveNextAsync();
                 Assert.True(valueTask.IsCompleted);
-                Assert.True(valueTask.GetAwaiter().GetResult());
+                Assert.True(await valueTask);
             }
 
             int number = enumerator.Current;

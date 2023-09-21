@@ -169,8 +169,8 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 
         await Task.WhenAll(resultLocalTask, resultRemoteTask);
 
-        Assert.Equal(5, resultLocalTask.Result);
-        Assert.Equal(2, resultRemoteTask.Result);
+        Assert.Equal(5, await resultLocalTask);
+        Assert.Equal(2, await resultRemoteTask);
     }
 
     [Fact]
@@ -215,8 +215,8 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         await Task.WhenAll(relaySleepCallTask, remoteCallTask);
 
         Assert.Equal(1, LocalOriginTarget.InvokeCount);
-        Assert.Equal(2, relaySleepCallTask.Result);
-        Assert.Equal(3, remoteCallTask.Result);
+        Assert.Equal(2, await relaySleepCallTask);
+        Assert.Equal(3, await remoteCallTask);
     }
 
     [Fact(Skip = "Unstable. See https://github.com/microsoft/vs-streamjsonrpc/issues/336")]
@@ -240,8 +240,8 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         await Task.WhenAll(relayDelayCallTask, remoteCallTask);
 
         Assert.Equal(1, LocalOriginTarget.InvokeCount);
-        Assert.Equal(3, relayDelayCallTask.Result);
-        Assert.Equal(2, remoteCallTask.Result);
+        Assert.Equal(3, await relayDelayCallTask);
+        Assert.Equal(2, await remoteCallTask);
     }
 
     protected virtual IJsonRpcMessageHandler CreateHandler(Stream sending, Stream receiving) => new HeaderDelimitedMessageHandler(sending, receiving, this.CreateFormatter());
