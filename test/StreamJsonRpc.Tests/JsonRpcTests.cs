@@ -2684,7 +2684,7 @@ public abstract class JsonRpcTests : TestBase
     [InlineData("")]
     [InlineData("k=v")]
     [InlineData("k=v,k2=v2")]
-    public async Task CorrelationManagerActivitiesPropagate(string traceState)
+    public async Task CorrelationManagerActivitiesPropagate(string? traceState)
     {
         var strategyListener = new CollectingTraceListener();
         var strategy = new CorrelationManagerTracingStrategy
@@ -2730,7 +2730,7 @@ public abstract class JsonRpcTests : TestBase
     [InlineData("")]
     [InlineData("k=v")]
     [InlineData("k=v,k2=v2")]
-    public async Task ActivityIdActivitiesPropagate(string traceState)
+    public async Task ActivityIdActivitiesPropagate(string? traceState)
     {
         var strategy = new ActivityTracingStrategy();
         this.clientRpc.AllowModificationWhileListening = true;

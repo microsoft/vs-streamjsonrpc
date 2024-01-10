@@ -479,7 +479,7 @@ public abstract class MarshalableProxyTests : TestBase
     {
         var data = new Data();
         await this.client.AcceptGenericProxyAsync(data, false);
-        Assert.Equal(99,  await ((IGenericMarshalable<int>)this.server.ReceivedProxy!).DoSomethingWithParameterAsync(99));
+        Assert.Equal(99, await ((IGenericMarshalable<int>)this.server.ReceivedProxy!).DoSomethingWithParameterAsync(99));
     }
 
     [Fact]
