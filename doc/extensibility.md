@@ -129,7 +129,7 @@ This formatter is compatible with remote systems that use `SystemTextJsonFormatt
 The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
 
 [MessagePackLibrary]: https://github.com/neuecc/MessagePack-CSharp
-[MessagePackUsage]: ../src/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
+[MessagePackUsage]: ../test/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
 [MessagePackFormat]: https://msgpack.org/
 [SystemTextJson]: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/overview
 [spec]: https://www.jsonrpc.org/specification
