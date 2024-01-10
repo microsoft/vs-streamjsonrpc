@@ -84,11 +84,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private readonly RpcTargetInfo rpcTargetInfo;
 
     /// <summary>
-    /// Carries the value from a <see cref="JoinableTaskTokenHeaderName"/> when <see cref="JoinableTaskFactory"/> has not been set.
-    /// </summary>
-    private readonly System.Threading.AsyncLocal<string?> joinableTaskTokenWithoutJtf = new();
-
-    /// <summary>
     /// List of remote RPC targets to call if connection should be relayed.
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
@@ -121,6 +116,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private JoinableTaskFactory? joinableTaskFactory;
+
+    /// <summary>
+    /// Backing field for the <see cref="JoinableTaskTokenTracker"/> property.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private JoinableTaskTokenTracker joinableTaskTracker = JoinableTaskTokenTracker.Default;
 
     /// <summary>
     /// Backing field for the <see cref="CancellationStrategy"/> property.
@@ -457,6 +458,33 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             this.ThrowIfConfigurationLocked();
             this.joinableTaskFactory = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the <see cref="JoinableTaskTokenTracker"/> to use to correlate <see cref="JoinableTask"/> tokens.
+    /// This property is only applicable when <see cref="JoinableTaskFactory"/> is <see langword="null" />.
+    /// </summary>
+    /// <value>Defaults to an instance shared with all other <see cref="JsonRpc"/> instances that do not otherwise set this value explicitly.</value>
+    /// <remarks>
+    /// <para>
+    /// This property is ignored when <see cref="JoinableTaskFactory"/> is set to a non-<see langword="null" /> value.
+    /// </para>
+    /// <para>
+    /// This property should only be set explicitly when in an advanced scenario where one process has many <see cref="JsonRpc"/> instances
+    /// that interact with multiple remote processes such that avoiding correlating <see cref="JoinableTask"/> tokens across <see cref="JsonRpc"/> instances
+    /// is undesirable.
+    /// </para>
+    /// </remarks>
+    public JoinableTaskTokenTracker JoinableTaskTracker
+    {
+        get => this.joinableTaskTracker;
+
+        set
+        {
+            Requires.NotNull(value, nameof(value));
+            this.ThrowIfConfigurationLocked();
+            this.joinableTaskTracker = value;
         }
     }
 
@@ -1928,7 +1956,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                         JsonRpcEventSource.Instance.SendingRequest(request.RequestId.NumberIfPossibleForEvent, request.Method, JsonRpcEventSource.GetArgumentsString(request));
                     }
 
-                    string? parentToken = this.JoinableTaskFactory is not null ? this.JoinableTaskFactory.Context.Capture() : this.joinableTaskTokenWithoutJtf.Value;
+                    string? parentToken = this.JoinableTaskFactory is not null ? this.JoinableTaskFactory.Context.Capture() : this.JoinableTaskTracker.Token;
                     if (parentToken is not null)
                     {
                         request.TrySetTopLevelProperty(JoinableTaskTokenHeaderName, parentToken);
@@ -2087,7 +2115,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 request.TryGetTopLevelProperty<string>(JoinableTaskTokenHeaderName, out string? parentToken);
                 if (this.JoinableTaskFactory is null)
                 {
-                    this.joinableTaskTokenWithoutJtf.Value = parentToken;
+                    this.JoinableTaskTracker.Token = parentToken;
                 }
 
                 if (this.JoinableTaskFactory is null || parentToken is null)
@@ -2690,6 +2718,30 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         if (this.HasListeningStarted && !this.AllowModificationWhileListening)
         {
             Verify.FailOperation(Resources.MustNotBeListening);
+        }
+    }
+
+    /// <summary>
+    /// An object that correlates <see cref="JoinableTask"/> tokens within and between <see cref="JsonRpc"/> instances
+    /// within a process that does <em>not</em> use <see cref="JoinableTaskFactory"/>,
+    /// for purposes of mitigating deadlocks in processes that <em>do</em> use <see cref="JoinableTaskFactory"/>.
+    /// </summary>
+    public class JoinableTaskTokenTracker
+    {
+        /// <summary>
+        /// The default instance to use.
+        /// </summary>
+        internal static readonly JoinableTaskTokenTracker Default = new JoinableTaskTokenTracker();
+
+        /// <summary>
+        /// Carries the value from a <see cref="JoinableTaskTokenHeaderName"/> when <see cref="JoinableTaskFactory"/> has not been set.
+        /// </summary>
+        private readonly System.Threading.AsyncLocal<string?> joinableTaskTokenWithoutJtf = new();
+
+        internal string? Token
+        {
+            get => this.joinableTaskTokenWithoutJtf.Value;
+            set => this.joinableTaskTokenWithoutJtf.Value = value;
         }
     }
 
