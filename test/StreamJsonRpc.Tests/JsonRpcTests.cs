@@ -2964,7 +2964,23 @@ public abstract class JsonRpcTests : TestBase
         base.Dispose(disposing);
     }
 
-    protected abstract void InitializeFormattersAndHandlers(bool controlledFlushingClient = false);
+    protected void InitializeFormattersAndHandlers(bool controlledFlushingClient = false) => this.InitializeFormattersAndHandlers(
+        this.serverStream,
+        this.clientStream,
+        out this.serverMessageFormatter,
+        out this.clientMessageFormatter,
+        out this.serverMessageHandler,
+        out this.clientMessageHandler,
+        controlledFlushingClient);
+
+    protected abstract void InitializeFormattersAndHandlers(
+        Stream serverStream,
+        Stream clientStream,
+        out IJsonRpcMessageFormatter serverMessageFormatter,
+        out IJsonRpcMessageFormatter clientMessageFormatter,
+        out IJsonRpcMessageHandler serverMessageHandler,
+        out IJsonRpcMessageHandler clientMessageHandler,
+        bool controlledFlushingClient);
 
     protected override Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = 10)
     {

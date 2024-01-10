@@ -25,9 +25,16 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
+    protected override void InitializeFormattersAndHandlers(
+        Stream serverStream,
+        Stream clientStream,
+        out IJsonRpcMessageFormatter serverMessageFormatter,
+        out IJsonRpcMessageFormatter clientMessageFormatter,
+        out IJsonRpcMessageHandler serverMessageHandler,
+        out IJsonRpcMessageHandler clientMessageHandler,
+        bool controlledFlushingClient)
     {
-        this.clientMessageFormatter = new SystemTextJsonFormatter
+        clientMessageFormatter = new SystemTextJsonFormatter
         {
             JsonSerializerOptions =
             {
@@ -37,7 +44,7 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
                 },
             },
         };
-        this.serverMessageFormatter = new SystemTextJsonFormatter
+        serverMessageFormatter = new SystemTextJsonFormatter
         {
             JsonSerializerOptions =
             {
@@ -48,10 +55,10 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
             },
         };
 
-        this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = controlledFlushingClient
-            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
-            : new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        serverMessageHandler = new HeaderDelimitedMessageHandler(serverStream, serverStream, serverMessageFormatter);
+        clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
+            : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
 
     protected class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
