@@ -2851,10 +2851,11 @@ public abstract class JsonRpcTests : TestBase
     }
 
     /// <summary>
-    /// Asserts that when both client and server are JTF-aware, that no deadlock occurs when the client blocks the main thread that the server needs.
+    /// Asserts that when both client and server are JTF-aware (and in the same process),
+    /// that no deadlock occurs when the client blocks the main thread that the server needs.
     /// </summary>
     [UIFact]
-    public void JoinableTaskFactory_IntegrationBothSides()
+    public void JoinableTaskFactory_IntegrationBothSides_IntraProcess()
     {
         // Set up a main thread and JoinableTaskContext.
         JoinableTaskContext jtc = new();
@@ -2877,7 +2878,8 @@ public abstract class JsonRpcTests : TestBase
 
     /// <summary>
     /// Asserts that when only the client is JTF-aware, that no deadlock occurs when the client blocks the main thread
-    /// and the server calls back to the client for something that needs the main thread as part of processing the client's request.
+    /// and the server calls back to the client for something that needs the main thread as part of processing the client's request
+    /// via the <em>same</em> <see cref="JsonRpc"/> instance.
     /// </summary>
     [UIFact]
     public void JoinableTaskFactory_IntegrationClientSideOnly()
@@ -2885,7 +2887,7 @@ public abstract class JsonRpcTests : TestBase
         // Set up a main thread and JoinableTaskContext.
         JoinableTaskContext jtc = new();
 
-        // Configure the client and server to understand JTF.
+        // Configure the client (only) to understand JTF.
         this.clientRpc.AllowModificationWhileListening = true;
         this.clientRpc.JoinableTaskFactory = jtc.Factory;
 
@@ -2901,6 +2903,61 @@ public abstract class JsonRpcTests : TestBase
         {
             await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.Callback), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
         });
+    }
+
+    /// <summary>
+    /// Asserts that when only the client is JTF-aware, that no deadlock occurs when the client blocks the main thread
+    /// and the server calls "back" to the client for something that needs the main thread as part of processing the client's request
+    /// <em>using a different <see cref="JsonRpc"/> connection</em>.
+    /// </summary>
+    [UIFact]
+    public void JoinableTaskFactory_IntegrationClientSideOnly_ManyConnections()
+    {
+        // Set up a main thread and JoinableTaskContext.
+        JoinableTaskContext jtc = new();
+
+        // Configure the client (only) to understand JTF.
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.JoinableTaskFactory = jtc.Factory;
+
+        // Set up the alternate JsonRpc connection.
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.InitializeFormattersAndHandlers(
+            streams.Item1,
+            streams.Item2,
+            out _,
+            out _,
+            out IJsonRpcMessageHandler alternateServerHandler,
+            out IJsonRpcMessageHandler alternateClientHandler,
+            controlledFlushingClient: false);
+        JsonRpc alternateServerRpc = new(alternateServerHandler, this.server);
+        JsonRpc alternateClientRpc = new(alternateClientHandler) { JoinableTaskFactory = jtc.Factory };
+        this.server.AlternateRpc = alternateServerRpc;
+
+        alternateServerRpc.TraceSource = new TraceSource("ALT Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        alternateClientRpc.TraceSource = new TraceSource("ALT Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+
+        alternateServerRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        alternateClientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+
+        // Arrange for a method on the simulated client that requires the UI thread, and that the server will call back to.
+        bool clientCalledBackViaAlternate = false;
+        const string CallbackMethodName = "ClientNeedsMainThread";
+        alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
+        {
+            await jtc.Factory.SwitchToMainThreadAsync();
+            clientCalledBackViaAlternate = true;
+        }));
+
+        alternateServerRpc.StartListening();
+        alternateClientRpc.StartListening();
+
+        jtc.Factory.Run(async delegate
+        {
+            await this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.CallbackOnAnotherConnection), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(this.TimeoutToken);
+        });
+
+        Assert.True(clientCalledBackViaAlternate);
     }
 
     [Fact]
@@ -3168,6 +3225,8 @@ public abstract class JsonRpcTests : TestBase
         internal JsonRpcTests? Tests { get; set; }
 
         internal TraceSource? TraceSource { get; set; }
+
+        internal JsonRpc? AlternateRpc { get; set; }
 
         internal JoinableTaskFactory? JoinableTaskFactory { get; set; }
 
@@ -3456,6 +3515,21 @@ public abstract class JsonRpcTests : TestBase
             {
                 Verify.Operation(this.Tests is object, $"Set the {nameof(this.Tests)} property first.");
                 await this.Tests.serverRpc.InvokeWithCancellationAsync(clientCallbackMethod, cancellationToken: cancellationToken);
+                this.ServerMethodCompleted.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                this.ServerMethodCompleted.SetException(ex);
+                throw;
+            }
+        }
+
+        public async Task CallbackOnAnotherConnection(string clientCallbackMethod, CancellationToken cancellationToken)
+        {
+            try
+            {
+                Verify.Operation(this.AlternateRpc is object, $"Set the {nameof(this.AlternateRpc)} field first.");
+                await this.AlternateRpc.InvokeWithCancellationAsync(clientCallbackMethod, cancellationToken: cancellationToken);
                 this.ServerMethodCompleted.SetResult(null);
             }
             catch (Exception ex)
