@@ -3,8 +3,6 @@
 
 using System.Text;
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit.Abstractions;
 
 public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
 {
@@ -13,13 +11,20 @@ public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
     {
     }
 
-    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
+    protected override void InitializeFormattersAndHandlers(
+        Stream serverStream,
+        Stream clientStream,
+        out IJsonRpcMessageFormatter serverMessageFormatter,
+        out IJsonRpcMessageFormatter clientMessageFormatter,
+        out IJsonRpcMessageHandler serverMessageHandler,
+        out IJsonRpcMessageHandler clientMessageHandler,
+        bool controlledFlushingClient)
     {
-        this.serverMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        serverMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
         {
             JsonSerializer =
             {
-                TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects,
+                TypeNameHandling = TypeNameHandling.Objects,
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
                 Converters =
                 {
@@ -29,11 +34,11 @@ public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
             },
         };
 
-        this.clientMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        clientMessageFormatter = new JsonMessageFormatter(new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
         {
             JsonSerializer =
             {
-                TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects,
+                TypeNameHandling = TypeNameHandling.Objects,
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
                 Converters =
                 {
@@ -43,9 +48,9 @@ public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
             },
         };
 
-        this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = controlledFlushingClient
-            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
-            : new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        serverMessageHandler = new HeaderDelimitedMessageHandler(serverStream, serverStream, serverMessageFormatter);
+        clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
+            : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
 }

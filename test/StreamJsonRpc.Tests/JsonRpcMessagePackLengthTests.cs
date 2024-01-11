@@ -383,22 +383,29 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.True(await clientProxy.IsExtensionArgNonNull(new CustomExtensionType()));
     }
 
-    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
+    protected override void InitializeFormattersAndHandlers(
+        Stream serverStream,
+        Stream clientStream,
+        out IJsonRpcMessageFormatter serverMessageFormatter,
+        out IJsonRpcMessageFormatter clientMessageFormatter,
+        out IJsonRpcMessageHandler serverMessageHandler,
+        out IJsonRpcMessageHandler clientMessageHandler,
+        bool controlledFlushingClient)
     {
-        this.serverMessageFormatter = new MessagePackFormatter();
-        this.clientMessageFormatter = new MessagePackFormatter();
+        serverMessageFormatter = new MessagePackFormatter();
+        clientMessageFormatter = new MessagePackFormatter();
 
         var options = MessagePackFormatter.DefaultUserDataSerializationOptions
             .WithResolver(CompositeResolver.Create(
                 new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter(), new CustomExtensionFormatter() },
                 new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
-        ((MessagePackFormatter)this.serverMessageFormatter).SetMessagePackSerializerOptions(options);
-        ((MessagePackFormatter)this.clientMessageFormatter).SetMessagePackSerializerOptions(options);
+        ((MessagePackFormatter)serverMessageFormatter).SetMessagePackSerializerOptions(options);
+        ((MessagePackFormatter)clientMessageFormatter).SetMessagePackSerializerOptions(options);
 
-        this.serverMessageHandler = new LengthHeaderMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = controlledFlushingClient
-            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
-            : new LengthHeaderMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        serverMessageHandler = new LengthHeaderMessageHandler(serverStream, serverStream, serverMessageFormatter);
+        clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
+            : new LengthHeaderMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
 
     [MessagePackObject]

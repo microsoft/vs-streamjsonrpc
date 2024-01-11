@@ -125,9 +125,16 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
         Assert.Same(completion, this.serverRpc.Completion);
     }
 
-    protected override void InitializeFormattersAndHandlers(bool controlledFlushingClient)
+    protected override void InitializeFormattersAndHandlers(
+        Stream serverStream,
+        Stream clientStream,
+        out IJsonRpcMessageFormatter serverMessageFormatter,
+        out IJsonRpcMessageFormatter clientMessageFormatter,
+        out IJsonRpcMessageHandler serverMessageHandler,
+        out IJsonRpcMessageHandler clientMessageHandler,
+        bool controlledFlushingClient)
     {
-        this.clientMessageFormatter = new JsonMessageFormatter
+        clientMessageFormatter = new JsonMessageFormatter
         {
             JsonSerializer =
             {
@@ -138,7 +145,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
                 },
             },
         };
-        this.serverMessageFormatter = new JsonMessageFormatter
+        serverMessageFormatter = new JsonMessageFormatter
         {
             JsonSerializer =
             {
@@ -150,10 +157,10 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
             },
         };
 
-        this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
-        this.clientMessageHandler = controlledFlushingClient
-            ? new DelayedFlushingHandler(this.clientStream, this.clientMessageFormatter)
-            : new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);
+        serverMessageHandler = new HeaderDelimitedMessageHandler(serverStream, serverStream, serverMessageFormatter);
+        clientMessageHandler = controlledFlushingClient
+            ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
+            : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
 
     protected class UnserializableTypeConverter : JsonConverter
