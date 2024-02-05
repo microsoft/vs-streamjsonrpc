@@ -26,11 +26,10 @@ steps:
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
   continueOnError: true
 
-- task: PublishBuildArtifacts@1
+- task: 1ES.PublishPipelineArtifact@1
   inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/InsertionOutputs
-    ArtifactName: InsertionOutputs
-    ArtifactType: Container
+    targetPath: $(Build.ArtifactStagingDirectory)/InsertionOutputs
+    artifactName: InsertionOutputs
   displayName: 📢 Publish InsertionOutputs as Azure DevOps artifacts
   condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
 
