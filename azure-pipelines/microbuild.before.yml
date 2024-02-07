@@ -37,9 +37,4 @@ steps:
   inputs:
     languages: $(LocLanguages)
   displayName: 🔧 Install MicroBuild Localization Plugin
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
-
-- task: MicroBuildLocalizationPlugin@4
-  inputs:
-    languages: $(LocLanguages)
-  displayName: 🔧 Install MicroBuild Localization Plugin
+  condition: succeeded()
