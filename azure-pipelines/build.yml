@@ -66,6 +66,13 @@ jobs:
           enabled: false
           ${{ if eq(variables['Build.Reason'], 'pullRequest') }}:
             languages: ENU,JPN
+        optprof:
+          enabled: true
+          ProfilingInputsDropName: ProfilingInputs/$(System.TeamProject)/$(Build.Repository.Name)/$(Build.SourceBranchName)/$(Build.BuildNumber)
+          OptimizationInputsLookupMethod: DropPrefix
+          DropNamePrefix: OptimizationInputs/$(System.TeamProject)/$(Build.Repository.Name)
+          ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
+          AccessToken: $(System.AccessToken)
       outputParentDirectory: $(Build.ArtifactStagingDirectory)
       outputs:
       - ${{ each artifact_name in parameters.artifact_names }}:
@@ -78,11 +85,13 @@ jobs:
         displayName: 📢 Publish VSInsertion-Windows
         targetPath: $(Build.ArtifactStagingDirectory)/VSInsertion-Windows
         artifactName: VSInsertion-Windows
-  steps:
+
+  mbpresteps:
   - checkout: self
     fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
     clean: true
 
+  steps:
   - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
     - template: schedule-only-steps.yml
 
