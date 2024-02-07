@@ -6,6 +6,13 @@ steps:
 - powershell: echo "##vso[build.addbuildtag]compliance"
   displayName: 🏷️ Tag run with 'compliance'
 
+- task: PoliCheck@2
+  displayName: 🔍 Run PoliCheck
+  inputs:
+    targetType: F
+    targetArgument: $(System.DefaultWorkingDirectory)
+    optionsUEPATH: $(System.DefaultWorkingDirectory)\azure-pipelines\PoliCheckExclusions.xml
+
 - task: CopyFiles@2
   displayName: 📂 Collect APIScan inputs
   inputs:
@@ -30,27 +37,3 @@ steps:
   condition: and(succeeded(), ${{ parameters.EnableAPIScan }}, ne(variables.ApiScanClientId, ''))
   env:
     AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
-
-- task: SdtReport@2
-  displayName: 📃 Create Security Analysis Report
-  inputs:
-    GdnExportAllTools: true
-
-- task: PublishSecurityAnalysisLogs@3
-  displayName: 📢 Publish Code Analysis Logs
-  inputs:
-    ArtifactName: CodeAnalysisLogs
-    ArtifactType: Container
-    PublishProcessedResults: true
-    AllTools: true
-    ToolLogsNotFoundAction: Standard
-
-- task: PostAnalysis@2
-  displayName: 🏋️‍♀️ Break on compliance issues
-  inputs:
-    GdnBreakAllTools: true
-    GdnBreakGdnToolBinSkimSeverity: Warning
-    GdnBreakSuppressionFiles: $(System.DefaultWorkingDirectory)/azure-pipelines/falsepositives.gdnsuppress
-    GdnBreakSuppressionSets: falsepositives
-    GdnBreakOutputSuppressionFile: $(Build.ArtifactStagingDirectory)/guardian_failures_as_suppressions/
-    GdnBreakOutputSuppressionSet: falsepositives
