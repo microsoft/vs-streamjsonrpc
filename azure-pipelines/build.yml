@@ -16,6 +16,7 @@ parameters:
     vmImage: macOS-12
 - name: ShouldSkipOptimize
   type: boolean
+  default: false
 - name: includeMacOS
   type: boolean
 - name: OptProf
@@ -94,10 +95,12 @@ jobs:
     - template: microbuild.before.yml
       parameters:
         ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
+        OptProf: ${{ parameters.OptProf }}
 
   - template: dotnet.yml
     parameters:
       RunTests: ${{ parameters.RunTests }}
+      OptProf: ${{ parameters.OptProf }}
 
   - ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
     - template: microbuild.after.yml

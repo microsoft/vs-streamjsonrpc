@@ -120,6 +120,7 @@ extends:
               name: Azure Pipelines
               vmImage: macOS-12
               os: macOS
+            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
             includeMacOS: ${{ parameters.includeMacOS }}
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self

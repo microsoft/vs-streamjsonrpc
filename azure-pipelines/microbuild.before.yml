@@ -1,5 +1,8 @@
 parameters:
 - name: ShouldSkipOptimize
+- name: OptProf
+  type: boolean
+  default: false
 
 steps:
 - task: ComponentGovernanceComponentDetection@0
@@ -21,3 +24,16 @@ steps:
     ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
     AccessToken: $(System.AccessToken)
   displayName: 🔧 Install OptProf Plugin
+
+# We have to install these plugins ourselves for Optprof runs because those pipelines haven't migrated to 1ES PT yet.
+- ${{ if parameters.OptProf }}:
+  - task: MicroBuildSigningPlugin@4
+    inputs:
+      signType: Real
+      zipSources: false
+    displayName: 🔧 Install MicroBuild Signing Plugin
+
+  - task: MicroBuildLocalizationPlugin@3
+    inputs:
+      languages: $(LocLanguages)
+    displayName: 🔧 Install MicroBuild Localization Plugin
