@@ -20,11 +20,10 @@ schedules:
     - main
 
 parameters:
-- name: SignTypeSelection
-  displayName: Sign type
-  type: string
-  default: Test
-  values: [ 'Test', 'Real' ]
+- name: RealSign
+  displayName: Real sign?
+  type: boolean
+  default: false
 - name: ShouldSkipOptimize
   displayName: Skip OptProf optimization
   type: boolean
@@ -53,6 +52,9 @@ resources:
     name: 1ESPipelineTemplates/MicroBuildTemplate
     ref: refs/tags/release
 
+variables:
+- template: GlobalVariables.yml
+
 extends:
   ${{ if parameters.EnableCompliance }}:
     template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
@@ -65,12 +67,12 @@ extends:
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
           BuildConfiguration: Release
           NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages/
-          SignTypeSelection: ${{ parameters.SignTypeSelection }}
           Packaging.EnableSBOMSigning: false
           Codeql.Enabled: true
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
+            RealSign: ${{ parameters.RealSign }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
@@ -87,23 +89,27 @@ extends:
             includeMacOS: ${{ parameters.includeMacOS }}
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
+        parameters:
+          RealSign: ${{ parameters.RealSign }}
   ${{ else }}:
     template: azure-pipelines/MicroBuild.1ES.Unofficial.yml@MicroBuildTemplate
     parameters:
       sdl:
         sourceAnalysisPool: VSEngSS-MicroBuild2022-1ES
+        credscan:
+          enabled: false
       stages:
       - stage: Build
         variables:
           DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
           BuildConfiguration: Release
           NUGET_PACKAGES: $(Agent.TempDirectory)/.nuget/packages/
-          SignTypeSelection: ${{ parameters.SignTypeSelection }}
           Packaging.EnableSBOMSigning: false
           Codeql.Enabled: true
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
+            RealSign: ${{ parameters.RealSign }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
@@ -116,6 +122,9 @@ extends:
               name: Azure Pipelines
               vmImage: macOS-12
               os: macOS
+            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
             includeMacOS: ${{ parameters.includeMacOS }}
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
+        parameters:
+          RealSign: ${{ parameters.RealSign }}
