@@ -1,0 +1,13 @@
+{
+  "tool": "Credential Scanner",
+  "suppressions": [
+    {
+      "folder": "testResults-Windows",
+      "_justification": "Test logs never include credentials, but false positives abound."
+    },
+    {
+      "folder": "test_logs",
+      "_justification": "Test logs never include credentials, but false positives abound."
+    }
+ ]
+}
