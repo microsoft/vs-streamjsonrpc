@@ -11,17 +11,17 @@ using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 {
-    protected readonly Server server = new Server();
+    protected readonly Server server = new();
+    protected readonly Client client = new();
+
     protected JsonRpc serverRpc;
     protected IJsonRpcMessageFormatter serverMessageFormatter;
 
     protected Lazy<IServer> clientProxy;
+    protected Lazy<IClient> serverProxy;
     protected JsonRpc clientRpc;
     protected IJsonRpcMessageFormatter clientMessageFormatter;
 
@@ -73,6 +73,13 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         Task PassInNumbersAndIgnoreAsync(IAsyncEnumerable<int> numbers, CancellationToken cancellationToken);
 
         Task PassInNumbersOnlyStartEnumerationAsync(IAsyncEnumerable<int> numbers, CancellationToken cancellationToken);
+
+        IAsyncEnumerable<string> CallbackClientAndYieldOneValueAsync(CancellationToken cancellationToken);
+    }
+
+    protected interface IClient
+    {
+        Task DoSomethingAsync(CancellationToken cancellationToken);
     }
 
     public Task InitializeAsync()
@@ -85,7 +92,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         var clientHandler = new LengthHeaderMessageHandler(streams.Item2.UsePipe(), this.clientMessageFormatter);
 
         this.serverRpc = new JsonRpc(serverHandler, this.server);
-        this.clientRpc = new JsonRpc(clientHandler);
+        this.clientRpc = new JsonRpc(clientHandler, this.client);
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
@@ -97,6 +104,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         this.clientRpc.StartListening();
 
         this.clientProxy = new Lazy<IServer>(() => this.clientRpc.Attach<IServer>());
+        this.serverProxy = new Lazy<IClient>(() => this.serverRpc.Attach<IClient>());
 
         return Task.CompletedTask;
     }
@@ -530,6 +538,17 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         Assert.Equal(Server.FailByDesignExceptionMessage, ex.Message);
     }
 
+    [Fact]
+    public async Task EnumerableIdDisposal()
+    {
+        // This test is specially arranged to create two RPC calls going opposite directions, with the same request ID.
+        // By doing so, we can verify that the server doesn't dispose the enumerable until the full sequence is sent to the client.
+        this.server.Client = this.serverProxy.Value;
+        await foreach (string s in this.clientProxy.Value.CallbackClientAndYieldOneValueAsync(this.TimeoutToken))
+        {
+        }
+    }
+
     protected abstract void InitializeFormattersAndHandlers();
 
     private static void AssertCollectedObject(WeakReference weakReference)
@@ -620,6 +639,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         public const int MaxReadAhead = 4;
 
         internal const string FailByDesignExceptionMessage = "Fail by design";
+
+        public IClient? Client { get; set; }
 
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
@@ -745,6 +766,18 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             });
         }
 
+        public async IAsyncEnumerable<string> CallbackClientAndYieldOneValueAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            if (this.Client is null)
+            {
+                throw new InvalidOperationException("Client must be set before calling this method.");
+            }
+
+            // We deliberately make a callback right away such that the request ID for it collides with the request ID that served THIS request.
+            await this.Client.DoSomethingAsync(cancellationToken);
+            yield return "Hello";
+        }
+
         private async IAsyncEnumerable<int> GetNumbersAsync(int totalCount, bool endWithException, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             for (int i = 1; i <= totalCount; i++)
@@ -761,6 +794,11 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
                 throw new InvalidOperationException(FailByDesignExceptionMessage);
             }
         }
+    }
+
+    protected class Client : IClient
+    {
+        public Task DoSomethingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     [DataContract]

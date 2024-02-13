@@ -39,8 +39,15 @@ public class MessageFormatterEnumerableTracker
     private static readonly MethodInfo OnDisposeAsyncMethodInfo = typeof(MessageFormatterEnumerableTracker).GetMethod(nameof(OnDisposeAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
     /// <summary>
-    /// Dictionary used to map the outbound request id to their progress info so that the progress objects are cleaned after getting the final response.
+    /// Dictionary used to map the outbound request id to the list of tokens that track <see cref="IAsyncEnumerable{T}"/> state machines it owns
+    /// so that the state machines are cleaned after getting the final response.
     /// </summary>
+    /// <remarks>
+    /// Note that we only track OUTBOUND REQUESTS that carry enumerables here.
+    /// OUTBOUND RESPONSES that carry enumerables are not tracked except in <see cref="generatorsByToken"/>.
+    /// This means that responses that carry enumerables will not be cleaned up if the response is never processed by the client
+    /// until the connection dies.
+    /// </remarks>
     private readonly Dictionary<RequestId, ImmutableList<long>> generatorTokensByRequestId = new Dictionary<RequestId, ImmutableList<long>>();
 
     private readonly Dictionary<long, IGeneratingEnumeratorTracker> generatorsByToken = new Dictionary<long, IGeneratingEnumeratorTracker>();
@@ -116,12 +123,20 @@ public class MessageFormatterEnumerableTracker
         long handle = Interlocked.Increment(ref this.nextToken);
         lock (this.syncObject)
         {
-            if (!this.generatorTokensByRequestId.TryGetValue(this.formatterState.SerializingMessageWithId, out ImmutableList<long>? tokens))
+            // We only track the token if we are serializing a request, since per our documentation,
+            // we forcibly terminate the enumerable at the client side when the request has been responded to.
+            // Storing request IDs for outbound *responses* that carry enumerables would lead to them being disposed of
+            // when an INBOUND response with the same ID is received.
+            if (this.formatterState.SerializingRequest)
             {
-                tokens = ImmutableList<long>.Empty;
+                if (!this.generatorTokensByRequestId.TryGetValue(this.formatterState.SerializingMessageWithId, out ImmutableList<long>? tokens))
+                {
+                    tokens = ImmutableList<long>.Empty;
+                }
+
+                this.generatorTokensByRequestId[this.formatterState.SerializingMessageWithId] = tokens.Add(handle);
             }
 
-            this.generatorTokensByRequestId[this.formatterState.SerializingMessageWithId] = tokens.Add(handle);
             this.generatorsByToken.Add(handle, new GeneratingEnumeratorTracker<T>(this, handle, enumerable, settings: enumerable.GetJsonRpcSettings()));
         }
 
@@ -173,18 +188,18 @@ public class MessageFormatterEnumerableTracker
         return generator.DisposeAsync();
     }
 
-    private void CleanUpResources(RequestId requestId)
+    private void CleanUpResources(RequestId outboundRequestId)
     {
         lock (this.syncObject)
         {
-            if (this.generatorTokensByRequestId.TryGetValue(requestId, out ImmutableList<long>? tokens))
+            if (this.generatorTokensByRequestId.TryGetValue(outboundRequestId, out ImmutableList<long>? tokens))
             {
                 foreach (var token in tokens)
                 {
                     this.generatorsByToken.Remove(token);
                 }
 
-                this.generatorTokensByRequestId.Remove(requestId);
+                this.generatorTokensByRequestId.Remove(outboundRequestId);
             }
         }
     }
