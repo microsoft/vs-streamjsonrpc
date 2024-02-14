@@ -37,4 +37,4 @@ steps:
   inputs:
     GdnPublishTsaOnboard: True
     GdnPublishTsaConfigFile: $(Build.SourcesDirectory)\azure-pipelines\TSAOptions.json
-  condition: false # enable in individual repos only AFTER updating TSAOptions.json with your own values
+  condition: true
