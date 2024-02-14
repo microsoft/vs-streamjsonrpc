@@ -34,19 +34,6 @@ steps:
       ArtifactType: Container
     displayName: 📢 Publish InsertionOutputs as Azure DevOps artifacts
 
-- task: Ref12Analyze@0
-  displayName: 📑 Ref12 (Codex) Analyze
-  inputs:
-    codexoutputroot: $(Build.ArtifactStagingDirectory)\Codex
-    workflowArguments: |
-      /sourcesDirectory:$(Build.SourcesDirectory)
-      /codexRepoUrl:$(Build.Repository.Uri)
-      /repoName:$(Build.Repository.Name)
-      /additionalCodexArguments:-bld
-      /additionalCodexArguments:$(Build.ArtifactStagingDirectory)/build_logs
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Agent.OS'], 'Windows_NT'))
-  continueOnError: true
-
 - ${{ if eq(parameters.EnableCompliance, 'true') }}:
   - template: secure-development-tools.yml
     parameters:
