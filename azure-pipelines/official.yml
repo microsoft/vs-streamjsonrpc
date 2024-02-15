@@ -76,7 +76,7 @@ extends:
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
-            RealSign: ${{ parameters.RealSign }}
+            RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
@@ -94,7 +94,7 @@ extends:
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
         parameters:
-          RealSign: ${{ parameters.RealSign }}
+          RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
   ${{ else }}:
     template: azure-pipelines/MicroBuild.1ES.Unofficial.yml@MicroBuildTemplate
     parameters:
@@ -111,7 +111,7 @@ extends:
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
-            RealSign: ${{ parameters.RealSign }}
+            RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
@@ -129,4 +129,4 @@ extends:
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
         parameters:
-          RealSign: ${{ parameters.RealSign }}
+          RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
