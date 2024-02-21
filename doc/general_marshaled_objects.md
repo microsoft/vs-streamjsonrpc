@@ -24,10 +24,16 @@ This is because notification senders have no guarantee the server accepted and p
 When preparing an object to be marshaled, only methods defined on the given interface are exposed for invocation by RPC.
 Other methods on the target object cannot be invoked.
 
+See [additional use cases being considered](general_marshaled_objects_2.md) for general marshalling support.
+
+### Lifetime
+
 Every marshaled object's proxy implements `IDisposable`.
 Invoking `IDisposable.Dispose` on a proxy transmits a `dispose` RPC notification to the target object and releases the proxy.
 
-See [additional use cases being considered](general_marshaled_objects_2.md) for general marshalling support.
+A proxy is valid until its receiver disposes it, or the JSON-RPC connection is closed. Its lifetime is *not* tied to the object that produced it-- disposing the object that returned it will **not** dispose the marshaled object or its proxy.
+
+A marshaled object and its proxy will both continue to occupy memory while the proxy is valid. A marshaled proxy should always be disposed by invoking `IDisposable.Dispose` when it is no longer needed.
 
 ## Protocol
 
