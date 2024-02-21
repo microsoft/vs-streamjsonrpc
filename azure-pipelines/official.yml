@@ -28,7 +28,7 @@ parameters:
   displayName: Skip OptProf optimization
   type: boolean
   default: false
-- name: includeMacOS
+- name: EnableMacOSBuild
   displayName: Build on macOS
   type: boolean
   default: false # macOS is often bogged down in Azure Pipelines
@@ -76,21 +76,22 @@ extends:
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
+            Is1ESPT: true
             RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
+            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
             linuxPool:
               name: AzurePipelines-EO
               demands:
-              - ImageOverride -equals AzurePipelinesUbuntu20.04compliantGPT
+              - ImageOverride -equals 1ESPT-Ubuntu22.04
               os: Linux
             macOSPool:
               name: Azure Pipelines
               vmImage: macOS-12
               os: macOS
-            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
-            includeMacOS: ${{ parameters.includeMacOS }}
+            EnableMacOSBuild: ${{ parameters.EnableMacOSBuild }}
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
         parameters:
@@ -111,21 +112,22 @@ extends:
         jobs:
         - template: /azure-pipelines/build.yml@self
           parameters:
+            Is1ESPT: true
             RealSign: ${{ or(parameters.RealSign, eq(variables['Build.Reason'],'Schedule')) }}
+            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
             EnableCompliance: ${{ parameters.EnableCompliance }}
             EnableAPIScan: ${{ parameters.EnableAPIScan }}
             windowsPool: VSEngSS-MicroBuild2022-1ES
             linuxPool:
               name: AzurePipelines-EO
               demands:
-              - ImageOverride -equals AzurePipelinesUbuntu20.04compliantGPT
+              - ImageOverride -equals 1ESPT-Ubuntu22.04
               os: Linux
             macOSPool:
               name: Azure Pipelines
               vmImage: macOS-12
               os: macOS
-            ShouldSkipOptimize: ${{ parameters.ShouldSkipOptimize }}
-            includeMacOS: ${{ parameters.includeMacOS }}
+            EnableMacOSBuild: ${{ parameters.EnableMacOSBuild }}
             RunTests: ${{ parameters.RunTests }}
       - template: /azure-pipelines/prepare-insertion-stages.yml@self
         parameters:

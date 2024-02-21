@@ -5,7 +5,7 @@ schedules:
   displayName: Weekly OptProf run
   branches:
     include:
-    - 'v?.*'
+    - 'v*.*'
     - main
   always: true # we must keep data fresh since optimizationdata drops are purged after 30 days
 
@@ -18,34 +18,28 @@ schedules:
 #    ref: refs/heads/test
 
 variables:
-- name: TreatWarningsAsErrors
-  value: true
-- name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
-  value: true
-- name: BuildConfiguration
-  value: Release
-- name: BuildPlatform
-  value: Any CPU
-- name: NUGET_PACKAGES
-  value: $(Agent.TempDirectory)/.nuget/packages
+- template: GlobalVariables.yml
 - name: PublicRelease
   value: false # avoid using nice version since we're building a preliminary/unoptimized package
-- name: SignType
-  value: real
-- group: Library.Template
+- name: IsOptProf
+  value: true
 
 stages:
 - stage: Library
   variables:
-    OptProf: true
+  - name: OptProf
+    value: true
+  - template: BuildStageVariables.yml
   jobs:
   - template: build.yml
     parameters:
-      windowsPool: VSEngSS-MicroBuild2022-1ES
-      includeMacOS: false
-      ShouldSkipOptimize: true
+      Is1ESPT: false
+      RealSign: true
       EnableCompliance: false
-      OptProf: true
+      windowsPool: VSEngSS-MicroBuild2022-1ES
+      EnableMacOSBuild: false
+      ShouldSkipOptimize: true
+      IsOptProf: true
       RunTests: false
 - stage: QueueVSBuild
   jobs:
@@ -91,7 +85,10 @@ stages:
     - task: MicroBuildInsertVsPayload@4
       displayName: Insert VS Payload
       inputs:
+        TeamName: $(TeamName)
+        TeamEmail: $(TeamEmail)
         SkipCreatePR: true
+        CustomScriptExecutionCommand: src\VSSDK\NuGet\AllowUnstablePackages.ps1
     - task: benjhuser.tfs-extensions-build-tasks.trigger-build-task.TriggerBuild@3
       displayName: Trigger a new build of DD-CB-TestSignVS-devCI
       inputs:
