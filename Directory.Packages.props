@@ -18,7 +18,7 @@
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="7.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading" Version="$(VisualStudioThreadingVersion)" />
@@ -36,10 +36,10 @@
     <PackageVersion Include="System.ValueTuple" Version="4.5.0" />
     <PackageVersion Include="xunit.combinatorial" Version="1.6.24" />
     <PackageVersion Include="xunit.runner.console" Version="2.5.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.6" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.7" />
     <PackageVersion Include="xunit.skippablefact" Version="1.4.13" />
     <PackageVersion Include="xunit.stafact" Version="1.1.11" />
-    <PackageVersion Include="xunit" Version="2.6.6" />
+    <PackageVersion Include="xunit" Version="2.7.0" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="CSharpIsNullAnalyzer" Version="0.1.495" />

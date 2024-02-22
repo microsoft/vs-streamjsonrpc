@@ -14,6 +14,9 @@ resources:
       tags:
       - auto-release
 
+variables:
+- template: GlobalVariables.yml
+
 extends:
   template: azure-pipelines/MicroBuild.1ES.Official.yml@MicroBuildTemplate
   parameters:
@@ -27,10 +30,9 @@ extends:
         pool:
           name: AzurePipelines-EO
           demands:
-          - ImageOverride -equals AzurePipelinesUbuntu20.04compliantGPT
+          - ImageOverride -equals 1ESPT-Ubuntu22.04
           os: Linux
         templateContext:
-          outputParentDirectory: $(Pipeline.Workspace)
           outputs:
           - output: nuget
             displayName: 📦 Push packages to nuget.org

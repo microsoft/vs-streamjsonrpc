@@ -54,6 +54,7 @@ extends:
             TeamEmail: $(TeamEmail)
             InsertionPayloadName: $(Build.Repository.Name) $(Build.BuildNumber)
             InsertionBuildPolicy: Request Perf DDRITs
+            InsertionReviewers: $(Build.RequestedFor),Andrew Arnott
             AutoCompletePR: true
             AutoCompleteMergeStrategy: Squash
         - powershell: |

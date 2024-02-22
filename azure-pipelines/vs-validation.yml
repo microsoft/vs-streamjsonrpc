@@ -32,9 +32,10 @@ extends:
       jobs:
       - template: /azure-pipelines/build.yml@self
         parameters:
+          Is1ESPT: true
           RealSign: true
           windowsPool: VSEngSS-MicroBuild2022-1ES
-          includeMacOS: false
+          EnableMacOSBuild: false
           RunTests: false
 
     - template: /azure-pipelines/prepare-insertion-stages.yml@self
@@ -77,7 +78,7 @@ extends:
               This PR is for **validation purposes only** for !$(System.PullRequest.PullRequestId). **Do not complete**.
             CustomScriptExecutionCommand: src/VSSDK/NuGet/AllowUnstablePackages.ps1
             InsertionBuildPolicy: Request Perf DDRITs
-            InsertionReviewers: $(Build.RequestedForEmail)
+            InsertionReviewers: $(Build.RequestedFor)
             AutoCompletePR: false
         - powershell: |
             $insertionPRId = azure-pipelines/Get-InsertionPRId.ps1
