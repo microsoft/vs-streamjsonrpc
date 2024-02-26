@@ -53,7 +53,8 @@ stages:
           nuGetFeedType: external
           publishFeedCredentials: azure-public/vssdk
       steps:
-      - checkout: none
+      - checkout: self # required for credscan suppressions file, which is a pipeline-wide setting
+        fetchDepth: 1
       - download: current
         artifact: Variables-Windows
         displayName: 🔻 Download Variables-Windows artifact
