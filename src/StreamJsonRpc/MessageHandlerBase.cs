@@ -261,7 +261,9 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
             }
 
             // Wait for completion to actually complete, and re-throw any exceptions.
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks
             await this.Completion.ConfigureAwait(false);
+#pragma warning restore VSTHRD003 // Avoid awaiting foreign Tasks
 
             this.Dispose(true);
         }

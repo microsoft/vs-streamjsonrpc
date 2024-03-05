@@ -271,7 +271,9 @@ public class MessageFormatterEnumerableTracker
                         if (this.readAheadElements.Completion.IsCompleted)
                         {
                             // Rethrow any exceptions.
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks
                             await this.readAheadElements.Completion.ConfigureAwait(false);
+#pragma warning restore VSTHRD003 // Avoid awaiting foreign Tasks
                             finished = true;
                         }
                     }

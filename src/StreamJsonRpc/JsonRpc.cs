@@ -506,7 +506,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     {
         get
         {
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks
             return this.completionSource.Task;
+#pragma warning restore VSTHRD003 // Avoid awaiting foreign Tasks
         }
     }
 
