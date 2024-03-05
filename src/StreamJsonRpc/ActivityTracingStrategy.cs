@@ -47,6 +47,7 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
     public IDisposable? ApplyInboundActivity(JsonRpcRequest request)
     {
         Requires.NotNull(request, nameof(request));
+        Requires.Argument(request.Method is not null, nameof(request), $"{nameof(request.Method)} must be set first.");
 
         var state = new State(this.CreateNewActivity(request.Method!));
         state.NewActivity.TraceStateString = request.TraceState;
@@ -59,7 +60,7 @@ public class ActivityTracingStrategy : IActivityTracingStrategy
         return state;
     }
 
-    private Activity CreateNewActivity(string name) => this.activitySource?.StartActivity(name) ?? new Activity(name);
+    private Activity CreateNewActivity(string name) => this.activitySource?.CreateActivity(name, ActivityKind.Server) ?? new Activity(name);
 
     private class State : IDisposable
     {
