@@ -26,7 +26,7 @@
     <PackageVersion Include="Nerdbank.Streams" Version="2.10.69" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageVersion Include="System.Collections.Immutable" Version="7.0.0" />
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="7.0.2" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
     <PackageVersion Include="System.IO.Pipelines" Version="7.0.0" />
     <PackageVersion Include="System.IO.Pipes" Version="4.3.0" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
