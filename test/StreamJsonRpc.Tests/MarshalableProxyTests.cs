@@ -580,6 +580,31 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task OneObjectMarshalledTwiceHasIndependentLifetimes()
+    {
+        // The method we call twice returns the same object each time,
+        // but JsonRpc doesn't recognize this and assigns a unique token and proxy each time.
+        IMarshalable proxy1 = (await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken))!;
+        IMarshalable proxy2 = (await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken))!;
+
+        // Verify that although the original object is the same, the proxies are different.
+        Assert.NotSame(proxy1, proxy2);
+
+        // Verify that the proxies both work.
+        await proxy1.DoSomethingAsync();
+        await proxy2.DoSomethingAsync();
+
+        // Verify that disposing one proxy doesn't break the connection the other proxy has with the original object.
+        // For our purposes, the original object's Dispose isn't so self-destructive that it would break proxy2's
+        // ability to call methods on it.
+        // In doing so, wait for the dispose to propagate to the remote party.
+        proxy1.Dispose();
+        await this.server.ReturnedMarshalableDisposed.WaitAsync(this.TimeoutToken);
+        await proxy2.DoSomethingAsync();
+        proxy2.Dispose();
+    }
+
+    [Fact]
     public async Task DisposeOnDisconnect()
     {
         var server = new Server();
@@ -892,9 +917,10 @@ public abstract class MarshalableProxyTests : TestBase
 
         public Task<IMarshalable?> GetMarshalableAsync(bool returnNull)
         {
-            var marshalable = returnNull ? null : new Data(() => this.ReturnedMarshalableDisposed.Set());
+            // The OneObjectMarshalledTwiceHasIndependentLifetimes test depends on us returning the same instance each time.
+            var marshalable = returnNull ? null : (this.ReturnedMarshalable ?? new Data(() => this.ReturnedMarshalableDisposed.Set()));
             this.ReturnedMarshalable = marshalable;
-            return Task.FromResult<IMarshalable?>(marshalable);
+            return Task.FromResult(marshalable);
         }
 
         public Task<IMarshalableWithOptionalInterfaces?> GetMarshalableWithOptionalInterfacesAsync()
