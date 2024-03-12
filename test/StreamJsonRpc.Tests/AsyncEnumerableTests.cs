@@ -551,19 +551,6 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     protected abstract void InitializeFormattersAndHandlers();
 
-    private static void AssertCollectedObject(WeakReference weakReference)
-    {
-        GC.Collect();
-
-        // For some reason the assertion tends to be sketchy when running on Azure Pipelines.
-        if (IsTestRunOnAzurePipelines)
-        {
-            Skip.If(weakReference.IsAlive);
-        }
-
-        Assert.False(weakReference.IsAlive);
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task<WeakReference> ArgumentEnumerable_ReleasedOnErrorResponse_Helper()
     {

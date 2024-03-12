@@ -2,3 +2,5 @@ StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker
 StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker.JoinableTaskTokenTracker() -> void
 StreamJsonRpc.JsonRpc.JoinableTaskTracker.get -> StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker!
 StreamJsonRpc.JsonRpc.JoinableTaskTracker.set -> void
+StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.get -> bool
+StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.init -> void

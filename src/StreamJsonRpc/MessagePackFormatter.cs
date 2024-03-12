@@ -1271,13 +1271,14 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 }
             }
 
-            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
+            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute))
             {
                 object formatter = Activator.CreateInstance(
                     typeof(RpcMarshalableFormatter<>).MakeGenericType(typeof(T)),
                     this.formatter,
                     proxyOptions,
-                    targetOptions)!;
+                    targetOptions,
+                    attribute)!;
 
                 lock (this.formatters)
                 {
@@ -1295,25 +1296,14 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
 #pragma warning disable CA1812
-    private class RpcMarshalableFormatter<T> : IMessagePackFormatter<T?>
+    private class RpcMarshalableFormatter<T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
         where T : class
 #pragma warning restore CA1812
     {
-        private MessagePackFormatter messagePackFormatter;
-        private JsonRpcProxyOptions proxyOptions;
-        private JsonRpcTargetOptions targetOptions;
-
-        public RpcMarshalableFormatter(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
-        {
-            this.messagePackFormatter = messagePackFormatter;
-            this.proxyOptions = proxyOptions;
-            this.targetOptions = targetOptions;
-        }
-
         public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
             MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = MessagePackSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, options);
-            return token.HasValue ? (T?)this.messagePackFormatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions) : null;
+            return token.HasValue ? (T?)messagePackFormatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions) : null;
         }
 
         public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options)
@@ -1324,7 +1314,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, typeof(T));
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
                 MessagePackSerializer.Serialize(ref writer, token, options);
             }
         }

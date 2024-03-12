@@ -570,9 +570,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
     private bool TryGetMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
     {
-        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
+        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? rpcMarshalableAttribute))
         {
-            converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions);
+            converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions, rpcMarshalableAttribute);
             return true;
         }
 
@@ -1207,29 +1207,16 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     }
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-    private class RpcMarshalableConverter : JsonConverter
+    private class RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
     {
-        private readonly Type interfaceType;
-        private readonly JsonMessageFormatter jsonMessageFormatter;
-        private readonly JsonRpcProxyOptions proxyOptions;
-        private readonly JsonRpcTargetOptions targetOptions;
+        private string DebuggerDisplay => $"Converter for marshalable objects of type {interfaceType.FullName}";
 
-        public RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
-        {
-            this.interfaceType = interfaceType;
-            this.jsonMessageFormatter = jsonMessageFormatter;
-            this.proxyOptions = proxyOptions;
-            this.targetOptions = targetOptions;
-        }
-
-        private string DebuggerDisplay => $"Converter for marshalable objects of type {this.interfaceType.FullName}";
-
-        public override bool CanConvert(Type objectType) => objectType == this.interfaceType;
+        public override bool CanConvert(Type objectType) => objectType == interfaceType;
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
-            return this.jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, this.proxyOptions);
+            return jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
@@ -1238,13 +1225,13 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             {
                 writer.WriteNull();
             }
-            else if (!this.interfaceType.IsAssignableFrom(value.GetType()))
+            else if (!interfaceType.IsAssignableFrom(value.GetType()))
             {
-                throw new InvalidOperationException($"Type {value.GetType().FullName} doesn't implement {this.interfaceType.FullName}");
+                throw new InvalidOperationException($"Type {value.GetType().FullName} doesn't implement {interfaceType.FullName}");
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, this.interfaceType);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, interfaceType, rpcMarshalableAttribute);
                 serializer.Serialize(writer, token);
             }
         }

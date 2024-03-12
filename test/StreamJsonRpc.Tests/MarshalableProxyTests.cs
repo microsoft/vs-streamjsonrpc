@@ -93,6 +93,11 @@ public abstract class MarshalableProxyTests : TestBase
     {
     }
 
+    [RpcMarshalable(CallScopedLifetime = true)]
+    public interface IMarshalableWithCallScopedLifetime : IMarshalable
+    {
+    }
+
     [RpcMarshalable]
     public interface IGenericMarshalable<T> : IMarshalable
     {
@@ -264,6 +269,10 @@ public abstract class MarshalableProxyTests : TestBase
         Task AcceptNonMarshalableAsync(INonMarshalable nonMarshalable);
 
         Task AcceptNonMarshalableDerivedFromMarshalablesAsync(INonMarshalableDerivedFromMarshalable nonMarshalable);
+
+        Task CallScopedMarshalableAsync(IMarshalableWithCallScopedLifetime marshalable);
+
+        Task<IMarshalableWithCallScopedLifetime> ReturnCallScopedObjectAsync();
     }
 
     protected abstract Type FormatterExceptionType { get; }
@@ -898,6 +907,53 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(6, await ((IMarshalableSubTypesCombined)proxy).GetPlusFiveAsync(1));
     }
 
+    [Fact]
+    public async Task RpcMarshalable_CallScopedLifetime()
+    {
+        MarshalableAndSerializable marshaled = new();
+        await this.client.CallScopedMarshalableAsync(marshaled);
+        Assert.True(marshaled.DoSomethingCalled);
+        Assert.False(marshaled.IsDisposed);
+        this.clientRpc.Dispose();
+        Assert.False(marshaled.IsDisposed);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_CallScopedLifetime_InvokedAfterReturn()
+    {
+        MarshalableAndSerializable marshaled = new();
+        await this.client.CallScopedMarshalableAsync(marshaled);
+        this.server.AllowContinuation.Set();
+        Assert.NotNull(this.server.ContinuationResult);
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.server.ContinuationResult).WithCancellation(this.TimeoutToken);
+    }
+
+    [SkippableFact]
+    [Trait("GC", "")]
+    public async Task RpcMarshalable_CallScopedLifetime_ObjectCollected()
+    {
+        WeakReference weakRef = await HelperAsync(this.client);
+        await Task.Yield(); // get off the helper's inline continuation stack.
+        AssertCollectedObject(weakRef);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static async Task<WeakReference> HelperAsync(IServer client)
+        {
+            MarshalableAndSerializable? marshaled = new();
+            await client.CallScopedMarshalableAsync(marshaled);
+            WeakReference result = new(marshaled);
+            marshaled = null;
+            return result;
+        }
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_CallScopedLifetime_ObjectReturned()
+    {
+        var ex = await Assert.ThrowsAsync<RemoteSerializationException>(this.client.ReturnCallScopedObjectAsync);
+        this.Logger.WriteLine(ex.ToString());
+    }
+
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
 
     private static void AssertIsNot(object obj, Type type)
@@ -907,6 +963,8 @@ public abstract class MarshalableProxyTests : TestBase
 
     public class Server : IServer
     {
+        internal AsyncAutoResetEvent AllowContinuation { get; } = new();
+
         internal AsyncManualResetEvent ReturnedMarshalableDisposed { get; } = new AsyncManualResetEvent();
 
         internal IMarshalable? ReturnedMarshalable { get; set; }
@@ -914,6 +972,8 @@ public abstract class MarshalableProxyTests : TestBase
         internal IMarshalable? ReceivedProxy { get; set; }
 
         internal IMarshalableWithOptionalInterfaces? ReturnedMarshalableWithOptionalInterfaces { get; set; }
+
+        internal Task? ContinuationResult { get; private set; }
 
         public Task<IMarshalable?> GetMarshalableAsync(bool returnNull)
         {
@@ -1040,6 +1100,24 @@ public abstract class MarshalableProxyTests : TestBase
         public Task AcceptNonMarshalableAsync(INonMarshalable nonMarshalable) => Task.CompletedTask;
 
         public Task AcceptNonMarshalableDerivedFromMarshalablesAsync(INonMarshalableDerivedFromMarshalable nonMarshalable) => Task.CompletedTask;
+
+        public async Task CallScopedMarshalableAsync(IMarshalableWithCallScopedLifetime marshalable)
+        {
+            await marshalable.DoSomethingAsync();
+
+            this.ContinuationResult = Task.Run(async delegate
+            {
+                await this.AllowContinuation.WaitAsync();
+                await marshalable.DoSomethingAsync();
+            });
+        }
+
+        public Task<IMarshalableWithCallScopedLifetime> ReturnCallScopedObjectAsync()
+        {
+            // Returning a call-scoped object as a return type is illegal.
+            // This method is used in a test that verifies the failure mode for this case.
+            return Task.FromResult<IMarshalableWithCallScopedLifetime>(new MarshalableAndSerializable());
+        }
     }
 
     [DataContract]
@@ -1112,12 +1190,15 @@ public abstract class MarshalableProxyTests : TestBase
         }
     }
 
-    public class MarshalableAndSerializable : IMarshalableAndSerializable
+    public class MarshalableAndSerializable : IMarshalableAndSerializable, IMarshalableWithCallScopedLifetime
     {
         public bool DoSomethingCalled { get; private set; }
 
+        public bool IsDisposed { get; private set; }
+
         public void Dispose()
         {
+            this.IsDisposed = true;
         }
 
         public Task DoSomethingAsync()

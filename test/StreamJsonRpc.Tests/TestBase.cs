@@ -46,6 +46,19 @@ public abstract class TestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    protected static void AssertCollectedObject(WeakReference weakReference)
+    {
+        GC.Collect();
+
+        // For some reason the assertion tends to be sketchy when running on Azure Pipelines.
+        if (IsTestRunOnAzurePipelines)
+        {
+            Skip.If(weakReference.IsAlive);
+        }
+
+        Assert.False(weakReference.IsAlive);
+    }
+
     /// <summary>
     /// Checks whether a given exception or any transitive inner exception has a given type.
     /// </summary>

@@ -123,6 +123,9 @@
   <data name="BothReadableWritableAreNull" xml:space="preserve">
     <value>Both readable and writable are null.</value>
   </data>
+  <data name="CallScopedMarshaledObjectInReturnValueNotAllowed" xml:space="preserve">
+    <value>A call-scoped marshaled object was included in a return value, which is not allowed.</value>
+  </data>
   <data name="CancellationTokenMustBeLastParameter" xml:space="preserve">
     <value>A CancellationToken is only allowed as the last parameter.</value>
   </data>
