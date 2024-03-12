@@ -456,6 +456,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     public async Task ArgumentEnumerable_ReleasedOnErrorResponse()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ReleasedOnErrorResponse_Helper();
+        await Task.Yield(); // get off the helper's inline continuation stack.
         AssertCollectedObject(enumerable);
     }
 
@@ -465,6 +466,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     public async Task ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization_Helper();
+        await Task.Yield(); // get off the helper's inline continuation stack.
         AssertCollectedObject(enumerable);
     }
 
@@ -474,6 +476,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     public async Task ArgumentEnumerable_ReleasedWhenIgnoredBySuccessfulRpcCall()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ReleasedWhenIgnoredBySuccessfulRpcCall_Helper();
+        await Task.Yield(); // get off the helper's inline continuation stack.
         AssertCollectedObject(enumerable);
     }
 
@@ -483,6 +486,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     public async Task ArgumentEnumerable_ForciblyDisposedAndReleasedWhenNotDisposedWithinRpcCall()
     {
         WeakReference enumerable = await this.ArgumentEnumerable_ForciblyDisposedAndReleasedWhenNotDisposedWithinRpcCall_Helper();
+        await Task.Yield(); // get off the helper's inline continuation stack.
         AssertCollectedObject(enumerable);
 
         // Assert that if the RPC server tries to enumerate more values after it returns that it gets the right exception.
@@ -495,6 +499,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     public async Task ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod()
     {
         WeakReference enumerable = await this.ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod_Helper();
+        await Task.Yield(); // get off the helper's inline continuation stack.
         AssertCollectedObject(enumerable);
     }
 
