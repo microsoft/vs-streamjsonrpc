@@ -208,11 +208,7 @@ public class MessageFormatterEnumerableTracker
     private class GeneratingEnumeratorTracker<T> : IGeneratingEnumeratorTracker
     {
         private readonly IAsyncEnumerator<T> enumerator;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-#pragma warning restore CA2213 // Disposable fields should be disposed
-
         private readonly BufferBlock<T>? readAheadElements;
 
         private readonly MessageFormatterEnumerableTracker tracker;
@@ -332,9 +328,7 @@ public class MessageFormatterEnumerableTracker
 
                 this.readAheadElements.Complete();
             }
-#pragma warning disable CA1031 // Do not catch general exception types
             catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
             {
                 ITargetBlock<T> target = this.readAheadElements;
                 target.Fault(ex);
@@ -383,9 +377,7 @@ public class MessageFormatterEnumerableTracker
             /// <summary>
             /// A sequence of values that have already been received from the generator but not yet consumed.
             /// </summary>
-#pragma warning disable CA2213 // Disposable fields should be disposed
             private Sequence<T> localCachedValues = new Sequence<T>();
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
             /// <summary>
             /// A value indicating whether the generator has reported that no more values will be forthcoming.

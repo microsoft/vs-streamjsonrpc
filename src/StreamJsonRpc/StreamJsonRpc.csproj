@@ -9,10 +9,7 @@
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Update="Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <EmbeddedResource Update="Resources.resx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="IsExternalInit" PrivateAssets="all" />
@@ -34,18 +31,7 @@
     <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Unshipped.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <EmbeddedResource Update="Resources.??*.resx">
-      <DependentUpon>Resources.resx</DependentUpon>
-      <Generator />
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Using Include="Microsoft"/>
+    <Using Include="Microsoft" />
   </ItemGroup>
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>

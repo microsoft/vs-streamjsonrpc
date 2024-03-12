@@ -108,9 +108,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// <param name="sendingStream">The stream to use for transmitting messages.</param>
     /// <param name="receivingStream">The stream to use for receiving messages.</param>
     public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream)
-#pragma warning disable CA2000 // Dispose objects before losing scope
         : this(sendingStream, receivingStream, new JsonMessageFormatter())
-#pragma warning restore CA2000 // Dispose objects before losing scope
     {
     }
 

@@ -23,8 +23,6 @@ internal static class AwaitExtensions
         return new SynchronizationContextAwaiter(synchronizationContext);
     }
 
-#pragma warning disable CA1822 // Mark members as static
-
     /// <summary>
     /// The awaiter for <see cref="SynchronizationContext"/>.
     /// </summary>
@@ -74,5 +72,4 @@ internal static class AwaitExtensions
 #pragma warning restore VSTHRD001 // Avoid legacy threading switching APIs
         }
     }
-#pragma warning restore CA1822 // Mark members as static
 }
