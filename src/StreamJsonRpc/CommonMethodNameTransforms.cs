@@ -20,9 +20,7 @@ public static class CommonMethodNameTransforms
             {
                 if (name is null)
                 {
-#pragma warning disable CA1065 // Do not raise exceptions in unexpected locations
                     throw new ArgumentNullException();
-#pragma warning restore CA1065 // Do not raise exceptions in unexpected locations
                 }
 
                 return Utilities.ToCamelCase(name);

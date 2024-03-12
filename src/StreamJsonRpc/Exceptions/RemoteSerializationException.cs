@@ -12,9 +12,7 @@ namespace StreamJsonRpc;
 /// This exception comes from the <see cref="JsonRpcErrorCode.ResponseSerializationFailure"/> error code.
 /// </remarks>
 [Serializable]
-#pragma warning disable CA1032 // Implement standard exception constructors
 public class RemoteSerializationException : RemoteRpcException
-#pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="RemoteSerializationException"/> class.

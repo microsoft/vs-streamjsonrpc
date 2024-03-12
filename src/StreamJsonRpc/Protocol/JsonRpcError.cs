@@ -66,9 +66,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// Describes the error.
     /// </summary>
     [DataContract]
-#pragma warning disable CA1034 // Nested types should not be visible
     public class ErrorDetail
-#pragma warning restore CA1034 // Nested types should not be visible
     {
         /// <summary>
         /// Gets or sets a number that indicates the error type that occurred.

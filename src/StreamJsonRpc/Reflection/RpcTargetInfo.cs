@@ -69,9 +69,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         disposableTarget.Dispose();
                     }
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     exceptions ??= new List<Exception>();
                     exceptions.Add(ex);
@@ -794,9 +792,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
         }
 
-#pragma warning disable CA1801 // Review unused parameters
         private void OnEventRaisedGeneric<T>(object? sender, T args)
-#pragma warning restore CA1801 // Review unused parameters
         {
             this.jsonRpc.NotifyAsync(this.rpcEventName, arguments: new object?[] { args }, argumentDeclaredTypes: new Type[] { typeof(T) }).Forget();
         }

@@ -212,9 +212,7 @@ public class MessageFormatterProgressTracker
     /// <summary>
     /// Class used to keep relevant information of an object that implements <see cref="IProgress{T}"/>.
     /// </summary>
-#pragma warning disable CA1034 // Nested types should not be visible
     public class ProgressParamInformation
-#pragma warning restore CA1034 // Nested types should not be visible
     {
         /// <summary>
         /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.

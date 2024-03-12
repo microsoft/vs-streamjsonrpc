@@ -62,9 +62,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// The source for the <see cref="DisconnectedToken"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly CancellationTokenSource disconnectedSource = new CancellationTokenSource();
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
     /// <summary>
     /// The completion source behind <see cref="Completion"/>.
@@ -168,9 +166,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
     public JsonRpc(Stream stream)
-#pragma warning disable CA2000 // Dispose objects before losing scope
         : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
-#pragma warning restore CA2000 // Dispose objects before losing scope
     {
     }
 
@@ -186,9 +182,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
     public JsonRpc(Stream? sendingStream, Stream? receivingStream, object? target = null)
-#pragma warning disable CA2000 // Dispose objects before losing scope
         : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
-#pragma warning restore CA2000 // Dispose objects before losing scope
     {
         if (target is not null)
         {
@@ -297,9 +291,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <summary>
     /// Event IDs raised to our <see cref="TraceSource"/>.
     /// </summary>
-#pragma warning disable CA1717 // Only FlagsAttribute enums should have plural names
     public enum TraceEvents
-#pragma warning restore CA1717 // Only FlagsAttribute enums should have plural names
     {
         /// <summary>
         /// Occurs when a local RPC method is added to our mapping table.
@@ -663,9 +655,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public static JsonRpc Attach(Stream stream, object? target = null)
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         Requires.NotNull(stream, nameof(stream));
 
@@ -843,10 +833,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
         Requires.NotNull(target, nameof(target));
         this.ThrowIfConfigurationLocked();
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
         this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
-#pragma warning restore CA2000 // Dispose objects before losing scope
     }
 
     /// <summary>
@@ -981,9 +968,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public Task InvokeWithParameterObjectAsync(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         return this.InvokeWithParameterObjectAsync<object>(targetName, argument, cancellationToken);
     }
@@ -1007,9 +992,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         return this.InvokeWithParameterObjectAsync<TResult>(targetName, argument, null, cancellationToken);
     }
@@ -1038,9 +1021,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         return this.InvokeWithCancellationAsync<object>(targetName, arguments, cancellationToken);
     }
@@ -1052,9 +1033,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public Task InvokeWithCancellationAsync(string targetName, IReadOnlyList<object?>? arguments, IReadOnlyList<Type> argumentDeclaredTypes, CancellationToken cancellationToken)
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         return this.InvokeWithCancellationAsync<object>(targetName, arguments, argumentDeclaredTypes, cancellationToken);
     }
@@ -1066,9 +1045,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <returns>A task that completes when the server method executes and returns the result.</returns>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     public Task<TResult> InvokeWithCancellationAsync<TResult>(string targetName, IReadOnlyList<object?>? arguments = null, CancellationToken cancellationToken = default(CancellationToken))
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     {
         return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, arguments, cancellationToken);
     }
@@ -1130,10 +1107,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, arguments, argumentDeclaredTypes, null, CancellationToken.None, isParameterObject: false);
     }
 
-#pragma warning disable RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
     /// <inheritdoc cref="NotifyWithParameterObjectAsync(string, object?, IReadOnlyDictionary{string, Type}?)"/>
     public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, null);
-#pragma warning restore RS0027 // Public API with optional parameter(s) should have the most parameters amongst its public overloads.
 
     /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
     /// <remarks>
@@ -1937,9 +1912,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                             tcs.SetResult(response);
                         }
                     }
-#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         tcs.TrySetException(ex);
                     }
@@ -2072,9 +2045,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             CancellationToken cancellationToken = CancellationToken.None;
             if (request.IsResponseExpected)
             {
-#pragma warning disable CA2000 // Dispose objects before losing scope
                 localMethodCancellationSource = new CancellationTokenSource();
-#pragma warning restore CA2000 // Dispose objects before losing scope
                 cancellationToken = localMethodCancellationSource.Token;
 
                 if (this.CancelLocallyInvokedMethodsWhenConnectionIsClosed)
@@ -2429,9 +2400,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             exceptions.Add(ex);
         }
@@ -2442,9 +2411,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             await messageHandlerDisposal.ConfigureAwait(false);
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             exceptions.Add(ex);
         }
@@ -2497,9 +2464,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                     loopBreakingException = ex;
                     break;
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
@@ -2585,9 +2550,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                     catch (ObjectDisposedException) when (this.IsDisposed)
                     {
                     }
-#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception exception)
-#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
                         if (!this.DisconnectedToken.IsCancellationRequested)
@@ -2666,9 +2629,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                     DisconnectedReason.ParseError));
             }
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             var eventArgs = new JsonRpcDisconnectedEventArgs(
                 string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),

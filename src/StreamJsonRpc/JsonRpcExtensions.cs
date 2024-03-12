@@ -192,11 +192,7 @@ public static class JsonRpcExtensions
         private class RpcEnumerator : IAsyncEnumerator<T>
         {
             private readonly IAsyncEnumerator<T> innerEnumerator;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
             private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-#pragma warning restore CA2213 // Disposable fields should be disposed
-
             private List<T>? prefetchedElements;
 
             private bool finished;
