@@ -328,6 +328,36 @@ internal class MessageFormatterRpcMarshaledContextTracker
     }
 
     /// <summary>
+    /// Called near the conclusion of a successful outbound request (i.e. when processing the received response)
+    /// to extend the lifetime of call-scoped marshaled objects.
+    /// </summary>
+    /// <param name="requestId">The ID of the request to extend.</param>
+    /// <returns>A value that may be disposed of to finally release the resources bound up with the request.</returns>
+    /// <remarks>
+    /// This is useful to keep call-scoped arguments alive while the server's <see cref="IAsyncEnumerable{T}"/> result
+    /// is still active, suggesting the server may still need access to the arguments passed to it.
+    /// </remarks>
+    internal IDisposable? OutboundCleanupDeferral(RequestId requestId)
+    {
+        // Remove the handles from the map so that they don't get cleaned up when the request is completed.
+        if (ImmutableInterlocked.TryRemove(ref this.outboundRequestIdMarshalMap, requestId, out ImmutableList<(long Handle, bool CallScoped)>? handles))
+        {
+            return new DisposableAction(delegate
+            {
+                // Add the handles back to the map so that they get cleaned up in the normal way, which we then invoke immediately,
+                // since the time to clean them up normally has presumably already passed.
+                Assumes.True(ImmutableInterlocked.TryAdd(ref this.outboundRequestIdMarshalMap, requestId, handles));
+                this.CleanUpOutboundResources(requestId, successful: true);
+            });
+        }
+        else
+        {
+            // Nothing to defer.
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Throws <see cref="NotSupportedException"/> if <paramref name="type"/> is not a valid marshalable interface.
     /// This method doesn't validate that <paramref name="type"/> has the <see cref="RpcMarshalableAttribute"/>
     /// attribute.

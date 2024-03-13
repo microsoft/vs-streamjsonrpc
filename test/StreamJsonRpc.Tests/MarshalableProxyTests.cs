@@ -273,6 +273,10 @@ public abstract class MarshalableProxyTests : TestBase
         Task CallScopedMarshalableAsync(IMarshalableWithCallScopedLifetime marshalable);
 
         Task<IMarshalableWithCallScopedLifetime> ReturnCallScopedObjectAsync();
+
+        IAsyncEnumerable<int> CallScopedMarshalableReturnsAsyncEnumerable(IMarshalableWithCallScopedLifetime marshalable);
+
+        Task CallScopedMarshalableThrowsWithAsyncEnumerable(IMarshalableWithCallScopedLifetime marshalable);
     }
 
     protected abstract Type FormatterExceptionType { get; }
@@ -919,6 +923,43 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task RpcMarshalable_CallScopedLifetime_AsyncEnumerableReturned()
+    {
+        MarshalableAndSerializable marshaled = new();
+        await foreach (int number in this.client.CallScopedMarshalableReturnsAsyncEnumerable(marshaled))
+        {
+            Assert.Equal(42, number);
+            Assert.True(marshaled.DoSomethingCalled);
+        }
+
+        // Verify that after enumeration conclusion, the proxy is zombied.
+        this.server.AllowContinuation.Set();
+        Assert.NotNull(this.server.ContinuationResult);
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.server.ContinuationResult).WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_CallScopedLifetime_AsyncEnumerableThrown()
+    {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+
+        MarshalableAndSerializable marshaled = new();
+        var outerException = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.client.CallScopedMarshalableThrowsWithAsyncEnumerable(marshaled));
+        var ex = Assert.IsType<ExceptionWithAsyncEnumerable>(outerException.InnerException);
+
+        // Verify that the proxy is zombied immediately because the request failed.
+        // Successfully enumerating is sufficient for this because the enumerator method has the assertion of zombie inside it.
+        Assert.NotNull(ex.Enumerable);
+        await foreach (int number in ex.Enumerable)
+        {
+            Assert.Equal(42, number);
+        }
+    }
+
+    [Fact]
     public async Task RpcMarshalable_CallScopedLifetime_InvokedAfterReturn()
     {
         MarshalableAndSerializable marshaled = new();
@@ -1117,6 +1158,39 @@ public abstract class MarshalableProxyTests : TestBase
             // Returning a call-scoped object as a return type is illegal.
             // This method is used in a test that verifies the failure mode for this case.
             return Task.FromResult<IMarshalableWithCallScopedLifetime>(new MarshalableAndSerializable());
+        }
+
+        public async IAsyncEnumerable<int> CallScopedMarshalableReturnsAsyncEnumerable(IMarshalableWithCallScopedLifetime marshalable)
+        {
+            // Yield before using the marshalable since we want to test that the call-scoped argument
+            // is available for the whole async enumerable state machine.
+            await Task.Yield();
+
+            await marshalable.DoSomethingAsync();
+            yield return 42;
+
+            // This allows a test to optionally verify that the call-scoped object
+            // quits working after the enumeration has completed.
+            this.ContinuationResult = Task.Run(async delegate
+            {
+                await this.AllowContinuation.WaitAsync();
+                await marshalable.DoSomethingAsync();
+            });
+        }
+
+        public Task CallScopedMarshalableThrowsWithAsyncEnumerable(IMarshalableWithCallScopedLifetime marshalable)
+        {
+            throw new ExceptionWithAsyncEnumerable(Helper());
+
+            async IAsyncEnumerable<int> Helper()
+            {
+                await Task.Yield();
+
+                // By the time this runs, the original request has failed and using the call-scoped argument is expected to fail too.
+                await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => marshalable.DoSomethingAsync());
+
+                yield return 42;
+            }
         }
     }
 
@@ -1415,6 +1489,29 @@ public abstract class MarshalableProxyTests : TestBase
 
         public void Dispose()
         {
+        }
+    }
+
+    [Serializable]
+    public class ExceptionWithAsyncEnumerable : Exception
+    {
+        public ExceptionWithAsyncEnumerable(IAsyncEnumerable<int> enumeration)
+        {
+            this.Enumerable = enumeration;
+        }
+
+        protected ExceptionWithAsyncEnumerable(SerializationInfo info, StreamingContext context)
+            : base(info, context)
+        {
+            this.Enumerable = (IAsyncEnumerable<int>?)info.GetValue(nameof(this.Enumerable), typeof(IAsyncEnumerable<int>));
+        }
+
+        internal IAsyncEnumerable<int>? Enumerable { get; set; }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+            info.AddValue(nameof(this.Enumerable), this.Enumerable);
         }
     }
 }

@@ -34,6 +34,9 @@ Using it as or within a return value or exception will result in an error.
 This is the preferred model when an interface is expected to only be used within request arguments because it mitigates the risk of a memory leak due to the receiver failing to dispose of the proxy.
 This model also allows the sender to retain control over the lifetime of the marshaled object.
 
+Special allowance is made for `IAsyncEnumerable<T>`-returning RPC methods so that the lifetime of the marshaled object is extended to the lifetime of the enumeration.
+An `IAsyncEnumerable<T>` in an exception thrown from the method will *not* have access to the call-scoped marshaled object because exceptions thrown by the server always cause termination of objects marshaled by the request.
+
 Opt into call-scoped lifetimes by setting the `CallScopedLifetime` property to `true` on the attribute applied to the interface:
 
 ```css

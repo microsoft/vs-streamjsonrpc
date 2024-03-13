@@ -625,7 +625,11 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
             try
             {
-                this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions);
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions);
+                }
+
                 this.JsonResult = default;
             }
             catch (Exception ex)

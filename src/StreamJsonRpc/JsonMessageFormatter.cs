@@ -351,7 +351,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.JsonSerializer);
 
     /// <inheritdoc/>
-    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.JsonSerializer);
+    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
@@ -616,7 +616,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         RequestId id = this.ExtractRequestId(json);
         JToken? result = json["result"];
 
-        return new JsonRpcResult(this.JsonSerializer)
+        return new JsonRpcResult(this)
         {
             RequestId = id,
             Result = result,
@@ -837,15 +837,27 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     [DataContract]
     private class JsonRpcResult : JsonRpcResultBase
     {
-        private readonly JsonSerializer jsonSerializer;
+        private readonly JsonMessageFormatter formatter;
+        private bool resultDeserialized;
+        private JsonSerializationException? resultDeserializationException;
 
-        internal JsonRpcResult(JsonSerializer jsonSerializer)
+        internal JsonRpcResult(JsonMessageFormatter formatter)
         {
-            this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            this.formatter = formatter;
         }
 
         public override T GetResult<T>()
         {
+            if (this.resultDeserializationException is not null)
+            {
+                ExceptionDispatchInfo.Capture(this.resultDeserializationException).Throw();
+            }
+
+            if (this.resultDeserialized)
+            {
+                return (T)this.Result!;
+            }
+
             Verify.Operation(this.Result is not null, "This instance hasn't been initialized with a result yet.");
             var result = (JToken)this.Result;
             if (result.Type == JTokenType.Null)
@@ -856,7 +868,10 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
             try
             {
-                return result.ToObject<T>(this.jsonSerializer)!;
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    return result.ToObject<T>(this.formatter.JsonSerializer)!;
+                }
             }
             catch (Exception exception)
             {
@@ -864,7 +879,34 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             }
         }
 
-        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.jsonSerializer);
+        protected internal override void SetExpectedResultType(Type resultType)
+        {
+            Verify.Operation(this.Result is not null, "This instance hasn't been initialized with a result yet.");
+            Verify.Operation(!this.resultDeserialized, "Result is no longer available or has already been deserialized.");
+
+            var result = (JToken)this.Result;
+            if (result.Type == JTokenType.Null)
+            {
+                Verify.Operation(!resultType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(resultType) is not null, "null result is not assignable to a value type.");
+                return;
+            }
+
+            try
+            {
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    this.Result = result.ToObject(resultType, this.formatter.JsonSerializer)!;
+                    this.resultDeserialized = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
+                this.resultDeserializationException = new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingRpcResult, resultType.Name, exception.GetType().Name, exception.Message), exception);
+            }
+        }
+
+        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.formatter.JsonSerializer);
     }
 
     private class JsonRpcError : JsonRpcErrorBase

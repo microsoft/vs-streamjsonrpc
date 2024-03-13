@@ -233,7 +233,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.userDataSerializationOptions);
 
     /// <inheritdoc/>
-    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.messageSerializationOptions);
+    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this, this.messageSerializationOptions);
 
     void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
     {
@@ -1792,7 +1792,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
         public Protocol.JsonRpcResult Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
-            var result = new JsonRpcResult(this.formatter.userDataSerializationOptions)
+            var result = new JsonRpcResult(this.formatter, this.formatter.userDataSerializationOptions)
             {
                 OriginalMessagePack = reader.Sequence,
             };
@@ -2266,11 +2266,13 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     private class JsonRpcResult : JsonRpcResultBase, IJsonRpcMessagePackRetention
     {
         private readonly MessagePackSerializerOptions serializerOptions;
+        private readonly MessagePackFormatter formatter;
 
         private Exception? resultDeserializationException;
 
-        internal JsonRpcResult(MessagePackSerializerOptions serializerOptions)
+        internal JsonRpcResult(MessagePackFormatter formatter, MessagePackSerializerOptions serializerOptions)
         {
+            this.formatter = formatter;
             this.serializerOptions = serializerOptions;
         }
 
@@ -2297,7 +2299,11 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             var reader = new MessagePackReader(this.MsgPackResult);
             try
             {
-                this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, this.serializerOptions);
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    this.Result = MessagePackSerializer.Deserialize(resultType, ref reader, this.serializerOptions);
+                }
+
                 this.MsgPackResult = default;
             }
             catch (MessagePackSerializationException ex)
