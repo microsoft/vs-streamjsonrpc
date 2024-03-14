@@ -351,7 +351,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this.JsonSerializer);
 
     /// <inheritdoc/>
-    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this.JsonSerializer);
+    Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
@@ -570,9 +570,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
     private bool TryGetMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
     {
-        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions))
+        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? rpcMarshalableAttribute))
         {
-            converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions);
+            converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions, rpcMarshalableAttribute);
             return true;
         }
 
@@ -616,7 +616,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         RequestId id = this.ExtractRequestId(json);
         JToken? result = json["result"];
 
-        return new JsonRpcResult(this.JsonSerializer)
+        return new JsonRpcResult(this)
         {
             RequestId = id,
             Result = result,
@@ -837,15 +837,27 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     [DataContract]
     private class JsonRpcResult : JsonRpcResultBase
     {
-        private readonly JsonSerializer jsonSerializer;
+        private readonly JsonMessageFormatter formatter;
+        private bool resultDeserialized;
+        private JsonSerializationException? resultDeserializationException;
 
-        internal JsonRpcResult(JsonSerializer jsonSerializer)
+        internal JsonRpcResult(JsonMessageFormatter formatter)
         {
-            this.jsonSerializer = jsonSerializer ?? throw new ArgumentNullException(nameof(jsonSerializer));
+            this.formatter = formatter;
         }
 
         public override T GetResult<T>()
         {
+            if (this.resultDeserializationException is not null)
+            {
+                ExceptionDispatchInfo.Capture(this.resultDeserializationException).Throw();
+            }
+
+            if (this.resultDeserialized)
+            {
+                return (T)this.Result!;
+            }
+
             Verify.Operation(this.Result is not null, "This instance hasn't been initialized with a result yet.");
             var result = (JToken)this.Result;
             if (result.Type == JTokenType.Null)
@@ -856,7 +868,10 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
             try
             {
-                return result.ToObject<T>(this.jsonSerializer)!;
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    return result.ToObject<T>(this.formatter.JsonSerializer)!;
+                }
             }
             catch (Exception exception)
             {
@@ -864,7 +879,34 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             }
         }
 
-        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.jsonSerializer);
+        protected internal override void SetExpectedResultType(Type resultType)
+        {
+            Verify.Operation(this.Result is not null, "This instance hasn't been initialized with a result yet.");
+            Verify.Operation(!this.resultDeserialized, "Result is no longer available or has already been deserialized.");
+
+            var result = (JToken)this.Result;
+            if (result.Type == JTokenType.Null)
+            {
+                Verify.Operation(!resultType.GetTypeInfo().IsValueType || Nullable.GetUnderlyingType(resultType) is not null, "null result is not assignable to a value type.");
+                return;
+            }
+
+            try
+            {
+                using (this.formatter.TrackDeserialization(this))
+                {
+                    this.Result = result.ToObject(resultType, this.formatter.JsonSerializer)!;
+                    this.resultDeserialized = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                // This was a best effort anyway. We'll throw again later at a more convenient time for JsonRpc.
+                this.resultDeserializationException = new JsonSerializationException(string.Format(CultureInfo.CurrentCulture, Resources.FailureDeserializingRpcResult, resultType.Name, exception.GetType().Name, exception.Message), exception);
+            }
+        }
+
+        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.formatter.JsonSerializer);
     }
 
     private class JsonRpcError : JsonRpcErrorBase
@@ -1207,29 +1249,16 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     }
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-    private class RpcMarshalableConverter : JsonConverter
+    private class RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
     {
-        private readonly Type interfaceType;
-        private readonly JsonMessageFormatter jsonMessageFormatter;
-        private readonly JsonRpcProxyOptions proxyOptions;
-        private readonly JsonRpcTargetOptions targetOptions;
+        private string DebuggerDisplay => $"Converter for marshalable objects of type {interfaceType.FullName}";
 
-        public RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions)
-        {
-            this.interfaceType = interfaceType;
-            this.jsonMessageFormatter = jsonMessageFormatter;
-            this.proxyOptions = proxyOptions;
-            this.targetOptions = targetOptions;
-        }
-
-        private string DebuggerDisplay => $"Converter for marshalable objects of type {this.interfaceType.FullName}";
-
-        public override bool CanConvert(Type objectType) => objectType == this.interfaceType;
+        public override bool CanConvert(Type objectType) => objectType == interfaceType;
 
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
-            return this.jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, this.proxyOptions);
+            return jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
@@ -1238,13 +1267,13 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             {
                 writer.WriteNull();
             }
-            else if (!this.interfaceType.IsAssignableFrom(value.GetType()))
+            else if (!interfaceType.IsAssignableFrom(value.GetType()))
             {
-                throw new InvalidOperationException($"Type {value.GetType().FullName} doesn't implement {this.interfaceType.FullName}");
+                throw new InvalidOperationException($"Type {value.GetType().FullName} doesn't implement {interfaceType.FullName}");
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, this.targetOptions, this.interfaceType);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, interfaceType, rpcMarshalableAttribute);
                 serializer.Serialize(writer, token);
             }
         }

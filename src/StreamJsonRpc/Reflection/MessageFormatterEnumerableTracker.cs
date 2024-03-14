@@ -55,23 +55,30 @@ public class MessageFormatterEnumerableTracker
 
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
-
+    private readonly MessageFormatterRpcMarshaledContextTracker? rpcTracker;
     private readonly object syncObject = new object();
     private long nextToken;
+
+    /// <inheritdoc cref="MessageFormatterEnumerableTracker(JsonRpc, IJsonRpcFormatterState, MessageFormatterRpcMarshaledContextTracker?)"/>
+    public MessageFormatterEnumerableTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
+        : this(jsonRpc, formatterState, null)
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageFormatterEnumerableTracker"/> class.
     /// </summary>
     /// <param name="jsonRpc">The <see cref="JsonRpc"/> instance that may be used to send or receive RPC messages related to <see cref="IAsyncEnumerable{T}"/>.</param>
     /// <param name="formatterState">The formatter that owns this tracker.</param>
-    public MessageFormatterEnumerableTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
+    /// <param name="rpcTracker">The RPC marshalable object support used by the formatter, if applicable.</param>
+    internal MessageFormatterEnumerableTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState, MessageFormatterRpcMarshaledContextTracker? rpcTracker)
     {
         Requires.NotNull(jsonRpc, nameof(jsonRpc));
         Requires.NotNull(formatterState, nameof(formatterState));
 
         this.jsonRpc = jsonRpc;
         this.formatterState = formatterState;
-
+        this.rpcTracker = rpcTracker;
         jsonRpc.AddLocalRpcMethod(NextMethodName, OnNextAsyncMethodInfo, this);
         jsonRpc.AddLocalRpcMethod(DisposeMethodName, OnDisposeAsyncMethodInfo, this);
         this.formatterState = formatterState;
@@ -156,7 +163,13 @@ public class MessageFormatterEnumerableTracker
     public IAsyncEnumerable<T> CreateEnumerableProxy<T>(object? handle, IReadOnlyList<T>? prefetchedItems)
 #pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
     {
-        return new AsyncEnumerableProxy<T>(this.jsonRpc, handle, prefetchedItems);
+        IDisposable? requestResourcesDeferral = null;
+        if (handle is not null && this.rpcTracker is not null && !this.formatterState.DeserializingMessageWithId.IsEmpty)
+        {
+            requestResourcesDeferral = this.rpcTracker.OutboundCleanupDeferral(this.formatterState.DeserializingMessageWithId);
+        }
+
+        return new AsyncEnumerableProxy<T>(this.jsonRpc, handle, prefetchedItems, requestResourcesDeferral);
     }
 
     private ValueTask<object> OnNextAsync(long token, CancellationToken cancellationToken)
@@ -344,15 +357,17 @@ public class MessageFormatterEnumerableTracker
     {
         private readonly JsonRpc jsonRpc;
         private readonly bool finished;
+        private readonly IDisposable? requestResourcesDeferral;
         private object? handle;
         private bool enumeratorAcquired;
         private IReadOnlyList<T>? prefetchedItems;
 
-        internal AsyncEnumerableProxy(JsonRpc jsonRpc, object? handle, IReadOnlyList<T>? prefetchedItems)
+        internal AsyncEnumerableProxy(JsonRpc jsonRpc, object? handle, IReadOnlyList<T>? prefetchedItems, IDisposable? requestResourcesDeferral)
         {
             this.jsonRpc = jsonRpc;
             this.handle = handle;
             this.prefetchedItems = prefetchedItems;
+            this.requestResourcesDeferral = requestResourcesDeferral;
             this.finished = handle is null;
         }
 
@@ -360,7 +375,7 @@ public class MessageFormatterEnumerableTracker
         {
             Verify.Operation(!this.enumeratorAcquired, Resources.CannotBeCalledAfterGetAsyncEnumerator);
             this.enumeratorAcquired = true;
-            var result = new AsyncEnumeratorProxy(this, this.handle, this.prefetchedItems, this.finished, cancellationToken);
+            var result = new AsyncEnumeratorProxy(this, this.handle, this.prefetchedItems, this.finished, this.requestResourcesDeferral, cancellationToken);
             this.prefetchedItems = null;
             return result;
         }
@@ -373,6 +388,7 @@ public class MessageFormatterEnumerableTracker
             private readonly AsyncEnumerableProxy<T> owner;
             private readonly CancellationToken cancellationToken;
             private readonly object[]? nextOrDisposeArguments;
+            private readonly IDisposable? requestResourcesDeferral;
 
             /// <summary>
             /// A sequence of values that have already been received from the generator but not yet consumed.
@@ -388,7 +404,7 @@ public class MessageFormatterEnumerableTracker
 
             private bool disposed;
 
-            internal AsyncEnumeratorProxy(AsyncEnumerableProxy<T> owner, object? handle, IReadOnlyList<T>? prefetchedItems, bool finished, CancellationToken cancellationToken)
+            internal AsyncEnumeratorProxy(AsyncEnumerableProxy<T> owner, object? handle, IReadOnlyList<T>? prefetchedItems, bool finished, IDisposable? requestResourcesDeferral, CancellationToken cancellationToken)
             {
                 this.owner = owner;
                 this.nextOrDisposeArguments = handle is not null ? new object[] { handle } : null;
@@ -400,6 +416,7 @@ public class MessageFormatterEnumerableTracker
                 }
 
                 this.generatorReportsFinished = finished;
+                this.requestResourcesDeferral = requestResourcesDeferral;
             }
 
             public T Current
@@ -430,6 +447,9 @@ public class MessageFormatterEnumerableTracker
                     {
                         await this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments).ConfigureAwait(false);
                     }
+
+                    // Clean up any local resources that were held open for the remote source of the enumeration.
+                    this.requestResourcesDeferral?.Dispose();
                 }
             }
 

@@ -2569,56 +2569,66 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             }
             else if (rpc is IJsonRpcMessageWithId resultOrError)
             {
-                this.OnResponseReceived(rpc);
-                JsonRpcResult? result = resultOrError as JsonRpcResult;
-                JsonRpcError? error = resultOrError as JsonRpcError;
-
-                lock (this.dispatcherMapLock)
+                try
                 {
-                    if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
-                    {
-                        this.resultDispatcherMap.Remove(resultOrError.RequestId);
-                    }
-                }
+                    JsonRpcResult? result = resultOrError as JsonRpcResult;
+                    JsonRpcError? error = resultOrError as JsonRpcError;
 
-                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                {
-                    if (result is not null)
+                    lock (this.dispatcherMapLock)
                     {
-                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.RequestId);
-                    }
-                    else if (error?.Error is object)
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.RequestId, error.Error.Code, error.Error.Message);
-                    }
-                }
-
-                if (data is object)
-                {
-                    if (data.ExpectedResultType is not null && rpc is JsonRpcResult resultMessage)
-                    {
-                        resultMessage.SetExpectedResultType(data.ExpectedResultType);
-                    }
-                    else if (rpc is JsonRpcError errorMessage && errorMessage.Error is not null)
-                    {
-                        Type? errorType = this.GetErrorDetailsDataType(errorMessage);
-                        if (errorType is not null)
+                        if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
                         {
-                            errorMessage.Error.SetExpectedDataType(errorType);
+                            this.resultDispatcherMap.Remove(resultOrError.RequestId);
                         }
                     }
 
-                    // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
-                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                    data.CompletionHandler(rpc);
-                    data = null; // avoid invoking again if we throw later
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                    {
+                        if (result is not null)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.RequestId);
+                        }
+                        else if (error?.Error is object)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.RequestId, error.Error.Code, error.Error.Message);
+                        }
+                    }
+
+                    if (data is object)
+                    {
+                        if (data.ExpectedResultType is not null && rpc is JsonRpcResult resultMessage)
+                        {
+                            resultMessage.SetExpectedResultType(data.ExpectedResultType);
+                        }
+                        else if (rpc is JsonRpcError errorMessage && errorMessage.Error is not null)
+                        {
+                            Type? errorType = this.GetErrorDetailsDataType(errorMessage);
+                            if (errorType is not null)
+                            {
+                                errorMessage.Error.SetExpectedDataType(errorType);
+                            }
+                        }
+
+                        this.OnResponseReceived(rpc);
+
+                        // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
+                        await TaskScheduler.Default.SwitchTo(alwaysYield: true);
+                        data.CompletionHandler(rpc);
+                        data = null; // avoid invoking again if we throw later
+                    }
+                    else
+                    {
+                        this.OnResponseReceived(rpc);
+
+                        // Unexpected "response" to no request we have a record of. Raise disconnected event.
+                        this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
+                            Resources.UnexpectedResponseWithNoMatchingRequest,
+                            DisconnectedReason.RemoteProtocolViolation));
+                    }
                 }
-                else
+                catch
                 {
-                    // Unexpected "response" to no request we have a record of. Raise disconnected event.
-                    this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
-                        Resources.UnexpectedResponseWithNoMatchingRequest,
-                        DisconnectedReason.RemoteProtocolViolation));
+                    this.OnResponseReceived(rpc);
                 }
             }
             else

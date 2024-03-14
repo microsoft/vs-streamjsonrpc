@@ -1,22 +1,22 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft;
+namespace StreamJsonRpc;
 
 internal class DisposableAction : IDisposableObservable
 {
-    private readonly Action? disposeAction;
+    private static readonly Action EmptyAction = () => { };
+    private Action? disposeAction;
 
     internal DisposableAction(Action? disposeAction)
     {
-        this.disposeAction = disposeAction;
+        this.disposeAction = disposeAction ?? EmptyAction;
     }
 
-    public bool IsDisposed { get; private set; }
+    public bool IsDisposed => this.disposeAction is null;
 
     public void Dispose()
     {
-        this.IsDisposed = true;
-        this.disposeAction?.Invoke();
+        Interlocked.Exchange(ref this.disposeAction, null)?.Invoke();
     }
 }

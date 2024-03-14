@@ -12,4 +12,16 @@ namespace StreamJsonRpc;
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
 public class RpcMarshalableAttribute : Attribute
 {
+    /// <summary>
+    /// Gets a value indicating whether the marshaled object is only allowed in requests
+    /// and may only be invoked by the receiver until the response is sent.
+    /// </summary>
+    /// <remarks>
+    /// <para>Objects marshaled via an interface attributed with this property set to true may only be used as RPC method parameters.
+    /// They will not be allowed as return values from RPC methods.</para>
+    /// <para>While the receiver may dispose of the proxy they receive, this disposal will <em>not</em> propagate to the sender,
+    /// and their originating object will <em>not</em> be disposed of.
+    /// The original object owner retains ownership of the lifetime of the object after the RPC call.</para>
+    /// </remarks>
+    public bool CallScopedLifetime { get; init; }
 }

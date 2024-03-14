@@ -7,11 +7,44 @@ StreamJsonRpc allows transmitting marshalable objects (i.e., objects implementin
 
 Marshalable interfaces must:
 
-1. Extend `IDisposable`.
+1. Extend `IDisposable` (unless interface is call-scoped).
 1. Not include any properties.
 1. Not include any events.
 
 The object that implements a marshalable interface may include properties and events as well as other additional members but only the methods defined by the marshalable interface will be available on the proxy, and the data will not be serialized.
+
+The `RpcMarshalableAttribute` must be applied directly to the interface used as the return type, parameter type, or member type within a return type or parameter type's object graph.
+The attribute is not inherited.
+In fact different interfaces in a type hierarchy can have this attribute applied with distinct settings, and only the settings on the attribute applied directly to the interface used will apply.
+
+## Call-scoped vs. explicitly scoped
+
+### Explicit lifetime
+
+An RPC marshalable interface has an explicit lifetime by default.
+This means that the receiver of a marshaled object owns its lifetime, which may extend beyond an individual RPC call.
+Memory for the marshaled object and its proxy are not released until the receiver either disposes of its proxy or the JSON-RPC connection is closed.
+
+### Call-scoped lifetime
+
+A call-scoped interface produces a proxy that is valid only during the RPC call that delivered it.
+It may only be used as part of a method request as or within an argument.
+Using it as or within a return value or exception will result in an error.
+
+This is the preferred model when an interface is expected to only be used within request arguments because it mitigates the risk of a memory leak due to the receiver failing to dispose of the proxy.
+This model also allows the sender to retain control over the lifetime of the marshaled object.
+
+Special allowance is made for `IAsyncEnumerable<T>`-returning RPC methods so that the lifetime of the marshaled object is extended to the lifetime of the enumeration.
+An `IAsyncEnumerable<T>` in an exception thrown from the method will *not* have access to the call-scoped marshaled object because exceptions thrown by the server always cause termination of objects marshaled by the request.
+
+Opt into call-scoped lifetimes by setting the `CallScopedLifetime` property to `true` on the attribute applied to the interface:
+
+```css
+[RpcMarshalable(CallScopedLifetime = true)]
+```
+
+It is not possible to customize the lifetime of an RPC marshaled object except on its own interface.
+For example, applying this attribute to the parameter that uses the interface is not allowed.
 
 ## Use cases
 
@@ -104,6 +137,8 @@ class RpcServer : IRpcServer
 }
 ```
 
+Call-scoped marshalable interfaces may not be used as a return type or member of its object graph.
+
 ### Method argument
 
 In this use case the RPC *client* provides the marshalable object to the server:
@@ -118,6 +153,8 @@ IRpcContract client = jsonRpc.Attach<IRpcContract>();
 var counter = new Counter();
 await client.ProvideCounterAsync(counter);
 ```
+
+Call-scoped marshalable interfaces may only appear as a method parameter or a part of its object graph.
 
 ### Value within a single argument's object graph
 
@@ -144,6 +181,7 @@ await client.ProvideClassAsync(arg);
 ```
 
 ⚠️ While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an `IDisposable` value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
+This risk can be mitigated by using call-scoped marshalable interfaces.
 
 ### As an argument without a proxy for an RPC interface
 
