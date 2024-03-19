@@ -31,6 +31,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";CallScopedMarshaledObjectInReturnValueNotAllowed" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[A call-scoped marshaled object was included in a return value, which is not allowed.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[В возвращаемое значение включен маршалированный объект с областью вызова, что запрещено.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";CancellationTokenMustBeLastParameter" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[A CancellationToken is only allowed as the last parameter.]]></Val>
