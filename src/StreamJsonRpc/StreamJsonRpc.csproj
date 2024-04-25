@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net8.0</TargetFrameworks>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -18,16 +18,18 @@
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
-    <PackageReference Include="System.IO.Pipelines" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'== 'netStandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="compile"/>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'== 'netStandard2.0' or '$(TargetFramework)' == 'netStandard2.1'">
+  <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'">
     <PackageReference Include="System.Collections.Immutable" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
-    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="System.IO.Pipelines" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" PrivateAssets="compile" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Shipped.txt" />
