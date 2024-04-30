@@ -33,4 +33,3 @@ jobs:
     EnableMacOSBuild: ${{ parameters.EnableMacOSBuild }}
     RunTests: ${{ parameters.RunTests }}
     ShouldSkipOptimize: false
-- template: azure-pipelines/richnav.yml
