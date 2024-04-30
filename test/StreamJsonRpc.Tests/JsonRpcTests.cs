@@ -4113,6 +4113,9 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Arrange to change the ClassName value.
@@ -4153,12 +4156,18 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         protected ThrowOnSerializeException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             // Unlikely to ever be called since serialization throws, but complete the pattern so we test exactly what we mean to.
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             throw new InvalidOperationException("This exception always throws when serialized.");
@@ -4194,6 +4203,9 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         protected PrivateSerializableException(
           SerializationInfo info,
           StreamingContext context)

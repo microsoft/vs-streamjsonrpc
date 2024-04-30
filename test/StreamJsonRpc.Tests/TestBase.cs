@@ -2,10 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
+using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class TestBase : IDisposable
 {
@@ -112,15 +111,22 @@ public abstract class TestBase : IDisposable
     }
 
     protected static T BinaryFormatterRoundtrip<T>(T original)
-        where T : notnull
+        where T : notnull, ISerializable
     {
-        var bf = new BinaryFormatter();
-        var ms = new MemoryStream();
-#pragma warning disable SYSLIB0011 // Type or member is obsolete
-        bf.Serialize(ms, original);
-        ms.Position = 0;
-        return (T)bf.Deserialize(ms);
-#pragma warning restore SYSLIB0011 // Type or member is obsolete
+        Assert.NotNull(typeof(T).GetCustomAttribute<SerializableAttribute>());
+
+#pragma warning disable SYSLIB0050
+        StreamingContext context = new(StreamingContextStates.Remoting);
+        SerializationInfo info = new SerializationInfo(typeof(T), new RoundtripFormatter());
+        original.GetObjectData(info, new StreamingContext(StreamingContextStates.Remoting));
+#pragma warning restore SYSLIB0050
+        ConstructorInfo? ctor = typeof(T).GetConstructor(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            [typeof(SerializationInfo), typeof(StreamingContext)],
+            modifiers: null);
+        Assert.NotNull(ctor);
+        return (T)ctor.Invoke([info, context])!;
     }
 
     protected async Task AssertWeakReferenceGetsCollectedAsync(WeakReference weakReference)
@@ -190,5 +196,44 @@ public abstract class TestBase : IDisposable
         }
 
         Assert.True(passingAttemptObserved);
+    }
+
+#pragma warning disable SYSLIB0050 // Type or member is obsolete
+    private class RoundtripFormatter : IFormatterConverter
+#pragma warning restore SYSLIB0050 // Type or member is obsolete
+    {
+        public object Convert(object value, Type type) => value;
+
+        public object Convert(object value, TypeCode typeCode) => value;
+
+        public bool ToBoolean(object value) => (bool)value;
+
+        public byte ToByte(object value) => (byte)value;
+
+        public char ToChar(object value) => (char)value;
+
+        public DateTime ToDateTime(object value) => (DateTime)value;
+
+        public decimal ToDecimal(object value) => (decimal)value;
+
+        public double ToDouble(object value) => (double)value;
+
+        public short ToInt16(object value) => (short)value;
+
+        public int ToInt32(object value) => (int)value;
+
+        public long ToInt64(object value) => (long)value;
+
+        public sbyte ToSByte(object value) => (sbyte)value;
+
+        public float ToSingle(object value) => (float)value;
+
+        public string? ToString(object value) => (string)value;
+
+        public ushort ToUInt16(object value) => (ushort)value;
+
+        public uint ToUInt32(object value) => (uint)value;
+
+        public ulong ToUInt64(object value) => (ulong)value;
     }
 }
