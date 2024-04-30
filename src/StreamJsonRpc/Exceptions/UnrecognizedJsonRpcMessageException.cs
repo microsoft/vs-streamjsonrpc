@@ -43,6 +43,9 @@ public class UnrecognizedJsonRpcMessageException : RemoteRpcException
     /// </summary>
     /// <param name="info">Serialization info.</param>
     /// <param name="context">Streaming context.</param>
+#if NET8_0_OR_GREATER
+    [Obsolete]
+#endif
     protected UnrecognizedJsonRpcMessageException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {

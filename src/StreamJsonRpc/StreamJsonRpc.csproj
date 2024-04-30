@@ -6,6 +6,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>A cross-platform .NETStandard library that implements the JSON-RPC wire protocol and can use System.IO.Stream, System.IO.Pipelines or WebSocket so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
+    <!-- We use the ISerializable APIs *without* the BinaryFormatter. Not as obsolete as the .NET SDK would have us believe. -->
+    <NoWarn>$(NoWarn);SYSLIB0050</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx" />

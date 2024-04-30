@@ -1104,16 +1104,15 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             this.serializerOptions = serializerOptions;
         }
 
+#pragma warning disable CS8766 // This method may in fact return null, and no one cares.
         public object? Convert(object value, Type type)
+#pragma warning restore CS8766
         {
-            var jsonValue = (JsonNode?)value;
-            if (jsonValue is null)
-            {
-                return null;
-            }
+            var jsonValue = (JsonNode)value;
 
             if (type == typeof(System.Collections.IDictionary))
             {
+                // In this world, we may in fact be returning a null value based on a non-null value.
                 return DeserializePrimitive(jsonValue);
             }
 
