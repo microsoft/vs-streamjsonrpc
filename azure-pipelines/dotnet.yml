@@ -24,7 +24,7 @@ steps:
     testRunTitle: streamjsonrpc.tests-etw (net472, $(Agent.JobName))
   env:
     StreamJsonRpc_TestWithEventSource: 1
-  condition: and(succeeded(), ne(variables['OptProf'], 'true'))
+  condition: and(succeeded(), ne(variables['OptProf'], 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - ${{ if parameters.IsOptProf }}:
   # We have to artifically run this script so that the extra .nupkg is produced for variables/InsertConfigValues.ps1 to notice.
