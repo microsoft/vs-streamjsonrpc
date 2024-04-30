@@ -15,7 +15,7 @@ internal static class TrackerHelpers<TInterface>
     /// <summary>
     /// Dictionary to record the calculation made in <see cref="FindInterfaceImplementedBy(Type)"/> to obtain the <typeparamref name="TInterface"/> type from a given <see cref="Type"/>.
     /// </summary>
-    private static readonly Dictionary<Type, Type> TypeToImplementedInterfaceMap = new Dictionary<Type, Type>();
+    private static readonly Dictionary<Type, Type?> TypeToImplementedInterfaceMap = new();
 
     /// <summary>
     /// Gets the generic type definition for whatever type parameter was given by <typeparamref name="TInterface" />.

@@ -88,7 +88,9 @@ internal static class ExceptionSerializationHelpers
     {
         Type exceptionType = exception.GetType();
         EnsureSerializableAttribute(exceptionType);
+#pragma warning disable SYSLIB0051 // Type or member is obsolete -- NOT so obsolete without the BinaryFormatter.
         exception.GetObjectData(info, Context);
+#pragma warning restore SYSLIB0051 // Type or member is obsolete
         info.AddValue(AssemblyNameKeyName, exception.GetType().Assembly.FullName);
     }
 

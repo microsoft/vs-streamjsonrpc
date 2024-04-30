@@ -1288,7 +1288,10 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             this.serializer = serializer;
         }
 
-        public object Convert(object value, Type type) => ((JToken)value).ToObject(type, this.serializer)!;
+#pragma warning disable CS8766 // This method may in fact return null, and no one cares.
+        public object? Convert(object value, Type type)
+#pragma warning restore CS8766
+            => ((JToken)value).ToObject(type, this.serializer);
 
         public object Convert(object value, TypeCode typeCode)
         {

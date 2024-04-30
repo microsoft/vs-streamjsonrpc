@@ -104,7 +104,7 @@ public struct RequestId : IEquatable<RequestId>
     public override bool Equals(object? obj) => obj is RequestId other && this.Equals(other);
 
     /// <inheritdoc/>
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
     public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode(StringComparison.Ordinal) ?? 0;
 #else
     public override int GetHashCode() => this.Number?.GetHashCode() ?? this.String?.GetHashCode() ?? 0;

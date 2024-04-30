@@ -31,6 +31,9 @@ public class RemoteSerializationException : RemoteRpcException
     /// </summary>
     /// <param name="serializationInfo">Serialization info.</param>
     /// <param name="streamingContext">Streaming context.</param>
+#if NET8_0_OR_GREATER
+    [Obsolete]
+#endif
     protected RemoteSerializationException(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext)
         : base(serializationInfo, streamingContext)
     {
