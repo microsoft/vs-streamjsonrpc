@@ -1500,6 +1500,9 @@ public abstract class MarshalableProxyTests : TestBase
             this.Enumerable = enumeration;
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         protected ExceptionWithAsyncEnumerable(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -1508,6 +1511,9 @@ public abstract class MarshalableProxyTests : TestBase
 
         internal IAsyncEnumerable<int>? Enumerable { get; set; }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
