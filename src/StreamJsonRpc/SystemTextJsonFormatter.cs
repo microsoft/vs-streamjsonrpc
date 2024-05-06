@@ -516,6 +516,9 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                     }
 
                     break;
+                case JsonValueKind.Object when name is null && position is 0:
+                    valueElement = this.JsonArguments.Value;
+                    break;
                 case JsonValueKind.Array:
                     int elementIndex = 0;
                     foreach (JsonElement arrayElement in this.JsonArguments.Value.EnumerateArray())
