@@ -51,7 +51,6 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
     <PackageReference Include="System.IO.Pipes" />
     <PackageReference Include="System.Net.Http" />
-    <PackageReference Include="System.Text.Encodings.Web" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="System.ValueTuple" />
     <PackageReference Include="xunit.combinatorial" />
