@@ -469,6 +469,16 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override int ArgumentCount => this.argumentCount ?? base.ArgumentCount;
 
+        public override IEnumerable<string>? ArgumentNames
+        {
+            get
+            {
+                return this.JsonArguments?.ValueKind is JsonValueKind.Object
+                    ? this.JsonArguments.Value.EnumerateObject().Select(p => p.Name)
+                    : null;
+            }
+        }
+
         internal JsonElement? JsonArguments
         {
             get => this.jsonArguments;
