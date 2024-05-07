@@ -20,7 +20,7 @@ internal sealed class JsonRpcEventSource : EventSource
     /// <summary>
     /// The singleton instance of this event source.
     /// </summary>
-    internal static readonly JsonRpcEventSource Instance = new JsonRpcEventSource();
+    internal static readonly JsonRpcEventSource Instance = new();
 
     /// <summary>
     /// The event ID for the <see cref="SendingNotification"/>.
@@ -98,9 +98,9 @@ internal sealed class JsonRpcEventSource : EventSource
     private const int MessageHandlerReceivedEvent = 33;
 
     /// <summary>
-    /// A flag indicating whether to force tracing to be on.
+    /// Gets the testing mode that ETW tracing is running under.
     /// </summary>
-    private static readonly bool AlwaysOn = Environment.GetEnvironmentVariable("StreamJsonRpc_TestWithEventSource") == "1";
+    private static readonly SharedUtilities.EventSourceTestMode EventSourceTestingActive = SharedUtilities.GetEventSourceTestMode();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonRpcEventSource"/> class.
@@ -113,7 +113,7 @@ internal sealed class JsonRpcEventSource : EventSource
     }
 
     /// <inheritdoc cref="EventSource.IsEnabled(EventLevel, EventKeywords)"/>
-    public new bool IsEnabled(EventLevel level, EventKeywords keywords) => AlwaysOn || base.IsEnabled(level, keywords);
+    public new bool IsEnabled(EventLevel level, EventKeywords keywords) => EventSourceTestingActive != SharedUtilities.EventSourceTestMode.None || base.IsEnabled(level, keywords);
 
     /// <summary>
     /// Signals the transmission of a notification.
@@ -301,7 +301,7 @@ internal sealed class JsonRpcEventSource : EventSource
                         formatted = true;
                     }
                 }
-                catch
+                catch when (EventSourceTestingActive != SharedUtilities.EventSourceTestMode.DoNotSwallowExceptions)
                 {
                     // Swallow exceptions when deserializing args for ETW logging. It's never worth causing a functional failure.
                 }
@@ -339,7 +339,7 @@ internal sealed class JsonRpcEventSource : EventSource
                         formatted = true;
                     }
                 }
-                catch
+                catch when (EventSourceTestingActive != SharedUtilities.EventSourceTestMode.DoNotSwallowExceptions)
                 {
                     // Swallow exceptions when deserializing args for ETW logging. It's never worth causing a functional failure.
                 }
@@ -368,9 +368,9 @@ internal sealed class JsonRpcEventSource : EventSource
                     builder.Append("null");
                     break;
                 case string s:
-                    builder.Append("\"");
+                    builder.Append('"');
                     builder.Append(s);
-                    builder.Append("\"");
+                    builder.Append('"');
                     break;
                 default:
                     builder.Append(value);

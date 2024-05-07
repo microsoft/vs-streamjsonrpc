@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\StreamJsonRpc\DisposableAction.cs" Link="DisposableAction.cs" />
+    <Compile Include="..\..\src\StreamJsonRpc\SharedUtilities.cs" Link="SharedUtilities.cs" />
     <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxySystemTextJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />

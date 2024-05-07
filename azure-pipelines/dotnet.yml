@@ -17,13 +17,23 @@ steps:
     condition: and(succeeded(), ${{ parameters.RunTests }})
 
 - task: DotNetCoreCLI@2
-  displayName: 🧪 dotnet test -f net472 (+EventSource)
+  displayName: 🧪 dotnet test -f net472 (+EventSource throw)
   inputs:
     command: test
     arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472_etw.txt"
     testRunTitle: streamjsonrpc.tests-etw (net472, $(Agent.JobName))
   env:
-    StreamJsonRpc_TestWithEventSource: 1
+    StreamJsonRpc_TestWithEventSource: 1 # allow exceptions from EventSource to propagate
+  condition: and(succeeded(), ne(variables['OptProf'], 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
+
+- task: DotNetCoreCLI@2
+  displayName: 🧪 dotnet test -f net472 (+EventSource production)
+  inputs:
+    command: test
+    arguments: --no-build -c $(BuildConfiguration) -f net472 --filter "TestCategory!=FailsInCloudTest$(FailsOnMonoFilter)" -v n /p:CollectCoverage=true /bl:"$(Build.ArtifactStagingDirectory)/build_logs/test_net472_etw.binlog" --diag "$(Build.ArtifactStagingDirectory)/test_logs/net472_etw.txt"
+    testRunTitle: streamjsonrpc.tests-etw (net472, $(Agent.JobName))
+  env:
+    StreamJsonRpc_TestWithEventSource: 2 # swallow exceptions from EventSource, as is done in production
   condition: and(succeeded(), ne(variables['OptProf'], 'true'), eq(variables['Agent.OS'], 'Windows_NT'))
 
 - ${{ if parameters.IsOptProf }}:
