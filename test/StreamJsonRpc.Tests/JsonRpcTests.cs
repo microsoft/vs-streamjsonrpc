@@ -1365,6 +1365,30 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
     }
 
+    /// <summary>
+    /// Asserts that an outbound RPC call's Task will not complete before all inbound progress updates have been invoked.
+    /// </summary>
+    /// <remarks>
+    /// This is important so that <see cref="ProgressWithCompletion{T}.WaitAsync()"/> is guaranteed to wait for all
+    /// progress updates that were made by the RPC server so the client doesn't get updates later than expected.
+    /// </remarks>>
+    [Fact]
+    public async Task ProgressParameterHasStableCompletionRelativeToRpcTask()
+    {
+        int? received = null;
+        ManualResetEventSlim evt = new();
+        ControlledProgress<int> progress = new(n =>
+        {
+            evt.Wait();
+            received = n;
+        });
+
+        Task<int> result = this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithProgressParameter), [progress]);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => result.WithCancellation(ExpectedTimeoutToken));
+        evt.Set();
+        await result.WithCancellation(this.TimeoutToken);
+    }
+
     [Fact]
     public async Task ReportProgressWithUnserializableData_LeavesTraceEvidence()
     {
@@ -4237,6 +4261,14 @@ public abstract class JsonRpcTests : TestBase
             }
 
             return base.LoadType(typeFullName, assemblyName);
+        }
+    }
+
+    private class ControlledProgress<T>(Action<T> reported) : IProgress<T>
+    {
+        public void Report(T value)
+        {
+            reported(value);
         }
     }
 
