@@ -516,7 +516,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                     }
 
                     break;
-                case JsonValueKind.Array:
+                case JsonValueKind.Array when position >= 0:
                     int elementIndex = 0;
                     foreach (JsonElement arrayElement in this.JsonArguments.Value.EnumerateArray())
                     {
@@ -528,8 +528,6 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                     }
 
                     break;
-                default:
-                    throw new JsonException("Unexpected value kind for arguments: " + (this.JsonArguments?.ValueKind.ToString() ?? "null"));
             }
 
             try
