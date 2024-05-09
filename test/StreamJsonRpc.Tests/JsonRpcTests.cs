@@ -2964,14 +2964,19 @@ public abstract class JsonRpcTests : TestBase
     /// Asserts that when <see cref="JsonRpc.JoinableTaskTracker"/> is set to a unique instance, the deadlock avoidance fails.
     /// </summary>
     [UIFact]
-    public void JoinableTaskFactory_IntegrationClientSideOnly_ManyConnections_UniqueTrackerLeadsToDeadlock()
+    public async Task JoinableTaskFactory_IntegrationClientSideOnly_ManyConnections_UniqueTrackerLeadsToDeadlock()
     {
         // Set up a main thread and JoinableTaskContext.
         JoinableTaskContext jtc = new();
 
+        // Track our async work so our test doesn't exit before our UI thread requests do,
+        // or the test process will crash.
+        JoinableTaskCollection jtCollection = jtc.CreateCollection();
+        JoinableTaskFactory jtf = jtc.CreateFactory(jtCollection);
+
         // Configure the client (only) to understand JTF.
         this.clientRpc.AllowModificationWhileListening = true;
-        this.clientRpc.JoinableTaskFactory = jtc.Factory;
+        this.clientRpc.JoinableTaskFactory = jtf;
 
         // Set up the alternate JsonRpc connection.
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -2984,7 +2989,7 @@ public abstract class JsonRpcTests : TestBase
             out IJsonRpcMessageHandler alternateClientHandler,
             controlledFlushingClient: false);
         JsonRpc alternateServerRpc = new(alternateServerHandler, this.server) { JoinableTaskTracker = new() };
-        JsonRpc alternateClientRpc = new(alternateClientHandler) { JoinableTaskFactory = jtc.Factory };
+        JsonRpc alternateClientRpc = new(alternateClientHandler) { JoinableTaskFactory = jtf };
         this.server.AlternateRpc = alternateServerRpc;
 
         alternateServerRpc.TraceSource = new TraceSource("ALT Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
@@ -2997,16 +3002,20 @@ public abstract class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtf.SwitchToMainThreadAsync();
         }));
 
         alternateServerRpc.StartListening();
         alternateClientRpc.StartListening();
 
-        jtc.Factory.Run(async delegate
+        jtf.Run(async delegate
         {
             await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.CallbackOnAnotherConnection), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(ExpectedTimeoutToken));
         });
+
+        // Drain any UI thread requests before exiting the test.
+        await jtCollection.JoinTillEmptyAsync();
+        await Task.Yield();
     }
 
     [Fact]
