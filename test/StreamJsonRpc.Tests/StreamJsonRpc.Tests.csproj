@@ -1,13 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <RootNamespace />
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\..\src\StreamJsonRpc\DisposableAction.cs" Link="DisposableAction.cs" />
+    <Compile Include="..\..\src\StreamJsonRpc\SharedUtilities.cs" Link="SharedUtilities.cs" />
     <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxySystemTextJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
@@ -51,7 +52,6 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
     <PackageReference Include="System.IO.Pipes" />
     <PackageReference Include="System.Net.Http" />
-    <PackageReference Include="System.Text.Encodings.Web" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
     <PackageReference Include="System.ValueTuple" />
     <PackageReference Include="xunit.combinatorial" />

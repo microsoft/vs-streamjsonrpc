@@ -302,7 +302,7 @@ internal static class ProxyGeneration
 
                     Label positionalArgsLabel = il.DefineLabel();
 
-                    ParameterInfo cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
+                    ParameterInfo? cancellationTokenParameter = methodParameters.FirstOrDefault(p => p.ParameterType == typeof(CancellationToken));
                     int argumentCountExcludingCancellationToken = methodParameters.Length - (cancellationTokenParameter is not null ? 1 : 0);
                     VerifySupported(cancellationTokenParameter is null || cancellationTokenParameter.Position == methodParameters.Length - 1, Resources.CancellationTokenMustBeLastParameter, method);
 
@@ -913,11 +913,11 @@ internal static class ProxyGeneration
         public bool Equals(GeneratedProxiesByInterfaceKey other)
         {
             return this.baseInterfaceType == other.baseInterfaceType &&
-                   !(this.implementedOptionalInterfaces is not null ^ other.implementedOptionalInterfaces is not null) &&
-                   (this.implementedOptionalInterfaces?.SequenceEqual(other.implementedOptionalInterfaces) ?? true);
+                ((this.implementedOptionalInterfaces is null && other.implementedOptionalInterfaces is null) ||
+                (this.implementedOptionalInterfaces is not null && other.implementedOptionalInterfaces is not null && this.implementedOptionalInterfaces.SequenceEqual(other.implementedOptionalInterfaces)));
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is GeneratedProxiesByInterfaceKey other && this.Equals(other);
         }

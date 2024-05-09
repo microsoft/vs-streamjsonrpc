@@ -2219,7 +2219,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
                 // Be sure to dispose the link to the local method token we created in case it is linked to our long-lived disposal token
                 // and otherwise cause a memory leak.
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
                 await disconnectedRegistration.DisposeAsync().ConfigureAwait(false);
 #else
                 disconnectedRegistration.Dispose();

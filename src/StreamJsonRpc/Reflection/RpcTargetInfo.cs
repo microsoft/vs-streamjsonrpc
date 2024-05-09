@@ -530,7 +530,8 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 // Only add methods that do not have equivalent signatures to what we already have.
                 foreach (MethodSignature newMethod in item.Value)
                 {
-                    if (!alreadyExists || !existingList.Any(e => e.Equals(newMethod)))
+                    // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
+                    if (!alreadyExists || !existingList!.Any(e => e.Equals(newMethod)))
                     {
                         var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, null);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);

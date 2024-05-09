@@ -1,12 +1,12 @@
 # `IProgress<T>` support
 
-Support for `IProgress<T>` allows a JSON-RPC server to report progress to the client periodically so that the client can start processing those 
+Support for `IProgress<T>` allows a JSON-RPC server to report progress to the client periodically so that the client can start processing those
 results without having to wait for all results to be retrieved before responding.
 
 ## Client side
 
-With this support client can now include an object that implements `IProgress<T>` on the invocation parameters. The Report method on that 
-instance should have the processing that the client will do with the results reported by the server.
+With this support client can include an object that implements `IProgress<T>` on the invocation parameters.
+The Report method on that instance should have the processing that the client will do with the results reported by the server.
 
 Since `IProgress<T>` is not directly serializable to JSON, a JSON token that tracks that `IProgress<T>` instance will be written in its place
 in the outgoing message.
@@ -35,13 +35,27 @@ associated with the original request the client placed.
 This reporting will continue until the client receives the actual JSON-RPC response message for the request.
 Any `$/progress` notifications from the server with the matching JSON progress token will be discarded after that point.
 
+### Timing considerations
+
+- All reports made by the server are guaranteed to be invoked on the client's `IProgress<T>.Report` method in the same order as the server made them.
+- All invocations of `IProgress<T>.Report` will have completed *before* the outbound RPC call that provided the `IProgress<T>` argument is considered completed.
+- A client's implementation of `IProgress<T>.Report` should avoid blocking on other threads or completion of other RPC work, as this may introduce a deadlock with `JsonRpc` since it cannot make further progress reading RPC messages until this method returns.
+- If the `IProgress<T>.Report` has significant work to do, consider using an `IProgress<T>` implementation whose `Report` method simply schedules work to happen and returns quickly.
+  Use of [`ProgressWithCompletion<T>`](https://learn.microsoft.com/dotnet/api/microsoft.visualstudio.threading.progresswithcompletion-1) is recommended because it schedules the handling for later and provides a [`WaitAsync`](https://learn.microsoft.com/dotnet/api/microsoft.visualstudio.threading.progresswithcompletion-1.waitasync) method that can be used to ensure the client has fully processed progress reports before continuing. For example:
+
+  ```cs
+  ProgressWithCompletion<Update> progress = new(u => SlowHandlerAsync(u));
+  SomeResult result = await jsonRpcProxy.DoSomethingBigAsync(progress, cancellationToken);
+  await progress.WaitAsync(cancellationToken); // wait for stragglers before continuing.
+  ```
+
 ## Server side
 
 When the method called on the server takes an `IProgress<T>` parameter, the JSON token that supplies the argument for that parameter will be considered
 the progress token used to send progress via `$/progress` back to the client. The server method will be invoked with an instance of `IProgress<T>`
 which may be used as normal until the server method completes, after which the `IProgress<T>` becomes inert.
 
-This new `IProgress<T>` instance will send a special kind of notification ($/progress) whenever results are reported on the server method, using 
+This new `IProgress<T>` instance will send a special kind of notification ($/progress) whenever results are reported on the server method, using
 the token given by the client and the reported values as parameters.
 
 The progress notification will look like this:

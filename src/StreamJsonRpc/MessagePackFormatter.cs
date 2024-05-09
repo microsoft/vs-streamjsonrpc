@@ -405,7 +405,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     private static void ReadUnknownProperty(ref MessagePackReader reader, ref Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties, ReadOnlySpan<byte> stringKey)
     {
         topLevelProperties ??= new Dictionary<string, ReadOnlySequence<byte>>(StringComparer.Ordinal);
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
         string name = Encoding.UTF8.GetString(stringKey);
 #else
         string name = Encoding.UTF8.GetString(stringKey.ToArray());
@@ -660,7 +660,10 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             this.options = options;
         }
 
-        public object? Convert(object value, Type type) => ((RawMessagePack)value).Deserialize(type, this.options);
+#pragma warning disable CS8766 // This method may in fact return null, and no one cares.
+        public object? Convert(object value, Type type)
+#pragma warning restore CS8766
+            => ((RawMessagePack)value).Deserialize(type, this.options);
 
         public object Convert(object value, TypeCode typeCode)
         {

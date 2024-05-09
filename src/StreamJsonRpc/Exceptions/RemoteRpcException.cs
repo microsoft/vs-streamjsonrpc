@@ -37,6 +37,9 @@ public abstract class RemoteRpcException : Exception
     /// </summary>
     /// <param name="info">Serialization info.</param>
     /// <param name="context">Streaming context.</param>
+#if NET8_0_OR_GREATER
+    [Obsolete]
+#endif
     protected RemoteRpcException(SerializationInfo info, StreamingContext context)
         : base(info, context)
     {
@@ -69,6 +72,9 @@ public abstract class RemoteRpcException : Exception
     public object? DeserializedErrorData { get; protected set; }
 
     /// <inheritdoc/>
+#if NET8_0_OR_GREATER
+    [Obsolete]
+#endif
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         base.GetObjectData(info, context);

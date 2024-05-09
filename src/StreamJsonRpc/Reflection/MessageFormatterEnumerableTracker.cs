@@ -322,11 +322,15 @@ public class MessageFormatterEnumerableTracker
             }
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
+#if NET8_0_OR_GREATER
+            await this.cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+#else
             this.cancellationTokenSource.Cancel();
+#endif
             this.readAheadElements?.Complete();
-            return this.enumerator.DisposeAsync();
+            await this.enumerator.DisposeAsync().ConfigureAwait(false);
         }
 
         private async Task ReadAheadAsync()

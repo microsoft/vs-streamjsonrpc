@@ -469,6 +469,16 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 
         public override int ArgumentCount => this.argumentCount ?? base.ArgumentCount;
 
+        public override IEnumerable<string>? ArgumentNames
+        {
+            get
+            {
+                return this.JsonArguments?.ValueKind is JsonValueKind.Object
+                    ? this.JsonArguments.Value.EnumerateObject().Select(p => p.Name)
+                    : null;
+            }
+        }
+
         internal JsonElement? JsonArguments
         {
             get => this.jsonArguments;
@@ -516,7 +526,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                     }
 
                     break;
-                case JsonValueKind.Array:
+                case JsonValueKind.Array when position >= 0:
                     int elementIndex = 0;
                     foreach (JsonElement arrayElement in this.JsonArguments.Value.EnumerateArray())
                     {
@@ -528,8 +538,6 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                     }
 
                     break;
-                default:
-                    throw new JsonException("Unexpected value kind for arguments: " + (this.JsonArguments?.ValueKind.ToString() ?? "null"));
             }
 
             try
@@ -1104,16 +1112,15 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             this.serializerOptions = serializerOptions;
         }
 
+#pragma warning disable CS8766 // This method may in fact return null, and no one cares.
         public object? Convert(object value, Type type)
+#pragma warning restore CS8766
         {
-            var jsonValue = (JsonNode?)value;
-            if (jsonValue is null)
-            {
-                return null;
-            }
+            var jsonValue = (JsonNode)value;
 
             if (type == typeof(System.Collections.IDictionary))
             {
+                // In this world, we may in fact be returning a null value based on a non-null value.
                 return DeserializePrimitive(jsonValue);
             }
 

@@ -1365,6 +1365,30 @@ public abstract class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
     }
 
+    /// <summary>
+    /// Asserts that an outbound RPC call's Task will not complete before all inbound progress updates have been invoked.
+    /// </summary>
+    /// <remarks>
+    /// This is important so that <see cref="ProgressWithCompletion{T}.WaitAsync()"/> is guaranteed to wait for all
+    /// progress updates that were made by the RPC server so the client doesn't get updates later than expected.
+    /// </remarks>>
+    [Fact]
+    public async Task ProgressParameterHasStableCompletionRelativeToRpcTask()
+    {
+        int? received = null;
+        ManualResetEventSlim evt = new();
+        ControlledProgress<int> progress = new(n =>
+        {
+            evt.Wait();
+            received = n;
+        });
+
+        Task<int> result = this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithProgressParameter), [progress]);
+        await Assert.ThrowsAsync<OperationCanceledException>(() => result.WithCancellation(ExpectedTimeoutToken));
+        evt.Set();
+        await result.WithCancellation(this.TimeoutToken);
+    }
+
     [Fact]
     public async Task ReportProgressWithUnserializableData_LeavesTraceEvidence()
     {
@@ -2964,14 +2988,19 @@ public abstract class JsonRpcTests : TestBase
     /// Asserts that when <see cref="JsonRpc.JoinableTaskTracker"/> is set to a unique instance, the deadlock avoidance fails.
     /// </summary>
     [UIFact]
-    public void JoinableTaskFactory_IntegrationClientSideOnly_ManyConnections_UniqueTrackerLeadsToDeadlock()
+    public async Task JoinableTaskFactory_IntegrationClientSideOnly_ManyConnections_UniqueTrackerLeadsToDeadlock()
     {
         // Set up a main thread and JoinableTaskContext.
         JoinableTaskContext jtc = new();
 
+        // Track our async work so our test doesn't exit before our UI thread requests do,
+        // or the test process will crash.
+        JoinableTaskCollection jtCollection = jtc.CreateCollection();
+        JoinableTaskFactory jtf = jtc.CreateFactory(jtCollection);
+
         // Configure the client (only) to understand JTF.
         this.clientRpc.AllowModificationWhileListening = true;
-        this.clientRpc.JoinableTaskFactory = jtc.Factory;
+        this.clientRpc.JoinableTaskFactory = jtf;
 
         // Set up the alternate JsonRpc connection.
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -2984,7 +3013,7 @@ public abstract class JsonRpcTests : TestBase
             out IJsonRpcMessageHandler alternateClientHandler,
             controlledFlushingClient: false);
         JsonRpc alternateServerRpc = new(alternateServerHandler, this.server) { JoinableTaskTracker = new() };
-        JsonRpc alternateClientRpc = new(alternateClientHandler) { JoinableTaskFactory = jtc.Factory };
+        JsonRpc alternateClientRpc = new(alternateClientHandler) { JoinableTaskFactory = jtf };
         this.server.AlternateRpc = alternateServerRpc;
 
         alternateServerRpc.TraceSource = new TraceSource("ALT Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
@@ -2997,16 +3026,20 @@ public abstract class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtf.SwitchToMainThreadAsync();
         }));
 
         alternateServerRpc.StartListening();
         alternateClientRpc.StartListening();
 
-        jtc.Factory.Run(async delegate
+        jtf.Run(async delegate
         {
             await Assert.ThrowsAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(this.server.CallbackOnAnotherConnection), new object?[] { CallbackMethodName }, this.TimeoutToken).WithCancellation(ExpectedTimeoutToken));
         });
+
+        // Drain any UI thread requests before exiting the test.
+        await jtCollection.JoinTillEmptyAsync();
+        await Task.Yield();
     }
 
     [Fact]
@@ -4113,6 +4146,9 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Arrange to change the ClassName value.
@@ -4153,12 +4189,18 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         protected ThrowOnSerializeException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
             // Unlikely to ever be called since serialization throws, but complete the pattern so we test exactly what we mean to.
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             throw new InvalidOperationException("This exception always throws when serialized.");
@@ -4194,6 +4236,9 @@ public abstract class JsonRpcTests : TestBase
         {
         }
 
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
         protected PrivateSerializableException(
           SerializationInfo info,
           StreamingContext context)
@@ -4217,6 +4262,14 @@ public abstract class JsonRpcTests : TestBase
             }
 
             return base.LoadType(typeFullName, assemblyName);
+        }
+    }
+
+    private class ControlledProgress<T>(Action<T> reported) : IProgress<T>
+    {
+        public void Report(T value)
+        {
+            reported(value);
         }
     }
 

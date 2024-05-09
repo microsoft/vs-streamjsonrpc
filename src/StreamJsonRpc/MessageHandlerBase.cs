@@ -239,7 +239,11 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     {
         if (!this.disposalTokenSource.IsCancellationRequested)
         {
+#if NET8_0_OR_GREATER
+            await this.disposalTokenSource.CancelAsync().ConfigureAwait(false);
+#else
             this.disposalTokenSource.Cancel();
+#endif
 
             // Kick off disposal of reading and/or writing resources based on whether they're active right now or not.
             // If they're active, they'll take care of themselves when they finish since we signaled disposal.
