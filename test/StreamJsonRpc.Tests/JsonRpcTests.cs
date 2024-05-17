@@ -1454,6 +1454,13 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithSingleObjectParameter_SupplyNoArgument()
+    {
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithSingleObjectParameterWithDefaultValue), cancellationToken: this.TimeoutToken);
+        Assert.Equal(-1, sum);
+    }
+
+    [Fact]
     public async Task InvokeWithSingleObjectParameter_SendingExpectedObjectAndCancellationToken_InterfaceMethodAttributed()
     {
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterAndCancellationToken), new XAndYProperties { x = 2, y = 5 }, this.TimeoutToken);
@@ -3335,6 +3342,12 @@ public abstract class JsonRpcTests : TestBase
         public static int MethodWithSingleObjectParameterAndCancellationToken(XAndYProperties fields, CancellationToken token)
         {
             return fields.x + fields.y;
+        }
+
+        [JsonRpcMethod(UseSingleObjectParameterDeserialization = true)]
+        public static int MethodWithSingleObjectParameterWithDefaultValue(XAndYProperties? arg = null)
+        {
+            return arg is not null ? arg.x + arg.y : -1;
         }
 
         [JsonRpcMethod("test/MethodWithSingleObjectParameterWithProgress", UseSingleObjectParameterDeserialization = true)]
