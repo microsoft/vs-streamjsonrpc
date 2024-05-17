@@ -497,9 +497,8 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             using (this.formatter.TrackDeserialization(this, parameters))
             {
                 // Support for opt-in to deserializing all named arguments into a single parameter.
-                if (parameters.Length == 1 && this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true)
+                if (parameters.Length == 1 && this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true && this.JsonArguments is not null)
                 {
-                    Assumes.NotNull(this.JsonArguments);
                     typedArguments[0] = this.JsonArguments.Value.Deserialize(parameters[0].ParameterType, this.formatter.massagedUserDataSerializerOptions);
                     return ArgumentMatchResult.Success;
                 }
