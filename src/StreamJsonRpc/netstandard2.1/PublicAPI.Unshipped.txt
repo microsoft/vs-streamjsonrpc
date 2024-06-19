@@ -4,3 +4,5 @@ StreamJsonRpc.JsonRpc.JoinableTaskTracker.get -> StreamJsonRpc.JsonRpc.JoinableT
 StreamJsonRpc.JsonRpc.JoinableTaskTracker.set -> void
 StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.get -> bool
 StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.init -> void
+StreamJsonRpc.TargetMethod.TargetMethodInfo.get -> System.Reflection.MethodInfo?
+StreamJsonRpc.TargetMethod.TargetObjectType.get -> System.Type?
