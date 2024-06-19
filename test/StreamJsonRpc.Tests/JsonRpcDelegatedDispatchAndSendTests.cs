@@ -1,9 +1,5 @@
 ﻿using System.Diagnostics;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 {
@@ -35,6 +31,14 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     {
         await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
         Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
+    }
+
+    [Fact]
+    public async Task DispatchRequestTargetMethod()
+    {
+        await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
+        Assert.Equal(typeof(Server), this.serverRpc.LastTargetMethodDispatched?.TargetObjectType);
+        Assert.Equal(typeof(Server).GetMethod(nameof(Server.TestMethodAsync)), this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
     }
 
     [Fact]
@@ -84,7 +88,7 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     {
         private const string MessageOrderPropertyName = "messageOrder";
 
-        private AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
+        private readonly AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)> requestSignalQueue = new AsyncQueue<(JsonRpcRequest, TaskCompletionSource<bool>, Task<JsonRpcMessage>)>();
         private int messageCounter = 0;
 
         public DelegatedJsonRpc(IJsonRpcMessageHandler handler)
@@ -100,6 +104,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         public bool EnableBuffering { get; set; }
 
         public JsonRpcRequest? LastRequestDispatched { get; private set; }
+
+        public TargetMethod? LastTargetMethodDispatched { get; private set; }
 
         public async Task FlushRequestQueueAsync(int expectedCount)
         {
@@ -124,6 +130,7 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         protected override async ValueTask<JsonRpcMessage> DispatchRequestAsync(JsonRpcRequest request, TargetMethod targetMethod, CancellationToken cancellationToken)
         {
             this.LastRequestDispatched = request;
+            this.LastTargetMethodDispatched = targetMethod;
             TaskCompletionSource<JsonRpcMessage>? completionTcs = null;
 
             if (this.EnableBuffering)

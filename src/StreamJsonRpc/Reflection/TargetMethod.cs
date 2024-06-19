@@ -71,6 +71,20 @@ public sealed class TargetMethod
     }
 
     /// <summary>
+    /// Gets the runtime type of the target object, if there is one.
+    /// </summary>
+    /// <remarks>
+    /// Even when a matching target method is found, there may not be a target <em>object</em>
+    /// if the target method is <see langword="static" />.
+    /// </remarks>
+    public Type? TargetObjectType => this.target?.GetType();
+
+    /// <summary>
+    /// Gets the <see cref="MethodInfo"/> that will be invoked to handle the request, if one was found.
+    /// </summary>
+    public MethodInfo? TargetMethodInfo => this.signature?.MethodInfo;
+
+    /// <summary>
     /// Gets all the exceptions thrown while trying to deserialize arguments to candidate parameter types.
     /// </summary>
     internal AggregateException? ArgumentDeserializationFailures { get; }
