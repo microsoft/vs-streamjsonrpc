@@ -6,7 +6,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MessagePackVersion>2.5.108</MessagePackVersion>
     <MicroBuildVersion>2.0.152</MicroBuildVersion>
-    <VisualStudioThreadingVersion>17.10.48</VisualStudioThreadingVersion>
+    <VisualStudioThreadingVersion>17.11.20</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.10" />
