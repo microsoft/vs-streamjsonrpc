@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <MessagePackVersion>2.5.108</MessagePackVersion>
+    <MessagePackVersion>2.5.124</MessagePackVersion>
     <MicroBuildVersion>2.0.152</MicroBuildVersion>
     <VisualStudioThreadingVersion>17.10.48</VisualStudioThreadingVersion>
   </PropertyGroup>
