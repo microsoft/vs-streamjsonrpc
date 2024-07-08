@@ -40,7 +40,7 @@
     <PackageVersion Include="xunit" Version="2.8.1" />
   </ItemGroup>
   <ItemGroup>
-    <GlobalPackageReference Include="CSharpIsNullAnalyzer" Version="0.1.495" />
+    <GlobalPackageReference Include="CSharpIsNullAnalyzer" Version="0.1.593" />
     <GlobalPackageReference Include="DotNetAnalyzers.DocumentationAnalyzers" Version="1.0.0-beta.59" />
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.11.0-beta1.24122.1" />
