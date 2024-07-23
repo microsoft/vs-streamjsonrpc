@@ -657,3 +657,11 @@ virtual StreamJsonRpc.FormatterBase.Dispose(bool disposing) -> void
 virtual StreamJsonRpc.FormatterBase.JsonRpcErrorBase.ReleaseBuffers() -> void
 virtual StreamJsonRpc.FormatterBase.JsonRpcRequestBase.ReleaseBuffers() -> void
 virtual StreamJsonRpc.FormatterBase.JsonRpcResultBase.ReleaseBuffers() -> void
+StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker
+StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker.JoinableTaskTokenTracker() -> void
+StreamJsonRpc.JsonRpc.JoinableTaskTracker.get -> StreamJsonRpc.JsonRpc.JoinableTaskTokenTracker!
+StreamJsonRpc.JsonRpc.JoinableTaskTracker.set -> void
+StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.get -> bool
+StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.init -> void
+StreamJsonRpc.TargetMethod.TargetMethodInfo.get -> System.Reflection.MethodInfo?
+StreamJsonRpc.TargetMethod.TargetObjectType.get -> System.Type?
