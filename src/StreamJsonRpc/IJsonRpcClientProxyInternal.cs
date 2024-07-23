@@ -25,4 +25,9 @@ internal interface IJsonRpcClientProxyInternal : IJsonRpcClientProxy, IDisposabl
     /// Exceptions thrown from the handler propagate directly to the caller of the proxy, although the RPC request was already transmitted.
     /// </remarks>
     event EventHandler<string> CalledMethod;
+
+    /// <summary>
+    /// Gets the handle of the object that is being marshaled over RPC for which this is a proxy, if applicable.
+    /// </summary>
+    long? MarshaledObjectHandle { get; }
 }

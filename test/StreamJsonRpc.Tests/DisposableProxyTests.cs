@@ -141,8 +141,8 @@ public abstract class DisposableProxyTests : TestBase
     {
         IDisposable? disposable = await this.client.GetDisposableAsync().WithCancellation(this.TimeoutToken);
         Assert.NotNull(disposable);
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptProxyAsync(disposable!)).WithCancellation(this.TimeoutToken);
-        Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
+        await this.client.AcceptProxyAsync(disposable).WithCancellation(this.TimeoutToken);
+        Assert.Same(this.server.ReturnedDisposable, this.server.ReceivedProxy);
     }
 
     protected abstract IJsonRpcMessageFormatter CreateFormatter();

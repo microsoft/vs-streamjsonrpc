@@ -14,13 +14,8 @@ internal class RpcMarshaledContext<T> : IRpcMarshaledContext<T>
     /// <param name="options">The <see cref="JsonRpcTargetOptions"/> to use when adding this object as an RPC target.</param>
     internal RpcMarshaledContext(T value, JsonRpcTargetOptions options)
     {
-        if (value is IJsonRpcClientProxy)
-        {
-            // Supporting passing of a marshaled object over RPC requires that we:
-            // 1. Distinguish passing it back to its original owner vs. a 3rd party over an independent RPC connection.
-            // 2. If back to the original owner, we need to reuse the same handle and pass other data so the receiver recognizes this case.
-            throw new NotSupportedException("Marshaling a proxy back to its owner ");
-        }
+        // We shouldn't reach this point with a proxy.
+        Requires.Argument(value is not IJsonRpcClientProxyInternal, nameof(value), "Cannot marshal a proxy.");
 
         this.Proxy = value;
         this.JsonRpcTargetOptions = options;

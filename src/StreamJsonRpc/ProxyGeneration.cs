@@ -108,6 +108,7 @@ internal static class ProxyGeneration
             FieldBuilder disposedField = proxyTypeBuilder.DefineField("disposed", typeof(bool), FieldAttributes.Private);
             FieldBuilder callingMethodField = proxyTypeBuilder.DefineField("callingMethod", typeof(EventHandler<string>), FieldAttributes.Private);
             FieldBuilder calledMethodField = proxyTypeBuilder.DefineField("calledMethod", typeof(EventHandler<string>), FieldAttributes.Private);
+            FieldBuilder marshaledObjectHandleField = proxyTypeBuilder.DefineField("marshaledObjectHandle", typeof(long?), fieldAttributes);
 
             VerifySupported(!FindAllOnThisAndOtherInterfaces(contractInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, contractInterface);
 
@@ -168,12 +169,12 @@ internal static class ProxyGeneration
                 }));
             }
 
-            // .ctor(JsonRpc, JsonRpcProxyOptions, Action onDispose)
+            // .ctor(JsonRpc, JsonRpcProxyOptions, long? marshaledObjectHandle, Action onDispose)
             {
                 ConstructorBuilder ctor = proxyTypeBuilder.DefineConstructor(
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName,
                     CallingConventions.Standard,
-                    new Type[] { typeof(JsonRpc), typeof(JsonRpcProxyOptions), typeof(Action) });
+                    [typeof(JsonRpc), typeof(JsonRpcProxyOptions), typeof(long?), typeof(Action)]);
                 ILGenerator il = ctor.GetILGenerator();
 
                 // : base()
@@ -190,9 +191,14 @@ internal static class ProxyGeneration
                 il.Emit(OpCodes.Ldarg_2);
                 il.Emit(OpCodes.Stfld, optionsField);
 
-                // this.onDispose = onDispose;
+                // this.marshaledObjectHandle = marshaledObjectHandle;
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_3);
+                il.Emit(OpCodes.Stfld, marshaledObjectHandleField);
+
+                // this.onDispose = onDispose;
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg, 4);
                 il.Emit(OpCodes.Stfld, onDisposeField);
 
                 // Emit IL that supports events.
@@ -206,7 +212,7 @@ internal static class ProxyGeneration
 
             ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, onDisposeField, disposedField);
             ImplementIsDisposedProperty(proxyTypeBuilder, jsonRpcField, disposedField);
-            ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField);
+            ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField, marshaledObjectHandleField);
 
             // IJsonRpcClientProxy.JsonRpc property
             {
@@ -486,7 +492,7 @@ internal static class ProxyGeneration
         il.MarkLabel(endOfSubroutine);
     }
 
-    private static void ImplementIJsonRpcClientProxyInternal(TypeBuilder proxyTypeBuilder, FieldBuilder callingMethodField, FieldBuilder calledMethodField)
+    private static void ImplementIJsonRpcClientProxyInternal(TypeBuilder proxyTypeBuilder, FieldBuilder callingMethodField, FieldBuilder calledMethodField, FieldBuilder marshaledObjectHandleField)
     {
         void AddEvent(FieldBuilder evtField, string eventName)
         {
@@ -509,6 +515,25 @@ internal static class ProxyGeneration
 
         AddEvent(callingMethodField, nameof(IJsonRpcClientProxyInternal.CallingMethod));
         AddEvent(calledMethodField, nameof(IJsonRpcClientProxyInternal.CalledMethod));
+
+        // Implement the IJsonRpcClientProxyInternal.MarshaledObjectHandle property.
+        PropertyBuilder marshaledObjectHandleProperty = proxyTypeBuilder.DefineProperty(
+            $"{nameof(IJsonRpcClientProxyInternal)}.{nameof(IJsonRpcClientProxyInternal.MarshaledObjectHandle)}",
+            PropertyAttributes.None,
+            typeof(long?),
+            Type.EmptyTypes);
+        MethodBuilder marshaledObjectHandleGetter = proxyTypeBuilder.DefineMethod(
+            $"get_{nameof(IJsonRpcClientProxyInternal.MarshaledObjectHandle)}",
+            MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+            typeof(long?),
+            Type.EmptyTypes);
+        ILGenerator il = marshaledObjectHandleGetter.GetILGenerator();
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Ldfld, marshaledObjectHandleField);
+        il.Emit(OpCodes.Ret);
+
+        proxyTypeBuilder.DefineMethodOverride(marshaledObjectHandleGetter, typeof(IJsonRpcClientProxyInternal).GetTypeInfo().GetDeclaredProperty(nameof(IJsonRpcClientProxyInternal.MarshaledObjectHandle))!.GetMethod!);
+        marshaledObjectHandleProperty.SetGetMethod(marshaledObjectHandleGetter);
     }
 
     private static void LoadParameterTypeArrayField(TypeBuilder proxyTypeBuilder, ParameterInfo[] parameterInfos, ILGenerator il)
