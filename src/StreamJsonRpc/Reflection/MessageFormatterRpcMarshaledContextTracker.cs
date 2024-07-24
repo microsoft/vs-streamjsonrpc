@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
@@ -204,6 +205,23 @@ internal class MessageFormatterRpcMarshaledContextTracker
             throw new NotSupportedException(Resources.CallScopedMarshaledObjectInReturnValueNotAllowed);
         }
 
+        if (marshaledObject is IJsonRpcClientProxyInternal { MarshaledObjectHandle: not null } proxy)
+        {
+            // Supporting passing of a marshaled object over RPC requires that we:
+            // 1. Distinguish passing it back to its original owner vs. a 3rd party over an independent RPC connection.
+            // 2. If back to the original owner, we need to reuse the same handle and pass other data so the receiver recognizes this case.
+            if (proxy.JsonRpc != this.jsonRpc)
+            {
+                throw new NotSupportedException("Forwarding an RPC marshaled object to a 3rd party is not supported.");
+            }
+
+            return new MarshalToken
+            {
+                Handle = proxy.MarshaledObjectHandle.Value,
+                Marshaled = (int)MarshalMode.MarshallingProxyBackToOwner,
+            };
+        }
+
         long handle = this.nextUniqueHandle++;
 
         IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(declaredType, marshaledObject, options);
@@ -276,7 +294,15 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         if ((MarshalMode)token.Value.Marshaled == MarshalMode.MarshallingProxyBackToOwner)
         {
-            throw new NotSupportedException("Receiving marshaled objects back to the owner is not yet supported.");
+            lock (this.marshaledObjects)
+            {
+                if (this.marshaledObjects.TryGetValue(token.Value.Handle, out (IRpcMarshaledContext<object> Context, IDisposable Revert) marshaled))
+                {
+                    return marshaled.Context.Proxy;
+                }
+            }
+
+            throw new ProtocolViolationException("Marshaled object \"returned\" with an unrecognized handle.");
         }
 
         RpcMarshalableAttribute synthesizedAttribute = new()
@@ -318,7 +344,8 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
                     this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
                 },
-            });
+            },
+            token.Value.Handle);
         if (options.OnProxyConstructed is object)
         {
             options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);

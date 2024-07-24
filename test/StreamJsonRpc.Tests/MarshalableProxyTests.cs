@@ -588,7 +588,31 @@ public abstract class MarshalableProxyTests : TestBase
     {
         IMarshalable? proxyMarshalable = await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken);
         Assert.NotNull(proxyMarshalable);
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptProxyAsync(proxyMarshalable!)).WithCancellation(this.TimeoutToken);
+        await this.client.AcceptProxyAsync(proxyMarshalable).WithCancellation(this.TimeoutToken);
+        Assert.Same(this.server.ReturnedMarshalable, this.server.ReceivedProxy);
+    }
+
+    [Fact]
+    public async Task IMarshalable_MarshaledAndForwarded()
+    {
+        IMarshalable? proxyMarshalable = await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken);
+        Assert.NotNull(proxyMarshalable);
+
+        // Try to send the proxy to a *different* server. This should fail.
+        var pipes = FullDuplexStream.CreatePipePair();
+        IServer client2 = JsonRpc.Attach<IServer>(new LengthHeaderMessageHandler(pipes.Item1, this.CreateFormatter()));
+        JsonRpc clientRpc2 = ((IJsonRpcClientProxy)this.client).JsonRpc;
+        Server server2 = new();
+        JsonRpc serverRpc2 = new JsonRpc(new LengthHeaderMessageHandler(pipes.Item2, this.CreateFormatter()));
+        serverRpc2.AddLocalRpcTarget(server2);
+        serverRpc2.TraceSource = new TraceSource("Server2", SourceLevels.Verbose);
+        clientRpc2.TraceSource = new TraceSource("Client2", SourceLevels.Verbose);
+        serverRpc2.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        clientRpc2.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        serverRpc2.StartListening();
+
+        Exception ex = await Assert.ThrowsAnyAsync<Exception>(() => client2.AcceptProxyAsync(proxyMarshalable)).WithCancellation(this.TimeoutToken);
+        this.Logger.WriteLine("Received exception: {0}", ex);
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
 
