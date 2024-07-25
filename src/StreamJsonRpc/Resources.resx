@@ -384,4 +384,7 @@
   <data name="UsableOnceOnly" xml:space="preserve">
     <value>This operation can only be performed once on this object.</value>
   </data>
+  <data name="InterfacesMustBeUnique" xml:space="preserve">
+    <value>Proxy requested with non-unique set of interfaces.</value>
+  </data>
 </root>

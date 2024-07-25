@@ -1,12 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
 
 public class JsonRpcProxyGenerationTests : TestBase
@@ -52,6 +48,11 @@ public class JsonRpcProxyGenerationTests : TestBase
         ValueTask<bool> ManyParameters(int p1, int p2, int p3, int p4, int p5, int p6, int p7, int p8, int p9, int p10, CancellationToken cancellationToken);
 
         Task Dispose();
+    }
+
+    public interface IServerWithMoreEvents
+    {
+        event EventHandler AnotherEvent;
     }
 
     public interface IServerDerived : IServer
@@ -164,6 +165,69 @@ public class JsonRpcProxyGenerationTests : TestBase
         var rpc = new JsonRpc(streams.Item1);
         var clientRpc = (IServerDerived)rpc.Attach(typeof(IServerDerived));
         Assert.IsType(this.clientRpc.GetType(), clientRpc);
+    }
+
+    [Fact]
+    public async Task Attach_MultipleInterfaces()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+
+        JsonRpc serverRpc = JsonRpc.Attach(streams.Item2, this.server);
+
+        JsonRpc clientRpc = new(streams.Item1);
+        object clientProxy = clientRpc.Attach([typeof(IServer), typeof(IServer2), typeof(IServer3), typeof(IServerWithMoreEvents)], null);
+        IServer client1 = Assert.IsAssignableFrom<IServer>(clientProxy);
+        IServer2 client2 = Assert.IsAssignableFrom<IServer2>(clientProxy);
+        IServer3 client3 = Assert.IsAssignableFrom<IServer3>(clientProxy);
+        IServerWithMoreEvents client4 = Assert.IsAssignableFrom<IServerWithMoreEvents>(clientProxy);
+        Assert.IsNotAssignableFrom<IServerDerived>(clientProxy);
+
+        clientRpc.StartListening();
+        Assert.Equal("Hi!", await client1.SayHiAsync().WithCancellation(this.TimeoutToken));
+        Assert.Equal(6, await client2.MultiplyAsync(2, 3).WithCancellation(this.TimeoutToken));
+        Assert.Equal("TEST", await client3.ARoseByAsync("test").WithCancellation(this.TimeoutToken));
+
+        // Test events across multiple interfaces.
+        AsyncManualResetEvent itHappenedCompletion = new(), anotherEventCompletion = new();
+        client1.ItHappened += (s, e) => itHappenedCompletion.Set();
+        client4.AnotherEvent += (s, e) => anotherEventCompletion.Set();
+
+        this.server.OnItHappened(EventArgs.Empty);
+        this.server.OnAnotherEvent(EventArgs.Empty);
+        await itHappenedCompletion.WaitAsync().WithCancellation(this.TimeoutToken);
+        await anotherEventCompletion.WaitAsync().WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public void Attach_MultipleInterfaces_TypeReuse()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1);
+        object clientRpc12a = rpc.Attach([typeof(IServer), typeof(IServer2)], null);
+
+        streams = FullDuplexStream.CreateStreams();
+        rpc = new JsonRpc(streams.Item1);
+        object clientRpc12b = rpc.Attach([typeof(IServer), typeof(IServer2)], null);
+        Assert.Same(clientRpc12a.GetType(), clientRpc12b.GetType());
+        Assert.IsAssignableFrom<IServer>(clientRpc12a);
+        Assert.IsAssignableFrom<IServer2>(clientRpc12a);
+
+        streams = FullDuplexStream.CreateStreams();
+        rpc = new JsonRpc(streams.Item1);
+        object clientRpc13 = rpc.Attach([typeof(IServer), typeof(IServer3)], null);
+        Assert.NotSame(clientRpc12a.GetType(), clientRpc13.GetType());
+        Assert.IsAssignableFrom<IServer>(clientRpc13);
+        Assert.IsAssignableFrom<IServer3>(clientRpc13);
+        Assert.IsNotAssignableFrom<IServer2>(clientRpc13);
+    }
+
+    [Fact]
+    public void Attach_NonUniqueList()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1);
+        var ex = Assert.Throws<ArgumentException>(() => rpc.Attach([typeof(IServer), typeof(IServer)], null));
+        this.Logger.WriteLine($"{ex.ParamName}: {ex.Message}");
     }
 
     [Fact]
@@ -726,7 +790,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public string? Color { get; set; }
     }
 
-    internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks, IServerWithVoidReturnType
+    internal class Server : IServerDerived, IServer2, IServer3, IServerWithValueTasks, IServerWithVoidReturnType, IServerWithMoreEvents
     {
         public event EventHandler? ItHappened;
 
@@ -735,6 +799,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         public event EventHandler<CustomNonDerivingEventArgs>? AppleGrown;
 
         public event EventHandler<bool>? BoolEvent;
+
+        public event EventHandler? AnotherEvent;
 
         public AsyncManualResetEvent MethodEntered { get; } = new AsyncManualResetEvent();
 
@@ -814,6 +880,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         internal void OnAppleGrown(CustomNonDerivingEventArgs args) => this.AppleGrown?.Invoke(this, args);
 
         internal void OnBoolEvent(bool args) => this.BoolEvent?.Invoke(this, args);
+
+        internal void OnAnotherEvent(EventArgs args) => this.AnotherEvent?.Invoke(this, args);
     }
 
     internal class Server2 : IServer2
