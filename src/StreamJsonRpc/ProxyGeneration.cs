@@ -51,54 +51,77 @@ internal static class ProxyGeneration
     /// <summary>
     /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
     /// </summary>
-    /// <param name="contractInterface">The interface that describes the RPC contract, and that the client proxy should implement.</param>
-    /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
+    /// <param name="contractInterface">
+    /// The interface that describes the RPC contract, and that the client proxy should implement.
+    /// </param>
+    /// <param name="additionalContractInterfaces">
+    /// An optional list of additional interfaces that the client proxy should implement <em>without</em> the name transformation or event limitations
+    /// involved with <paramref name="implementedOptionalInterfaces"/>.
+    /// This set should have an empty intersection with <paramref name="implementedOptionalInterfaces"/>.
+    /// </param>
+    /// <param name="implementedOptionalInterfaces">
+    /// Additional marshalable interfaces that the client proxy should implement.
+    /// Methods on these interfaces are invoke using a special name transformation that includes an integer code,
+    /// ensuring that methods do not suffer from name collisions across interfaces.
+    /// </param>
     /// <returns>The generated type.</returns>
-    internal static TypeInfo Get(TypeInfo contractInterface, (TypeInfo Type, int Code)[]? implementedOptionalInterfaces = null)
+    internal static TypeInfo Get(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces)
     {
         Requires.NotNull(contractInterface, nameof(contractInterface));
         VerifySupported(contractInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, contractInterface);
-        if (implementedOptionalInterfaces is not null)
+        foreach (TypeInfo additionalContract in additionalContractInterfaces)
         {
-            foreach ((TypeInfo type, _) in implementedOptionalInterfaces)
-            {
-                VerifySupported(type.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, type);
-            }
+            VerifySupported(additionalContract.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, additionalContract);
         }
 
-        var rpcInterfaces = new List<(TypeInfo Type, int? Code)>
-            {
-                (contractInterface, (int?)null),
-            };
-        if (implementedOptionalInterfaces is not null)
+        foreach ((Type type, _) in implementedOptionalInterfaces)
         {
-            rpcInterfaces.AddRange(implementedOptionalInterfaces.Select(i => (i.Type, (int?)i.Code)));
+            VerifySupported(type.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, type);
         }
-
-        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
-        SortRpcInterfaces(rpcInterfaces);
 
         TypeInfo? generatedType;
-        GeneratedProxiesByInterfaceKey generatedProxyKey = new(contractInterface, implementedOptionalInterfaces?.Select(i => i.Code));
-
         lock (BuilderLock)
         {
+            GeneratedProxiesByInterfaceKey generatedProxyKey = new(contractInterface.GetTypeInfo(), additionalContractInterfaces, implementedOptionalInterfaces);
             if (GeneratedProxiesByInterface.TryGetValue(generatedProxyKey, out generatedType))
             {
                 return generatedType;
             }
 
-            ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(contractInterface);
+            Type[] contractInterfaces = [contractInterface, .. additionalContractInterfaces];
+            List<(TypeInfo Type, int? Code)> rpcInterfaces = new(1 + additionalContractInterfaces.Length + implementedOptionalInterfaces.Length);
+            rpcInterfaces.Add((contractInterface.GetTypeInfo(), null));
+            foreach (Type addl in additionalContractInterfaces)
+            {
+                rpcInterfaces.Add((addl.GetTypeInfo(), null));
+            }
 
-            var proxyInterfaces = rpcInterfaces.Select(i => i.Type.AsType()).ToList();
-            proxyInterfaces.Add(typeof(IJsonRpcClientProxy));
-            proxyInterfaces.Add(typeof(IJsonRpcClientProxyInternal));
+            foreach ((Type type, int code) in implementedOptionalInterfaces)
+            {
+                rpcInterfaces.Add((type.GetTypeInfo(), code));
+            }
+
+            // Ensure types are not specified multiple times anywhere.
+            HashSet<TypeInfo> seenTypes = new();
+            foreach ((TypeInfo type, _) in rpcInterfaces)
+            {
+                if (!seenTypes.Add(type))
+                {
+                    throw new ArgumentException(Resources.InterfacesMustBeUnique);
+                }
+            }
+
+            // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
+            SortRpcInterfaces(rpcInterfaces);
+
+            Type[] proxyInterfaces = [.. rpcInterfaces.Select(i => i.Type), typeof(IJsonRpcClientProxy), typeof(IJsonRpcClientProxyInternal)];
+            ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
 
             TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
                 string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", contractInterface.FullName, Guid.NewGuid()),
                 TypeAttributes.Public,
                 typeof(object),
-                proxyInterfaces.ToArray());
+                proxyInterfaces);
             Type proxyType = proxyTypeBuilder;
 
             const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
@@ -110,63 +133,66 @@ internal static class ProxyGeneration
             FieldBuilder calledMethodField = proxyTypeBuilder.DefineField("calledMethod", typeof(EventHandler<string>), FieldAttributes.Private);
             FieldBuilder marshaledObjectHandleField = proxyTypeBuilder.DefineField("marshaledObjectHandle", typeof(long?), fieldAttributes);
 
-            VerifySupported(!FindAllOnThisAndOtherInterfaces(contractInterface, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, contractInterface);
-
-            // Implement events only on the main interface.
-            // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
             var ctorActions = new List<Action<ILGenerator>>();
-            foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contractInterface, i => i.DeclaredEvents))
+            foreach (TypeInfo contract in contractInterfaces)
             {
-                VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+                VerifySupported(!FindAllOnThisAndOtherInterfaces(contract, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, contract);
 
-                // public event EventHandler EventName;
-                EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
-
-                // private EventHandler eventName;
-                FieldBuilder evtField = proxyTypeBuilder.DefineField(evt.Name, evt.EventHandlerType, FieldAttributes.Private);
-
-                // add_EventName
-                var addRemoveHandlerParams = new Type[] { evt.EventHandlerType };
-                const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
-                MethodBuilder addMethod = proxyTypeBuilder.DefineMethod($"add_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
-                ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
-                evtBuilder.SetAddOnMethod(addMethod);
-
-                // remove_EventName
-                MethodBuilder removeMethod = proxyTypeBuilder.DefineMethod($"remove_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
-                ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
-                evtBuilder.SetRemoveOnMethod(removeMethod);
-
-                // void OnEventName(EventArgs args)
-                Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!.GetParameters()[1].ParameterType;
-                MethodBuilder raiseEventMethod = proxyTypeBuilder.DefineMethod(
-                    $"On{evt.Name}",
-                    MethodAttributes.HideBySig | MethodAttributes.Private,
-                    null,
-                    new Type[] { eventArgsType });
-                ImplementRaiseEventMethod(raiseEventMethod.GetILGenerator(), evtField, jsonRpcField);
-
-                ctorActions.Add(new Action<ILGenerator>(il =>
+                // Implement events only on the main interface.
+                // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
+                foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contract, i => i.DeclaredEvents))
                 {
-                    ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
+                    VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
 
-                    // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
-                    il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
+                    // public event EventHandler EventName;
+                    EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
 
-                    // First argument to AddLocalRpcMethod is the method name.
-                    // Run it through the method name transform.
-                    // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldfld, optionsField);
-                    il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
-                    il.Emit(OpCodes.Ldstr, evt.Name);
-                    il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
+                    // private EventHandler eventName;
+                    FieldBuilder evtField = proxyTypeBuilder.DefineField(evt.Name, evt.EventHandlerType, FieldAttributes.Private);
 
-                    il.Emit(OpCodes.Ldarg_0);
-                    il.Emit(OpCodes.Ldftn, raiseEventMethod);
-                    il.Emit(OpCodes.Newobj, delegateCtor);
-                    il.Emit(OpCodes.Callvirt, AddLocalRpcMethodMethodInfo);
-                }));
+                    // add_EventName
+                    var addRemoveHandlerParams = new Type[] { evt.EventHandlerType };
+                    const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+                    MethodBuilder addMethod = proxyTypeBuilder.DefineMethod($"add_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                    ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
+                    evtBuilder.SetAddOnMethod(addMethod);
+
+                    // remove_EventName
+                    MethodBuilder removeMethod = proxyTypeBuilder.DefineMethod($"remove_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                    ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
+                    evtBuilder.SetRemoveOnMethod(removeMethod);
+
+                    // void OnEventName(EventArgs args)
+                    Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!.GetParameters()[1].ParameterType;
+                    MethodBuilder raiseEventMethod = proxyTypeBuilder.DefineMethod(
+                        $"On{evt.Name}",
+                        MethodAttributes.HideBySig | MethodAttributes.Private,
+                        null,
+                        new Type[] { eventArgsType });
+                    ImplementRaiseEventMethod(raiseEventMethod.GetILGenerator(), evtField, jsonRpcField);
+
+                    ctorActions.Add(new Action<ILGenerator>(il =>
+                    {
+                        ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
+
+                        // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
+                        il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
+
+                        // First argument to AddLocalRpcMethod is the method name.
+                        // Run it through the method name transform.
+                        // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldfld, optionsField);
+                        il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
+                        il.Emit(OpCodes.Ldstr, evt.Name);
+                        il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
+
+                        il.Emit(OpCodes.Ldarg_0);
+                        il.Emit(OpCodes.Ldftn, raiseEventMethod);
+                        il.Emit(OpCodes.Newobj, delegateCtor);
+                        il.Emit(OpCodes.Callvirt, AddLocalRpcMethodMethodInfo);
+                    }));
+                }
             }
 
             // .ctor(JsonRpc, JsonRpcProxyOptions, long? marshaledObjectHandle, Action onDispose)
@@ -251,10 +277,10 @@ internal static class ProxyGeneration
             MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 2);
 
             HashSet<MethodInfo> implementedMethods = new() { DisposeMethod };
-            foreach ((TypeInfo rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
+            foreach ((Type rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
             {
-                RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(rpcInterface);
-                foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(rpcInterface, i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
+                RpcTargetInfo.MethodNameMap methodNameMap = RpcTargetInfo.GetMethodNameMap(rpcInterface.GetTypeInfo());
+                foreach (MethodInfo method in FindAllOnThisAndOtherInterfaces(rpcInterface.GetTypeInfo(), i => i.DeclaredMethods).Where(m => !m.IsSpecialName))
                 {
                     if (!implementedMethods.Add(method))
                     {
@@ -423,7 +449,7 @@ internal static class ProxyGeneration
             }
 
             generatedType = proxyTypeBuilder.CreateTypeInfo()!;
-            GeneratedProxiesByInterface.Add(generatedProxyKey, generatedType);
+            GeneratedProxiesByInterface.Add(generatedProxyKey.Clone(), generatedType);
 
 #if SaveAssembly
             ((AssemblyBuilder)proxyModuleBuilder.Assembly).Save(proxyModuleBuilder.ScopeName);
@@ -724,18 +750,18 @@ internal static class ProxyGeneration
     /// <summary>
     /// Gets the <see cref="ModuleBuilder"/> to use for generating a proxy for the given type.
     /// </summary>
-    /// <param name="interfaceType">The type of the interface to generate a proxy for.</param>
+    /// <param name="interfaceTypes">The interface types to generate a proxy for.</param>
     /// <returns>The <see cref="ModuleBuilder"/> to use.</returns>
-    private static ModuleBuilder GetProxyModuleBuilder(TypeInfo interfaceType)
+    private static ModuleBuilder GetProxyModuleBuilder(Type[] interfaceTypes)
     {
-        Requires.NotNull(interfaceType, nameof(interfaceType));
+        Requires.NotNull(interfaceTypes, nameof(interfaceTypes));
         Assumes.True(Monitor.IsEntered(BuilderLock));
 
         // Dynamic assemblies are relatively expensive. We want to create as few as possible.
         // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
         // The CLR will not honor any additions to that set once the first generated type is closed.
-        // We maintain a dictionary to point at dynamic modules based on the set of skip visiblity check assemblies they were generated with.
-        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(interfaceType)
+        // We maintain a dictionary to point at dynamic modules based on the set of skip visibility check assemblies they were generated with.
+        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
             .Add(typeof(ProxyGeneration).Assembly.GetName());
         foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
@@ -926,40 +952,78 @@ internal static class ProxyGeneration
     private struct GeneratedProxiesByInterfaceKey : IEquatable<GeneratedProxiesByInterfaceKey>
     {
         private readonly TypeInfo baseInterfaceType;
+        private readonly ReadOnlyMemory<Type> additionalContractTypes;
+        private readonly ReadOnlyMemory<int> implementedOptionalInterfaces;
 
-        private readonly int[]? implementedOptionalInterfaces;
-
-        public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, IEnumerable<int>? implementedOptionalInterfaces)
+        public GeneratedProxiesByInterfaceKey(TypeInfo baseInterfaceType, ReadOnlySpan<Type> additionalContractTypes, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces)
         {
             this.baseInterfaceType = baseInterfaceType;
-            this.implementedOptionalInterfaces = implementedOptionalInterfaces?.OrderBy(n => n).ToArray();
+            this.additionalContractTypes = additionalContractTypes.ToArray();
+
+            if (implementedOptionalInterfaces.Length > 0)
+            {
+                int[] optionals = new int[implementedOptionalInterfaces.Length];
+                for (int i = 0; i < implementedOptionalInterfaces.Length; i++)
+                {
+                    optionals[i] = implementedOptionalInterfaces[i].Code;
+                }
+
+                Array.Sort(optionals);
+                this.implementedOptionalInterfaces = optionals;
+            }
+        }
+
+        private GeneratedProxiesByInterfaceKey(GeneratedProxiesByInterfaceKey cloneFrom)
+        {
+            this.baseInterfaceType = cloneFrom.baseInterfaceType;
+            this.additionalContractTypes = cloneFrom.additionalContractTypes.ToArray(); // deep clone the object we originally got from the user so it can't change.
+            this.implementedOptionalInterfaces = cloneFrom.implementedOptionalInterfaces;
         }
 
         public bool Equals(GeneratedProxiesByInterfaceKey other)
         {
-            return this.baseInterfaceType == other.baseInterfaceType &&
-                ((this.implementedOptionalInterfaces is null && other.implementedOptionalInterfaces is null) ||
-                (this.implementedOptionalInterfaces is not null && other.implementedOptionalInterfaces is not null && this.implementedOptionalInterfaces.SequenceEqual(other.implementedOptionalInterfaces)));
+            if (this.baseInterfaceType != other.baseInterfaceType ||
+                this.additionalContractTypes.Length != other.additionalContractTypes.Length ||
+                this.implementedOptionalInterfaces.Length != other.implementedOptionalInterfaces.Length)
+            {
+                return false;
+            }
+
+            if (!this.implementedOptionalInterfaces.Span.SequenceEqual(other.implementedOptionalInterfaces.Span))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < this.additionalContractTypes.Length; i++)
+            {
+                if (!this.additionalContractTypes.Span[i].IsEquivalentTo(other.additionalContractTypes.Span[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
-        public override bool Equals(object? obj)
-        {
-            return obj is GeneratedProxiesByInterfaceKey other && this.Equals(other);
-        }
+        public override bool Equals(object? obj) => obj is GeneratedProxiesByInterfaceKey other && this.Equals(other);
 
         public override int GetHashCode()
         {
             int hashCode = this.baseInterfaceType.GetHashCode();
-            if (this.implementedOptionalInterfaces is not null)
+            foreach (Type subType in this.additionalContractTypes.Span)
             {
-                foreach (int subType in this.implementedOptionalInterfaces)
-                {
-                    hashCode = (hashCode * 31) + subType.GetHashCode();
-                }
+                hashCode = (hashCode * 31) + subType.GetHashCode();
+            }
+
+            foreach (int subType in this.implementedOptionalInterfaces.Span)
+            {
+                hashCode = (hashCode * 31) + subType.GetHashCode();
             }
 
             return hashCode;
         }
+
+        internal GeneratedProxiesByInterfaceKey Clone() => new(this);
     }
 
     /// <summary>

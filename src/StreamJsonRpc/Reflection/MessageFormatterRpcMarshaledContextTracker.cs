@@ -309,7 +309,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
         {
             CallScopedLifetime = token.Value.Lifetime == MarshalLifetime.Call,
         };
-        List<(TypeInfo Type, int Code)>? optionalInterfaces = null;
+        List<(Type Type, int Code)>? optionalInterfaces = null;
         if (token.Value.OptionalInterfacesCodes?.Length > 0)
         {
             // We ignore unknown optional interface codes

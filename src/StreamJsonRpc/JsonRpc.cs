@@ -655,7 +655,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="stream">A bidirectional stream to send and receive RPC messages on.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+#pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
     public static JsonRpc Attach(Stream stream, object? target = null)
+#pragma warning restore RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
     {
         Requires.NotNull(stream, nameof(stream));
 
@@ -726,7 +728,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         where T : class
     {
         var rpc = new JsonRpc(sendingStream, receivingStream);
-        T proxy = rpc.CreateProxy<T>(null, JsonRpcProxyOptions.Default, null);
+        T proxy = rpc.CreateProxy<T>(default, null, JsonRpcProxyOptions.Default, null);
         rpc.StartListening();
         return proxy;
     }
@@ -762,7 +764,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         where T : class
     {
         var rpc = new JsonRpc(handler);
-        T proxy = rpc.CreateProxy<T>(null, options, null)!;
+        T proxy = rpc.CreateProxy<T>(default, null, options, null)!;
         rpc.StartListening();
         return proxy;
     }
@@ -787,7 +789,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
     {
-        return this.CreateProxy<T>(null, options, null);
+        return this.CreateProxy<T>(default, null, options, null);
     }
 
     /// <summary>
@@ -806,7 +808,19 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
         Requires.NotNull(interfaceType, nameof(interfaceType));
-        return this.CreateProxy(interfaceType.GetTypeInfo(), null, options ?? JsonRpcProxyOptions.Default, null)!;
+        return this.CreateProxy(interfaceType.GetTypeInfo(), default, null, options ?? JsonRpcProxyOptions.Default, null)!;
+    }
+
+    /// <summary>
+    /// Creates a JSON-RPC client proxy that conforms to the specified server interfaces.
+    /// </summary>
+    /// <param name="interfaceTypes">The interfaces that describes the functions available on the remote end.</param>
+    /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
+    /// <returns>An instance of the generated proxy.</returns>
+    public object Attach(ReadOnlySpan<Type> interfaceTypes, JsonRpcProxyOptions? options)
+    {
+        Requires.Argument(interfaceTypes.Length > 0, nameof(interfaceTypes), Resources.RequiredArgumentMissing);
+        return this.CreateProxy(interfaceTypes[0], interfaceTypes.Slice(1), null, options ?? JsonRpcProxyOptions.Default, null)!;
     }
 
     /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
@@ -1201,10 +1215,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         throw new NotImplementedException();
     }
 
-    /// <inheritdoc cref="CreateProxy(TypeInfo, ValueTuple{TypeInfo, int}[], JsonRpcProxyOptions?, long?)"/>
-    internal object Attach(Type contractInterface, (TypeInfo Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
+    /// <inheritdoc cref="CreateProxy(Type, ReadOnlySpan{Type}, ReadOnlySpan{ValueTuple{Type, int}}, JsonRpcProxyOptions?, long?)"/>
+    internal object Attach(Type contractInterface, (Type Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
-        return this.CreateProxy(contractInterface.GetTypeInfo(), implementedOptionalInterfaces, options, marshaledObjectHandle);
+        return this.CreateProxy(contractInterface.GetTypeInfo(), default, implementedOptionalInterfaces, options, marshaledObjectHandle);
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
@@ -2680,23 +2694,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         }
     }
 
-    private T CreateProxy<T>((TypeInfo Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
+    private T CreateProxy<T>(ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
         where T : class
     {
-        return (T)this.CreateProxy(typeof(T).GetTypeInfo(), implementedOptionalInterfaces, options, marshaledObjectHandle);
+        return (T)this.CreateProxy(typeof(T).GetTypeInfo(), additionalContractInterfaces, implementedOptionalInterfaces, options, marshaledObjectHandle);
     }
 
     /// <summary>
     /// Creates a JSON-RPC client proxy that implements a given set of interfaces.
     /// </summary>
     /// <param name="contractInterface">The interface that describes the functions available on the remote end.</param>
+    /// <param name="additionalContractInterfaces"><inheritdoc cref="ProxyGeneration.Get" path="/param[@name='additionalContractInterfaces']"/></param>
     /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null" />, default options will be used.</param>
     /// <param name="marshaledObjectHandle">The handle to the remote object that is being marshaled via this proxy.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    private IJsonRpcClientProxyInternal CreateProxy(TypeInfo contractInterface, (TypeInfo Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
+    private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
-        TypeInfo proxyType = ProxyGeneration.Get(contractInterface, implementedOptionalInterfaces);
+        TypeInfo proxyType = ProxyGeneration.Get(contractInterface, additionalContractInterfaces, implementedOptionalInterfaces);
         return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
             proxyType.AsType(),
             this,
