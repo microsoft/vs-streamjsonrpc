@@ -238,6 +238,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";InterfacesMustBeUnique" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Proxy requested with non-unique set of interfaces.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Benzersiz olmayan arabirim kümesiyle ara sunucu istendi.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";InvalidAfterListenHasStarted" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed after listening for messages has started.]]></Val>
