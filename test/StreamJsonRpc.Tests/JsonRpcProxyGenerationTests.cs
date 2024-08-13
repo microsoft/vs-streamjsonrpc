@@ -226,8 +226,8 @@ public class JsonRpcProxyGenerationTests : TestBase
     {
         var streams = FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1);
-        var ex = Assert.Throws<ArgumentException>(() => rpc.Attach([typeof(IServer), typeof(IServer)], null));
-        this.Logger.WriteLine($"{ex.ParamName}: {ex.Message}");
+        object proxy = rpc.Attach([typeof(IServer), typeof(IServer)], null);
+        Assert.IsAssignableFrom<IServer>(proxy);
     }
 
     [Fact]

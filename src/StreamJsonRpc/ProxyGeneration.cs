@@ -101,16 +101,6 @@ internal static class ProxyGeneration
                 rpcInterfaces.Add((type.GetTypeInfo(), code));
             }
 
-            // Ensure types are not specified multiple times anywhere.
-            HashSet<TypeInfo> seenTypes = new();
-            foreach ((TypeInfo type, _) in rpcInterfaces)
-            {
-                if (!seenTypes.Add(type))
-                {
-                    throw new ArgumentException(Resources.InterfacesMustBeUnique);
-                }
-            }
-
             // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
             SortRpcInterfaces(rpcInterfaces);
 
