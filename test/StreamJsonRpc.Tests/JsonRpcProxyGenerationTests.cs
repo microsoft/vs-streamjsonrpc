@@ -231,6 +231,16 @@ public class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public void Attach_BaseAndDerivedTypes()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1);
+        object proxy = rpc.Attach([typeof(IServer), typeof(IServerDerived)], null);
+        Assert.IsAssignableFrom<IServer>(proxy);
+        Assert.IsAssignableFrom<IServerDerived>(proxy);
+    }
+
+    [Fact]
     public void ProxyTypeIsReused()
     {
         var streams = FullDuplexStream.CreateStreams();

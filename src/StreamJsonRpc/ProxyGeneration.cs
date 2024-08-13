@@ -133,66 +133,67 @@ internal static class ProxyGeneration
             FieldBuilder calledMethodField = proxyTypeBuilder.DefineField("calledMethod", typeof(EventHandler<string>), FieldAttributes.Private);
             FieldBuilder marshaledObjectHandleField = proxyTypeBuilder.DefineField("marshaledObjectHandle", typeof(long?), fieldAttributes);
 
-            var ctorActions = new List<Action<ILGenerator>>();
-            foreach (TypeInfo contract in contractInterfaces)
+            if (FindAllOnThisAndOtherInterfaces(contractInterfaces, i => i.DeclaredProperties).FirstOrDefault() is PropertyInfo unsupportedProperty)
             {
-                VerifySupported(!FindAllOnThisAndOtherInterfaces(contract, i => i.DeclaredProperties).Any(), Resources.UnsupportedPropertiesOnClientProxyInterface, contract);
+                VerifySupported(false, Resources.UnsupportedPropertiesOnClientProxyInterface, unsupportedProperty);
+            }
 
-                // Implement events only on the main interface.
-                // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
-                foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contract, i => i.DeclaredEvents))
+            List<Action<ILGenerator>> ctorActions = new();
+
+            // Implement events only on the main interface.
+            // We don't implement events for the additional interfaces because we don't support events in marshaled interfaces.
+            foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contractInterfaces, i => i.DeclaredEvents))
+            {
+                VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+
+                // public event EventHandler EventName;
+                EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
+
+                // private EventHandler eventName;
+                FieldBuilder evtField = proxyTypeBuilder.DefineField(evt.Name, evt.EventHandlerType, FieldAttributes.Private);
+
+                // add_EventName
+                var addRemoveHandlerParams = new Type[] { evt.EventHandlerType };
+                const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
+                MethodBuilder addMethod = proxyTypeBuilder.DefineMethod($"add_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
+                evtBuilder.SetAddOnMethod(addMethod);
+
+                // remove_EventName
+                MethodBuilder removeMethod = proxyTypeBuilder.DefineMethod($"remove_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
+                ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
+                evtBuilder.SetRemoveOnMethod(removeMethod);
+
+                // void OnEventName(EventArgs args)
+                Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!.GetParameters()[1].ParameterType;
+                MethodBuilder raiseEventMethod = proxyTypeBuilder.DefineMethod(
+                    $"On{evt.Name}",
+                    MethodAttributes.HideBySig | MethodAttributes.Private,
+                    null,
+                    new Type[] { eventArgsType });
+                ImplementRaiseEventMethod(raiseEventMethod.GetILGenerator(), evtField, jsonRpcField);
+
+                ctorActions.Add(new Action<ILGenerator>(il =>
                 {
-                    VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+                    ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
 
-                    // public event EventHandler EventName;
-                    EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
+                    // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
+                    il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
 
-                    // private EventHandler eventName;
-                    FieldBuilder evtField = proxyTypeBuilder.DefineField(evt.Name, evt.EventHandlerType, FieldAttributes.Private);
+                    // First argument to AddLocalRpcMethod is the method name.
+                    // Run it through the method name transform.
+                    // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldfld, optionsField);
+                    il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
+                    il.Emit(OpCodes.Ldstr, evt.Name);
+                    il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
 
-                    // add_EventName
-                    var addRemoveHandlerParams = new Type[] { evt.EventHandlerType };
-                    const MethodAttributes methodAttributes = MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.NewSlot | MethodAttributes.Virtual;
-                    MethodBuilder addMethod = proxyTypeBuilder.DefineMethod($"add_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
-                    ImplementEventAccessor(addMethod.GetILGenerator(), evtField, DelegateCombineMethod);
-                    evtBuilder.SetAddOnMethod(addMethod);
-
-                    // remove_EventName
-                    MethodBuilder removeMethod = proxyTypeBuilder.DefineMethod($"remove_{evt.Name}", methodAttributes, null, addRemoveHandlerParams);
-                    ImplementEventAccessor(removeMethod.GetILGenerator(), evtField, DelegateRemoveMethod);
-                    evtBuilder.SetRemoveOnMethod(removeMethod);
-
-                    // void OnEventName(EventArgs args)
-                    Type eventArgsType = evt.EventHandlerType.GetTypeInfo().GetDeclaredMethod(nameof(EventHandler.Invoke))!.GetParameters()[1].ParameterType;
-                    MethodBuilder raiseEventMethod = proxyTypeBuilder.DefineMethod(
-                        $"On{evt.Name}",
-                        MethodAttributes.HideBySig | MethodAttributes.Private,
-                        null,
-                        new Type[] { eventArgsType });
-                    ImplementRaiseEventMethod(raiseEventMethod.GetILGenerator(), evtField, jsonRpcField);
-
-                    ctorActions.Add(new Action<ILGenerator>(il =>
-                    {
-                        ConstructorInfo delegateCtor = typeof(Action<>).MakeGenericType(eventArgsType).GetTypeInfo().DeclaredConstructors.Single();
-
-                        // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
-                        il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
-
-                        // First argument to AddLocalRpcMethod is the method name.
-                        // Run it through the method name transform.
-                        // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
-                        il.Emit(OpCodes.Ldarg_0);
-                        il.Emit(OpCodes.Ldfld, optionsField);
-                        il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
-                        il.Emit(OpCodes.Ldstr, evt.Name);
-                        il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
-
-                        il.Emit(OpCodes.Ldarg_0);
-                        il.Emit(OpCodes.Ldftn, raiseEventMethod);
-                        il.Emit(OpCodes.Newobj, delegateCtor);
-                        il.Emit(OpCodes.Callvirt, AddLocalRpcMethodMethodInfo);
-                    }));
-                }
+                    il.Emit(OpCodes.Ldarg_0);
+                    il.Emit(OpCodes.Ldftn, raiseEventMethod);
+                    il.Emit(OpCodes.Newobj, delegateCtor);
+                    il.Emit(OpCodes.Callvirt, AddLocalRpcMethodMethodInfo);
+                }));
             }
 
             // .ctor(JsonRpc, JsonRpcProxyOptions, long? marshaledObjectHandle, Action onDispose)
@@ -944,6 +945,32 @@ internal static class ProxyGeneration
 
         IEnumerable<T> result = oneInterfaceQuery(interfaceType);
         return result.Concat(interfaceType.ImplementedInterfaces.SelectMany(i => oneInterfaceQuery(i.GetTypeInfo())));
+    }
+
+    private static IEnumerable<T> FindAllOnThisAndOtherInterfaces<T>(IEnumerable<Type> interfaceTypes, Func<TypeInfo, IEnumerable<T>> oneInterfaceQuery)
+    {
+        HashSet<TypeInfo> ifaces = new();
+        foreach (TypeInfo interfaceType in interfaceTypes)
+        {
+            if (ifaces.Add(interfaceType))
+            {
+                foreach (T result in oneInterfaceQuery(interfaceType))
+                {
+                    yield return result;
+                }
+
+                foreach (TypeInfo baseIface in interfaceType.ImplementedInterfaces)
+                {
+                    if (ifaces.Add(baseIface))
+                    {
+                        foreach (T result in oneInterfaceQuery(baseIface))
+                        {
+                            yield return result;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
