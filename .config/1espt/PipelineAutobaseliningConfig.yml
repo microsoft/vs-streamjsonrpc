@@ -6,3 +6,7 @@ pipelines:
       binary:
         binskim:
           lastModifiedDate: 2024-08-27
+        credscan:
+          lastModifiedDate: 2024-08-27
+        spotbugs:
+          lastModifiedDate: 2024-08-27
