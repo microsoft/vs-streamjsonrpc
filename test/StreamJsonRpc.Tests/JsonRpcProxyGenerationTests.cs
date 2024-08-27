@@ -134,7 +134,10 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal : ExAssembly.ISomeInternalProxyInterface, IServerInternalWithInternalTypesFromOtherAssemblies
+    internal interface IServerInternal :
+        ExAssembly.ISomeInternalProxyInterface,
+        IServerInternalWithInternalTypesFromOtherAssemblies,
+        ExAssembly.IInternal.IPublicNestedInInternalInterface
     {
         Task<int> AddAsync(int a, int b);
     }
@@ -445,6 +448,20 @@ public class JsonRpcProxyGenerationTests : TestBase
         // This verifies that we can handle multiple sets of assemblies which we need internal visibility into, as well as that it can track base type interfaces.
         var proxy2 = clientRpc.Attach<IServerInternal>();
         Assert.Equal(3, await proxy2.AddAsync(1, 2).WithCancellation(this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task PublicInterfaceNestedInInternalInterface()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new ServerOfInternalInterface();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var clientRpc = JsonRpc.Attach(streams.Item1);
+
+        // Try the first internal interface, which is external to this test assembly
+        var proxy1 = clientRpc.Attach<ExAssembly.IInternal.IPublicNestedInInternalInterface>();
+        Assert.Equal(-1, await proxy1.SubtractAsync(1, 2).WithCancellation(this.TimeoutToken));
     }
 
     [Fact]
