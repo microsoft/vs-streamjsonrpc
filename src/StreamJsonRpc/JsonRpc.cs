@@ -1529,7 +1529,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             object? argument = arguments;
             if (arguments is not null)
             {
-                if (arguments.Count != 1 || arguments[0] is null || !arguments[0]!.GetType().GetTypeInfo().IsClass)
+                if (arguments.Count != 1 || arguments[0] is null)
                 {
                     throw new ArgumentException(Resources.ParameterNotObject);
                 }

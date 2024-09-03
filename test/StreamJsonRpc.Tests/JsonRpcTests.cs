@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using Newtonsoft.Json.Linq;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
@@ -3088,6 +3089,22 @@ public abstract class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
+    [SkippableFact]
+    public async Task InvokeWithParameterObjectAsync_FormatterIntrinsic()
+    {
+        string arg = "some value";
+        object[] variousArgs = this.CreateFormatterIntrinsicParamsObject(arg);
+        Skip.If(variousArgs.Length == 0, "This test is only meaningful when the formatter supports intrinsic types.");
+
+        foreach (object args in variousArgs)
+        {
+            var invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.AsyncMethod), args, this.TimeoutToken);
+            this.server.AllowServerMethodToReturn.Set();
+            string result = await invokeTask;
+            Assert.Equal($"{arg}!", result);
+        }
+    }
+
     protected static Exception CreateExceptionToBeThrownByDeserializer() => new Exception("This exception is meant to be thrown.");
 
     protected override void Dispose(bool disposing)
@@ -3127,6 +3144,12 @@ public abstract class JsonRpcTests : TestBase
         out IJsonRpcMessageHandler serverMessageHandler,
         out IJsonRpcMessageHandler clientMessageHandler,
         bool controlledFlushingClient);
+
+    /// <summary>
+    /// Creates objects that each may be passed to <see cref="Server.AsyncMethod"/> as the whole parameter object.
+    /// The object should be an intrinsic type for the formatter that requires no special serialization.
+    /// </summary>
+    protected abstract object[] CreateFormatterIntrinsicParamsObject(string arg);
 
     protected override Task CheckGCPressureAsync(Func<Task> scenario, int maxBytesAllocated = -1, int iterations = 100, int allowedAttempts = 10)
     {

@@ -2,8 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
+using Newtonsoft.Json.Linq;
 
 public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
 {
@@ -60,6 +62,12 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
             ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
             : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
+
+    protected override object[] CreateFormatterIntrinsicParamsObject(string arg) =>
+    [
+        new JsonObject { ["arg"] = JsonValue.Create(arg) },
+        JsonDocument.Parse($$"""{ "arg": "{{arg}}" }""").RootElement, // JsonElement
+    ];
 
     protected class DelayedFlushingHandler : HeaderDelimitedMessageHandler, IControlledFlushHandler
     {
