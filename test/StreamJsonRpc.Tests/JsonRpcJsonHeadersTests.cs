@@ -4,6 +4,7 @@
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class JsonRpcJsonHeadersTests : JsonRpcTests
 {
@@ -162,6 +163,9 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
             ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
             : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
+
+    protected override object[] CreateFormatterIntrinsicParamsObject(string arg) =>
+        [new JObject { ["arg"] = arg }];
 
     protected class UnserializableTypeConverter : JsonConverter
     {

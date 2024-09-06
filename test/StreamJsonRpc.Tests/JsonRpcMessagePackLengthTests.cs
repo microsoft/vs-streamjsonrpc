@@ -409,6 +409,8 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
             : new LengthHeaderMessageHandler(clientStream, clientStream, clientMessageFormatter);
     }
 
+    protected override object[] CreateFormatterIntrinsicParamsObject(string arg) => [];
+
     [MessagePackObject]
     [Union(0, typeof(UnionDerivedClass))]
     public abstract class UnionBaseClass
