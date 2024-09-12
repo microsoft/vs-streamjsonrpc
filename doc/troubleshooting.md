@@ -15,6 +15,10 @@ The above is just a sample. The full list of events is available on the `JsonRpc
 
 ## Other issues
 
+### Requests failing with ConnectionLostException
+
+Please see our [disconnecting](disconnecting.md) documentation.
+
 ### Hangs after connecting over IPC pipes
 
 When connecting two processes using Windows (named) pipes, be sure to use `PipeOptions.Asynchronous`
