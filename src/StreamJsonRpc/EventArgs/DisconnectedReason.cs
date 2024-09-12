@@ -31,6 +31,12 @@ public enum DisconnectedReason
     /// <summary>
     /// A fatal exception was thrown in a local method that was requested by the remote party.
     /// </summary>
+    /// <remarks>
+    /// Exceptions thrown by locally dispatched method calls are not considered fatal by default.
+    /// The <see langword="virtual" /> method <see cref="JsonRpc.IsFatalException" /> may be overridden
+    /// by an application in order to enable a JSON-RPC server to throw an exception that can terminate
+    /// the entire connection.
+    /// </remarks>
     FatalException,
 
     /// <summary>
