@@ -37,7 +37,7 @@ Any `$/progress` notifications from the server with the matching JSON progress t
 
 ### Timing considerations
 
-- All reports made by the server are guaranteed to be invoked on the client's `IProgress<T>.Report` method in the same order as the server made them.
+- All reports made by the server are guaranteed to be invoked on the client's `IProgress<T>.Report` method in the same order as the server made them. Note that the commonly used `Progress<T>` class schedules invocations of the delegate you provide on the thread pool unless you create it with a `SynchronizationContext` (e.g. create it on the main thread of a GUI application). Since the thread pool does not guarantee order of execution, this means progress reports may appear to be out of order unless you use an order-preserving `SynchronizationContext` or another `IProgress<T>` implementation.
 - All invocations of `IProgress<T>.Report` will have completed *before* the outbound RPC call that provided the `IProgress<T>` argument is considered completed.
 - A client's implementation of `IProgress<T>.Report` should avoid blocking on other threads or completion of other RPC work, as this may introduce a deadlock with `JsonRpc` since it cannot make further progress reading RPC messages until this method returns.
 - If the `IProgress<T>.Report` has significant work to do, consider using an `IProgress<T>` implementation whose `Report` method simply schedules work to happen and returns quickly.
