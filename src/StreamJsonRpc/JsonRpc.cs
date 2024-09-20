@@ -2484,8 +2484,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         }
         catch (Exception ex)
         {
+            // Report the exception and kill the connection.
+            // Do not *re-throw* the exception from here to avoid an unobserved exception being reported
+            // (https://github.com/microsoft/vs-streamjsonrpc/issues/1067).
             this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(ex.Message, DisconnectedReason.StreamError, ex));
-            throw;
         }
     }
 
