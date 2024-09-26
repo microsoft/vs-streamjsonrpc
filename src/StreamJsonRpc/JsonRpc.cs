@@ -31,6 +31,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
     private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
 
+    /// <summary>
+    /// A singleton error object that can be returned by <see cref="DispatchIncomingRequestAsync(JsonRpcRequest)"/> in error cases
+    /// for requests that are actually notifications and thus the error will be dropped.
+    /// </summary>
+    private static readonly JsonRpcError DroppedError = new();
+
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly object syncObject = new object();
 
@@ -2169,7 +2175,19 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 {
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                     {
-                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
+                        if (request.Method == MessageFormatterProgressTracker.ProgressRequestSpecialMethod)
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\". This is expected since the formatter is expected to have intercepted this special method and dispatched to a local IProgress<T> object.", request.Method);
+                        }
+                        else
+                        {
+                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "No target methods are registered that match \"{0}\".", request.Method);
+                        }
+                    }
+
+                    if (!request.IsResponseExpected)
+                    {
+                        return DroppedError;
                     }
 
                     JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
@@ -2186,6 +2204,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
                     {
                         this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.RequestWithoutMatchingTarget, "Invocation of \"{0}\" cannot occur because arguments do not match any registered target methods.", request.Method);
+                    }
+
+                    if (!request.IsResponseExpected)
+                    {
+                        return DroppedError;
                     }
 
                     JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
