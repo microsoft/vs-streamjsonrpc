@@ -71,7 +71,7 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
         {
             Assumes.NotNull(this.Writer);
 #pragma warning disable CS0618 // Type or member is obsolete (Nerdbank.Streams implements this, so it won't go away).
-            this.Writer.OnReaderCompleted((ex, state) => ((Stream)state!).Dispose(), writer);
+            this.Writer.OnReaderCompleted(static (ex, state) => DisposeStreamSafely(state), writer);
 #pragma warning restore CS0618 // Type or member is obsolete
         }
 
@@ -80,7 +80,20 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
         // We only need to do this if the read stream is distinct from the write stream, which is already handled above.
         if (reader is not null && reader != writer)
         {
-            this.DisposalToken.Register(state => ((Stream)state!).Dispose(), reader);
+            this.DisposalToken.Register(DisposeStreamSafely, reader);
+        }
+
+        static void DisposeStreamSafely(object? state)
+        {
+            // These callbacks are invoked on a worker thread with no exception handler underneath.
+            try
+            {
+                ((Stream?)state)?.Dispose();
+            }
+            catch (Exception)
+            {
+                // Dispose should never throw, but if it does, we don't want the process to crash.
+            }
         }
     }
 
