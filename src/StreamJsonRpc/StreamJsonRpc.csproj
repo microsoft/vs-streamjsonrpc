@@ -8,6 +8,8 @@
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
     <!-- We use the ISerializable APIs *without* the BinaryFormatter. Not as obsolete as the .NET SDK would have us believe. -->
     <NoWarn>$(NoWarn);SYSLIB0050</NoWarn>
+    <!-- Enable warnings regarding AOT compatibility. Learn more about testing strategies at https://devblogs.microsoft.com/dotnet/creating-aot-compatible-libraries/ -->
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx" />
