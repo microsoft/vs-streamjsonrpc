@@ -322,7 +322,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="useSingleObjectParameterDeserialization"><inheritdoc cref="JsonRpcTargetOptions.UseSingleObjectParameterDeserialization" path="/summary"/></param>
     /// <param name="clientRequiresNamedArguments"><inheritdoc cref="JsonRpcTargetOptions.ClientRequiresNamedArguments" path="/summary"/></param>
     /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-    private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, bool allowNonPublicInvocation, bool useSingleObjectParameterDeserialization, bool clientRequiresNamedArguments)
+    private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo exposedMembersOnType,
+        bool allowNonPublicInvocation,
+        bool useSingleObjectParameterDeserialization,
+        bool clientRequiresNamedArguments)
     {
         Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
 
@@ -480,7 +484,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
     /// <returns>A list of EventInfos found.</returns>
-    private static IReadOnlyList<EventInfo> GetEventInfos(TypeInfo exposedMembersOnType)
+    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
 

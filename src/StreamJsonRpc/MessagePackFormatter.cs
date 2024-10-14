@@ -910,6 +910,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -1071,6 +1072,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class PipeFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;

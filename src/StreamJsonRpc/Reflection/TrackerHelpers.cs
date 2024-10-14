@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace StreamJsonRpc.Reflection;
@@ -27,7 +28,8 @@ internal static class TrackerHelpers<TInterface>
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    internal static Type? FindInterfaceImplementedBy(Type objectType)
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
+    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type objectType)
     {
         Requires.NotNull(objectType, nameof(objectType));
 

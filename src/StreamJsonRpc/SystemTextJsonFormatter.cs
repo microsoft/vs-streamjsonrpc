@@ -24,6 +24,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
+[RequiresDynamicCode(RuntimeReasons.Formatters)]
 public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
@@ -1259,7 +1260,10 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return typeInfo;
         }
 
-        private static void PopulateMembersInfos(Type type, JsonTypeInfo jsonTypeInfo, DataContractAttribute? dataContractAttribute)
+        private static void PopulateMembersInfos(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicFields | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+            JsonTypeInfo jsonTypeInfo,
+            DataContractAttribute? dataContractAttribute)
         {
             BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance;
 
@@ -1297,7 +1301,10 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 }
             }
 
-            bool TryCreateJsonPropertyInfo(MemberInfo memberInfo, Type propertyType, [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
+            bool TryCreateJsonPropertyInfo(
+                MemberInfo memberInfo,
+                [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type propertyType,
+                [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
             {
                 DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
                 if ((dataContractAttribute is null || dataMemberAttribute is not null) && memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null)

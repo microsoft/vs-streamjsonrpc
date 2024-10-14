@@ -1042,6 +1042,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// <summary>
     /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableConsumerConverter : JsonConverter
     {
         private static readonly MethodInfo ReadJsonOpenGenericMethod = typeof(AsyncEnumerableConsumerConverter).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Single(m => m.Name == nameof(ReadJson) && m.IsGenericMethod);
