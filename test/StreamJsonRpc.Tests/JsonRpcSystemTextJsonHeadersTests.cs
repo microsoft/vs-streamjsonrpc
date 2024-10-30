@@ -83,7 +83,7 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         protected override async ValueTask FlushAsync(CancellationToken cancellationToken)
         {
             this.FlushEntered.Set();
-            await this.AllowFlushAsyncExit.WaitAsync();
+            await this.AllowFlushAsyncExit.WaitAsync(CancellationToken.None);
             await base.FlushAsync(cancellationToken);
         }
     }

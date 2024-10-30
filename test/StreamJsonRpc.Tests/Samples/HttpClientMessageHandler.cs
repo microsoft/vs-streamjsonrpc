@@ -112,7 +112,11 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
     {
         var response = await this.incomingMessages.DequeueAsync(cancellationToken).ConfigureAwait(false);
 
+#if NET
+        var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+#else
         var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+#endif
         using (var sequence = new Sequence<byte>())
         {
             var buffer = ArrayPool<byte>.Shared.Rent(4096);
@@ -121,7 +125,7 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
                 int bytesRead;
                 while (true)
                 {
-                    bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                    bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
                     if (bytesRead == 0)
                     {
                         break;

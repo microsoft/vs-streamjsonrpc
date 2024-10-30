@@ -742,11 +742,13 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         {
             var asyncEnum = numbers.GetAsyncEnumerator(cancellationToken);
             await asyncEnum.MoveNextAsync();
-            this.ArgEnumeratorAfterReturn = Task.Run(async delegate
-            {
-                await this.AllowEnumeratorToContinue.WaitAsync();
-                await asyncEnum.MoveNextAsync();
-            });
+            this.ArgEnumeratorAfterReturn = Task.Run(
+                async delegate
+                {
+                    await this.AllowEnumeratorToContinue.WaitAsync();
+                    await asyncEnum.MoveNextAsync();
+                },
+                CancellationToken.None);
         }
 
         public Task<CompoundEnumerableResult> GetNumbersAndMetadataAsync(CancellationToken cancellationToken)

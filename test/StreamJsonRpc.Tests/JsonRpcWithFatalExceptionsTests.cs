@@ -265,7 +265,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
             // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
             if (this.DelayAsyncMethodWithCancellation)
             {
-                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+                await Task.Delay(UnexpectedTimeout, cancellationToken);
             }
 
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
@@ -275,7 +275,7 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         public async Task<string> AsyncMethodFaultsAfterCancellation(string arg, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
-            await this.AllowServerMethodToReturn.WaitAsync();
+            await this.AllowServerMethodToReturn.WaitAsync(CancellationToken.None);
             if (!cancellationToken.IsCancellationRequested)
             {
                 var cancellationSignal = new AsyncManualResetEvent();

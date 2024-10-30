@@ -860,7 +860,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         public async Task HeavyWorkAsync(CancellationToken cancellationToken)
         {
             this.MethodEntered.Set();
-            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
+            await this.ResumeMethod.WaitAsync(cancellationToken);
             this.Counter++;
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -869,7 +869,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         {
             this.MethodEntered.Set();
             this.MethodResult.SetResult(param1);
-            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
+            await this.ResumeMethod.WaitAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return param1;
         }
@@ -883,7 +883,7 @@ public class JsonRpcProxyGenerationTests : TestBase
             this.MethodEntered.Set();
             int sum = paramObject.Value<int>("a") + paramObject.Value<int>("b");
             this.MethodResult.SetResult(sum);
-            await this.ResumeMethod.WaitAsync().WithCancellation(cancellationToken);
+            await this.ResumeMethod.WaitAsync(cancellationToken);
             return sum;
         }
 

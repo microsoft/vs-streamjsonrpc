@@ -898,7 +898,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 
         public Task AcceptPipeAndChatLater(bool writeOnOdd, IDuplexPipe pipe, CancellationToken cancellationToken)
         {
-            this.ChatLaterTask = Task.Run(() => this.TwoWayPipeAsArg(writeOnOdd, pipe, CancellationToken.None));
+            this.ChatLaterTask = Task.Run(() => this.TwoWayPipeAsArg(writeOnOdd, pipe, CancellationToken.None), CancellationToken.None);
             return Task.CompletedTask;
         }
 
