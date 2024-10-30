@@ -3611,7 +3611,7 @@ public abstract class JsonRpcTests : TestBase
             {
                 var mres = new ManualResetEventSlim();
                 cancellationToken.Register(() => mres.Set());
-                mres.Wait();
+                mres.Wait(CancellationToken.None);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -3666,7 +3666,7 @@ public abstract class JsonRpcTests : TestBase
                 // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
                 if (this.DelayAsyncMethodWithCancellation)
                 {
-                    await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+                    await Task.Delay(UnexpectedTimeout, cancellationToken);
                 }
 
                 await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
@@ -3686,7 +3686,7 @@ public abstract class JsonRpcTests : TestBase
         public async Task<string> AsyncMethodIgnoresCancellation(string arg, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
-            await this.AllowServerMethodToReturn.WaitAsync();
+            await this.AllowServerMethodToReturn.WaitAsync(CancellationToken.None);
             if (!cancellationToken.IsCancellationRequested)
             {
                 var cancellationSignal = new AsyncManualResetEvent();
@@ -3706,7 +3706,7 @@ public abstract class JsonRpcTests : TestBase
             // TODO: remove when https://github.com/Microsoft/vs-threading/issues/185 is fixed
             if (this.DelayAsyncMethodWithCancellation)
             {
-                await Task.Delay(UnexpectedTimeout).WithCancellation(cancellationToken);
+                await Task.Delay(UnexpectedTimeout, cancellationToken);
             }
 
             await this.AllowServerMethodToReturn.WaitAsync(cancellationToken);
@@ -3716,7 +3716,7 @@ public abstract class JsonRpcTests : TestBase
         public async Task<string> AsyncMethodFaultsAfterCancellation(string arg, CancellationToken cancellationToken)
         {
             this.ServerMethodReached.Set();
-            await this.AllowServerMethodToReturn.WaitAsync();
+            await this.AllowServerMethodToReturn.WaitAsync(CancellationToken.None);
             if (!cancellationToken.IsCancellationRequested)
             {
                 var cancellationSignal = new AsyncManualResetEvent();

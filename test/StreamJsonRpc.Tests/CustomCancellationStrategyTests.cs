@@ -144,7 +144,7 @@ public class CustomCancellationStrategyTests : TestBase
             var canceled = new AsyncManualResetEvent();
             using (cancellationToken.Register(canceled.Set))
             {
-                await canceled.WaitAsync();
+                await canceled.WaitAsync(CancellationToken.None);
                 if (throwOnCanceled)
                 {
                     cancellationToken.ThrowIfCancellationRequested();

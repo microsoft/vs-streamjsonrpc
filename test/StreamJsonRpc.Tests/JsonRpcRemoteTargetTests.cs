@@ -318,7 +318,15 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
             var retryIndex = 0;
             while (retryIndex < 100)
             {
-                await Task.Delay(100);
+                try
+                {
+                    await Task.Delay(100, token);
+                }
+                catch (OperationCanceledException)
+                {
+                    return true;
+                }
+
                 if (token.IsCancellationRequested)
                 {
                     return true;
