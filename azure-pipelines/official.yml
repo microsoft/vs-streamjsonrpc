@@ -71,9 +71,6 @@ extends:
           suppressionFile: $(System.DefaultWorkingDirectory)\azure-pipelines\falsepositives.gdnsuppress
         sbom:
           enabled: true
-        #credscan:
-        #  suppressionsFile: $(Build.SourcesDirectory)/azure-pipelines/CredScanSuppressions.json
-        #  debugMode: true # required for whole directory suppressions
       stages:
       - stage: Build
         variables:

@@ -136,6 +136,10 @@ jobs:
         - ${{ if parameters.EnableOptProf }}:
           - powershell: Write-Host "##vso[task.setvariable variable=PROFILINGINPUTSDROPNAME]$(azure-pipelines/variables/ProfilingInputsDropName.ps1)"
             displayName: ⚙ Set ProfilingInputsDropName for optprof
+      sdl:
+        credscan:
+          suppressionsFile: $(Build.SourcesDirectory)/azure-pipelines/CredScanSuppressions.json
+          debugMode: true # required for whole directory suppressions
 
       outputParentDirectory: $(Build.ArtifactStagingDirectory)
       outputs:
