@@ -55,7 +55,7 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
    message.
 1. `HttpClientMessageHandler` - This is a client-side implementation of the
    [JSON-RPC over HTTP spec](https://www.jsonrpc.org/historical/json-rpc-over-http.html), delivered as
-   [a sample included in our test project](../src/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
+   [a sample included in our test project](../test/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
 
 Some of the constructors on the `JsonRpc` class accept an object that implements the `IJsonRpcMessageHandler` interface,
 allowing you to select any of the built-in behaviors listed above, or define this part of the protocol yourself.
