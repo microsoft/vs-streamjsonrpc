@@ -10,6 +10,7 @@ using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
+using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
@@ -1118,7 +1119,7 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    [Theory, PairwiseData]
+    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: temporary for development
     public async Task CancelMayStillReturnErrorFromServer(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -1946,7 +1947,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ServerMethodIsCanceledWhenConnectionDrops()
     {
         this.ReinitializeRpcWithoutListening();
@@ -1962,7 +1963,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Null(oce.InnerException);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ServerMethodIsNotCanceledWhenConnectionDrops()
     {
         Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
@@ -3315,7 +3316,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
-    public class Server : BaseClass, IServerDerived
+    public partial class Server : BaseClass, IServerDerived
     {
         internal const string ExceptionMessage = "some message";
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
@@ -3970,10 +3971,12 @@ public abstract class JsonRpcTests : TestBase
     {
         [DataMember(Order = 0, IsRequired = true)]
         [STJ.JsonRequired, STJ.JsonPropertyOrder(0)]
+        [PropertyShape(Order = 0)]
         public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
         [STJ.JsonPropertyOrder(1)]
+        [PropertyShape(Order = 1)]
         public int Bazz { get; set; }
     }
 
@@ -3982,6 +3985,7 @@ public abstract class JsonRpcTests : TestBase
         // Ignore this so default serializers will drop it, proving that custom serializers were used if the value propagates.
         [JsonNET.JsonIgnore]
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public string? Value { get; set; }
     }
 
@@ -3989,6 +3993,7 @@ public abstract class JsonRpcTests : TestBase
     public class CustomISerializableData : ISerializable
     {
         [MessagePack.SerializationConstructor]
+        [ConstructorShape]
         public CustomISerializableData(int major)
         {
             this.Major = major;

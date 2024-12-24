@@ -371,7 +371,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moveNextTask).WithCancellation(this.TimeoutToken);
     }
 
-    [Theory]
+    [Theory(Timeout = 2 * 1000)] // TODO: Temporary for development
     [PairwiseData]
     public async Task Cancellation_DuringLongRunningServerBeforeReturning(bool useProxy, [CombinatorialValues(0, 1, 2, 3)] int prefetchStrategy)
     {
@@ -543,7 +543,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         Assert.Equal(Server.FailByDesignExceptionMessage, ex.Message);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task EnumerableIdDisposal()
     {
         // This test is specially arranged to create two RPC calls going opposite directions, with the same request ID.

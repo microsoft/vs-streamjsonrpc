@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 using MessagePack;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using PolyType;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,6 +51,7 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalable]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
+    [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
     public interface IMarshalableAndSerializable : IMarshalable
     {
         private class MarshalableConverter : JsonConverter
@@ -71,12 +74,25 @@ public abstract class MarshalableProxyTests : TestBase
 
         private class MarshalableFormatter : MessagePack.Formatters.IMessagePackFormatter<IMarshalableAndSerializable>
         {
-            public IMarshalableAndSerializable Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            public IMarshalableAndSerializable Deserialize(ref MessagePack.MessagePackReader reader, MessagePackSerializerOptions options)
             {
                 throw new NotImplementedException();
             }
 
-            public void Serialize(ref MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
+            public void Serialize(ref MessagePack.MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
+        {
+            public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in IMarshalableAndSerializable? value, Nerdbank.MessagePack.SerializationContext context)
             {
                 throw new NotImplementedException();
             }
