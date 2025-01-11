@@ -3,11 +3,13 @@ using System.Runtime.Serialization;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using Nerdbank.MessagePack;
+using PolyType;
 using StreamJsonRpc;
 using Xunit;
 using Xunit.Abstractions;
 
-public abstract class TargetObjectEventsTests : TestBase
+public abstract partial class TargetObjectEventsTests : TestBase
 {
     protected IJsonRpcMessageHandler serverMessageHandler = null!;
     protected IJsonRpcMessageHandler clientMessageHandler = null!;
@@ -35,7 +37,11 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
-    public interface IFruit
+    [GenerateShape]
+#pragma warning disable CS0618 // Type or member is obsolete
+    [KnownSubType(typeof(Fruit), 1)]
+#pragma warning restore CS0618 // Type or member is obsolete
+    public partial interface IFruit
     {
         string Name { get; }
     }
@@ -360,7 +366,8 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [DataContract]
-    public class Fruit : IFruit
+    [GenerateShape]
+    public partial class Fruit : IFruit
     {
         internal Fruit(string name)
         {

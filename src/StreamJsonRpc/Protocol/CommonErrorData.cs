@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Runtime.Serialization;
+using PolyType;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -10,11 +11,13 @@ namespace StreamJsonRpc.Protocol;
 /// A class that describes useful data that may be found in the JSON-RPC error message's error.data property.
 /// </summary>
 [DataContract]
-public class CommonErrorData
+[GenerateShape]
+public partial class CommonErrorData
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CommonErrorData"/> class.
     /// </summary>
+    [ConstructorShape]
     public CommonErrorData()
     {
     }
@@ -39,6 +42,7 @@ public class CommonErrorData
     /// </summary>
     [DataMember(Order = 0, Name = "type")]
     [STJ.JsonPropertyName("type"), STJ.JsonPropertyOrder(0)]
+    [PropertyShape(Name = "type", Order = 0)]
     public string? TypeName { get; set; }
 
     /// <summary>
@@ -46,6 +50,7 @@ public class CommonErrorData
     /// </summary>
     [DataMember(Order = 1, Name = "message")]
     [STJ.JsonPropertyName("message"), STJ.JsonPropertyOrder(1)]
+    [PropertyShape(Name = "message", Order = 1)]
     public string? Message { get; set; }
 
     /// <summary>
@@ -53,6 +58,7 @@ public class CommonErrorData
     /// </summary>
     [DataMember(Order = 2, Name = "stack")]
     [STJ.JsonPropertyName("stack"), STJ.JsonPropertyOrder(2)]
+    [PropertyShape(Name = "stack", Order = 2)]
     public string? StackTrace { get; set; }
 
     /// <summary>
@@ -60,6 +66,7 @@ public class CommonErrorData
     /// </summary>
     [DataMember(Order = 3, Name = "code")]
     [STJ.JsonPropertyName("code"), STJ.JsonPropertyOrder(3)]
+    [PropertyShape(Name = "code", Order = 3)]
     public int HResult { get; set; }
 
     /// <summary>
@@ -67,5 +74,6 @@ public class CommonErrorData
     /// </summary>
     [DataMember(Order = 4, Name = "inner")]
     [STJ.JsonPropertyName("inner"), STJ.JsonPropertyOrder(4)]
+    [PropertyShape(Name = "inner", Order = 4)]
     public CommonErrorData? Inner { get; set; }
 }

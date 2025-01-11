@@ -1,10 +1,5 @@
 ﻿using System.Runtime.Serialization;
-using MessagePack.Formatters;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class FormatterTestBase<TFormatter> : TestBase
     where TFormatter : IJsonRpcMessageFormatter

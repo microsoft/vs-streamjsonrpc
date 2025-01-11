@@ -1,14 +1,15 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Serialization;
-using MessagePack;
-using MessagePack.Formatters;
-using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
+using PolyType;
+using PolyType.ReflectionProvider;
+using PolyType.SourceGenerator;
 
-public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
+public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<NerdbankMessagePackFormatter>
 {
-    public MessagePackFormatterTests(ITestOutputHelper logger)
+    public NerdbankMessagePackFormatterTests(ITestOutputHelper logger)
         : base(logger)
     {
     }
@@ -105,8 +106,8 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     public async Task BasicJsonRpc()
     {
         var (clientStream, serverStream) = FullDuplexStream.CreatePair();
-        var clientFormatter = new MessagePackFormatter();
-        var serverFormatter = new MessagePackFormatter();
+        var clientFormatter = new NerdbankMessagePackFormatter();
+        var serverFormatter = new NerdbankMessagePackFormatter();
 
         var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(), clientFormatter);
         var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(), serverFormatter);
@@ -130,7 +131,6 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_RequestArgInArray()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalArg = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -148,7 +148,12 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_RequestArgInNamedArgs_AnonymousType()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetFormatterProfile(b =>
+        {
+            b.RegisterConverter(new CustomConverter());
+            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+        });
+
         var originalArg = new { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
         {
@@ -166,7 +171,12 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_RequestArgInNamedArgs_DataContractObject()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetFormatterProfile(b =>
+        {
+            b.RegisterConverter(new CustomConverter());
+            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+        });
+
         var originalArg = new DataContractWithSubsetOfMembersIncluded { ExcludedField = "A", ExcludedProperty = "B", IncludedField = "C", IncludedProperty = "D" };
         var originalRequest = new JsonRpcRequest
         {
@@ -186,7 +196,12 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_RequestArgInNamedArgs_NonDataContractObject()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new IMessagePackFormatter[] { new CustomFormatter() }, new IFormatterResolver[] { BuiltinResolver.Instance })));
+        this.Formatter.SetFormatterProfile(b =>
+        {
+            b.RegisterConverter(new CustomConverter());
+            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+        });
+
         var originalArg = new NonDataContractWithExcludedMembers { ExcludedField = "A", ExcludedProperty = "B", InternalField = "C", InternalProperty = "D", PublicField = "E", PublicProperty = "F" };
         var originalRequest = new JsonRpcRequest
         {
@@ -222,7 +237,12 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_Result()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
+        this.Formatter.SetFormatterProfile(b =>
+        {
+            b.RegisterConverter(new CustomConverter());
+            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+        });
+
         var originalResultValue = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalResult = new JsonRpcResult
         {
@@ -238,7 +258,6 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void Resolver_ErrorData()
     {
-        this.Formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(new CustomFormatter())));
         var originalErrorData = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalError = new JsonRpcError
         {
@@ -254,40 +273,10 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
     }
 
-    /// <summary>
-    /// Verifies that the <see cref="MessagePackSerializerOptions"/> passed to an <see cref="IMessagePackFormatter{T}"/>
-    /// during serialization of user data is or derives from the value supplied to
-    /// <see cref="MessagePackFormatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions)"/>.
-    /// </summary>
-    /// <remarks>
-    /// This is important because some users actually pass extra state to their formatters by way of a derivation of the options class.
-    /// Modifying their options is fine so long as it is done using the <see cref="MessagePackSerializerOptions.Clone"/> method
-    /// so that the instance is still their type with any custom properties copied.
-    /// </remarks>
-    [Fact]
-    public void ActualOptions_IsOrDerivesFrom_SetMessagePackSerializerOptions()
-    {
-        var customFormatter = new CustomFormatter();
-        var options = (CustomOptions)new CustomOptions(MessagePackFormatter.DefaultUserDataSerializationOptions) { CustomProperty = 3 }
-            .WithResolver(CompositeResolver.Create(customFormatter));
-        this.Formatter.SetMessagePackSerializerOptions(options);
-        var value = new JsonRpcRequest
-        {
-            RequestId = new RequestId(1),
-            Method = "Eat",
-            ArgumentsList = new object[] { new TypeRequiringCustomFormatter() },
-        };
-
-        var sequence = new Sequence<byte>();
-        this.Formatter.Serialize(sequence, value);
-
-        var observedOptions = Assert.IsType<CustomOptions>(customFormatter.LastObservedOptions);
-        Assert.Equal(options.CustomProperty, observedOptions.CustomProperty);
-    }
-
-    [Fact]
+    [SkippableFact]
     public void CanDeserializeWithExtraProperty_JsonRpcRequest()
     {
+        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -319,9 +308,10 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         Assert.Equal(dynamic.result, request.GetResult<string>());
     }
 
-    [Fact]
+    [SkippableFact]
     public void CanDeserializeWithExtraProperty_JsonRpcError()
     {
+        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -338,6 +328,7 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     [Fact]
     public void StringsInUserDataAreInterned()
     {
+        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -367,35 +358,57 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         Assert.Same(request1.Method, request2.Method); // reference equality to ensure it was interned.
     }
 
-    protected override MessagePackFormatter CreateFormatter() => new();
+    protected override NerdbankMessagePackFormatter CreateFormatter()
+    {
+        NerdbankMessagePackFormatter formatter = new();
+        formatter.SetFormatterProfile(b =>
+        {
+            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+            b.AddTypeShapeProvider(ReflectionTypeShapeProvider.Default);
+        });
+
+        return formatter;
+    }
 
     private T Read<T>(object anonymousObject)
         where T : JsonRpcMessage
     {
+        NerdbankMessagePackFormatter.Profile.Builder profileBuilder = this.Formatter.ProfileBuilder;
+        profileBuilder.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
+        profileBuilder.AddTypeShapeProvider(ReflectionTypeShapeProvider.Default);
+        NerdbankMessagePackFormatter.Profile profile = profileBuilder.Build();
+
+        this.Formatter.SetFormatterProfile(profile);
+
         var sequence = new Sequence<byte>();
         var writer = new MessagePackWriter(sequence);
-        MessagePackSerializer.Serialize(ref writer, anonymousObject, MessagePackSerializerOptions.Standard);
+        profile.SerializeObject(ref writer, anonymousObject);
         writer.Flush();
-        return (T)this.Formatter.Deserialize(sequence);
+        return (T)this.Formatter.Deserialize(sequence.AsReadOnlySequence);
     }
 
     [DataContract]
-    private class DataContractWithSubsetOfMembersIncluded
+    [GenerateShape]
+    public partial class DataContractWithSubsetOfMembersIncluded
     {
+        [PropertyShape(Ignore = true)]
         public string? ExcludedField;
 
         [DataMember]
         internal string? IncludedField;
 
+        [PropertyShape(Ignore = true)]
         public string? ExcludedProperty { get; set; }
 
         [DataMember]
         internal string? IncludedProperty { get; set; }
     }
 
-    private class NonDataContractWithExcludedMembers
+    [GenerateShape]
+    public partial class NonDataContractWithExcludedMembers
     {
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public string? ExcludedField;
 
         public string? PublicField;
@@ -403,6 +416,7 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         internal string? InternalField;
 
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public string? ExcludedProperty { get; set; }
 
         public string? PublicProperty { get; set; }
@@ -410,20 +424,19 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         internal string? InternalProperty { get; set; }
     }
 
-    private class TypeRequiringCustomFormatter
+    [MessagePackConverter(typeof(CustomConverter))]
+    [GenerateShape]
+    public partial class TypeRequiringCustomFormatter
     {
         internal int Prop1 { get; set; }
 
         internal int Prop2 { get; set; }
     }
 
-    private class CustomFormatter : IMessagePackFormatter<TypeRequiringCustomFormatter>
+    private class CustomConverter : MessagePackConverter<TypeRequiringCustomFormatter>
     {
-        internal MessagePackSerializerOptions? LastObservedOptions { get; private set; }
-
-        public TypeRequiringCustomFormatter Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        public override TypeRequiringCustomFormatter Read(ref MessagePackReader reader, SerializationContext context)
         {
-            this.LastObservedOptions = options;
             Assert.Equal(2, reader.ReadArrayHeader());
             return new TypeRequiringCustomFormatter
             {
@@ -432,9 +445,10 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
             };
         }
 
-        public void Serialize(ref MessagePackWriter writer, TypeRequiringCustomFormatter value, MessagePackSerializerOptions options)
+        public override void Write(ref MessagePackWriter writer, in TypeRequiringCustomFormatter? value, SerializationContext context)
         {
-            this.LastObservedOptions = options;
+            Requires.NotNull(value!, nameof(value));
+
             writer.WriteArrayHeader(2);
             writer.Write(value.Prop1);
             writer.Write(value.Prop2);
@@ -444,23 +458,5 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
     private class Server
     {
         public int Add(int a, int b) => a + b;
-    }
-
-    private class CustomOptions : MessagePackSerializerOptions
-    {
-        internal CustomOptions(CustomOptions copyFrom)
-            : base(copyFrom)
-        {
-            this.CustomProperty = copyFrom.CustomProperty;
-        }
-
-        internal CustomOptions(MessagePackSerializerOptions copyFrom)
-            : base(copyFrom)
-        {
-        }
-
-        internal int CustomProperty { get; set; }
-
-        protected override MessagePackSerializerOptions Clone() => new CustomOptions(this);
     }
 }

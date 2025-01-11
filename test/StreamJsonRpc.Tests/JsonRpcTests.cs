@@ -10,10 +10,11 @@ using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
+using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
-public abstract class JsonRpcTests : TestBase
+public abstract partial class JsonRpcTests : TestBase
 {
 #pragma warning disable SA1310 // Field names should not contain underscore
     protected const int COR_E_UNAUTHORIZEDACCESS = unchecked((int)0x80070005);
@@ -392,7 +393,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal("test!", result);
     }
 
-    [Theory, PairwiseData]
+    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
     public async Task CanCallAsyncMethodThatThrows(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -432,7 +433,7 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    [Theory, PairwiseData]
+    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
     public async Task CanCallAsyncMethodThatThrowsExceptionWithoutDeserializingConstructor(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -457,7 +458,7 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task CanCallAsyncMethodThatThrowsExceptionWhileSerializingException()
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -471,7 +472,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Null(exception.InnerException);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ThrowCustomExceptionThatImplementsISerializableProperly()
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -1118,7 +1119,7 @@ public abstract class JsonRpcTests : TestBase
         }
     }
 
-    [Theory, PairwiseData]
+    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: temporary for development
     public async Task CancelMayStillReturnErrorFromServer(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -1946,7 +1947,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ServerMethodIsCanceledWhenConnectionDrops()
     {
         this.ReinitializeRpcWithoutListening();
@@ -1962,7 +1963,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Null(oce.InnerException);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ServerMethodIsNotCanceledWhenConnectionDrops()
     {
         Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
@@ -2248,7 +2249,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    [Theory, PairwiseData]
+    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
     public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -2477,7 +2478,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(this.serverRpc.ExceptionOptions.RecursionLimit, CountRecursionLevel(this.server.ReceivedException));
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ExceptionRecursionLimit_ThrownSerialization()
     {
         this.serverRpc.AllowModificationWhileListening = true;
@@ -2493,7 +2494,7 @@ public abstract class JsonRpcTests : TestBase
         Assert.Equal(this.clientRpc.ExceptionOptions.RecursionLimit, actualRecursionLevel);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task ExceptionRecursionLimit_ThrownDeserialization()
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -3315,7 +3316,7 @@ public abstract class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
-    public class Server : BaseClass, IServerDerived
+    public partial class Server : BaseClass, IServerDerived
     {
         internal const string ExceptionMessage = "some message";
         internal const string ThrowAfterCancellationMessage = "Throw after cancellation";
@@ -3906,10 +3907,12 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [DataContract]
-    public class ParamsObjectWithCustomNames
+    [GenerateShape]
+    public partial class ParamsObjectWithCustomNames
     {
         [DataMember(Name = "argument")]
         [STJ.JsonPropertyName("argument")]
+        [PropertyShape(Name = "argument")]
         public string? TheArgument { get; set; }
     }
 
@@ -3966,22 +3969,27 @@ public abstract class JsonRpcTests : TestBase
     }
 
     [DataContract]
-    public class Foo
+    [GenerateShape]
+    public partial class Foo
     {
         [DataMember(Order = 0, IsRequired = true)]
         [STJ.JsonRequired, STJ.JsonPropertyOrder(0)]
+        [PropertyShape(Order = 0)]
         public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
         [STJ.JsonPropertyOrder(1)]
+        [PropertyShape(Order = 1)]
         public int Bazz { get; set; }
     }
 
-    public class CustomSerializedType
+    [GenerateShape]
+    public partial class CustomSerializedType
     {
         // Ignore this so default serializers will drop it, proving that custom serializers were used if the value propagates.
         [JsonNET.JsonIgnore]
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public string? Value { get; set; }
     }
 
@@ -3989,6 +3997,7 @@ public abstract class JsonRpcTests : TestBase
     public class CustomISerializableData : ISerializable
     {
         [MessagePack.SerializationConstructor]
+        [ConstructorShape]
         public CustomISerializableData(int major)
         {
             this.Major = major;

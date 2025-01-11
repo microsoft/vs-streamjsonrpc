@@ -2,9 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using Nerdbank.MessagePack;
 
 namespace StreamJsonRpc.Protocol;
 
+[MessagePackConverter(typeof(NerdbankMessagePackFormatter.TraceParentConverter))]
 internal unsafe struct TraceParent
 {
     internal const int VersionByteCount = 1;

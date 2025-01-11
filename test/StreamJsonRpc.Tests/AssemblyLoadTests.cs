@@ -64,6 +64,27 @@ public class AssemblyLoadTests : TestBase
     }
 
     [Fact]
+    public void NerdbankMessagePackDoesNotLoadNewtonsoftJsonUnnecessarily()
+    {
+        AppDomain testDomain = CreateTestAppDomain();
+        try
+        {
+            var driver = (AppDomainTestDriver)testDomain.CreateInstanceAndUnwrap(typeof(AppDomainTestDriver).Assembly.FullName, typeof(AppDomainTestDriver).FullName);
+
+            this.PrintLoadedAssemblies(driver);
+
+            driver.CreateNerdbankMessagePackConnection();
+
+            this.PrintLoadedAssemblies(driver);
+            driver.ThrowIfAssembliesLoaded("Newtonsoft.Json");
+        }
+        finally
+        {
+            AppDomain.Unload(testDomain);
+        }
+    }
+
+    [Fact]
     public void MockFormatterDoesNotLoadJsonOrMessagePackUnnecessarily()
     {
         AppDomain testDomain = CreateTestAppDomain();
@@ -140,6 +161,11 @@ public class AssemblyLoadTests : TestBase
         internal void CreateMessagePackConnection()
         {
             var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new MessagePackFormatter()));
+        }
+
+        internal void CreateNerdbankMessagePackConnection()
+        {
+            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter()));
         }
 
 #pragma warning restore CA1822 // Mark members as static
