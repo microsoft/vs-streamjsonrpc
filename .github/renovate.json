@@ -1,0 +1,30 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"semanticCommits": "disabled",
+	"labels": ["dependencies"],
+	"packageRules": [
+		{
+			"matchPackageNames": ["nbgv", "nerdbank.gitversioning"],
+			"groupName": "nbgv and nerdbank.gitversioning updates"
+		},
+		{
+			"matchPackageNames": ["xunit*"],
+			"groupName": "xunit"
+		},
+		{
+			"matchDatasources": ["dotnet-version", "docker"],
+			"matchDepNames": ["dotnet-sdk", "mcr.microsoft.com/dotnet/sdk"],
+			"groupName": "Dockerfile and global.json updates"
+		},
+		{
+			"matchPackageNames": ["System.Collections.Immutable", "System.Text.Json", "System.Threading.Tasks.Dataflow", "System.Diagnostics.DiagnosticSource"],
+			"allowedVersions": "<9.0",
+			"groupName": "Included in .NET runtime"
+		},
+		{
+			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
+			"allowedVersions": "<2.3"
+		}
+	]
+}

@@ -97,7 +97,7 @@ public class MessageHeaderTests : TestBase
 
         // Wait for response.
         byte[] receiveBuffer = new byte[1];
-        await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
+        int readBytes = await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
 
         Assert.Equal(1, server.FooCalledCount);
     }

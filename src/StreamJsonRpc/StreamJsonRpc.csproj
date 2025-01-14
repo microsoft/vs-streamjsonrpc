@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -13,7 +13,6 @@
     <EmbeddedResource Update="Resources.resx" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="IsExternalInit" PrivateAssets="all" />
     <PackageReference Include="MessagePack" />
     <PackageReference Include="MessagePackAnalyzer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" />
@@ -24,14 +23,12 @@
   <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="compile"/>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'">
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)'!= '.NETCoreApp'">
     <PackageReference Include="System.Collections.Immutable" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="System.IO.Pipelines" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" PrivateAssets="compile" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1' or '$(TargetFramework)' == 'net6.0'">
     <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" PrivateAssets="compile" />
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Shipped.txt" />
