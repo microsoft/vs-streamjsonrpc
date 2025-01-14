@@ -665,3 +665,13 @@ StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.get -> bool
 StreamJsonRpc.RpcMarshalableAttribute.CallScopedLifetime.init -> void
 StreamJsonRpc.TargetMethod.TargetMethodInfo.get -> System.Reflection.MethodInfo?
 StreamJsonRpc.TargetMethod.TargetObjectType.get -> System.Type?
+abstract StreamJsonRpc.ExceptionSettings.<Clone>$() -> StreamJsonRpc.ExceptionSettings!
+override StreamJsonRpc.ExceptionSettings.Equals(object? obj) -> bool
+override StreamJsonRpc.ExceptionSettings.GetHashCode() -> int
+override StreamJsonRpc.ExceptionSettings.ToString() -> string!
+static StreamJsonRpc.ExceptionSettings.operator !=(StreamJsonRpc.ExceptionSettings? left, StreamJsonRpc.ExceptionSettings? right) -> bool
+static StreamJsonRpc.ExceptionSettings.operator ==(StreamJsonRpc.ExceptionSettings? left, StreamJsonRpc.ExceptionSettings? right) -> bool
+StreamJsonRpc.ExceptionSettings.ExceptionSettings(StreamJsonRpc.ExceptionSettings! original) -> void
+virtual StreamJsonRpc.ExceptionSettings.EqualityContract.get -> System.Type!
+virtual StreamJsonRpc.ExceptionSettings.Equals(StreamJsonRpc.ExceptionSettings? other) -> bool
+virtual StreamJsonRpc.ExceptionSettings.PrintMembers(System.Text.StringBuilder! builder) -> bool
