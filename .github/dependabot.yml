@@ -7,15 +7,11 @@ updates:
   directory: /
   schedule:
     interval: weekly
-  groups:
-    nerdbank-gitversioning:
-      patterns:
-      - nbgv
-      - nerdbank.gitversioning
-    xunit:
-      patterns:
-      - 'xunit*'
-- package-ecosystem: dotnet-sdk
-  directory: /
-  schedule:
-    interval: monthly
+  ignore:
+  - dependency-name: Newtonsoft.Json # This has to match VS and VS rarely updates it
+  - dependency-name: Microsoft.AspNetCore.TestHost # Later versions require .NET Core 3.1, which prevents our testing on net472
+  # We want to match the minimum target .NET runtime
+  - dependency-name: System.Threading.Tasks.Dataflow
+  - dependency-name: System.Collections.Immutable
+  - dependency-name: System.Diagnostics.DiagnosticSource
+  - dependency-name: System.Text.Json
