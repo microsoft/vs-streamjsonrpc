@@ -5,9 +5,6 @@ using System.Diagnostics;
 using System.IO.Pipes;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 [Trait("Category", "SkipWhenLiveUnitTesting")] // very slow test
 [Trait("FailsOnMono", "true")]

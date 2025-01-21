@@ -3,11 +3,7 @@
 
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class MessageHeaderTests : TestBase
 {

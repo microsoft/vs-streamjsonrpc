@@ -1,8 +1,6 @@
 ﻿using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
-using StreamJsonRpc;
-using Xunit.Abstractions;
 
 public class TargetObjectEventsMessagePackTests : TargetObjectEventsTests
 {

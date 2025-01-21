@@ -3,7 +3,12 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <OutputType>exe</OutputType>
     <RootNamespace />
+    <!-- We only want warnings about providing CancellationToken when every target framework accepts it,
+         to avoid proliferation of #if sections in our test code.
+         So suppress it unless we're targeting the oldest framework among our targets. -->
+    <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,9 +62,8 @@
     <PackageReference Include="xunit.combinatorial" />
     <PackageReference Include="xunit.runner.console" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="xunit.skippablefact" />
     <PackageReference Include="xunit.stafact" />
-    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.v3" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />

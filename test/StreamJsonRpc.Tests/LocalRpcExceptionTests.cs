@@ -1,8 +1,4 @@
-﻿using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
-
-public class LocalRpcExceptionTests : TestBase
+﻿public class LocalRpcExceptionTests : TestBase
 {
     public LocalRpcExceptionTests(ITestOutputHelper logger)
         : base(logger)

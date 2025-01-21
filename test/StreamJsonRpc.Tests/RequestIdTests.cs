@@ -1,10 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
-
 public class RequestIdTests : TestBase
 {
     public RequestIdTests(ITestOutputHelper logger)

@@ -2,8 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit.Abstractions;
 
 public class AsyncEnumerableJsonTypeHandlingTests : AsyncEnumerableJsonTests
 {

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using Xunit.Abstractions;
 
 internal class XunitTraceListener : TraceListener
 {

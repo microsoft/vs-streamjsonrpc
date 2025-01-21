@@ -2,17 +2,9 @@
 
 #if NETFRAMEWORK
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class AssemblyLoadTests : TestBase
 {
