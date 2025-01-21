@@ -4,11 +4,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
-using Xunit;
-using Xunit.Abstractions;
 
 public class HeaderDelimitedMessageHandlerTests : TestBase
 {

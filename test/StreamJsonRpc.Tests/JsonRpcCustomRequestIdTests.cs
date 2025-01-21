@@ -4,9 +4,6 @@
 using System.Diagnostics;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcCustomRequestIdTests : InteropTestBase
 {

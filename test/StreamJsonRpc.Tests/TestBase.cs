@@ -52,7 +52,7 @@ public abstract class TestBase : IDisposable
         // For some reason the assertion tends to be sketchy when running on Azure Pipelines.
         if (IsTestRunOnAzurePipelines)
         {
-            Skip.If(weakReference.IsAlive);
+            Assert.SkipWhen(weakReference.IsAlive, "Weak reference is still alive.");
         }
 
         Assert.False(weakReference.IsAlive);

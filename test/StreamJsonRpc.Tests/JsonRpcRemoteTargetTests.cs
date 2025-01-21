@@ -1,8 +1,5 @@
 ﻿using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 {

@@ -3,9 +3,6 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 /// <summary>
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *server* (i.e. the one receiving requests, and sending results)

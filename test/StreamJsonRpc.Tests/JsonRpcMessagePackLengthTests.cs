@@ -372,10 +372,10 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     /// verbose ETW tracing would fail to deserialize arguments with the primitive formatter that deserialize just fine for the actual method dispatch.</para>
     /// <para>This test is effective because custom msgpack extensions cause the <see cref="PrimitiveObjectFormatter"/> to throw an exception when deserializing.</para>
     /// </remarks>
-    [SkippableTheory, PairwiseData]
+    [Theory, PairwiseData]
     public async Task VerboseLoggingDoesNotFailWhenArgsDoNotDeserializePrimitively(bool namedArguments)
     {
-        Skip.IfNot(SharedUtilities.GetEventSourceTestMode() == SharedUtilities.EventSourceTestMode.EmulateProduction, $"This test specifically verifies behavior when the EventSource should swallow exceptions. Current mode: {SharedUtilities.GetEventSourceTestMode()}.");
+        Assert.SkipUnless(SharedUtilities.GetEventSourceTestMode() == SharedUtilities.EventSourceTestMode.EmulateProduction, $"This test specifically verifies behavior when the EventSource should swallow exceptions. Current mode: {SharedUtilities.GetEventSourceTestMode()}.");
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);

@@ -6,10 +6,6 @@ using System.Text;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonMessageFormatterTests : FormatterTestBase<JsonMessageFormatter>
 {

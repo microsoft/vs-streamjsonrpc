@@ -1,8 +1,4 @@
-﻿using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
-
-public class CommonErrorDataTests : TestBase
+﻿public class CommonErrorDataTests : TestBase
 {
     public CommonErrorDataTests(ITestOutputHelper logger)
         : base(logger)

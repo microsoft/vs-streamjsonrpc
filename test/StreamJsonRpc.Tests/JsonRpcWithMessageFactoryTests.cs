@@ -1,10 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Text;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcWithMessageFactoryTests : TestBase
 {

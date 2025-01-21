@@ -2,10 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class LengthHeaderMessageHandlerTests : TestBase
 {
@@ -27,13 +23,13 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullFormatter()
     {
-        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(new MemoryStream().UsePipe(), null!));
+        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(new MemoryStream().UsePipe(cancellationToken: TestContext.Current.CancellationToken), null!));
     }
 
     [Fact]
     public void Ctor_NullWriter()
     {
-        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream().UsePipeReader(), new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream().UsePipeReader(cancellationToken: TestContext.Current.CancellationToken), new JsonMessageFormatter());
         Assert.True(this.handler.CanRead);
         Assert.False(this.handler.CanWrite);
     }
@@ -41,7 +37,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullReader()
     {
-        this.handler = new LengthHeaderMessageHandler(new MemoryStream().UsePipeWriter(), null, new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(new MemoryStream().UsePipeWriter(cancellationToken: TestContext.Current.CancellationToken), null, new JsonMessageFormatter());
         Assert.False(this.handler.CanRead);
         Assert.True(this.handler.CanWrite);
     }
