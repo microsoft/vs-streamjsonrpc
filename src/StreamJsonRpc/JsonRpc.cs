@@ -1697,7 +1697,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
-    /// Sends the JSON-RPC message to <see cref="IJsonRpcMessageHandler"/> intance to be transmitted.
+    /// Sends the JSON-RPC message to <see cref="IJsonRpcMessageHandler"/> instance to be transmitted.
     /// </summary>
     /// <param name="message">The message to send.</param>
     /// <param name="cancellationToken">A token to cancel the send request.</param>

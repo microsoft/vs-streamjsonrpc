@@ -3,6 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using Nerdbank.MessagePack;
+using PolyType;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -14,7 +16,18 @@ namespace StreamJsonRpc.Protocol;
 [KnownType(typeof(JsonRpcRequest))]
 [KnownType(typeof(JsonRpcResult))]
 [KnownType(typeof(JsonRpcError))]
-public abstract class JsonRpcMessage
+#if NETSTANDARD2_0_OR_GREATER
+[KnownSubType(typeof(JsonRpcRequest), 1)]
+[KnownSubType(typeof(JsonRpcResult), 2)]
+[KnownSubType(typeof(JsonRpcError), 3)]
+#elif NET
+[KnownSubType<JsonRpcRequest>(1)]
+[KnownSubType<JsonRpcResult>(2)]
+[KnownSubType<JsonRpcError>(3)]
+#endif
+[MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcMessageConverter))]
+[GenerateShape]
+public abstract partial class JsonRpcMessage
 {
     /// <summary>
     /// Gets or sets the version of the JSON-RPC protocol that this message conforms to.
@@ -22,6 +35,7 @@ public abstract class JsonRpcMessage
     /// <value>Defaults to "2.0".</value>
     [DataMember(Name = "jsonrpc", Order = 0, IsRequired = true)]
     [STJ.JsonPropertyName("jsonrpc"), STJ.JsonPropertyOrder(0), STJ.JsonRequired]
+    [PropertyShape(Name = "jsonrpc", Order = 0)]
     public string Version { get; set; } = "2.0";
 
     /// <summary>

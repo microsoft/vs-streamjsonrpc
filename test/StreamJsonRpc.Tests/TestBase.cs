@@ -5,8 +5,9 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
 
-public abstract class TestBase : IDisposable
+public abstract partial class TestBase : IDisposable
 {
     protected static readonly TimeSpan ExpectedTimeout = TimeSpan.FromMilliseconds(200);
 
@@ -197,6 +198,9 @@ public abstract class TestBase : IDisposable
 
         Assert.True(passingAttemptObserved);
     }
+
+    [GenerateShape<FormatterTestBase<NerdbankMessagePackFormatter>.CustomType>]
+    internal partial class TestBaseWitness;
 
 #pragma warning disable SYSLIB0050 // Type or member is obsolete
     private class RoundtripFormatter : IFormatterConverter

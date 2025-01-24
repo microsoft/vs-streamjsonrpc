@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using StreamJsonRpc;
 using Xunit;
@@ -84,7 +85,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
         Assert.Equal(Enumerable.Range(1, 3), result);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task FaultImmediately()
     {
         var observer = new MockObserver<int>();
