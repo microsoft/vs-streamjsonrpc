@@ -2926,7 +2926,7 @@ public abstract class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         this.clientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         this.server.Tests = this;
@@ -2977,7 +2977,7 @@ public abstract class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
             clientCalledBackViaAlternate = true;
         }));
 
@@ -3034,7 +3034,7 @@ public abstract class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtf.SwitchToMainThreadAsync();
+            await jtf.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         alternateServerRpc.StartListening();

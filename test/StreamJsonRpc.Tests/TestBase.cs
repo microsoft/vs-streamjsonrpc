@@ -23,7 +23,8 @@ public abstract class TestBase : IDisposable
     protected TestBase(ITestOutputHelper logger)
     {
         this.Logger = logger;
-        this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
+        this.timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        this.timeoutTokenSource.CancelAfter(TestTimeout);
         this.timeoutTokenSource.Token.Register(delegate
         {
             try
