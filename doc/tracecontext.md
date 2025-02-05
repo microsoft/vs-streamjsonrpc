@@ -68,7 +68,7 @@ For proper activity recording in trace logs, be sure to set the `SourceLevels.Ac
 ### Creating and reviewing trace logs
 
 Reviewing trace files is much easier, particularly when reviewing many files that may span processes and/or machines, when using a tool such as [Service Trace Viewer][ServiceTraceViewer].
-This viewer reads trace files written with the [`XmlWriterTraceListener`](XmlWriterTraceListener).
+This viewer reads trace files written with the [`XmlWriterTraceListener`][XmlWriterTraceListener].
 Add an instance of this class to your `TraceSource.Listeners` collection for the best trace log viewing experience.
 This can be used in combination with other unstructured `TraceListener`-derived classes if desired.
 

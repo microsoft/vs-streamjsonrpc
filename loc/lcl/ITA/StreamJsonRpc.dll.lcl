@@ -134,7 +134,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Error writing JSON RPC Message: {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Si è verificato un errore durante la scrittura del messaggio della RPC JSON. {0}: {1}]]></Val>
+            <Val><![CDATA[Si è verificato un errore durante la scrittura del messaggio della RPC JSON: {0}: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
