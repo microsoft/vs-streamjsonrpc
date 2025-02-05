@@ -3046,6 +3046,7 @@ public abstract class JsonRpcTests : TestBase
         });
 
         // Drain any UI thread requests before exiting the test.
+        await this.server.ServerMethodCompleted.Task.WithCancellation(this.TimeoutToken);
         await jtCollection.JoinTillEmptyAsync();
         await Task.Yield();
     }
