@@ -18,13 +18,31 @@
 			"groupName": "Dockerfile and global.json updates"
 		},
 		{
+			"matchPackageNames": [
+				"System.Collections.Immutable",
+				"System.Composition*",
+				"System.Diagnostics.DiagnosticSource",
+				"System.IO.Pipelines",
+				"System.Reflection.Metadata",
+				"System.Text.Json",
+				"System.Threading.Tasks.Dataflow",
+				"Microsoft.Bcl.AsyncInterfaces"
+			],
+			"allowedVersions": "<9.0",
+			"groupName": "Included in .NET runtime"
+		},
+		{
 			"matchPackageNames": ["Microsoft.VisualStudio.Internal.MicroBuild*"],
 			"groupName": "microbuild"
 		},
 		{
-			"matchPackageNames": ["System.Collections.Immutable", "System.Text.Json", "System.Threading.Tasks.Dataflow", "System.Diagnostics.DiagnosticSource"],
-			"allowedVersions": "<9.0",
-			"groupName": "Included in .NET runtime"
+			"matchPackageNames": ["Microsoft.VisualStudio.*"],
+			"groupName": "Visual Studio SDK"
+		},
+		{
+			"matchPackageNames": ["Microsoft.VisualStudio.*"],
+			"matchUpdateTypes": ["patch"],
+			"enabled": false
 		},
 		{
 			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
