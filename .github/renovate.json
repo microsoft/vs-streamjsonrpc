@@ -19,8 +19,7 @@
 		},
 		{
 			"matchPackageNames": ["*"],
-			"allowedVersions": "!/-g[a-f0-9]+$/",
-			"groupName": "Ignore versions built from non-release branches"
+			"allowedVersions": "!/-g[a-f0-9]+$/"
 		},
 		{
 			"matchPackageNames": [
@@ -52,6 +51,11 @@
 		{
 			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
 			"allowedVersions": "<2.3"
+		},
+		{
+			"matchPackageNames": ["MessagePack", "MessagePackAnalyzer"],
+			"allowedVersions": "<3.0",
+			"groupName": "MessagePack"
 		}
 	]
 }
