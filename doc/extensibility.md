@@ -43,7 +43,7 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
 1. `HeaderDelimitedMessageHandler` - This is the default handler. It is compatible with the
    [`vscode-jsonrpc`](https://www.npmjs.com/package/vscode-jsonrpc) NPM package. It utilizes HTTP-like headers to
    introduce each JSON-RPC message by describing its length and (optionally) its text encoding. This handler works
-   with .NET `Stream` and the new [pipelines API](https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/).
+   with .NET `Stream` and the new [pipelines API](https://devblogs.microsoft.com/dotnet/system-io-pipelines-high-performance-io-in-net/).
 1. `LengthHeaderMessageHandler` - This prepends a big endian 32-bit integer to each message to describe the length
    of the message. This handler works with .NET `Stream` and the new pipelines API. This handler is the fastest
    handler for those transports.
@@ -89,7 +89,7 @@ StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
     See alternative formatters below.
 
 1. `SystemTextJsonFormatter` - Uses the [`System.Text.Json` library][SystemTextJson] to serialize each
-    JSON-RPC message as UTF-8 encoded JSON. 
+    JSON-RPC message as UTF-8 encoded JSON.
     All RPC method parameters and return types must be serializable by System.Text.Json.
     You can leverage `JsonConverter<T>` and add your custom converters via attributes or by
     contributing them to the `SystemTextJsonFormatter.JsonSerializerOptions.Converters` collection.
@@ -128,7 +128,7 @@ It produces JSON text and allows configuring the text encoding, with UTF-8 being
 This formatter is compatible with remote systems that use `SystemTextJsonFormatter` when using the default UTF-8 encoding.
 The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
 
-[MessagePackLibrary]: https://github.com/neuecc/MessagePack-CSharp
+[MessagePackLibrary]: https://github.com/MessagePack-CSharp/MessagePack-CSharp
 [MessagePackUsage]: ../test/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
 [MessagePackFormat]: https://msgpack.org/
 [SystemTextJson]: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/overview

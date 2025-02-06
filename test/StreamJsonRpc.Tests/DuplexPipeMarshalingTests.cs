@@ -31,7 +31,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
 
@@ -85,9 +85,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         this.clientRpc.StartListening();
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        return Task.CompletedTask;
+        return default;
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         int receivedBytes = 0;
         while (receivedBytes < bytesToReceive)
         {
-            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes);
+            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes, TestContext.Current.CancellationToken);
             receivedBytes += count;
         }
 

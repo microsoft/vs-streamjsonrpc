@@ -1,20 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using MessagePack;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
-using static JsonRpcTests;
 
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
@@ -993,7 +986,7 @@ public abstract class MarshalableProxyTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.server.ContinuationResult).WithCancellation(this.TimeoutToken);
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     public async Task RpcMarshalable_CallScopedLifetime_ObjectCollected()
     {

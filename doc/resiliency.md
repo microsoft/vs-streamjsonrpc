@@ -77,7 +77,7 @@ jsonRpc.StartListening();
 singleThreadedSyncContext.PushFrame(frame);
 ```
 
-The [`SingleThreadedSynchronizationContext` class](https://github.com/Microsoft/vs-threading/blob/main/src/Microsoft.VisualStudio.Threading/SingleThreadedSynchronizationContext.cs) comes from the [Microsoft.VisualStudio.Threading NuGet package](https://nuget.org/packages/Microsoft.VisualStudio.Threading) (starting with the v16.0 version). But you may supply any `SynchronizationContext` you wish.
+The [`SingleThreadedSynchronizationContext` class](https://github.com/Microsoft/vs-threading/blob/main/src/Microsoft.VisualStudio.Threading/SingleThreadedSynchronizationContext.cs) comes from the [Microsoft.VisualStudio.Threading NuGet package](https://www.nuget.org/packages/Microsoft.VisualStudio.Threading) (starting with the v16.0 version). But you may supply any `SynchronizationContext` you wish.
 
 Note that while `JsonRpc` will always invoke local RPC methods using the `SynchronizationContext`,
 if those methods are asynchronous and use `.ConfigureAwait(false)`, they may escape that `SynchronizationContext`
