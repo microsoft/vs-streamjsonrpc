@@ -1,7 +1,6 @@
 # StreamJsonRpc
 
 [![codecov](https://codecov.io/gh/Microsoft/vs-streamjsonrpc/branch/main/graph/badge.svg)](https://codecov.io/gh/Microsoft/vs-streamjsonrpc)
-[![Join the chat at https://gitter.im/vs-streamjsonrpc/Lobby](https://badges.gitter.im/vs-streamjsonrpc/Lobby.svg)](https://gitter.im/vs-streamjsonrpc/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 StreamJsonRpc is a cross-platform, .NET portable library that implements the
 [JSON-RPC][JSONRPC] wire protocol.
@@ -26,6 +25,6 @@ JSON-RPC libraries:
 * [json-rpc-peer][json-rpc-peer] (npm)
 * [vscode-jsonrpc][vscode-jsonrpc] (npm)
 
-[JSONRPC]: http://jsonrpc.org/
+[JSONRPC]: https://www.jsonrpc.org/
 [json-rpc-peer]: https://www.npmjs.com/package/json-rpc-peer
 [vscode-jsonrpc]: https://www.npmjs.com/package/vscode-jsonrpc
