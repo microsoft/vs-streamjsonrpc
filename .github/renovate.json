@@ -51,6 +51,11 @@
 		{
 			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
 			"allowedVersions": "<2.3"
+		},
+		{
+			"matchPackageNames": ["MessagePack", "MessagePackAnalyzer"],
+			"allowedVersions": "<3.0",
+			"groupName": "MessagePack"
 		}
 	]
 }
