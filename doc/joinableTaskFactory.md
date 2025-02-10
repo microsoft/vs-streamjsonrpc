@@ -47,7 +47,7 @@ In fact multiple processes with their own main threads can contribute to the tok
 
 ### Processes with a main thread
 
-To resolve the deadlock, we need to follow the 3rd of [the threading rules of the `JoinableTaskFactory`](https://github.com/microsoft/vs-threading/blob/main/doc/threading_rules.md) by carefully applying `JoinableTaskFactory.RunAsync` such that the causal relationship is observed by the `JoinableTaskFactory` so it can mitigate the deadlocks.
+To resolve the deadlock, we need to follow the 3rd of [the threading rules of the `JoinableTaskFactory`][ThreadingRules] by carefully applying `JoinableTaskFactory.RunAsync` such that the causal relationship is observed by the `JoinableTaskFactory` so it can mitigate the deadlocks.
 
 An application that has a main thread and an instance of `JoinableTaskContext` should set the `JsonRpc.JoinableTaskFactory` property to an instance of `JoinableTaskFactory`.
 Doing this has the following effects:
@@ -56,7 +56,7 @@ Doing this has the following effects:
   This property carries a token that represents the `JoinableTask` that needs the RPC call to complete.
 2. When an inbound JSON-RPC request carries a `joinableTaskToken` top-level property, the request will be dispatched within a `JoinableTask` that was created based on the token provided in the message.
 
-Taken together, these two effects ensure that when an RPC call requires the main thread to fulfill, and the RPC client is blocking the main thread, that the `JoinableTaskFactory` will be able to mitigate deadlocks by allowing the RPC server to access the main thread that is owned by the RPC client, assuming both parties are following the [`JoinableTaskFactory` threading rules](https://github.com/microsoft/vs-threading/blob/main/doc/threading_rules.md).
+Taken together, these two effects ensure that when an RPC call requires the main thread to fulfill, and the RPC client is blocking the main thread, that the `JoinableTaskFactory` will be able to mitigate deadlocks by allowing the RPC server to access the main thread that is owned by the RPC client, assuming both parties are following the [`JoinableTaskFactory` threading rules][ThreadingRules].
 
 This holds even when one or more intermediate processes exist between the client and server, provided each process propagates the `joinableTaskToken` top-level property.
 
@@ -115,3 +115,5 @@ The token is created and consumed by the `JoinableTask` APIs and is an implement
   A corrupted token MAY be logged or discarded.
 - A missing token MUST NOT lead to any malfunction other than the inability to mitigate deadlocks.
 - A token SHOULD NOT disclose any confidential data.
+
+[ThreadingRules]: https://microsoft.github.io/vs-threading/docs/threading_rules.html
