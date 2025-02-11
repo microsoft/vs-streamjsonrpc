@@ -7,7 +7,7 @@
     <MessagePackVersion>2.5.192</MessagePackVersion>
     <MicroBuildVersion>2.0.187</MicroBuildVersion>
     <VisualStudioThreadingVersion>17.12.19</VisualStudioThreadingVersion>
-    <CodeAnalysisAnalyzerVersion>3.11.0-beta1.24605.2</CodeAnalysisAnalyzerVersion>
+    <CodeAnalysisAnalyzerVersion>3.11.0-beta1.24629.2</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
