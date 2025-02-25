@@ -45,10 +45,17 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (this.localTargetObjectsToDispose is object)
+        List<object>? objectsToDispose;
+        lock (this.SyncObject)
+        {
+            objectsToDispose = this.localTargetObjectsToDispose;
+            this.localTargetObjectsToDispose = null;
+        }
+
+        if (objectsToDispose is object)
         {
             List<Exception>? exceptions = null;
-            foreach (object target in this.localTargetObjectsToDispose)
+            foreach (object target in objectsToDispose)
             {
                 // We're calling Dispose on the target objects, so switch to the user-supplied SyncContext for those target objects.
                 await this.jsonRpc.SynchronizationContextOrDefault;
