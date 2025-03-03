@@ -402,13 +402,17 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
-    private static void ReadUnknownProperty(ref MessagePackReader reader, ref Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties, ReadOnlySpan<byte> stringKey)
+    private static unsafe void ReadUnknownProperty(ref MessagePackReader reader, ref Dictionary<string, ReadOnlySequence<byte>>? topLevelProperties, ReadOnlySpan<byte> stringKey)
     {
         topLevelProperties ??= new Dictionary<string, ReadOnlySequence<byte>>(StringComparer.Ordinal);
 #if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
         string name = Encoding.UTF8.GetString(stringKey);
 #else
-        string name = Encoding.UTF8.GetString(stringKey.ToArray());
+        string name;
+        fixed (byte* stringKeyPtr = stringKey)
+        {
+            name = Encoding.UTF8.GetString(stringKeyPtr, stringKey.Length);
+        }
 #endif
         topLevelProperties.Add(name, GetSliceForNextToken(ref reader));
     }

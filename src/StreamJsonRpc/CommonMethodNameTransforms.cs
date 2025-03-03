@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
+
 namespace StreamJsonRpc;
 
 /// <summary>
@@ -23,7 +25,7 @@ public static class CommonMethodNameTransforms
                     throw new ArgumentNullException();
                 }
 
-                return Utilities.ToCamelCase(name);
+                return JsonNamingPolicy.CamelCase.ConvertName(name);
             };
         }
     }
@@ -45,7 +47,10 @@ public static class CommonMethodNameTransforms
         {
             return name => name;
         }
-
-        return name => prefix + name;
+        else
+        {
+            string localPrefix = prefix;
+            return name => localPrefix + name;
+        }
     }
 }

@@ -2601,10 +2601,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
                     lock (this.dispatcherMapLock)
                     {
+#if NET
+                        this.resultDispatcherMap.Remove(resultOrError.RequestId, out data);
+#else
                         if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
                         {
                             this.resultDispatcherMap.Remove(resultOrError.RequestId);
                         }
+#endif
                     }
 
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
