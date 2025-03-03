@@ -25,7 +25,7 @@ public static class CommonMethodNameTransforms
                     throw new ArgumentNullException();
                 }
 
-                return JsonNamingPolicy.CamelCase.ConvertName(name);
+                return Utilities.ToCamelCase(name);
             };
         }
     }
@@ -49,6 +49,8 @@ public static class CommonMethodNameTransforms
         }
         else
         {
+            // Using a local variable for the closure avoids C# from allocating the closure
+            // earlier in the method, which would impact even the fast path.
             string localPrefix = prefix;
             return name => localPrefix + name;
         }
