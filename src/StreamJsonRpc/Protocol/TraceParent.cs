@@ -142,10 +142,7 @@ internal unsafe struct TraceParent
 
         Debug.Assert(traceParentRemaining.Length == 0, "Characters were not initialized.");
 
-        fixed (char* pValue = traceparent)
-        {
-            return new string(pValue, 0, traceparent.Length);
-        }
+        return traceparent.ToString();
 
         static void AddHyphen(ref Span<char> value)
         {

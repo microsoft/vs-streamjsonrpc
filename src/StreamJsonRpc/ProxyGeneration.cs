@@ -294,8 +294,8 @@ internal static class ProxyGeneration
                     string rpcMethodName = methodNameMap.GetRpcMethodName(method);
                     if (rpcInterfaceCode.HasValue)
                     {
-                        methodName = rpcInterfaceCode + "." + method.Name;
-                        rpcMethodName = rpcInterfaceCode + "." + rpcMethodName;
+                        methodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{method.Name}";
+                        rpcMethodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{rpcMethodName}";
                     }
 
                     ParameterInfo[] methodParameters = method.GetParameters();
