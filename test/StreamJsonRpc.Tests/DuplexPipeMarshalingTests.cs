@@ -620,49 +620,13 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         monitoredStream.Disposed += (s, e) => disposedEvent.Set();
 
         bool writing = false;
-        monitoredStream.WillWrite += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Count);
-        };
-        monitoredStream.WillWriteByte += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing 1 byte.");
-        };
-        monitoredStream.WillWriteMemory += (s, e) =>
+        monitoredStream.WillWriteAny += (s, e) =>
         {
             Assert.False(writing);
             writing = true;
             this.Logger.WriteLine("Writing {0} bytes.", e.Length);
         };
-        monitoredStream.WillWriteSpan += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWrite += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Count);
-        };
-        monitoredStream.DidWriteByte += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote 1 byte.");
-        };
-        monitoredStream.DidWriteMemory += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWriteSpan += (s, e) =>
+        monitoredStream.DidWriteAny += (s, e) =>
         {
             Assert.True(writing);
             writing = false;
