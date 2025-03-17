@@ -6,6 +6,8 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MessagePackVersion>2.5.192</MessagePackVersion>
     <MicroBuildVersion>2.0.187</MicroBuildVersion>
+    <RoslynVersion>4.13.0</RoslynVersion>
+    <RoslynVersionForAnalyzers>4.11.0</RoslynVersionForAnalyzers>
     <VisualStudioThreadingVersion>17.14.2-alpha</VisualStudioThreadingVersion>
     <CodeAnalysisAnalyzerVersion>3.11.0-beta1.24629.2</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
@@ -16,6 +18,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit" Version="1.1.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="$(CodeAnalysisAnalyzerVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Only" Version="$(VisualStudioThreadingVersion)" />
@@ -35,6 +42,11 @@
     <PackageVersion Include="xunit.combinatorial" Version="2.0.24" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
     <PackageVersion Include="xunit.stafact" Version="2.0.44" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsAnalyzerProject)'=='true'">
+    <PackageVersion Update="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersionForAnalyzers)" />
+    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersionForAnalyzers)" />
+    <PackageVersion Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersionForAnalyzers)" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
