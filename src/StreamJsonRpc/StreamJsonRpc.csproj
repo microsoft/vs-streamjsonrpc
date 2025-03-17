@@ -15,7 +15,8 @@
   <ItemGroup>
     <PackageReference Include="MessagePack" />
     <PackageReference Include="MessagePackAnalyzer" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Only" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
