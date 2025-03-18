@@ -30,6 +30,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     Sources =
                     {
                         $"""
+                        using System;
                         using System.Collections.Generic;
                         using System.Threading;
                         using System.Threading.Tasks;

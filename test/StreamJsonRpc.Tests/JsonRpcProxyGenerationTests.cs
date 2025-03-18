@@ -27,6 +27,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
     }
 
+    [RpcProxy]
     public interface IServer
     {
         event EventHandler ItHappened;
@@ -55,6 +56,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         event EventHandler AnotherEvent;
     }
 
+    [RpcProxy]
     public interface IServerDerived : IServer
     {
         Task HeavyWorkAsync(CancellationToken cancellationToken);

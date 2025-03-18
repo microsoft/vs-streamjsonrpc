@@ -26,4 +26,28 @@ internal static class GenerationHelpers
             yield return selector(memory.Span[i]);
         }
     }
+
+    internal static IEnumerable<ISymbol> GetAllMembers(this ITypeSymbol symbol)
+    {
+        if (symbol.BaseType is not null)
+        {
+            foreach (ISymbol baseMember in symbol.BaseType.GetAllMembers())
+            {
+                yield return baseMember;
+            }
+        }
+
+        foreach (INamedTypeSymbol iface in symbol.AllInterfaces)
+        {
+            foreach (ISymbol member in iface.GetMembers())
+            {
+                yield return member;
+            }
+        }
+
+        foreach (ISymbol member in symbol.GetMembers())
+        {
+            yield return member;
+        }
+    }
 }

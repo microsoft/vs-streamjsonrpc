@@ -39,22 +39,11 @@
   <ItemGroup>
     <Using Include="Microsoft" />
   </ItemGroup>
-  <ItemGroup>
-    <AnalyzerProjectReference Include="..\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj" />
-    <ProjectReference Include="@(AnalyzerProjectReference)">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <OutputItemType>AnalyzerAssembly</OutputItemType>
-    </ProjectReference>
-  </ItemGroup>
-  <Target Name="ConsumeAnalyzersDirectly" AfterTargets="ResolveProjectReferences">
-    <ItemGroup>
-      <Analyzer Include="%(AnalyzerAssembly.Identity)" />
-    </ItemGroup>
-  </Target>
   <Target Name="PackAnalyzers" DependsOnTargets="ResolveProjectReferences;DebugSymbolsProjectOutputGroup" Condition="'$(TargetFramework)'=='netstandard2.0'">
     <ItemGroup>
       <TfmSpecificPackageFile Include="%(AnalyzerAssembly.Identity)" PackagePath="analyzers\cs\" />
     </ItemGroup>
   </Target>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>

@@ -12,7 +12,8 @@ internal record KnownSymbols(
     INamedTypeSymbol? ValueTask,
     INamedTypeSymbol? ValueTaskOfT,
     INamedTypeSymbol? IAsyncEnumerableOfT,
-    INamedTypeSymbol? CancellationToken)
+    INamedTypeSymbol? CancellationToken,
+    INamedTypeSymbol IDisposable)
 {
     internal static bool TryCreate(Compilation compilation, [NotNullWhen(true)] out KnownSymbols? symbols)
     {
@@ -22,8 +23,15 @@ internal record KnownSymbols(
         INamedTypeSymbol? valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         INamedTypeSymbol? asyncEnumerableOfT = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
+        INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken);
+        if (idisposable is null)
+        {
+            symbols = null;
+            return false;
+        }
+
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable);
         return true;
     }
 }
