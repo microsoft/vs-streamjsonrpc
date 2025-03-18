@@ -644,12 +644,14 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
             writing = true;
             this.Logger.WriteLine("Writing {0} bytes.", e.Length);
         };
+#pragma warning disable CS0618 // Type or member is obsolete
         monitoredStream.DidWrite += (s, e) =>
         {
             Assert.True(writing);
             writing = false;
             this.Logger.WriteLine("Wrote {0} bytes.", e.Count);
         };
+#pragma warning restore CS0618 // Type or member is obsolete
         monitoredStream.DidWriteByte += (s, e) =>
         {
             Assert.True(writing);
