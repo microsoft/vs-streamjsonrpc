@@ -8,7 +8,7 @@
     <!-- We only want warnings about providing CancellationToken when every target framework accepts it,
          to avoid proliferation of #if sections in our test code.
          So suppress it unless we're targeting the oldest framework among our targets. -->
-    <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051;NBMsgPack051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

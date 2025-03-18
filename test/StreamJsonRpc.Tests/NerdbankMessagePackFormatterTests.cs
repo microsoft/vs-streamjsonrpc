@@ -109,8 +109,8 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         var clientFormatter = new NerdbankMessagePackFormatter();
         var serverFormatter = new NerdbankMessagePackFormatter();
 
-        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(), clientFormatter);
-        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(), serverFormatter);
+        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), clientFormatter);
+        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), serverFormatter);
 
         var clientRpc = new JsonRpc(clientHandler);
         var serverRpc = new JsonRpc(serverHandler, new Server());
@@ -273,10 +273,10 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
     }
 
-    [SkippableFact]
+    [Fact]
     public void CanDeserializeWithExtraProperty_JsonRpcRequest()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
+        Assert.SkipWhen(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -308,10 +308,10 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         Assert.Equal(dynamic.result, request.GetResult<string>());
     }
 
-    [SkippableFact]
+    [Fact]
     public void CanDeserializeWithExtraProperty_JsonRpcError()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
+        Assert.SkipWhen(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -328,7 +328,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void StringsInUserDataAreInterned()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
+        Assert.SkipWhen(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",

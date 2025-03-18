@@ -333,10 +333,10 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         result.InnerStream.Dispose();
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task PassStreamWithArgsAsSingleObject()
     {
-        Skip.If(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "Dynamic types are not supported with NerdBankMessagePack.");
+        Assert.SkipWhen(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "Dynamic types are not supported with NerdBankMessagePack.");
         MemoryStream ms = new();
         ms.Write(new byte[] { 1, 2, 3 }, 0, 3);
         ms.Position = 0;
@@ -473,11 +473,11 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         pipePair.Item1.Input.Complete();
     }
 
-    [SkippableTheory]
+    [Theory]
     [CombinatorialData]
     public async Task ClientCanSendTwoWayStreamToServer(bool serverUsesStream)
     {
-        Skip.If(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "This test is not supported with NerdBankMessagePack.");
+        Assert.SkipWhen(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "This test is not supported with NerdBankMessagePack.");
         (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
         Task twoWayCom = TwoWayTalkAsync(streamPair.Item1, writeOnOdd: true, this.TimeoutToken);
         await this.clientRpc.InvokeWithCancellationAsync(
