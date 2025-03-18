@@ -12,7 +12,13 @@ public class GenerationTests
             [RpcProxy]
             public interface IMyRpc
             {
-                Task MyMethodAsync(CancellationToken cancellationToken);
+                Task JustCancellationAsync(CancellationToken cancellationToken);
+                ValueTask AnArgAndCancellationAsync(int arg, CancellationToken cancellationToken);
+                Task<int> AddAsync(int a, int b, CancellationToken cancellationToken);
+                Task<int> MultiplyAsync(int a, int b);
+                void Start(string bah);
+                void StartCancelable(string bah, CancellationToken token);
+                IAsyncEnumerable<int> CountAsync(int start, int count, CancellationToken cancellationToken);
             }
             """);
     }
