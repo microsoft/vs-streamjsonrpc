@@ -83,7 +83,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         Task DoSomethingAsync(CancellationToken cancellationToken);
     }
 
-    public Task InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
 
@@ -107,10 +107,10 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         this.clientProxy = new Lazy<IServer>(() => this.clientRpc.Attach<IServer>());
         this.serverProxy = new Lazy<IClient>(() => this.serverRpc.Attach<IClient>());
 
-        return Task.CompletedTask;
+        return default;
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         this.serverRpc.Dispose();
         this.clientRpc.Dispose();
@@ -120,7 +120,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             this.Logger.WriteLine("Server faulted with: " + this.serverRpc.Completion.Exception);
         }
 
-        return Task.CompletedTask;
+        return default;
     }
 
     [Theory]
@@ -406,7 +406,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         if (prefetchStrategy == 2 && useProxy)
         {
             // In this strategy, we just wrapped up the IAsyncEnumerable in a pre-completed task, so we won't observe cancellation until we start enumerating.
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await (await enumerable).GetAsyncEnumerator().MoveNextAsync()).WithCancellation(this.TimeoutToken);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await (await enumerable).GetAsyncEnumerator(TestContext.Current.CancellationToken).MoveNextAsync()).WithCancellation(this.TimeoutToken);
         }
         else
         {
@@ -462,7 +462,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
             [typeof(IAsyncEnumerable<int>)]));
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     public async Task ArgumentEnumerable_ReleasedOnErrorResponse()
     {
@@ -471,7 +471,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         AssertCollectedObject(enumerable);
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ReleasedOnErrorInSubsequentArgumentSerialization()
@@ -481,7 +481,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         AssertCollectedObject(enumerable);
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ReleasedWhenIgnoredBySuccessfulRpcCall()
@@ -491,7 +491,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         AssertCollectedObject(enumerable);
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     [Trait("FailsOnMono", "true")]
     public async Task ArgumentEnumerable_ForciblyDisposedAndReleasedWhenNotDisposedWithinRpcCall()
@@ -505,7 +505,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAsync<InvalidOperationException>(() => this.server.ArgEnumeratorAfterReturn ?? Task.CompletedTask).WithCancellation(this.TimeoutToken);
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     public async Task ReturnEnumerable_AutomaticallyReleasedOnErrorFromIteratorMethod()
     {

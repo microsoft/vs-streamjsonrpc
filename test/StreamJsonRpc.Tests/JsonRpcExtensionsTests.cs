@@ -1,10 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
-
 public class JsonRpcExtensionsTests : TestBase
 {
     private static readonly IReadOnlyList<int> SmallList = new int[] { 1, 2, 3 };
@@ -51,7 +47,7 @@ public class JsonRpcExtensionsTests : TestBase
     public async Task WithPrefetchAsync_NegativeCount()
     {
         IAsyncEnumerable<int> asyncEnum = SmallList.AsAsyncEnumerable();
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>("count", async () => await asyncEnum.WithPrefetchAsync(-1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>("count", async () => await asyncEnum.WithPrefetchAsync(-1, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -85,8 +81,8 @@ public class JsonRpcExtensionsTests : TestBase
     {
         var asyncEnum = SmallList.AsAsyncEnumerable();
         var decorated = asyncEnum.WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = 3 });
-        decorated.GetAsyncEnumerator();
-        Assert.Throws<InvalidOperationException>(() => decorated.GetAsyncEnumerator());
+        decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        Assert.Throws<InvalidOperationException>(() => decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -94,8 +90,8 @@ public class JsonRpcExtensionsTests : TestBase
     {
         var asyncEnum = SmallList.AsAsyncEnumerable();
         var decorated = asyncEnum.WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = 3 });
-        decorated.GetAsyncEnumerator();
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await decorated.WithPrefetchAsync(2));
+        decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await decorated.WithPrefetchAsync(2, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -103,8 +99,8 @@ public class JsonRpcExtensionsTests : TestBase
     {
         var asyncEnum = SmallList.AsAsyncEnumerable();
         var decorated = await asyncEnum.WithPrefetchAsync(2, this.TimeoutToken);
-        decorated.GetAsyncEnumerator();
-        Assert.Throws<InvalidOperationException>(() => decorated.GetAsyncEnumerator());
+        decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        Assert.Throws<InvalidOperationException>(() => decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -112,8 +108,8 @@ public class JsonRpcExtensionsTests : TestBase
     {
         var asyncEnum = SmallList.AsAsyncEnumerable();
         var decorated = await asyncEnum.WithPrefetchAsync(2, this.TimeoutToken);
-        decorated.GetAsyncEnumerator();
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await decorated.WithPrefetchAsync(2));
+        decorated.GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await decorated.WithPrefetchAsync(2, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]

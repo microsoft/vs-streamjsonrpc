@@ -225,7 +225,7 @@ public abstract partial class JsonRpcTests : TestBase
             this.TimeoutToken);
 
         // The connection should be closed because we can't send a response.
-        await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
+        await disconnected.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
 
         // The method should not have been invoked.
         Assert.False(server.NullPassed);
@@ -241,7 +241,7 @@ public abstract partial class JsonRpcTests : TestBase
         await rpc.NotifyAsync("foo");
 
         // Verify that something was sent.
-        await sendingStream.ReadAsync(new byte[1], 0, 1).WithCancellation(this.TimeoutToken);
+        await sendingStream.ReadAsync(new byte[1], 0, 1, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
 
         // Sending requests should not be allowed, since it requires waiting for a response.
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
@@ -507,13 +507,13 @@ public abstract partial class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
     [Trait("FailsOnMono", "true")]
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(IsRunningUnderLiveUnitTest);
+        Assert.SkipWhen(IsRunningUnderLiveUnitTest, "Live Unit Testing");
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
@@ -914,10 +914,10 @@ public abstract partial class JsonRpcTests : TestBase
         // Assert that the second Post call on the server will not happen while the first Post hasn't returned.
         // This is the way we verify that processing incoming requests never becomes concurrent before the
         // invocation is sent to the SynchronizationContext.
-        Task unblockingTask = await Task.WhenAny(invoke1, invoke2, syncContext.PostInvoked.WaitAsync()).WithCancellation(UnexpectedTimeoutToken);
+        Task unblockingTask = await Task.WhenAny(invoke1, invoke2, syncContext.PostInvoked.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(UnexpectedTimeoutToken);
         await unblockingTask; // rethrow any exception that may have occurred while we were waiting.
 
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         Assert.Equal(1, syncContext.PostCalls);
 
         // Allow both calls to proceed.
@@ -1053,7 +1053,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithCancellationAsync_CanCallCancellableMethodWithNoArgs()
     {
-        Assert.Equal(5, await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
+        Assert.Equal(5, await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs), cancellationToken: TestContext.Current.CancellationToken));
 
         using (var cts = new CancellationTokenSource())
         {
@@ -1278,7 +1278,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         // Make sure that JsonRpc recognizes a returned ValueTask as a yielding async method rather than just returning immediately.
         Task invokeTask = this.clientRpc.InvokeAsync(nameof(Server.ReturnPlainValueTaskWithYield));
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         Assert.False(invokeTask.IsCompleted);
         this.server.AllowServerMethodToReturn.Set();
         await invokeTask.WithCancellation(this.TimeoutToken);
@@ -1301,7 +1301,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsObject()
     {
-        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter));
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("object or array", result1);
     }
 
@@ -1327,7 +1327,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(1, result);
@@ -1349,9 +1349,9 @@ public abstract partial class JsonRpcTests : TestBase
         await this.InvokeMethodWithProgressParameter(progress2);
         await this.InvokeMethodWithProgressParameter(progress3);
 
-        await progress1.WaitAsync();
-        await progress2.WaitAsync();
-        await progress3.WaitAsync();
+        await progress1.WaitAsync(TestContext.Current.CancellationToken);
+        await progress2.WaitAsync(TestContext.Current.CancellationToken);
+        await progress3.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report1);
         Assert.Equal(2, report2);
@@ -1425,7 +1425,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(7, report);
         Assert.Equal(7, sum);
@@ -1439,7 +1439,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(12, report);
         Assert.Equal(12, sum);
@@ -1508,7 +1508,7 @@ public abstract partial class JsonRpcTests : TestBase
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
         rpc.StartListening();
 
-        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYProperties { x = 1, y = 2 }));
+        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYProperties { x = 1, y = 2 }, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1519,7 +1519,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(7, report);
         Assert.Equal(7, sum);
@@ -1533,22 +1533,22 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
-        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
+        Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(7, sum);
@@ -1561,10 +1561,10 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
-        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
+        Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
@@ -1957,7 +1957,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
         Assert.False(rpcTask.IsCompleted);
-        await this.server.ServerMethodReached.WaitAsync();
+        await this.server.ServerMethodReached.WaitAsync(TestContext.Current.CancellationToken);
         this.clientStream.Dispose();
         var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
         Assert.Null(oce.InnerException);
@@ -1969,9 +1969,9 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
         Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
         Assert.False(rpcTask.IsCompleted);
-        await this.server.ServerMethodReached.WaitAsync();
+        await this.server.ServerMethodReached.WaitAsync(TestContext.Current.CancellationToken);
         this.clientStream.Dispose();
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         this.server.AllowServerMethodToReturn.Set();
         await this.server.ServerMethodCompleted.Task;
     }
@@ -2650,7 +2650,7 @@ public abstract partial class JsonRpcTests : TestBase
             Assert.IsNotType<CustomISerializableData>(objectOfCustomType);
         }
 
-        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName);
+        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName!);
     }
 
     [Fact]
@@ -2927,7 +2927,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         this.clientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         this.server.Tests = this;
@@ -2978,7 +2978,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
             clientCalledBackViaAlternate = true;
         }));
 
@@ -3035,7 +3035,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtf.SwitchToMainThreadAsync();
+            await jtf.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         alternateServerRpc.StartListening();
@@ -3047,6 +3047,7 @@ public abstract partial class JsonRpcTests : TestBase
         });
 
         // Drain any UI thread requests before exiting the test.
+        await this.server.ServerMethodCompleted.Task.WithCancellation(this.TimeoutToken);
         await jtCollection.JoinTillEmptyAsync();
         await Task.Yield();
     }
@@ -3090,12 +3091,12 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObjectAsync_FormatterIntrinsic()
     {
         string arg = "some value";
         object[] variousArgs = this.CreateFormatterIntrinsicParamsObject(arg);
-        Skip.If(variousArgs.Length == 0, "This test is only meaningful when the formatter supports intrinsic types.");
+        Assert.SkipWhen(variousArgs.Length == 0, "This test is only meaningful when the formatter supports intrinsic types.");
 
         foreach (object args in variousArgs)
         {

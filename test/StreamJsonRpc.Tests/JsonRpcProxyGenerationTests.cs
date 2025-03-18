@@ -197,8 +197,8 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         this.server.OnItHappened(EventArgs.Empty);
         this.server.OnAnotherEvent(EventArgs.Empty);
-        await itHappenedCompletion.WaitAsync().WithCancellation(this.TimeoutToken);
-        await anotherEventCompletion.WaitAsync().WithCancellation(this.TimeoutToken);
+        await itHappenedCompletion.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
+        await anotherEventCompletion.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
     }
 
     [Fact]
@@ -326,7 +326,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         // Tolerate that while verifying that it does eventually close.
         while (!this.clientStream.IsDisposed)
         {
-            await Task.Delay(1);
+            await Task.Delay(1, TestContext.Current.CancellationToken);
             this.TimeoutToken.ThrowIfCancellationRequested();
         }
     }
@@ -438,7 +438,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var cts = new CancellationTokenSource();
         this.server.ResumeMethod.Reset();
         Task task = this.clientRpc.HeavyWorkAsync(cts.Token);
-        await this.server.MethodEntered.WaitAsync().WithCancellation(this.TimeoutToken);
+        await this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
     }
@@ -456,7 +456,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var cts = new CancellationTokenSource();
         this.server.ResumeMethod.Reset();
         Task task = this.clientRpc.HeavyWorkAsync(456, cts.Token);
-        await this.server.MethodEntered.WaitAsync().WithCancellation(this.TimeoutToken);
+        await this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
         Assert.Equal(456, await this.server.MethodResult.Task); // assert that the argument we passed actually reached the method
@@ -717,7 +717,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
-        int result = await clientRpc.SumOfParameterObject(1, 2);
+        int result = await clientRpc.SumOfParameterObject(1, 2, TestContext.Current.CancellationToken);
         Assert.Equal(3, result);
     }
 
@@ -751,7 +751,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
-        await clientRpc.SumOfParameterObject(1, 2);
+        await clientRpc.SumOfParameterObject(1, 2, TestContext.Current.CancellationToken);
         int result = await server.MethodResult.Task;
         Assert.Equal(3, result);
     }

@@ -387,7 +387,7 @@ async enumerable feature.
 An `IAsyncEnumerable<T>` object may be included within or as an RPC method argument or return value.
 We use the terms `generator` to refer to the sender and `consumer` to refer to the receiver.
 
-Capitalized words are key words per [RFC 2119](https://tools.ietf.org/html/rfc2119).
+Capitalized words are key words per [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
 ### Originating message
 

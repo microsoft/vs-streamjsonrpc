@@ -17,11 +17,11 @@ public abstract class FormatterTestBase<TFormatter> : TestBase
         set => this.formatter = value;
     }
 
-    [SkippableFact]
+    [Fact]
     public void TopLevelPropertiesCanBeSerializedRequest()
     {
         IJsonRpcMessageFactory? factory = this.CreateFormatter() as IJsonRpcMessageFactory;
-        Skip.If(factory is null);
+        Assert.SkipWhen(factory is null, "No factory");
         JsonRpcRequest requestMessage = factory.CreateRequestMessage();
         Assert.NotNull(requestMessage);
 
@@ -37,11 +37,11 @@ public abstract class FormatterTestBase<TFormatter> : TestBase
         Assert.Equal(25, customObject?.Age);
     }
 
-    [SkippableFact]
+    [Fact]
     public void TopLevelPropertiesCanBeSerializedResult()
     {
         IJsonRpcMessageFactory? factory = this.CreateFormatter() as IJsonRpcMessageFactory;
-        Skip.If(factory is null);
+        Assert.SkipWhen(factory is null, "No factory");
         var message = factory.CreateResultMessage();
         Assert.NotNull(message);
 
@@ -57,11 +57,11 @@ public abstract class FormatterTestBase<TFormatter> : TestBase
         Assert.Equal(25, customObject?.Age);
     }
 
-    [SkippableFact]
+    [Fact]
     public void TopLevelPropertiesCanBeSerializedError()
     {
         IJsonRpcMessageFactory? factory = this.CreateFormatter() as IJsonRpcMessageFactory;
-        Skip.If(factory is null);
+        Assert.SkipWhen(factory is null, "No factory");
         var message = factory.CreateErrorMessage();
         Assert.NotNull(message);
 
@@ -77,11 +77,11 @@ public abstract class FormatterTestBase<TFormatter> : TestBase
         Assert.Equal(25, customObject?.Age);
     }
 
-    [SkippableFact]
+    [Fact]
     public void TopLevelPropertiesWithNullValue()
     {
         IJsonRpcMessageFactory? factory = this.CreateFormatter() as IJsonRpcMessageFactory;
-        Skip.If(factory is null);
+        Assert.SkipWhen(factory is null, "No factory");
         var requestMessage = factory.CreateRequestMessage();
         Assert.NotNull(requestMessage);
 

@@ -4,9 +4,6 @@
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 /// <summary>
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 1.0 *client* (i.e. the one sending requests, and receiving results)
@@ -50,7 +47,7 @@ public class JsonRpcClient10InteropTests : InteropTestBase
     [Fact]
     public async Task ClientRecognizesErrorWithNullResult()
     {
-        var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test");
+        var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test", cancellationToken: TestContext.Current.CancellationToken);
         JToken request = await this.ReceiveAsync();
         const string expectedErrorMessage = "some result";
         this.Send(new
@@ -73,7 +70,7 @@ public class JsonRpcClient10InteropTests : InteropTestBase
         var ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 }, this.TimeoutToken)).WithCancellation(this.TimeoutToken);
         Assert.IsType<NotSupportedException>(ex.InnerException);
         this.Logger.WriteLine(ex.ToString());
-        ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 })).WithCancellation(this.TimeoutToken);
+        ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.InvokeWithParameterObjectAsync("test", new { something = 3 }, TestContext.Current.CancellationToken)).WithCancellation(this.TimeoutToken);
         Assert.IsType<NotSupportedException>(ex.InnerException);
 
         Assert.Equal(0, this.messageHandler.WrittenMessages.Count);

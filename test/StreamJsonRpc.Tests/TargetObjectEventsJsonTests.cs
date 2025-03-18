@@ -1,7 +1,4 @@
-﻿using Microsoft;
-using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit.Abstractions;
+﻿using Newtonsoft.Json;
 
 public class TargetObjectEventsJsonTests : TargetObjectEventsTests
 {

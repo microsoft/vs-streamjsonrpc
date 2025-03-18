@@ -6,9 +6,6 @@ using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Serialization;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public partial class JsonContractResolverTest : TestBase
 {
@@ -66,7 +63,7 @@ public partial class JsonContractResolverTest : TestBase
     public async Task GiveObserverTest()
     {
         var observer = new MockObserver();
-        await Task.Run(() => this.client.GiveObserver(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.GiveObserver(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
     }
 
@@ -74,7 +71,7 @@ public partial class JsonContractResolverTest : TestBase
     public async Task GiveObserverContainerTest()
     {
         var observer = new MockObserver();
-        await Task.Run(() => this.client.GiveObserverContainer(new Container<IObserver<int>> { Field = observer })).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.GiveObserverContainer(new Container<IObserver<int>> { Field = observer }), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
     }
 
@@ -98,7 +95,7 @@ public partial class JsonContractResolverTest : TestBase
     public async Task GiveMarshalableTest()
     {
         var marshalable = new MockMarshalable();
-        await Task.Run(() => this.client.GiveMarshalable(marshalable)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.GiveMarshalable(marshalable), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await marshalable.Completion.WithCancellation(this.TimeoutToken);
     }
 
@@ -106,7 +103,7 @@ public partial class JsonContractResolverTest : TestBase
     public async Task GiveMarshalableContainerTest()
     {
         var marshalable = new MockMarshalable();
-        await Task.Run(() => this.client.GiveMarshalableContainer(new Container<IMarshalable> { Field = marshalable })).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.GiveMarshalableContainer(new Container<IMarshalable> { Field = marshalable }), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await marshalable.Completion.WithCancellation(this.TimeoutToken);
     }
 

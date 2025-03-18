@@ -7,10 +7,6 @@ using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 /// <summary>
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *client* (i.e. the one sending requests, and receiving results)
@@ -135,7 +131,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_ParameterObjectSentAsObject()
     {
-        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" });
+        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", new { Bar = "value" }, TestContext.Current.CancellationToken);
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Object, request["params"]?.Type);
         Assert.Equal("value", request["params"]?["Bar"]?.ToString());
@@ -144,7 +140,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_NoParameter()
     {
-        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test");
+        Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", cancellationToken: TestContext.Current.CancellationToken);
         JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
@@ -179,7 +175,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
             sum2 += i;
 
-            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
+            await signal.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
             Assert.Equal(sum2, sum);
         }
 
@@ -207,7 +203,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         });
 
         int n = 3;
-        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = n, Progress = progress });
+        Task<int> invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<int>("test", new { Bar = n, Progress = progress }, TestContext.Current.CancellationToken);
 
         JToken request = await this.ReceiveAsync();
 
@@ -224,7 +220,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
 
             sum2 += i;
 
-            await signal.WaitAsync().WithCancellation(this.TimeoutToken);
+            await signal.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
             Assert.Equal(sum2, sum);
         }
 

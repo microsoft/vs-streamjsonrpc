@@ -1,13 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Serialization;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using Nerdbank.MessagePack;
 using PolyType;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract partial class TargetObjectEventsTests : TestBase
 {

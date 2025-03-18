@@ -32,7 +32,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     {
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
 
@@ -86,9 +86,9 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         this.clientRpc.StartListening();
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        return Task.CompletedTask;
+        return default;
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         int receivedBytes = 0;
         while (receivedBytes < bytesToReceive)
         {
-            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes);
+            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes, TestContext.Current.CancellationToken);
             receivedBytes += count;
         }
 
@@ -663,49 +663,13 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         monitoredStream.Disposed += (s, e) => disposedEvent.Set();
 
         bool writing = false;
-        monitoredStream.WillWrite += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Count);
-        };
-        monitoredStream.WillWriteByte += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing 1 byte.");
-        };
-        monitoredStream.WillWriteMemory += (s, e) =>
+        monitoredStream.WillWriteAny += (s, e) =>
         {
             Assert.False(writing);
             writing = true;
             this.Logger.WriteLine("Writing {0} bytes.", e.Length);
         };
-        monitoredStream.WillWriteSpan += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWrite += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Count);
-        };
-        monitoredStream.DidWriteByte += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote 1 byte.");
-        };
-        monitoredStream.DidWriteMemory += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWriteSpan += (s, e) =>
+        monitoredStream.DidWriteAny += (s, e) =>
         {
             Assert.True(writing);
             writing = false;

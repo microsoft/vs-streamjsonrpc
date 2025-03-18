@@ -108,8 +108,8 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         var clientFormatter = new MessagePackFormatter();
         var serverFormatter = new MessagePackFormatter();
 
-        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(), clientFormatter);
-        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(), serverFormatter);
+        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), clientFormatter);
+        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), serverFormatter);
 
         var clientRpc = new JsonRpc(clientHandler);
         var serverRpc = new JsonRpc(serverHandler, new Server());

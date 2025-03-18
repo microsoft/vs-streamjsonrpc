@@ -1,9 +1,5 @@
 ﻿using System.Diagnostics;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcWithFatalExceptionsTests : TestBase
 {

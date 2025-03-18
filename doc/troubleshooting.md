@@ -24,4 +24,4 @@ Please see our [disconnecting](disconnecting.md) documentation.
 When connecting two processes using Windows (named) pipes, be sure to use `PipeOptions.Asynchronous`
 when creating those pipes to be used with our `JsonRpc` class. All our I/O is asynchronous, and
 without that flag, .NET Framework and .NET Core will hang.
-See [dotnet/corefx#42366](https://github.com/dotnet/corefx/issues/42366).
+See [dotnet/runtime#31390](https://github.com/dotnet/runtime/issues/31390).

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO.Pipelines;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
@@ -109,7 +110,7 @@ public class LengthHeaderMessageHandler : PipeMessageHandler
             }
 
             // Now go back and fill in the header with the actual content length.
-            Utilities.Write(this.Writer.GetSpan(sizeof(int)), checked((int)contentSequence.Length));
+            BinaryPrimitives.WriteInt32BigEndian(this.Writer.GetSpan(sizeof(int)), checked((int)contentSequence.Length));
             this.Writer.Advance(sizeof(int));
             contentSequence.CopyTo(this.Writer);
 

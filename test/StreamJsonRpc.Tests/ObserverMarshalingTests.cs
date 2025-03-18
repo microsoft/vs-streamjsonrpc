@@ -4,13 +4,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 #pragma warning disable CA2214 // Do not call virtual methods in constructors
 
@@ -79,7 +75,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task ReturnThenPushSequence()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.ReturnThenPushSequence(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.ReturnThenPushSequence(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         var result = await observer.Completion.WithCancellation(this.TimeoutToken);
         await (this.server.FireAndForgetTask ?? Task.CompletedTask).WithCancellation(this.TimeoutToken);
         Assert.Equal(Enumerable.Range(1, 3), result);
@@ -89,7 +85,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task FaultImmediately()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.FaultImmediately(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.FaultImmediately(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         var ex = await Assert.ThrowsAnyAsync<ApplicationException>(() => observer.Completion);
         Assert.Equal(ExceptionMessage, ex.Message);
         Assert.Empty(observer.ReceivedValues);
@@ -99,7 +95,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task CompleteImmediately()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.CompleteImmediately(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.CompleteImmediately(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
         Assert.Empty(observer.ReceivedValues);
     }
@@ -108,7 +104,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task CompleteTwice()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.CompleteTwice(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.CompleteTwice(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
         Assert.Empty(observer.ReceivedValues);
     }
@@ -131,7 +127,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task PushThenThrowImmediately()
     {
         var observer = new MockObserver<int>();
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => Task.Run(() => this.client.PushThenThrowImmediately(observer)).WithCancellation(this.TimeoutToken));
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => Task.Run(() => this.client.PushThenThrowImmediately(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken));
         Assert.False(observer.Completion.IsCompleted);
         await observer.ItemReceived.WaitAsync(this.TimeoutToken);
         Assert.Equal(new[] { 1 }, observer.ReceivedValues);
@@ -150,7 +146,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
     public async Task PushThenCompleteThenError()
     {
         var observer = new MockObserver<int>();
-        await Task.Run(() => this.client.PushThenCompleteThenError(observer)).WithCancellation(this.TimeoutToken);
+        await Task.Run(() => this.client.PushThenCompleteThenError(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await observer.Completion.WithCancellation(this.TimeoutToken);
         Assert.Equal(new[] { 1 }, observer.ReceivedValues);
     }

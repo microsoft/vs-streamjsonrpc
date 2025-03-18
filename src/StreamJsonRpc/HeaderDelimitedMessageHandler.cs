@@ -314,7 +314,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
             var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
             if (mediaType.CharSet is not null)
             {
-                // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
+                // The common language server protocol accepts 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
                 // accepted here so StreamJsonRpc can be used to support remote language servers following common language protocol.
                 if (mediaType.CharSet.Equals("utf8", StringComparison.OrdinalIgnoreCase))
                 {
@@ -336,17 +336,6 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
         {
             throw new BadRpcHeaderException(ex.Message, ex);
         }
-    }
-
-    private static bool IsLastFourBytesCrlfCrlf(byte[] buffer, int lastIndex)
-    {
-        const byte cr = (byte)'\r';
-        const byte lf = (byte)'\n';
-        return lastIndex >= 4
-            && buffer[lastIndex - 4] == cr
-            && buffer[lastIndex - 3] == lf
-            && buffer[lastIndex - 2] == cr
-            && buffer[lastIndex - 1] == lf;
     }
 
     private static int GetContentLength(ReadOnlySequence<byte> contentLengthValue)

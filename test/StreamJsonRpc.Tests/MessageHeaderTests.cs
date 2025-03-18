@@ -3,11 +3,7 @@
 
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class MessageHeaderTests : TestBase
 {
@@ -97,7 +93,7 @@ public class MessageHeaderTests : TestBase
 
         // Wait for response.
         byte[] receiveBuffer = new byte[1];
-        await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
+        int readBytes = await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
 
         Assert.Equal(1, server.FooCalledCount);
     }

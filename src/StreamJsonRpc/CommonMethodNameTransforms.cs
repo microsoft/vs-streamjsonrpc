@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
+
 namespace StreamJsonRpc;
 
 /// <summary>
@@ -45,7 +47,12 @@ public static class CommonMethodNameTransforms
         {
             return name => name;
         }
-
-        return name => prefix + name;
+        else
+        {
+            // Using a local variable for the closure avoids C# from allocating the closure
+            // earlier in the method, which would impact even the fast path.
+            string localPrefix = prefix;
+            return name => localPrefix + name;
+        }
     }
 }

@@ -4,7 +4,7 @@ JSON-RPC is great for invoking methods and passing regular data types as argumen
 When you want to pass binary data or stream a great deal of text without encoding as a very large JSON message,
 StreamJsonRpc gives you an option to pass `Stream`, `IDuplexPipe`, `PipeReader` or `PipeWriter` as an argument or as a return type for an RPC method.
 
-The content of the `Stream` or `IDuplexPipe` is transmitted out of band of the JSON-RPC channel so that no extra encoding is required. This out of band channel is provisioned from a [`MultiplexingStream`](https://github.com/AArnott/Nerdbank.Streams/blob/master/doc/MultiplexingStream.md) that can optionally be provided to the `JsonMessageFormatter` (or other formatters that support this feature). The `JsonRpc` connection itself is expected to be one of the channels in this `MultiplexingStream`.
+The content of the `Stream` or `IDuplexPipe` is transmitted out of band of the JSON-RPC channel so that no extra encoding is required. This out of band channel is provisioned from a [`MultiplexingStream`](https://dotnet.github.io/Nerdbank.Streams/docs/MultiplexingStream.html) that can optionally be provided to the `JsonMessageFormatter` (or other formatters that support this feature). The `JsonRpc` connection itself is expected to be one of the channels in this `MultiplexingStream`.
 This can be configured like this (creation of the `MultiplexingStream` is out of scope of this topic):
 
 ```cs
@@ -56,7 +56,7 @@ public Stream GetFile(string path) {
 Passing out of band streams/pipes along JSON-RPC messages requires care be taken to avoid leaving
 abandoned `MultiplexingStream` channels active and consuming resources in corner cases.
 To facilitate this, the following rules apply:
- 
+
 1. The client can only send an `IDuplexPipe` in a request (that expects a response).
    Notifications would not provide the client with feedback that the server dropped it, leaking resources.
 1. The client will immediately terminate the `IDuplexPipe` if the server returns ANY error in response to the request, since the server may not be aware of the `IDuplexPipe`.
@@ -98,7 +98,7 @@ If you need to know when the `Stream` has received all data you have two options
    This indicates the remote party is done transmitting.
 1. When the `Stream` is an argument you are passing to the RPC server, and you are *not* reading the stream directly
    (e.g. it's a `FileStream` and the remote party is writing the file for you),
-   you can first wrap the `Stream` in a [`MonitoringStream`](https://github.com/AArnott/Nerdbank.Streams/blob/master/doc/MonitoringStream.md)
+   you can first wrap the `Stream` in a [`MonitoringStream`](https://dotnet.github.io/Nerdbank.Streams/docs/MonitoringStream.html)
    and pass that wrapper in as your `Stream` argument.
    This gives you an option to observe when the `Stream` is disposed. For example:
 
