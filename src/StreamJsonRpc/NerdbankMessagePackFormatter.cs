@@ -70,7 +70,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// </summary>
     public NerdbankMessagePackFormatter()
     {
-        KnownSubTypeMapping<Exception> exceptionSubtypeMap = new();
+        DerivedTypeMapping<Exception> exceptionSubtypeMap = new();
         exceptionSubtypeMap.Add<RemoteInvocationException>(alias: 1, ShapeProvider);
         exceptionSubtypeMap.Add<RemoteMethodNotFoundException>(alias: 2, ShapeProvider);
         exceptionSubtypeMap.Add<RemoteRpcException>(alias: 3, ShapeProvider);
@@ -80,14 +80,14 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         MessagePackSerializer serializer = new()
         {
             InternStrings = true,
-            SerializeDefaultValues = false,
+            SerializeDefaultValues = SerializeDefaultValuesPolicy.Never,
             StartingContext = new SerializationContext()
             {
                 [SerializationContextExtensions.FormatterKey] = this,
             },
         };
 
-        serializer.RegisterKnownSubTypes(exceptionSubtypeMap);
+        serializer.RegisterDerivedTypes(exceptionSubtypeMap);
         RegisterCommonConverters(serializer);
 
         this.rpcProfile = new Profile(
@@ -102,14 +102,14 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         MessagePackSerializer userSerializer = new()
         {
             InternStrings = true,
-            SerializeDefaultValues = false,
+            SerializeDefaultValues = SerializeDefaultValuesPolicy.Never,
             StartingContext = new SerializationContext()
             {
                 [SerializationContextExtensions.FormatterKey] = this,
             },
         };
 
-        userSerializer.RegisterKnownSubTypes(exceptionSubtypeMap);
+        userSerializer.RegisterDerivedTypes(exceptionSubtypeMap);
         RegisterCommonConverters(userSerializer);
 
         this.userDataProfile = new Profile(

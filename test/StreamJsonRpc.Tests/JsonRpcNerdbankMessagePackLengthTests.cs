@@ -429,11 +429,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
     public partial class JsonRpcWitness;
 
     [GenerateShape]
-#if NET
-    [KnownSubType<UnionDerivedClass>]
-#else
-    [KnownSubType(typeof(UnionDerivedClass))]
-#endif
+    [DerivedTypeShape(typeof(UnionDerivedClass))]
     public abstract partial class UnionBaseClass
     {
     }

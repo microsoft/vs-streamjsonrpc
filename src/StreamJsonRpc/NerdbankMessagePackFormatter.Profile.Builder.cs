@@ -52,9 +52,9 @@ public partial class NerdbankMessagePackFormatter
             /// </summary>
             /// <typeparam name="TBase">The base type.</typeparam>
             /// <param name="mapping">The mapping of known subtypes.</param>
-            public void RegisterKnownSubTypes<TBase>(KnownSubTypeMapping<TBase> mapping)
+            public void RegisterKnownSubTypes<TBase>(DerivedTypeMapping<TBase> mapping)
             {
-                this.baseProfile.Serializer.RegisterKnownSubTypes(mapping);
+                this.baseProfile.Serializer.RegisterDerivedTypes(mapping);
             }
 
             /// <summary>

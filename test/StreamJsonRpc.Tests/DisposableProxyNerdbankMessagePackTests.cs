@@ -20,7 +20,7 @@ public class DisposableProxyNerdbankMessagePackTests : DisposableProxyTests
         NerdbankMessagePackFormatter formatter = new();
         formatter.SetFormatterProfile(b =>
         {
-            KnownSubTypeMapping<IDisposable> disposableMapping = new();
+            DerivedTypeMapping<IDisposable> disposableMapping = new();
             disposableMapping.Add<IDisposableObservable>(alias: 1, DisposableProxyWitness.ShapeProvider);
 
             b.RegisterKnownSubTypes(disposableMapping);

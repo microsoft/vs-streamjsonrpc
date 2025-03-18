@@ -16,15 +16,9 @@ namespace StreamJsonRpc.Protocol;
 [KnownType(typeof(JsonRpcRequest))]
 [KnownType(typeof(JsonRpcResult))]
 [KnownType(typeof(JsonRpcError))]
-#if NETSTANDARD2_0_OR_GREATER
-[KnownSubType(typeof(JsonRpcRequest), 1)]
-[KnownSubType(typeof(JsonRpcResult), 2)]
-[KnownSubType(typeof(JsonRpcError), 3)]
-#elif NET
-[KnownSubType<JsonRpcRequest>(1)]
-[KnownSubType<JsonRpcResult>(2)]
-[KnownSubType<JsonRpcError>(3)]
-#endif
+[DerivedTypeShape(typeof(JsonRpcRequest), Tag = 1)]
+[DerivedTypeShape(typeof(JsonRpcResult), Tag = 2)]
+[DerivedTypeShape(typeof(JsonRpcError), Tag = 3)]
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcMessageConverter))]
 [GenerateShape]
 public abstract partial class JsonRpcMessage
