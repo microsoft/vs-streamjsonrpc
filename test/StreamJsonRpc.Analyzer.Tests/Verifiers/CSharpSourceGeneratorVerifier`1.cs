@@ -96,7 +96,9 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             return compilationOptions
                 .WithAllowUnsafe(false)
                 .WithWarningLevel(99)
-                .WithSpecificDiagnosticOptions(compilationOptions.SpecificDiagnosticOptions.SetItem("CS1591", ReportDiagnostic.Suppress));
+                .WithSpecificDiagnosticOptions(compilationOptions.SpecificDiagnosticOptions
+                    .SetItem("CS1591", ReportDiagnostic.Suppress)
+                    .SetItem("CS1701", ReportDiagnostic.Suppress));
         }
 
         protected override async Task<(Compilation, ImmutableArray<Diagnostic>)> GetProjectCompilationAsync(Project project, IVerifier verifier, CancellationToken cancellationToken)

@@ -13,9 +13,17 @@ internal static class GenerationHelpers
     /// <summary>
     /// Gets a string providing a fully qualified name, without the global:: prefix.
     /// </summary>
-    public static SymbolDisplayFormat QualifiedNameOnlyFormat { get; } =
+    internal static SymbolDisplayFormat QualifiedNameOnlyFormat { get; } =
         new SymbolDisplayFormat(
             globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
             memberOptions: SymbolDisplayMemberOptions.IncludeContainingType);
+
+    internal static IEnumerable<TResult> Select<T, TResult>(this ReadOnlyMemory<T> memory, Func<T, TResult> selector)
+    {
+        for (int i = 0; i < memory.Length; i++)
+        {
+            yield return selector(memory.Span[i]);
+        }
+    }
 }
