@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 
 #pragma warning disable CA2214 // Do not call virtual methods in constructors
@@ -80,7 +81,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
         Assert.Equal(Enumerable.Range(1, 3), result);
     }
 
-    [Fact]
+    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
     public async Task FaultImmediately()
     {
         var observer = new MockObserver<int>();

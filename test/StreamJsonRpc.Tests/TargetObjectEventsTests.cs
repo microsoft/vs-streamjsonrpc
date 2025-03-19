@@ -2,8 +2,10 @@
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using Nerdbank.MessagePack;
+using PolyType;
 
-public abstract class TargetObjectEventsTests : TestBase
+public abstract partial class TargetObjectEventsTests : TestBase
 {
     protected IJsonRpcMessageHandler serverMessageHandler = null!;
     protected IJsonRpcMessageHandler clientMessageHandler = null!;
@@ -31,7 +33,9 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
-    public interface IFruit
+    [GenerateShape]
+    [DerivedTypeShape(typeof(Fruit), Tag = 1)]
+    public partial interface IFruit
     {
         string Name { get; }
     }
@@ -356,7 +360,8 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [DataContract]
-    public class Fruit : IFruit
+    [GenerateShape]
+    public partial class Fruit : IFruit
     {
         internal Fruit(string name)
         {

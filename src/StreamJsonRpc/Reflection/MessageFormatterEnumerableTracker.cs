@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc.Protocol;
 using STJ = System.Text.Json.Serialization;
 
@@ -216,6 +217,20 @@ public class MessageFormatterEnumerableTracker
                 this.generatorTokensByRequestId.Remove(outboundRequestId);
             }
         }
+    }
+
+    [DataContract]
+    internal class EnumeratorResults<T>
+    {
+        [DataMember(Name = ValuesPropertyName, Order = 0)]
+        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
+        [PropertyShape(Name = ValuesPropertyName, Order = 0)]
+        public IReadOnlyList<T>? Values { get; set; }
+
+        [DataMember(Name = FinishedPropertyName, Order = 1)]
+        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
+        [PropertyShape(Name = FinishedPropertyName, Order = 1)]
+        public bool Finished { get; set; }
     }
 
     private class GeneratingEnumeratorTracker<T> : IGeneratingEnumeratorTracker
@@ -524,17 +539,5 @@ public class MessageFormatterEnumerableTracker
                 writer.Advance(values.Count);
             }
         }
-    }
-
-    [DataContract]
-    private class EnumeratorResults<T>
-    {
-        [DataMember(Name = ValuesPropertyName, Order = 0)]
-        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
-        public IReadOnlyList<T>? Values { get; set; }
-
-        [DataMember(Name = FinishedPropertyName, Order = 1)]
-        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
-        public bool Finished { get; set; }
     }
 }

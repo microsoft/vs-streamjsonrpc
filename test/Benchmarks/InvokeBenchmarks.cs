@@ -15,7 +15,7 @@ public class InvokeBenchmarks
     private JsonRpc clientRpc = null!;
     private JsonRpc serverRpc = null!;
 
-    [Params("JSON", "MessagePack")]
+    [Params("JSON", "MessagePack", "NerdbankMessagePack")]
     public string Formatter { get; set; } = null!;
 
     [GlobalSetup]
@@ -35,6 +35,7 @@ public class InvokeBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter()),
                 _ => throw Assumes.NotReachable(),
             };
         }
