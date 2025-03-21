@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using Nerdbank.MessagePack;
-using static StreamJsonRpc.NerdbankMessagePackFormatter;
 
 namespace StreamJsonRpc;
 
@@ -20,7 +19,7 @@ public static class NerdbankMessagePackFormatterProfileExtensions
     /// <param name="writer">The writer to which the object will be serialized.</param>
     /// <param name="value">The object to serialize.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    public static void SerializeObject(this Profile profile, ref MessagePackWriter writer, object? value, CancellationToken cancellationToken = default)
+    public static void SerializeObject(this MessagePackSerializer profile, ref MessagePackWriter writer, object? value, CancellationToken cancellationToken = default)
     {
         Requires.NotNull(profile, nameof(profile));
         SerializeObject(profile, ref writer, value, value?.GetType() ?? typeof(object), cancellationToken);
@@ -34,7 +33,7 @@ public static class NerdbankMessagePackFormatterProfileExtensions
     /// <param name="value">The object to serialize.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the object to serialize.</typeparam>
-    public static void Serialize<T>(this Profile profile, ref MessagePackWriter writer, T? value, CancellationToken cancellationToken = default)
+    public static void Serialize<T>(this MessagePackSerializer profile, ref MessagePackWriter writer, T? value, CancellationToken cancellationToken = default)
     {
         Requires.NotNull(profile, nameof(profile));
 
@@ -45,7 +44,7 @@ public static class NerdbankMessagePackFormatterProfileExtensions
         }
 
         PolyType.Abstractions.ITypeShape<T> shape = profile.ShapeProviderResolver.ResolveShape<T>();
-        profile.Serializer.Serialize<T>(
+        profile.Serialize<T>(
             ref writer,
             value,
             shape,
@@ -61,38 +60,38 @@ public static class NerdbankMessagePackFormatterProfileExtensions
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>The deserialized object of type <typeparamref name="T"/>.</returns>
     /// <exception cref="MessagePackSerializationException">Thrown when deserialization fails.</exception>
-    public static T? Deserialize<T>(this Profile profile, in ReadOnlySequence<byte> pack, CancellationToken cancellationToken = default)
+    public static T? Deserialize<T>(this MessagePackSerializer profile, in ReadOnlySequence<byte> pack, CancellationToken cancellationToken = default)
     {
         Requires.NotNull(profile, nameof(profile));
         MessagePackReader reader = new(pack);
         return Deserialize<T>(profile, ref reader, cancellationToken);
     }
 
-    internal static T? Deserialize<T>(this Profile profile, ref MessagePackReader reader, CancellationToken cancellationToken = default)
+    internal static T? Deserialize<T>(this MessagePackSerializer profile, ref MessagePackReader reader, CancellationToken cancellationToken = default)
     {
         PolyType.ITypeShapeProvider provider = profile.ShapeProviderResolver.ResolveShapeProvider<T>();
-        return profile.Serializer.Deserialize<T>(
+        return profile.Deserialize<T>(
             ref reader,
             provider,
             cancellationToken);
     }
 
-    internal static object? DeserializeObject(this Profile profile, in ReadOnlySequence<byte> pack, Type objectType, CancellationToken cancellationToken = default)
+    internal static object? DeserializeObject(this MessagePackSerializer profile, in ReadOnlySequence<byte> pack, Type objectType, CancellationToken cancellationToken = default)
     {
         MessagePackReader reader = new(pack);
         return DeserializeObject(profile, ref reader, objectType, cancellationToken);
     }
 
-    internal static object? DeserializeObject(this Profile profile, ref MessagePackReader reader, Type objectType, CancellationToken cancellationToken = default)
+    internal static object? DeserializeObject(this MessagePackSerializer profile, ref MessagePackReader reader, Type objectType, CancellationToken cancellationToken = default)
     {
         PolyType.Abstractions.ITypeShape shape = profile.ShapeProviderResolver.ResolveShape(objectType);
-        return profile.Serializer.DeserializeObject(
+        return profile.DeserializeObject(
             ref reader,
             shape,
             cancellationToken);
     }
 
-    internal static void SerializeObject(this Profile profile, ref MessagePackWriter writer, object? value, Type objectType, CancellationToken cancellationToken = default)
+    internal static void SerializeObject(this MessagePackSerializer profile, ref MessagePackWriter writer, object? value, Type objectType, CancellationToken cancellationToken = default)
     {
         if (value is null)
         {
@@ -101,7 +100,7 @@ public static class NerdbankMessagePackFormatterProfileExtensions
         }
 
         PolyType.Abstractions.ITypeShape shape = profile.ShapeProviderResolver.ResolveShape(objectType);
-        profile.Serializer.SerializeObject(
+        profile.SerializeObject(
             ref writer,
             value,
             shape,

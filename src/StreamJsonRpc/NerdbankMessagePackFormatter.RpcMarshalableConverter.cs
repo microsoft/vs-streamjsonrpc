@@ -28,7 +28,7 @@ public partial class NerdbankMessagePackFormatter
             context.DepthStep();
 
             MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = formatter
-                .rpcProfile.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, context.CancellationToken);
+                .envelopeSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, context.CancellationToken);
 
             return token.HasValue
                 ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)
@@ -49,7 +49,7 @@ public partial class NerdbankMessagePackFormatter
             else
             {
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
-                formatter.rpcProfile.Serialize(ref writer, token, context.CancellationToken);
+                formatter.envelopeSerializer.Serialize(ref writer, token, context.CancellationToken);
             }
         }
 

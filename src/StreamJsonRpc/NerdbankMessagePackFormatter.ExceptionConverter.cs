@@ -54,7 +54,7 @@ public partial class NerdbankMessagePackFormatter
                 }
 
                 // TODO: Is this the right context?
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataProfile));
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
                 int memberCount = reader.ReadMapHeader();
                 for (int i = 0; i < memberCount; i++)
                 {
@@ -100,13 +100,13 @@ public partial class NerdbankMessagePackFormatter
                 }
 
                 // TODO: Is this the right profile?
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataProfile));
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
                 ExceptionSerializationHelpers.Serialize(value, info);
                 writer.WriteMapHeader(info.GetSafeMemberCount());
                 foreach (SerializationEntry element in info.GetSafeMembers())
                 {
                     writer.Write(element.Name);
-                    formatter.rpcProfile.SerializeObject(
+                    formatter.envelopeSerializer.SerializeObject(
                         ref writer,
                         element.Value,
                         element.ObjectType,

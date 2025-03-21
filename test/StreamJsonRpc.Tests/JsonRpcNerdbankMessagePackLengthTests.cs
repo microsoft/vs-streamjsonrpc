@@ -445,7 +445,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
     {
     }
 
-    private class CustomExtensionConverter : MessagePackConverter<CustomExtensionType>
+    internal class CustomExtensionConverter : MessagePackConverter<CustomExtensionType>
     {
         public override CustomExtensionType? Read(ref MessagePackReader reader, SerializationContext context)
         {

@@ -16,9 +16,6 @@ namespace StreamJsonRpc.Protocol;
 [KnownType(typeof(JsonRpcRequest))]
 [KnownType(typeof(JsonRpcResult))]
 [KnownType(typeof(JsonRpcError))]
-[DerivedTypeShape(typeof(JsonRpcRequest), Tag = 1)]
-[DerivedTypeShape(typeof(JsonRpcResult), Tag = 2)]
-[DerivedTypeShape(typeof(JsonRpcError), Tag = 3)]
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcMessageConverter))]
 [GenerateShape]
 public abstract partial class JsonRpcMessage

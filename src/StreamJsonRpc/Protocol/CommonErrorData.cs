@@ -17,7 +17,6 @@ public partial class CommonErrorData
     /// <summary>
     /// Initializes a new instance of the <see cref="CommonErrorData"/> class.
     /// </summary>
-    [ConstructorShape]
     public CommonErrorData()
     {
     }

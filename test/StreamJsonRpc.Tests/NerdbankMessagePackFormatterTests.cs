@@ -433,7 +433,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         internal int Prop2 { get; set; }
     }
 
-    private class CustomConverter : MessagePackConverter<TypeRequiringCustomFormatter>
+    internal class CustomConverter : MessagePackConverter<TypeRequiringCustomFormatter>
     {
         public override TypeRequiringCustomFormatter Read(ref MessagePackReader reader, SerializationContext context)
         {
