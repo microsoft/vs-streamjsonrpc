@@ -70,18 +70,21 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// </summary>
     public NerdbankMessagePackFormatter()
     {
-        DerivedTypeMapping<Exception> exceptionSubtypeMap = new();
-        exceptionSubtypeMap.Add<RemoteInvocationException>(alias: 1, ShapeProvider);
-        exceptionSubtypeMap.Add<RemoteMethodNotFoundException>(alias: 2, ShapeProvider);
-        exceptionSubtypeMap.Add<RemoteRpcException>(alias: 3, ShapeProvider);
-        exceptionSubtypeMap.Add<RemoteSerializationException>(alias: 4, ShapeProvider);
-
         // Set up initial options for our own message types.
         this.envelopeSerializer = new()
         {
             InternStrings = true,
             SerializeDefaultValues = SerializeDefaultValuesPolicy.Never,
-            DerivedTypeMappings = [exceptionSubtypeMap],
+            DerivedTypeMappings =
+            [
+                new DerivedTypeMapping<Exception>(ShapeProvider)
+                {
+                    { 1, typeof(RemoteInvocationException) },
+                    { 2, typeof(RemoteMethodNotFoundException) },
+                    { 3, typeof(RemoteRpcException) },
+                    { 4, typeof(RemoteSerializationException) },
+                }
+            ],
             ConverterFactories = [ConverterFactory.Instance],
             Converters =
             [
@@ -116,6 +119,12 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// Gets the shape provider for user data types.
     /// </summary>
     public required ITypeShapeProvider TypeShapeProvider { get; init; }
+
+    public MessagePackSerializer UserDataSerializer
+    {
+        get => this.userDataSerializer;
+        init => this.userDataSerializer = value;
+    }
 
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)

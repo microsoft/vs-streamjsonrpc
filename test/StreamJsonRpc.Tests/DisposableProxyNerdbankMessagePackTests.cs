@@ -17,7 +17,7 @@ public class DisposableProxyNerdbankMessagePackTests : DisposableProxyTests
 
     protected override IJsonRpcMessageFormatter CreateFormatter()
     {
-        NerdbankMessagePackFormatter formatter = new();
+        NerdbankMessagePackFormatter formatter = new() { TypeShapeProvider = DisposableProxyWitness.ShapeProvider };
         formatter.SetFormatterProfile(b =>
         {
             DerivedTypeMapping<IDisposable> disposableMapping = new();

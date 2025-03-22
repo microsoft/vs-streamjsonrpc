@@ -6,7 +6,7 @@ using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using PolyType;
 
-public class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMarshalingTests
+public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMarshalingTests
 {
     public DuplexPipeMarshalingNerdbankMessagePackTests(ITestOutputHelper logger)
         : base(logger)
@@ -18,22 +18,19 @@ public class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMarshaling
         NerdbankMessagePackFormatter serverFormatter = new()
         {
             MultiplexingStream = this.serverMx,
+            TypeShapeProvider = Witness.ShapeProvider,
         };
 
         NerdbankMessagePackFormatter clientFormatter = new()
         {
             MultiplexingStream = this.clientMx,
+            TypeShapeProvider = Witness.ShapeProvider,
         };
-
-        serverFormatter.SetFormatterProfile(Configure);
-        clientFormatter.SetFormatterProfile(Configure);
 
         this.serverMessageFormatter = serverFormatter;
         this.clientMessageFormatter = clientFormatter;
-
-        static void Configure(NerdbankMessagePackFormatter.Profile.Builder b)
-        {
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        }
     }
+
+    [GenerateShape<bool>]
+    private partial class Witness;
 }

@@ -15,32 +15,28 @@ public partial class MarshalableProxyNerdbankMessagePackTests : MarshalableProxy
 
     protected override IJsonRpcMessageFormatter CreateFormatter()
     {
-        NerdbankMessagePackFormatter formatter = new();
-        formatter.SetFormatterProfile(b =>
+        return new NerdbankMessagePackFormatter()
         {
-            b.RegisterRpcMarshalableConverter<IMarshalableAndSerializable>();
-            b.RegisterRpcMarshalableConverter<IMarshalable>();
-            b.RegisterRpcMarshalableConverter<IMarshalableWithCallScopedLifetime>();
-            b.RegisterRpcMarshalableConverter<INonDisposableMarshalable>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType1>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType1Extended>();
-            b.RegisterRpcMarshalableConverter<IMarshalableNonExtendingBase>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypesCombined>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableWithOptionalInterfaces2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType2Extended>();
-            b.RegisterRpcMarshalableConverter<IGenericMarshalable<int>>();
-            b.AddTypeShapeProvider(MarshalableProxyWitness.ShapeProvider);
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        });
-
-        return formatter;
+            TypeShapeProvider = Witness.ShapeProvider,
+            //b.RegisterRpcMarshalableConverter<IMarshalableAndSerializable>();
+            //b.RegisterRpcMarshalableConverter<IMarshalable>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableWithCallScopedLifetime>();
+            //b.RegisterRpcMarshalableConverter<INonDisposableMarshalable>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubType1>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubType2>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubType1Extended>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableNonExtendingBase>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubTypesCombined>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface2>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableWithOptionalInterfaces2>();
+            //b.RegisterRpcMarshalableConverter<IMarshalableSubType2Extended>();
+            //b.RegisterRpcMarshalableConverter<IGenericMarshalable<int>>();
+        };
     }
 
     [GenerateShape<Data>]
     [GenerateShape<IMarshalableWithProperties>]
     [GenerateShape<IMarshalableWithEvents>]
-    public partial class MarshalableProxyWitness;
+    private partial class Witness;
 }
