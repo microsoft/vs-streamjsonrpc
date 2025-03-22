@@ -24,7 +24,7 @@ public partial class NerdbankMessagePackFormatter
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
     private class ExceptionConverter<T> : MessagePackConverter<T>
-        where T : Exception
+    ////where T : Exception
     {
         public static readonly ExceptionConverter<T> Instance = new();
 
@@ -37,7 +37,7 @@ public partial class NerdbankMessagePackFormatter
 
             if (reader.TryReadNil())
             {
-                return null;
+                return default;
             }
 
             // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
@@ -50,7 +50,7 @@ public partial class NerdbankMessagePackFormatter
                     // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
                     // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
                     reader.Skip(context);
-                    return null;
+                    return default;
                 }
 
                 // TODO: Is this the right context?
@@ -101,16 +101,12 @@ public partial class NerdbankMessagePackFormatter
 
                 // TODO: Is this the right profile?
                 var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
-                ExceptionSerializationHelpers.Serialize(value, info);
+                ExceptionSerializationHelpers.Serialize((Exception)(object)value, info);
                 writer.WriteMapHeader(info.GetSafeMemberCount());
                 foreach (SerializationEntry element in info.GetSafeMembers())
                 {
                     writer.Write(element.Name);
-                    formatter.envelopeSerializer.SerializeObject(
-                        ref writer,
-                        element.Value,
-                        element.ObjectType,
-                        context.CancellationToken);
+                    context.GetConverter(formatter.TypeShapeProvider.Resolve(element.ObjectType)).WriteObject(ref writer, element.Value, context);
                 }
             }
             finally
