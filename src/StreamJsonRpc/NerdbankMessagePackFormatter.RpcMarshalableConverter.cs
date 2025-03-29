@@ -27,8 +27,10 @@ public partial class NerdbankMessagePackFormatter
 
             context.DepthStep();
 
+#pragma warning disable NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods - We need to switch from user data to envelope serializer
             MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = formatter
                 .envelopeSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, Witness.ShapeProvider, context.CancellationToken);
+#pragma warning restore NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods
 
             return token.HasValue
                 ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)

@@ -25,8 +25,6 @@ public partial class NerdbankMessagePackFormatter
             return serializer.DeserializeObject(ref reader, ReflectionTypeShapeProvider.Default.GetShape(type));
         }
 
-        private MessagePackReader CreateReader(object value) => new((RawMessagePack)value);
-
         public object Convert(object value, TypeCode typeCode)
         {
             return typeCode switch
@@ -65,6 +63,8 @@ public partial class NerdbankMessagePackFormatter
         public uint ToUInt32(object value) => this.CreateReader(value).ReadUInt32();
 
         public ulong ToUInt64(object value) => this.CreateReader(value).ReadUInt64();
+
+        private MessagePackReader CreateReader(object value) => new((RawMessagePack)value);
 
         [GenerateShape<decimal>]
         private partial class Witness;

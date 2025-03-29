@@ -452,17 +452,14 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             }
 
             valueType = NormalizeType(valueType ?? value.GetType());
-            if (Witness.ShapeProvider.GetShape(valueType) is ITypeShape valueShape)
-            {
-                context.GetConverter(valueShape).WriteObject(ref writer, value, context);
-            }
-            else
-            {
-                valueShape = this.TypeShapeProvider.Resolve(valueType);
+
+            // We prefer to get the shape from the user shape provider, but will fallback to our own for built-in types.
+            // But if that fails too, try again with Resolve on the user shape provider so that it throws an exception explaining that the user needs to provide it.
+            ITypeShape valueShape = this.TypeShapeProvider.GetShape(valueType) ?? Witness.ShapeProvider.GetShape(valueType) ?? this.TypeShapeProvider.Resolve(valueType);
+
 #pragma warning disable NBMsgPack030 // We need to switch serializers between envelope and user data.
-                this.UserDataSerializer.SerializeObject(ref writer, value, valueShape, context.CancellationToken);
+            this.UserDataSerializer.SerializeObject(ref writer, value, valueShape, context.CancellationToken);
 #pragma warning restore NBMsgPack030 // We need to switch serializers between envelope and user data.
-            }
         }
     }
 

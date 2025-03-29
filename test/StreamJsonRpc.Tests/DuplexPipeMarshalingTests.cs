@@ -76,8 +76,8 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -773,7 +773,6 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     public partial class StreamContainingClass
     {
         [DataMember]
-        [PropertyShape(Ignore = false)]
         private Stream innerStream;
 
         [ConstructorShape]

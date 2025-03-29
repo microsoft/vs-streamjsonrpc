@@ -47,7 +47,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
         Assert.NotNull(data);
-        object myCustomData = data["myCustomData"];
+        object myCustomData = data["MyCustomData"];
         string actual = (string)myCustomData;
         Assert.Equal("hi", actual);
     }

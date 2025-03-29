@@ -47,6 +47,19 @@ public abstract class MarshalableProxyTests : TestBase
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
     public interface IMarshalableAndSerializable : IMarshalable
     {
+        internal class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
+        {
+            public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in IMarshalableAndSerializable? value, Nerdbank.MessagePack.SerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         private class MarshalableConverter : JsonConverter
         {
             public override bool CanConvert(Type objectType)
@@ -73,19 +86,6 @@ public abstract class MarshalableProxyTests : TestBase
             }
 
             public void Serialize(ref MessagePack.MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        private class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
-        {
-            public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in IMarshalableAndSerializable? value, Nerdbank.MessagePack.SerializationContext context)
             {
                 throw new NotImplementedException();
             }
@@ -566,7 +566,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(99, await ((IGenericMarshalable<int>)this.server.ReceivedProxy!).DoSomethingWithParameterAsync(99));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task MarshalableReturnValue_Null()
     {
         IMarshalable? proxyMarshalable = await this.client.GetMarshalableAsync(returnNull: true);
@@ -682,7 +682,7 @@ public abstract class MarshalableProxyTests : TestBase
         await disposed.WaitAsync(this.TimeoutToken);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
@@ -700,7 +700,7 @@ public abstract class MarshalableProxyTests : TestBase
         AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_JsonRpcMethodAttribute()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
@@ -718,7 +718,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RemamedAsync", "foo"));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_MethodNameTransform_Prefix()
     {
         var server = new Server();
@@ -746,7 +746,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/1.GetAsync", 1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_MethodNameTransform_CamelCase()
     {
         var server = new Server();
@@ -774,7 +774,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/1.GetAsync", 1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_Null()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = null;
@@ -782,7 +782,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Null(proxy);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_IndirectInterfaceImplementation()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1Indirect();
@@ -793,7 +793,7 @@ public abstract class MarshalableProxyTests : TestBase
         AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_WithExplicitImplementation()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2();
@@ -804,7 +804,7 @@ public abstract class MarshalableProxyTests : TestBase
         AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_UnknownSubType()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableUnknownSubType();
@@ -815,7 +815,7 @@ public abstract class MarshalableProxyTests : TestBase
         AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_OnlyAttibutesOnDeclaredTypeAreHonored()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2Extended();
@@ -830,7 +830,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(4, await ((IMarshalableSubType2Extended)proxy1).GetPlusThreeAsync(1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_OptionalInterfaceNotExtendingBase()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableNonExtendingBase();
@@ -840,7 +840,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_IntermediateNonMarshalableInterface()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeWithIntermediateInterface();
@@ -861,7 +861,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(4, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusThreeAsync(1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_MultipleIntermediateInterfaces()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeWithIntermediateInterface1And2();
@@ -888,7 +888,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy2).GetPlusTwoAsync(1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_MultipleImplementations()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypeMultipleImplementations();
@@ -913,7 +913,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalableOptionalInterface_MultipleImplementationsCombined()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubTypesCombined();
@@ -955,7 +955,7 @@ public abstract class MarshalableProxyTests : TestBase
         Assert.False(marshaled.IsDisposed);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalable_CallScopedLifetime_AsyncEnumerableReturned()
     {
         MarshalableAndSerializable marshaled = new();
@@ -971,7 +971,7 @@ public abstract class MarshalableProxyTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.server.ContinuationResult).WithCancellation(this.TimeoutToken);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development.
+    [Fact]
     public async Task RpcMarshalable_CallScopedLifetime_AsyncEnumerableThrown()
     {
         this.clientRpc.AllowModificationWhileListening = true;

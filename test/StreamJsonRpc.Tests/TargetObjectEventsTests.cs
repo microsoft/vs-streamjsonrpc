@@ -373,6 +373,22 @@ public abstract partial class TargetObjectEventsTests : TestBase
         public string Name { get; }
     }
 
+    [DataContract]
+    [GenerateShape]
+    protected internal partial class CustomEventArgs : EventArgs
+    {
+        [DataMember]
+        public int Seeds { get; set; }
+    }
+
+    [DataContract]
+    protected internal class MessageEventArgs<T> : EventArgs
+        where T : class
+    {
+        [DataMember]
+        public T? Message { get; set; }
+    }
+
     protected class Client
     {
         internal Action<EventArgs>? ServerEventRaised { get; set; }
@@ -490,21 +506,5 @@ public abstract partial class TargetObjectEventsTests : TestBase
 #pragma warning disable CS0067 // Unused member (It's here for reflection to discover)
         public event MyDelegate? MyEvent;
 #pragma warning restore CS0067
-    }
-
-    [DataContract]
-    [GenerateShape]
-    protected internal partial class CustomEventArgs : EventArgs
-    {
-        [DataMember]
-        public int Seeds { get; set; }
-    }
-
-    [DataContract]
-    protected internal class MessageEventArgs<T> : EventArgs
-        where T : class
-    {
-        [DataMember]
-        public T? Message { get; set; }
     }
 }

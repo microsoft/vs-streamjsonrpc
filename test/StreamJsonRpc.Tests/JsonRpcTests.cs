@@ -3820,9 +3820,6 @@ public abstract partial class JsonRpcTests : TestBase
             throw new LocalRpcException { ErrorCode = 2, ErrorData = new CustomErrorData("hi") };
         }
 
-        [GenerateShape, MessagePack.MessagePackObject(keyAsPropertyName: true)]
-        internal partial record CustomErrorData(string myCustomData);
-
         public void SendException(Exception? ex)
         {
             this.ReceivedException = ex;
@@ -3866,6 +3863,9 @@ public abstract partial class JsonRpcTests : TestBase
         internal void InternalIgnoredMethod()
         {
         }
+
+        [GenerateShape, MessagePack.MessagePackObject(keyAsPropertyName: true)]
+        internal partial record CustomErrorData(string MyCustomData);
     }
 #pragma warning restore CA1801 // use all parameters
 
@@ -3998,8 +3998,8 @@ public abstract partial class JsonRpcTests : TestBase
         public string? Value { get; set; }
     }
 
-    [Serializable, DataContract]
-    public class CustomISerializableData : ISerializable
+    [Serializable, DataContract, GenerateShape]
+    public partial class CustomISerializableData : ISerializable
     {
         [MessagePack.SerializationConstructor]
         [ConstructorShape]
