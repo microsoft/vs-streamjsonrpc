@@ -117,7 +117,7 @@ public partial class NerdbankMessagePackFormatter
                     if (elements.Count > 0)
                     {
                         writer.Write(ValuesPropertyName);
-                        context.GetConverter<IReadOnlyList<T>>(context.TypeShapeProvider).Write(ref writer, elements, context);
+                        context.GetConverter(mainFormatter.GetUserDataShape(typeof(IReadOnlyList<T>))).WriteObject(ref writer, elements, context);
                     }
                 }
             }

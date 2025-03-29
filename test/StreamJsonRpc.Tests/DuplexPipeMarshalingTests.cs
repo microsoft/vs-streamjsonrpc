@@ -595,7 +595,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     {
         (IDuplexPipe, IDuplexPipe) duplexPipes = FullDuplexStream.CreatePipePair();
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.AcceptReadableStream), "fileName", duplexPipes.Item2));
-        Assert.IsType<NotSupportedException>(ex.InnerException);
+        Assert.IsType<NotSupportedException>(ex.GetBaseException());
     }
 
     /// <summary>

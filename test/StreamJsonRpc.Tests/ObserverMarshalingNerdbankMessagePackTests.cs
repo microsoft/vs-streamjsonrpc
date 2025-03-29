@@ -3,7 +3,7 @@
 
 using PolyType;
 
-public class ObserverMarshalingNerdbankMessagePackTests : ObserverMarshalingTests
+public partial class ObserverMarshalingNerdbankMessagePackTests : ObserverMarshalingTests
 {
     public ObserverMarshalingNerdbankMessagePackTests(ITestOutputHelper logger)
         : base(logger)
@@ -11,21 +11,12 @@ public class ObserverMarshalingNerdbankMessagePackTests : ObserverMarshalingTest
     }
 
     protected override IJsonRpcMessageFormatter CreateFormatter()
-    {
-        NerdbankMessagePackFormatter formatter = new();
-        formatter.SetFormatterProfile(b =>
+        => new NerdbankMessagePackFormatter()
         {
-            b.RegisterRpcMarshalableConverter<IObserver<int>>();
-            b.RegisterExceptionType<ApplicationException>();
-            b.AddTypeShapeProvider(ObserverMarshalingWitness.ShapeProvider);
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+        };
 
-        return formatter;
-    }
+    [GenerateShape<ApplicationException>]
+    [GenerateShape<IObserver<int>>]
+    private partial class Witness;
 }
-
-[GenerateShape<ApplicationException>]
-#pragma warning disable SA1402 // File may only contain a single type
-internal partial class ObserverMarshalingWitness;
-#pragma warning restore SA1402 // File may only contain a single type

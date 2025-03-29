@@ -30,8 +30,8 @@ public partial class NerdbankMessagePackFormatter
             Verify.Operation(reader.ReadArrayHeader() == 2, "Expected array of length 2.");
             return new MessageFormatterEnumerableTracker.EnumeratorResults<T>()
             {
-                Values = formatter.userDataProfile.Deserialize<IReadOnlyList<T>>(ref reader, context.CancellationToken),
-                Finished = formatter.userDataProfile.Deserialize<bool>(ref reader, context.CancellationToken),
+                Values = context.GetConverter<IReadOnlyList<T>>(formatter.TypeShapeProvider).Read(ref reader, context),
+                Finished = reader.ReadBoolean(),
             };
         }
 
@@ -48,8 +48,8 @@ public partial class NerdbankMessagePackFormatter
                 context.DepthStep();
 
                 writer.WriteArrayHeader(2);
-                formatter.userDataProfile.Serialize(ref writer, value.Values, context.CancellationToken);
-                formatter.userDataProfile.Serialize(ref writer, value.Finished, context.CancellationToken);
+                context.GetConverter<IReadOnlyList<T>>(formatter.TypeShapeProvider).Write(ref writer, value.Values, context);
+                writer.Write(value.Finished);
             }
         }
 

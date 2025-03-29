@@ -34,9 +34,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
     [GenerateShape]
-#pragma warning disable CS0618 // Type or member is obsolete
-    [KnownSubType(typeof(Fruit), 1)]
-#pragma warning restore CS0618 // Type or member is obsolete
+    [DerivedTypeShape(typeof(Fruit), Tag = 1)]
     public partial interface IFruit
     {
         string Name { get; }
@@ -365,6 +363,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
     [GenerateShape]
     public partial class Fruit : IFruit
     {
+        [ConstructorShape]
         internal Fruit(string name)
         {
             this.Name = name;
@@ -494,14 +493,15 @@ public abstract partial class TargetObjectEventsTests : TestBase
     }
 
     [DataContract]
-    protected class CustomEventArgs : EventArgs
+    [GenerateShape]
+    protected internal partial class CustomEventArgs : EventArgs
     {
         [DataMember]
         public int Seeds { get; set; }
     }
 
     [DataContract]
-    protected class MessageEventArgs<T> : EventArgs
+    protected internal class MessageEventArgs<T> : EventArgs
         where T : class
     {
         [DataMember]

@@ -13,34 +13,30 @@ public partial class MarshalableProxyNerdbankMessagePackTests : MarshalableProxy
 
     protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);
 
-    protected override IJsonRpcMessageFormatter CreateFormatter()
-    {
-        NerdbankMessagePackFormatter formatter = new();
-        formatter.SetFormatterProfile(b =>
-        {
-            b.RegisterRpcMarshalableConverter<IMarshalableAndSerializable>();
-            b.RegisterRpcMarshalableConverter<IMarshalable>();
-            b.RegisterRpcMarshalableConverter<IMarshalableWithCallScopedLifetime>();
-            b.RegisterRpcMarshalableConverter<INonDisposableMarshalable>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType1>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType1Extended>();
-            b.RegisterRpcMarshalableConverter<IMarshalableNonExtendingBase>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypesCombined>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubTypeWithIntermediateInterface2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableWithOptionalInterfaces2>();
-            b.RegisterRpcMarshalableConverter<IMarshalableSubType2Extended>();
-            b.RegisterRpcMarshalableConverter<IGenericMarshalable<int>>();
-            b.AddTypeShapeProvider(MarshalableProxyWitness.ShapeProvider);
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        });
-
-        return formatter;
-    }
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
 
     [GenerateShape<Data>]
+    [GenerateShape<DataContainer>]
+    [GenerateShape<IMarshalable>]
+    [GenerateShape<ProxyContainer<IMarshalable>>]
+    [GenerateShape<ProxyContainer<IMarshalableAndSerializable>>]
+    [GenerateShape<ProxyContainer<IGenericMarshalable<int>>>]
     [GenerateShape<IMarshalableWithProperties>]
     [GenerateShape<IMarshalableWithEvents>]
-    public partial class MarshalableProxyWitness;
+    [GenerateShape<IMarshalableAndSerializable>]
+    [GenerateShape<IMarshalableWithCallScopedLifetime>]
+    [GenerateShape<INonDisposableMarshalable>]
+    [GenerateShape<IMarshalableSubType1>]
+    [GenerateShape<IMarshalableSubType2>]
+    [GenerateShape<IMarshalableSubType1Extended>]
+    [GenerateShape<IMarshalableNonExtendingBase>]
+    [GenerateShape<IMarshalableSubTypesCombined>]
+    [GenerateShape<IMarshalableSubTypeWithIntermediateInterface>]
+    [GenerateShape<IMarshalableSubTypeWithIntermediateInterface2>]
+    [GenerateShape<IMarshalableWithOptionalInterfaces>]
+    [GenerateShape<IMarshalableWithOptionalInterfaces2>]
+    [GenerateShape<IMarshalableSubType2Extended>]
+    [GenerateShape<IGenericMarshalable<int>>]
+    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<int>>] // https://github.com/eiriktsarpalis/PolyType/issues/146
+    private partial class Witness;
 }

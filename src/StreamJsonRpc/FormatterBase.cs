@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.Serialization;
-using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using PolyType;
 using StreamJsonRpc.Protocol;

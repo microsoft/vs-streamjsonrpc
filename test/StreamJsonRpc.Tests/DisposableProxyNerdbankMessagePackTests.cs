@@ -17,18 +17,7 @@ public class DisposableProxyNerdbankMessagePackTests : DisposableProxyTests
 
     protected override IJsonRpcMessageFormatter CreateFormatter()
     {
-        NerdbankMessagePackFormatter formatter = new();
-        formatter.SetFormatterProfile(b =>
-        {
-            KnownSubTypeMapping<IDisposable> disposableMapping = new();
-            disposableMapping.Add<IDisposableObservable>(alias: 1, DisposableProxyWitness.ShapeProvider);
-
-            b.RegisterKnownSubTypes(disposableMapping);
-            b.AddTypeShapeProvider(DisposableProxyWitness.ShapeProvider);
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        });
-
-        return formatter;
+        return new NerdbankMessagePackFormatter() { TypeShapeProvider = DisposableProxyWitness.ShapeProvider };
     }
 }
 

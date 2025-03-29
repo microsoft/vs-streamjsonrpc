@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks.Dataflow;
@@ -10,7 +11,10 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using PolyType;
 using StreamJsonRpc.Protocol;
+using NBMsgPack = Nerdbank.MessagePack;
 using STJ = System.Text.Json.Serialization;
+
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<>)])]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -220,16 +224,17 @@ public class MessageFormatterEnumerableTracker
     }
 
     [DataContract]
-    internal class EnumeratorResults<T>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class EnumeratorResults<T>
     {
         [DataMember(Name = ValuesPropertyName, Order = 0)]
         [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
-        [PropertyShape(Name = ValuesPropertyName, Order = 0)]
+        [PropertyShape(Name = ValuesPropertyName), NBMsgPack.Key(0)]
         public IReadOnlyList<T>? Values { get; set; }
 
         [DataMember(Name = FinishedPropertyName, Order = 1)]
         [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
-        [PropertyShape(Name = FinishedPropertyName, Order = 1)]
+        [PropertyShape(Name = FinishedPropertyName), NBMsgPack.Key(1)]
         public bool Finished { get; set; }
     }
 

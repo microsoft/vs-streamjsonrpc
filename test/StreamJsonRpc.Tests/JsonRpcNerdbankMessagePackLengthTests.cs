@@ -392,11 +392,25 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
         out IJsonRpcMessageHandler clientMessageHandler,
         bool controlledFlushingClient)
     {
-        NerdbankMessagePackFormatter serverFormatter = new();
-        serverFormatter.SetFormatterProfile(Configure);
+        NerdbankMessagePackFormatter serverFormatter = new()
+        {
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = NerdbankMessagePackFormatter.DefaultSerializer with
+            {
+                Converters =
+                [
+                    ..NerdbankMessagePackFormatter.DefaultSerializer.Converters,
+                    new UnserializableTypeConverter(),
+                    new TypeThrowsWhenDeserializedConverter(),
+                ],
+            },
+        };
 
-        NerdbankMessagePackFormatter clientFormatter = new();
-        clientFormatter.SetFormatterProfile(Configure);
+        NerdbankMessagePackFormatter clientFormatter = new()
+        {
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = serverFormatter.UserDataSerializer,
+        };
 
         serverMessageFormatter = serverFormatter;
         clientMessageFormatter = clientFormatter;
@@ -405,21 +419,6 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
         clientMessageHandler = controlledFlushingClient
             ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
             : new LengthHeaderMessageHandler(clientStream, clientStream, clientMessageFormatter);
-
-        static void Configure(NerdbankMessagePackFormatter.Profile.Builder b)
-        {
-            b.RegisterConverter(new UnserializableTypeConverter());
-            b.RegisterConverter(new TypeThrowsWhenDeserializedConverter());
-            b.RegisterAsyncEnumerableConverter<UnionBaseClass>();
-            b.RegisterAsyncEnumerableConverter<UnionDerivedClass>();
-            b.RegisterProgressConverter<UnionBaseClass>();
-            b.RegisterProgressConverter<UnionDerivedClass>();
-            b.RegisterProgressConverter<CustomSerializedType>();
-            b.RegisterProgressConverter<ProgressWithCompletion<int>, int>();
-            b.RegisterProgressConverter<ProgressWithCompletion<CustomSerializedType>, CustomSerializedType>();
-            b.AddTypeShapeProvider(JsonRpcWitness.ShapeProvider);
-            b.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        }
     }
 
     protected override object[] CreateFormatterIntrinsicParamsObject(string arg) => [];
@@ -429,11 +428,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
     public partial class JsonRpcWitness;
 
     [GenerateShape]
-#if NET
-    [KnownSubType<UnionDerivedClass>]
-#else
-    [KnownSubType(typeof(UnionDerivedClass))]
-#endif
+    [DerivedTypeShape(typeof(UnionDerivedClass))]
     public abstract partial class UnionBaseClass
     {
     }
@@ -449,7 +444,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
     {
     }
 
-    private class CustomExtensionConverter : MessagePackConverter<CustomExtensionType>
+    internal class CustomExtensionConverter : MessagePackConverter<CustomExtensionType>
     {
         public override CustomExtensionType? Read(ref MessagePackReader reader, SerializationContext context)
         {
@@ -557,4 +552,23 @@ public partial class JsonRpcNerdbankMessagePackLengthTests : JsonRpcTests
             await base.FlushAsync(cancellationToken);
         }
     }
+
+    [GenerateShape<System.Collections.IDictionary>]
+    [GenerateShape<int?>]
+    [GenerateShape<double>]
+    [GenerateShape<Guid>]
+    [GenerateShape<InternalClass>]
+    [GenerateShape<Server.CustomErrorData>]
+    [GenerateShape<IProgress<int>>]
+    [GenerateShape<IProgress<TypeThrowsWhenSerialized>>]
+    [GenerateShape<IProgress<UnionBaseClass>>]
+    [GenerateShape<IProgress<CustomSerializedType>>]
+    [GenerateShape<IAsyncEnumerable<UnionBaseClass>>]
+    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<UnionBaseClass>>] // https://github.com/eiriktsarpalis/PolyType/issues/146
+    [GenerateShape<TypeThrowsWhenSerialized>]
+    [GenerateShape<TypeThrowsWhenDeserialized>]
+    [GenerateShape<StrongTypedProgressType>]
+    [GenerateShape<XAndYPropertiesWithProgress>]
+    [GenerateShape<VAndWProperties>]
+    private partial class Witness;
 }
