@@ -236,7 +236,7 @@ public class MessageFormatterEnumerableTracker
         /// </summary>
         [DataMember(Name = ValuesPropertyName, Order = 0)]
         [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
-        [PropertyShape(Name = ValuesPropertyName), NBMsgPack.Key(0)]
+        [PropertyShape(Name = ValuesPropertyName)]
         public IReadOnlyList<T>? Values { get; init; }
 
         /// <summary>
@@ -244,7 +244,7 @@ public class MessageFormatterEnumerableTracker
         /// </summary>
         [DataMember(Name = FinishedPropertyName, Order = 1)]
         [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
-        [PropertyShape(Name = FinishedPropertyName), NBMsgPack.Key(1)]
+        [PropertyShape(Name = FinishedPropertyName)]
         public bool Finished { get; init; }
     }
 
