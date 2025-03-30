@@ -24,7 +24,6 @@ public partial class NerdbankMessagePackFormatter
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
     private class ExceptionConverter<T> : MessagePackConverter<T>
-    ////where T : Exception
     {
         public static readonly ExceptionConverter<T> Instance = new();
 
@@ -53,7 +52,6 @@ public partial class NerdbankMessagePackFormatter
                     return default;
                 }
 
-                // TODO: Is this the right context?
                 var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
                 int memberCount = reader.ReadMapHeader();
                 for (int i = 0; i < memberCount; i++)
@@ -65,7 +63,7 @@ public partial class NerdbankMessagePackFormatter
                     // so the caller will get a boxed RawMessagePack struct in that case.
                     // Although we can't do much about *that* in general, we can at least ensure that null values
                     // are represented as null instead of this boxed struct.
-                    RawMessagePack? value = reader.TryReadNil() ? null : (RawMessagePack)reader.ReadRaw(context);
+                    RawMessagePack? value = reader.TryReadNil() ? null : reader.ReadRaw(context);
 
                     info.AddSafeValue(name, value);
                 }
@@ -123,9 +121,6 @@ public partial class NerdbankMessagePackFormatter
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(ExceptionConverter<T>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

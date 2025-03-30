@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Buffers;
 using System.Runtime.Serialization;
 using Nerdbank.MessagePack;
 using PolyType;
@@ -25,14 +24,11 @@ public partial class NerdbankMessagePackFormatter
             return serializer.DeserializeObject(ref reader, ReflectionTypeShapeProvider.Default.GetShape(type));
         }
 
-        public object Convert(object value, TypeCode typeCode)
+        public object Convert(object value, TypeCode typeCode) => typeCode switch
         {
-            return typeCode switch
-            {
-                TypeCode.Object => new object(),
-                _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
-            };
-        }
+            TypeCode.Object => new object(),
+            _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
+        };
 
         public bool ToBoolean(object value) => this.CreateReader(value).ReadBoolean();
 

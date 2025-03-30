@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Buffers;
+#pragma warning disable CA1812 // Avoid uninstantiated internal classes
+
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
-using Nerdbank.Streams;
 using PolyType.Abstractions;
 using StreamJsonRpc.Reflection;
 
@@ -22,9 +22,7 @@ public partial class NerdbankMessagePackFormatter
         /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>
         /// or an <see cref="IAsyncEnumerable{T}"/> into an enumeration token.
         /// </summary>
-#pragma warning disable CA1812
         internal class PreciseTypeConverter<T> : MessagePackConverter<IAsyncEnumerable<T>>
-#pragma warning restore CA1812
         {
             /// <summary>
             /// The constant "token", in its various forms.
@@ -55,7 +53,7 @@ public partial class NerdbankMessagePackFormatter
                     if (TokenPropertyName.TryRead(ref reader))
                     {
                         // The value needs to outlive the reader, so we clone it.
-                        token = new RawMessagePack(reader.ReadRaw(context)).ToOwned();
+                        token = reader.ReadRaw(context).ToOwned();
                     }
                     else if (ValuesPropertyName.TryRead(ref reader))
                     {
@@ -63,7 +61,8 @@ public partial class NerdbankMessagePackFormatter
                     }
                     else
                     {
-                        reader.Skip(context);
+                        reader.Skip(context); // Skip the unrecognized key
+                        reader.Skip(context); // and its value.
                     }
                 }
 
@@ -79,10 +78,7 @@ public partial class NerdbankMessagePackFormatter
                 Serialize_Shared(mainFormatter, ref writer, value, context);
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(PreciseTypeConverter<T>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
 
             internal static void Serialize_Shared(NerdbankMessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, SerializationContext context)
             {
@@ -126,15 +122,10 @@ public partial class NerdbankMessagePackFormatter
         /// <summary>
         /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
         /// </summary>
-#pragma warning disable CA1812
         internal class GeneratorConverter<TClass, TElement> : MessagePackConverter<TClass>
             where TClass : IAsyncEnumerable<TElement>
-#pragma warning restore CA1812
         {
-            public override TClass Read(ref MessagePackReader reader, SerializationContext context)
-            {
-                throw new NotSupportedException();
-            }
+            public override TClass Read(ref MessagePackReader reader, SerializationContext context) => throw new NotSupportedException();
 
             [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
             public override void Write(ref MessagePackWriter writer, in TClass? value, SerializationContext context)
@@ -145,10 +136,7 @@ public partial class NerdbankMessagePackFormatter
                 PreciseTypeConverter<TElement>.Serialize_Shared(mainFormatter, ref writer, value, context);
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(GeneratorConverter<TClass, TElement>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
     }
 }

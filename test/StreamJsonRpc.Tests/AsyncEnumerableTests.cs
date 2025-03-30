@@ -376,7 +376,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await moveNextTask).WithCancellation(this.TimeoutToken);
     }
 
-    [Theory(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Theory]
     [PairwiseData]
     public async Task Cancellation_DuringLongRunningServerBeforeReturning(bool useProxy, [CombinatorialValues(0, 1, 2, 3)] int prefetchStrategy)
     {

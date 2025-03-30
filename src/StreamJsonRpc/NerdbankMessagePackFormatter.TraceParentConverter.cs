@@ -76,9 +76,6 @@ public partial class NerdbankMessagePackFormatter
             writer.Write((byte)value.Flags);
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(TraceParentConverter));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

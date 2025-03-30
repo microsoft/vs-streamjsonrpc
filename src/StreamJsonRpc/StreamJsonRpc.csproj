@@ -13,6 +13,9 @@
     <EmbeddedResource Update="Resources.resx" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="NerdbankMessagePackFormatter.*.cs" DependentUpon="NerdbankMessagePackFormatter.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="MessagePack" />
     <PackageReference Include="MessagePackAnalyzer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all"/>

@@ -1,13 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System;
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
 using PolyType.Abstractions;
-using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
 
@@ -43,10 +40,7 @@ public partial class NerdbankMessagePackFormatter
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(ProgressClientConverter<TClass>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 
     /// <summary>
@@ -63,7 +57,7 @@ public partial class NerdbankMessagePackFormatter
 
             if (reader.TryReadNil())
             {
-                return default!;
+                return default;
             }
 
             Assumes.NotNull(formatter.JsonRpc);
@@ -89,9 +83,6 @@ public partial class NerdbankMessagePackFormatter
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(FullProgressConverter<TClass>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

@@ -81,7 +81,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
         Assert.Equal(Enumerable.Range(1, 3), result);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task FaultImmediately()
     {
         var observer = new MockObserver<int>();

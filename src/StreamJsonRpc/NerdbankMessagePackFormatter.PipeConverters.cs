@@ -51,10 +51,7 @@ public partial class NerdbankMessagePackFormatter
                 }
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(DuplexPipeConverter<T>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
         internal class PipeReaderConverter<T> : MessagePackConverter<T>
@@ -90,10 +87,7 @@ public partial class NerdbankMessagePackFormatter
                 }
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(PipeReaderConverter<T>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
         internal class PipeWriterConverter<T> : MessagePackConverter<T>
@@ -129,10 +123,7 @@ public partial class NerdbankMessagePackFormatter
                 }
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(PipeWriterConverter<T>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
         internal class StreamConverter<T> : MessagePackConverter<T>
@@ -168,10 +159,7 @@ public partial class NerdbankMessagePackFormatter
                 }
             }
 
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-            {
-                return CreateUndocumentedSchema(typeof(StreamConverter<T>));
-            }
+            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
     }
 }

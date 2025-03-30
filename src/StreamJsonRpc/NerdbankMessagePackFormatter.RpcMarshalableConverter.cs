@@ -55,9 +55,6 @@ public partial class NerdbankMessagePackFormatter
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(RpcMarshalableConverter<T>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }
