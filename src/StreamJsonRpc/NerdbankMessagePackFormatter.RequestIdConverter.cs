@@ -51,7 +51,7 @@ public partial class NerdbankMessagePackFormatter
 
         public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => JsonNode.Parse("""
         {
-            "type": ["string", { "type": "integer", "format": "int64" }]
+            "type": ["string", "integer"]
         }
         """)?.AsObject();
     }
