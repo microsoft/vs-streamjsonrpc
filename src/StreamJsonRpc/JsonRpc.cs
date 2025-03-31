@@ -2658,6 +2658,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 catch
                 {
                     this.OnResponseReceived(rpc);
+                    throw;
                 }
             }
             else
