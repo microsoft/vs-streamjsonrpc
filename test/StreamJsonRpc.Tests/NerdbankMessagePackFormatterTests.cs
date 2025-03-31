@@ -6,7 +6,6 @@ using Nerdbank.Streams;
 using PolyType;
 using PolyType.Abstractions;
 using PolyType.ReflectionProvider;
-using PolyType.SourceGenerator;
 
 public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<NerdbankMessagePackFormatter>
 {
