@@ -2,7 +2,6 @@
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using Nerdbank.MessagePack;
 using PolyType;
 
 public abstract partial class TargetObjectEventsTests : TestBase
@@ -34,7 +33,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
     [GenerateShape]
-    [DerivedTypeShape(typeof(Fruit), Tag = 1)]
+    [DerivedTypeShape(typeof(Fruit), Tag = 0)]
     public partial interface IFruit
     {
         string Name { get; }

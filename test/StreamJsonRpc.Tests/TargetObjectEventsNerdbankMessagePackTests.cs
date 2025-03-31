@@ -1,12 +1,7 @@
 ﻿using PolyType;
 
-public partial class TargetObjectEventsNerdbankMessagePackTests : TargetObjectEventsTests
+public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger) : TargetObjectEventsTests(logger)
 {
-    public TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger)
-        : base(logger)
-    {
-    }
-
     protected override void InitializeFormattersAndHandlers()
     {
         NerdbankMessagePackFormatter serverMessageFormatter = new() { TypeShapeProvider = Witness.ShapeProvider };

@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.Threading;
-using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 
 #pragma warning disable CA2214 // Do not call virtual methods in constructors

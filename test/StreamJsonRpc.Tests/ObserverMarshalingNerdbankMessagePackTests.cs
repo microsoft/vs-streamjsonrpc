@@ -3,18 +3,9 @@
 
 using PolyType;
 
-public partial class ObserverMarshalingNerdbankMessagePackTests : ObserverMarshalingTests
+public partial class ObserverMarshalingNerdbankMessagePackTests(ITestOutputHelper logger) : ObserverMarshalingTests(logger)
 {
-    public ObserverMarshalingNerdbankMessagePackTests(ITestOutputHelper logger)
-        : base(logger)
-    {
-    }
-
-    protected override IJsonRpcMessageFormatter CreateFormatter()
-        => new NerdbankMessagePackFormatter()
-        {
-            TypeShapeProvider = Witness.ShapeProvider,
-        };
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
 
     [GenerateShape<ApplicationException>]
     [GenerateShape<IObserver<int>>]

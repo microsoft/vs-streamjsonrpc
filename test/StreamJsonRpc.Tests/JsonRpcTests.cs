@@ -499,7 +499,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task ThrowsIfCannotFindMethod()
     {
-        Assert.SkipWhen(this.clientMessageFormatter is NerdbankMessagePackFormatter, "Not yet implemented for MessagePack. No property is required. https://github.com/eiriktsarpalis/PolyType/pull/138");
+        Assert.SkipWhen(this.clientMessageFormatter is NerdbankMessagePackFormatter, "Not yet implemented for MessagePack. No property is required. https://github.com/eiriktsarpalis/PolyType/issues/140");
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("missingMethod", 50));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new XAndYProperties { x = 100 }));
     }
@@ -3979,7 +3979,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         [DataMember(Order = 0, IsRequired = true)]
         [STJ.JsonRequired, STJ.JsonPropertyOrder(0)]
-        [PropertyShape(Order = 0)]
+        [PropertyShape(Order = 0, IsRequired = true)]
         public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
@@ -4002,7 +4002,6 @@ public abstract partial class JsonRpcTests : TestBase
     public partial class CustomISerializableData : ISerializable
     {
         [MessagePack.SerializationConstructor]
-        [ConstructorShape]
         public CustomISerializableData(int major)
         {
             this.Major = major;

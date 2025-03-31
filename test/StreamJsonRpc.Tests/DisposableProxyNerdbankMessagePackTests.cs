@@ -6,25 +6,15 @@ using System.IO.Pipelines;
 using Nerdbank.MessagePack;
 using PolyType;
 
-public class DisposableProxyNerdbankMessagePackTests : DisposableProxyTests
+public partial class DisposableProxyNerdbankMessagePackTests(ITestOutputHelper logger) : DisposableProxyTests(logger)
 {
-    public DisposableProxyNerdbankMessagePackTests(ITestOutputHelper logger)
-        : base(logger)
-    {
-    }
-
     protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);
 
-    protected override IJsonRpcMessageFormatter CreateFormatter()
-    {
-        return new NerdbankMessagePackFormatter() { TypeShapeProvider = DisposableProxyWitness.ShapeProvider };
-    }
-}
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
 
-[GenerateShape<DisposableProxyTests.ProxyContainer>]
-[GenerateShape<DisposableProxyTests.DataContainer>]
-[GenerateShape<DisposableProxyTests.Data>]
-[GenerateShape<IDisposableObservable>]
-#pragma warning disable SA1402 // File may only contain a single type
-public partial class DisposableProxyWitness;
-#pragma warning restore SA1402 // File may only contain a single type
+    [GenerateShape<ProxyContainer>]
+    [GenerateShape<DataContainer>]
+    [GenerateShape<Data>]
+    [GenerateShape<IDisposableObservable>]
+    private partial class Witness;
+}

@@ -2,8 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.IO.Pipelines;
-using Nerdbank.MessagePack;
-using Nerdbank.Streams;
 using PolyType;
 
 public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMarshalingTests
