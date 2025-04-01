@@ -17,7 +17,7 @@ using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
 namespace StreamJsonRpc;
 
-[RequiresDynamicCode(RuntimeReasons.RefEmit)]
+[RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
 internal static class ProxyGeneration
 {
     private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();

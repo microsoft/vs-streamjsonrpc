@@ -29,7 +29,7 @@ internal static class TrackerHelpers<TInterface>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
-    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type objectType)
+    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
     {
         Requires.NotNull(objectType, nameof(objectType));
 
@@ -56,7 +56,7 @@ internal static class TrackerHelpers<TInterface>
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <typeparamref name="TInterface"/>; otherwise, false.</returns>
-    internal static bool CanSerialize(Type objectType) => FindInterfaceImplementedBy(objectType) is not null;
+    internal static bool CanSerialize([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => FindInterfaceImplementedBy(objectType) is not null;
 
     /// <summary>
     /// Checks whether the given type is an interface compatible with <typeparamref name="TInterface"/>.
