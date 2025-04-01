@@ -95,7 +95,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
     }
 
-    internal static MethodNameMap GetMethodNameMap(TypeInfo type)
+    internal static MethodNameMap GetMethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo type)
     {
         MethodNameMap? map;
         lock (MethodNameMaps)
@@ -185,6 +185,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <remarks>
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     internal RevertAddLocalRpcTarget? AddLocalRpcTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
     {
         RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
@@ -577,7 +578,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         private readonly Dictionary<MethodInfo, JsonRpcMethodAttribute?> methodAttributes = new Dictionary<MethodInfo, JsonRpcMethodAttribute?>();
         private readonly Dictionary<MethodInfo, JsonRpcIgnoreAttribute?> ignoreAttributes = new Dictionary<MethodInfo, JsonRpcIgnoreAttribute?>();
 
-        internal MethodNameMap(TypeInfo typeInfo)
+        internal MethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo typeInfo)
         {
             Requires.NotNull(typeInfo, nameof(typeInfo));
             this.interfaceMaps = typeInfo.IsInterface ? default
@@ -754,6 +755,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         private readonly Delegate registeredHandler;
         private readonly string rpcEventName;
 
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
         {
             Requires.NotNull(jsonRpc, nameof(jsonRpc));

@@ -5,7 +5,9 @@ namespace StreamJsonRpc;
 
 internal static class RuntimeReasons
 {
-    internal const string CloseGenerics = "This code closes generic types at runtime.";
+    internal const string CloseGenerics = "This code closes generic types or methods at runtime.";
+
+    internal const string ExtractTypes = "This code uses Reflection to extract types from other Types.";
 
     internal const string RefEmit = "This code generates IL at runtime and executes it.";
 
