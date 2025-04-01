@@ -804,6 +804,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class ProgressFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -893,7 +894,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 Assumes.NotNull(this.formatter.JsonRpc);
                 RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
                 bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.ClientRequiresNamedArguments is true;
-                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeof(TClass), clientRequiresNamedArgs);
+                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress<TClass>(this.formatter.JsonRpc, token, clientRequiresNamedArgs);
             }
 
             public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
@@ -1257,6 +1258,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class RpcMarshalableResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter formatter;
@@ -1307,7 +1309,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
 #pragma warning disable CA1812
-    private class RpcMarshalableFormatter<T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
+    private class RpcMarshalableFormatter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
         where T : class
 #pragma warning restore CA1812
     {
@@ -1384,6 +1388,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 #pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 #pragma warning disable CA1812
         [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+        [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
         private class ExceptionFormatter<T> : IMessagePackFormatter<T>
             where T : Exception
 #pragma warning restore CA1812

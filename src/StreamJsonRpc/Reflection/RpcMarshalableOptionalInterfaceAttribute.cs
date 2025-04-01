@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace StreamJsonRpc;
 
 /// <summary>
@@ -44,6 +46,7 @@ public class RpcMarshalableOptionalInterfaceAttribute : Attribute
     /// <summary>
     /// Gets the <see cref="Type"/> of the known optional interface that the marshalable object may implement.
     /// </summary>
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicEvents)]
     public Type OptionalInterface { get; }
 
     /// <summary>

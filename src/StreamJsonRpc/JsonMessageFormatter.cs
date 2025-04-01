@@ -984,6 +984,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// <summary>
     /// Converts an instance of <see cref="IProgress{T}"/> to a progress token.
     /// </summary>
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonProgressClientConverter : JsonConverter
     {
         private readonly JsonMessageFormatter formatter;
@@ -1010,6 +1011,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// <summary>
     /// Converts a progress token to an <see cref="IProgress{T}"/>.
     /// </summary>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class JsonProgressServerConverter : JsonConverter
     {
         private readonly JsonMessageFormatter formatter;
@@ -1253,7 +1255,8 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     }
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-    private class RpcMarshalableConverter(Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    private class RpcMarshalableConverter([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
     {
         private string DebuggerDisplay => $"Converter for marshalable objects of type {interfaceType.FullName}";
 
@@ -1337,6 +1340,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         public ulong ToUInt64(object value) => ((JToken)value).ToObject<ulong>(this.serializer);
     }
 
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
     private class ExceptionConverter : JsonConverter<Exception?>
     {
         /// <summary>

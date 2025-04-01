@@ -71,7 +71,8 @@ public class MessageFormatterProgressTracker
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
-    public static Type? FindIProgressOfT(Type objectType) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
+    public static Type? FindIProgressOfT([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
+        => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
@@ -79,14 +80,14 @@ public class MessageFormatterProgressTracker
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
     [Obsolete($"Use {nameof(CanSerialize)} instead.")]
-    public static bool IsSupportedProgressType(Type objectType) => CanSerialize(objectType);
+    public static bool IsSupportedProgressType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => CanSerialize(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool CanSerialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
+    public static bool CanSerialize([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> is a closed generic of <see cref="IProgress{T}"/>.
@@ -174,6 +175,7 @@ public class MessageFormatterProgressTracker
     /// <remarks>
     /// This overload creates an <see cref="IProgress{T}"/> that does <em>not</em> use named arguments in its notifications.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public object CreateProgress(JsonRpc rpc, object token, Type valueType) => this.CreateProgress(rpc, token, valueType, clientRequiresNamedArguments: false);
 
     /// <summary>
@@ -184,6 +186,7 @@ public class MessageFormatterProgressTracker
     /// <param name="valueType">A generic type whose first generic type argument is to serve as the type argument for the created <see cref="IProgress{T}"/>.</param>
     /// <param name="clientRequiresNamedArguments"><see langword="true"/> to issue $/progress notifications using named args; <see langword="false"/> to use positional arguments.</param>
 #pragma warning disable CA1822 // Mark members as static
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public object CreateProgress(JsonRpc rpc, object token, Type valueType, bool clientRequiresNamedArguments)
 #pragma warning restore CA1822 // Mark members as static
     {

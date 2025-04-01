@@ -793,6 +793,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class Converter<T> : JsonConverter<IProgress<T>>
         {
             private readonly SystemTextJsonFormatter formatter;

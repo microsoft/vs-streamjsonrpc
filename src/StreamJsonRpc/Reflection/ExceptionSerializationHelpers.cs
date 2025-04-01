@@ -25,6 +25,7 @@ internal static class ExceptionSerializationHelpers
 
     private static StreamingContext Context => new StreamingContext(StreamingContextStates.Remoting);
 
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
     internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, TraceSource? traceSource)
         where T : Exception
     {
