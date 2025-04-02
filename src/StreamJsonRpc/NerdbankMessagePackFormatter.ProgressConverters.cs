@@ -14,36 +14,6 @@ namespace StreamJsonRpc;
 public partial class NerdbankMessagePackFormatter
 {
     /// <summary>
-    /// Converts an instance of <see cref="IProgress{T}"/> to a progress token.
-    /// </summary>
-    private class ProgressClientConverter<TClass> : MessagePackConverter<TClass>
-    {
-        public override TClass Read(ref MessagePackReader reader, SerializationContext context)
-        {
-            throw new NotSupportedException("This formatter only serializes IProgress<T> instances.");
-        }
-
-        public override void Write(ref MessagePackWriter writer, in TClass? value, SerializationContext context)
-        {
-            NerdbankMessagePackFormatter formatter = context.GetFormatter();
-
-            context.DepthStep();
-
-            if (value is null)
-            {
-                writer.WriteNil();
-            }
-            else
-            {
-                long progressId = formatter.FormatterProgressTracker.GetTokenForProgress(value);
-                writer.Write(progressId);
-            }
-        }
-
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
-    }
-
-    /// <summary>
     /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
     /// </summary>
     private class FullProgressConverter<TClass> : MessagePackConverter<TClass>
