@@ -16,12 +16,11 @@ public partial class NerdbankMessagePackFormatter
 {
     private static class PipeConverters
     {
-        internal class DuplexPipeConverter<T> : MessagePackConverter<T>
-            where T : class, IDuplexPipe
+        internal class DuplexPipeConverter : MessagePackConverter<IDuplexPipe>
         {
-            public static readonly DuplexPipeConverter<T> DefaultInstance = new();
+            public static readonly DuplexPipeConverter DefaultInstance = new();
 
-            public override T? Read(ref MessagePackReader reader, SerializationContext context)
+            public override IDuplexPipe? Read(ref MessagePackReader reader, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -32,10 +31,10 @@ public partial class NerdbankMessagePackFormatter
                     return null;
                 }
 
-                return (T)formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64());
+                return formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64());
             }
 
-            public override void Write(ref MessagePackWriter writer, in T? value, SerializationContext context)
+            public override void Write(ref MessagePackWriter writer, in IDuplexPipe? value, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -54,12 +53,11 @@ public partial class NerdbankMessagePackFormatter
             public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
-        internal class PipeReaderConverter<T> : MessagePackConverter<T>
-            where T : PipeReader
+        internal class PipeReaderConverter : MessagePackConverter<PipeReader>
         {
-            public static readonly PipeReaderConverter<T> DefaultInstance = new();
+            public static readonly PipeReaderConverter DefaultInstance = new();
 
-            public override T? Read(ref MessagePackReader reader, SerializationContext context)
+            public override PipeReader? Read(ref MessagePackReader reader, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -69,10 +67,10 @@ public partial class NerdbankMessagePackFormatter
                     return null;
                 }
 
-                return (T)formatter.DuplexPipeTracker.GetPipeReader(reader.ReadUInt64());
+                return formatter.DuplexPipeTracker.GetPipeReader(reader.ReadUInt64());
             }
 
-            public override void Write(ref MessagePackWriter writer, in T? value, SerializationContext context)
+            public override void Write(ref MessagePackWriter writer, in PipeReader? value, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -90,12 +88,11 @@ public partial class NerdbankMessagePackFormatter
             public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
-        internal class PipeWriterConverter<T> : MessagePackConverter<T>
-            where T : PipeWriter
+        internal class PipeWriterConverter : MessagePackConverter<PipeWriter>
         {
-            public static readonly PipeWriterConverter<T> DefaultInstance = new();
+            public static readonly PipeWriterConverter DefaultInstance = new();
 
-            public override T? Read(ref MessagePackReader reader, SerializationContext context)
+            public override PipeWriter? Read(ref MessagePackReader reader, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -105,10 +102,10 @@ public partial class NerdbankMessagePackFormatter
                     return null;
                 }
 
-                return (T)formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadUInt64());
+                return formatter.DuplexPipeTracker.GetPipeWriter(reader.ReadUInt64());
             }
 
-            public override void Write(ref MessagePackWriter writer, in T? value, SerializationContext context)
+            public override void Write(ref MessagePackWriter writer, in PipeWriter? value, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -126,12 +123,11 @@ public partial class NerdbankMessagePackFormatter
             public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
 
-        internal class StreamConverter<T> : MessagePackConverter<T>
-            where T : Stream
+        internal class StreamConverter : MessagePackConverter<Stream>
         {
-            public static readonly StreamConverter<T> DefaultInstance = new();
+            public static readonly StreamConverter DefaultInstance = new();
 
-            public override T? Read(ref MessagePackReader reader, SerializationContext context)
+            public override Stream? Read(ref MessagePackReader reader, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 
@@ -141,10 +137,10 @@ public partial class NerdbankMessagePackFormatter
                     return null;
                 }
 
-                return (T)formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64()).AsStream();
+                return formatter.DuplexPipeTracker.GetPipe(reader.ReadUInt64()).AsStream();
             }
 
-            public override void Write(ref MessagePackWriter writer, in T? value, SerializationContext context)
+            public override void Write(ref MessagePackWriter writer, in Stream? value, SerializationContext context)
             {
                 NerdbankMessagePackFormatter formatter = context.GetFormatter();
 

@@ -55,10 +55,10 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         Converters =
             [
                 GetRpcMarshalableConverter<IDisposable>(),
-                PipeConverters.PipeReaderConverter<PipeReader>.DefaultInstance,
-                PipeConverters.PipeWriterConverter<PipeWriter>.DefaultInstance,
-                PipeConverters.StreamConverter<Stream>.DefaultInstance,
-                PipeConverters.DuplexPipeConverter<IDuplexPipe>.DefaultInstance,
+                PipeConverters.PipeReaderConverter.DefaultInstance,
+                PipeConverters.PipeWriterConverter.DefaultInstance,
+                PipeConverters.DuplexPipeConverter.DefaultInstance,
+                PipeConverters.StreamConverter.DefaultInstance,
 
                 // We preset this one in user data because $/cancellation methods can carry RequestId values as arguments.
                 RequestIdConverter.Instance,
@@ -1407,10 +1407,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.PreciseTypeConverter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]))! :
                TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is Type iface ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.GeneratorConverter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]))! :
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(RpcMarshalableConverter<>).MakeGenericType(typeof(T)), proxyOptions, targetOptions, attribute)! :
-               typeof(IDuplexPipe).IsAssignableFrom(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(PipeConverters.DuplexPipeConverter<>).MakeGenericType(typeof(T)))! :
-               typeof(PipeReader).IsAssignableFrom(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(PipeConverters.PipeReaderConverter<>).MakeGenericType(typeof(T)))! :
-               typeof(PipeWriter).IsAssignableFrom(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(PipeConverters.PipeWriterConverter<>).MakeGenericType(typeof(T)))! :
-               typeof(Stream).IsAssignableFrom(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(PipeConverters.StreamConverter<>).MakeGenericType(typeof(T)))! :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
     }
