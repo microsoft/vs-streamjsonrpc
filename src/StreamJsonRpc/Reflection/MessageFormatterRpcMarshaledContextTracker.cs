@@ -201,7 +201,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     internal MarshalToken GetToken(
         object marshaledObject,
         JsonRpcTargetOptions options,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type declaredType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type declaredType,
         RpcMarshalableAttribute rpcMarshalableAttribute)
     {
         if (this.formatterState.SerializingMessageWithId.IsEmpty)

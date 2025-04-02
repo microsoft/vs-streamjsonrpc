@@ -46,7 +46,7 @@ public class RpcMarshalableOptionalInterfaceAttribute : Attribute
     /// <summary>
     /// Gets the <see cref="Type"/> of the known optional interface that the marshalable object may implement.
     /// </summary>
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces | DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicEvents)]
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
     public Type OptionalInterface { get; }
 
     /// <summary>

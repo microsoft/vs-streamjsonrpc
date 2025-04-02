@@ -358,7 +358,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             ActOn(exposedMembersOnType.GetTypeInfo());
             foreach (Type iface in exposedMembersOnType.GetInterfaces())
             {
+#pragma warning disable IL2072 // false positive: https://github.com/dotnet/linker/issues/1731
                 ActOn(iface.GetTypeInfo());
+#pragma warning restore IL2072 // false positive: https://github.com/dotnet/linker/issues/1731
             }
         }
         else
@@ -505,7 +507,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             foreach (Type iface in exposedMembersOnType.GetInterfaces())
             {
+#pragma warning disable IL2075 // false positive: https://github.com/dotnet/linker/issues/1731
                 foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
+#pragma warning restore IL2075 // false positive: https://github.com/dotnet/linker/issues/1731
                 {
                     if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
                     {
