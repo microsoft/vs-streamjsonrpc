@@ -206,6 +206,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public JsonRpc(IJsonRpcMessageHandler messageHandler, object? target)
         : this(messageHandler)
     {
@@ -843,20 +844,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
 
     /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options) => this.AddLocalRpcTarget(Requires.NotNull(target, nameof(target)).GetType(), target, options);
 
     /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
     /// <typeparam name="T"><inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)" path="/param[@name='exposingMembersOn']"/></typeparam>
-    public void AddLocalRpcTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] T>(T target, JsonRpcTargetOptions? options)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    public void AddLocalRpcTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T target, JsonRpcTargetOptions? options)
         where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
     /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public void AddLocalRpcTarget(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
         object target,
         JsonRpcTargetOptions? options)
     {
@@ -1254,8 +1259,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
         object target,
         JsonRpcTargetOptions? options,
         bool requestRevertOption)
@@ -1272,7 +1278,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="revertAddLocalRpcTarget">
     /// An optional object that may be disposed of to revert the addition of the target object.
     /// </param>
-    internal void AddRpcInterfaceToTargetInternal([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTargetInternal([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
         this.rpcTargetInfo.AddRpcInterfaceToTarget(exposingMembersOn, target, options, revertAddLocalRpcTarget);
     }

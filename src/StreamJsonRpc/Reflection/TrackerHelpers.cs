@@ -16,7 +16,7 @@ internal static class TrackerHelpers<TInterface>
     /// <summary>
     /// Dictionary to record the calculation made in <see cref="FindInterfaceImplementedBy(Type)"/> to obtain the <typeparamref name="TInterface"/> type from a given <see cref="Type"/>.
     /// </summary>
-    private static readonly Dictionary<Type, Type?> TypeToImplementedInterfaceMap = new();
+    private static readonly Dictionary<Type, TypeWrapper> TypeToImplementedInterfaceMap = new();
 
     /// <summary>
     /// Gets the generic type definition for whatever type parameter was given by <typeparamref name="TInterface" />.
@@ -38,17 +38,17 @@ internal static class TrackerHelpers<TInterface>
             return objectType;
         }
 
-        Type? interfaceFromType;
+        TypeWrapper interfaceFromType = default;
         lock (TypeToImplementedInterfaceMap)
         {
             if (!TypeToImplementedInterfaceMap.TryGetValue(objectType, out interfaceFromType))
             {
-                interfaceFromType = objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition);
+                interfaceFromType = new(objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition));
                 TypeToImplementedInterfaceMap.Add(objectType, interfaceFromType);
             }
         }
 
-        return interfaceFromType;
+        return interfaceFromType.Type;
     }
 
     /// <summary>
@@ -71,4 +71,6 @@ internal static class TrackerHelpers<TInterface>
     /// <param name="objectType">The type that may be deserialized.</param>
     /// <returns><see langword="true"/> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <see langword="false"/> otherwise.</returns>
     internal static bool IsActualInterfaceMatch(Type objectType) => Requires.NotNull(objectType, nameof(objectType)).IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(InterfaceGenericTypeDefinition);
+
+    private record struct TypeWrapper([property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type? Type);
 }

@@ -186,7 +186,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    internal RevertAddLocalRpcTarget? AddLocalRpcTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+    internal RevertAddLocalRpcTarget? AddLocalRpcTarget(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
+        object target,
+        JsonRpcTargetOptions? options,
+        bool requestRevertOption)
     {
         RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
         options = options ?? JsonRpcTargetOptions.Default;
@@ -252,7 +256,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object..</param>
-    internal void AddRpcInterfaceToTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
         Requires.Argument(exposingMembersOn.IsInterface, nameof(exposingMembersOn), Resources.AddRpcInterfaceToTargetParameterNotInterface);
 
@@ -324,7 +328,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="clientRequiresNamedArguments"><inheritdoc cref="JsonRpcTargetOptions.ClientRequiresNamedArguments" path="/summary"/></param>
     /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
     private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo exposedMembersOnType,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType,
         bool allowNonPublicInvocation,
         bool useSingleObjectParameterDeserialization,
         bool clientRequiresNamedArguments)
@@ -349,26 +353,23 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         MethodNameMap mapping = GetMethodNameMap(exposedMembersOnType);
 
         // We retrieve exposed types differently for interfaces vs. classes
-        var typesToMap = new List<TypeInfo>();
         if (exposedMembersOnType.IsInterface)
         {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            typesToMap.Capacity = 1 + ifaces.Length;
-            typesToMap.Add(exposedMembersOnType.GetTypeInfo());
-            foreach (Type iface in ifaces)
+            ActOn(exposedMembersOnType.GetTypeInfo());
+            foreach (Type iface in exposedMembersOnType.GetInterfaces())
             {
-                typesToMap.Add(iface.GetTypeInfo());
+                ActOn(iface.GetTypeInfo());
             }
         }
         else
         {
             for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
-                typesToMap.Add(t);
+                ActOn(t);
             }
         }
 
-        foreach (TypeInfo t in typesToMap)
+        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] TypeInfo t)
         {
             // As we enumerate methods, skip accessor methods
             foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
@@ -485,7 +486,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
     /// <returns>A list of EventInfos found.</returns>
-    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo exposedMembersOnType)
+    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
 
@@ -502,8 +503,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         if (exposedMembersOnType.IsInterface)
         {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            foreach (Type iface in ifaces)
+            foreach (Type iface in exposedMembersOnType.GetInterfaces())
             {
                 foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
                 {
@@ -776,7 +776,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 // It will work for EventHandler and EventHandler<T>, at least.
                 // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                 // with the right signature.
+#pragma warning disable IL2075 // https://github.com/dotnet/runtime/issues/114113
                 ParameterInfo[] eventHandlerParameters = eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
+#pragma warning restore IL2075 // https://github.com/dotnet/runtime/issues/114113
                 if (eventHandlerParameters.Length != 2)
                 {
                     throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
