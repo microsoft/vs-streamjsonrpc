@@ -2,8 +2,9 @@
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using PolyType;
 
-public abstract class TargetObjectEventsTests : TestBase
+public abstract partial class TargetObjectEventsTests : TestBase
 {
     protected IJsonRpcMessageHandler serverMessageHandler = null!;
     protected IJsonRpcMessageHandler clientMessageHandler = null!;
@@ -31,7 +32,9 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
-    public interface IFruit
+    [GenerateShape]
+    [DerivedTypeShape(typeof(Fruit), Tag = 0)]
+    public partial interface IFruit
     {
         string Name { get; }
     }
@@ -356,8 +359,10 @@ public abstract class TargetObjectEventsTests : TestBase
     }
 
     [DataContract]
-    public class Fruit : IFruit
+    [GenerateShape]
+    public partial class Fruit : IFruit
     {
+        [ConstructorShape]
         internal Fruit(string name)
         {
             this.Name = name;
@@ -365,6 +370,22 @@ public abstract class TargetObjectEventsTests : TestBase
 
         [DataMember]
         public string Name { get; }
+    }
+
+    [DataContract]
+    [GenerateShape]
+    protected internal partial class CustomEventArgs : EventArgs
+    {
+        [DataMember]
+        public int Seeds { get; set; }
+    }
+
+    [DataContract]
+    protected internal class MessageEventArgs<T> : EventArgs
+        where T : class
+    {
+        [DataMember]
+        public T? Message { get; set; }
     }
 
     protected class Client
@@ -484,20 +505,5 @@ public abstract class TargetObjectEventsTests : TestBase
 #pragma warning disable CS0067 // Unused member (It's here for reflection to discover)
         public event MyDelegate? MyEvent;
 #pragma warning restore CS0067
-    }
-
-    [DataContract]
-    protected class CustomEventArgs : EventArgs
-    {
-        [DataMember]
-        public int Seeds { get; set; }
-    }
-
-    [DataContract]
-    protected class MessageEventArgs<T> : EventArgs
-        where T : class
-    {
-        [DataMember]
-        public T? Message { get; set; }
     }
 }
