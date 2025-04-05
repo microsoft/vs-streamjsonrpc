@@ -42,7 +42,7 @@ steps:
   - script: dotnet pack src\VSInsertionMetadata -c $(BuildConfiguration) -warnaserror /bl:"$(Build.ArtifactStagingDirectory)/build_logs/VSInsertion-Pack.binlog"
     displayName: 🔧 dotnet pack VSInsertionMetadata
 
-- script: dotnet publish -c Release -r ${{ parameters.osRID }}-x64 -warnaserror
+- script: dotnet publish -r ${{ parameters.osRID }}-x64 -warnaserror
   displayName: 🧪 NativeAOT test
   workingDirectory: test/NativeAOTCompatibility
 

@@ -14,4 +14,6 @@ internal static class RuntimeReasons
     internal const string Formatters = "This code uses a formatter/serializer that hasn't been hardened to avoid dynamic code.";
 
     internal const string LoadType = "This code loads a type from a string at runtime.";
+
+    internal const string UntypedRpcTarget = "This code adds an untyped object as an RPC target.";
 }
