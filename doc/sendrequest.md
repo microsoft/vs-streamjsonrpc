@@ -7,7 +7,7 @@ In each code sample below, we assume your `JsonRpc` instance is stored in a loca
 
 ## Requests and notifications
 
-In the JSON-RPC protocol, an RPC request may indicate whether the client expect a response from the server.
+In the JSON-RPC protocol, an RPC request may indicate whether the client expects a response from the server.
 A request that does not expect a response is called a notification. Notifications provide _no_ feedback to
 the client as to whether the server honored the request (vs. dropping it), successfully carried it out
 (instead of throwing an exception), or any result value that came from it. The client should _not_ use a
@@ -27,7 +27,7 @@ Listening is started either by calling the static `Attach` method or via a call 
 
 The JSON-RPC protocol passes arguments from client to server using either an array
 or as a single JSON object with a property for each parameter on the target method.
-Essentially, this leads to argument to parameter matching by position or by name.
+Essentially, this leads to argument-to-parameter matching by position or by name.
 
 Most JSON-RPC servers expect an array.
 JSON-RPC servers that operate in a Javascript environment in fact cannot do parameter name matching at all.
@@ -41,11 +41,11 @@ the Language Server Protocol Spec defines [a general purpose cancellation protoc
 which StreamJsonRpc supports. Notifications cannot be canceled.
 
 A client can cancel a request by canceling a `CancellationToken` supplied when originally invoking the request.
-Be sure to call the `JsonRpc.Invoke*` method and overload that explicitly accepts `CancellationToken`
+Be sure to call the `JsonRpc.Invoke*` method and an overload that explicitly accepts `CancellationToken`
 (e.g. `InvokeWithCancellationAsync` or `InvokeWithParameterObjectAsync`) rather than supplying the token
 in the params array that must be serializable.
 
-When canceled, this `CancellationToken` may abort the transmission of the original request if it has not yet been transmitted. Or if the request has already been transmitted, a notification is sent to the server
+When canceled, this `CancellationToken` may abort the transmission of the original request if it has not yet been transmitted. If the request has already been transmitted, a notification is sent to the server
 advising the server that the request has been canceled from the client, giving the server the opportunity
 to abort the invocation and return a canceled result.
 
@@ -59,7 +59,7 @@ response to the original request.
 As JSON-RPC is fundamentally an async protocol, and typically used to communicate between processes or machines,
 `JsonRpc` exposes only async methods for sending requests and awaiting responses.
 
-In fact, supporting non-Task returning methods would be potentially very problematic because that would mean StreamJsonRpc is responsible to artificially block the calling thread until the result came back. But that can quickly lead to hangs if, for example, the calling thread is your app's UI thread. It can deadlock if the server needs to call back to your client before returning a response, and your client can't respond because its UI thread is hung.
+In fact, supporting non-Task returning methods would be potentially very problematic because that would mean StreamJsonRpc is responsible to artificially block the calling thread until the result came back. But that can quickly lead to hangs if, for example, the calling thread is your app's UI thread. It can deadlock if the server needs to call back to your client before returning a response, and your client can't respond because its UI thread is blocked waiting for the initial request to complete.
 
 When you have an unavoidable requirement to synchronously block while waiting for *any* async code to complete (whether JSON-RPC related or otherwise),
 we recommend use of the [JoinableTaskFactory](https://aka.ms/vsthreading) as found in the [Microsoft.VisualStudio.Threading](https://www.nuget.org/packages/Microsoft.VisualStudio.threading) library. That can block the UI thread (or any other thread) while executing async operations. In the case of StreamJsonRpc, that means the client might have something like this:
