@@ -4,9 +4,9 @@
 
 JSON-RPC is an inherently asynchronous protocol. Multiple concurrent requests are allowed.
 StreamJsonRpc will dispatch method calls as the requests are processed, even while prior requests are still running.
-`JsonRpc` always invokes local methods by posting to its `SynchronizationContext`.
+@StreamJsonRpc.JsonRpc always invokes local methods by posting to its <xref:System.Threading.SynchronizationContext>.
 
-The default `SynchronizationContext` schedules work to the thread pool, which allows your code
+The default <xref:System.Threading.SynchronizationContext> schedules work to the thread pool, which allows your code
 to respond to multiple requests concurrently. You should write your objects to be thread-safe to avoid
 malfunctions when clients call multiple requests at once by following thread-safe patterns.
 
@@ -56,7 +56,7 @@ by the original request.
 ### Single-threaded processing of RPC requests
 
 To execute all locally invoked RPC methods on a single, dedicated thread, you may replace
-the default `SynchronizationContext` with a single-threaded one like this:
+the default <xref:System.Threading.SynchronizationContext> with a single-threaded one like this:
 
 ```cs
 var jsonRpc = new JsonRpc(stream);
@@ -77,10 +77,10 @@ jsonRpc.StartListening();
 singleThreadedSyncContext.PushFrame(frame);
 ```
 
-The [`SingleThreadedSynchronizationContext` class](https://github.com/Microsoft/vs-threading/blob/main/src/Microsoft.VisualStudio.Threading/SingleThreadedSynchronizationContext.cs) comes from the [Microsoft.VisualStudio.Threading NuGet package](https://www.nuget.org/packages/Microsoft.VisualStudio.Threading) (starting with the v16.0 version). But you may supply any `SynchronizationContext` you wish.
+The [`SingleThreadedSynchronizationContext` class](https://github.com/Microsoft/vs-threading/blob/main/src/Microsoft.VisualStudio.Threading/SingleThreadedSynchronizationContext.cs) comes from the [Microsoft.VisualStudio.Threading NuGet package](https://www.nuget.org/packages/Microsoft.VisualStudio.Threading) (starting with the v16.0 version). But you may supply any <xref:System.Threading.SynchronizationContext> you wish.
 
-Note that while `JsonRpc` will always invoke local RPC methods using the `SynchronizationContext`,
-if those methods are asynchronous and use `.ConfigureAwait(false)`, they may escape that `SynchronizationContext`
+Note that while @StreamJsonRpc.JsonRpc will always invoke local RPC methods using the <xref:System.Threading.SynchronizationContext>,
+if those methods are asynchronous and use `.ConfigureAwait(false)`, they may escape that <xref:System.Threading.SynchronizationContext>
 and execute partly on the threadpool, allowing concurrent execution.
 
 This approach guards only against code executing concurrently on multiple threads. It does *not*
@@ -99,31 +99,31 @@ the client originally sent them. This happens naturally if the client sends only
 awaiting the result before making the next request.
 
 If the client sends a stream of requests at a time, and expects you to process them strictly in-order, it becomes the RPC server's responsibility to maintain the order.
-This ordering comes by setting the `JsonRpc.SynchronizationContext` property to a `SynchronizationContext` that preserves order of calls dispatched with `SynchronizationContext.Post`.
+This ordering comes by setting the <xref:StreamJsonRpc.JsonRpc.SynchronizationContext> property to a <xref:System.Threading.SynchronizationContext> that preserves order of calls dispatched with <xref:System.Threading.SynchronizationContext.Post*>.
 
-### `NonConcurrentSynchronizationContext`
+### <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext>
 
-The `Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext` supports this by scheduling incoming messages to the threadpool but disallowing concurrency.
-When used in its "non-sticky" mode, the `NonConcurrentSynchronizationContext` invokes RPC server methods sequentially, but allows them to execute concurrently after their first yielding *await* (if any).
+The <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext> supports this by scheduling incoming messages to the threadpool but disallowing concurrency.
+When used in its "non-sticky" mode, the <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext> invokes RPC server methods sequentially, but allows them to execute concurrently after their first yielding *await* (if any).
 This ensures your server methods are invoked in-order and exclusively, but may opt into allowing another request to execute by yielding (e.g. `await Task.Yield();`), after which they may run concurrently with subsequent incoming requests.
 When a server method is invoked, it may already be concurrent with a previously invoked server method that has already hit its first yielding *await*.
 
 Suppose two requests are received to invoke RPC server methods `Op1Async()` and `Op2Async()`,
 in that order but close together.
-The `NonConcurrentSynchronizationContext` will ensure that `Op1Async()` is invoked first.
+The <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext> will ensure that `Op1Async()` is invoked first.
 When `Op1Async` hits its first yielding `await`, `Op2Async` will be invoked.
 
-What happens next depends on the `sticky` argument passed to the `NonConcurrentSynchronizationContext` constructor.
+What happens next depends on the `sticky` argument passed to the <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext> constructor.
 
 **When `sticky: true`**, anytime `Op1Async` and `Op2Async` hit a yielding await the default behavior will be
-to resume on this same non-concurrent `SynchronizationContext` when whatever they are awaiting is done.
+to resume on this same non-concurrent <xref:System.Threading.SynchronizationContext> when whatever they are awaiting is done.
 This means that although `Op1Async` and `Op2Async` may take turns executing as they each repeatedly yield until they each complete,
 they will never actually run *concurrently* with each other.
 
 **When `sticky: false`**, the first time an async method hits a yielding await it will resume on the threadpool
 when whatever it is waiting on is done. Its continuation may now run concurrently with other code such as another RPC method.
 
-When a yielding await uses `.ConfigureAwait(false)`, it takes that async method off the `SynchronizationContext`
+When a yielding await uses `.ConfigureAwait(false)`, it takes that async method off the <xref:System.Threading.SynchronizationContext>
 at which point code execution will happen on the threadpool, concurrently with any other code.
 The `sticky` value has no effect on concurrency of code that uses `.ConfigureAwait(false)`.
 
@@ -131,10 +131,10 @@ The `sticky` value has no effect on concurrency of code that uses `.ConfigureAwa
 
 **Important:** The default behavior changed in StreamJsonRpc v2.6.
 
-In StreamJsonRpc v2.6 and later, `NonConcurrentSynchronizationContext` (in non-sticky mode) is the default behavior.
-Prior to v2.6 the default behavior was no `SynchronizationContext`, which meant all RPC server invocations were immediately queued to the threadpool, allowing ordering to get scrambled.
+In StreamJsonRpc v2.6 and later, <xref:Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext> (in non-sticky mode) is the default behavior.
+Prior to v2.6 the default behavior was no <xref:System.Threading.SynchronizationContext>, which meant all RPC server invocations were immediately queued to the threadpool, allowing ordering to get scrambled.
 
-Whether before or after StreamJsonRpc v2.6, either behavior can be achieved by setting (or clearing) the `JsonRpc.SynchronizationContext` property, as in this example:
+Whether before or after StreamJsonRpc v2.6, either behavior can be achieved by setting (or clearing) the <xref:StreamJsonRpc.JsonRpc.SynchronizationContext> property, as in this example:
 
 ```cs
 var jsonRpc = new JsonRpc(stream);
@@ -157,8 +157,8 @@ StreamJsonRpc handles all exceptions thrown by server methods. Future requests f
 This resembles an ordinary relationship between two objects in .NET.
 
 In some cases you may consider an exception thrown from a server method to be fatal, and wish to terminate the connection
-with the client. This can be accomplished by deriving from the `JsonRpc` class and overriding its `IsFatalException` method
-such that it returns `true` for some subset of exceptions. When the method returns `true`, `JsonRpc` will terminate the connection.
+with the client. This can be accomplished by deriving from the @StreamJsonRpc.JsonRpc class and overriding its <xref:StreamJsonRpc.JsonRpc.IsFatalException*> method
+such that it returns `true` for some subset of exceptions. When the method returns `true`, @StreamJsonRpc.JsonRpc will terminate the connection.
 The following is an example:
 
 ```cs
@@ -185,7 +185,7 @@ serverRpc.StartListening();
 await serverRpc.Completion; // this will throw because the server killed the connection when `Server.ThrowsException` fails.
 ```
 
-Note that `IsFatalException` is invoked within an exception filter, and thus will execute on top of the callstack
+Note that <xref:StreamJsonRpc.JsonRpc.IsFatalException*> is invoked within an exception filter, and thus will execute on top of the callstack
 that is throwing the exception.
 
 ## Responding to unexpected disconnection
@@ -194,7 +194,7 @@ Inter-process communication can be a fickle thing. Network connections can get d
 It's important that any JSON-RPC client or server is resilient in the face of a dropped connection.
 
 If you need to take some action if the connection unexpectedly drops, you can add an event handler to the
-`JsonRpc.Disconnected` event. This handler is provided the reason for the disconnection as well as any error details
+<xref:StreamJsonRpc.JsonRpc.Disconnected> event. This handler is provided the reason for the disconnection as well as any error details
 that are available so they can be logged, and appropriate remediation taken.
 
 ### Clients
@@ -220,5 +220,5 @@ whether to retry.
 
 Server methods continue to execute by default when connections are dropped. To abort server methods when the connection drops:
 
-1. Each server method should accept a `CancellationToken` and periodically call `cancellationToken.ThrowIfCancellationRequested()`.
-1. Set `JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed` to `true`.
+1. Each server method should accept a @System.Threading.CancellationToken and periodically call <xref:System.Threading.CancellationToken.ThrowIfCancellationRequested*>.
+1. Set <xref:StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed?displayProperty=nameWithType> to `true`.

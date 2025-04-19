@@ -1,5 +1,18 @@
 items:
-- name: Features
-  href: features.md
-- name: Getting Started
-  href: getting-started.md
+- href: getting-started.md
+- href: connecting.md
+- href: sendrequest.md
+- href: recvrequest.md
+- href: disconnecting.md
+- href: testing.md
+- href: resiliency.md
+- href: remotetargets.md
+- href: tracecontext.md
+- href: joinableTaskFactory.md
+- href: troubleshooting.md
+- href: extensibility.md
+- href: vs.md
+
+- href: dynamicproxy.md
+- href: exceptions.md
+- href: security.md

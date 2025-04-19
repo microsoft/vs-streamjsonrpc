@@ -37,7 +37,7 @@ This mode requires that the sender and/or receiver explicitly release the marsha
 Use the `IRpcMarshaledContext<T> JsonRpc.MarshalWithControlledLifetime<T>(T marshaledObject)` static method prepare an object to be marshaled.
 The resulting `IRpcMarshaledContext<T>` contains both the object to transmit and a method the sender may use to later terminate the marshaling relationship.
 
-In the following example, an `IDisposable` object is marshaled via a return value from an RPC method.
+In the following example, an <xref:System.IDisposable> object is marshaled via a return value from an RPC method.
 Notice how the server holds onto the `IRpcMarshaledContext<T>` object so it can release the marshaled object when the subscription is over.
 
 ```cs
