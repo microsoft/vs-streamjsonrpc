@@ -1,4 +1,4 @@
-# `IObserver<T>` support
+# `IObserver<T>`
 
 StreamJsonRpc allows transmitting [`IObserver<T>`](https://learn.microsoft.com/dotnet/api/system.iobserver-1) objects in arguments and return values.
 

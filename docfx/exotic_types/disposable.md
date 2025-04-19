@@ -1,4 +1,4 @@
-# `IDisposable` support
+# `IDisposable`
 
 StreamJsonRpc allows marshaling `IDisposable` objects in arguments and return values.
 

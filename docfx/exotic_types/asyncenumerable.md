@@ -1,4 +1,4 @@
-# `IAsyncEnumerable<T>` support
+# `IAsyncEnumerable<T>`
 
 StreamJsonRpc allows transmitting `IAsyncEnumerable<T>` objects in requests and response messages.
 This "Just Works" but some important considerations should be taken.
@@ -10,7 +10,7 @@ across several messages.
 
 ## Use cases
 
-It is recommended to use strongly-typed proxies (such as [dynamic proxies](dynamicproxy.md))
+It is recommended to use strongly-typed proxies (such as [dynamic proxies](../docs/dynamicproxy.md))
 to invoke RPC methods that include `IAsyncEnumerable<T>` types.
 This helps ensure that the expected parameter and return types are agreed upon by both sides.
 

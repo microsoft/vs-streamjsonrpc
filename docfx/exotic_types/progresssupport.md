@@ -1,4 +1,4 @@
-# `IProgress<T>` support
+# `IProgress<T>`
 
 Support for `IProgress<T>` allows a JSON-RPC server to report progress to the client periodically so that the client can start processing those
 results without having to wait for all results to be retrieved before responding.

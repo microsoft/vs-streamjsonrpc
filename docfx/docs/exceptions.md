@@ -26,7 +26,7 @@ This requires that the exception strategy be set both on the server and on the c
 
 In StreamJsonRpc, your RPC server can return errors to the client by throwing an exception from your RPC method. StreamJsonRpc will automatically serialize data from the exception as an error response and transmit to the client when allowed. If the RPC method was invoked using a JSON-RPC notification, the client is not expecting any response and the exception thrown from the server will be swallowed.
 
-If some or all exceptions thrown from RPC methods should be considered fatal and terminate the JSON-RPC connection, you can configure this behavior. See the [Fatal exceptions section of our resiliency doc](resiliency.md#Fatal-exceptions).
+If some or all exceptions thrown from RPC methods should be considered fatal and terminate the JSON-RPC connection, you can configure this behavior. See the [Fatal exceptions section of our resiliency doc](resiliency.md#fatal-exceptions).
 
 By default any exception thrown from an RPC method is assigned `JsonRpcErrorCode.InvocationError` (-32000) for the JSON-RPC `error.code` property. The `Exception.Message` property is used as the JSON-RPC `error.message` property.
 When `ExceptionProcessing.ISerializable` is used the error code `JsonRpcErrorCode.InvocationErrorWithException` (-32004) indicates when full `Exception` data is serialized instead of just that data captured by `CommonErrorData`.

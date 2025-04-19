@@ -55,7 +55,7 @@ StreamJsonRpc includes a few `IJsonRpcMessageHandler` implementations:
    message.
 1. `HttpClientMessageHandler` - This is a client-side implementation of the
    [JSON-RPC over HTTP spec](https://www.jsonrpc.org/historical/json-rpc-over-http.html), delivered as
-   [a sample included in our test project](../test/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
+   [a sample included in our test project](https://github.com/microsoft/vs-streamjsonrpc/blob/main/test/StreamJsonRpc.Tests/Samples/HttpClientMessageHandler.cs).
 
 Some of the constructors on the `JsonRpc` class accept an object that implements the `IJsonRpcMessageHandler` interface,
 allowing you to select any of the built-in behaviors listed above, or define this part of the protocol yourself.
@@ -94,7 +94,7 @@ StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
     You can leverage `JsonConverter<T>` and add your custom converters via attributes or by
     contributing them to the `SystemTextJsonFormatter.JsonSerializerOptions.Converters` collection.
 
-When authoring a custom `IJsonRpcMessageFormatter` implementation, consider supporting the [exotic types](exotic_types.md) that require formatter participation.
+When authoring a custom `IJsonRpcMessageFormatter` implementation, consider supporting the [exotic types](../exotic_types/index.md) that require formatter participation.
 We have helper classes to make this straightforward.
 Refer to the source code from our built-in formatters to see how to use these helper classes.
 
@@ -129,7 +129,7 @@ This formatter is compatible with remote systems that use `SystemTextJsonFormatt
 The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
 
 [MessagePackLibrary]: https://github.com/MessagePack-CSharp/MessagePack-CSharp
-[MessagePackUsage]: ../test/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
+[MessagePackUsage]: https://github.com/microsoft/vs-streamjsonrpc/blob/main/test/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
 [MessagePackFormat]: https://msgpack.org/
 [SystemTextJson]: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/overview
 [spec]: https://www.jsonrpc.org/specification

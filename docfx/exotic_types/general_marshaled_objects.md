@@ -10,7 +10,7 @@ When an object is marshaled, a handle to that object is transmitted that allows 
 A marshaled object's lifetime is connected between sender and receiver, and will only be released when either sender or receiver dispose the handle or the overall RPC connection.
 
 To the receiver, a marshaled object is represented by an instance of the marshaled interface.
-The implementation of that interface is an RPC proxy that is *very* similar to ordinary [dynamic proxies](dynamicproxy.md) that may be generated for the primary RPC connection.
+The implementation of that interface is an RPC proxy that is *very* similar to ordinary [dynamic proxies](../docs/dynamicproxy.md) that may be generated for the primary RPC connection.
 This interface has the same restrictions as documented for these dynamic proxies.
 
 **CONSIDER**: Will interfaces with events defined on them behave as expected, or should we disallow events on marshaled interfaces?

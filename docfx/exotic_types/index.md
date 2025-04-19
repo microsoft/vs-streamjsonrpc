@@ -2,7 +2,7 @@
 
 Some types are not serializable but are specially recognized and marshaled by StreamJsonRpc when used in arguments or return values.
 
-* [`CancellationToken`](sendrequest.md#cancellation)
+* [`CancellationToken`](../docs/sendrequest.md#cancellation)
 * [`IProgress<T>`](progresssupport.md)
 * [`Stream`, `IDuplexPipe`, `PipeReader`, `PipeWriter`](oob_streams.md)
 * [`IAsyncEnumerable<T>`](asyncenumerable.md)
