@@ -1,12 +1,12 @@
 # `IDisposable`
 
-StreamJsonRpc allows marshaling `IDisposable` objects in arguments and return values.
+StreamJsonRpc allows marshaling <xref:System.IDisposable> objects in arguments and return values.
 
 ## Use cases
 
-In all cases, the special handling of an `IDisposable` value only occurs if the container of that value is typed as `IDisposable`.
-This means that an object that implements `IDisposable` will not necessarily be marshaled instead of serialized.
-Consider each of the below use cases to see how the value can be *typed* as `IDisposable`.
+In all cases, the special handling of an <xref:System.IDisposable> value only occurs if the container of that value is typed as <xref:System.IDisposable>.
+This means that an object that implements <xref:System.IDisposable> will not necessarily be marshaled instead of serialized.
+Consider each of the below use cases to see how the value can be *typed* as <xref:System.IDisposable>.
 
 For each use case, assume `DisposeAction` is a class defined for demonstration purposes like this:
 
@@ -26,7 +26,7 @@ class DisposeAction : IDisposable
 
 ### Method return value
 
-In the simplest case, the RPC server returns an `IDisposable` object that gets disposed on the server
+In the simplest case, the RPC server returns an <xref:System.IDisposable> object that gets disposed on the server
 when the client disposes it.
 
 ```cs
@@ -38,7 +38,7 @@ class RpcServer
 
 ### Method argument
 
-In this use case the RPC *client* provides the `IDisposable` value to the server:
+In this use case the RPC *client* provides the <xref:System.IDisposable> value to the server:
 
 ```cs
 interface IRpcContract
@@ -53,7 +53,7 @@ await client.ProvideDisposableAsync(arg);
 
 ### Value within a single argument's object graph
 
-In this use case the RPC client again provides the `IDisposable` value to the server,
+In this use case the RPC client again provides the <xref:System.IDisposable> value to the server,
 but this time it passes it as a property of an object used as the argument.
 
 ```cs
@@ -75,11 +75,11 @@ var arg = new SomeClass
 await client.ProvideClassAsync(arg);
 ```
 
-While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an `IDisposable` value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
+While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an <xref:System.IDisposable> value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
 
 ### As an argument without a proxy for an RPC interface
 
-When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshaled `IDisposable` value as an argument by explicitly passing in the declared parameter types to the `InvokeWithCancellationAsync` call:
+When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshaled <xref:System.IDisposable> value as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
 
 ```cs
 IDisposable arg = new DisposeAction(() => { /* the RPC server called Dispose() on the argument */});
@@ -92,9 +92,9 @@ await jsonRpc.InvokeWithCancellationAsync(
 
 ### Invalid cases
 
-Here are some examples of where an object that implements `IDisposable` is serialized (i.e. by value) instead of being marshaled (i.e. by reference).
+Here are some examples of where an object that implements <xref:System.IDisposable> is serialized (i.e. by value) instead of being marshaled (i.e. by reference).
 
-In this example, although `Data` implements `IDisposable`, its declared parameter type is `Data`:
+In this example, although `Data` implements <xref:System.IDisposable>, its declared parameter type is `Data`:
 
 ```cs
 class Data : IDisposable { /* ... */ }
@@ -133,11 +133,11 @@ class RpcServer
 }
 ```
 
-In each of these cases, the receiving part will get a `Data` object that implements `IDisposable`, but calling `Dispose` on that object will be a local call to that object rather than being remoted back to the original object.
+In each of these cases, the receiving part will get a `Data` object that implements <xref:System.IDisposable>, but calling `Dispose` on that object will be a local call to that object rather than being remoted back to the original object.
 
 ## Resource leaks concerns
 
-When an `IDisposable` instance is sent over RPC, resources are held by both parties to marshal interactions
+When an <xref:System.IDisposable> instance is sent over RPC, resources are held by both parties to marshal interactions
 with that object.
 
 These resources are released when any of these occur:
@@ -145,7 +145,7 @@ These resources are released when any of these occur:
 1. The receiver calls `IDisposable.Dispose()` on the object.
 1. The JSON-RPC connection is closed.
 
-To enable the sender to terminate the connection with the proxy to release resources, the sender should call `JsonRpc.MarshalWithControlledLifetime<T>` to wrap the `IDisposable` before sending it.
+To enable the sender to terminate the connection with the proxy to release resources, the sender should call `JsonRpc.MarshalWithControlledLifetime<T>` to wrap the <xref:System.IDisposable> before sending it.
 
 ## Protocol
 

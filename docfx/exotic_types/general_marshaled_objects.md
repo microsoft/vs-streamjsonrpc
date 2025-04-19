@@ -28,7 +28,7 @@ See [additional use cases being considered](general_marshaled_objects_2.md) for 
 
 ### Lifetime
 
-Every marshaled object's proxy implements `IDisposable`.
+Every marshaled object's proxy implements <xref:System.IDisposable>.
 Invoking `IDisposable.Dispose` on a proxy transmits a `dispose` RPC notification to the target object and releases the proxy.
 
 A proxy is valid until its receiver disposes it, or the JSON-RPC connection is closed. Its lifetime is *not* tied to the object that produced it-- disposing the object that returned it will **not** dispose the marshaled object or its proxy.

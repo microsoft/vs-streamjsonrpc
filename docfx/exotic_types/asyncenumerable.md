@@ -36,7 +36,7 @@ public async IAsyncEnumerable<int> GenerateNumbersAsync([EnumeratorCancellation]
 }
 ```
 
-Notice how it is not necessary (or desirable) to wrap the resulting `IAsyncEnumerable<T>` in a `Task<T>` object.
+Notice how it is not necessary (or desirable) to wrap the resulting `IAsyncEnumerable<T>` in a @System.Threading.Tasks.Task`1 object.
 
 C# 8 lets you consume such an async enumerable using `await foreach`:
 
@@ -52,7 +52,7 @@ StreamJsonRpc lets you use this natural syntax over an RPC connection.
 
 A remoted `IAsyncEnumerable<T>` can only be enumerated once.
 Calling `IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken)` more than once will
-result in an `InvalidOperationException` being thrown.
+result in an @System.InvalidOperationException being thrown.
 
 When *not* using the dynamically generated proxies, acquiring and enumerating an `IAsyncEnumerator<T>` looks like this:
 
@@ -66,7 +66,7 @@ await foreach (var item in enumerable.WithCancellation(cancellationToken))
 }
 ```
 
-We pass `cancellationToken` into `InvokeWithCancellationAsync` so we can cancel the initial call.
+We pass @System.Threading.CancellationToken into @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* so we can cancel the initial call.
 We pass it again to the `WithCancellation` extension method inside the `foreach` expression
 so that the token is applied to each iteration of the loop over the enumerable when
 we may be awaiting a network call.
@@ -367,7 +367,7 @@ does not handle the notification and send the disposal message.
 
 All memory is automatically released when a JSON-RPC connection ends.
 So worst case: if a memory leak is accumulating due to bad acting remote code,
-closing the connection and allowing the `JsonRpc` instance to be collected will release
+closing the connection and allowing the @StreamJsonRpc.JsonRpc instance to be collected will release
 the memory associated with these enumerable tracking objects.
 
 ### Type mismatches
