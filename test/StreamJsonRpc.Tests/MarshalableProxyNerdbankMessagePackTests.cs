@@ -37,6 +37,5 @@ public partial class MarshalableProxyNerdbankMessagePackTests : MarshalableProxy
     [GenerateShape<IMarshalableWithOptionalInterfaces2>]
     [GenerateShape<IMarshalableSubType2Extended>]
     [GenerateShape<IGenericMarshalable<int>>]
-    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<int>>] // https://github.com/eiriktsarpalis/PolyType/issues/146
     private partial class Witness;
 }

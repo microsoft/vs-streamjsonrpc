@@ -21,6 +21,5 @@ public partial class AsyncEnumerableNerdbankMessagePackTests : AsyncEnumerableTe
     [GenerateShape<IReadOnlyList<CompoundEnumerableResult>>]
     [GenerateShape<IAsyncEnumerable<string>>]
     [GenerateShape<CompoundEnumerableResult>]
-    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<string>>] // https://github.com/eiriktsarpalis/PolyType/issues/146
     private partial class Witness;
 }

@@ -118,7 +118,6 @@ public partial class JsonRpcNerdbankMessagePackLengthTests(ITestOutputHelper log
     [GenerateShape<IProgress<UnionBaseClass>>]
     [GenerateShape<IProgress<CustomSerializedType>>]
     [GenerateShape<IAsyncEnumerable<UnionBaseClass>>]
-    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<UnionBaseClass>>] // https://github.com/eiriktsarpalis/PolyType/issues/146
     [GenerateShape<TypeThrowsWhenSerialized>]
     [GenerateShape<TypeThrowsWhenDeserialized>]
     [GenerateShape<StrongTypedProgressType>]

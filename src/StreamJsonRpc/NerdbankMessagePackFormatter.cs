@@ -1401,7 +1401,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         {
         }
 
-        public MessagePackConverter<T>? CreateConverter<T>()
+        public MessagePackConverter<T>? CreateConverter<T>(ITypeShape<T> shape)
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new FullProgressConverter<T>() :
                TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.PreciseTypeConverter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]))! :
                TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is Type iface ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.GeneratorConverter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]))! :
