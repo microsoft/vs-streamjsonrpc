@@ -76,17 +76,12 @@ Interop with other parties is most likely with a UTF-8 text encoding of JSON-RPC
 
 StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
 
-1. `JsonMessageFormatter` - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
-    The text encoding is configurable via a property.
-    All RPC method parameters and return types must be serializable by Newtonsoft.Json.
-    You can leverage `JsonConverter` and add your custom converters via attributes or by
-    contributing them to the `JsonMessageFormatter.JsonSerializer.Converters` collection.
-
-1. `MessagePackFormatter` - Uses the [MessagePack-CSharp][MessagePackLibrary] library to serialize each
-    JSON-RPC message using the very fast and compact binary [MessagePack format][MessagePackFormat].
-    All RPC method parameters and return types must be serializable by `IMessagePackFormatter<T>`.
-    You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
-    See alternative formatters below.
+1. `NerdbankMessagePackFormatter` - Uses the [`Nerdbank.MessagePack` library][NBMsgPack] to serialize
+    each message using the very fast and compact binary [MessagePack format][MessagePackFormat].
+    This serializer is NativeAOT ready.
+    Any RPC method parameters and return types that require custom serialization may provide it
+    with a `MessagePackConverter<T>`-derived class.
+    All custom converters can be added to the serializer at `NerdbankMessagePackFormatter.UserDataSerializer`.
 
 1. `SystemTextJsonFormatter` - Uses the [`System.Text.Json` library][SystemTextJson] to serialize each
     JSON-RPC message as UTF-8 encoded JSON.
@@ -94,23 +89,35 @@ StreamJsonRpc includes the following `IJsonRpcMessageFormatter` implementations:
     You can leverage `JsonConverter<T>` and add your custom converters via attributes or by
     contributing them to the `SystemTextJsonFormatter.JsonSerializerOptions.Converters` collection.
 
+1. `JsonMessageFormatter` - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
+    The text encoding is configurable via a property.
+    All RPC method parameters and return types must be serializable by Newtonsoft.Json.
+    You can leverage `JsonConverter` and add your custom converters via attributes or by
+    contributing them to the `JsonMessageFormatter.JsonSerializer.Converters` collection.
+
+1. `MessagePackFormatter` - Uses the [MessagePack-CSharp][MessagePackCSharp] library to serialize each
+    JSON-RPC message using the very fast and compact binary [MessagePack format][MessagePackFormat].
+    All RPC method parameters and return types must be serializable by `IMessagePackFormatter<T>`.
+    You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
+    See alternative formatters below.
+
 When authoring a custom `IJsonRpcMessageFormatter` implementation, consider supporting the [exotic types](exotic_types.md) that require formatter participation.
 We have helper classes to make this straightforward.
 Refer to the source code from our built-in formatters to see how to use these helper classes.
 
 ### Choosing your formatter
 
-#### When to use `MessagePackFormatter`
+#### When to use `NerdbankMessagePackFormatter`
 
-The very best performance comes from using the `MessagePackFormatter` with the `LengthHeaderMessageHandler`.
+The very best performance comes from using the `NerdbankMessagePackFormatter` with the `LengthHeaderMessageHandler`.
 This combination is the fastest and produces the most compact serialized format.
 
 The [MessagePack format][MessagePackFormat] is a fast, binary serialization format that resembles the
 structure of JSON. It can be used as a substitute for JSON when both parties agree on the protocol for
 significant wins in terms of performance and payload size.
 
-Utilizing `MessagePack` for exchanging JSON-RPC messages is incredibly easy.
-Check out the `BasicJsonRpc` method in our [MessagePackFormatterTests][MessagePackUsage] class.
+The `MessagePackFormatter` is an older formatter that is not NativeAOT ready.
+Using it is only advisable for purposes of maintaining serialized format compatibility, since the serialized schema between the two MessagePack formatters varies slightly.
 
 #### When to use `SystemTextJsonFormatter`
 
@@ -128,8 +135,8 @@ It produces JSON text and allows configuring the text encoding, with UTF-8 being
 This formatter is compatible with remote systems that use `SystemTextJsonFormatter` when using the default UTF-8 encoding.
 The remote party must also use the same message handler, such as `HeaderDelimitedMessageHandler`.
 
-[MessagePackLibrary]: https://github.com/MessagePack-CSharp/MessagePack-CSharp
-[MessagePackUsage]: ../test/StreamJsonRpc.Tests/MessagePackFormatterTests.cs
+[NBMsgPack]: https://github.com/AArnott/Nerdbank.MessagePack
+[MessagePackCSharp]: https://github.com/MessagePack-CSharp/MessagePack-CSharp
 [MessagePackFormat]: https://msgpack.org/
 [SystemTextJson]: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/overview
 [spec]: https://www.jsonrpc.org/specification
