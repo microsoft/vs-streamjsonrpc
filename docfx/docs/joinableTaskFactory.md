@@ -1,6 +1,6 @@
 # Integration with the `JoinableTaskFactory`
 
-StreamJsonRpc can help mitigate deadlocks that may occur when a JSON-RPC client blocks the main thread of an application during an outbound RPC call and the RPC server requires the main thread in order to complete the operation through integrating with the application's `JoinableTaskFactory`.
+StreamJsonRpc can help mitigate deadlocks that may occur when a JSON-RPC client blocks the main thread of an application during an outbound RPC call and the RPC server requires the main thread in order to complete the operation through integrating with the application's <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory>.
 
 [Learn more about `JoinableTaskFactory` and how it can mitigate deadlocks for your application](https://aka.ms/vsthreading).
 _This_ topic will focus on the JSON-RPC aspects of deadlock mitigation.
@@ -15,13 +15,13 @@ The simplest example involves use of JSON-RPC between a client and server that l
 This process has a main thread, and the server needs the main thread to satisfy some RPC requests.
 If the client *blocks* the main thread while waiting on a response from the RPC server, a deadlock may result.
 
-The `JoinableTaskFactory` is generally designed to mitigate deadlocks where code calls async code that requires the main thread but must block the main thread till the work is complete.
-But when async RPC is involved, the `JoinableTaskFactory` cannot typically resolve the deadlock without help because it cannot see the causal relationship between the RPC client and server.
-In particular, StreamJsonRpc implements the JSON-RPC server with a read loop, which dispatches incoming requests onto the thread pool (or some specified `SynchronizationContext`) in a way that the `JoinableTaskFactory` cannot track back to the RPC request, which merely placed work in the RPC system's private queue.
+The <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> is generally designed to mitigate deadlocks where code calls async code that requires the main thread but must block the main thread till the work is complete.
+But when async RPC is involved, the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> cannot typically resolve the deadlock without help because it cannot see the causal relationship between the RPC client and server.
+In particular, StreamJsonRpc implements the JSON-RPC server with a read loop, which dispatches incoming requests onto the thread pool (or some specified <xref:System.Threading.SynchronizationContext>) in a way that the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> cannot track back to the RPC request, which merely placed work in the RPC system's private queue.
 
 ### Adding an intemediate process in the mix
 
-Consider a process that does not itself have a main thread and no need for the `JoinableTaskFactory`, but finds itself as an intermediary in the following complex RPC scenario:
+Consider a process that does not itself have a main thread and no need for the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory>, but finds itself as an intermediary in the following complex RPC scenario:
 
 ```mermaid
 sequenceDiagram
@@ -47,22 +47,22 @@ In fact multiple processes with their own main threads can contribute to the tok
 
 ### Processes with a main thread
 
-To resolve the deadlock, we need to follow the 3rd of [the threading rules of the `JoinableTaskFactory`][ThreadingRules] by carefully applying `JoinableTaskFactory.RunAsync` such that the causal relationship is observed by the `JoinableTaskFactory` so it can mitigate the deadlocks.
+To resolve the deadlock, we need to follow the 3rd of [the threading rules of the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory>][ThreadingRules] by carefully applying <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory.RunAsync*?displayProperty=nameWithType> such that the causal relationship is observed by the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> so it can mitigate the deadlocks.
 
-An application that has a main thread and an instance of `JoinableTaskContext` should set the `JsonRpc.JoinableTaskFactory` property to an instance of `JoinableTaskFactory`.
+An application that has a main thread and an instance of <xref:Microsoft.VisualStudio.Threading.JoinableTaskContext> should set the <xref:StreamJsonRpc.JsonRpc.JoinableTaskFactory?displayProperty=nameWithType> property to an instance of <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory>.
 Doing this has the following effects:
 
-1. An outbound JSON-RPC request that occurs within the context of a `JoinableTask` will include `joinableTaskToken` as a top-level property in the JSON-RPC message.
-  This property carries a token that represents the `JoinableTask` that needs the RPC call to complete.
-2. When an inbound JSON-RPC request carries a `joinableTaskToken` top-level property, the request will be dispatched within a `JoinableTask` that was created based on the token provided in the message.
+1. An outbound JSON-RPC request that occurs within the context of a <xref:Microsoft.VisualStudio.Threading.JoinableTask> will include `joinableTaskToken` as a top-level property in the JSON-RPC message.
+  This property carries a token that represents the <xref:Microsoft.VisualStudio.Threading.JoinableTask> that needs the RPC call to complete.
+2. When an inbound JSON-RPC request carries a `joinableTaskToken` top-level property, the request will be dispatched within a <xref:Microsoft.VisualStudio.Threading.JoinableTask> that was created based on the token provided in the message.
 
-Taken together, these two effects ensure that when an RPC call requires the main thread to fulfill, and the RPC client is blocking the main thread, that the `JoinableTaskFactory` will be able to mitigate deadlocks by allowing the RPC server to access the main thread that is owned by the RPC client, assuming both parties are following the [`JoinableTaskFactory` threading rules][ThreadingRules].
+Taken together, these two effects ensure that when an RPC call requires the main thread to fulfill, and the RPC client is blocking the main thread, that the <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> will be able to mitigate deadlocks by allowing the RPC server to access the main thread that is owned by the RPC client, assuming both parties are following the [<xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory> threading rules][ThreadingRules].
 
 This holds even when one or more intermediate processes exist between the client and server, provided each process propagates the `joinableTaskToken` top-level property.
 
 ### Processes without a main thread
 
-Considering the more complex scenario in the above problem statement, there may be an intermediary process in a multi-hop RPC chain that itself doesn't have a main thread and thus no need for a `JoinableTaskFactory`.
+Considering the more complex scenario in the above problem statement, there may be an intermediary process in a multi-hop RPC chain that itself doesn't have a main thread and thus no need for a <xref:Microsoft.VisualStudio.Threading.JoinableTaskFactory>.
 
 StreamJsonRpc makes accommodation for this scenario by automatically propagating the `joinableTaskToken` top-level property it sees in inbound requests to all outbound requests that come from that request.
 In other words, StreamJsonRpc considers that all outbound RPC requests are causally related to the inbound RPC request that caused the outbound request to be made.
@@ -108,7 +108,7 @@ A server with a main thread SHOULD apply the token to the context of the dispatc
 
 ### The token's value
 
-The token is created and consumed by the `JoinableTask` APIs and is an implementation detail of that library that fulfills these requirements:
+The token is created and consumed by the <xref:Microsoft.VisualStudio.Threading.JoinableTask> APIs and is an implementation detail of that library that fulfills these requirements:
 
 - The token represents the aggregate interests of all processes and main threads involved in the RPC call chain.
 - A corrupted token MUST NOT have any impact on functionality other than the inability to mitigate deadlocks.

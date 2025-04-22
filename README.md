@@ -17,9 +17,9 @@ Bonus features beyond the JSON-RPC spec include:
 1. Request cancellation
 1. .NET Events as notifications
 1. Dynamic client proxy generation
-1. Support for [compact binary serialization](doc/extensibility.md) via MessagePack
+1. Support for [compact binary serialization](https://microsoft.github.io/vs-streamjsonrpc/docs/extensibility.html) via MessagePack
 1. Pluggable architecture for custom message handling and formatting.
 
-Learn about the use cases for JSON-RPC and how to use this library from our [documentation](doc/index.md).
+Learn about the use cases for JSON-RPC and how to use this library from our [documentation](https://microsoft.github.io/vs-streamjsonrpc/).
 
 [JSONRPC]: https://www.jsonrpc.org/
