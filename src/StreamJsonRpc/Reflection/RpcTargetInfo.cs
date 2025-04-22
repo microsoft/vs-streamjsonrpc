@@ -488,6 +488,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
     /// <returns>A list of EventInfos found.</returns>
+    [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "false positive: https://github.com/dotnet/linker/issues/1731")]
     private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
@@ -507,9 +508,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             foreach (Type iface in exposedMembersOnType.GetInterfaces())
             {
-#pragma warning disable IL2075 // false positive: https://github.com/dotnet/linker/issues/1731
                 foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
-#pragma warning restore IL2075 // false positive: https://github.com/dotnet/linker/issues/1731
                 {
                     if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
                     {
@@ -760,6 +759,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         private readonly string rpcEventName;
 
         [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+        [SuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "False positive: https://github.com/dotnet/runtime/issues/114113")]
         internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
         {
             Requires.NotNull(jsonRpc, nameof(jsonRpc));
@@ -780,9 +780,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 // It will work for EventHandler and EventHandler<T>, at least.
                 // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                 // with the right signature.
-#pragma warning disable IL2075 // https://github.com/dotnet/runtime/issues/114113
                 ParameterInfo[] eventHandlerParameters = eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
-#pragma warning restore IL2075 // https://github.com/dotnet/runtime/issues/114113
                 if (eventHandlerParameters.Length != 2)
                 {
                     throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
