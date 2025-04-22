@@ -1,24 +1,24 @@
 # Dynamically generated proxies
 
 When a JSON-RPC server's API is expressed as a .NET interface, StreamJsonRpc can dynamically create a proxy that implements that interface
-to expose a strongly-typed client for your service. These proxies can be created using either the static `JsonRpc.Attach<T>(Stream)` method
-or the instance `JsonRpc.Attach<T>()` method.
+to expose a strongly-typed client for your service. These proxies can be created using either the static <xref:StreamJsonRpc.JsonRpc.Attach``1(System.IO.Stream)> method
+or the instance <xref:StreamJsonRpc.JsonRpc.Attach``1> method.
 
 Generated proxies have the following behaviors:
 
 1. They default to passing arguments using positional arguments, with an option to send requests with named arguments instead.
 1. Methods are sent as ordinary requests (not notifications).
 1. Events on the interface are raised locally when a notification with the same name is received from the other party.
-1. Implement `IDisposable` if created using the *static* `JsonRpc.Attach<T>` method, and terminate the connection when `Dispose()` is invoked.
+1. Implement <xref:System.IDisposable> if created using a *static* <xref:StreamJsonRpc.JsonRpc.Attach``1(System.IO.Stream)> method, and terminate the connection when <xref:System.IDisposable.Dispose> is invoked.
 
 A proxy can only be dynamically generated for an interface that meets these requirements:
 
 1. Is public
 1. No properties
 1. No generic methods
-1. All methods return `void`, `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>`, or `IAsyncEnumerable<T>`.
-1. All events are typed with `EventHandler` or `EventHandler<T>`. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in `EventHandler<T>`.
-1. Methods *may* accept a `CancellationToken` as the last parameter.
+1. All methods return `void`, @System.Threading.Tasks.Task, @System.Threading.Tasks.Task`1, <xref:System.Threading.Tasks.ValueTask>, <xref:System.Threading.Tasks.ValueTask`1>, or <xref:System.Collections.Generic.IAsyncEnumerable`1>.
+1. All events are typed with <xref:System.EventHandler> or <xref:System.EventHandler`1>. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in <xref:System.EventHandler`1>.
+1. Methods *may* accept a @System.Threading.CancellationToken as the last parameter.
 
 ## Async methods and generated proxies
 
@@ -30,23 +30,23 @@ A method's return type may also be `void`, in which case the method sends a noti
 
 ### Dispose patterns
 
-The generated proxy *always* implements `IDisposable`, where `IDisposable.Dispose()` simply calls `JsonRpc.Dispose()`.
+The generated proxy *always* implements <xref:System.IDisposable>, where <xref:System.IDisposable.Dispose?displayProperty=nameWithType> simply calls <xref:StreamJsonRpc.JsonRpc.Dispose?displayProperty=nameWithType>.
 This interface method call does *not* send a "Dispose" RPC method call to the server.
 The server should notice the dropped connection when the client was disposed and dispose the server object if necessary.
 
-The RPC interface may derive from `IDisposable` and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
+The RPC interface may derive from <xref:System.IDisposable> and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
 
 ### Server-side concerns
 
 On the server side, these same methods may be simple and naturally synchronous. Returning values from the server wrapped
-in a `Task` may seem unnatural.
+in a @System.Threading.Tasks.Task may seem unnatural.
 The server need not itself explicitly implement the interface -- it could implement the same method signatures as are
-found on the interface except return `void` (or whatever your `T` is in your `Task<T>` method signature on the interface)
+found on the interface except return `void` (or whatever your `T` is in your @System.Threading.Tasks.Task`1 method signature on the interface)
 and it would be just fine. Of course implementing the interface may make it easier to maintain a consistent contract
 between client and server.
 
 ### Client-side concerns
 
 Sometimes a client may need to block its caller until a response to a JSON-RPC request comes back.
-The dynamic proxy maintains the same async-only contract that is exposed by the `JsonRpc` class itself.
+The dynamic proxy maintains the same async-only contract that is exposed by the @StreamJsonRpc.JsonRpc class itself.
 [Learn more about sending requests](sendrequest.md), particularly under the heading about async responses.
