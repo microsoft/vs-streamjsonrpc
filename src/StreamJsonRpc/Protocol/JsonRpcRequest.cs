@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
+using Nerdbank.MessagePack;
+using PolyType;
 using JsonNET = Newtonsoft.Json.Linq;
 using STJ = System.Text.Json.Serialization;
 
@@ -13,8 +15,10 @@ namespace StreamJsonRpc.Protocol;
 /// Describes a method to be invoked on the server.
 /// </summary>
 [DataContract]
+[GenerateShape]
+[MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcRequestConverter))]
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
-public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
+public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 {
     /// <summary>
     /// The result of an attempt to match request arguments with a candidate method's parameters.
@@ -47,6 +51,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "method", Order = 2, IsRequired = true)]
     [STJ.JsonPropertyName("method"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
+    [PropertyShape(Name = "method", Order = 2)]
     public string? Method { get; set; }
 
     /// <summary>
@@ -61,6 +66,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </value>
     [DataMember(Name = "params", Order = 3, IsRequired = false, EmitDefaultValue = false)]
     [STJ.JsonPropertyName("params"), STJ.JsonPropertyOrder(3), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+    [PropertyShape(Name = "params", Order = 3)]
     public object? Arguments { get; set; }
 
     /// <summary>
@@ -70,6 +76,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -81,6 +88,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = false, EmitDefaultValue = false)]
     [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingDefault)]
+    [PropertyShape(Name = "id", Order = 1)]
     public RequestId RequestId { get; set; }
 
     /// <summary>
@@ -88,6 +96,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public bool IsResponseExpected => !this.RequestId.IsEmpty;
 
     /// <summary>
@@ -95,6 +104,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public bool IsNotification => this.RequestId.IsEmpty;
 
     /// <summary>
@@ -102,6 +112,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public virtual int ArgumentCount => this.NamedArguments?.Count ?? this.ArgumentsList?.Count ?? 0;
 
     /// <summary>
@@ -109,6 +120,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public IReadOnlyDictionary<string, object?>? NamedArguments
     {
         get => this.Arguments as IReadOnlyDictionary<string, object?>;
@@ -127,6 +139,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </remarks>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public IReadOnlyDictionary<string, Type>? NamedArgumentDeclaredTypes { get; set; }
 
     /// <summary>
@@ -134,6 +147,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     [Obsolete("Use " + nameof(ArgumentsList) + " instead.")]
     public object?[]? ArgumentsArray
     {
@@ -146,6 +160,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public IReadOnlyList<object?>? ArgumentsList
     {
         get => this.Arguments as IReadOnlyList<object?>;
@@ -166,6 +181,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </remarks>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public IReadOnlyList<Type>? ArgumentListDeclaredTypes { get; set; }
 
     /// <summary>
@@ -173,6 +189,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public virtual IEnumerable<string>? ArgumentNames => this.NamedArguments?.Keys;
 
     /// <summary>
@@ -180,6 +197,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "traceparent", EmitDefaultValue = false)]
     [STJ.JsonPropertyName("traceparent"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+    [PropertyShape(Name = "traceparent")]
     public string? TraceParent { get; set; }
 
     /// <summary>
@@ -187,6 +205,7 @@ public class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "tracestate", EmitDefaultValue = false)]
     [STJ.JsonPropertyName("tracestate"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+    [PropertyShape(Name = "tracestate")]
     public string? TraceState { get; set; }
 
     /// <summary>
