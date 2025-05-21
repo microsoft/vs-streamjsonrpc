@@ -50,7 +50,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     public static readonly MessagePackSerializer DefaultSerializer = new()
     {
         InternStrings = true,
-        SerializeDefaultValues = SerializeDefaultValuesPolicy.Never,
         ConverterFactories = [ConverterFactory.Instance],
         Converters =
             [
