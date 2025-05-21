@@ -460,7 +460,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     {
         [MessagePack.SerializationConstructor]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime, int[]? optionalInterfaces)
+        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime = null, int[]? optionalInterfaces = null)
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
         {
             this.Marshaled = __jsonrpc_marshaled;
