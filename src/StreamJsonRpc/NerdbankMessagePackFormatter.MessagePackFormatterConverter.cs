@@ -20,6 +20,16 @@ public partial class NerdbankMessagePackFormatter
         public object? Convert(object value, Type type)
 #pragma warning restore CS8766
         {
+            // We don't support serializing/deserializing the non-generic IDictionary,
+            // since it uses untyped keys and values which we cannot securely hash.
+            if (type == typeof(System.Collections.IDictionary))
+            {
+                // Force us to deserialize into a semi-typed dictionary.
+                // The string key is a reasonable 99% compatible assumption, and allows us to securely hash the keys.
+                // The untyped values will be alright because we support the primitives types.
+                type = typeof(Dictionary<string, object?>);
+            }
+
             MessagePackReader reader = this.CreateReader(value);
             return serializer.DeserializeObject(ref reader, ReflectionTypeShapeProvider.Default.GetShape(type));
         }

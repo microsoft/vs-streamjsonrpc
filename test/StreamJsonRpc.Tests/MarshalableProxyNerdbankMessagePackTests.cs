@@ -37,5 +37,10 @@ public partial class MarshalableProxyNerdbankMessagePackTests : MarshalableProxy
     [GenerateShape<IMarshalableWithOptionalInterfaces2>]
     [GenerateShape<IMarshalableSubType2Extended>]
     [GenerateShape<IGenericMarshalable<int>>]
+    [GenerateShape<IAsyncEnumerable<int>>]
+    [GenerateShape<IAsyncEnumerable<string>>]
+    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<int>>] // TODO: BUGBUG: This shouldn't be required. We have a TypeShapeExtensionAttribute for this.
+    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<string>>] // TODO: BUGBUG: This shouldn't be required. We have a TypeShapeExtensionAttribute for this.
+    [GenerateShape<StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<JsonRpcMessagePackLengthTests.UnionBaseClass>>] // TODO: BUGBUG: This shouldn't be required. We have a TypeShapeExtensionAttribute for this.
     private partial class Witness;
 }
