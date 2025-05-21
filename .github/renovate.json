@@ -2,7 +2,8 @@
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": [
 		"github>microsoft/vs-renovate-presets:microbuild",
-		"github>microsoft/vs-renovate-presets:vs_main_dependencies"
+		"github>microsoft/vs-renovate-presets:vs_main_dependencies",
+		"github>microsoft/vs-renovate-presets:dotnet_packages_LTS"
 	],
 	"packageRules": [
 		{

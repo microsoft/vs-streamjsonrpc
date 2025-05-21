@@ -296,7 +296,7 @@ internal sealed class JsonRpcEventSource : EventSource
                 {
                     if (request.TryGetArgumentByNameOrIndex(null, i, null, out object? value))
                     {
-                        Format(stringBuilder, value);
+                        Format(stringBuilder, value, maxLength);
                         stringBuilder.Append(", ");
                         formatted = true;
                     }
@@ -334,7 +334,7 @@ internal sealed class JsonRpcEventSource : EventSource
                     {
                         stringBuilder.Append(key);
                         stringBuilder.Append(": ");
-                        Format(stringBuilder, value);
+                        Format(stringBuilder, value, maxLength);
                         stringBuilder.Append(", ");
                         formatted = true;
                     }
@@ -360,7 +360,7 @@ internal sealed class JsonRpcEventSource : EventSource
             return stringBuilder.ToString();
         }
 
-        static void Format(StringBuilder builder, object? value)
+        static void Format(StringBuilder builder, object? value, int maxLength)
         {
             switch (value)
             {
@@ -369,11 +369,15 @@ internal sealed class JsonRpcEventSource : EventSource
                     break;
                 case string s:
                     builder.Append('"');
-                    builder.Append(s);
+                    builder.Append(s, 0, Math.Min(s.Length, maxLength));
                     builder.Append('"');
                     break;
                 default:
-                    builder.Append(value);
+                    if (value.ToString() is string str)
+                    {
+                        builder.Append(str, 0, Math.Min(str.Length, maxLength));
+                    }
+
                     break;
             }
         }

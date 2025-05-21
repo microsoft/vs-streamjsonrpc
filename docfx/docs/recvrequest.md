@@ -3,29 +3,29 @@
 In this document we discuss the several ways you can receive and respond to RPC requests from the remote party.
 
 Before receiving any request, you should have already [established a connection](connecting.md).
-In each code sample below, we assume your `JsonRpc` instance is stored in a local variable called `rpc`.
+In each code sample below, we assume your @StreamJsonRpc.JsonRpc instance is stored in a local variable called `rpc`.
 
-When a request is received, `JsonRpc` matches it to a server method that was previously registered with
+When a request is received, @StreamJsonRpc.JsonRpc matches it to a server method that was previously registered with
 a matching name and list of parameters. If no matching server method can be found the request is dropped,
 and an error is returned to the client if the client requested a response.
 
 To help prevent accidental dropping of RPC requests that are received before matching server methods are registered,
-`JsonRpc` requires all server methods to be registered *before* any incoming messages are processed.
-Message processing begins automatically when the static `JsonRpc.Attach` method is used.
-If `JsonRpc` was created using its constructor, message processing does not begin until the `JsonRpc.StartListening()`
+@StreamJsonRpc.JsonRpc requires all server methods to be registered *before* any incoming messages are processed.
+Message processing begins automatically when the static <xref:StreamJsonRpc.JsonRpc.Attach*?displayProperty=nameWithType> method is used.
+If @StreamJsonRpc.JsonRpc was created using its constructor, message processing does not begin until the @StreamJsonRpc.JsonRpc.StartListening*?displayProperty=nameWithType
 method is invoked.
 
 RPC server methods may:
 
-1. Accept a `CancellationToken` as a last parameter, which signals that the client requested cancellation.
+1. Accept a @System.Threading.CancellationToken as a last parameter, which signals that the client requested cancellation.
 1. Define parameters with default values (e.g. `void Foo(string v, bool end = false)`), which makes them optional.
-1. Be implemented synchronously, or be async by returning a `Task` or `Task<T>`.
+1. Be implemented synchronously, or be async by returning a @System.Threading.Tasks.Task or @System.Threading.Tasks.Task`1.
 1. Have multiple overloads, but [with caveats](#OverloadCaveats).
 
 **Important notes**:
 
 1. When an RPC-invoked server method throws an exception, StreamJsonRpc will handle the exception and (when applicable) send an error response to the client with a description of the failure. [Learn more about this and how to customize error handling behavior](exceptions.md).
-1. RPC servers may be invoked multiple times concurrently to keep up with incoming client requests. By default, requests are dispatched one at a time, in order. When an async RPC method yields (i.e. returns a Task, whether complete or incomplete) the next request can be dispatched. Therefore concurrency of request handling can only happen when RPC server methods are implemented asynchronously. To achieve concurrent dispatch (where order is _not_ preserved) even when RPC server methods are implemented synchronously, set [`JsonRpc.SynchronizationContext`](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.synchronizationcontext) to `null` before calling [`JsonRpc.StartListening`](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.startlistening).
+1. RPC servers may be invoked multiple times concurrently to keep up with incoming client requests. By default, requests are dispatched one at a time, in order. When an async RPC method yields (i.e. returns a Task, whether complete or incomplete) the next request can be dispatched. Therefore concurrency of request handling can only happen when RPC server methods are implemented asynchronously. To achieve concurrent dispatch (where order is _not_ preserved) even when RPC server methods are implemented synchronously, set [<xref:StreamJsonRpc.JsonRpc.SynchronizationContext>](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.synchronizationcontext) to `null` before calling [`JsonRpc.StartListening`](https://docs.microsoft.com/en-us/dotnet/api/streamjsonrpc.jsonrpc.startlistening).
 
 [Learn more about writing resilient servers](resiliency.md).
 
@@ -48,7 +48,7 @@ class Server
 }
 ```
 
-You can now pass an instance of this class to `JsonRpc` to register all public methods at once,
+You can now pass an instance of this class to @StreamJsonRpc.JsonRpc to register all public methods at once,
 and start listening for requests:
 
 ```cs
@@ -61,12 +61,12 @@ and `ReadFile` methods.
 
 ### Invocation of non-public methods
 
-The `JsonRpcTargetOptions.AllowNonPublicInvocation` property controls whether a target object's non-public methods
+The <xref:StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation?displayProperty=nameWithType> property controls whether a target object's non-public methods
 are invokable by a JSON-RPC client. In StreamJsonRpc 1.x this property defaults to `true`, but defaults to `false`
 as of 2.0 for better security by default.
 
-To adjust the value to a non-default setting, add the target object using the `JsonRpc.AddLocalRpcTarget` method
-instead of using the `JsonRpc.Attach` method of the `JsonRpc` constructor that accepts a target object as an argument.
+To adjust the value to a non-default setting, add the target object using the <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget*> method
+instead of using the <xref:StreamJsonRpc.JsonRpc.Attach*> method of the @StreamJsonRpc.JsonRpc constructor that accepts a target object as an argument.
 For example:
 
 ```cs
@@ -82,7 +82,7 @@ rpc.StartListening();
 
 ### Blocking invocation of specific methods
 
-When a method on a target object would normally be exposed to the RPC client (either because it is `public` or because `JsonRpcTargetOptions.AllowNonPublicInvocation` has been set to `true`) and that method should *not* be exposed to RPC, apply the `[JsonRpcIgnore]` attribute to the method.
+When a method on a target object would normally be exposed to the RPC client (either because it is `public` or because <xref:StreamJsonRpc.JsonRpcTargetOptions.AllowNonPublicInvocation?displayProperty=nameWithType> has been set to `true`) and that method should *not* be exposed to RPC, apply the <xref:StreamJsonRpc.JsonRpcIgnoreAttribute> attribute to the method.
 
 ### Server events
 
@@ -98,14 +98,14 @@ class Server
 }
 ```
 
-When you raise the `FileChanged` event on the server, `JsonRpc` will relay that as a notification message
+When you raise the `FileChanged` event on the server, @StreamJsonRpc.JsonRpc will relay that as a notification message
 back to the client. [Learn more about dynamic proxies on the client](dynamicproxy.md) and how they can
 manifest these notifications as natural .NET events on the client.
 
 You can customize the method names used in the event notification by adding the server target object
-with a `JsonRpcTargetOptions` with a custom function set to its EventNameTransform property.
+with a <xref:StreamJsonRpc.JsonRpcTargetOptions> with a custom function set to its EventNameTransform property.
 
-You can stop `JsonRpc` from sending notifications for events on the server object by adding the target object
+You can stop @StreamJsonRpc.JsonRpc from sending notifications for events on the server object by adding the target object
 with a `new JsonRpcTargetOptions { NotifyClientOfEvents = false }` argument (the default is `true`).
 You may want to turn off the event functionality if your target object is reused from another class
 and has events that shouldn't be exposed to RPC.
@@ -131,7 +131,7 @@ A couple of these transforms come built in, including `CamelCase` and `Prepend`.
 
 In another scenario, you may find that individual methods require specific RPC method name substitutions.
 Methods in .NET come with certain naming restrictions. In cases where you need or want to expose your method
-via RPC using a name that differs from its .NET name, you can use the `JsonRpcMethodAttribute`:
+via RPC using a name that differs from its .NET name, you can use the <xref:StreamJsonRpc.JsonRpcMethodAttribute>:
 
 ```cs
 class Server
@@ -145,12 +145,12 @@ In this case, the RPC client must invoke the `textDocument/References` method. T
 will *not* be matched to this method, and a client's request for that name would be rejected.
 
 Note that the automatic aliasing of methods to remove an `Async` suffix does _not_ apply to methods that use
-the `JsonRpcMethodAttribute`.
+the <xref:StreamJsonRpc.JsonRpcMethodAttribute>.
 
 ## Registering individual methods
 
-You can also register individual methods for callbacks. This works with `MethodInfo` and a target object,
-or a delegate. This requires using the `JsonRpc` constructor syntax:
+You can also register individual methods for callbacks. This works with <xref:System.Reflection.MethodInfo> and a target object,
+or a delegate. This requires using the @StreamJsonRpc.JsonRpc constructor syntax:
 
 ```cs
 JsonRpc rpc = new JsonRpc(stream);
@@ -160,8 +160,8 @@ rpc.AddLocalRpcMethod("readFile", new Func<string, Task<string>>(path => File.Re
 rpc.StartListening();
 ```
 
-Note the explicit construction of delegate types in the above example. This is important since the `AddLocalRpcMethod`
-takes a general `Delegate` type parameter.
+Note the explicit construction of delegate types in the above example. This is important since the <xref:StreamJsonRpc.JsonRpc.AddLocalRpcMethod*>
+takes a general <xref:System.Delegate> type parameter.
 
 ### Parameter name and placement
 
@@ -195,7 +195,7 @@ The process goes as follows:
 
 1. Obtain the subset of server RPC methods with the name that matches the one in the RPC request.
 1. Reject a method overload if it has fewer parameters than the number of arguments included in the request.
-1. Reject a method overload if it has more required parameters than the number of arguments included in the request. Required parameters exclude a trailing `CancellationToken` and other parameters that include a default value (e.g. `string v = ""`).
+1. Reject a method overload if it has more required parameters than the number of arguments included in the request. Required parameters exclude a trailing @System.Threading.CancellationToken and other parameters that include a default value (e.g. `string v = ""`).
 1. If the request uses *named arguments* (instead of positional arguments), reject any method that has a required parameter whose name does not appear in the request's named arguments.
 1. Iterate through each method parameter and request argument pair and attempt to deserialize to the parameter type. Reject any overload that fails deserialization of any argument. The success of this test depends on the serializer being used. For example Newtonsoft.Json may be very forgiving and allow an integer argument to deserialize as a string, whereas a MessagePack serializer would reject doing so.
 1. Given a method overload that passes all the above criteria, choose it immediately, without further evaluating the remaining overload candidates.
@@ -216,20 +216,20 @@ of the protocol and sends a response when appropriate but otherwise treats the s
 ## Canceling all locally invoked RPC methods on connection termination
 
 An RPC server may want to continue serving a client's request even if the client has disconnected from the server.
-To abort the server method when the connection with the client dies, accept a `CancellationToken` on the server method
-and set `JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed` to `true`.
+To abort the server method when the connection with the client dies, accept a @System.Threading.CancellationToken on the server method
+and set <xref:StreamJsonRpc.JsonRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed?displayProperty=nameWithType> to `true`.
 
 ## Custom configurations
 
-Many of the foregoing examples all use the `Attach` static method, which both establishes the JSON-RPC connection
+Many of the foregoing examples all use the <xref:StreamJsonRpc.JsonRpc.Attach*> static method, which both establishes the JSON-RPC connection
 and *starts listening* for incoming messages. Incoming messages may be requests or responses to local requests.
 
 Certain configuration changes may be dangerous to make after listening has begun. Adding target objects or individual methods
 should usually be done *before* listening has started so that requests for those methods are not processed until you are
 prepared to handle them.
 
-To create a configurable `JsonRpc` instance that does not immediately start processing incoming messages, use the
-`JsonRpc` constructor instead of the static `Attach` method:
+To create a configurable @StreamJsonRpc.JsonRpc instance that does not immediately start processing incoming messages, use the
+@StreamJsonRpc.JsonRpc constructor instead of the static <xref:StreamJsonRpc.JsonRpc.Attach*> method:
 
 ```cs
 var rpc = new JsonRpc(stream);
@@ -242,7 +242,7 @@ rpc.AddLocalRpcTarget(target);
 rpc.StartListening();
 ```
 
-After listening has started, attempts to reconfigure `JsonRpc` will throw an `InvalidOperationException`.
+After listening has started, attempts to reconfigure @StreamJsonRpc.JsonRpc will throw an @System.InvalidOperationException.
 This protects you from accidentally listening before adding target objects, resulting in race conditions
 where requests are rejected.
 
@@ -254,8 +254,8 @@ rpc.AddLocalRpcTarget(new Server()); // WRONG ORDER: THIS WILL THROW.
 
 ### Advanced configuration changes while listening to messages
 
-If you find yourself in a scenario where you need to reconfigure `JsonRpc` after listening has started,
-you may set the `JsonRpc.AllowModificationWhileListening` property to `true`, after which reconfiguration
+If you find yourself in a scenario where you need to reconfigure @StreamJsonRpc.JsonRpc after listening has started,
+you may set the <xref:StreamJsonRpc.JsonRpc.AllowModificationWhileListening> property to `true`, after which reconfiguration
 will be allowed.
 
 For example, suppose you have an initial target object, which has a particular method which results in

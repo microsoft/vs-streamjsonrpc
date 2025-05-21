@@ -1,4 +1,4 @@
-# `IObserver<T>` support
+# `IObserver<T>`
 
 StreamJsonRpc allows transmitting [`IObserver<T>`](https://learn.microsoft.com/dotnet/api/system.iobserver-1) objects in arguments and return values.
 
@@ -88,7 +88,7 @@ class RpcServer : IDisposable
 
 ### Canceling subscriptions
 
-To further support the `IObservable<T>` pattern, these subscribe [methods may return `IDisposable`](disposable.md) so that the RPC client may cancel their subscription by disposing the returned value.
+To further support the `IObservable<T>` pattern, these subscribe [methods may return <xref:System.IDisposable>](disposable.md) so that the RPC client may cancel their subscription by disposing the returned value.
 The above RPC server might be enhanced to support such a pattern by replacing the Subscribe method with this:
 
 ```cs
@@ -124,8 +124,8 @@ class RpcServer : IDisposable, IObservable<int>
 }
 ```
 
-Note that a `CancellationToken` parameter on the RPC method itself is only marshaled from the client during execution of the RPC method itself.
-Once the server method returns (or the Task it returns completes) the `CancellationToken` is dead.
+Note that a @System.Threading.CancellationToken parameter on the RPC method itself is only marshaled from the client during execution of the RPC method itself.
+Once the server method returns (or the Task it returns completes) the @System.Threading.CancellationToken is dead.
 For this reason, do not use it as a means for the client to cancel its subscription unless the server method
 is async and is designed to remain active until the subscription is complete or canceled.
 

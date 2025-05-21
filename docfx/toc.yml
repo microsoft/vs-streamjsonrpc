@@ -1,5 +1,9 @@
 items:
 - name: Docs
   href: docs/
+- name: Exotic Types
+  href: exotic_types/
 - name: API
   href: api/
+- name: GitHub
+  href: https://github.com/microsoft/vs-streamjsonrpc
