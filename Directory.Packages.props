@@ -10,7 +10,7 @@
     <CodeAnalysisAnalyzerVersion>3.11.0-beta1.24629.2</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackVersion)" />
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
