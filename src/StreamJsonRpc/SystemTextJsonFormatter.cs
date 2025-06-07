@@ -24,6 +24,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
+[RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
@@ -392,6 +393,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class TopLevelPropertyBag : TopLevelPropertyBagBase
     {
         private readonly JsonDocument? incomingMessage;
@@ -454,6 +456,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcRequest : JsonRpcRequestBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -601,6 +604,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcResult : JsonRpcResultBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -657,6 +661,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcError : JsonRpcErrorBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -686,6 +691,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             this.formatter.deserializingDocument = null;
         }
 
+        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
         internal new class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -766,6 +772,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class ProgressConverterFactory : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -786,6 +793,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class Converter<T> : JsonConverter<IProgress<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -816,6 +824,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class AsyncEnumerableConverter : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -836,6 +845,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
 
+        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
         private class Converter<T> : JsonConverter<IAsyncEnumerable<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -885,6 +895,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class RpcMarshalableConverterFactory : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -910,6 +921,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 attribute)!;
         }
 
+        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
         private class Converter<T>(SystemTextJsonFormatter formatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter<T>
             where T : class
         {
@@ -1015,6 +1027,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class ExceptionConverter : JsonConverter<Exception>
     {
         /// <summary>
@@ -1102,6 +1115,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonConverterFormatter : IFormatterConverter
     {
         private readonly JsonSerializerOptions serializerOptions;
@@ -1217,6 +1231,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
     /// };
     /// ]]></code>
     /// </example>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class DataContractResolver : IJsonTypeInfoResolver
     {
         private readonly ConcurrentDictionary<Type, JsonTypeInfo?> typeInfoCache = new();
@@ -1259,7 +1274,10 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             return typeInfo;
         }
 
-        private static void PopulateMembersInfos(Type type, JsonTypeInfo jsonTypeInfo, DataContractAttribute? dataContractAttribute)
+        private static void PopulateMembersInfos(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicFields | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicProperties | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+            JsonTypeInfo jsonTypeInfo,
+            DataContractAttribute? dataContractAttribute)
         {
             BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.Instance;
 
@@ -1297,7 +1315,10 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
                 }
             }
 
-            bool TryCreateJsonPropertyInfo(MemberInfo memberInfo, Type propertyType, [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
+            bool TryCreateJsonPropertyInfo(
+                MemberInfo memberInfo,
+                [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type propertyType,
+                [NotNullWhen(true)] out JsonPropertyInfo? jsonPropertyInfo)
             {
                 DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
                 if ((dataContractAttribute is null || dataMemberAttribute is not null) && memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null)
