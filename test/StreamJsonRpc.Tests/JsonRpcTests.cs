@@ -499,7 +499,6 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task ThrowsIfCannotFindMethod()
     {
-        Assert.SkipWhen(this.clientMessageFormatter is NerdbankMessagePackFormatter, "Not yet implemented for MessagePack. No property is required. https://github.com/eiriktsarpalis/PolyType/issues/140");
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("missingMethod", 50));
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new XAndYProperties { x = 100 }));
     }

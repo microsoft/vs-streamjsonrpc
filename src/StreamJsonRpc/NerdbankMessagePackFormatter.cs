@@ -231,7 +231,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             out JsonRpcTargetOptions? targetOptions,
             out RpcMarshalableAttribute? attribute))
         {
-            // Replace MakeGenericType with an AOT-safe associated type by leveraging https://github.com/eiriktsarpalis/PolyType/issues/185
+            // TODO: Replace MakeGenericType with an AOT-safe associated type by leveraging https://github.com/eiriktsarpalis/PolyType/issues/185
             return (RpcMarshalableConverter<T>)Activator.CreateInstance(
                 typeof(RpcMarshalableConverter<>).MakeGenericType(typeof(T)),
                 proxyOptions,
@@ -239,7 +239,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 attribute)!;
         }
 
-        // TODO: Improve Exception message.
         throw new NotSupportedException($"Type '{typeof(T).FullName}' is not supported for RPC Marshaling.");
     }
 
