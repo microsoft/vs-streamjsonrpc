@@ -4,7 +4,7 @@ StreamJsonRpc.NerdbankMessagePackFormatter
 StreamJsonRpc.NerdbankMessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
 StreamJsonRpc.NerdbankMessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
 StreamJsonRpc.NerdbankMessagePackFormatter.NerdbankMessagePackFormatter() -> void
-StreamJsonRpc.NerdbankMessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte>! contentBuffer, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
 StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.get -> PolyType.ITypeShapeProvider!
 StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.init -> void
 StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer.get -> Nerdbank.MessagePack.MessagePackSerializer!
