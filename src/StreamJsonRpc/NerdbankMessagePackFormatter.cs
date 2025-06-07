@@ -1401,11 +1401,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     [GenerateShape<RawMessagePack>]
     [GenerateShape<IDictionary>]
     [GenerateShape<Exception>]
-    [GenerateShape<RemoteInvocationException>]
-    [GenerateShape<RemoteMethodNotFoundException>]
-    [GenerateShape<RemoteRpcException>]
-    [GenerateShape<RemoteSerializationException>]
-    [GenerateShape<MessageFormatterRpcMarshaledContextTracker.MarshalToken>]
     [GenerateShape<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>]
     private partial class Witness;
 }
