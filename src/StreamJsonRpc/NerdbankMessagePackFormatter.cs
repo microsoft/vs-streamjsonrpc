@@ -27,7 +27,6 @@ namespace StreamJsonRpc;
 /// <remarks>
 /// The MessagePack implementation used here comes from https://github.com/AArnott/Nerdbank.MessagePack.
 /// </remarks>
-[SuppressMessage("ApiDesign", "RS0016:Add public types and members to the declared API", Justification = "TODO: Suppressed for Development")]
 public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
     /// <summary>
