@@ -9,7 +9,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using Newtonsoft.Json.Linq;
 using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
@@ -1077,11 +1076,14 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObjectAsync_CanCallCancellableMethodImplementedSynchronously()
     {
         using var cts = new CancellationTokenSource();
-        Task invocationTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.SyncMethodWithCancellation), new { waitForCancellation = true }, cancellationToken: cts.Token);
+        Task invocationTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.SyncMethodWithCancellation), new WaitForCancellationArg { waitForCancellation = true }, cancellationToken: cts.Token);
         await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
         cts.Cancel();
         await Assert.ThrowsAsync<TaskCanceledException>(() => invocationTask);
     }
+
+    [GenerateShape]
+    internal partial class WaitForCancellationArg { public bool waitForCancellation; }
 
     [Fact]
     public async Task InvokeAsync_PassArgsAsNonArrayList()
@@ -1317,9 +1319,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithParameterObject_DefaultParameters()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new { x = 2 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new XInt { x = 2 }, this.TimeoutToken);
         Assert.Equal(12, sum);
     }
+
+    [GenerateShape]
+    internal partial class XInt { public int x; }
 
     [Fact]
     public async Task InvokeWithParameterObject_ProgressParameter()
@@ -1327,13 +1332,16 @@ public abstract partial class JsonRpcTests : TestBase
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
-        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new ProgressWithCompletionParams { p = progress }, this.TimeoutToken);
 
         await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(1, result);
     }
+
+    [GenerateShape]
+    internal partial class ProgressWithCompletionParams { public ProgressWithCompletion<int> p; }
 
     [Fact]
     public async Task InvokeWithParameterObject_ProgressParameterMultipleRequests()

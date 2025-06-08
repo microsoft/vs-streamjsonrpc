@@ -124,12 +124,15 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadablePipe),
-                new { fileName = ExpectedFileName, content = pipes.Item2 },
+                new FileNameAndPipeArg { fileName = ExpectedFileName, content = pipes.Item2 },
                 this.TimeoutToken);
         }
 
         Assert.Equal(MemoryBuffer.Length, bytesReceived);
     }
+
+    [GenerateShape]
+    internal partial class FileNameAndPipeArg { public string fileName; public IDuplexPipe content; }
 
     [Theory]
     [InlineData(true)]
@@ -151,7 +154,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritablePipe),
-                new { lengthToWrite = bytesToReceive, content = pipes.Item2 },
+                new LengthAndPipeArg { lengthToWrite = bytesToReceive, content = pipes.Item2 },
                 this.TimeoutToken);
         }
 
@@ -173,6 +176,9 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
     }
+
+    [GenerateShape]
+    public partial class LengthAndPipeArg { public int lengthToWrite; public IDuplexPipe? content; }
 
     [Fact]
     public async Task ClientCanSendPipeReaderToServer()
@@ -239,7 +245,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadableStream),
-                new { fileName = ExpectedFileName, content = readOnlyStream },
+                new FileNameStreamArg { fileName = ExpectedFileName, content = readOnlyStream },
                 this.TimeoutToken);
         }
 
@@ -247,6 +253,15 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         // Assert that the client-side stream is closed, since the server closed their side.
         await this.AssertStreamClosesAsync(ms);
+    }
+
+    [GenerateShape]
+    internal partial class FileNameStreamArg
+    {
+        public string? fileName;
+
+        [PropertyShape]
+        internal OneWayWrapperStream? content;
     }
 
     [Theory]
@@ -269,7 +284,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritableStream),
-                new { lengthToWrite = bytesToReceive, content = writeOnlyStream },
+                new LengthAndStreamArg { lengthToWrite = bytesToReceive, content = writeOnlyStream },
                 this.TimeoutToken);
         }
 
@@ -286,6 +301,15 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         // Assert that the client-side stream is closed, since the server closed their side.
         await this.AssertStreamClosesAsync(duplexStream.Item2);
+    }
+
+    [GenerateShape]
+    internal partial class LengthAndStreamArg
+    {
+        public int lengthToWrite;
+
+        [PropertyShape]
+        internal OneWayWrapperStream content;
     }
 
     [Fact]
@@ -973,7 +997,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         public IDuplexPipe? MethodThatReturnsIDuplexPipe() => null;
     }
 
-    protected class OneWayWrapperStream : Stream
+    internal class OneWayWrapperStream : Stream
     {
         private readonly Stream innerStream;
         private readonly bool canRead;

@@ -237,9 +237,12 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
     {
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(new MessagePackServer());
-        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), new { value = (UnionBaseClass)new UnionDerivedClass() }, this.TimeoutToken);
+        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), new UnionBaseClassArg { value = new UnionDerivedClass() }, this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
     }
+
+    [GenerateShape]
+    internal partial class UnionBaseClassArg { public UnionBaseClass value; }
 
     /// <summary>
     /// Verifies that return values can support union types by considering the return type as declared in the server method signature.
