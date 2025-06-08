@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TrimmerRootAssembly Include="StreamJsonRpc" />
+    <!-- There is too much public API in the library that is *not* trim safe.
+         We're just going to test specific scenarios in this project's source code. -->
+    <!--<TrimmerRootAssembly Include="StreamJsonRpc" />-->
   </ItemGroup>
 
 </Project>

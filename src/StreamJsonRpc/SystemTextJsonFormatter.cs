@@ -25,7 +25,7 @@ namespace StreamJsonRpc;
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
 [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
+public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
 
@@ -36,6 +36,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
     /// </summary>
     private static readonly JsonSerializerOptions BuiltInSerializerOptions = new()
     {
+        TypeInfoResolver = SourceGenerationContext.Default,
         Converters =
         {
             RequestIdJsonConverter.Instance,
@@ -1376,4 +1377,7 @@ public class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, 
             this.jsonString = null;
         }
     }
+
+    [JsonSerializable(typeof(RequestId))]
+    private partial class SourceGenerationContext : JsonSerializerContext;
 }
