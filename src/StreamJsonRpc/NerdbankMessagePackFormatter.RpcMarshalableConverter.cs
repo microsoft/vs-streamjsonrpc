@@ -18,7 +18,7 @@ public partial class NerdbankMessagePackFormatter
         JsonRpcProxyOptions proxyOptions,
         JsonRpcTargetOptions targetOptions,
         RpcMarshalableAttribute rpcMarshalableAttribute) : MessagePackConverter<T>
-        where T : class
+    ////where T : class // We expect this, but requiring it adds a constraint that some callers cannot statically satisfy.
     {
         [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Reader is passed to rpc context")]
         public override T? Read(ref MessagePackReader reader, SerializationContext context)
@@ -34,7 +34,7 @@ public partial class NerdbankMessagePackFormatter
 
             return token.HasValue
                 ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)
-                : null;
+                : default;
         }
 
         [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to rpc context")]
