@@ -22,10 +22,16 @@ clientRpc.StartListening();
 int sum = await clientRpc.InvokeAsync<int>(nameof(Server.Add), 2, 5);
 Console.WriteLine($"2 + 5 = {sum}");
 
+// When properly configured, this formatter is safe in Native AOT scenarios for
+// the very limited use case shown in this program.
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
 {
     JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
 };
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
 internal class Server
 {
