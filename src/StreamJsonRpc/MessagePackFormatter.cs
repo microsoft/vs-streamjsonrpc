@@ -805,6 +805,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
     [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class ProgressFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -872,6 +873,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         /// <summary>
         /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
         /// </summary>
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class PreciseTypeFormatter<TClass> : IMessagePackFormatter<TClass>
         {
             private readonly MessagePackFormatter formatter;
@@ -894,7 +896,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 Assumes.NotNull(this.formatter.JsonRpc);
                 RawMessagePack token = RawMessagePack.ReadRaw(ref reader, copy: true);
                 bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.ClientRequiresNamedArguments is true;
-                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress<TClass>(this.formatter.JsonRpc, token, clientRequiresNamedArgs);
+                return (TClass)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeof(TClass), clientRequiresNamedArgs);
             }
 
             public void Serialize(ref MessagePackWriter writer, TClass value, MessagePackSerializerOptions options)
