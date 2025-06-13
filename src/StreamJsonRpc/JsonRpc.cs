@@ -29,7 +29,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private const string JoinableTaskTokenHeaderName = "joinableTaskToken";
 
-    private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
+    private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethod(nameof(MarshalWithControlledLifetimeOpen), BindingFlags.Static | BindingFlags.NonPublic)!;
 
     /// <summary>
     /// A singleton error object that can be returned by <see cref="DispatchIncomingRequestAsync(JsonRpcRequest)"/> in error cases
@@ -1190,26 +1190,26 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Use <see cref="MarshalLimitedArgument{T}(T)"/> for a simpler lifetime model when the object should only be marshaled within the scope of a single RPC call.
     /// </para>
     /// </remarks>
-    internal static IRpcMarshaledContext<T> MarshalWithControlledLifetime<T>(T marshaledObject, JsonRpcTargetOptions options)
+    internal static IRpcMarshaledContext<T> MarshalWithControlledLifetimeOpen<T>(T marshaledObject, JsonRpcTargetOptions options)
         where T : class
     {
         return new RpcMarshaledContext<T>(marshaledObject, options);
     }
 
-    /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
-    /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
-    /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
-    /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
+    /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
+    /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
+    /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
     internal static IRpcMarshaledContext<object> MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
     {
         return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options })!;
     }
 
-    /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
+    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
     /// <returns>A proxy value that may be used within an RPC argument so the RPC server may call back into the <paramref name="marshaledObject"/> object on the RPC client.</returns>
     /// <remarks>
     /// <para>
-    /// Use <see cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
+    /// Use <see cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
     /// This is required when the value is returned from an RPC method or when it is used within an RPC argument and must outlive that RPC invocation.
     /// </para>
     /// </remarks>
@@ -1217,7 +1217,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         where T : class
     {
         // This method is included in the spec, but hasn't been implemented yet and has no callers.
-        // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetime method's responsibilities.
+        // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetimeOpen method's responsibilities.
         throw new NotImplementedException();
     }
 
