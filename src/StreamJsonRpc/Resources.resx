@@ -288,8 +288,8 @@
     <value>Failed to serialize the response.</value>
   </data>
   <data name="ResponseUnexpectedFormat" xml:space="preserve">
-    <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
-    <comment>{0} is the response message.</comment>
+    <value>Response is in an unexpected format.  Only error and result are supported, but received type: {0}</value>
+    <comment>{0} is the response object type.</comment>
   </data>
   <data name="RpcMarshalableDuplicatedOptionalInterface" xml:space="preserve">
     <value>Optional interface declarations should be unique. {0} has the same optional interface declared multiple times.</value>
