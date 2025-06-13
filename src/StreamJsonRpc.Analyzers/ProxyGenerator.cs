@@ -42,11 +42,12 @@ public class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
+                int methodIndex = 0;
                 ImmutableEquatableArray<MethodModel> methods = new([..
                     iface.GetAllMembers()
                     .OfType<IMethodSymbol>()
                     .Where(m => m.AssociatedSymbol is null && !SymbolEqualityComparer.Default.Equals(m.ContainingType, symbols.IDisposable))
-                    .Select(method => MethodModel.Create(method, symbols))]);
+                    .Select(method => MethodModel.Create(method, symbols, ++methodIndex))]);
 
                 ImmutableEquatableArray<EventModel?> events = new([..
                     iface.GetAllMembers()
@@ -285,7 +286,7 @@ public class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    private record MethodModel(string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters) : FormattableModel
+    private record MethodModel(string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix) : FormattableModel
     {
         internal bool TakesCancellationToken => this.Parameters.Length > 0 && this.Parameters[^1].SpecialType == SpecialType.CancellationToken;
 
@@ -296,11 +297,11 @@ public class ProxyGenerator : IIncrementalGenerator
         /// </summary>
         internal ReadOnlyMemory<ParameterModel> DataParameters => this.Parameters.AsMemory()[..(this.Parameters.Length - (this.TakesCancellationToken ? 1 : 0))];
 
-        private string NamedArgsRecordName { get; } = $"{Name}NamedArgs";
+        private string NamedArgsRecordName { get; } = $"{Name}NamedArgs{UniqueSuffix}";
 
-        private string NamedTypesFieldName { get; } = $"{Name}NamedArgumentDeclaredTypes";
+        private string NamedTypesFieldName { get; } = $"{Name}NamedArgumentDeclaredTypes{UniqueSuffix}";
 
-        private string PositionalTypesFieldName { get; } = $"{Name}PositionalArgumentDeclaredTypes";
+        private string PositionalTypesFieldName { get; } = $"{Name}PositionalArgumentDeclaredTypes{UniqueSuffix}";
 
         public override void WriteFields(SourceWriter writer, DataModel ifaceModel)
         {
@@ -404,14 +405,15 @@ public class ProxyGenerator : IIncrementalGenerator
                 """);
         }
 
-        internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols)
+        internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols, int uniqueSuffix)
         {
             return new MethodModel(
                 method.Name,
                 method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 ClassifySpecialType(method.ReturnType, symbols),
                 method.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments: [ITypeSymbol typeArg] } ? typeArg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) : null,
-                new([.. method.Parameters.Select(p => ParameterModel.Create(p, symbols))]));
+                new([.. method.Parameters.Select(p => ParameterModel.Create(p, symbols))]),
+                uniqueSuffix);
         }
     }
 

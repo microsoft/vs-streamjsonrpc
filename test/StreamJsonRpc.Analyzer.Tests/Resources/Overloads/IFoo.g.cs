@@ -15,20 +15,20 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 	{
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes = new global::System.Collections.Generic.List<global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 	{
 		["name"] = typeof(string),
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes = new global::System.Collections.Generic.List<global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
 	};
@@ -83,8 +83,8 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    this.callingMethod?.Invoke(this, "SayHi");
 	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
 	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs(), SayHiNamedArgumentDeclaredTypes, default) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes, default);
+	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs1(), SayHiNamedArgumentDeclaredTypes1, default) :
+	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
 	    this.calledMethod?.Invoke(this, "SayHi");
 	
 	    return result;
@@ -97,14 +97,14 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    this.callingMethod?.Invoke(this, "SayHi");
 	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
 	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs(name), SayHiNamedArgumentDeclaredTypes, default) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes, default);
+	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs2(name), SayHiNamedArgumentDeclaredTypes2, default) :
+	        this.client.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
 	    this.calledMethod?.Invoke(this, "SayHi");
 	
 	    return result;
 	}
 	
-	private record SayHiNamedArgs();
+	private record SayHiNamedArgs1();
 	
-	private record SayHiNamedArgs(string name);
+	private record SayHiNamedArgs2(string name);
 }

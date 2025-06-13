@@ -15,11 +15,11 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 	{
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes = new global::System.Collections.Generic.List<global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
 	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
@@ -73,12 +73,12 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    this.callingMethod?.Invoke(this, "JustCancellationAsync");
 	    string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
 	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes, cancellationToken);
+	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 	    this.calledMethod?.Invoke(this, "JustCancellationAsync");
 	
 	    return result;
 	}
 	
-	private record JustCancellationAsyncNamedArgs();
+	private record JustCancellationAsyncNamedArgs1();
 }
