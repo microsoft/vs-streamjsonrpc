@@ -56,7 +56,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
             ["id"] = this.RequestId.AsJsonValue(),
             ["error"] = new JsonObject
             {
-                ["code"] = this.Error?.Code is not null ? JsonValue.Create(this.Error?.Code) : null,
+                ["code"] = this.Error?.Code is not null ? JsonValue.Create((int)this.Error.Code) : null,
                 ["message"] = this.Error?.Message,
             },
         }.ToJsonString();
