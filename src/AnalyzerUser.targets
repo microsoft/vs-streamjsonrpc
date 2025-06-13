@@ -1,0 +1,14 @@
+<Project>
+  <ItemGroup>
+    <AnalyzerProjectReference Include="$(RepoRootPath)src\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj" />
+    <ProjectReference Include="@(AnalyzerProjectReference)">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>AnalyzerAssembly</OutputItemType>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="ConsumeAnalyzersDirectly" AfterTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <Analyzer Include="%(AnalyzerAssembly.Identity)" />
+    </ItemGroup>
+  </Target>
+</Project>

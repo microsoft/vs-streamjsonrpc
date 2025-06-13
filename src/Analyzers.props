@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPackable>false</IsPackable>
+    <IsAnalyzerProject>true</IsAnalyzerProject>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);CA1062</NoWarn>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <!-- We need this, even with SuppressDependenciesWhenPacking=true because the
+         dependencies will otherwise show up as dependencies in packages built by projects
+         that reference this one. Probably due to transitive pinning. -->
+    <PackageReference PrivateAssets="all" />
+    <ProjectReference PrivateAssets="all" />
+  </ItemDefinitionGroup>
+</Project>

@@ -4,6 +4,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackAnalyzers</TargetsForTfmSpecificContentInPackage>
     <Description>A cross-platform .NETStandard library that implements the JSON-RPC wire protocol and can use System.IO.Stream, System.IO.Pipelines or WebSocket so you can use it with any transport.</Description>
     <PackageTags>visualstudio stream json rpc jsonrpc</PackageTags>
     <!-- We use the ISerializable APIs *without* the BinaryFormatter. Not as obsolete as the .NET SDK would have us believe. -->
@@ -38,5 +39,11 @@
   <ItemGroup>
     <Using Include="Microsoft" />
   </ItemGroup>
+  <Target Name="PackAnalyzers" DependsOnTargets="ResolveProjectReferences;DebugSymbolsProjectOutputGroup" Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="%(AnalyzerAssembly.Identity)" PackagePath="analyzers\cs\" />
+    </ItemGroup>
+  </Target>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>

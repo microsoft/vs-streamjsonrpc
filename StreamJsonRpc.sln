@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Packages.props = Directory.Packages.props
 		global.json = global.json
 		nuget.config = nuget.config
+		.github\renovate.json = .github\renovate.json
 		stylecop.json = stylecop.json
 		version.json = version.json
 	EndProjectSection
@@ -27,6 +28,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6FB419A2-3E1C-413A-AEDD-12157AC92395}"
 	ProjectSection(SolutionItems) = preProject
 		src\.editorconfig = src\.editorconfig
+		src\Analyzers.props = src\Analyzers.props
+		src\AnalyzerUser.targets = src\AnalyzerUser.targets
 		src\Directory.Build.props = src\Directory.Build.props
 		src\Directory.Build.targets = src\Directory.Build.targets
 	EndProjectSection
@@ -37,6 +40,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F446B894-5
 		test\Directory.Build.props = test\Directory.Build.props
 		test\Directory.Build.targets = test\Directory.Build.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc.Analyzers", "src\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj", "{49E928F7-C510-45DA-9615-F8FAC7DFEB7D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamJsonRpc.Analyzer.Tests", "test\StreamJsonRpc.Analyzer.Tests\StreamJsonRpc.Analyzer.Tests.csproj", "{8123C09C-933E-41D6-94A7-52842E2FE7D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,6 +67,14 @@ Global
 		{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49E928F7-C510-45DA-9615-F8FAC7DFEB7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49E928F7-C510-45DA-9615-F8FAC7DFEB7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49E928F7-C510-45DA-9615-F8FAC7DFEB7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49E928F7-C510-45DA-9615-F8FAC7DFEB7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8123C09C-933E-41D6-94A7-52842E2FE7D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8123C09C-933E-41D6-94A7-52842E2FE7D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8123C09C-933E-41D6-94A7-52842E2FE7D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8123C09C-933E-41D6-94A7-52842E2FE7D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +84,8 @@ Global
 		{8BF355B2-E3B0-4615-BFC1-7563EADC4F8B} = {F446B894-56AA-4653-ADC0-5FFC911C9C13}
 		{CEF0F77F-19EB-4C76-A050-854984BB0364} = {F446B894-56AA-4653-ADC0-5FFC911C9C13}
 		{5936CF62-A59D-4E5C-9EE4-5E8BAFA9F215} = {F446B894-56AA-4653-ADC0-5FFC911C9C13}
+		{49E928F7-C510-45DA-9615-F8FAC7DFEB7D} = {6FB419A2-3E1C-413A-AEDD-12157AC92395}
+		{8123C09C-933E-41D6-94A7-52842E2FE7D4} = {F446B894-56AA-4653-ADC0-5FFC911C9C13}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4946F7E7-0619-414B-BE56-DDF0261CA8A9}

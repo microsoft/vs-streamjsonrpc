@@ -1,1 +1,3 @@
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.RpcProxyAttribute
+StreamJsonRpc.RpcProxyAttribute.RpcProxyAttribute() -> void
