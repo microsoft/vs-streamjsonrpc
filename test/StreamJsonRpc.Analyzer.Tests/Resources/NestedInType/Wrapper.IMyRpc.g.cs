@@ -48,7 +48,7 @@ internal class Wrapper_IMyRpc_Proxy : global::Wrapper.IMyRpc, global::StreamJson
 	
 	long? global::StreamJsonRpc.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
-	public void Dispose()
+	void global::System.IDisposable.Dispose()
 	{
 	    if (this.disposed)
 	    {

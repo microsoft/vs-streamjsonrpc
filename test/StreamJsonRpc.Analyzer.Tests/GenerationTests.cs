@@ -116,6 +116,18 @@ public class GenerationTests
     }
 
     [Fact]
+    public async Task Interface_HasDisposeWithoutIDisposable()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcProxy]
+            public interface IFoo
+            {
+                Task Dispose();
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interface_DerivesFromOthers()
     {
         await VerifyCS.RunDefaultAsync("""

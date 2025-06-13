@@ -216,7 +216,7 @@ public class ProxyGenerator : IIncrementalGenerator
         {
             writer.WriteLine($$"""
 
-                public void Dispose()
+                void global::System.IDisposable.Dispose()
                 {
                     if (this.disposed)
                     {

@@ -48,7 +48,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	
 	long? global::StreamJsonRpc.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
-	public void Dispose()
+	void global::System.IDisposable.Dispose()
 	{
 	    if (this.disposed)
 	    {

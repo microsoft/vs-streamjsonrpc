@@ -4,7 +4,7 @@
 
 namespace StreamJsonRpc.Proxies;
 
-internal class A_IMyRpc_Proxy : global::A.IMyRpc, global::StreamJsonRpc.IJsonRpcClientProxyInternal
+internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -15,14 +15,14 @@ internal class A_IMyRpc_Proxy : global::A.IMyRpc, global::StreamJsonRpc.IJsonRpc
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DisposeNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 	{
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DisposePositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
-	public A_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
 	{
 	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
 	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
@@ -66,19 +66,19 @@ internal class A_IMyRpc_Proxy : global::A.IMyRpc, global::StreamJsonRpc.IJsonRpc
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	public global::System.Threading.Tasks.Task Dispose()
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(A_IMyRpc_Proxy));
+	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 	
-	    this.callingMethod?.Invoke(this, "JustCancellationAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
+	    this.callingMethod?.Invoke(this, "Dispose");
+	    string rpcMethodName = this.options.MethodNameTransform("Dispose");
 	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
-	    this.calledMethod?.Invoke(this, "JustCancellationAsync");
+	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new DisposeNamedArgs1(), DisposeNamedArgumentDeclaredTypes1, default) :
+	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
+	    this.calledMethod?.Invoke(this, "Dispose");
 	
 	    return result;
 	}
 	
-	private record JustCancellationAsyncNamedArgs1();
+	private record DisposeNamedArgs1();
 }
