@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace StreamJsonRpc.Reflection;
@@ -15,7 +16,7 @@ internal static class TrackerHelpers<TInterface>
     /// <summary>
     /// Dictionary to record the calculation made in <see cref="FindInterfaceImplementedBy(Type)"/> to obtain the <typeparamref name="TInterface"/> type from a given <see cref="Type"/>.
     /// </summary>
-    private static readonly Dictionary<Type, Type?> TypeToImplementedInterfaceMap = new();
+    private static readonly Dictionary<Type, TypeWrapper> TypeToImplementedInterfaceMap = new();
 
     /// <summary>
     /// Gets the generic type definition for whatever type parameter was given by <typeparamref name="TInterface" />.
@@ -27,7 +28,8 @@ internal static class TrackerHelpers<TInterface>
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    internal static Type? FindInterfaceImplementedBy(Type objectType)
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
+    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
     {
         Requires.NotNull(objectType, nameof(objectType));
 
@@ -36,17 +38,17 @@ internal static class TrackerHelpers<TInterface>
             return objectType;
         }
 
-        Type? interfaceFromType;
+        TypeWrapper interfaceFromType = default;
         lock (TypeToImplementedInterfaceMap)
         {
             if (!TypeToImplementedInterfaceMap.TryGetValue(objectType, out interfaceFromType))
             {
-                interfaceFromType = objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition);
+                interfaceFromType = new(objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition));
                 TypeToImplementedInterfaceMap.Add(objectType, interfaceFromType);
             }
         }
 
-        return interfaceFromType;
+        return interfaceFromType.Type;
     }
 
     /// <summary>
@@ -54,7 +56,7 @@ internal static class TrackerHelpers<TInterface>
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <typeparamref name="TInterface"/>; otherwise, false.</returns>
-    internal static bool CanSerialize(Type objectType) => FindInterfaceImplementedBy(objectType) is not null;
+    internal static bool CanSerialize([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => FindInterfaceImplementedBy(objectType) is not null;
 
     /// <summary>
     /// Checks whether the given type is an interface compatible with <typeparamref name="TInterface"/>.
@@ -69,4 +71,6 @@ internal static class TrackerHelpers<TInterface>
     /// <param name="objectType">The type that may be deserialized.</param>
     /// <returns><see langword="true"/> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <see langword="false"/> otherwise.</returns>
     internal static bool IsActualInterfaceMatch(Type objectType) => Requires.NotNull(objectType, nameof(objectType)).IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(InterfaceGenericTypeDefinition);
+
+    private record struct TypeWrapper([property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type? Type);
 }

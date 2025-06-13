@@ -27,6 +27,7 @@ namespace StreamJsonRpc;
 /// The README on that project site describes use cases and its performance compared to alternative
 /// .NET MessagePack implementations and this one appears to be the best by far.
 /// </remarks>
+[RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
     /// <summary>
@@ -803,6 +804,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class ProgressFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -870,6 +873,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         /// <summary>
         /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
         /// </summary>
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class PreciseTypeFormatter<TClass> : IMessagePackFormatter<TClass>
         {
             private readonly MessagePackFormatter formatter;
@@ -910,6 +914,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class AsyncEnumerableFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -1071,6 +1076,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class PipeFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -1253,6 +1259,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class RpcMarshalableResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter formatter;
@@ -1303,7 +1311,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
 #pragma warning disable CA1812
-    private class RpcMarshalableFormatter<T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
+    private class RpcMarshalableFormatter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
         where T : class
 #pragma warning restore CA1812
     {
@@ -1336,6 +1346,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     /// 2. Be attributed with <see cref="SerializableAttribute"/>
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class MessagePackExceptionResolver : IFormatterResolver
     {
         /// <summary>
@@ -1378,6 +1389,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
 #pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 #pragma warning disable CA1812
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+        [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
         private class ExceptionFormatter<T> : IMessagePackFormatter<T>
             where T : Exception
 #pragma warning restore CA1812
@@ -1476,6 +1489,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 #pragma warning restore
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcMessageFormatter : IMessagePackFormatter<JsonRpcMessage>
     {
         private readonly MessagePackFormatter formatter;
@@ -1539,6 +1553,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
     {
         private readonly MessagePackFormatter formatter;
@@ -1788,6 +1803,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcResultFormatter : IMessagePackFormatter<Protocol.JsonRpcResult>
     {
         private readonly MessagePackFormatter formatter;
@@ -1865,6 +1881,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcErrorFormatter : IMessagePackFormatter<Protocol.JsonRpcError>
     {
         private readonly MessagePackFormatter formatter;
@@ -1935,6 +1952,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
     {
         private static readonly CommonString CodePropertyName = new("code");
