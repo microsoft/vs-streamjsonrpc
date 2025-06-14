@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using JsonNET = Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -71,10 +71,10 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JsonNET.JObject
+        return new JsonObject
         {
-            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
-        }.ToString(Newtonsoft.Json.Formatting.None);
+            ["id"] = this.RequestId.AsJsonValue(),
+        }.ToJsonString();
     }
 
     /// <summary>
