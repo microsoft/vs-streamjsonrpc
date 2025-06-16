@@ -80,7 +80,7 @@ public class JsonRpcRequestTests
 #pragma warning restore CS0618 // Type or member is obsolete
 
     [Fact]
-    public void ToString_Works()
+    public void JsonRpcRequest_ToString_Works()
     {
         var data = new JsonRpcRequest
         {
