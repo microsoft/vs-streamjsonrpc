@@ -36,6 +36,10 @@
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
     <PackageVersion Include="xunit.stafact" Version="2.1.7" />
   </ItemGroup>
+  <ItemGroup Condition="'$(IsBenchmarksProject)'=='true'">
+    <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
+  </ItemGroup>
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
