@@ -5,7 +5,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MessagePackVersion>2.5.198</MessagePackVersion>
-    <MicroBuildVersion>2.0.187</MicroBuildVersion>
+    <MicroBuildVersion>2.0.198</MicroBuildVersion>
     <VisualStudioThreadingVersion>17.13.61</VisualStudioThreadingVersion>
     <CodeAnalysisAnalyzerVersion>4.14.0</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
@@ -39,8 +39,8 @@
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.0" />
-    <PackageVersion Include="xunit.v3" Version="2.0.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <PackageVersion Include="xunit.v3" Version="2.0.3" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(CodeAnalysisAnalyzerVersion)" />
