@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks.Dataflow;
@@ -216,6 +217,29 @@ public class MessageFormatterEnumerableTracker
                 this.generatorTokensByRequestId.Remove(outboundRequestId);
             }
         }
+    }
+
+    /// <summary>
+    /// A slice of results from an <see cref="IAsyncEnumerable{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of element in the enumeration.</typeparam>
+    [DataContract]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class EnumeratorResults<T>
+    {
+        /// <summary>
+        /// Gets the slice of values in this segment.
+        /// </summary>
+        [DataMember(Name = ValuesPropertyName, Order = 0)]
+        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
+        public IReadOnlyList<T>? Values { get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether this is definitely the last slice.
+        /// </summary>
+        [DataMember(Name = FinishedPropertyName, Order = 1)]
+        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
+        public bool Finished { get; init; }
     }
 
     private class GeneratingEnumeratorTracker<T> : IGeneratingEnumeratorTracker
@@ -524,17 +548,5 @@ public class MessageFormatterEnumerableTracker
                 writer.Advance(values.Count);
             }
         }
-    }
-
-    [DataContract]
-    private class EnumeratorResults<T>
-    {
-        [DataMember(Name = ValuesPropertyName, Order = 0)]
-        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
-        public IReadOnlyList<T>? Values { get; set; }
-
-        [DataMember(Name = FinishedPropertyName, Order = 1)]
-        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
-        public bool Finished { get; set; }
     }
 }
