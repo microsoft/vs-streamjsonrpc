@@ -10,7 +10,7 @@
     <CodeAnalysisAnalyzerVersion>4.14.0</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.0" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.2" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackVersion)" />
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
@@ -35,6 +35,10 @@
     <PackageVersion Include="xunit.combinatorial" Version="2.0.24" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
     <PackageVersion Include="xunit.stafact" Version="2.1.7" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsBenchmarksProject)'=='true'">
+    <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
