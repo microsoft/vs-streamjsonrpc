@@ -804,7 +804,6 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
-    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class ProgressFormatterResolver : IFormatterResolver
     {
@@ -914,7 +913,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.CloseGenerics), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -932,11 +931,11 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             {
                 if (!this.enumerableFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
                 {
-                    if (TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)))
+                    if (TrackerHelpers.IsIAsyncEnumerable(typeof(T)))
                     {
                         formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(PreciseTypeFormatter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]), new object[] { this.mainFormatter });
                     }
-                    else if (TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is { } iface)
+                    else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is { } iface)
                     {
                         formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(GeneratorFormatter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]), new object[] { this.mainFormatter });
                     }

@@ -70,8 +70,8 @@ public class MessageFormatterProgressTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    public static Type? FindIProgressOfT([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
-        => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
+    public static Type? FindIProgressOfT(Type objectType)
+        => TrackerHelpers.FindIProgressInterfaceImplementedBy(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
@@ -79,21 +79,21 @@ public class MessageFormatterProgressTracker
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
     [Obsolete($"Use {nameof(CanSerialize)} instead.")]
-    public static bool IsSupportedProgressType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => CanSerialize(objectType);
+    public static bool IsSupportedProgressType(Type objectType) => CanSerialize(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool CanSerialize([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
+    public static bool CanSerialize(Type objectType) => FindIProgressOfT(objectType) is not null;
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> is a closed generic of <see cref="IProgress{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may be <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> is <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool CanDeserialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanDeserialize(objectType);
+    public static bool CanDeserialize(Type objectType) => TrackerHelpers.IsIProgress(objectType);
 
     /// <summary>
     /// Gets a <see cref="long"/> type token to use as replacement of an <see cref="object"/> implementing <see cref="IProgress{T}"/> in the JSON message.
@@ -240,10 +240,7 @@ public class MessageFormatterProgressTracker
         {
             Requires.NotNull(progressObject, nameof(progressObject));
 
-            [UnconditionalSuppressMessage("Trimming", "IL2072:RequiresUnreferencedCode", Justification = "The 'IProgress<>' Type must exist and so trimmer kept it. In which case it also kept it on any type which implements it.")]
-            static Type? FindIProgress(object progressObject) => FindIProgressOfT(progressObject.GetType());
-
-            Type? iProgressOfTType = FindIProgress(progressObject);
+            Type? iProgressOfTType = FindIProgressOfT(progressObject.GetType());
 
             Verify.Operation(iProgressOfTType is not null, Resources.FindIProgressOfTError);
 
