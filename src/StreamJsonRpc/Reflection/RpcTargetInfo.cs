@@ -365,14 +365,15 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             }
         }
 
+#if !NET10_0_OR_GREATER
         [UnconditionalSuppressMessage("Trimming", "IL2062:UnrecognizedReflectionPattern", Justification = "exposedMembersOnType is annotated as preserve All members, so any Types returned from GetInterfaces should be preserved as well. See https://github.com/dotnet/linker/issues/1731.")]
+#endif
         void ActOnInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposedMembersOnType)
         {
-            foreach (Type iface in exposedMembersOnType.GetInterfaces())
+            Type[] interfaces = exposedMembersOnType.GetInterfaces();
+            for (int i = 0; i < interfaces.Length; i++)
             {
-#pragma warning disable IL2072 // The Roslyn analyzer warns a different error code than the ilc compiler.
-                ActOn(iface.GetTypeInfo());
-#pragma warning restore IL2072
+                ActOn(interfaces[i].GetTypeInfo());
             }
         }
 
@@ -493,8 +494,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
     /// <returns>A list of EventInfos found.</returns>
+#if !NET10_0_OR_GREATER
     [UnconditionalSuppressMessage("Trimming", "IL2065:UnrecognizedReflectionPattern", Justification = "false positive: https://github.com/dotnet/linker/issues/1731")]
-    [UnconditionalSuppressMessage("Trimming", "IL2075:UnrecognizedReflectionPattern", Justification = "false positive: https://github.com/dotnet/linker/issues/1731")]
+#endif
     private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
@@ -512,9 +514,10 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         if (exposedMembersOnType.IsInterface)
         {
-            foreach (Type iface in exposedMembersOnType.GetInterfaces())
+            Type[] interfaces = exposedMembersOnType.GetInterfaces();
+            for (int i = 0; i < interfaces.Length; i++)
             {
-                foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
+                foreach (EventInfo evt in interfaces[i].GetTypeInfo().DeclaredEvents)
                 {
                     if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
                     {
