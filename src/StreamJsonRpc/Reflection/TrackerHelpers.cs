@@ -16,7 +16,7 @@ internal static class TrackerHelpers<TInterface>
     /// <summary>
     /// Dictionary to record the calculation made in <see cref="FindInterfaceImplementedBy(Type)"/> to obtain the <typeparamref name="TInterface"/> type from a given <see cref="Type"/>.
     /// </summary>
-    private static readonly Dictionary<Type, TypeWrapper> TypeToImplementedInterfaceMap = new();
+    private static readonly Dictionary<Type, Type?> TypeToImplementedInterfaceMap = new();
 
     /// <summary>
     /// Gets the generic type definition for whatever type parameter was given by <typeparamref name="TInterface" />.
@@ -28,8 +28,7 @@ internal static class TrackerHelpers<TInterface>
     /// </summary>
     /// <param name="objectType">The type which may implement <typeparamref name="TInterface"/>.</param>
     /// <returns>The <typeparamref name="TInterface"/> type from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
-    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
+    internal static Type? FindInterfaceImplementedBy([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
     {
         Requires.NotNull(objectType, nameof(objectType));
 
@@ -38,17 +37,17 @@ internal static class TrackerHelpers<TInterface>
             return objectType;
         }
 
-        TypeWrapper interfaceFromType = default;
+        Type? interfaceFromType;
         lock (TypeToImplementedInterfaceMap)
         {
             if (!TypeToImplementedInterfaceMap.TryGetValue(objectType, out interfaceFromType))
             {
-                interfaceFromType = new(objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition));
+                interfaceFromType = objectType.GetTypeInfo().GetInterfaces().FirstOrDefault(i => i.IsConstructedGenericType && i.GetGenericTypeDefinition() == InterfaceGenericTypeDefinition);
                 TypeToImplementedInterfaceMap.Add(objectType, interfaceFromType);
             }
         }
 
-        return interfaceFromType.Type;
+        return interfaceFromType;
     }
 
     /// <summary>
@@ -71,6 +70,4 @@ internal static class TrackerHelpers<TInterface>
     /// <param name="objectType">The type that may be deserialized.</param>
     /// <returns><see langword="true"/> if <paramref name="objectType"/> is a closed generic form of <typeparamref name="TInterface"/>; <see langword="false"/> otherwise.</returns>
     internal static bool IsActualInterfaceMatch(Type objectType) => Requires.NotNull(objectType, nameof(objectType)).IsConstructedGenericType && objectType.GetGenericTypeDefinition().Equals(InterfaceGenericTypeDefinition);
-
-    private record struct TypeWrapper([property: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type? Type);
 }

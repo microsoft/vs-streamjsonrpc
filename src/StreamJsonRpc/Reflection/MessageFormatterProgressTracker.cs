@@ -70,8 +70,7 @@ public class MessageFormatterProgressTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
-    public static Type? FindIProgressOfT([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
+    public static Type? FindIProgressOfT([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type objectType)
         => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
 
     /// <summary>
@@ -218,6 +217,10 @@ public class MessageFormatterProgressTracker
     /// </summary>
     public class ProgressParamInformation
     {
+#if NET
+        private static readonly MethodInfo ReportMethodInfo = typeof(IProgress<>).GetMethod("Report")!;
+#endif
+
         /// <summary>
         /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
         /// </summary>
@@ -237,12 +240,19 @@ public class MessageFormatterProgressTracker
         {
             Requires.NotNull(progressObject, nameof(progressObject));
 
-            Type? iProgressOfTType = FindIProgressOfT(progressObject.GetType());
+            [UnconditionalSuppressMessage("Trimming", "IL2072:RequiresUnreferencedCode", Justification = "The 'IProgress<>' Type must exist and so trimmer kept it. In which case it also kept it on any type which implements it.")]
+            static Type? FindIProgress(object progressObject) => FindIProgressOfT(progressObject.GetType());
+
+            Type? iProgressOfTType = FindIProgress(progressObject);
 
             Verify.Operation(iProgressOfTType is not null, Resources.FindIProgressOfTError);
 
             this.ValueType = iProgressOfTType.GenericTypeArguments[0];
+#if NET
+            this.reportMethod = (MethodInfo)iProgressOfTType.GetMemberWithSameMetadataDefinitionAs(ReportMethodInfo);
+#else
             this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;
+#endif
             this.progressObject = progressObject;
             this.Token = token;
         }
