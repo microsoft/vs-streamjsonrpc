@@ -38,6 +38,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private static readonly JsonRpcError DroppedError = new();
 
+#if NET
+    private static readonly MethodInfo ValueTaskAsTaskMethodInfo = typeof(ValueTask<>).GetMethod(nameof(ValueTask<int>.AsTask))!;
+    private static readonly MethodInfo ValueTaskGetResultMethodInfo = typeof(ValueTask<>).GetMethod("get_Result")!;
+    private static readonly MethodInfo TaskGetResultMethodInfo = typeof(Task<>).GetMethod("get_Result")!;
+#endif
+
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly object syncObject = new object();
 
@@ -1725,7 +1731,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // Checking on the runtime result object itself is problematic because .NET / C# implements
         // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
         // the VoidTaskResult internal struct as a meaningful result.
-        return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
+        return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _, out _)
             ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
             : this.HandleInvocationTaskResult(request, resultingTask);
     }
@@ -1806,8 +1812,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
     /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
+    /// <param name="isValueTask">Receives a value indicating whether <paramref name="taskOfTTypeInfo"/> is a ValueTask (true) or Task (false).</param>
     /// <returns><see langword="true"/> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <see langword="false"/>.</returns>
-    private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, [NotNullWhen(true)] out TypeInfo? taskOfTTypeInfo)
+    private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, [NotNullWhen(true)] out TypeInfo? taskOfTTypeInfo, out bool isValueTask)
     {
         Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
 
@@ -1815,18 +1822,28 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         TypeInfo? taskTypeInfoLocal = taskTypeInfo;
         while (taskTypeInfoLocal is not null)
         {
-            bool isTaskOfTOrValueTaskOfT = taskTypeInfoLocal.IsGenericType &&
-                (taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(Task<>) || taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(ValueTask<>));
-            if (isTaskOfTOrValueTaskOfT)
+            if (taskTypeInfoLocal.IsGenericType)
             {
-                taskOfTTypeInfo = taskTypeInfoLocal;
-                return true;
+                Type genericTypeDefinition = taskTypeInfoLocal.GetGenericTypeDefinition();
+                if (genericTypeDefinition == typeof(Task<>))
+                {
+                    isValueTask = false;
+                    taskOfTTypeInfo = taskTypeInfoLocal;
+                    return true;
+                }
+                else if (genericTypeDefinition == typeof(ValueTask<>))
+                {
+                    isValueTask = true;
+                    taskOfTTypeInfo = taskTypeInfoLocal;
+                    return true;
+                }
             }
 
             taskTypeInfoLocal = taskTypeInfoLocal.BaseType?.GetTypeInfo();
         }
 
         taskOfTTypeInfo = null;
+        isValueTask = false;
         return false;
     }
 
@@ -1849,7 +1866,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             TypeInfo resultTypeInfo = result.GetType().GetTypeInfo();
             if (resultTypeInfo.IsGenericType && resultTypeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>))
             {
-                task = (Task)resultTypeInfo.GetDeclaredMethod(nameof(ValueTask<int>.AsTask))!.Invoke(result, Array.Empty<object>())!;
+                MethodInfo valueTaskAsTaskMethodInfo =
+#if NET
+                    (MethodInfo)resultTypeInfo.GetMemberWithSameMetadataDefinitionAs(ValueTaskAsTaskMethodInfo);
+#else
+                    resultTypeInfo.GetDeclaredMethod(nameof(ValueTask<int>.AsTask))!;
+#endif
+                task = (Task)valueTaskAsTaskMethodInfo.Invoke(result, Array.Empty<object>())!;
                 return true;
             }
         }
@@ -2342,7 +2365,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
     {
         // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
-        Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
+        Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo, out bool isValueTask));
 
         object? result = null;
         Type? declaredResultType = null;
@@ -2352,6 +2375,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             // If t is just a Task, there is no Result property on it.
             // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
             // read the result at runtime.
+#if NET
+            MethodInfo resultGetter = isValueTask
+                ? (MethodInfo)taskOfTTypeInfo.GetMemberWithSameMetadataDefinitionAs(ValueTaskGetResultMethodInfo)
+                : (MethodInfo)taskOfTTypeInfo.GetMemberWithSameMetadataDefinitionAs(TaskGetResultMethodInfo);
+
+            declaredResultType = resultGetter.ReturnType;
+            result = resultGetter.Invoke(t, Array.Empty<object>());
+#else
 #pragma warning disable VSTHRD103 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
             const string ResultPropertyName = nameof(Task<int>.Result);
 #pragma warning restore VSTHRD103
@@ -2360,6 +2391,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             Assumes.NotNull(resultProperty);
             declaredResultType = resultProperty.PropertyType;
             result = resultProperty.GetValue(t);
+#endif
 
             // Transfer the ultimate success/failure result of the operation from the original successful method to the post-processing step.
             t = this.ProcessResultBeforeSerializingAsync(result, cancellationToken);

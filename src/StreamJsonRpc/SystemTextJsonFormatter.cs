@@ -773,7 +773,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+    [RequiresDynamicCode(RuntimeReasons.Formatters)]
     private class ProgressConverterFactory : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -783,11 +783,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter = formatter;
         }
 
-        public override bool CanConvert(Type typeToConvert) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(typeToConvert) is not null;
+        public override bool CanConvert(Type typeToConvert) => TrackerHelpers.FindIProgressInterfaceImplementedBy(typeToConvert) is not null;
 
         public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            Type? iface = TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(typeToConvert);
+            Type? iface = TrackerHelpers.FindIProgressInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
             Type genericTypeArg = iface.GetGenericArguments()[0];
             Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
@@ -835,11 +835,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter = formatter;
         }
 
-        public override bool CanConvert(Type typeToConvert) => TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeToConvert) is not null;
+        public override bool CanConvert(Type typeToConvert) => TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeToConvert) is not null;
 
         public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeToConvert);
+            Type? iface = TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
             Type genericTypeArg = iface.GetGenericArguments()[0];
             Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);

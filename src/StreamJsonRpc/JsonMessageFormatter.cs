@@ -984,7 +984,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// <summary>
     /// Converts an instance of <see cref="IProgress{T}"/> to a progress token.
     /// </summary>
-    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonProgressClientConverter : JsonConverter
     {
         private readonly JsonMessageFormatter formatter;
@@ -1046,7 +1045,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class AsyncEnumerableConsumerConverter : JsonConverter
     {
         private static readonly MethodInfo ReadJsonOpenGenericMethod = typeof(AsyncEnumerableConsumerConverter).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Single(m => m.Name == nameof(ReadJson) && m.IsGenericMethod);
@@ -1067,7 +1065,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                 return null;
             }
 
-            Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(objectType);
+            Type? iface = TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(objectType);
             Assumes.NotNull(iface);
             MethodInfo genericMethod = ReadJsonOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
             try
@@ -1106,7 +1104,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
     /// </summary>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    [RequiresUnreferencedCode(RuntimeReasons.ExtractTypes)]
     private class AsyncEnumerableGeneratorConverter : JsonConverter
     {
         private static readonly MethodInfo WriteJsonOpenGenericMethod = typeof(AsyncEnumerableGeneratorConverter).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name == nameof(WriteJson) && m.IsGenericMethod);
@@ -1127,7 +1124,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
-            Type? iface = TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(value!.GetType());
+            Type? iface = TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(value!.GetType());
             Assumes.NotNull(iface);
             MethodInfo genericMethod = WriteJsonOpenGenericMethod.MakeGenericMethod(iface.GenericTypeArguments[0]);
             try

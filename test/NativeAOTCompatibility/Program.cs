@@ -4,6 +4,7 @@
 #pragma warning disable SA1402 // File may only contain a single type
 #pragma warning disable SA1649 // File name should match first type name
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;
 using StreamJsonRpc;
@@ -24,14 +25,12 @@ Console.WriteLine($"2 + 5 = {sum}");
 
 // When properly configured, this formatter is safe in Native AOT scenarios for
 // the very limited use case shown in this program.
-#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Using the Json source generator.")]
+[UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Using the Json source generator.")]
 IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
 {
     JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
 };
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-#pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
 internal class Server
 {
