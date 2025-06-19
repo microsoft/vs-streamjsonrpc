@@ -144,6 +144,8 @@ jobs:
         credscan:
           suppressionsFile: $(Build.SourcesDirectory)/azure-pipelines/CredScanSuppressions.json
           debugMode: true # required for whole directory suppressions
+        binskim:
+          analyzeTargetGlob: $(Build.ArtifactStagingDirectory)\symbols-Windows\**
 
       outputParentDirectory: $(Build.ArtifactStagingDirectory)
       outputs:
