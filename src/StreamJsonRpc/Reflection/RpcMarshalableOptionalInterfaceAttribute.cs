@@ -37,7 +37,7 @@ public class RpcMarshalableOptionalInterfaceAttribute : Attribute
     /// updating RPC interfaces.</param>
     /// <param name="optionalInterface">The <see cref="Type"/> of the known optional interface that the marshalable
     /// object may implement.</param>
-    public RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, Type optionalInterface)
+    public RpcMarshalableOptionalInterfaceAttribute(int optionalInterfaceCode, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type optionalInterface)
     {
         this.OptionalInterfaceCode = optionalInterfaceCode;
         this.OptionalInterface = optionalInterface;
