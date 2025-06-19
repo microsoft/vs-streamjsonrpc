@@ -118,6 +118,7 @@ jobs:
           zipSources: false
           ${{ if parameters.RealSign }}:
             signType: real
+            signWithProd: true
           ${{ else }}:
             signType: test
         sbom:
@@ -141,6 +142,8 @@ jobs:
           - powershell: Write-Host "##vso[task.setvariable variable=PROFILINGINPUTSDROPNAME]$(tools/variables/ProfilingInputsDropName.ps1)"
             displayName: ⚙ Set ProfilingInputsDropName for optprof
       sdl:
+        binskim:
+          analyzeTargetGlob: $(Build.ArtifactStagingDirectory)\symbols-Windows\**
         credscan:
           suppressionsFile: $(Build.SourcesDirectory)/azure-pipelines/CredScanSuppressions.json
           debugMode: true # required for whole directory suppressions
@@ -226,6 +229,7 @@ jobs:
               signing:
                 enabled: false # enable when building unique artifacts on this agent that must be signed
                 signType: real
+                signWithProd: true
           outputParentDirectory: $(Build.ArtifactStagingDirectory)
           outputs:
           - ${{ each artifact_name in parameters.artifact_names }}:
@@ -261,6 +265,7 @@ jobs:
               signing:
                 enabled: false # enable when building unique artifacts on this agent that must be signed
                 signType: real
+                signWithProd: true
           outputParentDirectory: $(Build.ArtifactStagingDirectory)
           outputs:
           - ${{ each artifact_name in parameters.artifact_names }}:
