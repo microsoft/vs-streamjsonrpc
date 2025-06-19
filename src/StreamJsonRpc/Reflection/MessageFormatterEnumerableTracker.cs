@@ -100,20 +100,14 @@ public class MessageFormatterEnumerableTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IAsyncEnumerable{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IAsyncEnumerable{T}"/>; otherwise, false.</returns>
-    /// <devremarks>
-    /// We use <see langword="int"/> as a generic type argument in this because what we use doesn't matter, but we must use *something*.
-    /// </devremarks>
-    public static bool CanSerialize(Type objectType) => TrackerHelpers<IAsyncEnumerable<int>>.CanSerialize(objectType);
+    public static bool CanSerialize(Type objectType) => TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(objectType) is not null;
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> is exactly some closed generic type based on <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may be <see cref="IAsyncEnumerable{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> is <see cref="IAsyncEnumerable{T}"/>; otherwise, false.</returns>
-    /// <devremarks>
-    /// We use <see langword="int"/> as a generic type argument in this because what we use doesn't matter, but we must use *something*.
-    /// </devremarks>
-    public static bool CanDeserialize(Type objectType) => TrackerHelpers<IAsyncEnumerable<int>>.CanDeserialize(objectType);
+    public static bool CanDeserialize(Type objectType) => TrackerHelpers.IsIAsyncEnumerable(objectType);
 
     /// <summary>
     /// Used by the generator to assign a handle to the given <see cref="IAsyncEnumerable{T}"/>.

@@ -199,6 +199,7 @@ jobs:
     parameters:
       Is1ESPT: ${{ parameters.Is1ESPT }}
       RunTests: ${{ parameters.RunTests }}
+      osRID: win
       IsOptProf: ${{ parameters.IsOptProf }}
 
   - ${{ if and(parameters.EnableDotNetFormatCheck, not(parameters.EnableLinuxBuild)) }}:
@@ -243,6 +244,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          osRID: linux
       - ${{ if parameters.EnableDotNetFormatCheck }}:
         - script: dotnet format --verify-no-changes
           displayName: 💅 Verify formatted code
@@ -277,6 +279,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          osRID: osx
 
   - job: WrapUp
     dependsOn:
