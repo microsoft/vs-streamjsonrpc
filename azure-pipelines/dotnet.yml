@@ -44,7 +44,7 @@ steps:
 
 - script: dotnet publish -r ${{ parameters.osRID }}-x64 -warnaserror
   displayName: 🧪 NativeAOT test
-  workingDirectory: test/NativeAOTCompatibility
+  workingDirectory: test/NativeAOTCompatibility.Test
 
 - powershell: tools/variables/_define.ps1
   failOnStderr: true

@@ -38,7 +38,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F446B894-5
 		test\Directory.Build.targets = test\Directory.Build.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NativeAOTCompatibility", "test\NativeAOTCompatibility\NativeAOTCompatibility.csproj", "{1837EED6-4236-09AA-AEAA-0B8F5C35813E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NativeAOTCompatibility.Test", "test\NativeAOTCompatibility.Test\NativeAOTCompatibility.Test.csproj", "{1837EED6-4236-09AA-AEAA-0B8F5C35813E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
