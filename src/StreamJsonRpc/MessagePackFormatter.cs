@@ -1346,6 +1346,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
     private class MessagePackExceptionResolver : IFormatterResolver
     {
         /// <summary>
