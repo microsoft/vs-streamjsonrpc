@@ -31,6 +31,9 @@
 			}
 		],
 		"xref": [
+      "https://dotnet.github.io/Nerdbank.Streams/xrefmap.yml",
+			"https://microsoft.github.io/vs-threading/xrefmap.yml",
+			"https://microsoft.github.io/vs-validation/xrefmap.yml",
 			"https://learn.microsoft.com/en-us/dotnet/.xrefmap.json"
 		],
 		"output": "_site",

@@ -7,6 +7,7 @@
     <BaseOutputPath Condition=" '$(BaseOutputPath)' == '' ">$(RepoRootPath)bin\$(MSBuildProjectName)\</BaseOutputPath>
     <PackageOutputPath>$(RepoRootPath)bin\Packages\$(Configuration)\NuGet\</PackageOutputPath>
     <VSIXOutputPath>$(RepoRootPath)bin\Packages\$(Configuration)\Vsix\$(Platform)\</VSIXOutputPath>
+    <SBOMFileDestPath>$(VSIXOutputPath)</SBOMFileDestPath>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest</AnalysisLevel>
@@ -27,7 +28,7 @@
     <!-- Local builds should embed PDBs so we never lose them when a subsequent build occurs. -->
     <DebugType Condition=" '$(CI)' != 'true' and '$(TF_BUILD)' != 'true' ">embedded</DebugType>
 
-    <PackageProjectUrl>https://github.com/Microsoft/vs-streamjsonrpc</PackageProjectUrl>
+    <PackageProjectUrl>https://microsoft.github.io/vs-streamjsonrpc/</PackageProjectUrl>
     <Company>Microsoft</Company>
     <Authors>Microsoft</Authors>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
@@ -36,6 +37,11 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols Condition=" '$(DebugType)' != 'embedded' ">true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion Condition="'$(MSBuildProjectExtension)'=='.csproj'">13</LangVersion>
+    <LangVersion Condition="'$(MSBuildProjectExtension)'=='.vbproj'">16.9</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,4 +63,6 @@
       <PackageReleaseNotes Condition="'$(RepositoryUrl)'!=''">$(RepositoryUrl)/releases/tag/v$(Version)</PackageReleaseNotes>
     </PropertyGroup>
   </Target>
+
+  <Import Project="azure-pipelines\NuGetSbom.props" />
 </Project>

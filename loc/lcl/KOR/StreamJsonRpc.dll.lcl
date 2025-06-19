@@ -492,10 +492,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됩니다. {0}]]></Val>
+            <Val><![CDATA[예상치 못한 형식의 응답입니다.  오류 및 결과만 지원되지만 수신된 형식은 {0}입니다.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>

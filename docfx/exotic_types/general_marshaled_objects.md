@@ -10,7 +10,7 @@ When an object is marshaled, a handle to that object is transmitted that allows 
 A marshaled object's lifetime is connected between sender and receiver, and will only be released when either sender or receiver dispose the handle or the overall RPC connection.
 
 To the receiver, a marshaled object is represented by an instance of the marshaled interface.
-The implementation of that interface is an RPC proxy that is *very* similar to ordinary [dynamic proxies](dynamicproxy.md) that may be generated for the primary RPC connection.
+The implementation of that interface is an RPC proxy that is *very* similar to ordinary [dynamic proxies](../docs/dynamicproxy.md) that may be generated for the primary RPC connection.
 This interface has the same restrictions as documented for these dynamic proxies.
 
 **CONSIDER**: Will interfaces with events defined on them behave as expected, or should we disallow events on marshaled interfaces?
@@ -28,7 +28,7 @@ See [additional use cases being considered](general_marshaled_objects_2.md) for 
 
 ### Lifetime
 
-Every marshaled object's proxy implements `IDisposable`.
+Every marshaled object's proxy implements <xref:System.IDisposable>.
 Invoking `IDisposable.Dispose` on a proxy transmits a `dispose` RPC notification to the target object and releases the proxy.
 
 A proxy is valid until its receiver disposes it, or the JSON-RPC connection is closed. Its lifetime is *not* tied to the object that produced it-- disposing the object that returned it will **not** dispose the marshaled object or its proxy.

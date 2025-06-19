@@ -1,13 +1,13 @@
-# `RpcMarshalableAttribute` support
+# `RpcMarshalableAttribute`
 
 StreamJsonRpc typically *serializes* values that are passed in arguments or return values of RPC methods, which effectively transmits the data of an object or struct to the remote party.
-By applying the `RpcMarshalableAttribute` to an interface, it a proxy can be sent to effectively marshal *behavior* to the remote party instead of data, similar to other [exotic types](exotic_types.md).
+By applying the `RpcMarshalableAttribute` to an interface, it a proxy can be sent to effectively marshal *behavior* to the remote party instead of data, similar to other [exotic types](index.md).
 
 StreamJsonRpc allows transmitting marshalable objects (i.e., objects implementing a marshalable interface) in arguments and return values.
 
 Marshalable interfaces must:
 
-1. Extend `IDisposable` (unless interface is call-scoped).
+1. Extend <xref:System.IDisposable> (unless interface is call-scoped).
 1. Not include any properties.
 1. Not include any events.
 
@@ -180,12 +180,12 @@ var arg = new SomeClass
 await client.ProvideClassAsync(arg);
 ```
 
-⚠️ While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an `IDisposable` value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
+⚠️ While this use case is supported, be very wary of this pattern because it becomes less obvious to the receiver that an <xref:System.IDisposable> value is tucked into the object tree of an argument somewhere that *must* be disposed to avoid a resource leak.
 This risk can be mitigated by using call-scoped marshalable interfaces.
 
 ### As an argument without a proxy for an RPC interface
 
-When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshalable object as an argument by explicitly passing in the declared parameter types to the `InvokeWithCancellationAsync` call:
+When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshalable object as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
 
 ```cs
 ICounter arg = new Counter();

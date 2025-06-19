@@ -863,7 +863,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 if (wrapper.RootElement.TryGetProperty(MessageFormatterEnumerableTracker.TokenPropertyName, out JsonElement enumToken))
                 {
                     // Copy the token so we can retain it and replay it later.
-                    handle = enumToken.Deserialize<JsonElement>();
+                    handle = enumToken.Clone();
                 }
 
                 IReadOnlyList<T>? prefetchedItems = null;
