@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Runtime.CompilerServices;
-using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using PolyType;
 
@@ -107,22 +105,22 @@ public partial class JsonRpcNerdbankMessagePackLengthTests(ITestOutputHelper log
         }
     }
 
-    [GenerateShape<System.Collections.IDictionary>]
-    [GenerateShape<int?>]
-    [GenerateShape<double>]
-    [GenerateShape<Guid>]
-    [GenerateShape<InternalClass>]
-    [GenerateShape<Server.CustomErrorData>]
-    [GenerateShape<IProgress<int>>]
-    [GenerateShape<IProgress<TypeThrowsWhenSerialized>>]
-    [GenerateShape<IProgress<UnionBaseClass>>]
-    [GenerateShape<IProgress<CustomSerializedType>>]
-    [GenerateShape<IAsyncEnumerable<UnionBaseClass>>]
-    [GenerateShape<TypeThrowsWhenSerialized>]
-    [GenerateShape<TypeThrowsWhenDeserialized>]
-    [GenerateShape<StrongTypedProgressType>]
-    [GenerateShape<XAndYPropertiesWithProgress>]
-    [GenerateShape<VAndWProperties>]
-    [GenerateShape<Exception>]
+    [GenerateShapeFor<System.Collections.IDictionary>]
+    [GenerateShapeFor<int?>]
+    [GenerateShapeFor<double>]
+    [GenerateShapeFor<Guid>]
+    [GenerateShapeFor<InternalClass>]
+    [GenerateShapeFor<Server.CustomErrorData>]
+    [GenerateShapeFor<IProgress<int>>]
+    [GenerateShapeFor<IProgress<TypeThrowsWhenSerialized>>]
+    [GenerateShapeFor<IProgress<UnionBaseClass>>]
+    [GenerateShapeFor<IProgress<CustomSerializedType>>]
+    [GenerateShapeFor<IAsyncEnumerable<UnionBaseClass>>]
+    [GenerateShapeFor<TypeThrowsWhenSerialized>]
+    [GenerateShapeFor<TypeThrowsWhenDeserialized>]
+    [GenerateShapeFor<StrongTypedProgressType>]
+    [GenerateShapeFor<XAndYPropertiesWithProgress>]
+    [GenerateShapeFor<VAndWProperties>]
+    [GenerateShapeFor<Exception>]
     private partial class Witness;
 }

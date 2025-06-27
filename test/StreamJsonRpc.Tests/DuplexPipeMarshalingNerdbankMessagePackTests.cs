@@ -29,9 +29,9 @@ public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMa
         this.clientMessageFormatter = clientFormatter;
     }
 
-    [GenerateShape<IDuplexPipe>]
-    [GenerateShape<Stream>]
-    [GenerateShape<PipeReader>]
-    [GenerateShape<PipeWriter>]
+    [GenerateShapeFor<IDuplexPipe>]
+    [GenerateShapeFor<Stream>]
+    [GenerateShapeFor<PipeReader>]
+    [GenerateShapeFor<PipeWriter>]
     private partial class Witness;
 }

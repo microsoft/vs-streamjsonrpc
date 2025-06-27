@@ -473,6 +473,6 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         }
     }
 
-    [GenerateShape<CustomType>]
+    [GenerateShapeFor<CustomType>]
     private partial class Witness;
 }

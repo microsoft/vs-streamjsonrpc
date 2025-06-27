@@ -9,7 +9,7 @@ using StreamJsonRpc;
 namespace Benchmarks;
 
 [MemoryDiagnoser]
-[GenerateShape<int>]
+[GenerateShapeFor<int>]
 public partial class NotifyBenchmarks
 {
     private JsonRpc clientRpc = null!;

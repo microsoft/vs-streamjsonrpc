@@ -11,7 +11,7 @@ using StreamJsonRpc;
 namespace Benchmarks;
 
 [MemoryDiagnoser]
-[GenerateShape<int>]
+[GenerateShapeFor<int>]
 public partial class InvokeBenchmarks
 {
     private JsonRpc clientRpc = null!;

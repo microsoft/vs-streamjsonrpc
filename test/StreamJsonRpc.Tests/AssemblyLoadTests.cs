@@ -181,7 +181,7 @@ public partial class AssemblyLoadTests : TestBase
             }
         }
 
-        [GenerateShape<bool>]
+        [GenerateShapeFor<bool>]
         private partial class Witness;
     }
 }

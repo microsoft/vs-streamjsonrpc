@@ -72,7 +72,7 @@ public partial class NerdbankMessagePackFormatter
 
         private MessagePackReader CreateReader(object value) => new((RawMessagePack)value);
 
-        [GenerateShape<decimal>]
+        [GenerateShapeFor<decimal>]
         private partial class Witness;
     }
 }

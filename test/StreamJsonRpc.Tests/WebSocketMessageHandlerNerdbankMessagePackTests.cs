@@ -1,5 +1,4 @@
-﻿using System.Drawing.Text;
-using PolyType;
+﻿using PolyType;
 
 public partial class WebSocketMessageHandlerNerdbankMessagePackTests : WebSocketMessageHandlerTests
 {
@@ -8,6 +7,6 @@ public partial class WebSocketMessageHandlerNerdbankMessagePackTests : WebSocket
     {
     }
 
-    [GenerateShape<int>]
+    [GenerateShapeFor<int>]
     private partial class Witness;
 }

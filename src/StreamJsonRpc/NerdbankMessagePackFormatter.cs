@@ -45,7 +45,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// to avoid repeated startup costs associated with building up the converter tree.
     /// </para>
     /// </remarks>
-    public static readonly MessagePackSerializer DefaultSerializer = new()
+    public static readonly MessagePackSerializer DefaultSerializer = new MessagePackSerializer()
     {
         InternStrings = true,
         ConverterFactories = [ConverterFactory.Instance],
@@ -61,10 +61,9 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 RequestIdConverter.Instance,
 
                 ExceptionConverter<Exception>.Instance,
-
-                Nerdbank.MessagePack.Converters.PrimitivesAsObjectConverter.Instance,
             ],
-    };
+    }.WithObjectConverter()
+     .WithGuidConverter();
 
     /// <summary>
     /// A cache of property names to declared property types, indexed by their containing parameter object type.
@@ -1348,7 +1347,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                     try
                     {
                         reader = new(this.MsgPackData);
-                        return formatter.envelopeSerializer.DeserializeDynamic(ref reader);
+                        return formatter.envelopeSerializer.DeserializePrimitives(ref reader);
                     }
                     catch (MessagePackSerializationException)
                     {
@@ -1387,14 +1386,14 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                null;
     }
 
-    [GenerateShape<string>]
-    [GenerateShape<TraceParent>]
-    [GenerateShape<RequestId>]
-    [GenerateShape<JsonRpcMessage>]
-    [GenerateShape<CommonErrorData>]
-    [GenerateShape<RawMessagePack>]
-    [GenerateShape<IDictionary>]
-    [GenerateShape<Exception>]
-    [GenerateShape<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>]
+    [GenerateShapeFor<string>]
+    [GenerateShapeFor<TraceParent>]
+    [GenerateShapeFor<RequestId>]
+    [GenerateShapeFor<JsonRpcMessage>]
+    [GenerateShapeFor<CommonErrorData>]
+    [GenerateShapeFor<RawMessagePack>]
+    [GenerateShapeFor<IDictionary>]
+    [GenerateShapeFor<Exception>]
+    [GenerateShapeFor<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>]
     private partial class Witness;
 }
