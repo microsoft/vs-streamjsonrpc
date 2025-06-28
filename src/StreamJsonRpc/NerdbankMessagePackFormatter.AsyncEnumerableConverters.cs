@@ -3,11 +3,16 @@
 
 #pragma warning disable CA1812 // Avoid uninstantiated internal classes
 
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
+using PolyType;
 using PolyType.Abstractions;
+using StreamJsonRpc;
 using StreamJsonRpc.Reflection;
+
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc;
 
@@ -16,13 +21,18 @@ namespace StreamJsonRpc;
 /// </summary>
 public partial class NerdbankMessagePackFormatter
 {
-    private static class AsyncEnumerableConverters
+    /// <summary>
+    /// Declares converters for <see cref="IAsyncEnumerable{T}"/> types.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static class AsyncEnumerableConverters
     {
         /// <summary>
-        /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>
-        /// or an <see cref="IAsyncEnumerable{T}"/> into an enumeration token.
+        /// Converts between an enumeration token and <see cref="IAsyncEnumerable{T}"/>.
         /// </summary>
-        internal class PreciseTypeConverter<T> : MessagePackConverter<IAsyncEnumerable<T>>
+        /// <typeparam name="T">The type of element to be enumerated.</typeparam>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public class PreciseTypeConverter<T> : MessagePackConverter<IAsyncEnumerable<T>>
         {
             /// <summary>
             /// The constant "token", in its various forms.
@@ -34,6 +44,7 @@ public partial class NerdbankMessagePackFormatter
             /// </summary>
             private static readonly MessagePackString ValuesPropertyName = new(MessageFormatterEnumerableTracker.ValuesPropertyName);
 
+            /// <inheritdoc/>
             public override IAsyncEnumerable<T>? Read(ref MessagePackReader reader, SerializationContext context)
             {
                 if (reader.TryReadNil())
@@ -69,6 +80,7 @@ public partial class NerdbankMessagePackFormatter
                 return mainFormatter.EnumerableTracker.CreateEnumerableProxy(token.HasValue ? token.Value : null, initialElements);
             }
 
+            /// <inheritdoc/>
             [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
             public override void Write(ref MessagePackWriter writer, in IAsyncEnumerable<T>? value, SerializationContext context)
             {
@@ -78,6 +90,7 @@ public partial class NerdbankMessagePackFormatter
                 Serialize_Shared(mainFormatter, ref writer, value, context);
             }
 
+            /// <inheritdoc/>
             public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
 
             internal static void Serialize_Shared(NerdbankMessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, SerializationContext context)
@@ -120,8 +133,10 @@ public partial class NerdbankMessagePackFormatter
         }
 
         /// <summary>
-        /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
+        /// Serializes an <see cref="IAsyncEnumerable{T}"/> to an enumeration token (one-way).
         /// </summary>
+        /// <typeparam name="TClass">The concrete type that implements <see cref="IAsyncEnumerable{T}"/>.</typeparam>
+        /// <typeparam name="TElement">The type of element to be enumerated.</typeparam>
         internal class GeneratorConverter<TClass, TElement> : MessagePackConverter<TClass>
             where TClass : IAsyncEnumerable<TElement>
         {
