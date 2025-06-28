@@ -4,7 +4,7 @@
 using System.Runtime.Serialization;
 using Nerdbank.MessagePack;
 using PolyType;
-using PolyType.ReflectionProvider;
+using PolyType.Abstractions;
 using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
@@ -31,7 +31,7 @@ public partial class NerdbankMessagePackFormatter
             }
 
             MessagePackReader reader = this.CreateReader(value);
-            return serializer.DeserializeObject(ref reader, ReflectionTypeShapeProvider.Default.GetShape(type));
+            return serializer.DeserializeObject(ref reader, Witness.ShapeProvider.Resolve(type));
         }
 
         public object Convert(object value, TypeCode typeCode) => typeCode switch
@@ -72,7 +72,21 @@ public partial class NerdbankMessagePackFormatter
 
         private MessagePackReader CreateReader(object value) => new((RawMessagePack)value);
 
+        [GenerateShapeFor<bool>]
+        [GenerateShapeFor<char>]
+        [GenerateShapeFor<byte>]
+        [GenerateShapeFor<sbyte>]
+        [GenerateShapeFor<ushort>]
+        [GenerateShapeFor<short>]
+        [GenerateShapeFor<uint>]
+        [GenerateShapeFor<int>]
+        [GenerateShapeFor<ulong>]
+        [GenerateShapeFor<long>]
+        [GenerateShapeFor<float>]
+        [GenerateShapeFor<double>]
+        [GenerateShapeFor<string>]
         [GenerateShapeFor<decimal>]
+        [GenerateShapeFor<DateTime>]
         private partial class Witness;
     }
 }
