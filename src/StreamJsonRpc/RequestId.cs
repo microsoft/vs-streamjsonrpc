@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 
 namespace StreamJsonRpc;
@@ -122,4 +123,8 @@ public struct RequestId : IEquatable<RequestId>
             value is int i ? new RequestId(i) :
             throw new JsonSerializationException("Unexpected type for id property: " + value.GetType().Name);
     }
+
+    internal JsonValue? AsJsonValue() =>
+        this.Number is not null ? JsonValue.Create(this.Number.Value) :
+        JsonValue.Create(this.String);
 }

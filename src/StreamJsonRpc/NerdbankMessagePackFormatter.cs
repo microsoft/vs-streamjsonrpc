@@ -377,11 +377,11 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
     private static Type NormalizeType(Type type)
     {
-        if (TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(type) is Type iface)
+        if (TrackerHelpers.FindIProgressInterfaceImplementedBy(type) is Type iface)
         {
             type = iface;
         }
-        else if (TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(type) is Type iface2)
+        else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(type) is Type iface2)
         {
             type = iface2;
         }
@@ -1379,8 +1379,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
         public MessagePackConverter<T>? CreateConverter<T>(ITypeShape<T> shape)
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new FullProgressConverter<T>() :
-               TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.PreciseTypeConverter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]))! :
-               TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is Type iface ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.GeneratorConverter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]))! :
+               TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.PreciseTypeConverter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]))! :
+               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? (MessagePackConverter<T>)Activator.CreateInstance(typeof(AsyncEnumerableConverters.GeneratorConverter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]))! :
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute) :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;

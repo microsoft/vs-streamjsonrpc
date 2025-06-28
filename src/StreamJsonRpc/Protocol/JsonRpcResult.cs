@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
 using PolyType;
 using JsonNET = Newtonsoft.Json.Linq;
@@ -79,10 +80,10 @@ public partial class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JsonNET.JObject
+        return new JsonObject
         {
-            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
-        }.ToString(Newtonsoft.Json.Formatting.None);
+            ["id"] = this.RequestId.AsJsonValue(),
+        }.ToJsonString();
     }
 
     /// <summary>
