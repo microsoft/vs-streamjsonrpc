@@ -1,4 +1,5 @@
 static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
+StreamJsonRpc.JsonRpc.AddLoadableType(System.Type! type) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.NerdbankMessagePackFormatter
 StreamJsonRpc.NerdbankMessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
@@ -15,3 +16,4 @@ StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.init -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
+virtual StreamJsonRpc.JsonRpc.LoadTypeTrimSafe(string! typeFullName, string? assemblyName) -> System.Type?

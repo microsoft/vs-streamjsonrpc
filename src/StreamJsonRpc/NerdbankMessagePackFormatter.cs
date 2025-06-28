@@ -25,7 +25,13 @@ namespace StreamJsonRpc;
 /// Serializes JSON-RPC messages using MessagePack (a fast, compact binary format).
 /// </summary>
 /// <remarks>
+/// <para>
 /// The MessagePack implementation used here comes from https://github.com/AArnott/Nerdbank.MessagePack.
+/// </para>
+/// <para>
+/// This formatter prioritizes being trim and NativeAOT safe. As such, it uses <see cref="JsonRpc.LoadTypeTrimSafe(string, string?)"/> instead of <see cref="JsonRpc.LoadType(string, string?)"/> to load exception types to be deserialized.
+/// This trim-friendly method should be overridden to return types that are particularly interesting to the application.
+/// </para>
 /// </remarks>
 public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {

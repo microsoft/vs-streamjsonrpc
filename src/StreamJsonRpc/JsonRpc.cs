@@ -38,6 +38,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private static readonly JsonRpcError DroppedError = new();
 
+    private static readonly ImmutableDictionary<string, LoadableType> DefaultRuntimeDeserializableTypes = ImmutableDictionary.Create<string, LoadableType>()
+        .Add("System.Exception", new LoadableType(typeof(Exception)))
+        .Add("System.ArgumentException", new LoadableType(typeof(ArgumentException)))
+        .Add("System.InvalidOperationException", new LoadableType(typeof(InvalidOperationException)));
+
 #if NET
     private static readonly MethodInfo ValueTaskAsTaskMethodInfo = typeof(ValueTask<>).GetMethod(nameof(ValueTask<int>.AsTask))!;
     private static readonly MethodInfo ValueTaskGetResultMethodInfo = typeof(ValueTask<>).GetMethod("get_Result")!;
@@ -99,6 +104,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
 
+    private ImmutableDictionary<string, LoadableType> runtimeDeserializableTypes = DefaultRuntimeDeserializableTypes;
     private Task? readLinesTask;
     private long nextId = 1;
     private int requestsInDispatchCount;
@@ -251,6 +257,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
         this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
         this.CancellationStrategy = new StandardCancellationStrategy(this);
+
+        this.AddLoadableType(typeof(Exception));
+        this.AddLoadableType(typeof(InvalidOperationException));
+        this.AddLoadableType(typeof(ArgumentException));
     }
 
     /// <summary>
@@ -940,6 +950,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Gets or sets the set of types that can be deserialized from their name at runtime.
+    /// </summary>
+    /// <remarks>
+    /// This set of types is used by the default implementation of <see cref="LoadTypeTrimSafe(string, string?)"/> to determine
+    /// which types can be deserialized when their name is encountered in an RPC message.
+    /// </remarks>
+    public void AddLoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
+    {
+        Requires.NotNull(type);
+        Requires.Argument(type.FullName is not null, nameof(type), Resources.TypeMustHaveFullName);
+        this.ThrowIfConfigurationLocked();
+        lock (this.syncObject)
+        {
+            this.runtimeDeserializableTypes = this.runtimeDeserializableTypes.SetItem(type.FullName, new LoadableType(type));
+        }
+    }
+
+    /// <summary>
     /// Starts listening to incoming messages.
     /// </summary>
     public void StartListening()
@@ -1311,6 +1339,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
     /// </remarks>
     [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
     protected internal virtual Type? LoadType(string typeFullName, string? assemblyName)
     {
         Requires.NotNull(typeFullName, nameof(typeFullName));
@@ -1344,6 +1373,25 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Type? runtimeType = typeDeclaringAssembly is object ? typeDeclaringAssembly.GetType(typeFullName) : Type.GetType(typeFullName);
         return runtimeType;
     }
+
+    /// <summary>
+    /// When overridden by a derived type, this attempts to load a type based on its full name and possibly assembly name.
+    /// </summary>
+    /// <param name="typeFullName">The <see cref="Type.FullName"/> of the type to be loaded.</param>
+    /// <param name="assemblyName">The assemble name that is expected to define the type, if available. This should be parseable by <see cref="AssemblyName(string)"/>.</param>
+    /// <returns>The loaded <see cref="Type"/>, if one could be found; otherwise <see langword="null" />.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method is used to load types that are strongly referenced by incoming messages during serialization.
+    /// It is important to not load types that may pose a security threat based on the type and the trust level of the remote party.
+    /// </para>
+    /// <para>
+    /// The default implementation of this method matches types registered with <see cref="AddLoadableType(Type)"/>.
+    /// </para>
+    /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
+    /// </remarks>
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+    protected internal virtual Type? LoadTypeTrimSafe(string typeFullName, string? assemblyName) => this.runtimeDeserializableTypes.TryGetValue(typeFullName, out LoadableType type) ? type.Type : null;
 
     /// <summary>
     /// Disposes managed and native resources held by this instance.
@@ -2827,6 +2875,18 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             options ?? JsonRpcProxyOptions.Default,
             marshaledObjectHandle,
             options?.OnDispose)!;
+    }
+
+    private struct LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type) : IEquatable<LoadableType>
+    {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+        public Type Type => type;
+
+        public bool Equals(LoadableType other) => this.Type == other.Type;
+
+        public override int GetHashCode() => type.GetHashCode();
+
+        public override bool Equals(object? obj) => obj is LoadableType other && this.Equals(other);
     }
 
     /// <summary>
