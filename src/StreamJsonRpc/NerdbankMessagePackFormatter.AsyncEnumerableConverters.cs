@@ -12,7 +12,7 @@ using PolyType.Abstractions;
 using StreamJsonRpc;
 using StreamJsonRpc.Reflection;
 
-[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<>), typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.GeneratorConverter<>)], Requirements = TypeShapeRequirements.Constructor)]
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverter<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc;
 
@@ -22,138 +22,102 @@ namespace StreamJsonRpc;
 public partial class NerdbankMessagePackFormatter
 {
     /// <summary>
-    /// Declares converters for <see cref="IAsyncEnumerable{T}"/> types.
+    /// Converts between an enumeration token and <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
+    /// <typeparam name="T">The type of element to be enumerated.</typeparam>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static class AsyncEnumerableConverters
+    public class AsyncEnumerableConverter<T> : MessagePackConverter<IAsyncEnumerable<T>>
     {
         /// <summary>
-        /// Converts between an enumeration token and <see cref="IAsyncEnumerable{T}"/>.
+        /// The constant "token", in its various forms.
         /// </summary>
-        /// <typeparam name="T">The type of element to be enumerated.</typeparam>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public class PreciseTypeConverter<T> : MessagePackConverter<IAsyncEnumerable<T>>
+        private static readonly MessagePackString TokenPropertyName = new(MessageFormatterEnumerableTracker.TokenPropertyName);
+
+        /// <summary>
+        /// The constant "values", in its various forms.
+        /// </summary>
+        private static readonly MessagePackString ValuesPropertyName = new(MessageFormatterEnumerableTracker.ValuesPropertyName);
+
+        /// <inheritdoc/>
+        public override IAsyncEnumerable<T>? Read(ref MessagePackReader reader, SerializationContext context)
         {
-            /// <summary>
-            /// The constant "token", in its various forms.
-            /// </summary>
-            private static readonly MessagePackString TokenPropertyName = new(MessageFormatterEnumerableTracker.TokenPropertyName);
-
-            /// <summary>
-            /// The constant "values", in its various forms.
-            /// </summary>
-            private static readonly MessagePackString ValuesPropertyName = new(MessageFormatterEnumerableTracker.ValuesPropertyName);
-
-            /// <inheritdoc/>
-            public override IAsyncEnumerable<T>? Read(ref MessagePackReader reader, SerializationContext context)
+            if (reader.TryReadNil())
             {
-                if (reader.TryReadNil())
-                {
-                    return default;
-                }
-
-                NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
-
-                context.DepthStep();
-
-                RawMessagePack? token = default;
-                IReadOnlyList<T>? initialElements = null;
-                int propertyCount = reader.ReadMapHeader();
-                for (int i = 0; i < propertyCount; i++)
-                {
-                    if (TokenPropertyName.TryRead(ref reader))
-                    {
-                        // The value needs to outlive the reader, so we clone it.
-                        token = reader.ReadRaw(context).ToOwned();
-                    }
-                    else if (ValuesPropertyName.TryRead(ref reader))
-                    {
-                        initialElements = context.GetConverter<IReadOnlyList<T>>(context.TypeShapeProvider).Read(ref reader, context);
-                    }
-                    else
-                    {
-                        reader.Skip(context); // Skip the unrecognized key
-                        reader.Skip(context); // and its value.
-                    }
-                }
-
-                return mainFormatter.EnumerableTracker.CreateEnumerableProxy(token.HasValue ? token.Value : null, initialElements);
+                return default;
             }
 
-            /// <inheritdoc/>
-            [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
-            public override void Write(ref MessagePackWriter writer, in IAsyncEnumerable<T>? value, SerializationContext context)
+            NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
+
+            context.DepthStep();
+
+            RawMessagePack? token = default;
+            IReadOnlyList<T>? initialElements = null;
+            int propertyCount = reader.ReadMapHeader();
+            for (int i = 0; i < propertyCount; i++)
             {
-                context.DepthStep();
-
-                NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
-                Serialize_Shared(mainFormatter, ref writer, value, context);
-            }
-
-            /// <inheritdoc/>
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
-
-            internal static void Serialize_Shared(NerdbankMessagePackFormatter mainFormatter, ref MessagePackWriter writer, IAsyncEnumerable<T>? value, SerializationContext context)
-            {
-                if (value is null)
+                if (TokenPropertyName.TryRead(ref reader))
                 {
-                    writer.WriteNil();
+                    // The value needs to outlive the reader, so we clone it.
+                    token = reader.ReadRaw(context).ToOwned();
+                }
+                else if (ValuesPropertyName.TryRead(ref reader))
+                {
+                    initialElements = context.GetConverter<IReadOnlyList<T>>(context.TypeShapeProvider).Read(ref reader, context);
                 }
                 else
                 {
-                    (IReadOnlyList<T> elements, bool finished) = value.TearOffPrefetchedElements();
-                    long token = mainFormatter.EnumerableTracker.GetToken(value);
+                    reader.Skip(context); // Skip the unrecognized key
+                    reader.Skip(context); // and its value.
+                }
+            }
 
-                    int propertyCount = 0;
-                    if (elements.Count > 0)
-                    {
-                        propertyCount++;
-                    }
+            return mainFormatter.EnumerableTracker.CreateEnumerableProxy(token.HasValue ? token.Value : null, initialElements);
+        }
 
-                    if (!finished)
-                    {
-                        propertyCount++;
-                    }
+        /// <inheritdoc/>
+        [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
+        public override void Write(ref MessagePackWriter writer, in IAsyncEnumerable<T>? value, SerializationContext context)
+        {
+            context.DepthStep();
 
-                    writer.WriteMapHeader(propertyCount);
+            NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
+            if (value is null)
+            {
+                writer.WriteNil();
+            }
+            else
+            {
+                (IReadOnlyList<T> elements, bool finished) = value.TearOffPrefetchedElements();
+                long token = mainFormatter.EnumerableTracker.GetToken(value);
 
-                    if (!finished)
-                    {
-                        writer.Write(TokenPropertyName);
-                        writer.Write(token);
-                    }
+                int propertyCount = 0;
+                if (elements.Count > 0)
+                {
+                    propertyCount++;
+                }
 
-                    if (elements.Count > 0)
-                    {
-                        writer.Write(ValuesPropertyName);
-                        context.GetConverter(mainFormatter.GetUserDataShape(typeof(IReadOnlyList<T>))).WriteObject(ref writer, elements, context);
-                    }
+                if (!finished)
+                {
+                    propertyCount++;
+                }
+
+                writer.WriteMapHeader(propertyCount);
+
+                if (!finished)
+                {
+                    writer.Write(TokenPropertyName);
+                    writer.Write(token);
+                }
+
+                if (elements.Count > 0)
+                {
+                    writer.Write(ValuesPropertyName);
+                    context.GetConverter(mainFormatter.GetUserDataShape(typeof(IReadOnlyList<T>))).WriteObject(ref writer, elements, context);
                 }
             }
         }
 
-        /// <summary>
-        /// Serializes an <see cref="IAsyncEnumerable{T}"/> to an enumeration token (one-way).
-        /// </summary>
-        /// <typeparam name="TElement">The type of element to be enumerated.</typeparam>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public class GeneratorConverter<TElement> : MessagePackConverter<IAsyncEnumerable<TElement>>
-        {
-            /// <inheritdoc/>
-            public override IAsyncEnumerable<TElement> Read(ref MessagePackReader reader, SerializationContext context) => throw new NotSupportedException();
-
-            /// <inheritdoc/>
-            [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
-            public override void Write(ref MessagePackWriter writer, in IAsyncEnumerable<TElement>? value, SerializationContext context)
-            {
-                NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
-
-                context.DepthStep();
-                PreciseTypeConverter<TElement>.Serialize_Shared(mainFormatter, ref writer, value, context);
-            }
-
-            /// <inheritdoc/>
-            public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
-        }
+        /// <inheritdoc/>
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

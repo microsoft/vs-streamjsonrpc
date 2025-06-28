@@ -1389,8 +1389,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
         public MessagePackConverter<T>? CreateConverter<T>(ITypeShape<T> shape)
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new FullProgressConverter<T>() :
-               TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverters.PreciseTypeConverter<>)) :
-               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverters.GeneratorConverter<>)) :
+               TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
+               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute) :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
