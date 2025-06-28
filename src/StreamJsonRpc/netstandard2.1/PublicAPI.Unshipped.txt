@@ -22,4 +22,7 @@ StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.init -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.ProgressProxy(StreamJsonRpc.JsonRpc! rpc, object! token, bool useNamedArguments) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.Report(T value) -> void
 virtual StreamJsonRpc.JsonRpc.LoadTypeTrimSafe(string! typeFullName, string? assemblyName) -> System.Type?

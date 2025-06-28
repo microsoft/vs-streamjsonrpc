@@ -415,6 +415,10 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         return type;
     }
 
+    private static T ActivateAssociatedType<T>(ITypeShape shape, Type associatedType)
+        where T : class
+        => (T?)((IObjectTypeShape?)shape.GetAssociatedTypeShape(associatedType))?.GetDefaultConstructor()?.Invoke() ?? throw new InvalidOperationException($"Missing associated type from {shape.Type.FullName} to {associatedType.FullName}.");
+
     private ITypeShape GetUserDataShape(Type type)
     {
         type = NormalizeType(type);
@@ -1390,10 +1394,45 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute) :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
+    }
 
-        private static T ActivateAssociatedType<T>(ITypeShape shape, Type associatedType)
-            where T : class
-            => ((IObjectTypeShape<T>?)shape.GetAssociatedTypeShape(associatedType))?.GetDefaultConstructor()?.Invoke() ?? throw new InvalidOperationException($"Missing associated type from {shape.Type.FullName} to {associatedType.FullName}.");
+    private class NonDefaultConstructorVisitor<T1, T2, T3> : TypeShapeVisitor
+    {
+        internal static readonly NonDefaultConstructorVisitor<T1, T2, T3> Instance = new();
+
+        private NonDefaultConstructorVisitor()
+        {
+        }
+
+        public override object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state = null)
+        {
+            Func<TArgumentState> argStateCtor = constructorShape.GetArgumentStateConstructor();
+            Constructor<TArgumentState, TDeclaringType> ctor = constructorShape.GetParameterizedConstructor();
+            if (constructorShape.Parameters.Count != 3 ||
+                constructorShape.Parameters[0].ParameterType.Type != typeof(T1) ||
+                constructorShape.Parameters[1].ParameterType.Type != typeof(T2) ||
+                constructorShape.Parameters[2].ParameterType.Type != typeof(T3))
+            {
+                throw new InvalidOperationException("Unexpected constructor parameter types.");
+            }
+
+            var setter1 = (Setter<TArgumentState, T1>)constructorShape.Parameters[0].Accept(this)!;
+            var setter2 = (Setter<TArgumentState, T2>)constructorShape.Parameters[1].Accept(this)!;
+            var setter3 = (Setter<TArgumentState, T3>)constructorShape.Parameters[2].Accept(this)!;
+
+            Func<T1, T2, T3, TDeclaringType> func = (p1, p2, p3) =>
+            {
+                TArgumentState state = argStateCtor();
+                setter1(ref state, p1);
+                setter2(ref state, p2);
+                setter3(ref state, p3);
+                return ctor(ref state);
+            };
+
+            return func;
+        }
+
+        public override object? VisitParameter<TArgumentState, TParameterType>(IParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null) => parameterShape.GetSetter();
     }
 
     [GenerateShapeFor<string>]
