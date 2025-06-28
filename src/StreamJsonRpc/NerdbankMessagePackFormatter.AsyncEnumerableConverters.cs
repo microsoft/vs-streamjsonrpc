@@ -12,7 +12,7 @@ using PolyType.Abstractions;
 using StreamJsonRpc;
 using StreamJsonRpc.Reflection;
 
-[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<>)], Requirements = TypeShapeRequirements.Constructor)]
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<>), typeof(NerdbankMessagePackFormatter.AsyncEnumerableConverters.GeneratorConverter<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc;
 
@@ -135,15 +135,16 @@ public partial class NerdbankMessagePackFormatter
         /// <summary>
         /// Serializes an <see cref="IAsyncEnumerable{T}"/> to an enumeration token (one-way).
         /// </summary>
-        /// <typeparam name="TClass">The concrete type that implements <see cref="IAsyncEnumerable{T}"/>.</typeparam>
         /// <typeparam name="TElement">The type of element to be enumerated.</typeparam>
-        internal class GeneratorConverter<TClass, TElement> : MessagePackConverter<TClass>
-            where TClass : IAsyncEnumerable<TElement>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public class GeneratorConverter<TElement> : MessagePackConverter<IAsyncEnumerable<TElement>>
         {
-            public override TClass Read(ref MessagePackReader reader, SerializationContext context) => throw new NotSupportedException();
+            /// <inheritdoc/>
+            public override IAsyncEnumerable<TElement> Read(ref MessagePackReader reader, SerializationContext context) => throw new NotSupportedException();
 
+            /// <inheritdoc/>
             [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to helper method")]
-            public override void Write(ref MessagePackWriter writer, in TClass? value, SerializationContext context)
+            public override void Write(ref MessagePackWriter writer, in IAsyncEnumerable<TElement>? value, SerializationContext context)
             {
                 NerdbankMessagePackFormatter mainFormatter = context.GetFormatter();
 
@@ -151,6 +152,7 @@ public partial class NerdbankMessagePackFormatter
                 PreciseTypeConverter<TElement>.Serialize_Shared(mainFormatter, ref writer, value, context);
             }
 
+            /// <inheritdoc/>
             public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
         }
     }
