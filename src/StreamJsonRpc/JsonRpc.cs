@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc.Protocol;
@@ -104,6 +105,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
 
+    // TODO: make this a custom collection type so it can be shared across JsonRpc instances.
     private ImmutableDictionary<string, LoadableType> runtimeDeserializableTypes = DefaultRuntimeDeserializableTypes;
     private Task? readLinesTask;
     private long nextId = 1;
@@ -445,6 +447,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         /// A base-type that <em>does</em> offer the constructor will be instantiated instead.
         /// </summary>
         ExceptionNotDeserializable,
+
+        /// <summary>
+        /// An error occurred while deserializing a value within an <see cref="IFormatterConverter"/> interface.
+        /// </summary>
+        IFormatterConverterDeserializationFailure,
     }
 
     /// <summary>

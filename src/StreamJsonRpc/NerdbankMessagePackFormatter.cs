@@ -68,8 +68,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
                 ExceptionConverter<Exception>.Instance,
             ],
-    }.WithObjectConverter()
-     .WithGuidConverter();
+    }.WithObjectConverter();
 
     /// <summary>
     /// A cache of property names to declared property types, indexed by their containing parameter object type.

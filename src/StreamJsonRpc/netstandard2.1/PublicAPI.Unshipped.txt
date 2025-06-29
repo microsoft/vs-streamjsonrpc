@@ -4,6 +4,7 @@ override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.Pr
 static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
 StreamJsonRpc.JsonRpc.AddLoadableType(System.Type! type) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpc.TraceEvents.IFormatterConverterDeserializationFailure = 22 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.NerdbankMessagePackFormatter
 StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters
 StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>

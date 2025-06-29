@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using System.Runtime.Serialization;
 using Nerdbank.MessagePack;
 using PolyType;
-using PolyType.Abstractions;
 using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
@@ -14,7 +14,7 @@ namespace StreamJsonRpc;
 /// </summary>
 public partial class NerdbankMessagePackFormatter
 {
-    private partial class MessagePackFormatterConverter(MessagePackSerializer serializer) : IFormatterConverter
+    private partial class MessagePackFormatterConverter(NerdbankMessagePackFormatter formatter) : IFormatterConverter
     {
 #pragma warning disable CS8766 // This method may in fact return null, and no one cares.
         public object? Convert(object value, Type type)
@@ -31,7 +31,15 @@ public partial class NerdbankMessagePackFormatter
             }
 
             MessagePackReader reader = this.CreateReader(value);
-            return serializer.DeserializeObject(ref reader, Witness.ShapeProvider.Resolve(type));
+            try
+            {
+                return formatter.UserDataSerializer.DeserializeObject(ref reader, formatter.GetUserDataShape(type));
+            }
+            catch (Exception ex)
+            {
+                formatter.JsonRpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, ex);
+                throw;
+            }
         }
 
         public object Convert(object value, TypeCode typeCode) => typeCode switch
@@ -48,7 +56,7 @@ public partial class NerdbankMessagePackFormatter
 
         public DateTime ToDateTime(object value) => this.CreateReader(value).ReadDateTime();
 
-        public decimal ToDecimal(object value) => serializer.Deserialize<decimal>((RawMessagePack)value, Witness.ShapeProvider);
+        public decimal ToDecimal(object value) => formatter.UserDataSerializer.Deserialize<decimal>((RawMessagePack)value, Witness.ShapeProvider);
 
         public double ToDouble(object value) => this.CreateReader(value).ReadDouble();
 
@@ -87,6 +95,7 @@ public partial class NerdbankMessagePackFormatter
         [GenerateShapeFor<string>]
         [GenerateShapeFor<decimal>]
         [GenerateShapeFor<DateTime>]
+        [GenerateShapeFor<Dictionary<string, object>>]
         private partial class Witness;
     }
 }

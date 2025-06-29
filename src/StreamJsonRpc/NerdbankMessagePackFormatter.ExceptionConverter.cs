@@ -52,7 +52,7 @@ public partial class NerdbankMessagePackFormatter
                     return default;
                 }
 
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter));
                 int memberCount = reader.ReadMapHeader();
                 for (int i = 0; i < memberCount; i++)
                 {
@@ -97,7 +97,7 @@ public partial class NerdbankMessagePackFormatter
                     return;
                 }
 
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataSerializer));
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter));
                 ExceptionSerializationHelpers.Serialize((Exception)(object)value, info);
                 writer.WriteMapHeader(info.GetSafeMemberCount());
                 foreach (SerializationEntry element in info.GetSafeMembers())
