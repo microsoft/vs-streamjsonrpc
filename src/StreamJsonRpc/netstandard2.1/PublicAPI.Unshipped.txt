@@ -1,14 +1,13 @@
-override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>.GetJsonSchema(Nerdbank.MessagePack.JsonSchemaContext! context, PolyType.Abstractions.ITypeShape! typeShape) -> System.Text.Json.Nodes.JsonObject?
-override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>.Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context) -> System.Collections.Generic.IAsyncEnumerable<T>?
-override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>.Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in System.Collections.Generic.IAsyncEnumerable<T>? value, Nerdbank.MessagePack.SerializationContext context) -> void
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.GetJsonSchema(Nerdbank.MessagePack.JsonSchemaContext! context, PolyType.Abstractions.ITypeShape! typeShape) -> System.Text.Json.Nodes.JsonObject?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context) -> System.Collections.Generic.IAsyncEnumerable<T>?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in System.Collections.Generic.IAsyncEnumerable<T>? value, Nerdbank.MessagePack.SerializationContext context) -> void
 static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
 StreamJsonRpc.JsonRpc.AddLoadableType(System.Type! type) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpc.TraceEvents.IFormatterConverterDeserializationFailure = 22 -> StreamJsonRpc.JsonRpc.TraceEvents
 StreamJsonRpc.NerdbankMessagePackFormatter
-StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters
-StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>
-StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverters.PreciseTypeConverter<T>.PreciseTypeConverter() -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.AsyncEnumerableConverter() -> void
 StreamJsonRpc.NerdbankMessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
 StreamJsonRpc.NerdbankMessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
 StreamJsonRpc.NerdbankMessagePackFormatter.NerdbankMessagePackFormatter() -> void
