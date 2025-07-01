@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
-using System.Reflection;
-using System.Text;
 using Microsoft.CodeAnalysis;
 
 namespace StreamJsonRpc.Analyzers;
@@ -74,14 +71,16 @@ public class ProxyGenerator : IIncrementalGenerator
         return type as INamedTypeSymbol switch
         {
             { SpecialType: Microsoft.CodeAnalysis.SpecialType.System_Void } => SpecialType.Void,
-            { IsGenericType: true } namedType when SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, symbols.TaskOfT) => SpecialType.Task,
-            { IsGenericType: true } namedType when SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, symbols.ValueTaskOfT) => SpecialType.ValueTask,
-            { IsGenericType: true } namedType when SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, symbols.IAsyncEnumerableOfT) => SpecialType.IAsyncEnumerable,
-            { IsGenericType: false } namedType when SymbolEqualityComparer.Default.Equals(type, symbols.Task) => SpecialType.Task,
-            { IsGenericType: false } namedType when SymbolEqualityComparer.Default.Equals(type, symbols.ValueTask) => SpecialType.ValueTask,
-            { IsGenericType: false } namedType when SymbolEqualityComparer.Default.Equals(type, symbols.CancellationToken) => SpecialType.CancellationToken,
+            { IsGenericType: true } namedType when Equal(namedType.ConstructedFrom, symbols.TaskOfT) => SpecialType.Task,
+            { IsGenericType: true } namedType when Equal(namedType.ConstructedFrom, symbols.ValueTaskOfT) => SpecialType.ValueTask,
+            { IsGenericType: true } namedType when Equal(namedType.ConstructedFrom, symbols.IAsyncEnumerableOfT) => SpecialType.IAsyncEnumerable,
+            { IsGenericType: false } namedType when Equal(type, symbols.Task) => SpecialType.Task,
+            { IsGenericType: false } namedType when Equal(type, symbols.ValueTask) => SpecialType.ValueTask,
+            { IsGenericType: false } namedType when Equal(type, symbols.CancellationToken) => SpecialType.CancellationToken,
             _ => SpecialType.Other,
         };
+
+        static bool Equal(ITypeSymbol candidate, ITypeSymbol? standard) => standard is not null && SymbolEqualityComparer.Default.Equals(candidate, standard);
     }
 
     private void GenerateProxy(SourceProductionContext context, DataModel? model)
@@ -297,7 +296,7 @@ public class ProxyGenerator : IIncrementalGenerator
         /// </summary>
         internal ReadOnlyMemory<ParameterModel> DataParameters => this.Parameters.AsMemory()[..(this.Parameters.Length - (this.TakesCancellationToken ? 1 : 0))];
 
-        private string NamedArgsRecordName { get; } = $"{Name}NamedArgs{UniqueSuffix}";
+        private string NamedArgsTypeName { get; } = $"{Name}NamedArgs{UniqueSuffix}";
 
         private string NamedTypesFieldName { get; } = $"{Name}NamedArgumentDeclaredTypes{UniqueSuffix}";
 
@@ -375,7 +374,7 @@ public class ProxyGenerator : IIncrementalGenerator
             };
 
             string positionalArgs = "[" + string.Join(", ", this.DataParameters.Select(p => p.Name)) + "]";
-            string namedArgs = $"new {this.NamedArgsRecordName}({string.Join(", ", this.DataParameters.Select(p => p.Name))})";
+            string namedArgs = $"new {this.NamedArgsTypeName}({string.Join(", ", this.DataParameters.Select(p => p.Name))})";
 
             string cancellationArg = this.ReturnSpecialType == SpecialType.Void ? string.Empty : $", {this.CancellationToken?.Name ?? "default"}";
 
@@ -399,9 +398,37 @@ public class ProxyGenerator : IIncrementalGenerator
 
         public override void WriteNestedTypes(SourceWriter writer, DataModel ifaceModel)
         {
-            writer.WriteLine($"""
+            writer.WriteLine($$"""
 
-                private record {this.NamedArgsRecordName}({string.Join(", ", this.DataParameters.Select(p => $"{p.Type} {p.Name}"))});
+                private readonly struct {{this.NamedArgsTypeName}}
+                {
+                    public {{this.NamedArgsTypeName}}({{string.Join(", ", this.DataParameters.Select(p => $"{p.Type} {p.Name}"))}})
+                    {
+                """);
+            writer.Indentation += 2;
+            foreach (ParameterModel p in this.DataParameters.Span)
+            {
+                writer.WriteLine($"""
+                    this.{p.Name} = {p.Name};
+                    """);
+            }
+
+            writer.Indentation--;
+            writer.WriteLine($$"""
+                }
+                """);
+
+            foreach (ParameterModel p in this.DataParameters.Span)
+            {
+                writer.WriteLine($$"""
+
+                    public {{p.Type}} {{p.Name}} { get; }
+                    """);
+            }
+
+            writer.Indentation--;
+            writer.WriteLine($$"""
+                }
                 """);
         }
 

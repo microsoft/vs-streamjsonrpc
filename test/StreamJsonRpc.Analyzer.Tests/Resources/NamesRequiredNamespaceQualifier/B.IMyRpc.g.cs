@@ -80,5 +80,10 @@ internal class B_IMyRpc_Proxy : global::B.IMyRpc, global::StreamJsonRpc.IJsonRpc
 	    return result;
 	}
 	
-	private record JustAnotherCancellationAsyncNamedArgs1();
+	private readonly struct JustAnotherCancellationAsyncNamedArgs1
+	{
+	    public JustAnotherCancellationAsyncNamedArgs1()
+	    {
+		}
+	}
 }

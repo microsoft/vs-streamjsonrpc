@@ -13,7 +13,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
 internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
@@ -100,7 +99,8 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                 .WithWarningLevel(99)
                 .WithSpecificDiagnosticOptions(compilationOptions.SpecificDiagnosticOptions
                     .SetItem("CS1591", ReportDiagnostic.Suppress)
-                    .SetItem("CS1701", ReportDiagnostic.Suppress));
+                    .SetItem("CS1701", ReportDiagnostic.Suppress)
+                    .SetItem("CS1702", ReportDiagnostic.Suppress));
         }
 
         protected override async Task<(Compilation, ImmutableArray<Diagnostic>)> GetProjectCompilationAsync(Project project, IVerifier verifier, CancellationToken cancellationToken)

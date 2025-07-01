@@ -177,6 +177,7 @@ public class GenerationTests
             {
                 Task SayHi();
                 Task SayHi(string name);
+                Task SayHi(string name, int age);
             }
             """);
     }

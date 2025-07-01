@@ -80,5 +80,10 @@ internal class Wrapper_IMyRpc_Proxy : global::Wrapper.IMyRpc, global::StreamJson
 	    return result;
 	}
 	
-	private record JustCancellationAsyncNamedArgs1();
+	private readonly struct JustCancellationAsyncNamedArgs1
+	{
+	    public JustCancellationAsyncNamedArgs1()
+	    {
+		}
+	}
 }

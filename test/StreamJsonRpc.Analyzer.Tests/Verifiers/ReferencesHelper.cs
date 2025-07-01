@@ -8,7 +8,11 @@ internal static class ReferencesHelper
 #if NET
     internal static ReferenceAssemblies References = ReferenceAssemblies.Net.Net80;
 #else
-    internal static ReferenceAssemblies References = ReferenceAssemblies.NetStandard.NetStandard20;
+    internal static ReferenceAssemblies References = ReferenceAssemblies.NetStandard.NetStandard20
+        .AddPackages([
+            new PackageIdentity("System.Threading.Tasks.Extensions", "4.6.1"),
+            new PackageIdentity("Microsoft.Bcl.AsyncInterfaces", "9.0.0"),
+            ]);
 #endif
 
     internal static IEnumerable<MetadataReference> GetReferences()

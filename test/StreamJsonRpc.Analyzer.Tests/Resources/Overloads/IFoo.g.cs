@@ -32,6 +32,18 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	{
 		typeof(string),
 	};
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["name"] = typeof(string),
+		["age"] = typeof(int),
+	};
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes3 = new global::System.Collections.Generic.List<global::System.Type>
+	{
+		typeof(string),
+		typeof(int),
+	};
 	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
 	{
 	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
@@ -104,7 +116,47 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    return result;
 	}
 	
-	private record SayHiNamedArgs1();
+	public global::System.Threading.Tasks.Task SayHi(string name, int age)
+	{
+	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 	
-	private record SayHiNamedArgs2(string name);
+	    this.callingMethod?.Invoke(this, "SayHi");
+	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
+	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs3(name, age), SayHiNamedArgumentDeclaredTypes3, default) :
+	        this.client.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
+	    this.calledMethod?.Invoke(this, "SayHi");
+	
+	    return result;
+	}
+	
+	private readonly struct SayHiNamedArgs1
+	{
+	    public SayHiNamedArgs1()
+	    {
+		}
+	}
+	
+	private readonly struct SayHiNamedArgs2
+	{
+	    public SayHiNamedArgs2(string name)
+	    {
+			this.name = name;
+		}
+		
+		public string name { get; }
+	}
+	
+	private readonly struct SayHiNamedArgs3
+	{
+	    public SayHiNamedArgs3(string name, int age)
+	    {
+			this.name = name;
+			this.age = age;
+		}
+		
+		public string name { get; }
+		
+		public int age { get; }
+	}
 }

@@ -80,5 +80,10 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    return result;
 	}
 	
-	private record JustCancellationAsyncNamedArgs1();
+	private readonly struct JustCancellationAsyncNamedArgs1
+	{
+	    public JustCancellationAsyncNamedArgs1()
+	    {
+		}
+	}
 }

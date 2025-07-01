@@ -230,17 +230,79 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.IJsonRpcClie
 	    return global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, cancellationToken);
 	}
 	
-	private record JustCancellationAsyncNamedArgs1();
+	private readonly struct JustCancellationAsyncNamedArgs1
+	{
+	    public JustCancellationAsyncNamedArgs1()
+	    {
+		}
+	}
 	
-	private record AnArgAndCancellationAsyncNamedArgs2(int arg);
+	private readonly struct AnArgAndCancellationAsyncNamedArgs2
+	{
+	    public AnArgAndCancellationAsyncNamedArgs2(int arg)
+	    {
+			this.arg = arg;
+		}
+		
+		public int arg { get; }
+	}
 	
-	private record AddAsyncNamedArgs3(int a, int b);
+	private readonly struct AddAsyncNamedArgs3
+	{
+	    public AddAsyncNamedArgs3(int a, int b)
+	    {
+			this.a = a;
+			this.b = b;
+		}
+		
+		public int a { get; }
+		
+		public int b { get; }
+	}
 	
-	private record MultiplyAsyncNamedArgs4(int a, int b);
+	private readonly struct MultiplyAsyncNamedArgs4
+	{
+	    public MultiplyAsyncNamedArgs4(int a, int b)
+	    {
+			this.a = a;
+			this.b = b;
+		}
+		
+		public int a { get; }
+		
+		public int b { get; }
+	}
 	
-	private record StartNamedArgs5(string bah);
+	private readonly struct StartNamedArgs5
+	{
+	    public StartNamedArgs5(string bah)
+	    {
+			this.bah = bah;
+		}
+		
+		public string bah { get; }
+	}
 	
-	private record StartCancelableNamedArgs6(string bah);
+	private readonly struct StartCancelableNamedArgs6
+	{
+	    public StartCancelableNamedArgs6(string bah)
+	    {
+			this.bah = bah;
+		}
+		
+		public string bah { get; }
+	}
 	
-	private record CountAsyncNamedArgs7(int start, int count);
+	private readonly struct CountAsyncNamedArgs7
+	{
+	    public CountAsyncNamedArgs7(int start, int count)
+	    {
+			this.start = start;
+			this.count = count;
+		}
+		
+		public int start { get; }
+		
+		public int count { get; }
+	}
 }

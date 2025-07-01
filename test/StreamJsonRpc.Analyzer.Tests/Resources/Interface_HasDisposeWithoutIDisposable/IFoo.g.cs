@@ -80,5 +80,10 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    return result;
 	}
 	
-	private record DisposeNamedArgs1();
+	private readonly struct DisposeNamedArgs1
+	{
+	    public DisposeNamedArgs1()
+	    {
+		}
+	}
 }
