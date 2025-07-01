@@ -118,6 +118,7 @@ jobs:
           zipSources: false
           ${{ if parameters.RealSign }}:
             signType: real
+            signWithProd: true
           ${{ else }}:
             signType: test
         sbom:
@@ -141,6 +142,8 @@ jobs:
           - powershell: Write-Host "##vso[task.setvariable variable=PROFILINGINPUTSDROPNAME]$(tools/variables/ProfilingInputsDropName.ps1)"
             displayName: ⚙ Set ProfilingInputsDropName for optprof
       sdl:
+        binskim:
+          analyzeTargetGlob: $(Build.ArtifactStagingDirectory)\symbols-Windows\**
         credscan:
           suppressionsFile: $(Build.SourcesDirectory)/azure-pipelines/CredScanSuppressions.json
           debugMode: true # required for whole directory suppressions
@@ -199,6 +202,7 @@ jobs:
     parameters:
       Is1ESPT: ${{ parameters.Is1ESPT }}
       RunTests: ${{ parameters.RunTests }}
+      osRID: win
       IsOptProf: ${{ parameters.IsOptProf }}
 
   - ${{ if and(parameters.EnableDotNetFormatCheck, not(parameters.EnableLinuxBuild)) }}:
@@ -225,6 +229,7 @@ jobs:
               signing:
                 enabled: false # enable when building unique artifacts on this agent that must be signed
                 signType: real
+                signWithProd: true
           outputParentDirectory: $(Build.ArtifactStagingDirectory)
           outputs:
           - ${{ each artifact_name in parameters.artifact_names }}:
@@ -243,6 +248,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          osRID: linux
       - ${{ if parameters.EnableDotNetFormatCheck }}:
         - script: dotnet format --verify-no-changes
           displayName: 💅 Verify formatted code
@@ -259,6 +265,7 @@ jobs:
               signing:
                 enabled: false # enable when building unique artifacts on this agent that must be signed
                 signType: real
+                signWithProd: true
           outputParentDirectory: $(Build.ArtifactStagingDirectory)
           outputs:
           - ${{ each artifact_name in parameters.artifact_names }}:
@@ -277,6 +284,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          osRID: osx
 
   - job: WrapUp
     dependsOn:

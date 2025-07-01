@@ -1,5 +1,7 @@
 parameters:
 - name: RunTests
+- name: osRID
+  type: string
 - name: IsOptProf
   type: boolean
   default: false
@@ -39,6 +41,10 @@ steps:
 - ${{ if parameters.IsOptProf }}:
   - script: dotnet pack src\VSInsertionMetadata -c $(BuildConfiguration) -warnaserror /bl:"$(Build.ArtifactStagingDirectory)/build_logs/VSInsertion-Pack.binlog"
     displayName: 🔧 dotnet pack VSInsertionMetadata
+
+- script: dotnet publish -r ${{ parameters.osRID }}-x64 -warnaserror
+  displayName: 🧪 NativeAOT test
+  workingDirectory: test/NativeAOTCompatibility.Test
 
 - powershell: tools/variables/_define.ps1
   failOnStderr: true

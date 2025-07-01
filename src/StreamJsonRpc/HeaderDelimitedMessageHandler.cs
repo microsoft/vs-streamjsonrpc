@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -97,6 +98,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
     /// </summary>
     /// <param name="duplexStream">The stream to use for transmitting and receiving messages.</param>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public HeaderDelimitedMessageHandler(Stream duplexStream)
         : this(duplexStream, duplexStream)
     {
@@ -107,6 +109,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// </summary>
     /// <param name="sendingStream">The stream to use for transmitting messages.</param>
     /// <param name="receivingStream">The stream to use for receiving messages.</param>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream)
         : this(sendingStream, receivingStream, new JsonMessageFormatter())
     {
