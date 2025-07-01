@@ -17,15 +17,21 @@ namespace StreamJsonRpc.Analyzers;
 public class RpcProxyContractAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
-    /// Diagnostic for StreamJsonRpc0001: Unsupported return type.
+    /// Diagnostic ID for StreamJsonRpc0001: RPC methods use supported return types.
+    /// </summary>
+    public const string UnsupportedReturnTypeId = "StreamJsonRpc0001";
+
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0001: RPC methods use supported return types.
     /// </summary>
     public static readonly DiagnosticDescriptor UnsupportedReturnType = new(
-        id: "StreamJsonRpc0001",
+        id: UnsupportedReturnTypeId,
         title: Strings.StreamJsonRpc0001_Title,
         messageFormat: Strings.StreamJsonRpc0001_MessageFormat,
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedReturnTypeId));
 
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [

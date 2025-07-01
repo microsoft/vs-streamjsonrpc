@@ -3,6 +3,8 @@ items:
   href: docs/
 - name: Exotic Types
   href: exotic_types/
+- name: Analyzers
+  href: analyzers/
 - name: API
   href: api/
 - name: GitHub

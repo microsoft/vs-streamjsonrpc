@@ -121,6 +121,6 @@
     <value>The return type '{0}' is not supported in RPC methods.</value>
   </data>
   <data name="StreamJsonRpc0001_Title" xml:space="preserve">
-    <value>Unsupported return type</value>
+    <value>RPC methods use supported return types</value>
   </data>
 </root>

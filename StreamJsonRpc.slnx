@@ -24,6 +24,7 @@
     <File Path="test/.editorconfig" />
     <File Path="test/Directory.Build.props" />
     <File Path="test/Directory.Build.targets" />
+    <Project Path="samples/Samples.csproj" />
     <Project Path="test/Benchmarks/Benchmarks.csproj" />
     <Project Path="test/NativeAOTCompatibility.Test/NativeAOTCompatibility.Test.csproj" />
     <Project Path="test/StreamJsonRpc.Analyzer.Tests/StreamJsonRpc.Analyzer.Tests.csproj" />
