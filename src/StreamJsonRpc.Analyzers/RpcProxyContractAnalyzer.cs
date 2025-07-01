@@ -10,7 +10,7 @@ namespace StreamJsonRpc.Analyzers;
 /// <summary>
 /// An analyzer of StreamJsonRpc proxy contracts.
 /// </summary>
-[DiagnosticAnalyzer(LanguageNames.CSharp, LanguageNames.VisualBasic)]
+[DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class RpcProxyContractAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc/>
