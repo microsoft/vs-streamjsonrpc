@@ -6,12 +6,17 @@ using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.RpcProxyContractAnalyze
 public class RpcProxyContractAnalyzerTests
 {
     [Fact]
-    public async Task UnsupportedReturnType()
+    public async Task ReturnTypeAnalyzer()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcProxy]
             public interface IMyRpc
             {
+                Task<int> TaskOfTAsync();
+                ValueTask<int> ValueTaskOfTAsync();
+                ValueTask ValueTaskAsync();
+                Task TaskAsync();
+                void Notify();
                 {|StreamJsonRpc0001:int|} MyMethod(CancellationToken cancellationToken);
             }
             """);

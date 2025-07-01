@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#pragma warning disable SA1602 // Enumeration items should be documented
+
 using Microsoft.CodeAnalysis;
 
 namespace StreamJsonRpc.Analyzers;
@@ -11,7 +13,10 @@ namespace StreamJsonRpc.Analyzers;
 [Generator(LanguageNames.CSharp)]
 public class ProxyGenerator : IIncrementalGenerator
 {
-    private enum SpecialType
+    /// <summary>
+    /// The various special types that the generator must recognize.
+    /// </summary>
+    internal enum SpecialType
     {
         Other,
         Void,
@@ -66,7 +71,7 @@ public class ProxyGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(proxyProvider, this.GenerateProxy);
     }
 
-    private static SpecialType ClassifySpecialType(ITypeSymbol type, KnownSymbols symbols)
+    internal static SpecialType ClassifySpecialType(ITypeSymbol type, KnownSymbols symbols)
     {
         return type as INamedTypeSymbol switch
         {

@@ -2,8 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SpecialType = StreamJsonRpc.Analyzers.ProxyGenerator.SpecialType;
 
 namespace StreamJsonRpc.Analyzers;
 
@@ -13,15 +16,79 @@ namespace StreamJsonRpc.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class RpcProxyContractAnalyzer : DiagnosticAnalyzer
 {
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0001: Unsupported return type.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedReturnType = new(
+        id: "StreamJsonRpc0001",
+        title: Strings.StreamJsonRpc0001_Title,
+        messageFormat: Strings.StreamJsonRpc0001_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     /// <inheritdoc/>
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
+        UnsupportedReturnType,
+    ];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
     {
-        context.EnableConcurrentExecution();
+        if (!Debugger.IsAttached)
+        {
+            context.EnableConcurrentExecution();
+        }
+
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics);
 
-        // TODO: implement analyzers.
+        context.RegisterCompilationStartAction(
+            context =>
+            {
+                if (!KnownSymbols.TryCreate(context.Compilation, out KnownSymbols? knownSymbols))
+                {
+                    return;
+                }
+
+                context.RegisterSymbolAction(
+                    context =>
+                    {
+                        var namedType = (INamedTypeSymbol)context.Symbol;
+                        AttributeData? rpcProxyAttribute = namedType.GetAttributes()
+                            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcProxyAttribute));
+                        if (rpcProxyAttribute is null)
+                        {
+                            return;
+                        }
+
+                        foreach (ISymbol member in namedType.GetMembers())
+                        {
+                            switch (member)
+                            {
+                                case IMethodSymbol method:
+                                    if (!this.IsAllowedMethodReturnType(method.ReturnType, knownSymbols))
+                                    {
+                                        MethodDeclarationSyntax? methodDeclaration = (MethodDeclarationSyntax?)method.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken);
+                                        Location diagnosticLocation = methodDeclaration?.ReturnType.GetLocation() ?? method.Locations.FirstOrDefault() ?? Location.None;
+
+                                        context.ReportDiagnostic(Diagnostic.Create(
+                                            UnsupportedReturnType,
+                                            diagnosticLocation,
+                                            method.ReturnType.Name));
+                                    }
+
+                                    break;
+                            }
+                        }
+                    },
+                    SymbolKind.NamedType);
+            });
     }
+
+    private bool IsAllowedMethodReturnType(ITypeSymbol returnType, KnownSymbols knownSymbols)
+        => ProxyGenerator.ClassifySpecialType(returnType, knownSymbols) switch
+        {
+            SpecialType.Void or SpecialType.Task or SpecialType.ValueTask or SpecialType.IAsyncEnumerable => true,
+            _ => false,
+        };
 }

@@ -13,7 +13,8 @@ internal record KnownSymbols(
     INamedTypeSymbol? ValueTaskOfT,
     INamedTypeSymbol? IAsyncEnumerableOfT,
     INamedTypeSymbol? CancellationToken,
-    INamedTypeSymbol IDisposable)
+    INamedTypeSymbol IDisposable,
+    INamedTypeSymbol RpcProxyAttribute)
 {
     internal static bool TryCreate(Compilation compilation, [NotNullWhen(true)] out KnownSymbols? symbols)
     {
@@ -24,14 +25,15 @@ internal record KnownSymbols(
         INamedTypeSymbol? asyncEnumerableOfT = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
+        INamedTypeSymbol? rpcProxyAttribute = compilation.GetTypeByMetadataName(Types.RpcProxyAttribute.FullName);
 
-        if (idisposable is null)
+        if (idisposable is null || rpcProxyAttribute is null)
         {
             symbols = null;
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable, rpcProxyAttribute);
         return true;
     }
 }
