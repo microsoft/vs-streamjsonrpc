@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
@@ -477,9 +477,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             get
             {
-                return this.JsonArguments?.ValueKind is JsonValueKind.Object
-                    ? this.JsonArguments.Value.EnumerateObject().Select(p => p.Name)
-                    : null;
+                if (this.JsonArguments?.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var p in this.JsonArguments.Value.EnumerateObject())
+                        yield return p.Name;
+                }
             }
         }
 
