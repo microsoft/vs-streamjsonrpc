@@ -346,13 +346,16 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
                 OnDispose = token.Value.Lifetime == MarshalLifetime.Call ? null : delegate
                 {
-                    // Only forward the Dispose call if the marshaled interface derives from IDisposable.
-                    if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                    if (!this.jsonRpc.IsDisposed)
                     {
-                        this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
-                    }
+                        // Only forward the Dispose call if the marshaled interface derives from IDisposable.
+                        if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                        {
+                            this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
+                        }
 
-                    this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                        this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                    }
                 },
             },
             token.Value.Handle);

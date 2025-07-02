@@ -586,6 +586,15 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task MarshableDisposedAfterConnection()
+    {
+        IMarshalable? proxyMarshalable = await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken);
+        Assert.NotNull(proxyMarshalable);
+        this.clientRpc.Dispose();
+        proxyMarshalable.Dispose();
+    }
+
+    [Fact]
     public async Task IMarshalable_MarshaledAndForwarded()
     {
         IMarshalable? proxyMarshalable = await this.client.GetMarshalableAsync().WithCancellation(this.TimeoutToken);
