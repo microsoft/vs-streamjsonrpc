@@ -5,17 +5,19 @@ using System.IO.Pipelines;
 using BenchmarkDotNet.Attributes;
 using Microsoft;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc;
 
 namespace Benchmarks;
 
 [MemoryDiagnoser]
-public class InvokeBenchmarks
+[GenerateShapeFor<int>]
+public partial class InvokeBenchmarks
 {
     private JsonRpc clientRpc = null!;
     private JsonRpc serverRpc = null!;
 
-    [Params("JSON", "MessagePack")]
+    [Params("JSON", "MessagePack", "NerdbankMessagePack")]
     public string Formatter { get; set; } = null!;
 
     [GlobalSetup]
@@ -35,6 +37,7 @@ public class InvokeBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
                 _ => throw Assumes.NotReachable(),
             };
         }
