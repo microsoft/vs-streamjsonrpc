@@ -2,6 +2,8 @@
 
 #nullable enable
 
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IMyRpc), typeof(global::StreamJsonRpc.Proxies.IMyRpc_Proxy))]
+
 namespace StreamJsonRpc.Proxies;
 
 internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.IJsonRpcClientProxyInternal
