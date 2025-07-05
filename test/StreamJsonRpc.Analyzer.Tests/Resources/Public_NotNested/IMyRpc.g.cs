@@ -136,100 +136,100 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.IJsonRpcClie
 	
 	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "JustCancellationAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
-	    this.calledMethod?.Invoke(this, "JustCancellationAsync");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "JustCancellationAsync");
+		string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
+		this.calledMethod?.Invoke(this, "JustCancellationAsync");
+		
+		return result;
 	}
 	
 	public global::System.Threading.Tasks.ValueTask AnArgAndCancellationAsync(int arg, global::System.Threading.CancellationToken cancellationToken)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "AnArgAndCancellationAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("AnArgAndCancellationAsync");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new AnArgAndCancellationAsyncNamedArgs2(arg), AnArgAndCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [arg], AnArgAndCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
-	    this.calledMethod?.Invoke(this, "AnArgAndCancellationAsync");
-	
-	    return new global::System.Threading.Tasks.ValueTask(result);
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "AnArgAndCancellationAsync");
+		string rpcMethodName = this.options.MethodNameTransform("AnArgAndCancellationAsync");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new AnArgAndCancellationAsyncNamedArgs2(arg), AnArgAndCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [arg], AnArgAndCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
+		this.calledMethod?.Invoke(this, "AnArgAndCancellationAsync");
+		
+		return new global::System.Threading.Tasks.ValueTask(result);
 	}
 	
 	public global::System.Threading.Tasks.Task<int> AddAsync(int a, int b, global::System.Threading.CancellationToken cancellationToken)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "AddAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("AddAsync");
-	    global::System.Threading.Tasks.Task<int> result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync<int>(rpcMethodName, new AddAsyncNamedArgs3(a, b), AddAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
-	    this.calledMethod?.Invoke(this, "AddAsync");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "AddAsync");
+		string rpcMethodName = this.options.MethodNameTransform("AddAsync");
+		global::System.Threading.Tasks.Task<int> result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync<int>(rpcMethodName, new AddAsyncNamedArgs3(a, b), AddAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
+		    this.client.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
+		this.calledMethod?.Invoke(this, "AddAsync");
+		
+		return result;
 	}
 	
 	public global::System.Threading.Tasks.Task<int> MultiplyAsync(int a, int b)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "MultiplyAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("MultiplyAsync");
-	    global::System.Threading.Tasks.Task<int> result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync<int>(rpcMethodName, new MultiplyAsyncNamedArgs4(a, b), MultiplyAsyncNamedArgumentDeclaredTypes4, default) :
-	        this.client.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], MultiplyAsyncPositionalArgumentDeclaredTypes4, default);
-	    this.calledMethod?.Invoke(this, "MultiplyAsync");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "MultiplyAsync");
+		string rpcMethodName = this.options.MethodNameTransform("MultiplyAsync");
+		global::System.Threading.Tasks.Task<int> result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync<int>(rpcMethodName, new MultiplyAsyncNamedArgs4(a, b), MultiplyAsyncNamedArgumentDeclaredTypes4, default) :
+		    this.client.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], MultiplyAsyncPositionalArgumentDeclaredTypes4, default);
+		this.calledMethod?.Invoke(this, "MultiplyAsync");
+		
+		return result;
 	}
 	
 	public void Start(string bah)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "Start");
-	    string rpcMethodName = this.options.MethodNameTransform("Start");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.NotifyWithParameterObjectAsync(rpcMethodName, new StartNamedArgs5(bah), StartNamedArgumentDeclaredTypes5) :
-	        this.client.NotifyAsync(rpcMethodName, [bah], StartPositionalArgumentDeclaredTypes5);
-	    this.calledMethod?.Invoke(this, "Start");
-	
-	    return ;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "Start");
+		string rpcMethodName = this.options.MethodNameTransform("Start");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.NotifyWithParameterObjectAsync(rpcMethodName, new StartNamedArgs5(bah), StartNamedArgumentDeclaredTypes5) :
+		    this.client.NotifyAsync(rpcMethodName, [bah], StartPositionalArgumentDeclaredTypes5);
+		this.calledMethod?.Invoke(this, "Start");
+		
+		return ;
 	}
 	
 	public void StartCancelable(string bah, global::System.Threading.CancellationToken token)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "StartCancelable");
-	    string rpcMethodName = this.options.MethodNameTransform("StartCancelable");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.NotifyWithParameterObjectAsync(rpcMethodName, new StartCancelableNamedArgs6(bah), StartCancelableNamedArgumentDeclaredTypes6) :
-	        this.client.NotifyAsync(rpcMethodName, [bah], StartCancelablePositionalArgumentDeclaredTypes6);
-	    this.calledMethod?.Invoke(this, "StartCancelable");
-	
-	    return ;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "StartCancelable");
+		string rpcMethodName = this.options.MethodNameTransform("StartCancelable");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.NotifyWithParameterObjectAsync(rpcMethodName, new StartCancelableNamedArgs6(bah), StartCancelableNamedArgumentDeclaredTypes6) :
+		    this.client.NotifyAsync(rpcMethodName, [bah], StartCancelablePositionalArgumentDeclaredTypes6);
+		this.calledMethod?.Invoke(this, "StartCancelable");
+		
+		return ;
 	}
 	
 	public global::System.Collections.Generic.IAsyncEnumerable<int> CountAsync(int start, int count, global::System.Threading.CancellationToken cancellationToken)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "CountAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("CountAsync");
-	    global::System.Threading.Tasks.Task<global::System.Collections.Generic.IAsyncEnumerable<int>> result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, new CountAsyncNamedArgs7(start, count), CountAsyncNamedArgumentDeclaredTypes7, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, [start, count], CountAsyncPositionalArgumentDeclaredTypes7, cancellationToken);
-	    this.calledMethod?.Invoke(this, "CountAsync");
-	
-	    return global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, cancellationToken);
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "CountAsync");
+		string rpcMethodName = this.options.MethodNameTransform("CountAsync");
+		global::System.Threading.Tasks.Task<global::System.Collections.Generic.IAsyncEnumerable<int>> result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, new CountAsyncNamedArgs7(start, count), CountAsyncNamedArgumentDeclaredTypes7, cancellationToken) :
+		    this.client.InvokeWithCancellationAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, [start, count], CountAsyncPositionalArgumentDeclaredTypes7, cancellationToken);
+		this.calledMethod?.Invoke(this, "CountAsync");
+		
+		return global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, cancellationToken);
 	}
 	
 	private readonly struct JustCancellationAsyncNamedArgs1

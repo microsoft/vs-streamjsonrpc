@@ -343,13 +343,13 @@ public class ProxyGenerator : IIncrementalGenerator
         public override void WriteMethods(SourceWriter writer, DataModel ifaceModel)
         {
             string? cancellationTokenExpression = this.CancellationToken?.Name;
-            string returnExpression = this.ReturnSpecialType switch
+            string? returnExpression = this.ReturnSpecialType switch
             {
                 SpecialType.Void => string.Empty,
                 SpecialType.Task => "result",
                 SpecialType.ValueTask => $"new {this.ReturnType}(result)",
                 SpecialType.IAsyncEnumerable => $"global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, {cancellationTokenExpression ?? "default"})",
-                _ => throw new NotSupportedException($"Unsupported return type: {this.ReturnType}"),
+                _ => null,
             };
 
             // The possible methods we invoke are as follows:
@@ -363,17 +363,15 @@ public class ProxyGenerator : IIncrementalGenerator
             string returnTypeArg = this.ReturnTypeArg is null ? string.Empty :
                 this.ReturnSpecialType == SpecialType.IAsyncEnumerable ? $"<{this.ReturnType}>" :
                 $"<{this.ReturnTypeArg}>";
-            string namedArgsInvocationMethodName = this.ReturnSpecialType switch
+            string? namedArgsInvocationMethodName = this.ReturnSpecialType switch
             {
                 SpecialType.Void => "NotifyWithParameterObjectAsync",
-                SpecialType.Task or SpecialType.ValueTask or SpecialType.IAsyncEnumerable => $"InvokeWithParameterObjectAsync{returnTypeArg}",
-                _ => throw new NotSupportedException($"Unsupported return type: {this.ReturnSpecialType}"),
+                _ => $"InvokeWithParameterObjectAsync{returnTypeArg}",
             };
-            string positionalArgsInvocationMethodName = this.ReturnSpecialType switch
+            string? positionalArgsInvocationMethodName = this.ReturnSpecialType switch
             {
                 SpecialType.Void => "NotifyAsync",
-                SpecialType.Task or SpecialType.ValueTask or SpecialType.IAsyncEnumerable => $"InvokeWithCancellationAsync{returnTypeArg}",
-                _ => throw new NotSupportedException($"Unsupported return type: {this.ReturnSpecialType}"),
+                _ => $"InvokeWithCancellationAsync{returnTypeArg}",
             };
 
             string positionalArgs = "[" + string.Join(", ", this.DataParameters.Select(p => p.Name)) + "]";
@@ -385,6 +383,18 @@ public class ProxyGenerator : IIncrementalGenerator
 
                 public {{this.ReturnType}} {{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
                 {
+                """);
+
+            writer.Indentation++;
+            if (returnExpression is null)
+            {
+                writer.WriteLine($"""
+                    throw new global::System.NotSupportedException($"The return type '{this.ReturnType}' is not supported by the generated proxy method.");
+                    """);
+            }
+            else
+            {
+                writer.WriteLine($$"""
                     if (this.disposed) throw new global::System.ObjectDisposedException(nameof({{ifaceModel.ProxyName}}));
 
                     this.callingMethod?.Invoke(this, "{{this.Name}}");
@@ -395,6 +405,11 @@ public class ProxyGenerator : IIncrementalGenerator
                     this.calledMethod?.Invoke(this, "{{this.Name}}");
 
                     return {{returnExpression}};
+                    """);
+            }
+
+            writer.Indentation--;
+            writer.WriteLine("""
                 }
                 """);
         }

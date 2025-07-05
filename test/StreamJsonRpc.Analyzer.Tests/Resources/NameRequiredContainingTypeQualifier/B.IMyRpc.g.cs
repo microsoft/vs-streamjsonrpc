@@ -70,16 +70,16 @@ internal class B_IMyRpc_Proxy : global::B.IMyRpc, global::StreamJsonRpc.IJsonRpc
 	
 	public global::System.Threading.Tasks.Task JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(B_IMyRpc_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "JustAnotherCancellationAsync");
-	    string rpcMethodName = this.options.MethodNameTransform("JustAnotherCancellationAsync");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs1(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
-	    this.calledMethod?.Invoke(this, "JustAnotherCancellationAsync");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(B_IMyRpc_Proxy));
+		
+		this.callingMethod?.Invoke(this, "JustAnotherCancellationAsync");
+		string rpcMethodName = this.options.MethodNameTransform("JustAnotherCancellationAsync");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs1(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
+		this.calledMethod?.Invoke(this, "JustAnotherCancellationAsync");
+		
+		return result;
 	}
 	
 	private readonly struct JustAnotherCancellationAsyncNamedArgs1

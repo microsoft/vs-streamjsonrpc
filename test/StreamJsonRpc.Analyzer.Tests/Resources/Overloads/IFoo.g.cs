@@ -92,44 +92,44 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	
 	public global::System.Threading.Tasks.Task SayHi()
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "SayHi");
-	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs1(), SayHiNamedArgumentDeclaredTypes1, default) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
-	    this.calledMethod?.Invoke(this, "SayHi");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		
+		this.callingMethod?.Invoke(this, "SayHi");
+		string rpcMethodName = this.options.MethodNameTransform("SayHi");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs1(), SayHiNamedArgumentDeclaredTypes1, default) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
+		this.calledMethod?.Invoke(this, "SayHi");
+		
+		return result;
 	}
 	
 	public global::System.Threading.Tasks.Task SayHi(string name)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "SayHi");
-	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs2(name), SayHiNamedArgumentDeclaredTypes2, default) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
-	    this.calledMethod?.Invoke(this, "SayHi");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		
+		this.callingMethod?.Invoke(this, "SayHi");
+		string rpcMethodName = this.options.MethodNameTransform("SayHi");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs2(name), SayHiNamedArgumentDeclaredTypes2, default) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
+		this.calledMethod?.Invoke(this, "SayHi");
+		
+		return result;
 	}
 	
 	public global::System.Threading.Tasks.Task SayHi(string name, int age)
 	{
-	    if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
-	
-	    this.callingMethod?.Invoke(this, "SayHi");
-	    string rpcMethodName = this.options.MethodNameTransform("SayHi");
-	    global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-	        this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs3(name, age), SayHiNamedArgumentDeclaredTypes3, default) :
-	        this.client.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
-	    this.calledMethod?.Invoke(this, "SayHi");
-	
-	    return result;
+		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		
+		this.callingMethod?.Invoke(this, "SayHi");
+		string rpcMethodName = this.options.MethodNameTransform("SayHi");
+		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new SayHiNamedArgs3(name, age), SayHiNamedArgumentDeclaredTypes3, default) :
+		    this.client.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
+		this.calledMethod?.Invoke(this, "SayHi");
+		
+		return result;
 	}
 	
 	private readonly struct SayHiNamedArgs1

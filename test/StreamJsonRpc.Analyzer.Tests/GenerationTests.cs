@@ -181,4 +181,16 @@ public class GenerationTests
             }
             """);
     }
+
+    [Fact]
+    public async Task UnsupportedReturnType()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcProxy]
+            public interface IMyService
+            {
+                int Add(int a, int b); // StreamJsonRpc0001
+            }
+            """);
+    }
 }

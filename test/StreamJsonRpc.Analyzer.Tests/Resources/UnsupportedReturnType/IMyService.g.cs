@@ -2,11 +2,11 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Proxies.IFoo_Proxy))]
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IMyService), typeof(global::StreamJsonRpc.Proxies.IMyService_Proxy))]
 
 namespace StreamJsonRpc.Proxies;
 
-internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientProxyInternal
+internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -17,14 +17,18 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DisposeNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 	{
+		["a"] = typeof(int),
+		["b"] = typeof(int),
 	};
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DisposePositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
+		typeof(int),
+		typeof(int),
 	};
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
 	{
 	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
 	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
@@ -68,24 +72,21 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task Dispose()
+	public int Add(int a, int b)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
-		
-		this.callingMethod?.Invoke(this, "Dispose");
-		string rpcMethodName = this.options.MethodNameTransform("Dispose");
-		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new DisposeNamedArgs1(), DisposeNamedArgumentDeclaredTypes1, default) :
-		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
-		this.calledMethod?.Invoke(this, "Dispose");
-		
-		return result;
+		throw new global::System.NotSupportedException($"The return type 'int' is not supported by the generated proxy method.");
 	}
 	
-	private readonly struct DisposeNamedArgs1
+	private readonly struct AddNamedArgs1
 	{
-	    public DisposeNamedArgs1()
+	    public AddNamedArgs1(int a, int b)
 	    {
+			this.a = a;
+			this.b = b;
 		}
+		
+		public int a { get; }
+		
+		public int b { get; }
 	}
 }
