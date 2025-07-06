@@ -145,6 +145,48 @@ public class GenerationTests
     }
 
     [Fact]
+    public async Task Interface_DerivesFromOthersWithRedundantMethods()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            public interface ICalc1
+            {
+                Task<int> AddAsync(int a, int b);
+            }
+
+            public interface ICalc2
+            {
+                Task<int> AddAsync(int a, int b);
+            }
+
+            [RpcContract]
+            public interface ICalc : ICalc1, ICalc2
+            {
+            }
+            """);
+    }
+
+    [Fact(Skip = "Does not yet work.")]
+    public async Task Interface_DerivesFromOthersWithRedundantEvents()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            public interface ICalc1
+            {
+                event EventHandler Changed;
+            }
+
+            public interface ICalc2
+            {
+                event EventHandler Changed;
+            }
+
+            [RpcContract]
+            public interface ICalc : ICalc1, ICalc2
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Events()
     {
         await VerifyCS.RunDefaultAsync("""

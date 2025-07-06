@@ -68,7 +68,7 @@ internal class IFoo2_Proxy : global::IFoo2, global::StreamJsonRpc.Reflection.IJs
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task global::IFoo.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo2_Proxy));
 		
@@ -82,7 +82,7 @@ internal class IFoo2_Proxy : global::IFoo2, global::StreamJsonRpc.Reflection.IJs
 		return result;
 	}
 	
-	public global::System.Threading.Tasks.Task JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task global::IFoo2.JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo2_Proxy));
 		

@@ -97,7 +97,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task global::IMyRpc.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -111,7 +111,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return result;
 	}
 	
-	public global::System.Threading.Tasks.ValueTask AnArgAndCancellationAsync(int arg, global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.ValueTask global::IMyRpc.AnArgAndCancellationAsync(int arg, global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -125,7 +125,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return new global::System.Threading.Tasks.ValueTask(result);
 	}
 	
-	public global::System.Threading.Tasks.Task<int> AddAsync(int a, int b, global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task<int> global::IMyRpc.AddAsync(int a, int b, global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -139,7 +139,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return result;
 	}
 	
-	public global::System.Threading.Tasks.Task<int> MultiplyAsync(int a, int b)
+	global::System.Threading.Tasks.Task<int> global::IMyRpc.MultiplyAsync(int a, int b)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -153,7 +153,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return result;
 	}
 	
-	public void Start(string bah)
+	void global::IMyRpc.Start(string bah)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -167,7 +167,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return ;
 	}
 	
-	public void StartCancelable(string bah, global::System.Threading.CancellationToken token)
+	void global::IMyRpc.StartCancelable(string bah, global::System.Threading.CancellationToken token)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
@@ -181,7 +181,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 		return ;
 	}
 	
-	public global::System.Collections.Generic.IAsyncEnumerable<int> CountAsync(int start, int count, global::System.Threading.CancellationToken cancellationToken)
+	global::System.Collections.Generic.IAsyncEnumerable<int> global::IMyRpc.CountAsync(int start, int count, global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		

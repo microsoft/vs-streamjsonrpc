@@ -80,6 +80,7 @@ public abstract class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
 
+    [RpcContract]
     public interface IServer3
     {
         Task<string> SayHiAsync();
@@ -151,6 +152,7 @@ public abstract class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
+    [RpcContract]
     internal interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,
@@ -159,6 +161,7 @@ public abstract class JsonRpcProxyGenerationTests : TestBase
         Task<int> AddAsync(int a, int b);
     }
 
+    [RpcContract]
     internal interface IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync();
@@ -166,6 +169,7 @@ public abstract class JsonRpcProxyGenerationTests : TestBase
 
     internal interface IRemoteService
     {
+        [RpcContract]
         internal interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
         {
         }

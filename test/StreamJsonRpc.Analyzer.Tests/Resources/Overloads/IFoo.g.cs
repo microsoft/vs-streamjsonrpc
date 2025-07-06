@@ -75,7 +75,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task SayHi()
+	global::System.Threading.Tasks.Task global::IFoo.SayHi()
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
@@ -89,7 +89,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 		return result;
 	}
 	
-	public global::System.Threading.Tasks.Task SayHi(string name)
+	global::System.Threading.Tasks.Task global::IFoo.SayHi(string name)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
@@ -103,7 +103,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 		return result;
 	}
 	
-	public global::System.Threading.Tasks.Task SayHi(string name, int age)
+	global::System.Threading.Tasks.Task global::IFoo.SayHi(string name, int age)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		

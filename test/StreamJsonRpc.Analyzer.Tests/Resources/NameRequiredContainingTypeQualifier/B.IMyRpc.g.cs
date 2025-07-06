@@ -64,7 +64,7 @@ internal class B_IMyRpc_Proxy : global::B.IMyRpc, global::StreamJsonRpc.Reflecti
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task global::B.IMyRpc.JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(B_IMyRpc_Proxy));
 		

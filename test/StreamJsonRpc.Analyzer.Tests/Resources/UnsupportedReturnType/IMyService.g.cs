@@ -66,7 +66,7 @@ internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Refl
 	    }
 	}
 	
-	public int Add(int a, int b)
+	int global::IMyService.Add(int a, int b)
 	{
 		throw new global::System.NotSupportedException($"The return type 'int' is not supported by the generated proxy method.");
 	}

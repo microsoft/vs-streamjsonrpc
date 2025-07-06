@@ -64,7 +64,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task Dispose()
+	global::System.Threading.Tasks.Task global::IFoo.Dispose()
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		

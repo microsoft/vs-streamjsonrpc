@@ -298,7 +298,7 @@ public class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    private record MethodModel(string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix) : FormattableModel
+    private record MethodModel(string DeclaringInterfaceName, string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix) : FormattableModel
     {
         internal bool TakesCancellationToken => this.Parameters.Length > 0 && this.Parameters[^1].SpecialType == SpecialType.CancellationToken;
 
@@ -373,7 +373,7 @@ public class ProxyGenerator : IIncrementalGenerator
 
             writer.WriteLine($$"""
 
-                public {{this.ReturnType}} {{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
+                {{this.ReturnType}} {{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
                 {
                 """);
 
@@ -446,6 +446,7 @@ public class ProxyGenerator : IIncrementalGenerator
         internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols, int uniqueSuffix)
         {
             return new MethodModel(
+                method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 method.Name,
                 method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 ClassifySpecialType(method.ReturnType, symbols),

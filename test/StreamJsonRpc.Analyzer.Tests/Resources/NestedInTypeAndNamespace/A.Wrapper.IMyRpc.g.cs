@@ -64,7 +64,7 @@ internal class A_Wrapper_IMyRpc_Proxy : global::A.Wrapper.IMyRpc, global::Stream
 	    }
 	}
 	
-	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+	global::System.Threading.Tasks.Task global::A.Wrapper.IMyRpc.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
 		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(A_Wrapper_IMyRpc_Proxy));
 		
