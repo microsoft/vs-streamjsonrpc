@@ -476,7 +476,9 @@ public class JsonRpcProxyGenerationTests : TestBase
     [Fact]
     public void CallBaseMethods()
     {
-        Assert.Contains("proxy", this.clientRpc.ToString());
+        string? actual = this.clientRpc.ToString();
+        this.Logger.WriteLine(actual ?? string.Empty);
+        Assert.Equal(this.clientRpc.GetType().FullName, actual);
     }
 
     [Fact]
