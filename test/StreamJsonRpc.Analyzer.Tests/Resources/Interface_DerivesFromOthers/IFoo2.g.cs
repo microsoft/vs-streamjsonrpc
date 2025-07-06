@@ -6,7 +6,7 @@
 
 namespace StreamJsonRpc.Proxies;
 
-internal class IFoo2_Proxy : global::IFoo2, global::StreamJsonRpc.IJsonRpcClientProxyInternal
+internal class IFoo2_Proxy : global::IFoo2, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -40,13 +40,13 @@ internal class IFoo2_Proxy : global::IFoo2, global::StreamJsonRpc.IJsonRpcClient
 	    this.onDispose = onDispose;
 	}
 	
-	event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CallingMethod
+	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
 	{
 	    add => this.callingMethod += value;
 	    remove => this.callingMethod -= value;
 	}
 	
-	event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CalledMethod
+	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod
 	{
 	    add => this.calledMethod += value;
 	    remove => this.calledMethod -= value;

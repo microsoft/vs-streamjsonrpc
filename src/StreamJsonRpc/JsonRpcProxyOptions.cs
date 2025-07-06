@@ -91,5 +91,5 @@ public class JsonRpcProxyOptions
     /// <summary>
     /// Gets or sets a callback that is invoked whenever a proxy is constructed.
     /// </summary>
-    internal Action<IJsonRpcClientProxyInternal>? OnProxyConstructed { get; set; }
+    internal Action<Reflection.IJsonRpcClientProxyInternal>? OnProxyConstructed { get; set; }
 }

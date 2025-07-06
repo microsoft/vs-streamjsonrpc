@@ -1,4 +1,8 @@
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
+StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
+StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
+StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle.get -> long?
 StreamJsonRpc.RpcContractAttribute
 StreamJsonRpc.RpcContractAttribute.RpcContractAttribute() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>

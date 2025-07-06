@@ -6,7 +6,7 @@
 
 namespace StreamJsonRpc.Proxies;
 
-internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientProxyInternal
+internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -24,13 +24,13 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	    this.onDispose = onDispose;
 	}
 	
-	event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CallingMethod
+	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
 	{
 	    add => this.callingMethod += value;
 	    remove => this.callingMethod -= value;
 	}
 	
-	event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CalledMethod
+	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod
 	{
 	    add => this.calledMethod += value;
 	    remove => this.calledMethod -= value;
@@ -40,7 +40,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.IJsonRpcClientPr
 	
 	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
 	
-	long? global::StreamJsonRpc.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
+	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
 	void global::System.IDisposable.Dispose()
 	{

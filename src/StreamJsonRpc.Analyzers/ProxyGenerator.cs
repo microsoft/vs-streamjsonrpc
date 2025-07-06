@@ -111,7 +111,7 @@ public class ProxyGenerator : IIncrementalGenerator
 
             namespace StreamJsonRpc.Proxies;
 
-            internal class {{model.ProxyName}} : {{model.InterfaceName}}, global::StreamJsonRpc.IJsonRpcClientProxyInternal
+            internal class {{model.ProxyName}} : {{model.InterfaceName}}, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
             {
             """);
 
@@ -197,13 +197,13 @@ public class ProxyGenerator : IIncrementalGenerator
         {
             writer.WriteLine("""
 
-                event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CallingMethod
+                event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
                 {
                     add => this.callingMethod += value;
                     remove => this.callingMethod -= value;
                 }
                 
-                event global::System.EventHandler<string> global::StreamJsonRpc.IJsonRpcClientProxyInternal.CalledMethod
+                event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod
                 {
                     add => this.calledMethod += value;
                     remove => this.calledMethod -= value;
@@ -280,7 +280,7 @@ public class ProxyGenerator : IIncrementalGenerator
                 
                 bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed || this.{{this.JsonRpcFieldName}}.IsDisposed;
                 
-                long? global::StreamJsonRpc.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.{{this.MarshaledObjectHandleFieldName}};
+                long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.{{this.MarshaledObjectHandleFieldName}};
                 """);
 
             foreach (FormattableModel formattable in this.FormattableElements)
