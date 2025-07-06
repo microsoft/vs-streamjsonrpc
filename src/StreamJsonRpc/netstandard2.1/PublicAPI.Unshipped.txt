@@ -5,6 +5,10 @@ StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle.get -> long?
+StreamJsonRpc.Reflection.RpcProxyMappingAttribute
+StreamJsonRpc.Reflection.RpcProxyMappingAttribute.ProxyClass.get -> System.Type!
+StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcInterface.get -> System.Type!
+StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcProxyMappingAttribute(System.Type! rpcInterface, System.Type! proxyClass) -> void
 StreamJsonRpc.RpcContractAttribute
 StreamJsonRpc.RpcContractAttribute.RpcContractAttribute() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
