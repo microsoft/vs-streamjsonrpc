@@ -69,7 +69,6 @@ public abstract class JsonRpcTests : TestBase
         AsyncManualResetEvent AllowFlushAsyncExit { get; }
     }
 
-    [RpcProxy]
     private interface IServer
     {
         [JsonRpcMethod("AnotherName")]

@@ -14,7 +14,7 @@ namespace StreamJsonRpc.Analyzers;
 /// An analyzer of StreamJsonRpc proxy contracts.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class RpcProxyContractAnalyzer : DiagnosticAnalyzer
+public class RpcContractAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
     /// Diagnostic ID for StreamJsonRpc0001: RPC methods use supported return types.
@@ -60,9 +60,9 @@ public class RpcProxyContractAnalyzer : DiagnosticAnalyzer
                     context =>
                     {
                         var namedType = (INamedTypeSymbol)context.Symbol;
-                        AttributeData? rpcProxyAttribute = namedType.GetAttributes()
-                            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcProxyAttribute));
-                        if (rpcProxyAttribute is null)
+                        AttributeData? rpcContractAttribute = namedType.GetAttributes()
+                            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcContractAttribute));
+                        if (rpcContractAttribute is null)
                         {
                             return;
                         }

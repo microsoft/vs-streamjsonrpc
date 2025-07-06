@@ -1,6 +1,6 @@
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
-StreamJsonRpc.RpcProxyAttribute
-StreamJsonRpc.RpcProxyAttribute.RpcProxyAttribute() -> void
+StreamJsonRpc.RpcContractAttribute
+StreamJsonRpc.RpcContractAttribute.RpcContractAttribute() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.EnumeratorResults() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.get -> bool

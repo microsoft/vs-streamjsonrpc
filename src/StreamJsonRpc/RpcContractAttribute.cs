@@ -11,4 +11,4 @@ namespace StreamJsonRpc;
 /// It may also trigger analyzers that verify the interfaces conforms to RPC contract rules.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Interface)]
-public class RpcProxyAttribute : Attribute;
+public class RpcContractAttribute : Attribute;

@@ -30,7 +30,7 @@ public class ProxyGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<DataModel?> proxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
-            Types.RpcProxyAttribute.FullName,
+            Types.RpcContractAttribute.FullName,
             (node, cancellationToken) => true,
             (context, cancellationToken) =>
             {

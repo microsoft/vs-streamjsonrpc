@@ -2,7 +2,7 @@ namespace StreamJsonRpc0001.Violation
 {
 #pragma warning disable StreamJsonRpc0001
     #region Violation
-    [RpcProxy]
+    [RpcContract]
     public interface IMyService
     {
         int Add(int a, int b); // StreamJsonRpc0001
@@ -14,7 +14,7 @@ namespace StreamJsonRpc0001.Violation
 namespace StreamJsonRpc0001.Fix
 {
     #region Fix
-    [RpcProxy]
+    [RpcContract]
     public interface IMyService
     {
         Task<int> Add(int a, int b);

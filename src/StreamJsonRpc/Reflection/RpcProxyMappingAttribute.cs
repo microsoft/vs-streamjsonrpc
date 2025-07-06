@@ -10,7 +10,7 @@ namespace StreamJsonRpc.Reflection;
 /// An attribute that is used by our source generator to map an RPC interface to a
 /// source generated proxy class.
 /// </summary>
-/// <param name="rpcInterface">The interface attributed with <see cref="RpcProxyAttribute"/>.</param>
+/// <param name="rpcInterface">The interface attributed with <see cref="RpcContractAttribute"/>.</param>
 /// <param name="proxyClass">
 /// The source generated proxy class.
 /// This must implement <paramref name="rpcInterface"/> and declare a public constructor

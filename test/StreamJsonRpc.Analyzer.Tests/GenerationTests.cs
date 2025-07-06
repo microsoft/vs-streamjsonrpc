@@ -9,7 +9,7 @@ public class GenerationTests
     public async Task Public_NotNested()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IMyRpc
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -29,7 +29,7 @@ public class GenerationTests
         await VerifyCS.RunDefaultAsync("""
             internal class Wrapper
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -46,7 +46,7 @@ public class GenerationTests
 
             internal class Wrapper
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -61,7 +61,7 @@ public class GenerationTests
         await VerifyCS.RunDefaultAsync("""
             namespace A
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -70,7 +70,7 @@ public class GenerationTests
 
             namespace B
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -85,7 +85,7 @@ public class GenerationTests
         await VerifyCS.RunDefaultAsync("""
             class A
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -94,7 +94,7 @@ public class GenerationTests
             
             class B
             {
-                [RpcProxy]
+                [RpcContract]
                 public interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -107,7 +107,7 @@ public class GenerationTests
     public async Task Interface_DerivesFromIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IFoo : IDisposable
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -119,7 +119,7 @@ public class GenerationTests
     public async Task Interface_HasDisposeWithoutIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IFoo
             {
                 Task Dispose();
@@ -136,7 +136,7 @@ public class GenerationTests
                 Task JustCancellationAsync(CancellationToken cancellationToken);
             }
 
-            [RpcProxy]
+            [RpcContract]
             public interface IFoo2 : IFoo
             {
                 Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -148,7 +148,7 @@ public class GenerationTests
     public async Task Events()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             interface IFoo
             {
                 event EventHandler MyEvent;
@@ -161,7 +161,7 @@ public class GenerationTests
     public async Task EmptyInterface()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IFoo
             {
             }
@@ -172,7 +172,7 @@ public class GenerationTests
     public async Task Overloads()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IFoo
             {
                 Task SayHi();
@@ -186,7 +186,7 @@ public class GenerationTests
     public async Task UnsupportedReturnType()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcProxy]
+            [RpcContract]
             public interface IMyService
             {
                 int Add(int a, int b); // StreamJsonRpc0001
