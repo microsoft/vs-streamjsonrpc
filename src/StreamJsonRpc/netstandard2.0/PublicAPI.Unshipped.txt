@@ -1,4 +1,6 @@
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpc.AvoidSourceGeneratedProxies.get -> bool
+StreamJsonRpc.JsonRpc.AvoidSourceGeneratedProxies.init -> void
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!

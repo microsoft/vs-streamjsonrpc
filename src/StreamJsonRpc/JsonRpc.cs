@@ -645,6 +645,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Gets a value indicating whether dynamic proxies should always be used, even if source generated ones are available.
+    /// </summary>
+    public bool AvoidSourceGeneratedProxies { get; init; }
+
+    /// <summary>
     /// Gets the message handler used to send and receive messages.
     /// </summary>
     internal IJsonRpcMessageHandler MessageHandler { get; }
@@ -2809,17 +2814,20 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
-        // Look for a source generated proxy type first.
-        Type? sourceGeneratedProxyType = contractInterface.Assembly.GetCustomAttributes<RpcProxyMappingAttribute>().FirstOrDefault(m => m.RpcInterface == contractInterface)?.ProxyClass;
-        if (sourceGeneratedProxyType is not null)
+        if (!this.AvoidSourceGeneratedProxies)
         {
-            // If the source generated proxy type exists, use it.
-            return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
-                sourceGeneratedProxyType,
-                this,
-                options ?? JsonRpcProxyOptions.Default,
-                marshaledObjectHandle,
-                options?.OnDispose)!;
+            // Look for a source generated proxy type first.
+            Type? sourceGeneratedProxyType = contractInterface.Assembly.GetCustomAttributes<RpcProxyMappingAttribute>().FirstOrDefault(m => m.RpcInterface == contractInterface)?.ProxyClass;
+            if (sourceGeneratedProxyType is not null)
+            {
+                // If the source generated proxy type exists, use it.
+                return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
+                    sourceGeneratedProxyType,
+                    this,
+                    options ?? JsonRpcProxyOptions.Default,
+                    marshaledObjectHandle,
+                    options?.OnDispose)!;
+            }
         }
 
 #if !NETSTANDARD2_0
