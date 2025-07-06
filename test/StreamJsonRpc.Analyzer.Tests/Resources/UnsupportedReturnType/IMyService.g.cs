@@ -50,7 +50,7 @@ internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Refl
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
-	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+	public bool IsDisposed => this.disposed || this.client.IsDisposed;
 	
 	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	

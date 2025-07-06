@@ -46,7 +46,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
-	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+	public bool IsDisposed => this.disposed || this.client.IsDisposed;
 	
 	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
@@ -70,7 +70,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	public global::System.Threading.Tasks.Task Dispose()
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
 		this.callingMethod?.Invoke(this, "Dispose");
 		string rpcMethodName = this.options.MethodNameTransform("Dispose");

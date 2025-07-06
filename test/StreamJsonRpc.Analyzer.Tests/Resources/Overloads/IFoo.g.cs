@@ -68,7 +68,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
-	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+	public bool IsDisposed => this.disposed || this.client.IsDisposed;
 	
 	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
@@ -92,7 +92,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	public global::System.Threading.Tasks.Task SayHi()
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
 		this.callingMethod?.Invoke(this, "SayHi");
 		string rpcMethodName = this.options.MethodNameTransform("SayHi");
@@ -106,7 +106,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	public global::System.Threading.Tasks.Task SayHi(string name)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
 		this.callingMethod?.Invoke(this, "SayHi");
 		string rpcMethodName = this.options.MethodNameTransform("SayHi");
@@ -120,7 +120,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	
 	public global::System.Threading.Tasks.Task SayHi(string name, int age)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
 		
 		this.callingMethod?.Invoke(this, "SayHi");
 		string rpcMethodName = this.options.MethodNameTransform("SayHi");

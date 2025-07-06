@@ -46,7 +46,7 @@ internal class A_Wrapper_IMyRpc_Proxy : global::A.Wrapper.IMyRpc, global::Stream
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
-	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+	public bool IsDisposed => this.disposed || this.client.IsDisposed;
 	
 	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
@@ -70,7 +70,7 @@ internal class A_Wrapper_IMyRpc_Proxy : global::A.Wrapper.IMyRpc, global::Stream
 	
 	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(A_Wrapper_IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(A_Wrapper_IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "JustCancellationAsync");
 		string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");

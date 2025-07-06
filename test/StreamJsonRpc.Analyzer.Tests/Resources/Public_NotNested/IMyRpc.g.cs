@@ -112,7 +112,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
-	bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+	public bool IsDisposed => this.disposed || this.client.IsDisposed;
 	
 	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
 	
@@ -136,7 +136,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public global::System.Threading.Tasks.Task JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "JustCancellationAsync");
 		string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
@@ -150,7 +150,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public global::System.Threading.Tasks.ValueTask AnArgAndCancellationAsync(int arg, global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "AnArgAndCancellationAsync");
 		string rpcMethodName = this.options.MethodNameTransform("AnArgAndCancellationAsync");
@@ -164,7 +164,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public global::System.Threading.Tasks.Task<int> AddAsync(int a, int b, global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "AddAsync");
 		string rpcMethodName = this.options.MethodNameTransform("AddAsync");
@@ -178,7 +178,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public global::System.Threading.Tasks.Task<int> MultiplyAsync(int a, int b)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "MultiplyAsync");
 		string rpcMethodName = this.options.MethodNameTransform("MultiplyAsync");
@@ -192,7 +192,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public void Start(string bah)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "Start");
 		string rpcMethodName = this.options.MethodNameTransform("Start");
@@ -206,7 +206,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public void StartCancelable(string bah, global::System.Threading.CancellationToken token)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "StartCancelable");
 		string rpcMethodName = this.options.MethodNameTransform("StartCancelable");
@@ -220,7 +220,7 @@ internal class IMyRpc_Proxy : global::IMyRpc, global::StreamJsonRpc.Reflection.I
 	
 	public global::System.Collections.Generic.IAsyncEnumerable<int> CountAsync(int start, int count, global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.disposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyRpc_Proxy));
 		
 		this.callingMethod?.Invoke(this, "CountAsync");
 		string rpcMethodName = this.options.MethodNameTransform("CountAsync");

@@ -278,7 +278,7 @@ public class ProxyGenerator : IIncrementalGenerator
 
                 global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.{{this.JsonRpcFieldName}};
                 
-                bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed || this.{{this.JsonRpcFieldName}}.IsDisposed;
+                public bool IsDisposed => this.disposed || this.{{this.JsonRpcFieldName}}.IsDisposed;
                 
                 long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.{{this.MarshaledObjectHandleFieldName}};
                 """);
@@ -406,7 +406,7 @@ public class ProxyGenerator : IIncrementalGenerator
             else
             {
                 writer.WriteLine($$"""
-                    if (this.disposed) throw new global::System.ObjectDisposedException(nameof({{ifaceModel.ProxyName}}));
+                    if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof({{ifaceModel.ProxyName}}));
 
                     this.callingMethod?.Invoke(this, "{{this.Name}}");
                     string rpcMethodName = this.{{ifaceModel.OptionsFieldName}}.MethodNameTransform("{{this.Name}}");
