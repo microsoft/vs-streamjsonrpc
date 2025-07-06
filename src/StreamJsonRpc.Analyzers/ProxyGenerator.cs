@@ -311,28 +311,10 @@ public class ProxyGenerator : IIncrementalGenerator
 
         private string NamedArgsTypeName { get; } = $"{Name}NamedArgs{UniqueSuffix}";
 
-        private string NamedTypesFieldName { get; } = $"{Name}NamedArgumentDeclaredTypes{UniqueSuffix}";
-
         private string PositionalTypesFieldName { get; } = $"{Name}PositionalArgumentDeclaredTypes{UniqueSuffix}";
 
         public override void WriteFields(SourceWriter writer, DataModel ifaceModel)
         {
-            writer.WriteLine($$"""
-
-                private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> {{this.NamedTypesFieldName}} = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-                {
-                """);
-            writer.Indentation++;
-            foreach (ParameterModel parameter in this.DataParameters.Span)
-            {
-                writer.WriteLine($"""["{parameter.Name}"] = typeof({parameter.Type}),""");
-            }
-
-            writer.Indentation--;
-            writer.WriteLine("""
-                };
-                """);
-
             writer.WriteLine($$"""
 
                 private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> {{this.PositionalTypesFieldName}} = new global::System.Collections.Generic.List<global::System.Type>
@@ -411,7 +393,7 @@ public class ProxyGenerator : IIncrementalGenerator
                     this.callingMethod?.Invoke(this, "{{this.Name}}");
                     string rpcMethodName = this.{{ifaceModel.OptionsFieldName}}.MethodNameTransform("{{this.Name}}");
                     global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.{{ifaceModel.OptionsFieldName}}.ServerRequiresNamedArguments ?
-                        this.{{ifaceModel.JsonRpcFieldName}}.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}, {{this.NamedTypesFieldName}}{{cancellationArg}}) :
+                        this.{{ifaceModel.JsonRpcFieldName}}.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}, null{{cancellationArg}}) :
                         this.{{ifaceModel.JsonRpcFieldName}}.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
                     this.calledMethod?.Invoke(this, "{{this.Name}}");
 
@@ -451,7 +433,7 @@ public class ProxyGenerator : IIncrementalGenerator
             {
                 writer.WriteLine($$"""
 
-                    public {{p.Type}} {{p.Name}} { get; }
+                    public readonly {{p.Type}} {{p.Name}};
                     """);
             }
 

@@ -17,10 +17,6 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DisposeNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-	{
-	};
-	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DisposePositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
@@ -75,7 +71,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 		this.callingMethod?.Invoke(this, "Dispose");
 		string rpcMethodName = this.options.MethodNameTransform("Dispose");
 		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new DisposeNamedArgs1(), DisposeNamedArgumentDeclaredTypes1, default) :
+		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new DisposeNamedArgs1(), null, default) :
 		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
 		this.calledMethod?.Invoke(this, "Dispose");
 		

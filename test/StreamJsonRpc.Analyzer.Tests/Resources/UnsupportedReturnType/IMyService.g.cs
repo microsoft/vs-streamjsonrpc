@@ -17,12 +17,6 @@ internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Refl
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-	{
-		["a"] = typeof(int),
-		["b"] = typeof(int),
-	};
-	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(int),
@@ -85,8 +79,8 @@ internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Refl
 			this.b = b;
 		}
 		
-		public int a { get; }
+		public readonly int a;
 		
-		public int b { get; }
+		public readonly int b;
 	}
 }
