@@ -7,3 +7,4 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 Rule ID                                   | Category | Severity | Notes                                  |
 ------------------------------------------|----------|----------|----------------------------------------|
 [StreamJsonRpc0001](StreamJsonRpc0001.md) | Usage    | Error    | RPC methods use supported return types |
+[StreamJsonRpc0002](StreamJsonRpc0002.md) | Usage    | Error    | Inaccessible interface                 |

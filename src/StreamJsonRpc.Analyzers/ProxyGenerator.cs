@@ -44,6 +44,13 @@ public class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
+                // Skip inaccessible interfaces.
+                if (context.TargetSymbol.DeclaredAccessibility < Accessibility.Internal)
+                {
+                    // Reported by StreamJsonRpc0002
+                    return null;
+                }
+
                 int methodIndex = 0;
                 ImmutableEquatableArray<MethodModel> methods = new([..
                     iface.GetAllMembers()
@@ -388,6 +395,7 @@ public class ProxyGenerator : IIncrementalGenerator
             writer.Indentation++;
             if (returnExpression is null)
             {
+                // StreamJsonRpc0001
                 writer.WriteLine($"""
                     throw new global::System.NotSupportedException($"The return type '{this.ReturnType}' is not supported by the generated proxy method.");
                     """);

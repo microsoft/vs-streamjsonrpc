@@ -22,6 +22,11 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     public const string UnsupportedReturnTypeId = "StreamJsonRpc0001";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0002: Inaccessible interface.
+    /// </summary>
+    public const string InaccessibleInterfaceId = "StreamJsonRpc0002";
+
+    /// <summary>
     /// Diagnostic for StreamJsonRpc0001: RPC methods use supported return types.
     /// </summary>
     public static readonly DiagnosticDescriptor UnsupportedReturnType = new(
@@ -33,9 +38,22 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedReturnTypeId));
 
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0002: Inacessible interface.
+    /// </summary>
+    public static readonly DiagnosticDescriptor InaccessibleInterface = new(
+        id: InaccessibleInterfaceId,
+        title: Strings.StreamJsonRpc0002_Title,
+        messageFormat: Strings.StreamJsonRpc0002_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(InaccessibleInterfaceId));
+
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         UnsupportedReturnType,
+        InaccessibleInterface,
     ];
 
     /// <inheritdoc/>
@@ -65,6 +83,14 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
                         if (rpcContractAttribute is null)
                         {
                             return;
+                        }
+
+                        if (!context.Compilation.IsSymbolAccessibleWithin(namedType, context.Compilation.Assembly))
+                        {
+                            if (namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is BaseTypeDeclarationSyntax { Identifier: { } id })
+                            {
+                                context.ReportDiagnostic(Diagnostic.Create(InaccessibleInterface, id.GetLocation()));
+                            }
                         }
 
                         foreach (ISymbol member in namedType.GetMembers())

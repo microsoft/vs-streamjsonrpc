@@ -6,7 +6,7 @@ using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.RpcContractAnalyzer, Mi
 public class RpcContractAnalyzerTests
 {
     [Fact]
-    public async Task ReturnTypeAnalyzer()
+    public async Task MethodReturnTypes()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcContract]
@@ -18,6 +18,34 @@ public class RpcContractAnalyzerTests
                 Task TaskAsync();
                 void Notify();
                 {|StreamJsonRpc0001:int|} MyMethod(CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task InaccessibleInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            internal class Wrapper
+            {
+                [RpcContract]
+                private interface {|StreamJsonRpc0002:IMyRpc|}
+                {
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task InternalInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            internal class Wrapper
+            {
+                [RpcContract]
+                internal interface IMyRpc
+                {
+                }
             }
             """);
     }

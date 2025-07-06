@@ -6,3 +6,4 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 StreamJsonRpc0001 | Usage | Error | Unsupported RPC method return type
+StreamJsonRpc0002 | Usage | Error | Inaccessible interface
