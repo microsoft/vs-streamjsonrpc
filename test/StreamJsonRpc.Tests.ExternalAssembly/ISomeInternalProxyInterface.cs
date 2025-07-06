@@ -3,6 +3,7 @@
 
 namespace StreamJsonRpc.Tests.ExternalAssembly;
 
+[RpcContract]
 internal interface ISomeInternalProxyInterface
 {
     Task<int> SubtractAsync(int a, int b);
