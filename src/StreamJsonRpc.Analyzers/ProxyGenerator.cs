@@ -278,7 +278,7 @@ public class ProxyGenerator : IIncrementalGenerator
 
                 global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.{{this.JsonRpcFieldName}};
                 
-                bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed;
+                bool global::Microsoft.IDisposableObservable.IsDisposed => this.disposed || this.{{this.JsonRpcFieldName}}.IsDisposed;
                 
                 long? global::StreamJsonRpc.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.{{this.MarshaledObjectHandleFieldName}};
                 """);
