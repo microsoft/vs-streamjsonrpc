@@ -235,4 +235,18 @@ public class GenerationTests
             }
             """);
     }
+
+    [Fact]
+    public async Task NullableTypeArgument()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            #nullable enable
+
+            [RpcContract]
+            public interface IMyService
+            {
+                Task<object?> GetNullableIntAsync(string? value);
+            }
+            """);
+    }
 }

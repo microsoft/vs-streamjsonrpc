@@ -2,11 +2,11 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Proxies.IFoo_Proxy))]
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IMyService), typeof(global::StreamJsonRpc.Proxies.IMyService_Proxy))]
 
 namespace StreamJsonRpc.Proxies;
 
-internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
+internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -16,14 +16,17 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	private global::System.EventHandler<string>? callingMethod;
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> GetNullableIntAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+	{
+		typeof(string),
+	};
+	public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
 	{
 	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
 	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
 	    this.marshaledObjectHandle = marshaledObjectHandle;
 	    this.onDispose = onDispose;
-		this.client.AddLocalRpcMethod(options.EventNameTransform("MyEvent"), this.OnMyEvent);
-		this.client.AddLocalRpcMethod(options.EventNameTransform("MyGenericEvent"), this.OnMyGenericEvent);
 	}
 	
 	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
@@ -37,14 +40,6 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	    add => this.calledMethod += value;
 	    remove => this.calledMethod -= value;
 	}
-	
-	public event global::System.EventHandler? MyEvent;
-	
-	protected virtual void OnMyEvent(global::System.EventArgs args) => this.MyEvent?.Invoke(this, args);
-	
-	public event global::System.EventHandler<string>? MyGenericEvent;
-	
-	protected virtual void OnMyGenericEvent(string args) => this.MyGenericEvent?.Invoke(this, args);
 	
 	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
 	
@@ -68,5 +63,29 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	    {
 	        client.Dispose();
 	    }
+	}
+	
+	global::System.Threading.Tasks.Task<object?> global::IMyService.GetNullableIntAsync(string? value)
+	{
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IMyService_Proxy));
+		
+		this.callingMethod?.Invoke(this, "GetNullableIntAsync");
+		string rpcMethodName = this.options.MethodNameTransform("GetNullableIntAsync");
+		global::System.Threading.Tasks.Task<object?> result = this.options.ServerRequiresNamedArguments ?
+		    this.client.InvokeWithParameterObjectAsync<object?>(rpcMethodName, new GetNullableIntAsyncNamedArgs1(value), null, default) :
+		    this.client.InvokeWithCancellationAsync<object?>(rpcMethodName, [value], GetNullableIntAsyncPositionalArgumentDeclaredTypes1, default);
+		this.calledMethod?.Invoke(this, "GetNullableIntAsync");
+		
+		return result;
+	}
+	
+	private readonly struct GetNullableIntAsyncNamedArgs1
+	{
+	    public GetNullableIntAsyncNamedArgs1(string? value)
+	    {
+			this.value = value;
+		}
+		
+		public readonly string? value;
 	}
 }

@@ -13,6 +13,12 @@ namespace StreamJsonRpc.Analyzers;
 [Generator(LanguageNames.CSharp)]
 public class ProxyGenerator : IIncrementalGenerator
 {
+    private static readonly SymbolDisplayFormat FullyQualifiedWithNullableFormat = new(
+        globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
+        typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+        genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+        miscellaneousOptions: SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers | SymbolDisplayMiscellaneousOptions.UseSpecialTypes | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     /// <summary>
     /// The various special types that the generator must recognize.
     /// </summary>
@@ -66,7 +72,7 @@ public class ProxyGenerator : IIncrementalGenerator
                 string fileNamePrefix = context.TargetSymbol.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat);
                 return new DataModel(
                     fileNamePrefix,
-                    context.TargetSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    context.TargetSymbol.ToDisplayString(FullyQualifiedWithNullableFormat),
                     methods,
                     events);
             });
@@ -323,7 +329,7 @@ public class ProxyGenerator : IIncrementalGenerator
             writer.Indentation++;
             foreach (ParameterModel parameter in this.DataParameters.Span)
             {
-                writer.WriteLine($"""typeof({parameter.Type}),""");
+                writer.WriteLine($"""typeof({parameter.TypeNoNullRefAnnotaions}),""");
             }
 
             writer.Indentation--;
@@ -457,21 +463,21 @@ public class ProxyGenerator : IIncrementalGenerator
             }
 
             return new MethodModel(
-                method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                method.ContainingType.ToDisplayString(FullyQualifiedWithNullableFormat),
                 method.Name,
-                method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                method.ReturnType.ToDisplayString(FullyQualifiedWithNullableFormat),
                 ClassifySpecialType(method.ReturnType, symbols),
-                method.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments: [ITypeSymbol typeArg] } ? typeArg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) : null,
+                method.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments: [ITypeSymbol typeArg] } ? typeArg.ToDisplayString(FullyQualifiedWithNullableFormat) : null,
                 new([.. method.Parameters.Select(p => ParameterModel.Create(p, symbols))]),
                 uniqueSuffix,
                 rpcMethodName);
         }
     }
 
-    private record ParameterModel(string Name, string Type, SpecialType SpecialType)
+    private record ParameterModel(string Name, string Type, string TypeNoNullRefAnnotaions, SpecialType SpecialType)
     {
         internal static ParameterModel Create(IParameterSymbol parameter, KnownSymbols symbols)
-            => new(parameter.Name, parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), ClassifySpecialType(parameter.Type, symbols));
+            => new(parameter.Name, parameter.Type.ToDisplayString(FullyQualifiedWithNullableFormat), parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), ClassifySpecialType(parameter.Type, symbols));
     }
 
     private record EventModel(string Name, string DelegateType, string EventArgsType) : FormattableModel
@@ -500,7 +506,7 @@ public class ProxyGenerator : IIncrementalGenerator
                 return null;
             }
 
-            return new EventModel(evt.Name, evt.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), invokeMethod.Parameters[1].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            return new EventModel(evt.Name, evt.Type.ToDisplayString(FullyQualifiedWithNullableFormat), invokeMethod.Parameters[1].Type.ToDisplayString(FullyQualifiedWithNullableFormat));
         }
     }
 }
