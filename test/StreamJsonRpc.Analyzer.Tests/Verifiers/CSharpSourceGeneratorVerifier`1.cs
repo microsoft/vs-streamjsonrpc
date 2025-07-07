@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Uncomment the following line to write expected files to disk
-#define WRITE_EXPECTED
+////#define WRITE_EXPECTED
 
 #if WRITE_EXPECTED
 #warning WRITE_EXPECTED is fine for local builds, but should not be merged to the main branch.
@@ -11,7 +11,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
@@ -89,6 +91,59 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     logger.WriteLine("--------------------------------------------------------------");
                 }
             }
+        }
+
+        public Test AddGeneratedSources()
+        {
+            static void AddGeneratedSources(ProjectState project, string testMethod, bool withPrefix)
+            {
+                string prefix = withPrefix ? $"{project.Name}." : string.Empty;
+                string expectedPrefix = $"{typeof(Test).Assembly.GetName().Name}.Resources.{testMethod}.{prefix}"
+                    .Replace(' ', '_')
+                    .Replace(',', '_')
+                    .Replace('(', '_')
+                    .Replace(')', '_');
+
+                foreach (var resourceName in typeof(Test).Assembly.GetManifestResourceNames())
+                {
+                    if (!resourceName.StartsWith(expectedPrefix))
+                    {
+                        continue;
+                    }
+
+                    using Stream? resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                    if (resourceStream is null)
+                    {
+                        throw new InvalidOperationException();
+                    }
+
+                    using var reader = new StreamReader(resourceStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
+                    var name = resourceName.Substring(expectedPrefix.Length);
+                    var code = reader.ReadToEnd();
+                    project.GeneratedSources.Add((typeof(TSourceGenerator), name, code));
+                }
+            }
+
+            AddGeneratedSources(this.TestState, this.testMethod, this.TestState.AdditionalProjects.Count > 0);
+            foreach (ProjectState addlProject in this.TestState.AdditionalProjects.Values)
+            {
+                AddGeneratedSources(addlProject, this.testMethod, true);
+            }
+
+            return this;
+        }
+
+        protected override Task RunImplAsync(CancellationToken cancellationToken)
+        {
+            this.AddGeneratedSources();
+
+            foreach (ProjectState addlProject in this.TestState.AdditionalProjects.Values)
+            {
+                addlProject.AdditionalReferences.AddRange(this.TestState.AdditionalReferences);
+                addlProject.DocumentationMode = DocumentationMode.Parse;
+            }
+
+            return base.RunImplAsync(cancellationToken);
         }
 
         protected override CompilationOptions CreateCompilationOptions()
