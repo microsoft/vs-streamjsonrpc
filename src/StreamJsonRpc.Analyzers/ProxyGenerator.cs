@@ -117,6 +117,7 @@ public class ProxyGenerator : IIncrementalGenerator
 
             namespace StreamJsonRpc.Proxies;
 
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("{{ThisAssembly.AssemblyName}}", "{{ThisAssembly.AssemblyFileVersion}}")]
             internal class {{model.ProxyName}} : {{model.InterfaceName}}, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
             {
             """);

@@ -6,6 +6,7 @@
 
 namespace StreamJsonRpc.Proxies;
 
+[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "2.23.62.48791")]
 internal class Wrapper_IMyRpc_Proxy : global::Wrapper.IMyRpc, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;

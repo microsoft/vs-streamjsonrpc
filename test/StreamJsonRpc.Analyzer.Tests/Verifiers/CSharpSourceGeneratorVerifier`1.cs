@@ -14,6 +14,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
@@ -120,6 +121,12 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     using var reader = new StreamReader(resourceStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
                     var name = resourceName.Substring(expectedPrefix.Length);
                     var code = reader.ReadToEnd();
+
+                    // Update the hard-coded version to the one that would be generated if done with this version.
+                    // This has the effect of allowing tests to pass though the version alone has changed.
+                    // It also happens to cause the hard-coded version that is checked in to reflect the last time the output was changed.
+                    code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""{ThisAssembly.AssemblyFileVersion}"")");
+
                     project.GeneratedSources.Add((typeof(TSourceGenerator), name, code));
                 }
             }
