@@ -2814,7 +2814,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
-        if (!this.AvoidSourceGeneratedProxies)
+        if (!this.AvoidSourceGeneratedProxies && additionalContractInterfaces is [])
         {
             // Look for a source generated proxy type first.
             Type? sourceGeneratedProxyType = contractInterface.Assembly.GetCustomAttributes<RpcProxyMappingAttribute>().FirstOrDefault(m => m.RpcInterface == contractInterface)?.ProxyClass;
