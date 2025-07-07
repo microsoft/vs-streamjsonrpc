@@ -298,7 +298,7 @@ public class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    private record MethodModel(string DeclaringInterfaceName, string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix) : FormattableModel
+    private record MethodModel(string DeclaringInterfaceName, string Name, string ReturnType, SpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix, string RpcMethodName) : FormattableModel
     {
         internal bool TakesCancellationToken => this.Parameters.Length > 0 && this.Parameters[^1].SpecialType == SpecialType.CancellationToken;
 
@@ -391,7 +391,7 @@ public class ProxyGenerator : IIncrementalGenerator
                     if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof({{ifaceModel.ProxyName}}));
 
                     this.callingMethod?.Invoke(this, "{{this.Name}}");
-                    string rpcMethodName = this.{{ifaceModel.OptionsFieldName}}.MethodNameTransform("{{this.Name}}");
+                    string rpcMethodName = this.{{ifaceModel.OptionsFieldName}}.MethodNameTransform("{{this.RpcMethodName}}");
                     global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.{{ifaceModel.OptionsFieldName}}.ServerRequiresNamedArguments ?
                         this.{{ifaceModel.JsonRpcFieldName}}.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}, null{{cancellationArg}}) :
                         this.{{ifaceModel.JsonRpcFieldName}}.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
@@ -445,6 +445,17 @@ public class ProxyGenerator : IIncrementalGenerator
 
         internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols, int uniqueSuffix)
         {
+            string rpcMethodName = method.Name;
+            if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute)) is { } rpcMethodAttribute)
+            {
+                // If the method has a JsonRpcMethod attribute, use its name.
+                if (rpcMethodAttribute.ConstructorArguments.Length > 0 &&
+                    rpcMethodAttribute.ConstructorArguments[0].Value is string name)
+                {
+                    rpcMethodName = name;
+                }
+            }
+
             return new MethodModel(
                 method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 method.Name,
@@ -452,7 +463,8 @@ public class ProxyGenerator : IIncrementalGenerator
                 ClassifySpecialType(method.ReturnType, symbols),
                 method.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments: [ITypeSymbol typeArg] } ? typeArg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) : null,
                 new([.. method.Parameters.Select(p => ParameterModel.Create(p, symbols))]),
-                uniqueSuffix);
+                uniqueSuffix,
+                rpcMethodName);
         }
     }
 
@@ -467,7 +479,7 @@ public class ProxyGenerator : IIncrementalGenerator
         public override void WriteHookupStatements(SourceWriter writer, DataModel ifaceModel)
         {
             writer.WriteLine($"""
-                this.{ifaceModel.JsonRpcFieldName}.AddLocalRpcMethod("{this.Name}", this.On{this.Name});
+                this.{ifaceModel.JsonRpcFieldName}.AddLocalRpcMethod(options.EventNameTransform("{this.Name}"), this.On{this.Name});
                 """);
         }
 
