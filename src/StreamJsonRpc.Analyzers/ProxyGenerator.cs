@@ -13,6 +13,11 @@ namespace StreamJsonRpc.Analyzers;
 [Generator(LanguageNames.CSharp)]
 public class ProxyGenerator : IIncrementalGenerator
 {
+    /// <summary>
+    /// The namespace under which proxies (and interceptors) are generated.
+    /// </summary>
+    public const string GenerationNamespace = "StreamJsonRpc.Generated";
+
     private static readonly SymbolDisplayFormat FullyQualifiedWithNullableFormat = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
         typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
@@ -113,9 +118,9 @@ public class ProxyGenerator : IIncrementalGenerator
 
             #nullable enable
 
-            [assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof({{model.InterfaceName}}), typeof(global::StreamJsonRpc.Proxies.{{model.ProxyName}}))]
+            [assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof({{model.InterfaceName}}), typeof(global::{{GenerationNamespace}}.{{model.ProxyName}}))]
 
-            namespace StreamJsonRpc.Proxies;
+            namespace {{GenerationNamespace}};
 
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("{{ThisAssembly.AssemblyName}}", "{{ThisAssembly.AssemblyFileVersion}}")]
             internal class {{model.ProxyName}} : {{model.InterfaceName}}, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal

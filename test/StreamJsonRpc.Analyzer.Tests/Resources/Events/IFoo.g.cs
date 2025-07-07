@@ -2,11 +2,11 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Proxies.IFoo_Proxy))]
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Generated.IFoo_Proxy))]
 
-namespace StreamJsonRpc.Proxies;
+namespace StreamJsonRpc.Generated;
 
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "2.23.62.48791")]
+[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "2.23.65.59200")]
 internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;

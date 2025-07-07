@@ -2,12 +2,12 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Generated.IFoo_Proxy))]
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IMyService), typeof(global::StreamJsonRpc.Generated.IMyService_Proxy))]
 
 namespace StreamJsonRpc.Generated;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "2.23.65.59200")]
-internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
+internal class IMyService_Proxy : global::IMyService, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 {
 	private readonly global::StreamJsonRpc.JsonRpc client;
 	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
@@ -17,11 +17,7 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	private global::System.EventHandler<string>? callingMethod;
 	private global::System.EventHandler<string>? calledMethod;
 	private bool disposed;
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-	};
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
 	{
 	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
 	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
@@ -63,26 +59,5 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	    {
 	        client.Dispose();
 	    }
-	}
-	
-	global::System.Threading.Tasks.Task global::IFoo.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(IFoo_Proxy));
-		
-		this.callingMethod?.Invoke(this, "JustCancellationAsync");
-		string rpcMethodName = this.options.MethodNameTransform("JustCancellationAsync");
-		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), null, cancellationToken) :
-		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
-		this.calledMethod?.Invoke(this, "JustCancellationAsync");
-		
-		return result;
-	}
-	
-	private readonly struct JustCancellationAsyncNamedArgs1
-	{
-	    public JustCancellationAsyncNamedArgs1()
-	    {
-		}
 	}
 }
