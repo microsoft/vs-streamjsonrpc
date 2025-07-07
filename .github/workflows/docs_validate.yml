@@ -25,6 +25,8 @@ jobs:
         ./init.ps1 -UpgradePrerequisites
         dotnet --info
       shell: pwsh
+    - name: 🏭 Build source generator # docfx build needs this to avoid a warning.
+      run: dotnet build -c Release src/StreamJsonRpc.Analyzers
     - name: 📚 Verify docfx build
       run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
       if: runner.os == 'Linux'
