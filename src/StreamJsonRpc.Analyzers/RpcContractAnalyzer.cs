@@ -39,7 +39,7 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedReturnTypeId));
 
     /// <summary>
-    /// Diagnostic for StreamJsonRpc0002: Inacessible interface.
+    /// Diagnostic for StreamJsonRpc0002: Inaccessible interface.
     /// </summary>
     public static readonly DiagnosticDescriptor InaccessibleInterface = new(
         id: InaccessibleInterfaceId,
