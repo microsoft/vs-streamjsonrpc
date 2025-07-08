@@ -123,8 +123,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     var code = reader.ReadToEnd();
 
                     // Update the hard-coded version to the one that would be generated if done with this version.
-                    // This has the effect of allowing tests to pass though the version alone has changed.
-                    // It also happens to cause the hard-coded version that is checked in to reflect the last time the output was changed.
+                    // This is so the just-generated code matches what we load from disk.
                     code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""{ThisAssembly.AssemblyFileVersion}"")");
 
                     project.GeneratedSources.Add((typeof(TSourceGenerator), name, code));
@@ -206,7 +205,13 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             string name = fileNamePrefix + Path.GetFileName(tree.FilePath);
             string filePath = Path.Combine(resourceDirectory, name);
             Directory.CreateDirectory(resourceDirectory);
-            File.WriteAllText(filePath, tree.GetText().ToString(), tree.Encoding);
+
+            string code = tree.GetText().ToString();
+
+            // Remove the version number from the file written to disk to keep the changed files noise down.
+            code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""x.x.x.x"")");
+
+            File.WriteAllText(filePath, code, tree.Encoding);
         }
     }
 }
