@@ -9,8 +9,11 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc.Protocol;
 using STJ = System.Text.Json.Serialization;
+
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<>)])]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -219,13 +222,14 @@ public class MessageFormatterEnumerableTracker
     /// <typeparam name="T">The type of element in the enumeration.</typeparam>
     [DataContract]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public sealed class EnumeratorResults<T>
+    public class EnumeratorResults<T>
     {
         /// <summary>
         /// Gets the slice of values in this segment.
         /// </summary>
         [DataMember(Name = ValuesPropertyName, Order = 0)]
         [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
+        [PropertyShape(Name = ValuesPropertyName)]
         public IReadOnlyList<T>? Values { get; init; }
 
         /// <summary>
@@ -233,6 +237,7 @@ public class MessageFormatterEnumerableTracker
         /// </summary>
         [DataMember(Name = FinishedPropertyName, Order = 1)]
         [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
+        [PropertyShape(Name = FinishedPropertyName)]
         public bool Finished { get; init; }
     }
 
