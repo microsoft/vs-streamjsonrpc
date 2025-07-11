@@ -315,4 +315,44 @@ public class ProxyGeneratorTests
             }
             """);
     }
+
+    [Fact]
+    public async Task Interceptor_AttachType()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    IMyService service = (IMyService)rpc.Attach(typeof(IMyService));
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachTypeWithOptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    IMyService service = (IMyService)rpc.Attach(typeof(IMyService), new JsonRpcProxyOptions());
+                }
+            }
+            """);
+    }
 }

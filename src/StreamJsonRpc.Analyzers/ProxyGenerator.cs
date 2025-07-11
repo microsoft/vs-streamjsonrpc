@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -90,7 +91,9 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = methodSymbol switch
                 {
                     { Parameters: [], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGeneric, new INamedTypeSymbol[] { iface }),
-                    { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, new INamedTypeSymbol[] { iface }),
+                    { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, [iface]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
                     _ => null,
                 };
 
@@ -117,6 +120,20 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     interceptableLocation,
                     analysis.Value.Signature,
                     [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols))]);
+
+                bool TryGetNamedType(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol? namedTypeArgument)
+                {
+                    if (!SymbolEqualityComparer.Default.Equals(parameterType, symbols.SystemType) ||
+                        invocation.ArgumentList.Arguments is not [ArgumentSyntax { Expression: TypeOfExpressionSyntax { Type: TypeSyntax argTypeSyntax } }, ..] ||
+                        context.SemanticModel.GetTypeInfo(argTypeSyntax, cancellationToken) is not { Type: INamedTypeSymbol argTypeSymbol })
+                    {
+                        namedTypeArgument = null;
+                        return false;
+                    }
+
+                    namedTypeArgument = argTypeSymbol;
+                    return true;
+                }
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Select(

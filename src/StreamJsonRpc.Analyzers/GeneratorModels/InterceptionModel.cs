@@ -6,6 +6,8 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
 {
     internal void WriteInterceptor(SourceWriter writer)
     {
+        writer.WriteLine();
+
         foreach (InterceptableLocation location in this.Locations)
         {
             writer.WriteLine(location.GetInterceptsLocationAttributeSyntax());
@@ -21,7 +23,7 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                     internal static T Attach{{this.Proxy.Name}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
                         where T : class
                     {
-                        return (T)(object)new {{this.Proxy.Name}}(jsonRpc, JsonRpcProxyOptions.Default, null, null);
+                        return (T)(object)new {{this.Proxy.Name}}(jsonRpc, null, null, null);
                     }
                     """);
                 break;
@@ -32,6 +34,18 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                     {
                         return (T)(object)new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     }
+                    """);
+                break;
+            case AttachSignature.InstanceNonGeneric:
+                writer.WriteLine($$"""
+                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType)
+                        => new {{this.Proxy.Name}}(jsonRpc, null, null, null);
+                    """);
+                break;
+            case AttachSignature.InstanceNonGenericOptions:
+                writer.WriteLine($$"""
+                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                        => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     """);
                 break;
             default: throw new NotSupportedException();

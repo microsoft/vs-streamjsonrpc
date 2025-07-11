@@ -15,7 +15,8 @@ internal record KnownSymbols(
     INamedTypeSymbol? CancellationToken,
     INamedTypeSymbol IDisposable,
     INamedTypeSymbol RpcContractAttribute,
-    INamedTypeSymbol JsonRpcMethodAttribute)
+    INamedTypeSymbol JsonRpcMethodAttribute,
+    INamedTypeSymbol SystemType)
 {
     internal static bool TryCreate(Compilation compilation, [NotNullWhen(true)] out KnownSymbols? symbols)
     {
@@ -28,14 +29,15 @@ internal record KnownSymbols(
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
         INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.RpcContractAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
+        INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
 
-        if (idisposable is null || rpcContractAttribute is null || jsonRpcMethodAttribute is null)
+        if (idisposable is null || rpcContractAttribute is null || jsonRpcMethodAttribute is null || systemType is null)
         {
             symbols = null;
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable, rpcContractAttribute, jsonRpcMethodAttribute);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable, rpcContractAttribute, jsonRpcMethodAttribute, systemType);
         return true;
     }
 }

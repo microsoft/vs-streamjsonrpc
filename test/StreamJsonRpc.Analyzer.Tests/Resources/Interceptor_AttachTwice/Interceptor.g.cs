@@ -19,17 +19,19 @@ namespace StreamJsonRpc.Generated
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
 	file static class StreamJsonRpcInterceptor
 	{
+
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "zFkSg4spW3FE7SpFmVwd82MBAABUZXN0MC5jcw==")]
 		internal static T AttachIMyService_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
 		    where T : class
 		{
-		    return (T)(object)new IMyService_Proxy(jsonRpc, JsonRpcProxyOptions.Default, null, null);
+		    return (T)(object)new IMyService_Proxy(jsonRpc, null, null, null);
 		}
+
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "zFkSg4spW3FE7SpFmVwd850BAABUZXN0MC5jcw==")]
 		internal static T AttachIMyService2_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
 		    where T : class
 		{
-		    return (T)(object)new IMyService2_Proxy(jsonRpc, JsonRpcProxyOptions.Default, null, null);
+		    return (T)(object)new IMyService2_Proxy(jsonRpc, null, null, null);
 		}
 	}
 }
