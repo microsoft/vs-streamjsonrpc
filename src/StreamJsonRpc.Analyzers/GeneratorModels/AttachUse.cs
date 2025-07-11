@@ -5,4 +5,4 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record AttachUse(InterceptableLocation InterceptableLocation, AttachSignature Signature, ImmutableEquatableArray<InterfaceModel> Contracts);
+internal record AttachUse(InterceptableLocation InterceptableLocation, AttachSignature Signature, ImmutableEquatableSet<InterfaceModel> Contracts);

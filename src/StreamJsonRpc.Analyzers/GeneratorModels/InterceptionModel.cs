@@ -13,9 +13,6 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
             writer.WriteLine(location.GetInterceptsLocationAttributeSyntax());
         }
 
-        // TODO: for overloads that take Options, consider whether the caller
-        // wants us to avoid source generated proxies and revert to old behavior in that case.
-
         switch (this.Signature)
         {
             case AttachSignature.InstanceGeneric:
@@ -48,7 +45,14 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                         => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     """);
                 break;
-            default: throw new NotSupportedException();
+            case AttachSignature.InstanceNonGenericSpanOptions:
+                writer.WriteLine($$"""
+                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.ReadOnlySpan<global::System.Type> interfaceTypes, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                        => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
+                    """);
+                break;
+            default:
+                throw new NotSupportedException();
         }
     }
 }

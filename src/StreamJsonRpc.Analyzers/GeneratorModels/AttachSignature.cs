@@ -8,7 +8,7 @@ internal enum AttachSignature
     InstanceNonGeneric,
 
     /// <summary>
-    /// The <c>Attach(Type, JsonRpcProxyOptions? options)</c> method.
+    /// The <c>Attach(Type, JsonRpcProxyOptions?)</c> method.
     /// </summary>
     InstanceNonGenericOptions,
 
@@ -18,7 +18,12 @@ internal enum AttachSignature
     InstanceGeneric,
 
     /// <summary>
-    /// The <c>Attach&lt;T&gt;(JsonRpcProxyOptions? options)</c> method.
+    /// The <c>Attach&lt;T&gt;(JsonRpcProxyOptions?)</c> method.
     /// </summary>
     InstanceGenericOptions,
+
+    /// <summary>
+    /// The <c>Attach(ReadOnlySpan&lt;Type&gt;, JsonRpcProxyOptions?)</c> method.
+    /// </summary>
+    InstanceNonGenericSpanOptions,
 }

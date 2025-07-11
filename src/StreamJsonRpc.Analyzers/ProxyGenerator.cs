@@ -94,6 +94,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, [iface]),
                     { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
                     { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) => (AttachSignature.InstanceNonGenericSpanOptions, argumentTypes),
                     _ => null,
                 };
 
@@ -134,12 +135,57 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     namedTypeArgument = argTypeSymbol;
                     return true;
                 }
+
+                bool TryGetNamedTypes(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol[]? namedTypeArgument)
+                {
+                    if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: CollectionExpressionSyntax { Elements: { } elements } }, ..])
+                    {
+                        namedTypeArgument = new INamedTypeSymbol[elements.Count];
+                        for (int i = 0; i < elements.Count; i++)
+                        {
+                            if (elements[i] is ExpressionElementSyntax { Expression: TypeOfExpressionSyntax { Type: { } namedTypeSyntax } } &&
+                                context.SemanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
+                            {
+                                namedTypeArgument[i] = namedTypeSymbol;
+                            }
+                            else
+                            {
+                                namedTypeArgument = null;
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    }
+                    else if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: ArrayCreationExpressionSyntax { Initializer: { Expressions: { } expressions } } }, ..])
+                    {
+                        namedTypeArgument = new INamedTypeSymbol[expressions.Count];
+                        for (int i = 0; i < expressions.Count; i++)
+                        {
+                            if (expressions[i] is TypeOfExpressionSyntax { Type: { } namedTypeSyntax } &&
+                                context.SemanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
+                            {
+                                namedTypeArgument[i] = namedTypeSymbol;
+                            }
+                            else
+                            {
+                                namedTypeArgument = null;
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    }
+
+                    namedTypeArgument = null;
+                    return false;
+                }
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Select(
             (combined, attach) =>
             {
-                return new FullModel(combined.Left.ToImmutableEquatableArray(), combined.Right.ToImmutableEquatableArray());
+                return new FullModel(combined.Left.ToImmutableEquatableSet(), combined.Right.ToImmutableEquatableArray());
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));

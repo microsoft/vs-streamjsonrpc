@@ -234,6 +234,11 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
         [Conditional("WRITE_EXPECTED")]
         private static void PurgeExtranneousFiles(string resourceDirectory, string fileNamePrefix, HashSet<string> expectedNames)
         {
+            if (!Directory.Exists(resourceDirectory))
+            {
+                return;
+            }
+
             foreach (string file in Directory.EnumerateFiles(resourceDirectory, $"{fileNamePrefix}*"))
             {
                 if (!expectedNames.Contains(Path.GetFileName(file)))

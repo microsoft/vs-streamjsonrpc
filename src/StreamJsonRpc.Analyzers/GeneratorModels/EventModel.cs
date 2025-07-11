@@ -7,14 +7,14 @@ namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
 internal record EventModel(string Name, string DelegateType, string EventArgsType) : FormattableModel
 {
-    internal override void WriteHookupStatements(SourceWriter writer, InterfaceModel ifaceModel)
+    internal override void WriteHookupStatements(SourceWriter writer)
     {
         writer.WriteLine($"""
                 this.JsonRpc.AddLocalRpcMethod(this.Options.EventNameTransform("{this.Name}"), this.On{this.Name});
                 """);
     }
 
-    internal override void WriteEvents(SourceWriter writer, InterfaceModel ifaceModel)
+    internal override void WriteEvents(SourceWriter writer)
     {
         writer.WriteLine($$"""
 

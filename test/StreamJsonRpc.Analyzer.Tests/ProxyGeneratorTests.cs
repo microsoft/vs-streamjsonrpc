@@ -297,6 +297,114 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task Interceptor_AttachMultipleInterfaces_CollectionInitializer()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+                Task Task1();
+            }
+
+            [RpcContract]
+            public interface IMyService2
+            {
+                Task Task2();
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach([typeof(IMyService), typeof(IMyService2)], null);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachMultipleInterfaces_ArrayInitializer()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+                Task Task1();
+            }
+            
+            [RpcContract]
+            public interface IMyService2
+            {
+                Task Task2();
+            }
+            
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(new Type[] { typeof(IMyService), typeof(IMyService2) }, null);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachMultipleInterfaces_OneDerivesFromTheOther()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+                Task Task1(string name);
+            }
+            
+            [RpcContract]
+            public interface IMyService2 : IMyService
+            {
+                Task Task2(string color);
+            }
+            
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(new Type[] { typeof(IMyService), typeof(IMyService2) }, null);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachMultipleInterfaces_DistinctYetRedundantMethods()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+                Task Task1(string name);
+            }
+            
+            [RpcContract]
+            public interface IMyService2
+            {
+                Task Task1(string name);
+            }
+            
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(new Type[] { typeof(IMyService), typeof(IMyService2) }, null);
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interceptor_AttachWithOptions()
     {
         await VerifyCS.RunDefaultAsync("""

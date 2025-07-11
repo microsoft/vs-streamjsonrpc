@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using StreamJsonRpc.Analyzers;
 
@@ -8,7 +9,7 @@ namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
 internal record FullModel
 {
-    internal FullModel(ImmutableEquatableArray<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses)
+    internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses)
     {
         // Generate a proxy for attributed interfaces in this assembly, and for interfaces used by Attach methods.
         this.Proxies = [.. proxies.Concat(attachUses.Select(a => new ProxyModel(a.Contracts))).Distinct()];
@@ -26,14 +27,29 @@ internal record FullModel
 
     internal void GenerateSource(SourceProductionContext context)
     {
-        foreach (ProxyModel proxy in this.Proxies)
+        try
         {
-            proxy.GenerateSource(context);
+            foreach (ProxyModel proxy in this.Proxies)
+            {
+                proxy.GenerateSource(context);
+            }
+
+            if (this.Interceptions is not [])
+            {
+                this.GenerateInterceptor(context, this.Interceptions);
+            }
+        }
+        catch (Exception) when (LaunchDebugger())
+        {
+            throw;
         }
 
-        if (this.Interceptions is not [])
+        bool LaunchDebugger()
         {
-            this.GenerateInterceptor(context, this.Interceptions);
+#if DEBUG
+            Debugger.Launch();
+#endif
+            return false;
         }
     }
 

@@ -7,11 +7,13 @@ using Microsoft.CodeAnalysis;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record ProxyModel
+internal record ProxyModel : FormattableModel
 {
-    internal ProxyModel(ImmutableEquatableArray<InterfaceModel> interfaces)
+    private readonly ImmutableEquatableArray<FormattableModel> formattableElements;
+
+    internal ProxyModel(ImmutableEquatableSet<InterfaceModel> interfaces)
     {
-        if (interfaces.Length == 0)
+        if (interfaces.Count == 0)
         {
             throw new ArgumentException("Must include at least one interface.", nameof(interfaces));
         }
@@ -20,9 +22,15 @@ internal record ProxyModel
         string name = CreateProxyName(interfaces);
         this.Name = $"{name.Replace('.', '_')}_Proxy";
         this.FileName = $"{name}.g.cs";
+
+        int methodSuffix = 0;
+        this.formattableElements = this.Interfaces.SelectMany(i => i.Methods).Concat<FormattableModel>(
+            this.Interfaces.SelectMany(i => i.Events)).Distinct()
+            .Select(e => e is MethodModel method ? method with { UniqueSuffix = ++methodSuffix } : e)
+            .ToImmutableEquatableArray();
     }
 
-    internal ImmutableEquatableArray<InterfaceModel> Interfaces { get; }
+    internal ImmutableEquatableSet<InterfaceModel> Interfaces { get; }
 
     internal string Name { get; }
 
@@ -57,26 +65,68 @@ internal record ProxyModel
                 """);
 
         writer.Indentation++;
-        foreach (InterfaceModel iface in this.Interfaces)
-        {
-            iface.WriteFields(writer, iface);
-        }
+        this.WriteFields(writer);
 
         this.WriteConstructor(writer);
 
-        foreach (InterfaceModel iface in this.Interfaces)
-        {
-            iface.WriteEvents(writer, iface);
-            iface.WriteProperties(writer, iface);
-            iface.WriteMethods(writer, iface);
-            iface.WriteNestedTypes(writer, iface);
-        }
+        this.WriteEvents(writer);
+        this.WriteProperties(writer);
+        this.WriteMethods(writer);
+        this.WriteNestedTypes(writer);
 
         writer.Indentation--;
 
         writer.WriteLine("}");
 
         context.AddSource(this.FileName, writer.ToSourceText());
+    }
+
+    internal override void WriteEvents(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteEvents(writer);
+        }
+    }
+
+    internal override void WriteHookupStatements(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteHookupStatements(writer);
+        }
+    }
+
+    internal override void WriteMethods(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteMethods(writer);
+        }
+    }
+
+    internal override void WriteFields(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteFields(writer);
+        }
+    }
+
+    internal override void WriteProperties(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteProperties(writer);
+        }
+    }
+
+    internal override void WriteNestedTypes(SourceWriter writer)
+    {
+        foreach (FormattableModel formattable in this.formattableElements)
+        {
+            formattable.WriteNestedTypes(writer);
+        }
     }
 
     private void WriteConstructor(SourceWriter writer)
@@ -89,10 +139,7 @@ internal record ProxyModel
                 """);
 
         writer.Indentation++;
-        foreach (InterfaceModel iface in this.Interfaces)
-        {
-            iface.WriteHookupStatements(writer, iface);
-        }
+        this.WriteHookupStatements(writer);
 
         writer.Indentation--;
         writer.WriteLine("""
@@ -100,13 +147,13 @@ internal record ProxyModel
                 """);
     }
 
-    private static string CreateProxyName(ImmutableEquatableArray<InterfaceModel> interfaces)
+    private static string CreateProxyName(ImmutableEquatableSet<InterfaceModel> interfaces)
     {
         // We need to create a unique, deterministic name given the set of interfaces the proxy must implement.
-        if (interfaces is [{ } iface])
+        if (interfaces.Count == 1)
         {
             // If there's just one, keep it simple.
-            return iface.InterfaceName;
+            return interfaces.Single().InterfaceName;
         }
 
         // More than one, start by sorting them. Then use the full interface name of the first element, and hash the rest.
@@ -115,12 +162,14 @@ internal record ProxyModel
 
         using SHA256 sha = SHA256.Create();
         StringBuilder builder = new();
-        for (int i = 1; i <= sorted.Length; i++)
+        for (int i = 1; i < sorted.Length; i++)
         {
             builder.AppendLine(sorted[i]);
         }
 
-        string hash = Convert.ToBase64String(Encoding.UTF8.GetBytes(builder.ToString())).Replace('+', '_').Replace('/', '_');
-        return $"{sorted[0]}{hash[..8]}";
+        byte[] additionalInterfaceBytes = Encoding.UTF8.GetBytes(builder.ToString());
+        byte[] additionalInterfaceHash = sha.ComputeHash(additionalInterfaceBytes);
+        string additionalInterfaceHashString = Convert.ToBase64String(additionalInterfaceHash).TrimEnd('=').Replace('+', '_').Replace('/', '_');
+        return $"{sorted[0]}{additionalInterfaceHashString[..8]}";
     }
 }

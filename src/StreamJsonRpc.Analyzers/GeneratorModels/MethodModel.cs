@@ -7,7 +7,7 @@ using StreamJsonRpc.Analyzers;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record MethodModel(string DeclaringInterfaceName, string Name, string ReturnType, RpcSpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, int UniqueSuffix, string RpcMethodName) : FormattableModel
+internal record MethodModel(string DeclaringInterfaceName, string Name, string ReturnType, RpcSpecialType ReturnSpecialType, string? ReturnTypeArg, ImmutableEquatableArray<ParameterModel> Parameters, string RpcMethodName) : FormattableModel
 {
     internal bool TakesCancellationToken => this.Parameters.Length > 0 && this.Parameters[^1].SpecialType == RpcSpecialType.CancellationToken;
 
@@ -18,11 +18,13 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
     /// </summary>
     internal ReadOnlyMemory<ParameterModel> DataParameters => this.Parameters.AsMemory()[..(this.Parameters.Length - (this.TakesCancellationToken ? 1 : 0))];
 
-    private string NamedArgsTypeName { get; } = $"{Name}NamedArgs{UniqueSuffix}";
+    internal int? UniqueSuffix { get; init; }
 
-    private string PositionalTypesFieldName { get; } = $"{Name}PositionalArgumentDeclaredTypes{UniqueSuffix}";
+    private string NamedArgsTypeName => $"{this.Name}NamedArgs{this.UniqueSuffix}";
 
-    private string TransformedMethodNameFieldName { get; } = $"transformed{Name}{UniqueSuffix}";
+    private string PositionalTypesFieldName => $"{this.Name}PositionalArgumentDeclaredTypes{this.UniqueSuffix}";
+
+    private string TransformedMethodNameFieldName => $"transformed{this.Name}{this.UniqueSuffix}";
 
     private string? CancellationTokenExpression => this.CancellationToken?.Name;
 
@@ -38,7 +40,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
     [MemberNotNullWhen(true, nameof(ReturnExpression))]
     private bool IsSupported => this.ReturnExpression is not null;
 
-    internal override void WriteFields(SourceWriter writer, InterfaceModel ifaceModel)
+    internal override void WriteFields(SourceWriter writer)
     {
         writer.WriteLine($$"""
 
@@ -65,7 +67,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
         }
     }
 
-    internal override void WriteMethods(SourceWriter writer, InterfaceModel ifaceModel)
+    internal override void WriteMethods(SourceWriter writer)
     {
         // The possible methods we invoke are as follows:
         // | Return type | Named args | Signature
@@ -130,7 +132,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                 """);
     }
 
-    internal override void WriteNestedTypes(SourceWriter writer, InterfaceModel ifaceModel)
+    internal override void WriteNestedTypes(SourceWriter writer)
     {
         writer.WriteLine($$"""
 
@@ -166,7 +168,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                 """);
     }
 
-    internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols, int uniqueSuffix)
+    internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols)
     {
         string rpcMethodName = method.Name;
         if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute)) is { } rpcMethodAttribute)
@@ -186,7 +188,6 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
             ProxyGenerator.ClassifySpecialType(method.ReturnType, symbols),
             method.ReturnType is INamedTypeSymbol { IsGenericType: true, TypeArguments: [ITypeSymbol typeArg] } ? typeArg.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat) : null,
             new([.. method.Parameters.Select(p => ParameterModel.Create(p, symbols))]),
-            uniqueSuffix,
             rpcMethodName);
     }
 }
