@@ -26,4 +26,24 @@ internal enum AttachSignature
     /// The <c>Attach(ReadOnlySpan&lt;Type&gt;, JsonRpcProxyOptions?)</c> method.
     /// </summary>
     InstanceNonGenericSpanOptions,
+
+    /// <summary>
+    /// The <c>Attach&lt;T&gt;(Stream)</c> method.
+    /// </summary>
+    StaticGenericStream,
+
+    /// <summary>
+    /// The <c>Attach&lt;T&gt;(Stream, Stream)</c> method.
+    /// </summary>
+    StaticGenericStreamStream,
+
+    /// <summary>
+    /// The <c>Attach&lt;T&gt;(IJsonRpcMessageHandler)</c> method.
+    /// </summary>
+    StaticGenericHandler,
+
+    /// <summary>
+    /// The <c>Attach&lt;T&gt;(IJsonRpcMessageHandler, JsonRpcProxyOptions?)</c> method.
+    /// </summary>
+    StaticGenericHandlerOptions,
 }

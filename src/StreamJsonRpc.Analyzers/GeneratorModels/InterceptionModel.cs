@@ -51,6 +51,50 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                         => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     """);
                 break;
+            case AttachSignature.StaticGenericStream:
+                writer.WriteLine($$"""
+                    internal static T Attach{{this.Proxy.Name}}<T>(global::System.IO.Stream stream)
+                    {
+                        global::StreamJsonRpc.JsonRpc jsonRpc = new(stream);
+                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
+                        jsonRpc.StartListening();
+                        return (T)(object)proxy;
+                    }
+                    """);
+                break;
+            case AttachSignature.StaticGenericStreamStream:
+                writer.WriteLine($$"""
+                    internal static T Attach{{this.Proxy.Name}}<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
+                    {
+                        global::StreamJsonRpc.JsonRpc jsonRpc = new(sendingStream, receivingStream);
+                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
+                        jsonRpc.StartListening();
+                        return (T)(object)proxy;
+                    }
+                    """);
+                break;
+            case AttachSignature.StaticGenericHandler:
+                writer.WriteLine($$"""
+                    internal static T Attach{{this.Proxy.Name}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)
+                    {
+                        global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
+                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
+                        jsonRpc.StartListening();
+                        return (T)(object)proxy;
+                    }
+                    """);
+                break;
+            case AttachSignature.StaticGenericHandlerOptions:
+                writer.WriteLine($$"""
+                    internal static T Attach{{this.Proxy.Name}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                    {
+                        global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
+                        {{this.Proxy.Name}} proxy = new(jsonRpc, options, null, null);
+                        jsonRpc.StartListening();
+                        return (T)(object)proxy;
+                    }
+                    """);
+                break;
             default:
                 throw new NotSupportedException();
         }

@@ -445,6 +445,82 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task Interceptor_StaticStream()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    IMyService service = JsonRpc.Attach<IMyService>(s);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_StaticStreamStream()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    IMyService service = JsonRpc.Attach<IMyService>(s, s);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_StaticHandler()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(IJsonRpcMessageHandler h)
+                {
+                    IMyService service = JsonRpc.Attach<IMyService>(h);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_StaticHandlerOptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(IJsonRpcMessageHandler h)
+                {
+                    IMyService service = JsonRpc.Attach<IMyService>(h, JsonRpcProxyOptions.Default);
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interceptor_AttachTypeWithOptions()
     {
         await VerifyCS.RunDefaultAsync("""

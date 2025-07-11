@@ -95,6 +95,10 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
                     { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
                     { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) => (AttachSignature.InstanceNonGenericSpanOptions, argumentTypes),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStream, [iface]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }, { Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStreamStream, [iface]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandler, [iface]),
+                    { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandlerOptions, [iface]),
                     _ => null,
                 };
 
