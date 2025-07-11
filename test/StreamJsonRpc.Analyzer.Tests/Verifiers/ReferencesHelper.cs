@@ -10,6 +10,7 @@ internal static class ReferencesHelper
 #else
     internal static ReferenceAssemblies References = ReferenceAssemblies.NetStandard.NetStandard20
         .AddPackages([
+            new PackageIdentity("System.Memory", "4.6.3"),
             new PackageIdentity("System.Threading.Tasks.Extensions", "4.6.1"),
             new PackageIdentity("Microsoft.Bcl.AsyncInterfaces", "9.0.0"),
             ]);
