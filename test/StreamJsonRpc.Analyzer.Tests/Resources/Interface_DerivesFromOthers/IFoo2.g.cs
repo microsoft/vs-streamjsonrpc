@@ -9,11 +9,19 @@ internal class IFoo2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::IFoo2
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
 	
 	private string? transformedJustCancellationAsync1;
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustAnotherCancellationAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+	};
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
 	{
@@ -33,11 +41,16 @@ internal class IFoo2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("JustCancellationAsync");
 		string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.Options.MethodNameTransform("JustCancellationAsync");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 		this.OnCalledMethod("JustCancellationAsync");
 		
 		return result;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+			};
 	}
 	
 	global::System.Threading.Tasks.Task global::IFoo2.JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
@@ -47,24 +60,15 @@ internal class IFoo2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("JustAnotherCancellationAsync");
 		string rpcMethodName = this.transformedJustAnotherCancellationAsync2 ??= this.Options.MethodNameTransform("JustAnotherCancellationAsync");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs2(), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
 		this.OnCalledMethod("JustAnotherCancellationAsync");
 		
 		return result;
-	}
-	
-	private readonly struct JustCancellationAsyncNamedArgs1
-	{
-	    public JustCancellationAsyncNamedArgs1()
-	    {
-		}
-	}
-	
-	private readonly struct JustAnotherCancellationAsyncNamedArgs2
-	{
-	    public JustAnotherCancellationAsyncNamedArgs2()
-	    {
-		}
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+			};
 	}
 }

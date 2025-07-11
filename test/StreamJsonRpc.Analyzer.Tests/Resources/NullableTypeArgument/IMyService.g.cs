@@ -9,6 +9,11 @@ internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::IMyService
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> GetNullableIntAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["value"] = typeof(string),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> GetNullableIntAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
@@ -28,20 +33,16 @@ internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("GetNullableIntAsync");
 		string rpcMethodName = this.transformedGetNullableIntAsync1 ??= this.Options.MethodNameTransform("GetNullableIntAsync");
 		global::System.Threading.Tasks.Task<object?> result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(rpcMethodName, new GetNullableIntAsyncNamedArgs1(value), null, default) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(rpcMethodName, ConstructNamedArgs(), GetNullableIntAsyncNamedArgumentDeclaredTypes1, default) :
 		    this.JsonRpc.InvokeWithCancellationAsync<object?>(rpcMethodName, [value], GetNullableIntAsyncPositionalArgumentDeclaredTypes1, default);
 		this.OnCalledMethod("GetNullableIntAsync");
 		
 		return result;
-	}
-	
-	private readonly struct GetNullableIntAsyncNamedArgs1
-	{
-	    public GetNullableIntAsyncNamedArgs1(string? value)
-	    {
-			this.value = value;
-		}
 		
-		public readonly string? value;
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["value"] = value,
+			};
 	}
 }

@@ -20,7 +20,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
     internal int? UniqueSuffix { get; init; }
 
-    private string NamedArgsTypeName => $"{this.Name}NamedArgs{this.UniqueSuffix}";
+    private string NamedTypesFieldName => $"{this.Name}NamedArgumentDeclaredTypes{this.UniqueSuffix}";
 
     private string PositionalTypesFieldName => $"{this.Name}PositionalArgumentDeclaredTypes{this.UniqueSuffix}";
 
@@ -42,6 +42,22 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
     internal override void WriteFields(SourceWriter writer)
     {
+        writer.WriteLine($$"""
+
+            private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> {{this.NamedTypesFieldName}} = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+            {
+            """);
+        writer.Indentation++;
+        foreach (ParameterModel parameter in this.DataParameters.Span)
+        {
+            writer.WriteLine($"""["{parameter.Name}"] = typeof({parameter.TypeNoNullRefAnnotations}),""");
+        }
+
+        writer.Indentation--;
+        writer.WriteLine("""
+            };
+            """);
+
         writer.WriteLine($$"""
 
                 private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> {{this.PositionalTypesFieldName}} = new global::System.Collections.Generic.List<global::System.Type>
@@ -92,7 +108,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
         };
 
         string positionalArgs = "[" + string.Join(", ", this.DataParameters.Select(p => p.Name)) + "]";
-        string namedArgs = $"new {this.NamedArgsTypeName}({string.Join(", ", this.DataParameters.Select(p => p.Name))})";
+        string namedArgs = "ConstructNamedArgs";
 
         string cancellationArg = this.ReturnSpecialType == RpcSpecialType.Void ? string.Empty : $", {this.CancellationToken?.Name ?? "default"}";
 
@@ -118,52 +134,32 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                     this.OnCallingMethod("{{this.Name}}");
                     string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.Options.MethodNameTransform("{{this.RpcMethodName}}");
                     global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.Options.ServerRequiresNamedArguments ?
-                        this.JsonRpc.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}, null{{cancellationArg}}) :
+                        this.JsonRpc.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
                         this.JsonRpc.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
                     this.OnCalledMethod("{{this.Name}}");
 
                     return {{this.ReturnExpression}};
                     """);
+
+            writer.WriteLine($$"""
+
+                global::System.Collections.Generic.Dictionary<string, object?> {{namedArgs}}()
+                    => new()
+                    {
+                """);
+            writer.Indentation += 2;
+            foreach (ParameterModel parameter in this.DataParameters.Span)
+            {
+                writer.WriteLine($@"[""{parameter.Name}""] = {parameter.Name},");
+            }
+
+            writer.Indentation--;
+            writer.WriteLine("};");
+            writer.Indentation--;
         }
 
         writer.Indentation--;
         writer.WriteLine("""
-                }
-                """);
-    }
-
-    internal override void WriteNestedTypes(SourceWriter writer)
-    {
-        writer.WriteLine($$"""
-
-                private readonly struct {{this.NamedArgsTypeName}}
-                {
-                    public {{this.NamedArgsTypeName}}({{string.Join(", ", this.DataParameters.Select(p => $"{p.Type} {p.Name}"))}})
-                    {
-                """);
-        writer.Indentation += 2;
-        foreach (ParameterModel p in this.DataParameters.Span)
-        {
-            writer.WriteLine($"""
-                    this.{p.Name} = {p.Name};
-                    """);
-        }
-
-        writer.Indentation--;
-        writer.WriteLine($$"""
-                }
-                """);
-
-        foreach (ParameterModel p in this.DataParameters.Span)
-        {
-            writer.WriteLine($$"""
-
-                    public readonly {{p.Type}} {{p.Name}};
-                    """);
-        }
-
-        writer.Indentation--;
-        writer.WriteLine($$"""
                 }
                 """);
     }

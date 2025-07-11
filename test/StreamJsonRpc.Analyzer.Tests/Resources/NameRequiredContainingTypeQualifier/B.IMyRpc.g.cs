@@ -9,6 +9,10 @@ internal class B_IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::B.IMyRpc
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
@@ -27,17 +31,15 @@ internal class B_IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("JustAnotherCancellationAsync");
 		string rpcMethodName = this.transformedJustAnotherCancellationAsync1 ??= this.Options.MethodNameTransform("JustAnotherCancellationAsync");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs1(), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 		this.OnCalledMethod("JustAnotherCancellationAsync");
 		
 		return result;
-	}
-	
-	private readonly struct JustAnotherCancellationAsyncNamedArgs1
-	{
-	    public JustAnotherCancellationAsyncNamedArgs1()
-	    {
-		}
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+			};
 	}
 }

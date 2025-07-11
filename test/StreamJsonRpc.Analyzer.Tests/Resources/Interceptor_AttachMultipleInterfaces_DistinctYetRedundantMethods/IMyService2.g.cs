@@ -9,6 +9,11 @@ internal class IMyService2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::IMyService2
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["name"] = typeof(string),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
@@ -28,20 +33,16 @@ internal class IMyService2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("Task1");
 		string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new Task1NamedArgs1(name), null, default) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], Task1PositionalArgumentDeclaredTypes1, default);
 		this.OnCalledMethod("Task1");
 		
 		return result;
-	}
-	
-	private readonly struct Task1NamedArgs1
-	{
-	    public Task1NamedArgs1(string name)
-	    {
-			this.name = name;
-		}
 		
-		public readonly string name;
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["name"] = name,
+			};
 	}
 }

@@ -10,12 +10,22 @@ internal class IMyServiceZiHkAQOD_Proxy : global::StreamJsonRpc.Reflection.Proxy
 	, global::IMyService2
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["name"] = typeof(string),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
 	};
 	
 	private string? transformedTask11;
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task2NamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["color"] = typeof(string),
+	};
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task2PositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
 	{
@@ -36,11 +46,17 @@ internal class IMyServiceZiHkAQOD_Proxy : global::StreamJsonRpc.Reflection.Proxy
 		this.OnCallingMethod("Task1");
 		string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new Task1NamedArgs1(name), null, default) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], Task1PositionalArgumentDeclaredTypes1, default);
 		this.OnCalledMethod("Task1");
 		
 		return result;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["name"] = name,
+			};
 	}
 	
 	global::System.Threading.Tasks.Task global::IMyService2.Task2(string color)
@@ -50,30 +66,16 @@ internal class IMyServiceZiHkAQOD_Proxy : global::StreamJsonRpc.Reflection.Proxy
 		this.OnCallingMethod("Task2");
 		string rpcMethodName = this.transformedTask22 ??= this.Options.MethodNameTransform("Task2");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new Task2NamedArgs2(color), null, default) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task2NamedArgumentDeclaredTypes2, default) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [color], Task2PositionalArgumentDeclaredTypes2, default);
 		this.OnCalledMethod("Task2");
 		
 		return result;
-	}
-	
-	private readonly struct Task1NamedArgs1
-	{
-	    public Task1NamedArgs1(string name)
-	    {
-			this.name = name;
-		}
 		
-		public readonly string name;
-	}
-	
-	private readonly struct Task2NamedArgs2
-	{
-	    public Task2NamedArgs2(string color)
-	    {
-			this.color = color;
-		}
-		
-		public readonly string color;
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["color"] = color,
+			};
 	}
 }

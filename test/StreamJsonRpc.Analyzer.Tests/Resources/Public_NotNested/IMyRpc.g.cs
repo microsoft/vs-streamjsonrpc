@@ -9,11 +9,20 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::IMyRpc
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
 	
 	private string? transformedJustCancellationAsync1;
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AnArgAndCancellationAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["arg"] = typeof(int),
+	};
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AnArgAndCancellationAsyncPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
 	{
@@ -21,6 +30,12 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	};
 	
 	private string? transformedAnArgAndCancellationAsync2;
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddAsyncNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["a"] = typeof(int),
+		["b"] = typeof(int),
+	};
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddAsyncPositionalArgumentDeclaredTypes3 = new global::System.Collections.Generic.List<global::System.Type>
 	{
@@ -30,6 +45,12 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	
 	private string? transformedAddAsync3;
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> MultiplyAsyncNamedArgumentDeclaredTypes4 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["a"] = typeof(int),
+		["b"] = typeof(int),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> MultiplyAsyncPositionalArgumentDeclaredTypes4 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(int),
@@ -38,6 +59,11 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	
 	private string? transformedMultiplyAsync4;
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> StartNamedArgumentDeclaredTypes5 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["bah"] = typeof(string),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> StartPositionalArgumentDeclaredTypes5 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
@@ -45,12 +71,23 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	
 	private string? transformedStart5;
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> StartCancelableNamedArgumentDeclaredTypes6 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["bah"] = typeof(string),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> StartCancelablePositionalArgumentDeclaredTypes6 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(string),
 	};
 	
 	private string? transformedStartCancelable6;
+	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> CountAsyncNamedArgumentDeclaredTypes7 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["start"] = typeof(int),
+		["count"] = typeof(int),
+	};
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> CountAsyncPositionalArgumentDeclaredTypes7 = new global::System.Collections.Generic.List<global::System.Type>
 	{
@@ -72,11 +109,16 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("JustCancellationAsync");
 		string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.Options.MethodNameTransform("JustCancellationAsync");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new JustCancellationAsyncNamedArgs1(), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 		this.OnCalledMethod("JustCancellationAsync");
 		
 		return result;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+			};
 	}
 	
 	global::System.Threading.Tasks.ValueTask global::IMyRpc.AnArgAndCancellationAsync(int arg, global::System.Threading.CancellationToken cancellationToken)
@@ -86,11 +128,17 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("AnArgAndCancellationAsync");
 		string rpcMethodName = this.transformedAnArgAndCancellationAsync2 ??= this.Options.MethodNameTransform("AnArgAndCancellationAsync");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new AnArgAndCancellationAsyncNamedArgs2(arg), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), AnArgAndCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [arg], AnArgAndCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
 		this.OnCalledMethod("AnArgAndCancellationAsync");
 		
 		return new global::System.Threading.Tasks.ValueTask(result);
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["arg"] = arg,
+			};
 	}
 	
 	global::System.Threading.Tasks.Task<int> global::IMyRpc.AddAsync(int a, int b, global::System.Threading.CancellationToken cancellationToken)
@@ -100,11 +148,18 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("AddAsync");
 		string rpcMethodName = this.transformedAddAsync3 ??= this.Options.MethodNameTransform("AddAsync");
 		global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, new AddAsyncNamedArgs3(a, b), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
 		this.OnCalledMethod("AddAsync");
 		
 		return result;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["a"] = a,
+				["b"] = b,
+			};
 	}
 	
 	global::System.Threading.Tasks.Task<int> global::IMyRpc.MultiplyAsync(int a, int b)
@@ -114,11 +169,18 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("MultiplyAsync");
 		string rpcMethodName = this.transformedMultiplyAsync4 ??= this.Options.MethodNameTransform("MultiplyAsync");
 		global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, new MultiplyAsyncNamedArgs4(a, b), null, default) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), MultiplyAsyncNamedArgumentDeclaredTypes4, default) :
 		    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], MultiplyAsyncPositionalArgumentDeclaredTypes4, default);
 		this.OnCalledMethod("MultiplyAsync");
 		
 		return result;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["a"] = a,
+				["b"] = b,
+			};
 	}
 	
 	void global::IMyRpc.Start(string bah)
@@ -128,11 +190,17 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("Start");
 		string rpcMethodName = this.transformedStart5 ??= this.Options.MethodNameTransform("Start");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, new StartNamedArgs5(bah), null) :
+		    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), StartNamedArgumentDeclaredTypes5) :
 		    this.JsonRpc.NotifyAsync(rpcMethodName, [bah], StartPositionalArgumentDeclaredTypes5);
 		this.OnCalledMethod("Start");
 		
 		return ;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["bah"] = bah,
+			};
 	}
 	
 	void global::IMyRpc.StartCancelable(string bah, global::System.Threading.CancellationToken token)
@@ -142,11 +210,17 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("StartCancelable");
 		string rpcMethodName = this.transformedStartCancelable6 ??= this.Options.MethodNameTransform("StartCancelable");
 		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, new StartCancelableNamedArgs6(bah), null) :
+		    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), StartCancelableNamedArgumentDeclaredTypes6) :
 		    this.JsonRpc.NotifyAsync(rpcMethodName, [bah], StartCancelablePositionalArgumentDeclaredTypes6);
 		this.OnCalledMethod("StartCancelable");
 		
 		return ;
+		
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["bah"] = bah,
+			};
 	}
 	
 	global::System.Collections.Generic.IAsyncEnumerable<int> global::IMyRpc.CountAsync(int start, int count, global::System.Threading.CancellationToken cancellationToken)
@@ -156,86 +230,17 @@ internal class IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		this.OnCallingMethod("CountAsync");
 		string rpcMethodName = this.transformedCountAsync7 ??= this.Options.MethodNameTransform("CountAsync");
 		global::System.Threading.Tasks.Task<global::System.Collections.Generic.IAsyncEnumerable<int>> result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, new CountAsyncNamedArgs7(start, count), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithParameterObjectAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, ConstructNamedArgs(), CountAsyncNamedArgumentDeclaredTypes7, cancellationToken) :
 		    this.JsonRpc.InvokeWithCancellationAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, [start, count], CountAsyncPositionalArgumentDeclaredTypes7, cancellationToken);
 		this.OnCalledMethod("CountAsync");
 		
 		return global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, cancellationToken);
-	}
-	
-	private readonly struct JustCancellationAsyncNamedArgs1
-	{
-	    public JustCancellationAsyncNamedArgs1()
-	    {
-		}
-	}
-	
-	private readonly struct AnArgAndCancellationAsyncNamedArgs2
-	{
-	    public AnArgAndCancellationAsyncNamedArgs2(int arg)
-	    {
-			this.arg = arg;
-		}
 		
-		public readonly int arg;
-	}
-	
-	private readonly struct AddAsyncNamedArgs3
-	{
-	    public AddAsyncNamedArgs3(int a, int b)
-	    {
-			this.a = a;
-			this.b = b;
-		}
-		
-		public readonly int a;
-		
-		public readonly int b;
-	}
-	
-	private readonly struct MultiplyAsyncNamedArgs4
-	{
-	    public MultiplyAsyncNamedArgs4(int a, int b)
-	    {
-			this.a = a;
-			this.b = b;
-		}
-		
-		public readonly int a;
-		
-		public readonly int b;
-	}
-	
-	private readonly struct StartNamedArgs5
-	{
-	    public StartNamedArgs5(string bah)
-	    {
-			this.bah = bah;
-		}
-		
-		public readonly string bah;
-	}
-	
-	private readonly struct StartCancelableNamedArgs6
-	{
-	    public StartCancelableNamedArgs6(string bah)
-	    {
-			this.bah = bah;
-		}
-		
-		public readonly string bah;
-	}
-	
-	private readonly struct CountAsyncNamedArgs7
-	{
-	    public CountAsyncNamedArgs7(int start, int count)
-	    {
-			this.start = start;
-			this.count = count;
-		}
-		
-		public readonly int start;
-		
-		public readonly int count;
+		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+		    => new()
+		    {
+				["start"] = start,
+				["count"] = count,
+			};
 	}
 }

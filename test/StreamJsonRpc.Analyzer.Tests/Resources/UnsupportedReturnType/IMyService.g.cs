@@ -9,6 +9,12 @@ internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	, global::IMyService
 {
 	
+	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	{
+		["a"] = typeof(int),
+		["b"] = typeof(int),
+	};
+	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 		typeof(int),
@@ -23,18 +29,5 @@ internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 	int global::IMyService.Add(int a, int b)
 	{
 		throw new global::System.NotSupportedException($"The return type 'int' is not supported by the generated proxy method.");
-	}
-	
-	private readonly struct AddNamedArgs1
-	{
-	    public AddNamedArgs1(int a, int b)
-	    {
-			this.a = a;
-			this.b = b;
-		}
-		
-		public readonly int a;
-		
-		public readonly int b;
 	}
 }
