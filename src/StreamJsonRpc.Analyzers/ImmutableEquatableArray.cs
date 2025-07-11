@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace StreamJsonRpc.Analyzers;
 
+[CollectionBuilder(typeof(ImmutableEquatableArray), "Create")]
 internal struct ImmutableEquatableArray<T>(ImmutableArray<T> inner) : IEquatable<ImmutableEquatableArray<T>>, IEnumerable<T>
 {
     public int Length => inner.Length;
@@ -42,5 +44,23 @@ internal struct ImmutableEquatableArray<T>(ImmutableArray<T> inner) : IEquatable
     {
         IEnumerable<T> enumerable = this.Inner;
         return enumerable.GetEnumerator();
+    }
+}
+
+internal static class ImmutableEquatableArray
+{
+    internal static ImmutableEquatableArray<T> Create<T>(params ReadOnlySpan<T> inner)
+    {
+        return new ImmutableEquatableArray<T>(ImmutableArray.Create(inner));
+    }
+
+    internal static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this ImmutableArray<T> inner)
+    {
+        return new ImmutableEquatableArray<T>(inner);
+    }
+
+    internal static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> inner)
+    {
+        return new ImmutableEquatableArray<T>(inner.ToImmutableArray());
     }
 }

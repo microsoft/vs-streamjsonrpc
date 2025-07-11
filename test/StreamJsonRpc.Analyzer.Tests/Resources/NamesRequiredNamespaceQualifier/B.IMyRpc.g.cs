@@ -2,79 +2,34 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::B.IMyRpc), typeof(global::StreamJsonRpc.Generated.B_IMyRpc_Proxy))]
-
 namespace StreamJsonRpc.Generated;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class B_IMyRpc_Proxy : global::B.IMyRpc, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
+internal class B_IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+	, global::B.IMyRpc
 {
-	private readonly global::StreamJsonRpc.JsonRpc client;
-	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
-	private readonly global::System.Action? onDispose;
-	private readonly long? marshaledObjectHandle;
-	
-	private global::System.EventHandler<string>? callingMethod;
-	private global::System.EventHandler<string>? calledMethod;
-	private bool disposed;
 	
 	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 	{
 	};
-	public B_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	
+	private string? transformedJustAnotherCancellationAsync1;
+	
+	public B_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	    : base(client, options, marshaledObjectHandle, onDispose)
 	{
-	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
-	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
-	    this.marshaledObjectHandle = marshaledObjectHandle;
-	    this.onDispose = onDispose;
-	}
-	
-	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
-	{
-	    add => this.callingMethod += value;
-	    remove => this.callingMethod -= value;
-	}
-	
-	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod
-	{
-	    add => this.calledMethod += value;
-	    remove => this.calledMethod -= value;
-	}
-	
-	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
-	
-	public bool IsDisposed => this.disposed || this.client.IsDisposed;
-	
-	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
-	
-	void global::System.IDisposable.Dispose()
-	{
-	    if (this.disposed)
-	    {
-	        return;
-	    }
-	    this.disposed = true;
-	
-	    if (this.onDispose is not null)
-	    {
-	        this.onDispose();
-	    }
-	    else
-	    {
-	        client.Dispose();
-	    }
 	}
 	
 	global::System.Threading.Tasks.Task global::B.IMyRpc.JustAnotherCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(nameof(B_IMyRpc_Proxy));
+		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 		
-		this.callingMethod?.Invoke(this, "JustAnotherCancellationAsync");
-		string rpcMethodName = this.options.MethodNameTransform("JustAnotherCancellationAsync");
-		global::System.Threading.Tasks.Task result = this.options.ServerRequiresNamedArguments ?
-		    this.client.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs1(), null, cancellationToken) :
-		    this.client.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
-		this.calledMethod?.Invoke(this, "JustAnotherCancellationAsync");
+		this.OnCallingMethod("JustAnotherCancellationAsync");
+		string rpcMethodName = this.transformedJustAnotherCancellationAsync1 ??= this.Options.MethodNameTransform("JustAnotherCancellationAsync");
+		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, new JustAnotherCancellationAsyncNamedArgs1(), null, cancellationToken) :
+		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
+		this.OnCalledMethod("JustAnotherCancellationAsync");
 		
 		return result;
 	}

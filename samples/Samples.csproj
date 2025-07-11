@@ -7,10 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
-    <ProjectReference Include="..\src\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <OutputItemType>Analyzer</OutputItemType>
-    </ProjectReference>
   </ItemGroup>
 
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
 </Project>

@@ -41,6 +41,9 @@
   <ItemGroup>
     <Using Include="Microsoft" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\StreamJsonRpc.Analyzers\buildTransitive\**" PackagePath="buildTransitive" Pack="true" />
+  </ItemGroup>
   <Target Name="PackAnalyzers" DependsOnTargets="ResolveProjectReferences;DebugSymbolsProjectOutputGroup" Condition="'$(TargetFramework)'=='netstandard2.0'">
     <ItemGroup>
       <TfmSpecificPackageFile Include="%(AnalyzerAssembly.Identity)" PackagePath="analyzers\cs\" />

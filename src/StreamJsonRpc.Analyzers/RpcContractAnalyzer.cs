@@ -6,7 +6,7 @@ using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SpecialType = StreamJsonRpc.Analyzers.ProxyGenerator.SpecialType;
+using RpcSpecialType = StreamJsonRpc.Analyzers.GeneratorModels.RpcSpecialType;
 
 namespace StreamJsonRpc.Analyzers;
 
@@ -120,7 +120,7 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     private bool IsAllowedMethodReturnType(ITypeSymbol returnType, KnownSymbols knownSymbols)
         => ProxyGenerator.ClassifySpecialType(returnType, knownSymbols) switch
         {
-            SpecialType.Void or SpecialType.Task or SpecialType.ValueTask or SpecialType.IAsyncEnumerable => true,
+            RpcSpecialType.Void or RpcSpecialType.Task or RpcSpecialType.ValueTask or RpcSpecialType.IAsyncEnumerable => true,
             _ => false,
         };
 }

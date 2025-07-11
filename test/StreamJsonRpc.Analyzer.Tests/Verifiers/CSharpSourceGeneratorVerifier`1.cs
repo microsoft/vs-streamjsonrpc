@@ -16,7 +16,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Text;
+using StreamJsonRpc.Analyzers;
 
 internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
     where TSourceGenerator : new()
@@ -134,6 +134,13 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             return base.RunImplAsync(cancellationToken);
         }
 
+        protected override ParseOptions CreateParseOptions()
+        {
+            var parseOptions = (CSharpParseOptions)base.CreateParseOptions();
+            return parseOptions
+                .WithFeatures([new KeyValuePair<string, string>("InterceptorsNamespaces", ProxyGenerator.GenerationNamespace)]);
+        }
+
         protected override CompilationOptions CreateCompilationOptions()
         {
             var compilationOptions = (CSharpCompilationOptions)base.CreateCompilationOptions();
@@ -167,6 +174,9 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                 expectedNames.Add(Path.GetFileName(tree.FilePath));
             }
 
+            PurgeExtranneousFiles(resourceDirectory, fileNamePrefix, expectedNames);
+
+#if !WRITE_EXPECTED
             var currentTestPrefix = $"{typeof(Test).Assembly.GetName().Name}.Resources.{this.testMethod}.{fileNamePrefix}";
             foreach (var name in this.GetType().Assembly.GetManifestResourceNames())
             {
@@ -180,6 +190,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     throw new InvalidOperationException($"Unexpected test resource: {name.Substring(currentTestPrefix.Length)}");
                 }
             }
+#endif
 
             return (compilation, diagnostics);
         }
@@ -218,6 +229,18 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""x.x.x.x"")");
 
             File.WriteAllText(filePath, code, tree.Encoding);
+        }
+
+        [Conditional("WRITE_EXPECTED")]
+        private static void PurgeExtranneousFiles(string resourceDirectory, string fileNamePrefix, HashSet<string> expectedNames)
+        {
+            foreach (string file in Directory.EnumerateFiles(resourceDirectory, $"{fileNamePrefix}*"))
+            {
+                if (!expectedNames.Contains(Path.GetFileName(file)))
+                {
+                    File.Delete(file);
+                }
+            }
         }
     }
 }

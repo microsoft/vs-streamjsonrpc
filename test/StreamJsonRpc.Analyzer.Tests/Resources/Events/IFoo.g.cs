@@ -2,41 +2,18 @@
 
 #nullable enable
 
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(global::IFoo), typeof(global::StreamJsonRpc.Generated.IFoo_Proxy))]
-
 namespace StreamJsonRpc.Generated;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
+internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+	, global::IFoo
 {
-	private readonly global::StreamJsonRpc.JsonRpc client;
-	private readonly global::StreamJsonRpc.JsonRpcProxyOptions options;
-	private readonly global::System.Action? onDispose;
-	private readonly long? marshaledObjectHandle;
 	
-	private global::System.EventHandler<string>? callingMethod;
-	private global::System.EventHandler<string>? calledMethod;
-	private bool disposed;
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+	    : base(client, options, marshaledObjectHandle, onDispose)
 	{
-	    this.client = client ?? throw new global::System.ArgumentNullException(nameof(client));
-	    this.options = options ?? throw new global::System.ArgumentNullException(nameof(options));
-	    this.marshaledObjectHandle = marshaledObjectHandle;
-	    this.onDispose = onDispose;
-		this.client.AddLocalRpcMethod(options.EventNameTransform("MyEvent"), this.OnMyEvent);
-		this.client.AddLocalRpcMethod(options.EventNameTransform("MyGenericEvent"), this.OnMyGenericEvent);
-	}
-	
-	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod
-	{
-	    add => this.callingMethod += value;
-	    remove => this.callingMethod -= value;
-	}
-	
-	event global::System.EventHandler<string> global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod
-	{
-	    add => this.calledMethod += value;
-	    remove => this.calledMethod -= value;
+		this.JsonRpc.AddLocalRpcMethod(this.Options.EventNameTransform("MyEvent"), this.OnMyEvent);
+		this.JsonRpc.AddLocalRpcMethod(this.Options.EventNameTransform("MyGenericEvent"), this.OnMyGenericEvent);
 	}
 	
 	public event global::System.EventHandler? MyEvent;
@@ -46,28 +23,4 @@ internal class IFoo_Proxy : global::IFoo, global::StreamJsonRpc.Reflection.IJson
 	public event global::System.EventHandler<string>? MyGenericEvent;
 	
 	protected virtual void OnMyGenericEvent(string args) => this.MyGenericEvent?.Invoke(this, args);
-	
-	global::StreamJsonRpc.JsonRpc global::StreamJsonRpc.IJsonRpcClientProxy.JsonRpc => this.client;
-	
-	public bool IsDisposed => this.disposed || this.client.IsDisposed;
-	
-	long? global::StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
-	
-	void global::System.IDisposable.Dispose()
-	{
-	    if (this.disposed)
-	    {
-	        return;
-	    }
-	    this.disposed = true;
-	
-	    if (this.onDispose is not null)
-	    {
-	        this.onDispose();
-	    }
-	    else
-	    {
-	        client.Dispose();
-	    }
-	}
 }

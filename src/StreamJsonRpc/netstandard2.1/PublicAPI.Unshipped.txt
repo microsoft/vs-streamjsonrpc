@@ -1,10 +1,19 @@
+static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
-StreamJsonRpc.JsonRpc.AvoidSourceGeneratedProxies.get -> bool
-StreamJsonRpc.JsonRpc.AvoidSourceGeneratedProxies.init -> void
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle.get -> long?
+StreamJsonRpc.Reflection.ProxyBase
+StreamJsonRpc.Reflection.ProxyBase.CalledMethod -> System.EventHandler<string!>?
+StreamJsonRpc.Reflection.ProxyBase.CallingMethod -> System.EventHandler<string!>?
+StreamJsonRpc.Reflection.ProxyBase.Dispose() -> void
+StreamJsonRpc.Reflection.ProxyBase.IsDisposed.get -> bool
+StreamJsonRpc.Reflection.ProxyBase.JsonRpc.get -> StreamJsonRpc.JsonRpc!
+StreamJsonRpc.Reflection.ProxyBase.OnCalledMethod(string! method) -> void
+StreamJsonRpc.Reflection.ProxyBase.OnCallingMethod(string! method) -> void
+StreamJsonRpc.Reflection.ProxyBase.Options.get -> StreamJsonRpc.JsonRpcProxyOptions!
+StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, System.Action? onDispose) -> void
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcInterface.get -> System.Type!

@@ -3,7 +3,7 @@
 
 using VerifyCS = CSharpSourceGeneratorVerifier<StreamJsonRpc.Analyzers.ProxyGenerator>;
 
-public class GenerationTests
+public class ProxyGeneratorTests
 {
     [Fact]
     public async Task Public_NotNested()
@@ -246,6 +246,72 @@ public class GenerationTests
             public interface IMyService
             {
                 Task<object?> GetNullableIntAsync(string? value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachOfTNoOptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    IMyService service = rpc.Attach<IMyService>();
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachTwice()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            [RpcContract]
+            public interface IMyService2
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    IMyService service = rpc.Attach<IMyService>();
+                    IMyService2 service2 = rpc.Attach<IMyService2>();
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AttachWithOptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract]
+            public interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    IMyService service = rpc.Attach<IMyService>(new JsonRpcProxyOptions());
+                }
             }
             """);
     }
