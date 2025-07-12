@@ -91,7 +91,7 @@ public class ProxyGeneratorTests
                     Task JustCancellationAsync(CancellationToken cancellationToken);
                 }
             }
-            
+
             class B
             {
                 [RpcContract]
@@ -231,7 +231,7 @@ public class ProxyGeneratorTests
             [RpcContract]
             public interface IMyService
             {
-                int Add(int a, int b); // StreamJsonRpc0001
+                int Add(int a, int b); // StreamJsonRpc0011
             }
             """);
     }
@@ -332,13 +332,13 @@ public class ProxyGeneratorTests
             {
                 Task Task1();
             }
-            
+
             [RpcContract]
             public interface IMyService2
             {
                 Task Task2();
             }
-            
+
             class Test
             {
                 void Foo(System.IO.Stream s)
@@ -359,13 +359,13 @@ public class ProxyGeneratorTests
             {
                 Task Task1(string name);
             }
-            
+
             [RpcContract]
             public interface IMyService2 : IMyService
             {
                 Task Task2(string color);
             }
-            
+
             class Test
             {
                 void Foo(System.IO.Stream s)
@@ -386,13 +386,13 @@ public class ProxyGeneratorTests
             {
                 Task Task1(string name);
             }
-            
+
             [RpcContract]
             public interface IMyService2
             {
                 Task Task1(string name);
             }
-            
+
             class Test
             {
                 void Foo(System.IO.Stream s)

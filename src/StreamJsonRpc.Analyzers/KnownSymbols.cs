@@ -12,7 +12,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? ValueTask,
     INamedTypeSymbol? ValueTaskOfT,
     INamedTypeSymbol? IAsyncEnumerableOfT,
-    INamedTypeSymbol? CancellationToken,
+    INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
     INamedTypeSymbol RpcContractAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
@@ -33,7 +33,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
         INamedTypeSymbol? systemIOStream = compilation.GetTypeByMetadataName("System.IO.Stream");
 
-        if (idisposable is null || rpcContractAttribute is null || jsonRpcMethodAttribute is null || systemType is null || systemIOStream is null)
+        if (idisposable is null || rpcContractAttribute is null || jsonRpcMethodAttribute is null || systemType is null || systemIOStream is null || cancellationToken is null)
         {
             symbols = null;
             return false;

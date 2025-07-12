@@ -56,7 +56,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 // Skip inaccessible interfaces.
                 if (context.TargetSymbol.DeclaredAccessibility < Accessibility.Internal)
                 {
-                    // Reported by StreamJsonRpc0002
+                    // Reported by StreamJsonRpc0010
                     return null;
                 }
 

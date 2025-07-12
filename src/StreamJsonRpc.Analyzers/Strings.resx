@@ -117,16 +117,34 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="StreamJsonRpc0001_MessageFormat" xml:space="preserve">
+  <data name="StreamJsonRpc0011_MessageFormat" xml:space="preserve">
     <value>The return type '{0}' is not supported in RPC methods.</value>
   </data>
-  <data name="StreamJsonRpc0001_Title" xml:space="preserve">
-    <value>RPC methods use supported return types</value>
+  <data name="StreamJsonRpc0011_Title" xml:space="preserve">
+    <value>Supported return types</value>
   </data>
-  <data name="StreamJsonRpc0002_MessageFormat" xml:space="preserve">
+  <data name="StreamJsonRpc0010_MessageFormat" xml:space="preserve">
     <value>An RPC interface must be declared with at least `internal` visibility.</value>
   </data>
-  <data name="StreamJsonRpc0002_Title" xml:space="preserve">
-    <value>Inaccessible interface</value>
+  <data name="StreamJsonRpc0010_Title" xml:space="preserve">
+    <value>Accessible interface</value>
+  </data>
+  <data name="StreamJsonRpc0012_Title" xml:space="preserve">
+    <value>Unsupported member</value>
+  </data>
+  <data name="StreamJsonRpc0012_MessageFormat" xml:space="preserve">
+    <value>RPC contracts may not include this type of member.</value>
+  </data>
+  <data name="StreamJsonRpc0013_Title" xml:space="preserve">
+    <value>No generic methods</value>
+  </data>
+  <data name="StreamJsonRpc0013_MessageFormat" xml:space="preserve">
+    <value>RPC contracts may not include generic methods.</value>
+  </data>
+  <data name="StreamJsonRpc0014_MessageFormat" xml:space="preserve">
+    <value>RPC contract methods may declare CancellationToken only as the last parameter.</value>
+  </data>
+  <data name="StreamJsonRpc0014_Title" xml:space="preserve">
+    <value>CancellationToken as last parameter</value>
   </data>
 </root>

@@ -17,7 +17,7 @@ public class RpcContractAnalyzerTests
                 ValueTask ValueTaskAsync();
                 Task TaskAsync();
                 void Notify();
-                {|StreamJsonRpc0001:int|} MyMethod(CancellationToken cancellationToken);
+                {|StreamJsonRpc0011:int|} MyMethod(CancellationToken cancellationToken);
             }
             """);
     }
@@ -29,7 +29,7 @@ public class RpcContractAnalyzerTests
             internal class Wrapper
             {
                 [RpcContract]
-                private interface {|StreamJsonRpc0002:IMyRpc|}
+                private interface {|StreamJsonRpc0010:IMyRpc|}
                 {
                 }
             }
@@ -46,6 +46,33 @@ public class RpcContractAnalyzerTests
                 internal interface IMyRpc
                 {
                 }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task DisallowedMembers()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcContract]
+            interface IMyRpc
+            {
+                int {|StreamJsonRpc0012:Count|} { get; }
+                void {|StreamJsonRpc0013:Add|}<T>(T item);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task CancellationTokenPositions()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcContract]
+            interface IMyRpc
+            {
+                Task AddAsync(int a, int b, CancellationToken token);
+                Task SubtractAsync(int a, CancellationToken {|StreamJsonRpc0014:token|}, int b);
+                Task DivideAsync(CancellationToken {|StreamJsonRpc0014:token|}, int a, int b);
             }
             """);
     }

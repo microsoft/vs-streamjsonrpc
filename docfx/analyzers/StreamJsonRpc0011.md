@@ -1,4 +1,4 @@
-# StreamJsonRpc0001: RPC methods use supported return types
+# StreamJsonRpc0011: RPC methods use supported return types
 
 Methods declared on an RPC interface (including those annotated with <xref:StreamJsonRpc.RpcContractAttribute>) may only return one of the following types:
 
@@ -13,10 +13,10 @@ Methods declared on an RPC interface (including those annotated with <xref:Strea
 
 In the following RPC interface, a method returns a disallowed type.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Violation)]
+[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0011.cs#Violation)]
 
 ## Resolution
 
 Wrap the return type in <xref:System.Threading.Tasks.Task`1> or <xref:System.Threading.Tasks.ValueTask`1>, which are supported types and allow for RPC to be completed asynchronously.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Fix)]
+[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0011.cs#Fix)]

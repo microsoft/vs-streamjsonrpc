@@ -6,5 +6,8 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 
 Rule ID                                   | Category | Severity | Notes                                  |
 ------------------------------------------|----------|----------|----------------------------------------|
-[StreamJsonRpc0001](StreamJsonRpc0001.md) | Usage    | Error    | RPC methods use supported return types |
-[StreamJsonRpc0002](StreamJsonRpc0002.md) | Usage    | Error    | Inaccessible interface                 |
+[StreamJsonRpc0010](StreamJsonRpc0010.md) | Usage    | Error    | Inaccessible interface                 |
+[StreamJsonRpc0011](StreamJsonRpc0011.md) | Usage    | Error    | RPC methods use supported return types |
+[StreamJsonRpc0012](StreamJsonRpc0012.md) | Usage    | Error    | Unsupported member                     |
+[StreamJsonRpc0013](StreamJsonRpc0013.md) | Usage    | Error    | No generic methods                     |
+[StreamJsonRpc0014](StreamJsonRpc0014.md) | Usage    | Error    | cellationToken as last parameter       |

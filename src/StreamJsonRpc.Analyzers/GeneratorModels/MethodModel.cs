@@ -121,7 +121,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
         writer.Indentation++;
         if (!this.IsSupported)
         {
-            // StreamJsonRpc0001
+            // StreamJsonRpc0011
             writer.WriteLine($"""
                     throw new global::System.NotSupportedException($"The return type '{this.ReturnType}' is not supported by the generated proxy method.");
                     """);
