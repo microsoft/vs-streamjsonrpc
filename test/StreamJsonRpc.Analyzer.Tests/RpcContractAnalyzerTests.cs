@@ -29,7 +29,7 @@ public class RpcContractAnalyzerTests
             internal partial class Wrapper
             {
                 [RpcContract]
-                private partial interface {|StreamJsonRpc0010:IMyRpc|}
+                private partial interface {|StreamJsonRpc0001:IMyRpc|}
                 {
                 }
             }

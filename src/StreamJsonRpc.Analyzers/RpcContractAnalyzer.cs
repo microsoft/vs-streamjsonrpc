@@ -18,9 +18,9 @@ namespace StreamJsonRpc.Analyzers;
 public class RpcContractAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
-    /// Diagnostic ID for StreamJsonRpc0010: Inaccessible interface.
+    /// Diagnostic ID for StreamJsonRpc0001: Inaccessible interface.
     /// </summary>
-    public const string InaccessibleInterfaceId = "StreamJsonRpc0010";
+    public const string InaccessibleInterfaceId = "StreamJsonRpc0001";
 
     /// <summary>
     /// Diagnostic ID for StreamJsonRpc0002: Declare partial interface.
@@ -58,12 +58,12 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     public const string UnsupportedEventDelegateId = "StreamJsonRpc0016";
 
     /// <summary>
-    /// Diagnostic for StreamJsonRpc0010: Inaccessible interface.
+    /// Diagnostic for StreamJsonRpc0001: Inaccessible interface.
     /// </summary>
     public static readonly DiagnosticDescriptor InaccessibleInterface = new(
         id: InaccessibleInterfaceId,
-        title: Strings.StreamJsonRpc0010_Title,
-        messageFormat: Strings.StreamJsonRpc0010_MessageFormat,
+        title: Strings.StreamJsonRpc0001_Title,
+        messageFormat: Strings.StreamJsonRpc0001_MessageFormat,
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,

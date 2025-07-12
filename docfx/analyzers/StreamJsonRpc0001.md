@@ -1,4 +1,4 @@
-# StreamJsonRpc0010: Inaccessible interface
+# StreamJsonRpc0001: Inaccessible interface
 
 Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied must be declared with at least `internal` visibility so that the source generator can implement that interface with an implementing proxy class.
 
@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied must be declar
 
 The following RPC interface is declared as a nested, `private` type.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0010.cs#Violation)]
+[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Violation)]
 
 ## Resolution
 
 Change the visibility modifier to `internal`.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0010.cs#Fix)]
+[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Fix)]
