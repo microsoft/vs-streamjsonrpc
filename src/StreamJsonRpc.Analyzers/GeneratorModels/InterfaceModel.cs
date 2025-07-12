@@ -2,13 +2,19 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using StreamJsonRpc.Analyzers;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
 internal record InterfaceModel(string Prefix, string InterfaceName, ImmutableEquatableArray<MethodModel> Methods, ImmutableEquatableArray<EventModel> Events)
 {
-    internal static InterfaceModel Create(INamedTypeSymbol iface, KnownSymbols symbols)
+    internal required bool IsPartial { get; init; }
+
+    internal required bool DeclaredInThisCompilation { get; init; }
+
+    internal static InterfaceModel Create(INamedTypeSymbol iface, KnownSymbols symbols, bool declaredInThisCompilation, CancellationToken cancellationToken)
     {
         ImmutableEquatableArray<MethodModel> methods = new([..
             iface.GetAllMembers()
@@ -27,6 +33,10 @@ internal record InterfaceModel(string Prefix, string InterfaceName, ImmutableEqu
             fileNamePrefix,
             iface.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
             methods,
-            events);
+            events)
+        {
+            IsPartial = iface.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is InterfaceDeclarationSyntax syntax && syntax.Modifiers.Any(SyntaxKind.PartialKeyword),
+            DeclaredInThisCompilation = declaredInThisCompilation,
+        };
     }
 }

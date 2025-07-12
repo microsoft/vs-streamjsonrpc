@@ -2,6 +2,10 @@
 
 #nullable enable
 
+#pragma warning disable CS0436 // Prefer local types to imported ones
+[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(IMyService2), typeof(StreamJsonRpc.Generated.IMyService2_Proxy))]
+#pragma warning restore CS0436
+
 namespace StreamJsonRpc.Generated;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]

@@ -60,7 +60,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                return new ProxyModel([InterfaceModel.Create(iface, symbols)]);
+                return new ProxyModel([InterfaceModel.Create(iface, symbols, declaredInThisCompilation: true, cancellationToken)]);
             }).Where(m => m is not null)!;
 
         IncrementalValuesProvider<AttachUse> attachUseProvider = context.SyntaxProvider.CreateSyntaxProvider(
@@ -87,7 +87,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 return new AttachUse(
                     analysis.Value.InterceptableLocation,
                     analysis.Value.Signature,
-                    [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols))]);
+                    [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))]);
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Select(
