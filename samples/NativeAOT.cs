@@ -35,7 +35,7 @@ partial class Program
     partial class SourceGenerationContext : JsonSerializerContext;
 
     [RpcContract]
-    internal interface IServer
+    internal partial interface IServer
     {
         Task<int> AddAsync(int a, int b);
     }

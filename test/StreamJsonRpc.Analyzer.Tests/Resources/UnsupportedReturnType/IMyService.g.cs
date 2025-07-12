@@ -2,36 +2,39 @@
 
 #nullable enable
 
-#pragma warning disable CS0436 // Prefer local types to imported ones
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(IMyService), typeof(StreamJsonRpc.Generated.IMyService_Proxy))]
-#pragma warning restore CS0436
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyService_Proxy))]
+partial interface IMyService
+{
+}
 
-namespace StreamJsonRpc.Generated;
-
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-	, global::IMyService
+namespace StreamJsonRpc.Generated
 {
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IMyService
 	{
-		["a"] = typeof(int),
-		["b"] = typeof(int),
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-		typeof(int),
-		typeof(int),
-	};
-	
-	public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-	    : base(client, options, marshaledObjectHandle, onDispose)
-	{
-	}
-	
-	int global::IMyService.Add(int a, int b)
-	{
-		throw new global::System.NotSupportedException($"The return type 'int' is not supported by the generated proxy method.");
+		
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+			["a"] = typeof(int),
+			["b"] = typeof(int),
+		};
+		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+			typeof(int),
+			typeof(int),
+		};
+		
+		public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		    : base(client, options, marshaledObjectHandle, onDispose)
+		{
+		}
+		
+		int global::IMyService.Add(int a, int b)
+		{
+			throw new global::System.NotSupportedException($"The return type 'int' is not supported by the generated proxy method.");
+		}
 	}
 }

@@ -21,7 +21,7 @@ namespace Proxies
         }
 
         [RpcContract]
-        internal interface ICalculator
+        internal partial interface ICalculator
         {
             Task<int> AddAsync(int a, int b);
         }

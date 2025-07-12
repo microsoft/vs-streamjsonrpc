@@ -8,9 +8,11 @@ using StreamJsonRpc.Analyzers;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record InterfaceModel(string Prefix, string InterfaceName, ImmutableEquatableArray<MethodModel> Methods, ImmutableEquatableArray<EventModel> Events)
+internal record InterfaceModel(string Prefix, string FullName, string Name, Container? Container, ImmutableEquatableArray<MethodModel> Methods, ImmutableEquatableArray<EventModel> Events)
 {
     internal required bool IsPartial { get; init; }
+
+    internal bool IsFullyPartial => this.IsPartial && this.Container is null or { IsFullyPartial: true };
 
     internal required bool DeclaredInThisCompilation { get; init; }
 
@@ -32,6 +34,8 @@ internal record InterfaceModel(string Prefix, string InterfaceName, ImmutableEqu
         return new InterfaceModel(
             fileNamePrefix,
             iface.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
+            iface.Name,
+            Container.CreateFor((INamespaceOrTypeSymbol?)iface.ContainingType ?? iface.ContainingNamespace, cancellationToken),
             methods,
             events)
         {

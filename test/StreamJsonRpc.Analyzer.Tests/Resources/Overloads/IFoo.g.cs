@@ -2,115 +2,118 @@
 
 #nullable enable
 
-#pragma warning disable CS0436 // Prefer local types to imported ones
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(IFoo), typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
-#pragma warning restore CS0436
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
+partial interface IFoo
+{
+}
 
-namespace StreamJsonRpc.Generated;
-
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-	, global::IFoo
+namespace StreamJsonRpc.Generated
 {
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IFoo
 	{
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-	};
-	
-	private string? transformedSayHi1;
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-	{
-		["name"] = typeof(string),
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-		typeof(string),
-	};
-	
-	private string? transformedSayHi2;
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-	{
-		["name"] = typeof(string),
-		["age"] = typeof(int),
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes3 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-		typeof(string),
-		typeof(int),
-	};
-	
-	private string? transformedSayHi3;
-	
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-	    : base(client, options, marshaledObjectHandle, onDispose)
-	{
-	}
-	
-	global::System.Threading.Tasks.Task global::IFoo.SayHi()
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 		
-		this.OnCallingMethod("SayHi");
-		string rpcMethodName = this.transformedSayHi1 ??= this.Options.MethodNameTransform("SayHi");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
-		this.OnCalledMethod("SayHi");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-			};
-	}
-	
-	global::System.Threading.Tasks.Task global::IFoo.SayHi(string name)
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+		private string? transformedSayHi1;
 		
-		this.OnCallingMethod("SayHi");
-		string rpcMethodName = this.transformedSayHi2 ??= this.Options.MethodNameTransform("SayHi");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
-		this.OnCalledMethod("SayHi");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+			["name"] = typeof(string),
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+			typeof(string),
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-				["name"] = name,
-			};
-	}
-	
-	global::System.Threading.Tasks.Task global::IFoo.SayHi(string name, int age)
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+		private string? transformedSayHi2;
 		
-		this.OnCallingMethod("SayHi");
-		string rpcMethodName = this.transformedSayHi3 ??= this.Options.MethodNameTransform("SayHi");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
-		this.OnCalledMethod("SayHi");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+			["name"] = typeof(string),
+			["age"] = typeof(int),
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> SayHiPositionalArgumentDeclaredTypes3 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+			typeof(string),
+			typeof(int),
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-				["name"] = name,
-				["age"] = age,
-			};
+		private string? transformedSayHi3;
+		
+		public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		    : base(client, options, marshaledObjectHandle, onDispose)
+		{
+		}
+		
+		global::System.Threading.Tasks.Task global::IFoo.SayHi()
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("SayHi");
+			string rpcMethodName = this.transformedSayHi1 ??= this.Options.MethodNameTransform("SayHi");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
+			this.OnCalledMethod("SayHi");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+				};
+		}
+		
+		global::System.Threading.Tasks.Task global::IFoo.SayHi(string name)
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("SayHi");
+			string rpcMethodName = this.transformedSayHi2 ??= this.Options.MethodNameTransform("SayHi");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
+			this.OnCalledMethod("SayHi");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+					["name"] = name,
+				};
+		}
+		
+		global::System.Threading.Tasks.Task global::IFoo.SayHi(string name, int age)
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("SayHi");
+			string rpcMethodName = this.transformedSayHi3 ??= this.Options.MethodNameTransform("SayHi");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
+			this.OnCalledMethod("SayHi");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+					["name"] = name,
+					["age"] = age,
+				};
+		}
 	}
 }

@@ -10,25 +10,18 @@ namespace StreamJsonRpc.Reflection;
 /// An attribute that is used by our source generator to map an RPC interface to a
 /// source generated proxy class.
 /// </summary>
-/// <param name="rpcInterface">The interface attributed with <see cref="RpcContractAttribute"/>.</param>
 /// <param name="proxyClass">
 /// The source generated proxy class.
-/// This must implement <paramref name="rpcInterface"/> and declare a public constructor
+/// This must implement the interface the attribute is applied to and declare a public constructor
 /// with a particular signature.
 /// </param>
-[AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public class RpcProxyMappingAttribute(
-    Type rpcInterface,
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type proxyClass) : Attribute
 {
     /// <summary>
-    /// Gets the RPC interface type that this mapping applies to.
-    /// </summary>
-    public Type RpcInterface => rpcInterface;
-
-    /// <summary>
-    /// Gets the proxy class type that this mapping applies to.
+    /// Gets the proxy class type implements the RPC interface.
     /// </summary>
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
     public Type ProxyClass => proxyClass;

@@ -2,51 +2,54 @@
 
 #nullable enable
 
-#pragma warning disable CS0436 // Prefer local types to imported ones
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(IMyService2), typeof(StreamJsonRpc.Generated.IMyService2_Proxy))]
-#pragma warning restore CS0436
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyService2_Proxy))]
+partial interface IMyService2
+{
+}
 
-namespace StreamJsonRpc.Generated;
-
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IMyService2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-	, global::IMyService2
+namespace StreamJsonRpc.Generated
 {
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	internal class IMyService2_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IMyService2
 	{
-		["name"] = typeof(string),
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-		typeof(string),
-	};
-	
-	private string? transformedTask11;
-	
-	public IMyService2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-	    : base(client, options, marshaledObjectHandle, onDispose)
-	{
-	}
-	
-	global::System.Threading.Tasks.Task global::IMyService2.Task1(string name)
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 		
-		this.OnCallingMethod("Task1");
-		string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], Task1PositionalArgumentDeclaredTypes1, default);
-		this.OnCalledMethod("Task1");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+			["name"] = typeof(string),
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+			typeof(string),
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-				["name"] = name,
-			};
+		private string? transformedTask11;
+		
+		public IMyService2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		    : base(client, options, marshaledObjectHandle, onDispose)
+		{
+		}
+		
+		global::System.Threading.Tasks.Task global::IMyService2.Task1(string name)
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("Task1");
+			string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], Task1PositionalArgumentDeclaredTypes1, default);
+			this.OnCalledMethod("Task1");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+					["name"] = name,
+				};
+		}
 	}
 }

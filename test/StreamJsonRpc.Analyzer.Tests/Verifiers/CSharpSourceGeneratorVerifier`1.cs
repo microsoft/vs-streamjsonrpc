@@ -23,8 +23,6 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 {
     private const LanguageVersion DefaultLanguageVersion = LanguageVersion.CSharp7_3;
 
-    private static readonly string FileSeparator = new string('=', 140);
-
     public static Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, [CallerFilePath] string testFile = null!, [CallerMemberName] string testMethod = null!)
     {
         Test test = new(testFile: testFile, testMethod: testMethod)
@@ -164,7 +162,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             SyntaxTree?[] documentsWithDiagnostics = [.. compilation.GetDiagnostics(cancellationToken).Select(d => d.Location.SourceTree).Distinct()];
             foreach (SyntaxTree? tree in documentsWithDiagnostics.Concat(compilation.SyntaxTrees.Except(documentsWithDiagnostics)))
             {
-                LogSyntaxTree(tree, cancellationToken);
+                NumberedLineWriter.LogSyntaxTree(tree, cancellationToken);
             }
 
             var expectedNames = new HashSet<string>();
@@ -193,22 +191,6 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 #endif
 
             return (compilation, diagnostics);
-        }
-
-        private static void LogSyntaxTree(SyntaxTree? tree, CancellationToken cancellationToken)
-        {
-            if (tree is null)
-            {
-                return;
-            }
-
-            ITestOutputHelper logger = TestContext.Current.TestOutputHelper ?? throw new InvalidOperationException();
-            logger.WriteLine(FileSeparator);
-            logger.WriteLine($"{tree.FilePath} content:");
-            logger.WriteLine(FileSeparator);
-            using NumberedLineWriter lineWriter = new(logger);
-            tree.GetRoot(cancellationToken).WriteTo(lineWriter);
-            lineWriter.WriteLine(string.Empty);
         }
 
         [Conditional("WRITE_EXPECTED")]

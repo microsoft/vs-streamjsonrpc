@@ -2,48 +2,51 @@
 
 #nullable enable
 
-#pragma warning disable CS0436 // Prefer local types to imported ones
-[assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(IFoo), typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
-#pragma warning restore CS0436
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
+partial interface IFoo
+{
+}
 
-namespace StreamJsonRpc.Generated;
-
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-	, global::IFoo
+namespace StreamJsonRpc.Generated
 {
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DisposeNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IFoo
 	{
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DisposePositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-	};
-	
-	private string? transformedDispose1;
-	
-	public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-	    : base(client, options, marshaledObjectHandle, onDispose)
-	{
-	}
-	
-	global::System.Threading.Tasks.Task global::IFoo.Dispose()
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 		
-		this.OnCallingMethod("Dispose");
-		string rpcMethodName = this.transformedDispose1 ??= this.Options.MethodNameTransform("Dispose");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DisposeNamedArgumentDeclaredTypes1, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
-		this.OnCalledMethod("Dispose");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DisposeNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DisposePositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-			};
+		private string? transformedDispose1;
+		
+		public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		    : base(client, options, marshaledObjectHandle, onDispose)
+		{
+		}
+		
+		global::System.Threading.Tasks.Task global::IFoo.Dispose()
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("Dispose");
+			string rpcMethodName = this.transformedDispose1 ??= this.Options.MethodNameTransform("Dispose");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DisposeNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
+			this.OnCalledMethod("Dispose");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+				};
+		}
 	}
 }

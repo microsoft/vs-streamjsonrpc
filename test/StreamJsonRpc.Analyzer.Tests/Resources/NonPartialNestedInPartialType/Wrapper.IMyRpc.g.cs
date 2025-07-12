@@ -2,17 +2,12 @@
 
 #nullable enable
 
-[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
-partial interface IFoo
-{
-}
-
 namespace StreamJsonRpc.Generated
 {
 	
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-	internal class IFoo_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-		, global::IFoo
+	internal class Wrapper_IMyRpc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::Wrapper.IMyRpc
 	{
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> JustCancellationAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
@@ -25,12 +20,12 @@ namespace StreamJsonRpc.Generated
 		
 		private string? transformedJustCancellationAsync1;
 		
-		public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		public Wrapper_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
 		    : base(client, options, marshaledObjectHandle, onDispose)
 		{
 		}
 		
-		global::System.Threading.Tasks.Task global::IFoo.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
+		global::System.Threading.Tasks.Task global::Wrapper.IMyRpc.JustCancellationAsync(global::System.Threading.CancellationToken cancellationToken)
 		{
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			

@@ -2,74 +2,86 @@
 
 #nullable enable
 
-namespace StreamJsonRpc.Generated;
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
+partial interface IMyService
+{
+}
 
-[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-internal class IMyServiceZiHkAQOD_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-	, global::IMyService
-	, global::IMyService2
+[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
+partial interface IMyService2
+{
+}
+
+namespace StreamJsonRpc.Generated
 {
 	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	internal class IMyServiceZiHkAQOD_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IMyService
+		, global::IMyService2
 	{
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-	};
-	
-	private string? transformedTask11;
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task2NamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-	{
-	};
-	
-	private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task2PositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
-	{
-	};
-	
-	private string? transformedTask22;
-	
-	public IMyServiceZiHkAQOD_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-	    : base(client, options, marshaledObjectHandle, onDispose)
-	{
-	}
-	
-	global::System.Threading.Tasks.Task global::IMyService.Task1()
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 		
-		this.OnCallingMethod("Task1");
-		string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], Task1PositionalArgumentDeclaredTypes1, default);
-		this.OnCalledMethod("Task1");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task1NamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task1PositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-			};
-	}
-	
-	global::System.Threading.Tasks.Task global::IMyService2.Task2()
-	{
-		if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+		private string? transformedTask11;
 		
-		this.OnCallingMethod("Task2");
-		string rpcMethodName = this.transformedTask22 ??= this.Options.MethodNameTransform("Task2");
-		global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-		    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task2NamedArgumentDeclaredTypes2, default) :
-		    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], Task2PositionalArgumentDeclaredTypes2, default);
-		this.OnCalledMethod("Task2");
+		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> Task2NamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
+		{
+		};
 		
-		return result;
+		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> Task2PositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
+		{
+		};
 		
-		global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-		    => new()
-		    {
-			};
+		private string? transformedTask22;
+		
+		public IMyServiceZiHkAQOD_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
+		    : base(client, options, marshaledObjectHandle, onDispose)
+		{
+		}
+		
+		global::System.Threading.Tasks.Task global::IMyService.Task1()
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("Task1");
+			string rpcMethodName = this.transformedTask11 ??= this.Options.MethodNameTransform("Task1");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task1NamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], Task1PositionalArgumentDeclaredTypes1, default);
+			this.OnCalledMethod("Task1");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+				};
+		}
+		
+		global::System.Threading.Tasks.Task global::IMyService2.Task2()
+		{
+			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
+			
+			this.OnCallingMethod("Task2");
+			string rpcMethodName = this.transformedTask22 ??= this.Options.MethodNameTransform("Task2");
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), Task2NamedArgumentDeclaredTypes2, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], Task2PositionalArgumentDeclaredTypes2, default);
+			this.OnCalledMethod("Task2");
+			
+			return result;
+			
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
+			    => new()
+			    {
+				};
+		}
 	}
 }

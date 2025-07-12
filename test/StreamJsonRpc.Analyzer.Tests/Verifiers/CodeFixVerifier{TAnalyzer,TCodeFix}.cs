@@ -3,10 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 using StreamJsonRpc.Analyzers;
@@ -24,7 +22,7 @@ internal class CodeFixVerifier<TAnalyzer, TCodeFix>
     public static DiagnosticResult Diagnostic(DiagnosticDescriptor descriptor)
         => new DiagnosticResult(descriptor);
 
-    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
+    public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
         var test = new Test
         {
@@ -39,7 +37,15 @@ internal class CodeFixVerifier<TAnalyzer, TCodeFix>
             TestBehaviors = TestBehaviors.SkipGeneratedSourcesCheck,
         };
         test.ExpectedDiagnostics.AddRange(expected);
-        return test.RunAsync();
+        try
+        {
+            await test.RunAsync();
+        }
+        catch
+        {
+            NumberedLineWriter.LogSource(test.TestState.Sources[0].filename, test.TestState.Sources[0].content, default);
+            throw;
+        }
     }
 
     public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, [StringSyntax("c#-test")] string fixedSource)

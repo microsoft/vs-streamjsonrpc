@@ -6,7 +6,7 @@ namespace StreamJsonRpc0016.Violation
 #pragma warning disable StreamJsonRpc0016
     #region Violation
     [RpcContract]
-    interface IMyService
+    partial interface IMyService
     {
         event MyDelegate MyEvent; // StreamJsonRpc0016
         event MyDelegateInt MyIntEvent; // StreamJsonRpc0016
@@ -22,7 +22,7 @@ namespace StreamJsonRpc0016.Fix
 {
     #region Fix
     [RpcContract]
-    interface IMyService
+    partial interface IMyService
     {
         event EventHandler MyEvent;
         event EventHandler<int> MyIntEvent;

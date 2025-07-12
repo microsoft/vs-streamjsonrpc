@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using RpcSpecialType = StreamJsonRpc.Analyzers.GeneratorModels.RpcSpecialType;
@@ -20,6 +21,11 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     /// Diagnostic ID for StreamJsonRpc0010: Inaccessible interface.
     /// </summary>
     public const string InaccessibleInterfaceId = "StreamJsonRpc0010";
+
+    /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0002: Declare partial interface.
+    /// </summary>
+    public const string PartialInterfaceId = "StreamJsonRpc0002";
 
     /// <summary>
     /// Diagnostic ID for StreamJsonRpc0011: RPC methods use supported return types.
@@ -62,6 +68,18 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(InaccessibleInterfaceId));
+
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0002: Declare partial interface.
+    /// </summary>
+    public static readonly DiagnosticDescriptor PartialInterface = new(
+        id: PartialInterfaceId,
+        title: Strings.StreamJsonRpc0002_Title,
+        messageFormat: Strings.StreamJsonRpc0002_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(PartialInterfaceId));
 
     /// <summary>
     /// Diagnostic for StreamJsonRpc0011: RPC methods use supported return types.
@@ -138,6 +156,7 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         InaccessibleInterface,
+        PartialInterface,
         UnsupportedReturnType,
         UnsupportedMemberType,
         NoGenericMethods,
@@ -179,12 +198,21 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        BaseTypeDeclarationSyntax? syntax = namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken) as BaseTypeDeclarationSyntax;
+
         if (!context.Compilation.IsSymbolAccessibleWithin(namedType, context.Compilation.Assembly))
         {
-            if (namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is BaseTypeDeclarationSyntax { Identifier: { } id })
+            if (syntax is { Identifier: { } id })
             {
                 context.ReportDiagnostic(Diagnostic.Create(InaccessibleInterface, id.GetLocation()));
             }
+        }
+
+        if (this.GetNonPartialElements(namedType, context.CancellationToken) is { Count: > 0 } nonPartialElements)
+        {
+            Location[] additionalLocations = nonPartialElements.Select(e => e.Location).ToArray();
+            string nonPartialElementsList = string.Join(", ", nonPartialElements.Select(e => e.Symbol.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat)));
+            context.ReportDiagnostic(Diagnostic.Create(PartialInterface, additionalLocations[0], additionalLocations.Skip(1), namedType.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat), nonPartialElementsList));
         }
 
         if (namedType.IsGenericType)
@@ -213,11 +241,34 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
                     }
 
                     break;
+                case ITypeSymbol:
+                    // We don't care about nested types, so skip them.
+                    break;
                 case { Locations: [Location location, ..] }:
                     context.ReportDiagnostic(Diagnostic.Create(UnsupportedMemberType, location));
                     break;
             }
         }
+    }
+
+    private IReadOnlyList<(ITypeSymbol Symbol, Location Location)> GetNonPartialElements(INamedTypeSymbol namedType, CancellationToken cancellationToken)
+    {
+        List<(ITypeSymbol, Location)>? discovered = null;
+
+        ITypeSymbol? target = namedType;
+        do
+        {
+            BaseTypeDeclarationSyntax? syntax = target.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) as BaseTypeDeclarationSyntax;
+            if (syntax?.Modifiers.Any(SyntaxKind.PartialKeyword) is not true)
+            {
+                (discovered ??= []).Add((target, syntax?.Identifier.GetLocation() ?? Location.None));
+            }
+
+            target = target.ContainingType;
+        }
+        while (target is not null);
+
+        return discovered ?? [];
     }
 
     private void InspectMethod(SymbolAnalysisContext context, KnownSymbols knownSymbols, IMethodSymbol method)

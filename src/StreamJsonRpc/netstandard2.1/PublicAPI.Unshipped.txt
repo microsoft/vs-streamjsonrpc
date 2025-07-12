@@ -16,8 +16,7 @@ StreamJsonRpc.Reflection.ProxyBase.Options.get -> StreamJsonRpc.JsonRpcProxyOpti
 StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, System.Action? onDispose) -> void
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute.ProxyClass.get -> System.Type!
-StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcInterface.get -> System.Type!
-StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcProxyMappingAttribute(System.Type! rpcInterface, System.Type! proxyClass) -> void
+StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcProxyMappingAttribute(System.Type! proxyClass) -> void
 StreamJsonRpc.RpcContractAttribute
 StreamJsonRpc.RpcContractAttribute.RpcContractAttribute() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>

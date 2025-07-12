@@ -5,6 +5,7 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
+StreamJsonRpc0002 | Usage | Warning | Non-partial interface
 StreamJsonRpc0010 | Usage | Error | Inaccessible interface
 StreamJsonRpc0011 | Usage | Error | Unsupported RPC method return type
 StreamJsonRpc0012 | Usage | Error | RPC contracts may not include this type of member

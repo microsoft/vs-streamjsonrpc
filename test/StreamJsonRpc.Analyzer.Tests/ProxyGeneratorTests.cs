@@ -10,7 +10,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyRpc
+            public partial interface IMyRpc
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
                 ValueTask AnArgAndCancellationAsync(int arg, CancellationToken cancellationToken);
@@ -27,10 +27,40 @@ public class ProxyGeneratorTests
     public async Task NestedInType()
     {
         await VerifyCS.RunDefaultAsync("""
-            internal class Wrapper
+            internal partial class Wrapper
+            {
+                [RpcContract]
+                public partial interface IMyRpc
+                {
+                    Task JustCancellationAsync(CancellationToken cancellationToken);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task NonPartialNestedInPartialType()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            internal partial class Wrapper
             {
                 [RpcContract]
                 public interface IMyRpc
+                {
+                    Task JustCancellationAsync(CancellationToken cancellationToken);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task PartialNestedInNonPartialType()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            internal class Wrapper
+            {
+                [RpcContract]
+                public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -44,10 +74,10 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             namespace A;
 
-            internal class Wrapper
+            internal partial class Wrapper
             {
                 [RpcContract]
-                public interface IMyRpc
+                public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -62,7 +92,7 @@ public class ProxyGeneratorTests
             namespace A
             {
                 [RpcContract]
-                public interface IMyRpc
+                public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -71,7 +101,7 @@ public class ProxyGeneratorTests
             namespace B
             {
                 [RpcContract]
-                public interface IMyRpc
+                public partial interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -86,7 +116,7 @@ public class ProxyGeneratorTests
             class A
             {
                 [RpcContract]
-                public interface IMyRpc
+                public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -95,7 +125,7 @@ public class ProxyGeneratorTests
             class B
             {
                 [RpcContract]
-                public interface IMyRpc
+                public partial interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
                 }
@@ -108,7 +138,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IFoo : IDisposable
+            public partial interface IFoo : IDisposable
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
             }
@@ -120,7 +150,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IFoo
+            public partial interface IFoo
             {
                 Task Dispose();
             }
@@ -131,13 +161,13 @@ public class ProxyGeneratorTests
     public async Task Interface_DerivesFromOthers()
     {
         await VerifyCS.RunDefaultAsync("""
-            public interface IFoo
+            public partial interface IFoo
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
             }
 
             [RpcContract]
-            public interface IFoo2 : IFoo
+            public partial interface IFoo2 : IFoo
             {
                 Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
             }
@@ -148,18 +178,18 @@ public class ProxyGeneratorTests
     public async Task Interface_DerivesFromOthersWithRedundantMethods()
     {
         await VerifyCS.RunDefaultAsync("""
-            public interface ICalc1
+            public partial interface ICalc1
             {
                 Task<int> AddAsync(int a, int b);
             }
 
-            public interface ICalc2
+            public partial interface ICalc2
             {
                 Task<int> AddAsync(int a, int b);
             }
 
             [RpcContract]
-            public interface ICalc : ICalc1, ICalc2
+            public partial interface ICalc : ICalc1, ICalc2
             {
             }
             """);
@@ -169,18 +199,18 @@ public class ProxyGeneratorTests
     public async Task Interface_DerivesFromOthersWithRedundantEvents()
     {
         await VerifyCS.RunDefaultAsync("""
-            public interface ICalc1
+            public partial interface ICalc1
             {
                 event EventHandler Changed;
             }
 
-            public interface ICalc2
+            public partial interface ICalc2
             {
                 event EventHandler Changed;
             }
 
             [RpcContract]
-            public interface ICalc : ICalc1, ICalc2
+            public partial interface ICalc : ICalc1, ICalc2
             {
             }
             """);
@@ -191,7 +221,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            interface IFoo
+            partial interface IFoo
             {
                 event EventHandler MyEvent;
                 event EventHandler<string> MyGenericEvent;
@@ -204,7 +234,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IFoo
+            public partial interface IFoo
             {
             }
             """);
@@ -215,7 +245,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IFoo
+            public partial interface IFoo
             {
                 Task SayHi();
                 Task SayHi(string name);
@@ -229,7 +259,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 int Add(int a, int b); // StreamJsonRpc0011
             }
@@ -243,7 +273,7 @@ public class ProxyGeneratorTests
             #nullable enable
 
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 Task<object?> GetNullableIntAsync(string? value);
             }
@@ -255,7 +285,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -275,12 +305,12 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
             [RpcContract]
-            public interface IMyService2
+            public partial interface IMyService2
             {
             }
 
@@ -301,13 +331,13 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 Task Task1();
             }
 
             [RpcContract]
-            public interface IMyService2
+            public partial interface IMyService2
             {
                 Task Task2();
             }
@@ -328,13 +358,13 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 Task Task1();
             }
 
             [RpcContract]
-            public interface IMyService2
+            public partial interface IMyService2
             {
                 Task Task2();
             }
@@ -355,13 +385,13 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 Task Task1(string name);
             }
 
             [RpcContract]
-            public interface IMyService2 : IMyService
+            public partial interface IMyService2 : IMyService
             {
                 Task Task2(string color);
             }
@@ -382,13 +412,13 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
                 Task Task1(string name);
             }
 
             [RpcContract]
-            public interface IMyService2
+            public partial interface IMyService2
             {
                 Task Task1(string name);
             }
@@ -409,7 +439,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -429,7 +459,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -449,7 +479,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -468,7 +498,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -487,7 +517,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -506,7 +536,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 
@@ -525,7 +555,7 @@ public class ProxyGeneratorTests
     {
         await VerifyCS.RunDefaultAsync("""
             [RpcContract]
-            public interface IMyService
+            public partial interface IMyService
             {
             }
 

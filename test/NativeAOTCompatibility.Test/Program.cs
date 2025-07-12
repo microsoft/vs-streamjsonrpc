@@ -34,7 +34,7 @@ IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
 };
 
 [RpcContract]
-internal interface IServer
+internal partial interface IServer
 {
     Task<int> AddAsync(int a, int b);
 }

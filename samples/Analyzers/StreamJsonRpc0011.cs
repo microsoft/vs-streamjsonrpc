@@ -3,7 +3,7 @@ namespace StreamJsonRpc0011.Violation
 #pragma warning disable StreamJsonRpc0011
     #region Violation
     [RpcContract]
-    interface IMyService
+    partial interface IMyService
     {
         int Add(int a, int b); // StreamJsonRpc0011
     }
@@ -15,7 +15,7 @@ namespace StreamJsonRpc0011.Fix
 {
     #region Fix
     [RpcContract]
-    interface IMyService
+    partial interface IMyService
     {
         Task<int> Add(int a, int b);
     }

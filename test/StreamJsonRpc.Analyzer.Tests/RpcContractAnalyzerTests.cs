@@ -10,7 +10,7 @@ public class RpcContractAnalyzerTests
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcContract]
-            public interface IMyRpc
+            public partial interface IMyRpc
             {
                 Task<int> TaskOfTAsync();
                 ValueTask<int> ValueTaskOfTAsync();
@@ -26,10 +26,10 @@ public class RpcContractAnalyzerTests
     public async Task InaccessibleInterface()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            internal class Wrapper
+            internal partial class Wrapper
             {
                 [RpcContract]
-                private interface {|StreamJsonRpc0010:IMyRpc|}
+                private partial interface {|StreamJsonRpc0010:IMyRpc|}
                 {
                 }
             }
@@ -40,10 +40,24 @@ public class RpcContractAnalyzerTests
     public async Task InternalInterface()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
+            internal partial class Wrapper
+            {
+                [RpcContract]
+                internal partial interface IMyRpc
+                {
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task NonPartialInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
             internal class Wrapper
             {
                 [RpcContract]
-                internal interface IMyRpc
+                internal interface {|StreamJsonRpc0002:IMyRpc|}
                 {
                 }
             }
@@ -55,7 +69,7 @@ public class RpcContractAnalyzerTests
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcContract]
-            interface IMyRpc
+            partial interface IMyRpc
             {
                 event EventHandler Changed;
                 event EventHandler<int> Updated;
@@ -73,7 +87,7 @@ public class RpcContractAnalyzerTests
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcContract]
-            interface IMyRpc
+            partial interface IMyRpc
             {
                 Task AddAsync(int a, int b, CancellationToken token);
                 Task SubtractAsync(int a, CancellationToken {|StreamJsonRpc0014:token|}, int b);
@@ -87,7 +101,7 @@ public class RpcContractAnalyzerTests
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcContract]
-            interface {|StreamJsonRpc0015:IMyRpc|}<T>
+            partial interface {|StreamJsonRpc0015:IMyRpc|}<T>
             {
             }
             """);

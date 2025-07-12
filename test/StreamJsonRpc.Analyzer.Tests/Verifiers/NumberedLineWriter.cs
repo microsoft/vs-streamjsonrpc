@@ -2,9 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using Microsoft.CodeAnalysis.Text;
 
 internal class NumberedLineWriter : TextWriter
 {
+    internal static readonly string FileSeparator = new string('=', 140);
+
     private readonly ITestOutputHelper logger;
     private readonly StringBuilder lineBuilder = new StringBuilder();
     private int lineNumber;
@@ -41,5 +44,36 @@ internal class NumberedLineWriter : TextWriter
         {
             this.lineBuilder.Append(value);
         }
+    }
+
+    internal static void LogSyntaxTree(SyntaxTree? tree, CancellationToken cancellationToken)
+    {
+        if (tree is null)
+        {
+            return;
+        }
+
+        ITestOutputHelper logger = TestContext.Current.TestOutputHelper ?? throw new InvalidOperationException();
+        logger.WriteLine(FileSeparator);
+        logger.WriteLine($"{tree.FilePath} content:");
+        logger.WriteLine(FileSeparator);
+        using NumberedLineWriter lineWriter = new(logger);
+        tree.GetRoot(cancellationToken).WriteTo(lineWriter);
+        lineWriter.WriteLine(string.Empty);
+    }
+
+    internal static void LogSource(string filename, SourceText text, CancellationToken cancellationToken)
+    {
+        ITestOutputHelper logger = TestContext.Current.TestOutputHelper ?? throw new InvalidOperationException();
+        logger.WriteLine(FileSeparator);
+        logger.WriteLine($"{filename} content:");
+        logger.WriteLine(FileSeparator);
+        using NumberedLineWriter lineWriter = new(logger);
+        foreach (TextLine line in text.Lines)
+        {
+            lineWriter.WriteLine(line);
+        }
+
+        lineWriter.WriteLine(string.Empty);
     }
 }

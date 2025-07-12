@@ -36,6 +36,16 @@ internal record ProxyModel : FormattableModel
 
     internal string FileName { get; }
 
+    internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
+    {
+        writer.WriteLine($$"""
+            [global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}))]
+            partial interface {{iface.Name}}
+            {
+            }
+            """);
+    }
+
     internal void GenerateSource(SourceProductionContext context)
     {
         // TODO: consider declaring the proxy type with equivalent visibility as the interface,
@@ -49,20 +59,32 @@ internal record ProxyModel : FormattableModel
 
             """);
 
-        // If this proxy is only for a single interface *and* the interface is in the same assembly as the proxy,
-        // emit a mapping attribute to help us find the proxy type at runtime.
-        if (this.Interfaces.Count == 1 && this.Interfaces.Single() is { DeclaredInThisCompilation: true } onlyIface)
+        // Add attributes to interfaces we implement that are in this compilation and are recursively partial
+        // so that at runtime, the proxy can be discovered by reflection.
+        foreach (InterfaceModel iface in this.Interfaces)
         {
-            writer.WriteLine($$""""
-                #pragma warning disable CS0436 // Prefer local types to imported ones
-                [assembly: global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof({{onlyIface.InterfaceName}}), typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}))]
-                #pragma warning restore CS0436
+            if (!iface.DeclaredInThisCompilation || !iface.IsFullyPartial)
+            {
+                continue;
+            }
 
-                """");
+            if (iface.Container is null)
+            {
+                this.WriteInterfaceMapping(writer, iface);
+            }
+            else
+            {
+                iface.Container.WriteWithin(writer, writer => this.WriteInterfaceMapping(writer, iface));
+            }
+
+            writer.WriteLine();
         }
 
+        writer.WriteLine($"namespace {ProxyGenerator.GenerationNamespace}");
+        writer.WriteLine("{");
+        writer.Indentation++;
+
         writer.WriteLine($$"""
-            namespace {{ProxyGenerator.GenerationNamespace}};
 
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("{{ThisAssembly.AssemblyName}}", "{{ThisAssembly.AssemblyFileVersion}}")]
             internal class {{this.Name}} : global::StreamJsonRpc.Reflection.ProxyBase
@@ -71,7 +93,7 @@ internal record ProxyModel : FormattableModel
         writer.Indentation++;
         foreach (InterfaceModel iface in this.Interfaces)
         {
-            writer.WriteLine($", global::{iface.InterfaceName}");
+            writer.WriteLine($", global::{iface.FullName}");
         }
 
         writer.Indentation--;
@@ -90,7 +112,9 @@ internal record ProxyModel : FormattableModel
         this.WriteNestedTypes(writer);
 
         writer.Indentation--;
+        writer.WriteLine("}");
 
+        writer.Indentation--;
         writer.WriteLine("}");
 
         context.AddSource(this.FileName, writer.ToSourceText());
@@ -168,11 +192,11 @@ internal record ProxyModel : FormattableModel
         if (interfaces.Count == 1)
         {
             // If there's just one, keep it simple.
-            return interfaces.Single().InterfaceName;
+            return interfaces.Single().FullName;
         }
 
         // More than one, start by sorting them. Then use the full interface name of the first element, and hash the rest.
-        string[] sorted = [.. interfaces.Select(i => i.InterfaceName)];
+        string[] sorted = [.. interfaces.Select(i => i.FullName)];
         Array.Sort(sorted, StringComparer.Ordinal);
 
         using SHA256 sha = SHA256.Create();

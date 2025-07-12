@@ -6,7 +6,7 @@ namespace StreamJsonRpc0015.Violation
 #pragma warning disable StreamJsonRpc0015
     #region Violation
     [RpcContract]
-    interface IMyService<T>
+    partial interface IMyService<T>
     {
     }
     #endregion
@@ -17,7 +17,7 @@ namespace StreamJsonRpc0015.Fix
 {
     #region Fix
     [RpcContract]
-    interface IMyService
+    partial interface IMyService
     {
     }
     #endregion
