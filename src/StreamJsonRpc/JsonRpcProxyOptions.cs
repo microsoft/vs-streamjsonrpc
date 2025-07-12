@@ -6,7 +6,7 @@ using StreamJsonRpc.Reflection;
 namespace StreamJsonRpc;
 
 /// <summary>
-/// Options that may customize how a dynamically generated client proxy object calls into a <see cref="JsonRpc"/> instance.
+/// Options that may customize how a generated client proxy object calls into a <see cref="JsonRpc"/> instance.
 /// </summary>
 public class JsonRpcProxyOptions
 {
