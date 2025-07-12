@@ -16,4 +16,5 @@
     <!--<TrimmerRootAssembly Include="StreamJsonRpc" />-->
   </ItemGroup>
 
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
 </Project>

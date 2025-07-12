@@ -16,11 +16,12 @@ Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather th
 (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
 JsonRpc serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
 JsonRpc clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
-serverRpc.AddLocalRpcMethod("Add", new Server().Add);
+serverRpc.AddLocalRpcMethod(nameof(Server.AddAsync), new Server().AddAsync);
 serverRpc.StartListening();
+IServer proxy = clientRpc.Attach<IServer>();
 clientRpc.StartListening();
 
-int sum = await clientRpc.InvokeAsync<int>(nameof(Server.Add), 2, 5);
+int sum = await proxy.AddAsync(2, 5);
 Console.WriteLine($"2 + 5 = {sum}");
 
 // When properly configured, this formatter is safe in Native AOT scenarios for
@@ -32,9 +33,15 @@ IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
     JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
 };
 
-internal class Server
+[RpcContract]
+internal interface IServer
 {
-    public int Add(int a, int b) => a + b;
+    Task<int> AddAsync(int a, int b);
+}
+
+internal class Server : IServer
+{
+    public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
 }
 
 [JsonSerializable(typeof(int))]

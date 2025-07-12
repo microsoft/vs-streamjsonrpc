@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
@@ -73,48 +74,10 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                // First filter to methods on the JsonRpc class.
-                ExpressionSyntax receiverSyntax = ((MemberAccessExpressionSyntax)invocation.Expression).Expression;
-                ITypeSymbol? receiverSymbol = context.SemanticModel.GetTypeInfo(receiverSyntax, cancellationToken).Type;
-                if (receiverSymbol is not INamedTypeSymbol { Name: "JsonRpc", ContainingNamespace.Name: "StreamJsonRpc" })
-                {
-                    // Not a JsonRpc.Attach invocation.
-                    return null;
-                }
-
-                // Figure out exactly which method is being invoked.
-                if (context.SemanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol methodSymbol)
-                {
-                    return null;
-                }
-
-                (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = methodSymbol switch
-                {
-                    { Parameters: [], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGeneric, new INamedTypeSymbol[] { iface }),
-                    { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, [iface]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) => (AttachSignature.InstanceNonGenericSpanOptions, argumentTypes),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStream, [iface]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }, { Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStreamStream, [iface]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandler, [iface]),
-                    { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandlerOptions, [iface]),
-                    _ => null,
-                };
+                (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation)? analysis =
+                    TryGetInterceptInfo(invocation, context.SemanticModel, symbols, cancellationToken);
 
                 if (analysis is null)
-                {
-                    // We don't (yet) support intercepting this Attach method.
-                    return null;
-                }
-
-                // Only act on interfaces attributed with [RpcContract] so we know they've been vetted.
-                if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcContractAttribute))))
-                {
-                    return null;
-                }
-
-                if (context.SemanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
                 {
                     return null;
                 }
@@ -122,68 +85,9 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 // PERF: we're creating a new InterfaceModel for every invocation of Attach,
                 // even though we may have already created it. Is there any way to reduce duplication here?
                 return new AttachUse(
-                    interceptableLocation,
+                    analysis.Value.InterceptableLocation,
                     analysis.Value.Signature,
                     [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols))]);
-
-                bool TryGetNamedType(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol? namedTypeArgument)
-                {
-                    if (!SymbolEqualityComparer.Default.Equals(parameterType, symbols.SystemType) ||
-                        invocation.ArgumentList.Arguments is not [ArgumentSyntax { Expression: TypeOfExpressionSyntax { Type: TypeSyntax argTypeSyntax } }, ..] ||
-                        context.SemanticModel.GetTypeInfo(argTypeSyntax, cancellationToken) is not { Type: INamedTypeSymbol argTypeSymbol })
-                    {
-                        namedTypeArgument = null;
-                        return false;
-                    }
-
-                    namedTypeArgument = argTypeSymbol;
-                    return true;
-                }
-
-                bool TryGetNamedTypes(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol[]? namedTypeArgument)
-                {
-                    if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: CollectionExpressionSyntax { Elements: { } elements } }, ..])
-                    {
-                        namedTypeArgument = new INamedTypeSymbol[elements.Count];
-                        for (int i = 0; i < elements.Count; i++)
-                        {
-                            if (elements[i] is ExpressionElementSyntax { Expression: TypeOfExpressionSyntax { Type: { } namedTypeSyntax } } &&
-                                context.SemanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
-                            {
-                                namedTypeArgument[i] = namedTypeSymbol;
-                            }
-                            else
-                            {
-                                namedTypeArgument = null;
-                                return false;
-                            }
-                        }
-
-                        return true;
-                    }
-                    else if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: ArrayCreationExpressionSyntax { Initializer: { Expressions: { } expressions } } }, ..])
-                    {
-                        namedTypeArgument = new INamedTypeSymbol[expressions.Count];
-                        for (int i = 0; i < expressions.Count; i++)
-                        {
-                            if (expressions[i] is TypeOfExpressionSyntax { Type: { } namedTypeSyntax } &&
-                                context.SemanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
-                            {
-                                namedTypeArgument[i] = namedTypeSymbol;
-                            }
-                            else
-                            {
-                                namedTypeArgument = null;
-                                return false;
-                            }
-                        }
-
-                        return true;
-                    }
-
-                    namedTypeArgument = null;
-                    return false;
-                }
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Select(
@@ -193,6 +97,118 @@ public partial class ProxyGenerator : IIncrementalGenerator
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
+    }
+
+    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    {
+        Debug.Assert(invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" }, "This method should only be called after this basic check is performed.");
+
+        // First filter to methods on the JsonRpc class.
+        ExpressionSyntax receiverSyntax = ((MemberAccessExpressionSyntax)invocation.Expression).Expression;
+        ITypeSymbol? receiverSymbol = semanticModel.GetTypeInfo(receiverSyntax, cancellationToken).Type;
+        if (receiverSymbol is not INamedTypeSymbol { Name: "JsonRpc", ContainingNamespace.Name: "StreamJsonRpc" })
+        {
+            // Not a JsonRpc.Attach invocation.
+            return null;
+        }
+
+        // Figure out exactly which method is being invoked.
+        if (semanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        {
+            return null;
+        }
+
+        (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = methodSymbol switch
+        {
+            { Parameters: [], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGeneric, new INamedTypeSymbol[] { iface }),
+            { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, [iface]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) => (AttachSignature.InstanceNonGenericSpanOptions, argumentTypes),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStream, [iface]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }, { Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStreamStream, [iface]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandler, [iface]),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandlerOptions, [iface]),
+            _ => null,
+        };
+
+        if (analysis is null)
+        {
+            // We don't (yet) support intercepting this Attach method.
+            return null;
+        }
+
+        // Only act on interfaces attributed with [RpcContract] so we know they've been vetted.
+        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcContractAttribute))))
+        {
+            return null;
+        }
+
+        if (semanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
+        {
+            return null;
+        }
+
+        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation);
+
+        bool TryGetNamedType(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol? namedTypeArgument)
+        {
+            if (!SymbolEqualityComparer.Default.Equals(parameterType, symbols.SystemType) ||
+                invocation.ArgumentList.Arguments is not [ArgumentSyntax { Expression: TypeOfExpressionSyntax { Type: TypeSyntax argTypeSyntax } }, ..] ||
+                semanticModel.GetTypeInfo(argTypeSyntax, cancellationToken) is not { Type: INamedTypeSymbol argTypeSymbol })
+            {
+                namedTypeArgument = null;
+                return false;
+            }
+
+            namedTypeArgument = argTypeSymbol;
+            return true;
+        }
+
+        bool TryGetNamedTypes(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol[]? namedTypeArgument)
+        {
+            if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: CollectionExpressionSyntax { Elements: { } elements } }, ..])
+            {
+                namedTypeArgument = new INamedTypeSymbol[elements.Count];
+                for (int i = 0; i < elements.Count; i++)
+                {
+                    if (elements[i] is ExpressionElementSyntax { Expression: TypeOfExpressionSyntax { Type: { } namedTypeSyntax } } &&
+                        semanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
+                    {
+                        namedTypeArgument[i] = namedTypeSymbol;
+                    }
+                    else
+                    {
+                        namedTypeArgument = null;
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            else if (invocation.ArgumentList.Arguments is [ArgumentSyntax { Expression: ArrayCreationExpressionSyntax { Initializer: { Expressions: { } expressions } } }, ..])
+            {
+                namedTypeArgument = new INamedTypeSymbol[expressions.Count];
+                for (int i = 0; i < expressions.Count; i++)
+                {
+                    if (expressions[i] is TypeOfExpressionSyntax { Type: { } namedTypeSyntax } &&
+                        semanticModel.GetTypeInfo(namedTypeSyntax, cancellationToken) is { Type: INamedTypeSymbol namedTypeSymbol })
+                    {
+                        namedTypeArgument[i] = namedTypeSymbol;
+                    }
+                    else
+                    {
+                        namedTypeArgument = null;
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            namedTypeArgument = null;
+            return false;
+        }
     }
 
     internal static RpcSpecialType ClassifySpecialType(ITypeSymbol type, KnownSymbols symbols)
