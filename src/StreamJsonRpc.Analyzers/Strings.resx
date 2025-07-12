@@ -147,4 +147,16 @@
   <data name="StreamJsonRpc0014_Title" xml:space="preserve">
     <value>CancellationToken as last parameter</value>
   </data>
+  <data name="StreamJsonRpc0015_Title" xml:space="preserve">
+    <value>No generic interfaces</value>
+  </data>
+  <data name="StreamJsonRpc0015_MessageFormat" xml:space="preserve">
+    <value>RPC contracts may not be declared with generic interfaces.</value>
+  </data>
+  <data name="StreamJsonRpc0016_Title" xml:space="preserve">
+    <value>Unsupported event delegate</value>
+  </data>
+  <data name="StreamJsonRpc0016_MessageFormat" xml:space="preserve">
+    <value>RPC contract events must be declared with either `EventHandler` or `EventHandler&lt;T&gt;` delegate types.</value>
+  </data>
 </root>

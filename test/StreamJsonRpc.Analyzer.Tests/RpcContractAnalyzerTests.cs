@@ -57,9 +57,14 @@ public class RpcContractAnalyzerTests
             [RpcContract]
             interface IMyRpc
             {
+                event EventHandler Changed;
+                event EventHandler<int> Updated;
+                event CustomEvent {|StreamJsonRpc0016:Custom|};
                 int {|StreamJsonRpc0012:Count|} { get; }
                 void {|StreamJsonRpc0013:Add|}<T>(T item);
             }
+
+            delegate void CustomEvent();
             """);
     }
 
@@ -73,6 +78,17 @@ public class RpcContractAnalyzerTests
                 Task AddAsync(int a, int b, CancellationToken token);
                 Task SubtractAsync(int a, CancellationToken {|StreamJsonRpc0014:token|}, int b);
                 Task DivideAsync(CancellationToken {|StreamJsonRpc0014:token|}, int a, int b);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task GenericInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcContract]
+            interface {|StreamJsonRpc0015:IMyRpc|}<T>
+            {
             }
             """);
     }

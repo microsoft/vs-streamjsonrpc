@@ -20,6 +20,4 @@ namespace StreamJsonRpc0014.Fix
         Task AddAsync(int item, int before, CancellationToken cancellationToken);
     }
     #endregion
-
-    class MyItem;
 }

@@ -29,6 +29,7 @@ internal class CodeFixVerifier<TAnalyzer, TCodeFix>
         var test = new Test
         {
             TestCode = $"""
+            using System;
             using System.Threading;
             using System.Threading.Tasks;
             using StreamJsonRpc;

@@ -42,6 +42,16 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     public const string CancellationTokenPositionId = "StreamJsonRpc0014";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0015: RPC contracts may not be generic.
+    /// </summary>
+    public const string NoGenericInterfaceId = "StreamJsonRpc0015";
+
+    /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0016: RPC contracts may declare events only with <see cref="EventHandler"/> or <see cref="EventHandler{T}" /> delegate types.
+    /// </summary>
+    public const string UnsupportedEventDelegateId = "StreamJsonRpc0016";
+
+    /// <summary>
     /// Diagnostic for StreamJsonRpc0010: Inaccessible interface.
     /// </summary>
     public static readonly DiagnosticDescriptor InaccessibleInterface = new(
@@ -101,6 +111,30 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(CancellationTokenPositionId));
 
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0015: No generic interfaces.
+    /// </summary>
+    public static readonly DiagnosticDescriptor NoGenericInterface = new(
+        id: NoGenericInterfaceId,
+        title: Strings.StreamJsonRpc0015_Title,
+        messageFormat: Strings.StreamJsonRpc0015_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(NoGenericInterfaceId));
+
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0016: Unsupported event delegate type.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedEventDelegate = new(
+        id: UnsupportedEventDelegateId,
+        title: Strings.StreamJsonRpc0016_Title,
+        messageFormat: Strings.StreamJsonRpc0016_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedEventDelegateId));
+
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         InaccessibleInterface,
@@ -108,6 +142,8 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         UnsupportedMemberType,
         NoGenericMethods,
         CancellationTokenPosition,
+        NoGenericInterface,
+        UnsupportedEventDelegate,
     ];
 
     /// <inheritdoc/>
@@ -151,6 +187,11 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        if (namedType.IsGenericType)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(NoGenericInterface, namedType.Locations.FirstOrDefault() ?? Location.None));
+        }
+
         foreach (ISymbol member in namedType.GetMembers())
         {
             switch (member)
@@ -163,6 +204,14 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
                     break;
                 case IMethodSymbol method:
                     this.InspectMethod(context, knownSymbols, method);
+                    break;
+                case IEventSymbol evt:
+                    // Events must be declared with either the EventHandler or EventHandler<T> delegate type.
+                    if (evt is not { Type: { Name: "EventHandler", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } })
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(UnsupportedEventDelegate, evt.Locations.FirstOrDefault() ?? Location.None));
+                    }
+
                     break;
                 case { Locations: [Location location, ..] }:
                     context.ReportDiagnostic(Diagnostic.Create(UnsupportedMemberType, location));

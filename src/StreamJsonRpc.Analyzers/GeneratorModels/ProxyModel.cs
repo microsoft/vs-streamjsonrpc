@@ -21,7 +21,7 @@ internal record ProxyModel : FormattableModel
         this.Interfaces = interfaces;
         string name = CreateProxyName(interfaces);
         this.Name = $"{name.Replace('.', '_')}_Proxy";
-        this.FileName = $"{name}.g.cs";
+        this.FileName = $"{name.Replace('<', '_').Replace('>', '_')}.g.cs";
 
         int methodSuffix = 0;
         this.formattableElements = this.Interfaces.SelectMany(i => i.Methods).Concat<FormattableModel>(

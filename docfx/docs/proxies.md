@@ -30,8 +30,8 @@ Generated proxies have the following traits:
 
 A proxy can only be generated for an interface that meets these requirements:
 
-1. No properties
-1. No generic methods
+1. No properties.
+1. No generic methods.
 1. All methods return `void`, @System.Threading.Tasks.Task, @System.Threading.Tasks.Task`1, <xref:System.Threading.Tasks.ValueTask>, <xref:System.Threading.Tasks.ValueTask`1>, or <xref:System.Collections.Generic.IAsyncEnumerable`1>.
 1. All events are typed with <xref:System.EventHandler> or <xref:System.EventHandler`1>. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in <xref:System.EventHandler`1>.
 1. Methods *may* accept a @System.Threading.CancellationToken as the last parameter.
