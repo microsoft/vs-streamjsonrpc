@@ -726,6 +726,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream stream)
         where T : class
@@ -744,6 +748,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
         where T : class
@@ -764,6 +772,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler)
         where T : class
@@ -782,6 +794,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options)
         where T : class
@@ -797,6 +813,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>()
         where T : class
@@ -810,6 +830,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
@@ -822,6 +846,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <paramref name="interfaceType"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType) => this.Attach(interfaceType, options: null);
 
@@ -831,6 +859,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable <paramref name="interfaceType"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
@@ -844,6 +876,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceTypes">The interfaces that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <remarks>
+    /// Calls to this method that use a statically discoverable set of <paramref name="interfaceTypes"/> are intercepted
+    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(ReadOnlySpan<Type> interfaceTypes, JsonRpcProxyOptions? options)
     {
