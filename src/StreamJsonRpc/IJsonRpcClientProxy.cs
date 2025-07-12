@@ -4,7 +4,7 @@
 namespace StreamJsonRpc;
 
 /// <summary>
-/// Implemented by dynamically generated proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
+/// Implemented by proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
 /// to provide access to additional JSON-RPC functionality.
 /// </summary>
 public interface IJsonRpcClientProxy : IDisposable

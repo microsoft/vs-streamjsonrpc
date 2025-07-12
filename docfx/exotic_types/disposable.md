@@ -79,7 +79,7 @@ While this use case is supported, be very wary of this pattern because it become
 
 ### As an argument without a proxy for an RPC interface
 
-When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshaled <xref:System.IDisposable> value as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
+When you are not using an RPC interface and generated proxy that implements it, you can still pass a marshaled <xref:System.IDisposable> value as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
 
 ```cs
 IDisposable arg = new DisposeAction(() => { /* the RPC server called Dispose() on the argument */});

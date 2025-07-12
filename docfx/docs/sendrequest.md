@@ -143,11 +143,11 @@ IServer server = rpc.Attach<IServer>();
 await server.AddIngredientAsync("eggs", 2); // equivalent to rpc.InvokeAsync("AddIngredientAsync", "eggs", 2);
 ```
 
-In the above example, the @StreamJsonRpc.JsonRpc.Attach``1?displayProperty=nameWithType method dynamically generated a proxy that
+In the above example, the @StreamJsonRpc.JsonRpc.Attach``1?displayProperty=nameWithType method uses a generated a proxy that
 implements `IServer` in terms of @StreamJsonRpc.JsonRpc calls, and returned an instance of that object.
 
 A *static* @StreamJsonRpc.JsonRpc.Attach``1(System.IO.Stream)?displayProperty=nameWithType method also exists which streamlines the use case of
-connecting and obtaining a dynamic proxy:
+connecting and obtaining a proxy:
 
 ```cs
 IServer server = JsonRpc.Attach<IServer>(stream);
@@ -161,7 +161,7 @@ Terminating the connection is done by calling the proxy's @System.IDisposable.Di
 ((IDisposable)server).Dispose(); // terminate the connection
 ```
 
-[Learn more about dynamically generated proxies](dynamicproxy.md).
+[Learn more about generated proxies](proxies.md).
 
 ## Exception handling
 

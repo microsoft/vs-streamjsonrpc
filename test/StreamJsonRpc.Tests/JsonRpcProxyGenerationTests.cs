@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
 
-public class JsonRpcProxyGenerationTests : TestBase
+public abstract partial class JsonRpcProxyGenerationTests : TestBase
 {
     private readonly Server server;
     private FullDuplexStream serverStream;
@@ -14,20 +15,33 @@ public class JsonRpcProxyGenerationTests : TestBase
     private FullDuplexStream clientStream;
     private IServerDerived clientRpc;
 
-    public JsonRpcProxyGenerationTests(ITestOutputHelper logger)
+    protected JsonRpcProxyGenerationTests(ITestOutputHelper logger, bool avoidSourceGeneratedProxies)
         : base(logger)
     {
         var streams = FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.clientRpc = JsonRpc.Attach<IServerDerived>(this.clientStream);
+        if (avoidSourceGeneratedProxies)
+        {
+            throw new NotSupportedException();
+        }
+
+        this.DefaultProxyOptions = JsonRpcProxyOptions.Default;
+        this.clientRpc = this.AttachJsonRpc<IServerDerived>(this.clientStream);
+        var clientJsonRpc = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc;
 
         this.server = new Server();
         this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
+
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        clientJsonRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        clientJsonRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
-    public interface IServer
+    [RpcContract]
+    public partial interface IServer
     {
         event EventHandler ItHappened;
 
@@ -55,7 +69,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         event EventHandler AnotherEvent;
     }
 
-    public interface IServerDerived : IServer
+    [RpcContract]
+    public partial interface IServerDerived : IServer
     {
         Task HeavyWorkAsync(CancellationToken cancellationToken);
 
@@ -70,7 +85,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
 
-    public interface IServer3
+    [RpcContract]
+    public partial interface IServer3
     {
         Task<string> SayHiAsync();
 
@@ -78,30 +94,35 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
-    public interface IServer2
+    [RpcContract]
+    public partial interface IServer2
     {
         Task<int> MultiplyAsync(int a, int b);
     }
 
-    public interface IDisposableServer2 : IDisposable, IServer2
+    [RpcContract]
+    public partial interface IDisposableServer2 : IDisposable, IServer2
     {
     }
 
-    public interface IServerWithParamsObject
+    [RpcContract]
+    public partial interface IServerWithParamsObject
     {
         Task<int> SumOfParameterObject(int a, int b);
 
         Task<int> SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    public interface IServerWithParamsObjectNoResult
+    [RpcContract]
+    public partial interface IServerWithParamsObjectNoResult
     {
         Task SumOfParameterObject(int a, int b);
 
         Task SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    public interface IServerWithValueTasks
+    [RpcContract]
+    public partial interface IServerWithValueTasks
     {
         ValueTask DoSomethingValueAsync();
 
@@ -113,7 +134,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
-    public interface IServerWithVoidReturnType
+    [RpcContract]
+    public partial interface IServerWithVoidReturnType
     {
         void Notify(int a, int b);
 
@@ -135,7 +157,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    internal interface IServerInternal :
+    [RpcContract]
+    internal partial interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,
         ExAssembly.IInternal.IPublicNestedInInternalInterface
@@ -143,22 +166,26 @@ public class JsonRpcProxyGenerationTests : TestBase
         Task<int> AddAsync(int a, int b);
     }
 
-    internal interface IServerInternalWithInternalTypesFromOtherAssemblies
+    [RpcContract]
+    internal partial interface IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync();
     }
 
-    internal interface IRemoteService
+    internal partial interface IRemoteService
     {
-        internal interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
+        [RpcContract]
+        internal partial interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
         {
         }
     }
 
+    protected JsonRpcProxyOptions DefaultProxyOptions { get; }
+
     [Fact]
     public void InternalInterface_DerivingFromInternalInterfaceInOtherAssembly()
     {
-        JsonRpc.Attach<IRemoteService.ICallback>(new MemoryStream());
+        this.AttachJsonRpc<IRemoteService.ICallback>(new MemoryStream());
     }
 
     [Fact]
@@ -177,7 +204,7 @@ public class JsonRpcProxyGenerationTests : TestBase
 
         JsonRpc serverRpc = JsonRpc.Attach(streams.Item2, this.server);
 
-        JsonRpc clientRpc = new(streams.Item1);
+        JsonRpc clientRpc = new JsonRpc(streams.Item1);
         object clientProxy = clientRpc.Attach([typeof(IServer), typeof(IServer2), typeof(IServer3), typeof(IServerWithMoreEvents)], null);
         IServer client1 = Assert.IsAssignableFrom<IServer>(clientProxy);
         IServer2 client2 = Assert.IsAssignableFrom<IServer2>(clientProxy);
@@ -247,7 +274,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     public void ProxyTypeIsReused()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var clientRpc = JsonRpc.Attach<IServerDerived>(streams.Item1);
+        var clientRpc = this.AttachJsonRpc<IServerDerived>(streams.Item1);
         Assert.IsType(this.clientRpc.GetType(), clientRpc);
     }
 
@@ -262,7 +289,7 @@ public class JsonRpcProxyGenerationTests : TestBase
     {
         var streams = FullDuplexStream.CreateStreams();
 
-        var clientRpc = JsonRpc.Attach<IDisposableServer2>(streams.Item1);
+        var clientRpc = this.AttachJsonRpc<IDisposableServer2>(streams.Item1);
         var server = new Server2();
 
         this.serverRpc = new JsonRpc(streams.Item2);
@@ -474,7 +501,9 @@ public class JsonRpcProxyGenerationTests : TestBase
     [Fact]
     public void CallBaseMethods()
     {
-        Assert.Contains("proxy", this.clientRpc.ToString());
+        string? actual = this.clientRpc.ToString();
+        this.Logger.WriteLine(actual ?? string.Empty);
+        Assert.Equal(this.clientRpc.GetType().FullName, actual);
     }
 
     [Fact]
@@ -484,7 +513,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = new JsonRpc(streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
         var client2 = clientRpc.Attach<IServer2>();
         clientRpc.StartListening();
@@ -500,7 +529,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var clientRpc = new JsonRpc(streams.Item1);
         var client1 = clientRpc.Attach<IServer>();
         Assert.Same(clientRpc, ((IJsonRpcClientProxy)client1).JsonRpc);
     }
@@ -569,7 +598,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var prefixOptions = new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
 
         // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
-        var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        var clientRpc = new JsonRpc(this.clientStream);
         var clientRpcWithCamelCase = clientRpc.Attach<IServer3>(camelCaseOptions);
         var clientRpcWithPrefix = clientRpc.Attach<IServer3>(prefixOptions);
         clientRpc.StartListening();
@@ -679,7 +708,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var prefixOptions = new JsonRpcProxyOptions { EventNameTransform = CommonMethodNameTransforms.Prepend("ns.") };
 
         // Construct two client proxies with conflicting method transforms to prove that each instance returned retains its unique options.
-        var clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        var clientRpc = new JsonRpc(this.clientStream);
         var clientRpcWithCamelCase = clientRpc.Attach<IServer>(camelCaseOptions);
         var clientRpcWithPrefix = clientRpc.Attach<IServer>(prefixOptions);
         clientRpc.StartListening();
@@ -713,7 +742,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var client = new JsonRpc(streams.Item1);
         var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
@@ -728,7 +757,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var client = new JsonRpc(streams.Item1);
         var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
@@ -747,7 +776,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var client = new JsonRpc(streams.Item1);
         var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
@@ -763,7 +792,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var client = new JsonRpc(streams.Item1, streams.Item1);
+        var client = new JsonRpc(streams.Item1);
         var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
@@ -782,7 +811,7 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
+        var clientRpc = this.AttachJsonRpc<IServerWithValueTasks>(streams.Item1);
         int sum = await clientRpc.AddValueAsync(1, 2);
         Assert.Equal(3, sum);
     }
@@ -794,9 +823,22 @@ public class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(streams.Item2, server);
 
-        var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
+        var clientRpc = this.AttachJsonRpc<IServerWithValueTasks>(streams.Item1);
         await clientRpc.DoSomethingValueAsync();
     }
+
+    protected T AttachJsonRpc<T>(Stream stream)
+        where T : class
+    {
+        var rpc = new JsonRpc(stream);
+        T proxy = rpc.Attach<T>(this.DefaultProxyOptions);
+        rpc.StartListening();
+        return proxy;
+    }
+
+    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, avoidSourceGeneratedProxies: true);
+
+    public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, avoidSourceGeneratedProxies: false);
 
     public class EmptyClass
     {

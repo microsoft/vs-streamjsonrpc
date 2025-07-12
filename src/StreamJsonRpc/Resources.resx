@@ -132,6 +132,9 @@
   <data name="CannotBeCalledAfterGetAsyncEnumerator" xml:space="preserve">
     <value>This cannot be done after GetAsyncEnumerator has already been called.</value>
   </data>
+  <data name="CannotMutateFrozenInstance" xml:space="preserve">
+    <value>This instance cannot be changed.</value>
+  </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" is not an interface.</value>
   </data>

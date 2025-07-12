@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);StreamJsonRpc.Generated</InterceptorsNamespaces>
+  </PropertyGroup>
+</Project>

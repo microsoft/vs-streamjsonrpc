@@ -9,6 +9,7 @@
          to avoid proliferation of #if sections in our test code.
          So suppress it unless we're targeting the oldest framework among our targets. -->
     <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>
@@ -68,4 +69,5 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
 </Project>
