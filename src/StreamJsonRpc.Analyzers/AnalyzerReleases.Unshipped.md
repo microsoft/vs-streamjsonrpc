@@ -13,3 +13,4 @@ StreamJsonRpc0013 | Usage | Error | RPC contracts may not include generic method
 StreamJsonRpc0014 | Usage | Error | CancellationToken may only appear as the last parameter
 StreamJsonRpc0015 | Usage | Error | RPC contracts may not be generic interfaces
 StreamJsonRpc0016 | Usage | Error | Unsupported event delegate type
+StreamJsonRpc0100 | Usage | Warning | Use RpcContractAttribute with AllowAddingMembersLaterAttribute

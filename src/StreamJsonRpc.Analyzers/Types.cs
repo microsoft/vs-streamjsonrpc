@@ -10,6 +10,11 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.RpcContractAttribute";
     }
 
+    internal static class AllowAddingMembersLaterAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.AllowAddingMembersLaterAttribute";
+    }
+
     internal static class JsonRpcMethodAttribute
     {
         internal const string FullName = "StreamJsonRpc.JsonRpcMethodAttribute";

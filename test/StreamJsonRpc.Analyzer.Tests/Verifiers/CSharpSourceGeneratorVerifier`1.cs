@@ -21,6 +21,15 @@ using StreamJsonRpc.Analyzers;
 internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
     where TSourceGenerator : new()
 {
+    internal const string SourceFilePrefix = /* lang=c#-test */ """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using StreamJsonRpc;
+
+        """;
+
     private const LanguageVersion DefaultLanguageVersion = LanguageVersion.CSharp7_3;
 
     public static Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, [CallerFilePath] string testFile = null!, [CallerMemberName] string testMethod = null!)
@@ -32,12 +41,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     Sources =
                     {
                         $"""
-                        using System;
-                        using System.Collections.Generic;
-                        using System.Threading;
-                        using System.Threading.Tasks;
-                        using StreamJsonRpc;
-
+                        {SourceFilePrefix}
                         {testSource}
                         """,
                     },
@@ -169,7 +173,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
             foreach (SyntaxTree? tree in compilation.SyntaxTrees.Skip(project.DocumentIds.Count))
             {
                 WriteTreeToDiskIfNecessary(tree, resourceDirectory, fileNamePrefix);
-                expectedNames.Add(Path.GetFileName(tree.FilePath));
+                expectedNames.Add(fileNamePrefix + Path.GetFileName(tree.FilePath));
             }
 
             PurgeExtranneousFiles(resourceDirectory, fileNamePrefix, expectedNames);

@@ -569,4 +569,71 @@ public class ProxyGeneratorTests
             }
             """);
     }
+
+    [Fact]
+    public async Task Interceptor_AllowAddingMembersLater_SameProject()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcContract, AllowAddingMembersLater]
+            public partial interface IMyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    IMyService service = JsonRpc.Attach<IMyService>(s);
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_AllowAddingMembersLater_DifferentProject()
+    {
+        string libSource = VerifyCS.SourceFilePrefix + /* lang=c#-test */ """
+
+            [RpcContract, AllowAddingMembersLater]
+            public partial interface IMyService
+            {
+            }
+            """;
+
+        VerifyCS.Test test = new()
+        {
+            TestState =
+            {
+                Sources =
+                {
+                    VerifyCS.SourceFilePrefix + /* lang=c#-test */ """
+
+                    class Test
+                    {
+                        void Foo(System.IO.Stream s)
+                        {
+                            IMyService service = JsonRpc.Attach<IMyService>(s);
+                        }
+                    }
+                    """,
+                },
+                AdditionalProjects =
+                {
+                    ["ContractsLib"] =
+                    {
+                        Sources =
+                        {
+                            ("IMyService.cs", libSource),
+                        },
+                    },
+                },
+                AdditionalProjectReferences =
+                {
+                    "ContractsLib",
+                },
+            },
+        };
+
+        await test.RunAsync(TestContext.Current.CancellationToken);
+    }
 }

@@ -14,3 +14,4 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | [StreamJsonRpc0014](StreamJsonRpc0014.md) | Usage    | Error    | CancellationToken as last parameter    |
 | [StreamJsonRpc0015](StreamJsonRpc0015.md) | Usage    | Error    | No generic interfaces                  |
 | [StreamJsonRpc0016](StreamJsonRpc0016.md) | Usage    | Error    | Unsupported event delegate type        |
+| [StreamJsonRpc0100](StreamJsonRpc0100.md) | Usage    | Warning  | Use RpcContractAttribute with AllowAddingMembersLaterAttribute |

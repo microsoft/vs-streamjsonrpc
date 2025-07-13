@@ -144,6 +144,15 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
+        // If any interfaces are annotated with [AllowAddingMembersLater], we must not generate a proxy unless we're
+        // in the same assembly as the interface.
+        if (analysis.Value.Interfaces.Any(iface =>
+            !SymbolEqualityComparer.Default.Equals(iface.ContainingAssembly, semanticModel.Compilation.Assembly) &&
+            (HasAllowAddingMembersLaterAttribute(iface) || HasAllowAddingMembersLaterAttribute(iface.ContainingAssembly))))
+        {
+            return null;
+        }
+
         if (semanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
         {
             return null;
@@ -209,6 +218,9 @@ public partial class ProxyGenerator : IIncrementalGenerator
             namedTypeArgument = null;
             return false;
         }
+
+        bool HasAllowAddingMembersLaterAttribute(ISymbol symbol)
+            => symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.AllowAddingMembersLaterAttribute));
     }
 
     internal static RpcSpecialType ClassifySpecialType(ITypeSymbol type, KnownSymbols symbols)
