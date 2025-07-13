@@ -10,9 +10,20 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.RpcContractAttribute";
     }
 
-    internal static class AllowAddingMembersLaterAttribute
+    internal static class ExportRpcContractProxiesAttribute
     {
-        internal const string FullName = "StreamJsonRpc.AllowAddingMembersLaterAttribute";
+        internal const string Name = "ExportRpcContractProxiesAttribute";
+
+        internal const string FullName = $"StreamJsonRpc.{Name}";
+
+        internal const string ForbidExternalProxyGeneration = "ForbidExternalProxyGeneration";
+    }
+
+    internal static class RpcProxyMappingAttribute
+    {
+        internal const string Name = "RpcProxyMappingAttribute";
+
+        internal const string FullName = $"StreamJsonRpc.Reflection.{Name}";
     }
 
     internal static class JsonRpcMethodAttribute

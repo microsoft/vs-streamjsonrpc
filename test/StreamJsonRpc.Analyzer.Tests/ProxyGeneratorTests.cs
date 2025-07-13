@@ -571,10 +571,12 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
-    public async Task Interceptor_AllowAddingMembersLater_SameProject()
+    public async Task Interceptor_ForbidExternalProxies_SameProject()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract, AllowAddingMembersLater]
+            [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
+
+            [RpcContract]
             public partial interface IMyService
             {
             }
@@ -590,13 +592,25 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
-    public async Task Interceptor_AllowAddingMembersLater_DifferentProject()
+    public async Task Interceptor_ForbidExternalProxies_DifferentProject()
     {
         string libSource = VerifyCS.SourceFilePrefix + /* lang=c#-test */ """
 
-            [RpcContract, AllowAddingMembersLater]
+            #nullable enable
+
+            [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
+
+            [RpcContract]
+            [StreamJsonRpc.Reflection.RpcProxyMapping(typeof(StreamJsonRpc.Generated.MyServiceProxy))] // sourcegen runs too late in the test harness, so we have to write it ourselves.
             public partial interface IMyService
             {
+            }
+
+            namespace StreamJsonRpc.Generated
+            {
+                public class MyServiceProxy(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose) : StreamJsonRpc.Reflection.ProxyBase(client, options, marshaledObjectHandle, onDispose), IMyService
+                {
+                }
             }
             """;
 

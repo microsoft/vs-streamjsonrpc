@@ -11,7 +11,7 @@ namespace StreamJsonRpc.Generated
 {
 	
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-	internal class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+	public class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		, global::IMyService
 	{
 		

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -74,7 +75,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation)? analysis =
+                (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? analysis =
                     TryGetInterceptInfo(invocation, context.SemanticModel, symbols, cancellationToken);
 
                 if (analysis is null)
@@ -87,19 +88,25 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 return new AttachUse(
                     analysis.Value.InterceptableLocation,
                     analysis.Value.Signature,
-                    [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))]);
+                    [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))],
+                    analysis.Value.ExternalProxyName);
             }).Where(m => m is not null)!;
 
-        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Select(
+        IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
+
+        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy).Select(
             (combined, attach) =>
             {
-                return new FullModel(combined.Left.ToImmutableEquatableSet(), combined.Right.ToImmutableEquatableArray());
+                ImmutableArray<ProxyModel> proxies = combined.Left.Left;
+                ImmutableArray<AttachUse> attachUses = combined.Left.Right;
+                bool publicProxies = combined.Right;
+                return new FullModel(proxies.ToImmutableEquatableSet(), attachUses.ToImmutableEquatableArray(), publicProxies);
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
         Debug.Assert(invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" }, "This method should only be called after this basic check is performed.");
 
@@ -144,21 +151,23 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
-        // If any interfaces are annotated with [AllowAddingMembersLater], we must not generate a proxy unless we're
-        // in the same assembly as the interface.
-        if (analysis.Value.Interfaces.Any(iface =>
-            !SymbolEqualityComparer.Default.Equals(iface.ContainingAssembly, semanticModel.Compilation.Assembly) &&
-            (HasAllowAddingMembersLaterAttribute(iface) || HasAllowAddingMembersLaterAttribute(iface.ContainingAssembly))))
-        {
-            return null;
-        }
-
         if (semanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
         {
             return null;
         }
 
-        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation);
+        // Look for an existing external proxy to reuse, if available.
+        if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out string? externalProxyName))
+        {
+            // Score! There's an existing proxy that suits our needs.
+        }
+        else if (analysis.Value.Interfaces.Any(iface => !IsAllowedToGenerateProxyFor(iface)))
+        {
+            // If we're not allowed to generate a proxy for any of the interfaces, then don't generate a proxy at all since it will be inadequate.
+            return null;
+        }
+
+        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName);
 
         bool TryGetNamedType(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol? namedTypeArgument)
         {
@@ -219,8 +228,25 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return false;
         }
 
-        bool HasAllowAddingMembersLaterAttribute(ISymbol symbol)
-            => symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.AllowAddingMembersLaterAttribute));
+        bool IsAllowedToGenerateProxyFor(INamedTypeSymbol iface)
+        {
+            if (SymbolEqualityComparer.Default.Equals(iface.ContainingAssembly, semanticModel.Compilation.Assembly))
+            {
+                // We're always allowed to generate a proxy for an interface declared in the same assembly.
+                return true;
+            }
+
+            // This assembly-level attribute, set on the assembly containing the interface, *might* forbid source generating a proxy in an external assembly.
+            AttributeData? attData = iface.ContainingAssembly.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.ExportRpcContractProxiesAttribute));
+            if (attData is not null &&
+                attData.NamedArguments.FirstOrDefault(d => d.Key == Types.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration) is { Value.Value: true })
+            {
+                // We're forbidden from generating a proxy for this interface in an external assembly.
+                return false;
+            }
+
+            return true;
+        }
     }
 
     internal static RpcSpecialType ClassifySpecialType(ITypeSymbol type, KnownSymbols symbols)
@@ -239,4 +265,38 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         static bool Equal(ITypeSymbol candidate, ITypeSymbol? standard) => standard is not null && SymbolEqualityComparer.Default.Equals(candidate, standard);
     }
+
+    private static bool TryGetImplementingProxy(INamedTypeSymbol[] ifaces, KnownSymbols symbols, out string? implementingProxyName)
+    {
+        HashSet<INamedTypeSymbol> requiredInterfaces = new(ifaces, SymbolEqualityComparer.Default);
+        foreach (INamedTypeSymbol iface in requiredInterfaces)
+        {
+            foreach (AttributeData att in iface.GetAttributes())
+            {
+                if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.RpcProxyMappingAttribute))
+                {
+                    continue;
+                }
+
+                if (att.ConstructorArguments is not [{ Value: INamedTypeSymbol proxyType }])
+                {
+                    continue;
+                }
+
+                // Test the proxy for the interfaces we need.
+                if (requiredInterfaces.IsSubsetOf(proxyType.Interfaces))
+                {
+                    // TODO: skip proxies that implement too many interfaces.
+                    implementingProxyName = proxyType.ToDisplayString(FullyQualifiedNoGlobalWithNullableFormat);
+                    return true;
+                }
+            }
+        }
+
+        implementingProxyName = null;
+        return false;
+    }
+
+    private bool AreProxiesPublic(Compilation compilation)
+        => compilation.Assembly.GetAttributes().Any(a => a is { AttributeClass: { Name: Types.ExportRpcContractProxiesAttribute.Name, ContainingNamespace: { Name: "StreamJsonRpc", ContainingNamespace.IsGlobalNamespace: true } } });
 }

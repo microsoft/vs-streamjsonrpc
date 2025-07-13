@@ -15,7 +15,8 @@ internal record KnownSymbols(
     INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
     INamedTypeSymbol RpcContractAttribute,
-    INamedTypeSymbol AllowAddingMembersLaterAttribute,
+    INamedTypeSymbol ExportRpcContractProxiesAttribute,
+    INamedTypeSymbol RpcProxyMappingAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
     INamedTypeSymbol SystemType,
     INamedTypeSymbol Stream)
@@ -30,14 +31,16 @@ internal record KnownSymbols(
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
         INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.RpcContractAttribute.FullName);
-        INamedTypeSymbol? allowAddingMembersLaterAttribute = compilation.GetTypeByMetadataName(Types.AllowAddingMembersLaterAttribute.FullName);
+        INamedTypeSymbol? exportRpcContractProxiesAttribute = compilation.GetTypeByMetadataName(Types.ExportRpcContractProxiesAttribute.FullName);
+        INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.RpcProxyMappingAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
         INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
         INamedTypeSymbol? systemIOStream = compilation.GetTypeByMetadataName("System.IO.Stream");
 
         if (idisposable is null ||
             rpcContractAttribute is null ||
-            allowAddingMembersLaterAttribute is null ||
+            exportRpcContractProxiesAttribute is null ||
+            rpcProxyMappingAttribute is null ||
             jsonRpcMethodAttribute is null ||
             systemType is null ||
             systemIOStream is null ||
@@ -47,7 +50,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable, rpcContractAttribute, allowAddingMembersLaterAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, cancellationToken, idisposable, rpcContractAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
         return true;
     }
 }

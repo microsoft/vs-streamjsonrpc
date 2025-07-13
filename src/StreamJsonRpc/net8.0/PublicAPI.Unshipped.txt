@@ -1,6 +1,8 @@
 static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
-StreamJsonRpc.AllowAddingMembersLaterAttribute
-StreamJsonRpc.AllowAddingMembersLaterAttribute.AllowAddingMembersLaterAttribute() -> void
+StreamJsonRpc.ExportRpcContractProxiesAttribute
+StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
+StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
+StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!

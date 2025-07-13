@@ -11,7 +11,7 @@ internal record ProxyModel : FormattableModel
 {
     private readonly ImmutableEquatableArray<FormattableModel> formattableElements;
 
-    internal ProxyModel(ImmutableEquatableSet<InterfaceModel> interfaces)
+    internal ProxyModel(ImmutableEquatableSet<InterfaceModel> interfaces, string? externalProxyName = null)
     {
         if (interfaces.Count == 0)
         {
@@ -19,9 +19,17 @@ internal record ProxyModel : FormattableModel
         }
 
         this.Interfaces = interfaces;
-        string name = CreateProxyName(interfaces);
-        this.Name = $"{name.Replace('.', '_')}_Proxy";
-        this.FileName = $"{name.Replace('<', '_').Replace('>', '_')}.g.cs";
+
+        if (externalProxyName is null)
+        {
+            string name = CreateProxyName(interfaces);
+            this.Name = $"{name.Replace('.', '_')}_Proxy";
+            this.FileName = $"{name.Replace('<', '_').Replace('>', '_')}.g.cs";
+        }
+        else
+        {
+            this.Name = externalProxyName;
+        }
 
         int methodSuffix = 0;
         this.formattableElements = this.Interfaces.SelectMany(i => i.Methods).Concat<FormattableModel>(
@@ -34,7 +42,7 @@ internal record ProxyModel : FormattableModel
 
     internal string Name { get; }
 
-    internal string FileName { get; }
+    internal string? FileName { get; }
 
     internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
     {
@@ -46,8 +54,14 @@ internal record ProxyModel : FormattableModel
             """);
     }
 
-    internal void GenerateSource(SourceProductionContext context)
+    internal void GenerateSource(SourceProductionContext context, bool isPublic)
     {
+        if (this.FileName is null)
+        {
+            // This proxy has no source to emit. It represents a pre-existing external proxy.
+            return;
+        }
+
         // TODO: consider declaring the proxy type with equivalent visibility as the interface,
         //       since a public interface needs a publicly accessible proxy.
         //       Otherwise Reflection is required to access the type.
@@ -84,10 +98,12 @@ internal record ProxyModel : FormattableModel
         writer.WriteLine("{");
         writer.Indentation++;
 
+        string visibility = isPublic ? "public" : "internal";
+
         writer.WriteLine($$"""
 
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("{{ThisAssembly.AssemblyName}}", "{{ThisAssembly.AssemblyFileVersion}}")]
-            internal class {{this.Name}} : global::StreamJsonRpc.Reflection.ProxyBase
+            {{visibility}} class {{this.Name}} : global::StreamJsonRpc.Reflection.ProxyBase
             """);
 
         writer.Indentation++;

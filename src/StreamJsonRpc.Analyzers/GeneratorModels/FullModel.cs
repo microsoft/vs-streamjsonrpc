@@ -9,21 +9,25 @@ namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
 internal record FullModel
 {
-    internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses)
+    internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses, bool publicProxies)
     {
         // Generate a proxy for attributed interfaces in this assembly, and for interfaces used by Attach methods.
-        this.Proxies = [.. proxies.Concat(attachUses.Select(a => new ProxyModel(a.Contracts))).Distinct()];
+        this.Proxies = [.. proxies.Concat(attachUses.Select(a => new ProxyModel(a.Contracts, a.ExternalProxyName))).Distinct()];
 
         this.Interceptions = [..
             from use in attachUses
-            group use by (use.Contracts, use.Signature) into attachByProxy
-            let proxy = new ProxyModel(attachByProxy.Key.Contracts)
+            group use by (use.Contracts, use.Signature, use.ExternalProxyName) into attachByProxy
+            let proxy = new ProxyModel(attachByProxy.Key.Contracts, attachByProxy.Key.ExternalProxyName)
             select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation])];
+
+        this.PublicProxies = publicProxies;
     }
 
     internal ImmutableEquatableArray<ProxyModel> Proxies { get; }
 
     internal ImmutableEquatableArray<InterceptionModel> Interceptions { get; }
+
+    internal bool PublicProxies { get; }
 
     internal void GenerateSource(SourceProductionContext context)
     {
@@ -31,7 +35,7 @@ internal record FullModel
         {
             foreach (ProxyModel proxy in this.Proxies)
             {
-                proxy.GenerateSource(context);
+                proxy.GenerateSource(context, this.PublicProxies);
             }
 
             if (this.Interceptions is not [])

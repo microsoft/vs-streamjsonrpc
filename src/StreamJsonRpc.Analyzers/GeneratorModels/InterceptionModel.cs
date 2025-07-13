@@ -13,11 +13,13 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
             writer.WriteLine(location.GetInterceptsLocationAttributeSyntax());
         }
 
+        string interceptingMethodName = $"Attach{this.Proxy.Name.Replace('.', '_')}";
+
         switch (this.Signature)
         {
             case AttachSignature.InstanceGeneric:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
+                    internal static T {{interceptingMethodName}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
                         where T : class
                     {
                         return (T)(object)new {{this.Proxy.Name}}(jsonRpc, null, null, null);
@@ -26,7 +28,7 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 break;
             case AttachSignature.InstanceGenericOptions:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                    internal static T {{interceptingMethodName}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc, global::StreamJsonRpc.JsonRpcProxyOptions? options)
                         where T : class
                     {
                         return (T)(object)new {{this.Proxy.Name}}(jsonRpc, options, null, null);
@@ -35,25 +37,25 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 break;
             case AttachSignature.InstanceNonGeneric:
                 writer.WriteLine($$"""
-                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType)
+                    internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType)
                         => new {{this.Proxy.Name}}(jsonRpc, null, null, null);
                     """);
                 break;
             case AttachSignature.InstanceNonGenericOptions:
                 writer.WriteLine($$"""
-                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                    internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType, global::StreamJsonRpc.JsonRpcProxyOptions? options)
                         => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     """);
                 break;
             case AttachSignature.InstanceNonGenericSpanOptions:
                 writer.WriteLine($$"""
-                    internal static object Attach{{this.Proxy.Name}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.ReadOnlySpan<global::System.Type> interfaceTypes, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                    internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.ReadOnlySpan<global::System.Type> interfaceTypes, global::StreamJsonRpc.JsonRpcProxyOptions? options)
                         => new {{this.Proxy.Name}}(jsonRpc, options, null, null);
                     """);
                 break;
             case AttachSignature.StaticGenericStream:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(global::System.IO.Stream stream)
+                    internal static T {{interceptingMethodName}}<T>(global::System.IO.Stream stream)
                     {
                         global::StreamJsonRpc.JsonRpc jsonRpc = new(stream);
                         {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
@@ -64,7 +66,7 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 break;
             case AttachSignature.StaticGenericStreamStream:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
+                    internal static T {{interceptingMethodName}}<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
                     {
                         global::StreamJsonRpc.JsonRpc jsonRpc = new(sendingStream, receivingStream);
                         {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
@@ -75,7 +77,7 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 break;
             case AttachSignature.StaticGenericHandler:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)
+                    internal static T {{interceptingMethodName}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)
                     {
                         global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
                         {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null);
@@ -86,7 +88,7 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 break;
             case AttachSignature.StaticGenericHandlerOptions:
                 writer.WriteLine($$"""
-                    internal static T Attach{{this.Proxy.Name}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+                    internal static T {{interceptingMethodName}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler, global::StreamJsonRpc.JsonRpcProxyOptions? options)
                     {
                         global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
                         {{this.Proxy.Name}} proxy = new(jsonRpc, options, null, null);
