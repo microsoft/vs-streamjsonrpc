@@ -83,6 +83,52 @@ public class RpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task DisallowedMembers_InBaseInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcContract]
+            partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase|}|}|}
+            {
+            }
+
+            interface IBase
+            {
+                event EventHandler Changed;
+                event EventHandler<int> Updated;
+                event CustomEvent Custom;
+                int Count { get; }
+                void Add<T>(T item);
+            }
+
+            delegate void CustomEvent();
+            """);
+    }
+
+    [Fact]
+    public async Task DisallowedMembers_InBaseInterfaceTwoStepsAway()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcContract]
+            partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase2|}|}|}
+                        {
+            }
+
+            interface IBase2 : IBase {}
+
+            interface IBase
+            {
+                event EventHandler Changed;
+                event EventHandler<int> Updated;
+                event CustomEvent Custom;
+                int Count { get; }
+                void Add<T>(T item);
+            }
+
+            delegate void CustomEvent();
+            """);
+    }
+
+    [Fact]
     public async Task CancellationTokenPositions()
     {
         await VerifyCS.VerifyAnalyzerAsync("""

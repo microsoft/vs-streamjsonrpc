@@ -153,6 +153,8 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedEventDelegateId));
 
+    private static readonly SymbolDisplayFormat NameOnly = new();
+
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         InaccessibleInterface,
@@ -183,13 +185,44 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
                     return;
                 }
 
-                context.RegisterSymbolAction(
+                context.RegisterSymbolStartAction(
                     context => this.InspectSymbol(context, knownSymbols, (INamedTypeSymbol)context.Symbol),
                     SymbolKind.NamedType);
             });
     }
 
-    private void InspectSymbol(SymbolAnalysisContext context, KnownSymbols knownSymbols, INamedTypeSymbol namedType)
+    private static void ReportMemberDiagnostic(SymbolStartAnalysisContext context, INamedTypeSymbol namedType, ISymbol member, Location? locationAroundMember, Func<Location?, IEnumerable<Location>?, SymbolDisplayFormat, Diagnostic> createDiagnostic)
+    {
+        if (SymbolEqualityComparer.Default.Equals(member.ContainingType, namedType))
+        {
+            // We can just use the location around member.
+            context.RegisterSymbolEndAction(context => context.ReportDiagnostic(createDiagnostic(locationAroundMember, null, NameOnly)));
+        }
+        else
+        {
+            Location? bestLocation = null;
+            context.RegisterSyntaxNodeAction(
+                context =>
+                {
+                    var syntax = (SimpleBaseTypeSyntax)context.Node;
+                    ITypeSymbol? baseType = context.SemanticModel.GetTypeInfo(syntax.Type, context.CancellationToken).Type;
+                    if (baseType is null)
+                    {
+                        return;
+                    }
+
+                    if (SymbolEqualityComparer.Default.Equals(member.ContainingType, baseType) ||
+                        (bestLocation is null && member.ContainingType.IsAssignableFrom(baseType)))
+                    {
+                        bestLocation = syntax.GetLocation();
+                    }
+                },
+                SyntaxKind.SimpleBaseType);
+            context.RegisterSymbolEndAction(context => context.ReportDiagnostic(createDiagnostic(bestLocation, locationAroundMember is null ? null : [locationAroundMember], SymbolDisplayFormat.CSharpErrorMessageFormat)));
+        }
+    }
+
+    private void InspectSymbol(SymbolStartAnalysisContext context, KnownSymbols knownSymbols, INamedTypeSymbol namedType)
     {
         AttributeData? rpcContractAttribute = namedType.GetAttributes()
             .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcContractAttribute));
@@ -198,13 +231,15 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        ImmutableList<Diagnostic> diagnostics = [];
+
         BaseTypeDeclarationSyntax? syntax = namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken) as BaseTypeDeclarationSyntax;
 
         if (!context.Compilation.IsSymbolAccessibleWithin(namedType, context.Compilation.Assembly))
         {
             if (syntax is { Identifier: { } id })
             {
-                context.ReportDiagnostic(Diagnostic.Create(InaccessibleInterface, id.GetLocation()));
+                diagnostics = diagnostics.Add(Diagnostic.Create(InaccessibleInterface, id.GetLocation(), namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
             }
         }
 
@@ -212,42 +247,58 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         {
             Location[] additionalLocations = nonPartialElements.Select(e => e.Location).ToArray();
             string nonPartialElementsList = string.Join(", ", nonPartialElements.Select(e => e.Symbol.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat)));
-            context.ReportDiagnostic(Diagnostic.Create(PartialInterface, additionalLocations[0], additionalLocations.Skip(1), namedType.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat), nonPartialElementsList));
+            diagnostics = diagnostics.Add(Diagnostic.Create(PartialInterface, additionalLocations[0], additionalLocations.Skip(1), namedType.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat), nonPartialElementsList));
         }
 
         if (namedType.IsGenericType)
         {
-            context.ReportDiagnostic(Diagnostic.Create(NoGenericInterface, namedType.Locations.FirstOrDefault() ?? Location.None));
+            diagnostics = diagnostics.Add(Diagnostic.Create(NoGenericInterface, namedType.Locations.FirstOrDefault() ?? Location.None));
         }
 
-        foreach (ISymbol member in namedType.GetMembers())
+        foreach (ISymbol member in namedType.GetAllMembers())
         {
+            // Members may be declared within namedType, or in a base type.
+            // We need to have the primary location be within namedType so roslyn knows when to clear it,
+            // but additional locations can point within the base type if we have syntax for it.
+            Location? location = member.Locations.FirstOrDefault();
+
             switch (member)
             {
                 case IMethodSymbol { IsGenericMethod: true } method:
-                    context.ReportDiagnostic(Diagnostic.Create(NoGenericMethods, method.Locations.FirstOrDefault() ?? Location.None));
+                    ReportMemberDiagnostic(context, namedType, method, location, (loc, addl, memberFormat) => Diagnostic.Create(NoGenericMethods, loc, addl, namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), member.ToDisplayString(memberFormat)));
                     break;
-                case IMethodSymbol { MethodKind: MethodKind.PropertySet or MethodKind.PropertyGet }:
-                    // Suppress diagnostic because the overall property will be reported.
+                case IMethodSymbol { MethodKind: MethodKind.PropertySet or MethodKind.PropertyGet or MethodKind.EventAdd or MethodKind.EventRemove }:
+                    // Suppress diagnostic because the overall property or event will be reported.
                     break;
                 case IMethodSymbol method:
-                    this.InspectMethod(context, knownSymbols, method);
+                    this.InspectMethod(context, knownSymbols, method, namedType);
                     break;
                 case IEventSymbol evt:
                     // Events must be declared with either the EventHandler or EventHandler<T> delegate type.
                     if (evt is not { Type: { Name: "EventHandler", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } })
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(UnsupportedEventDelegate, evt.Locations.FirstOrDefault() ?? Location.None));
+                        ReportMemberDiagnostic(context, namedType, member, location, (loc, addl, _) => Diagnostic.Create(UnsupportedEventDelegate, loc, addl));
                     }
 
                     break;
                 case ITypeSymbol:
                     // We don't care about nested types, so skip them.
                     break;
-                case { Locations: [Location location, ..] }:
-                    context.ReportDiagnostic(Diagnostic.Create(UnsupportedMemberType, location));
+                default:
+                    ReportMemberDiagnostic(context, namedType, member, location, (loc, addl, memberFormat) => Diagnostic.Create(UnsupportedMemberType, loc, addl, namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), member.ToDisplayString(memberFormat)));
                     break;
             }
+        }
+
+        if (diagnostics.Count > 0)
+        {
+            context.RegisterSymbolEndAction(context =>
+            {
+                foreach (Diagnostic diagnostic in diagnostics)
+                {
+                    context.ReportDiagnostic(diagnostic);
+                }
+            });
         }
     }
 
@@ -271,17 +322,19 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
         return discovered ?? [];
     }
 
-    private void InspectMethod(SymbolAnalysisContext context, KnownSymbols knownSymbols, IMethodSymbol method)
+    private void InspectMethod(SymbolStartAnalysisContext context, KnownSymbols knownSymbols, IMethodSymbol method, INamedTypeSymbol namedType)
     {
         if (!this.IsAllowedMethodReturnType(method.ReturnType, knownSymbols))
         {
             MethodDeclarationSyntax? methodDeclaration = (MethodDeclarationSyntax?)method.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken);
             Location diagnosticLocation = methodDeclaration?.ReturnType.GetLocation() ?? method.Locations.FirstOrDefault() ?? Location.None;
 
-            context.ReportDiagnostic(Diagnostic.Create(
+            ReportMemberDiagnostic(context, namedType, method, diagnosticLocation, (location, addl, memberFormat) => Diagnostic.Create(
                 UnsupportedReturnType,
-                diagnosticLocation,
-                method.ReturnType.Name));
+                location,
+                addl,
+                method.ReturnType.Name,
+                method.ToDisplayString(memberFormat)));
         }
 
         // Verify that no parameter up to the second-to-last is a CancellationToken.
@@ -290,9 +343,13 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
             IParameterSymbol parameter = method.Parameters[i];
             if (parameter.Type.Equals(knownSymbols.CancellationToken, SymbolEqualityComparer.Default))
             {
-                context.ReportDiagnostic(Diagnostic.Create(
+                Location diagnosticLocation = parameter.Locations.FirstOrDefault() ?? Location.None;
+                ReportMemberDiagnostic(context, namedType, method, diagnosticLocation, (location, addl, memberFormat) => Diagnostic.Create(
                     CancellationTokenPosition,
-                    parameter.Locations.FirstOrDefault() ?? Location.None));
+                    location,
+                    addl,
+                    parameter.Type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                    method.ToDisplayString(memberFormat)));
             }
         }
     }
