@@ -34,7 +34,8 @@ public partial class JsonContractResolverTest : TestBase
         this.serverRpc.StartListening();
     }
 
-    protected interface IServer : IDisposable
+    [JsonRpcContract]
+    public partial interface IServer : IDisposable
     {
         Task GiveObserver(IObserver<int> observer);
 
@@ -54,7 +55,7 @@ public partial class JsonContractResolverTest : TestBase
     }
 
     [RpcMarshalable]
-    protected interface IMarshalable : IDisposable
+    public interface IMarshalable : IDisposable
     {
         void DoSomething();
     }
@@ -132,7 +133,7 @@ public partial class JsonContractResolverTest : TestBase
     }
 
     [DataContract]
-    protected class Container<T>
+    public class Container<T>
     where T : class
     {
         [DataMember]

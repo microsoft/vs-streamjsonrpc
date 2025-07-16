@@ -81,7 +81,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
-    public interface IServerWithBadCancellationParam
+    ////[JsonRpcContract] Defining this attribute would produce a compile error, but we're testing runtime handling of the invalid case.
+    public partial interface IServerWithBadCancellationParam
     {
         Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
@@ -148,11 +149,13 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         event Action MyActionEvent;
     }
 
+    ////[JsonRpcContract] // This would trigger a compile error, but we're testing runtime handling of disallowed members.
     public interface IServerWithProperties
     {
         int Foo { get; set; }
     }
 
+    ////[JsonRpcContract] // This would trigger a compile error, but we're testing runtime handling of disallowed members.
     public interface IServerWithGenericMethod
     {
         Task AddAsync<T>(T a, T b);
@@ -409,7 +412,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     public void NonTaskReturningMethod()
     {
         var streams = FullDuplexStream.CreateStreams();
+#pragma warning disable StreamJsonRpc0003 // Use JsonRpcContractAttribute
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithNonTaskReturnTypes>(streams.Item1));
+#pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -417,7 +422,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Trait("NegativeTest", "")]
     public void UnsupportedDelegateTypeOnEvent()
     {
+#pragma warning disable StreamJsonRpc0003 // Use JsonRpcContractAttribute
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithUnsupportedEventTypes>(this.clientStream));
+#pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -425,7 +432,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Trait("NegativeTest", "")]
     public void PropertyOnInterface()
     {
+#pragma warning disable StreamJsonRpc0003 // Use JsonRpcContractAttribute
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithProperties>(this.clientStream));
+#pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -433,7 +442,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Trait("NegativeTest", "")]
     public void GenericMethodOnInterface()
     {
+#pragma warning disable StreamJsonRpc0003 // Use JsonRpcContractAttribute
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithGenericMethod>(this.clientStream));
+#pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -441,7 +452,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Trait("NegativeTest", "")]
     public void GenerateProxyFromClassNotSuppported()
     {
+#pragma warning disable StreamJsonRpc0004 // Only interfaces allowed
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<EmptyClass>(this.clientStream));
+#pragma warning restore StreamJsonRpc0004 // Only interfaces allowed
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -449,7 +462,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Trait("NegativeTest", "")]
     public void GenerateProxyFromClassNotSuppported_NotNestedClass()
     {
+#pragma warning disable StreamJsonRpc0004 // Only interfaces allowed
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<JsonRpcProxyGenerationTests>(this.clientStream));
+#pragma warning restore StreamJsonRpc0004 // Only interfaces allowed
         this.Logger.WriteLine(exception.Message);
     }
 
@@ -493,7 +508,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Fact]
     public void CancellationTokenInBadPositionIsRejected()
     {
+#pragma warning disable StreamJsonRpc0003 // Use JsonRpcContractAttribute
         Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithBadCancellationParam>(new MemoryStream()));
+#pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
     }
 
     /// <summary>

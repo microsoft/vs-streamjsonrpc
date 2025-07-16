@@ -86,6 +86,23 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task NestedAsProtected()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            namespace A;
+
+            internal partial class Wrapper
+            {
+                [JsonRpcContract]
+                protected partial interface IMyRpc
+                {
+                    Task JustCancellationAsync(CancellationToken cancellationToken);
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task NamesRequiredNamespaceQualifier()
     {
         await VerifyCS.RunDefaultAsync("""

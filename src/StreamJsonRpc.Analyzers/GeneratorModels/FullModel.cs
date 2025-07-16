@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using StreamJsonRpc.Analyzers;
 
@@ -43,17 +42,9 @@ internal record FullModel
                 this.GenerateInterceptor(context, this.Interceptions);
             }
         }
-        catch (Exception) when (LaunchDebugger())
+        catch (Exception) when (AnalyzerUtilities.LaunchDebugger())
         {
             throw;
-        }
-
-        bool LaunchDebugger()
-        {
-#if DEBUG
-            Debugger.Launch();
-#endif
-            return false;
         }
     }
 

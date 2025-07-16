@@ -1,6 +1,6 @@
 # StreamJsonRpc0003: Use JsonRpcContractAttribute
 
-Interfaces passed to <xref:StreamJsonRpc.Attach*> methods should be attributed with <xref:StreamJsonRpc.JsonRpcContractAttribute> to enable analyzers that help avoid runtime exceptions, and to source generate proxies that can improve startup performance.
+Interfaces passed to <xref:StreamJsonRpc.JsonRpc.Attach*?displayProperty=nameWithType> methods should be attributed with <xref:StreamJsonRpc.JsonRpcContractAttribute> to enable analyzers that help avoid runtime exceptions, and to source generate proxies that can improve startup performance.
 
 ## Example violation
 

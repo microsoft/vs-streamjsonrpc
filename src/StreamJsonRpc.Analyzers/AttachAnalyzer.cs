@@ -22,6 +22,11 @@ public class AttachAnalyzer : DiagnosticAnalyzer
     public const string MissingRpcContractAttributeId = "StreamJsonRpc0003";
 
     /// <summary>
+    /// The ID for <see cref="OnlyInterfaceTypesAllowed"/>.
+    /// </summary>
+    public const string OnlyInterfaceTypesAllowedId = "StreamJsonRpc0004";
+
+    /// <summary>
     /// The diagnostic descriptor for reporting when Attach is called with an interface lacking the <c>JsonRpcContractAttribute</c>.
     /// </summary>
     public static readonly DiagnosticDescriptor MissingRpcContractAttribute = new DiagnosticDescriptor(
@@ -33,9 +38,22 @@ public class AttachAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(MissingRpcContractAttributeId));
 
+    /// <summary>
+    /// The diagnostic descriptor for reporting when Attach is called with a class instead of an interface.
+    /// </summary>
+    public static readonly DiagnosticDescriptor OnlyInterfaceTypesAllowed = new DiagnosticDescriptor(
+        id: OnlyInterfaceTypesAllowedId,
+        title: Strings.StreamJsonRpc0004_Title,
+        messageFormat: Strings.StreamJsonRpc0004_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(OnlyInterfaceTypesAllowedId));
+
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         MissingRpcContractAttribute,
+        OnlyInterfaceTypesAllowed,
     ];
 
     /// <inheritdoc/>
@@ -77,6 +95,13 @@ public class AttachAnalyzer : DiagnosticAnalyzer
                             // Go through each interface. If we have the syntax for it (as source code), look for the attribute and report a diagnostic if it's missing.
                             foreach (INamedTypeSymbol iface in analysis.Value.Interfaces)
                             {
+                                if (iface is not { TypeKind: TypeKind.Interface, IsUnboundGenericType: false })
+                                {
+                                    // We only allow interfaces to be attached.
+                                    context.ReportDiagnostic(Diagnostic.Create(OnlyInterfaceTypesAllowed, invocationOp.Syntax.GetLocation(), iface.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+                                    continue;
+                                }
+
                                 if (iface.Locations.FirstOrDefault()?.IsInSource is not true)
                                 {
                                     continue;

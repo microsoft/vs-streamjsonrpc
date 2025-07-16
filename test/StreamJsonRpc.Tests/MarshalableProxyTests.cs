@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
 /// </summary>
-public abstract class MarshalableProxyTests : TestBase
+public abstract partial class MarshalableProxyTests : TestBase
 {
     protected readonly Server server = new Server();
     protected readonly JsonRpc serverRpc;
@@ -219,7 +219,8 @@ public abstract class MarshalableProxyTests : TestBase
     {
     }
 
-    public interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);
 

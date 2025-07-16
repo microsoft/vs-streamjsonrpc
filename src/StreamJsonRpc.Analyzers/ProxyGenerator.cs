@@ -55,7 +55,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 }
 
                 // Skip inaccessible interfaces.
-                if (context.TargetSymbol.DeclaredAccessibility < Accessibility.Internal)
+                if (!context.SemanticModel.Compilation.IsSymbolAccessibleWithin(context.TargetSymbol, context.SemanticModel.Compilation.Assembly))
                 {
                     // Reported by StreamJsonRpc0001
                     return null;
@@ -236,6 +236,12 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         bool IsAllowedToGenerateProxyFor(INamedTypeSymbol iface)
         {
+            if (!semanticModel.Compilation.IsSymbolAccessibleWithin(iface, semanticModel.Compilation.Assembly))
+            {
+                // We cannot access the interface at the assembly level, so don't try to implement it.
+                return false;
+            }
+
             if (SymbolEqualityComparer.Default.Equals(iface.ContainingAssembly, semanticModel.Compilation.Assembly))
             {
                 // We're always allowed to generate a proxy for an interface declared in the same assembly.

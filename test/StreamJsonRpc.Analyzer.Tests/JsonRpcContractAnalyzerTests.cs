@@ -23,13 +23,27 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
-    public async Task InaccessibleInterface()
+    public async Task InaccessibleInterface_Private()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
             internal partial class Wrapper
             {
                 [JsonRpcContract]
                 private partial interface {|StreamJsonRpc0001:IMyRpc|}
+                {
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task InaccessibleInterface_Protected()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            public partial class Wrapper
+            {
+                [JsonRpcContract]
+                protected partial interface {|StreamJsonRpc0001:IMyRpc|}
                 {
                 }
             }

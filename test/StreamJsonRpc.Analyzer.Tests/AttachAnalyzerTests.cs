@@ -43,4 +43,102 @@ public class AttachAnalyzerTests
             }
             """);
     }
+
+    [Fact]
+    public async Task AttachGeneric_Class()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            public class MyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    {|StreamJsonRpc0004:rpc.Attach<MyService>()|};
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Attach_Struct()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            public struct MyService
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    {|StreamJsonRpc0004:rpc.Attach(typeof(MyService))|};
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Attach_OpenGeneric()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract]
+            public interface IMyService<T>
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = {|StreamJsonRpc0004:rpc.Attach(typeof(IMyService<>))|};
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Attach_ClosedGeneric()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract]
+            public interface IMyService<T>
+            {
+            }
+
+            class Test
+            {
+                void Foo(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(typeof(IMyService<int>));
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Attach_GenericTypeParameter()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract]
+            public interface IMyService<T>
+            {
+            }
+
+            class Test
+            {
+                void Foo<T>(System.IO.Stream s)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(typeof(IMyService<T>));
+                }
+            }
+            """);
+    }
 }
