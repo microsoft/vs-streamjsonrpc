@@ -11,6 +11,7 @@ namespace StreamJsonRpc.Generated
 {
 	
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
+	[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 	public class IMyService_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
 		, global::IMyService
 	{

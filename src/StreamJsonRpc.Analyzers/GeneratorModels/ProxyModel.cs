@@ -103,6 +103,15 @@ internal record ProxyModel : FormattableModel
         writer.WriteLine($$"""
 
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("{{ThisAssembly.AssemblyName}}", "{{ThisAssembly.AssemblyFileVersion}}")]
+            """);
+        if (isPublic)
+        {
+            writer.WriteLine($$"""
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            """);
+        }
+
+        writer.WriteLine($$"""
             {{visibility}} class {{this.Name}} : global::StreamJsonRpc.Reflection.ProxyBase
             """);
 
