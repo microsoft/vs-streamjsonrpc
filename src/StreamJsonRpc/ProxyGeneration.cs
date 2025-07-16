@@ -63,7 +63,7 @@ internal static class ProxyGeneration
     /// </param>
     /// <param name="implementedOptionalInterfaces">
     /// Additional marshalable interfaces that the client proxy should implement.
-    /// Methods on these interfaces are invoke using a special name transformation that includes an integer code,
+    /// Methods on these interfaces are invoked using a special name transformation that includes an integer code,
     /// ensuring that methods do not suffer from name collisions across interfaces.
     /// </param>
     /// <returns>The generated type.</returns>

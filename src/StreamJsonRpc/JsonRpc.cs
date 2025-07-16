@@ -1917,6 +1917,73 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         return false;
     }
 
+    /// <summary>
+    /// Determines whether a proxy class implements a compatible set of interfaces.
+    /// </summary>
+    /// <param name="proxyClass">The type of the proxy class to be evaluated. This type must implement the specified interfaces.</param>
+    /// <param name="contractInterface">The primary contract interface that the proxy class must implement.</param>
+    /// <param name="additionalContractInterfaces">A span of additional contract interfaces that the proxy class must also implement.</param>
+    /// <param name="options">Options that influence the compatibility check, such as whether extra interfaces are acceptable.</param>
+    /// <returns><see langword="true"/> if the proxy class implements the specified contract interface and additional interfaces,
+    /// and optionally extra interfaces if allowed by the options; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>This method checks if the proxy class implements exactly the interfaces specified by the
+    /// contract and additional interfaces, unless the <paramref name="options"/> allow for extra interfaces.
+    /// It also removes any boilerplate interfaces from consideration.
+    /// </remarks>
+    private static bool ProxyImplementsCompatibleSetOfInterfaces(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type proxyClass,
+        Type contractInterface,
+        ReadOnlySpan<Type> additionalContractInterfaces,
+        JsonRpcProxyOptions? options)
+    {
+        HashSet<Type> proxyInterfaces = [.. proxyClass.GetInterfaces()];
+        if (!proxyInterfaces.Remove(contractInterface))
+        {
+            return false;
+        }
+
+        foreach (Type addl in additionalContractInterfaces)
+        {
+            if (!proxyInterfaces.Remove(addl))
+            {
+                return false;
+            }
+        }
+
+        // At this point, we've ensured that the proxy implements the contract interface and any additional interfaces.
+        // But does it implement *more* than the caller wants?
+        if (options?.AcceptProxyWithExtraInterfaces is true)
+        {
+            // If the caller accepts proxies with extra interfaces, then we don't care what else the proxy implements.
+            return true;
+        }
+
+        // Remove the boilerplate interfaces from the set.
+        proxyInterfaces.ExceptWith(typeof(ProxyBase).GetInterfaces());
+
+        // Are there any remaining interfaces? If so, they're alright only if they are base types of the interfaces we were looking for.
+        foreach (Type remaining in proxyInterfaces)
+        {
+            if (remaining.IsAssignableFrom(contractInterface))
+            {
+                continue;
+            }
+
+            foreach (Type addl in additionalContractInterfaces)
+            {
+                if (remaining.IsAssignableFrom(addl))
+                {
+                    continue;
+                }
+            }
+
+            // This is an extra, unwanted interface.
+            return false;
+        }
+
+        return true;
+    }
+
     private JsonRpcError CreateCancellationResponse(JsonRpcRequest request)
     {
         JsonRpcError errorMessage = (this.MessageHandler.Formatter as IJsonRpcMessageFactory)?.CreateErrorMessage() ?? new JsonRpcError();
@@ -2838,25 +2905,32 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="contractInterface">The interface that describes the functions available on the remote end.</param>
     /// <param name="additionalContractInterfaces"><inheritdoc cref="ProxyGeneration.Get" path="/param[@name='additionalContractInterfaces']"/></param>
-    /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
+    /// <param name="implementedOptionalInterfaces"><inheritdoc cref="ProxyGeneration.Get" path="/param[@name='implementedOptionalInterfaces']"/></param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null" />, default options will be used.</param>
     /// <param name="marshaledObjectHandle">The handle to the remote object that is being marshaled via this proxy.</param>
     /// <returns>An instance of the generated proxy.</returns>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
-        // Look for a source generated proxy type first.
-        // We want a proxy that implements exactly the right set of contract interfaces.
-        foreach (RpcProxyMappingAttribute attribute in contractInterface.GetCustomAttributes<RpcProxyMappingAttribute>())
+        if (options?.ProxyStyle is not JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic && implementedOptionalInterfaces is [])
         {
-            // TODO: filter out proxies that implement too many interfaces.
-            // If the source generated proxy type exists, use it.
-            return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
-                attribute.ProxyClass,
-                this,
-                options ?? JsonRpcProxyOptions.Default,
-                marshaledObjectHandle,
-                options?.OnDispose)!;
+            // Look for a source generated proxy type first.
+            // We want a proxy that implements exactly the right set of contract interfaces.
+            foreach (RpcProxyMappingAttribute attribute in contractInterface.GetCustomAttributes<RpcProxyMappingAttribute>())
+            {
+                // Of the various proxies that implement the interfaces the user requires,
+                // look for a match.
+                if (ProxyImplementsCompatibleSetOfInterfaces(attribute.ProxyClass, contractInterface, additionalContractInterfaces, options))
+                {
+                    // If the source generated proxy type exists, use it.
+                    return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
+                        attribute.ProxyClass,
+                        this,
+                        options ?? JsonRpcProxyOptions.Default,
+                        marshaledObjectHandle,
+                        options?.OnDispose)!;
+                }
+            }
         }
 
 #if !NETSTANDARD2_0

@@ -36,6 +36,16 @@ public class JsonRpcProxyOptions
     private Action<IJsonRpcClientProxyInternal>? onProxyConstructed;
 
     /// <summary>
+    /// Backing field for the <see cref="AcceptProxyWithExtraInterfaces"/> property.
+    /// </summary>
+    private bool acceptProxyWithExtraInterfaces;
+
+    /// <summary>
+    /// Backing field for the <see cref="ProxyStyle"/> property.
+    /// </summary>
+    private ProxyImplementation proxyImpl = ProxyImplementation.PreferSourceGenerated;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JsonRpcProxyOptions"/> class.
     /// </summary>
     public JsonRpcProxyOptions()
@@ -54,8 +64,32 @@ public class JsonRpcProxyOptions
         this.MethodNameTransform = copyFrom.MethodNameTransform;
         this.EventNameTransform = copyFrom.EventNameTransform;
         this.ServerRequiresNamedArguments = copyFrom.ServerRequiresNamedArguments;
+        this.AcceptProxyWithExtraInterfaces = copyFrom.AcceptProxyWithExtraInterfaces;
         this.OnDispose = copyFrom.OnDispose;
         this.OnProxyConstructed = copyFrom.OnProxyConstructed;
+    }
+
+    /// <summary>
+    /// Describes the source generated proxy that is acceptable to the client.
+    /// </summary>
+    public enum ProxyImplementation
+    {
+        /// <summary>
+        /// Always use a dynamically generated proxy.
+        /// </summary>
+        AlwaysDynamic,
+
+        /// <summary>
+        /// Use a source generated proxy if available, otherwise fall back to a dynamically generated proxy.
+        /// An exception will not be thrown if no source generated proxy is available and the runtime does
+        /// not support dynamic code generation.
+        /// </summary>
+        PreferSourceGenerated,
+
+        /// <summary>
+        /// Throw an exception if no source generated proxy is available.
+        /// </summary>
+        AlwaysSourceGenerated,
     }
 
     /// <summary>
@@ -109,6 +143,38 @@ public class JsonRpcProxyOptions
         {
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
             this.serverRequiresNamedArguments = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether source generated proxies that implement a proper superset of
+    /// the client's requested interfaces may be returned.
+    /// </summary>
+    /// <value>The default value is <see langword="false" />.</value>
+    /// <remarks>
+    /// Does not apply when <see cref="ProxyStyle"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
+    /// </remarks>
+    public bool AcceptProxyWithExtraInterfaces
+    {
+        get => this.acceptProxyWithExtraInterfaces;
+        set
+        {
+            Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            this.acceptProxyWithExtraInterfaces = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the implementation of the proxy to use when generating a client proxy.
+    /// </summary>
+    /// <value>The default value is <see cref="ProxyImplementation.PreferSourceGenerated"/>.</value>
+    public ProxyImplementation ProxyStyle
+    {
+        get => this.proxyImpl;
+        set
+        {
+            Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            this.proxyImpl = value;
         }
     }
 
