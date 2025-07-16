@@ -165,4 +165,10 @@
   <data name="StreamJsonRpc0002_MessageFormat" xml:space="preserve">
     <value>RPC contract interface {0} should be declared as partial to enable source generated proxies to be discovered at runtime, but the following type(s) are not partial: {1}</value>
   </data>
+  <data name="StreamJsonRpc0003_Title" xml:space="preserve">
+    <value>Use RpcContractAttribute</value>
+  </data>
+  <data name="StreamJsonRpc0003_MessageFormat" xml:space="preserve">
+    <value>Apply the RpcContractAttribute to {0} for better analysis and higher runtime performance.</value>
+  </data>
 </root>

@@ -7,6 +7,7 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 StreamJsonRpc0001 | Usage | Error | Inaccessible interface
 StreamJsonRpc0002 | Usage | Warning | Non-partial interface
+StreamJsonRpc0003 | Usage | Warning | Use RpcContractAttribute
 StreamJsonRpc0011 | Usage | Error | Unsupported RPC method return type
 StreamJsonRpc0012 | Usage | Error | RPC contracts may not include this type of member
 StreamJsonRpc0013 | Usage | Error | RPC contracts may not include generic methods

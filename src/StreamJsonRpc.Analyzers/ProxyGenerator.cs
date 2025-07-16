@@ -106,7 +106,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? AnalyzeAttachInvocation(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
         Debug.Assert(invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" }, "This method should only be called after this basic check is performed.");
 
@@ -139,35 +139,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
             _ => null,
         };
 
-        if (analysis is null)
-        {
-            // We don't (yet) support intercepting this Attach method.
-            return null;
-        }
-
-        // Only act on interfaces attributed with [RpcContract] so we know they've been vetted.
-        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcContractAttribute))))
-        {
-            return null;
-        }
-
-        if (semanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
-        {
-            return null;
-        }
-
-        // Look for an existing external proxy to reuse, if available.
-        if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out string? externalProxyName))
-        {
-            // Score! There's an existing proxy that suits our needs.
-        }
-        else if (analysis.Value.Interfaces.Any(iface => !IsAllowedToGenerateProxyFor(iface)))
-        {
-            // If we're not allowed to generate a proxy for any of the interfaces, then don't generate a proxy at all since it will be inadequate.
-            return null;
-        }
-
-        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName);
+        return analysis;
 
         bool TryGetNamedType(INamedTypeSymbol parameterType, [NotNullWhen(true)] out INamedTypeSymbol? namedTypeArgument)
         {
@@ -227,6 +199,40 @@ public partial class ProxyGenerator : IIncrementalGenerator
             namedTypeArgument = null;
             return false;
         }
+    }
+
+    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    {
+        (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = AnalyzeAttachInvocation(invocation, semanticModel, symbols, cancellationToken);
+        if (analysis is null)
+        {
+            // We don't (yet) support intercepting this Attach method.
+            return null;
+        }
+
+        // Only act on interfaces attributed with [RpcContract] so we know they've been vetted.
+        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcContractAttribute))))
+        {
+            return null;
+        }
+
+        if (semanticModel.GetInterceptableLocation(invocation, cancellationToken) is not { } interceptableLocation)
+        {
+            return null;
+        }
+
+        // Look for an existing external proxy to reuse, if available.
+        if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out string? externalProxyName))
+        {
+            // Score! There's an existing proxy that suits our needs.
+        }
+        else if (analysis.Value.Interfaces.Any(iface => !IsAllowedToGenerateProxyFor(iface)))
+        {
+            // If we're not allowed to generate a proxy for any of the interfaces, then don't generate a proxy at all since it will be inadequate.
+            return null;
+        }
+
+        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName);
 
         bool IsAllowedToGenerateProxyFor(INamedTypeSymbol iface)
         {
