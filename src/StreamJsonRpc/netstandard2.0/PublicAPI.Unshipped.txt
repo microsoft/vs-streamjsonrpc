@@ -6,6 +6,14 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.se
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
+StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces.get -> bool
+StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces.set -> void
+StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic = 0 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated = 2 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.PreferSourceGenerated = 1 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.set -> void
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
