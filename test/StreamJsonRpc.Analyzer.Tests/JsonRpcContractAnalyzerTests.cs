@@ -3,7 +3,7 @@
 
 using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer, Microsoft.CodeAnalysis.Testing.EmptyCodeFixProvider>;
 
-public class RpcContractAnalyzerTests
+public class JsonRpcContractAnalyzerTests
 {
     [Fact]
     public async Task MethodReturnTypes()
