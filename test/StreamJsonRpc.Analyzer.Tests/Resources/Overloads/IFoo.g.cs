@@ -2,7 +2,7 @@
 
 #nullable enable
 
-[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IFoo_Proxy))]
 partial interface IFoo
 {
 }

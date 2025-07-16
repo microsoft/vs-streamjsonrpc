@@ -17,7 +17,7 @@ namespace StreamJsonRpc.Reflection;
 /// </param>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public class RpcProxyMappingAttribute(
+public class JsonRpcProxyMappingAttribute(
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type proxyClass) : Attribute
 {
     /// <summary>

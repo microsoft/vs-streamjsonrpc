@@ -279,7 +279,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         {
             foreach (AttributeData att in iface.GetAttributes())
             {
-                if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.RpcProxyMappingAttribute))
+                if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.JsonRpcProxyMappingAttribute))
                 {
                     continue;
                 }

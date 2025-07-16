@@ -601,7 +601,7 @@ public class ProxyGeneratorTests
             [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
 
             [JsonRpcContract]
-            [StreamJsonRpc.Reflection.RpcProxyMapping(typeof(StreamJsonRpc.Generated.MyServiceProxy))] // sourcegen runs too late in the test harness, so we have to write it ourselves.
+            [StreamJsonRpc.Reflection.JsonRpcProxyMapping(typeof(StreamJsonRpc.Generated.MyServiceProxy))] // sourcegen runs too late in the test harness, so we have to write it ourselves.
             public partial interface IMyService
             {
             }

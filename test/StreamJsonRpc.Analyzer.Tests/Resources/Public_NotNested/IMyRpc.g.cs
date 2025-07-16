@@ -2,7 +2,7 @@
 
 #nullable enable
 
-[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyRpc_Proxy))]
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyRpc_Proxy))]
 partial interface IMyRpc
 {
 }

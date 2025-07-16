@@ -4,7 +4,7 @@
 
 partial class Wrapper
 {
-	[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.Wrapper_IMyRpc_Proxy))]
+	[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.Wrapper_IMyRpc_Proxy))]
 	partial interface IMyRpc
 	{
 	}

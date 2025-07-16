@@ -2916,7 +2916,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             // Look for a source generated proxy type first.
             // We want a proxy that implements exactly the right set of contract interfaces.
-            foreach (RpcProxyMappingAttribute attribute in contractInterface.GetCustomAttributes<RpcProxyMappingAttribute>())
+            foreach (JsonRpcProxyMappingAttribute attribute in contractInterface.GetCustomAttributes<JsonRpcProxyMappingAttribute>())
             {
                 // Of the various proxies that implement the interfaces the user requires,
                 // look for a match.

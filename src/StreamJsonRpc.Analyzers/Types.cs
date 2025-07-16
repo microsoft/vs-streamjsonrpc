@@ -19,9 +19,9 @@ internal static class Types
         internal const string ForbidExternalProxyGeneration = "ForbidExternalProxyGeneration";
     }
 
-    internal static class RpcProxyMappingAttribute
+    internal static class JsonRpcProxyMappingAttribute
     {
-        internal const string Name = "RpcProxyMappingAttribute";
+        internal const string Name = "JsonRpcProxyMappingAttribute";
 
         internal const string FullName = $"StreamJsonRpc.Reflection.{Name}";
     }

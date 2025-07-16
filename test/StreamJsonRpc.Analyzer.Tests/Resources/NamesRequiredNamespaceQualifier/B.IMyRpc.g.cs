@@ -4,7 +4,7 @@
 
 namespace B
 {
-	[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.B_IMyRpc_Proxy))]
+	[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.B_IMyRpc_Proxy))]
 	partial interface IMyRpc
 	{
 	}

@@ -47,7 +47,7 @@ internal record ProxyModel : FormattableModel
     internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
     {
         writer.WriteLine($$"""
-            [global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}))]
+            [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}))]
             partial interface {{iface.Name}}
             {
             }

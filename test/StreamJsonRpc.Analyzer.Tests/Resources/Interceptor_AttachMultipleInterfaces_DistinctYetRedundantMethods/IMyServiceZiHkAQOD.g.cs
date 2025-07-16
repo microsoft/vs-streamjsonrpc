@@ -2,12 +2,12 @@
 
 #nullable enable
 
-[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
 partial interface IMyService
 {
 }
 
-[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceZiHkAQOD_Proxy))]
 partial interface IMyService2
 {
 }

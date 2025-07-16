@@ -6,7 +6,7 @@ namespace A
 {
 	partial class Wrapper
 	{
-		[global::StreamJsonRpc.Reflection.RpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.A_Wrapper_IMyRpc_Proxy))]
+		[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.A_Wrapper_IMyRpc_Proxy))]
 		partial interface IMyRpc
 		{
 		}

@@ -16,7 +16,7 @@ internal record KnownSymbols(
     INamedTypeSymbol IDisposable,
     INamedTypeSymbol JsonRpcContractAttribute,
     INamedTypeSymbol ExportRpcContractProxiesAttribute,
-    INamedTypeSymbol RpcProxyMappingAttribute,
+    INamedTypeSymbol JsonRpcProxyMappingAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
     INamedTypeSymbol SystemType,
     INamedTypeSymbol Stream)
@@ -32,7 +32,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
         INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcContractAttribute.FullName);
         INamedTypeSymbol? exportRpcContractProxiesAttribute = compilation.GetTypeByMetadataName(Types.ExportRpcContractProxiesAttribute.FullName);
-        INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.RpcProxyMappingAttribute.FullName);
+        INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcProxyMappingAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
         INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
         INamedTypeSymbol? systemIOStream = compilation.GetTypeByMetadataName("System.IO.Stream");
