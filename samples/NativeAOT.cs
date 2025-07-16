@@ -34,7 +34,7 @@ partial class Program
     [JsonSerializable(typeof(int))]
     partial class SourceGenerationContext : JsonSerializerContext;
 
-    [RpcContract]
+    [JsonRpcContract]
     internal partial interface IServer
     {
         Task<int> AddAsync(int a, int b);

@@ -33,7 +33,7 @@ IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
     JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
 };
 
-[RpcContract]
+[JsonRpcContract]
 internal partial interface IServer
 {
     Task<int> AddAsync(int a, int b);

@@ -40,7 +40,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         clientJsonRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServer
     {
         event EventHandler ItHappened;
@@ -64,13 +64,13 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task Dispose();
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerWithMoreEvents
     {
         event EventHandler AnotherEvent;
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerDerived : IServer
     {
         Task HeavyWorkAsync(CancellationToken cancellationToken);
@@ -86,7 +86,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServer3
     {
         Task<string> SayHiAsync();
@@ -95,18 +95,18 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServer2
     {
         Task<int> MultiplyAsync(int a, int b);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IDisposableServer2 : IDisposable, IServer2
     {
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerWithParamsObject
     {
         Task<int> SumOfParameterObject(int a, int b);
@@ -114,7 +114,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerWithParamsObjectNoResult
     {
         Task SumOfParameterObject(int a, int b);
@@ -122,7 +122,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerWithValueTasks
     {
         ValueTask DoSomethingValueAsync();
@@ -135,7 +135,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IServerWithVoidReturnType
     {
         void Notify(int a, int b);
@@ -158,7 +158,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     internal partial interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,
@@ -167,7 +167,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> AddAsync(int a, int b);
     }
 
-    [RpcContract]
+    [JsonRpcContract]
     internal partial interface IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync();
@@ -175,7 +175,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     internal partial interface IRemoteService
     {
-        [RpcContract]
+        [JsonRpcContract]
         internal partial interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
         {
         }

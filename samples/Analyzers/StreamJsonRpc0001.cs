@@ -4,7 +4,7 @@ namespace StreamJsonRpc0001.Violation
     #region Violation
     internal partial class Wrapper
     {
-        [RpcContract]
+        [JsonRpcContract]
         private partial interface IMyService
         {
             Task<int> Add(int a, int b); // StreamJsonRpc0001
@@ -19,7 +19,7 @@ namespace StreamJsonRpc0001.Fix
     #region Fix
     internal partial class Wrapper
     {
-        [RpcContract]
+        [JsonRpcContract]
         internal partial interface IMyService
         {
             Task<int> Add(int a, int b);

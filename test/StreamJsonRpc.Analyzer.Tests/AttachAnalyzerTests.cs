@@ -9,7 +9,7 @@ public class AttachAnalyzerTests
     public async Task AttachGeneric_WithAttribute()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }

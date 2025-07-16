@@ -4,7 +4,7 @@ namespace StreamJsonRpc0002.Violation
     #region Violation
     internal class Wrapper
     {
-        [RpcContract]
+        [JsonRpcContract]
         internal interface IMyService
         {
         }
@@ -18,7 +18,7 @@ namespace StreamJsonRpc0002.Fix
     #region Fix
     internal partial class Wrapper
     {
-        [RpcContract]
+        [JsonRpcContract]
         internal partial interface IMyService
         {
         }

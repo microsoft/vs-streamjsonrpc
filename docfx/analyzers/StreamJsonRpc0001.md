@@ -1,6 +1,6 @@
 # StreamJsonRpc0001: Inaccessible interface
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied must be declared with at least `internal` visibility so that the source generator can implement that interface with an implementing proxy class.
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied must be declared with at least `internal` visibility so that the source generator can implement that interface with an implementing proxy class.
 
 ## Example violation
 

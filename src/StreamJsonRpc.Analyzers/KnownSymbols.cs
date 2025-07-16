@@ -14,7 +14,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? IAsyncEnumerableOfT,
     INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
-    INamedTypeSymbol RpcContractAttribute,
+    INamedTypeSymbol JsonRpcContractAttribute,
     INamedTypeSymbol ExportRpcContractProxiesAttribute,
     INamedTypeSymbol RpcProxyMappingAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
@@ -30,7 +30,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? asyncEnumerableOfT = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
-        INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.RpcContractAttribute.FullName);
+        INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcContractAttribute.FullName);
         INamedTypeSymbol? exportRpcContractProxiesAttribute = compilation.GetTypeByMetadataName(Types.ExportRpcContractProxiesAttribute.FullName);
         INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.RpcProxyMappingAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);

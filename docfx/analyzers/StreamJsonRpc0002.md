@@ -1,6 +1,6 @@
 # StreamJsonRpc0002: Declare partial interfaces
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied should be declared as `partial`, and all its containing types should also be declared as `partial`, so that the source generator may apply attributes to the interface that enables runtime discovery of the source generated proxy class
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied should be declared as `partial`, and all its containing types should also be declared as `partial`, so that the source generator may apply attributes to the interface that enables runtime discovery of the source generated proxy class
 
 ## Example violation
 

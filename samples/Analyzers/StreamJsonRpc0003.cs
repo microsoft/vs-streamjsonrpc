@@ -25,7 +25,7 @@ namespace StreamJsonRpc0003.Fix
     partial class Wrapper
     {
         #region Fix
-        [RpcContract]
+        [JsonRpcContract]
         partial interface IMyService
         {
         }

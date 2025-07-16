@@ -40,7 +40,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<ProxyModel> proxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
-            Types.RpcContractAttribute.FullName,
+            Types.JsonRpcContractAttribute.FullName,
             (node, cancellationToken) => true,
             (context, cancellationToken) =>
             {
@@ -210,8 +210,8 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
-        // Only act on interfaces attributed with [RpcContract] so we know they've been vetted.
-        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcContractAttribute))))
+        // Only act on interfaces attributed with [JsonRpcContract] so we know they've been vetted.
+        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcContractAttribute))))
         {
             return null;
         }

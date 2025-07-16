@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.RpcContractAnalyzer, Microsoft.CodeAnalysis.Testing.EmptyCodeFixProvider>;
+using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer, Microsoft.CodeAnalysis.Testing.EmptyCodeFixProvider>;
 
 public class RpcContractAnalyzerTests
 {
@@ -9,7 +9,7 @@ public class RpcContractAnalyzerTests
     public async Task MethodReturnTypes()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyRpc
             {
                 Task<int> TaskOfTAsync();
@@ -28,7 +28,7 @@ public class RpcContractAnalyzerTests
         await VerifyCS.VerifyAnalyzerAsync("""
             internal partial class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 private partial interface {|StreamJsonRpc0001:IMyRpc|}
                 {
                 }
@@ -42,7 +42,7 @@ public class RpcContractAnalyzerTests
         await VerifyCS.VerifyAnalyzerAsync("""
             internal partial class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 internal partial interface IMyRpc
                 {
                 }
@@ -56,7 +56,7 @@ public class RpcContractAnalyzerTests
         await VerifyCS.VerifyAnalyzerAsync("""
             internal class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 internal interface {|StreamJsonRpc0002:IMyRpc|}
                 {
                 }
@@ -68,7 +68,7 @@ public class RpcContractAnalyzerTests
     public async Task DisallowedMembers()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface IMyRpc
             {
                 event EventHandler Changed;
@@ -86,7 +86,7 @@ public class RpcContractAnalyzerTests
     public async Task DisallowedMembers_InBaseInterface()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase|}|}|}
             {
             }
@@ -108,7 +108,7 @@ public class RpcContractAnalyzerTests
     public async Task DisallowedMembers_InBaseInterfaceTwoStepsAway()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase2|}|}|}
                         {
             }
@@ -132,7 +132,7 @@ public class RpcContractAnalyzerTests
     public async Task CancellationTokenPositions()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface IMyRpc
             {
                 Task AddAsync(int a, int b, CancellationToken token);
@@ -146,7 +146,7 @@ public class RpcContractAnalyzerTests
     public async Task GenericInterface()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface {|StreamJsonRpc0015:IMyRpc|}<T>
             {
             }

@@ -11,7 +11,7 @@ using Microsoft.CodeAnalysis.Operations;
 namespace StreamJsonRpc.Analyzers;
 
 /// <summary>
-/// Analyzes uses of the <c>Attach</c> method to encourage correct usage of the <c>RpcContractAttribute</c>.
+/// Analyzes uses of the <c>Attach</c> method to encourage correct usage of the <c>JsonRpcContractAttribute</c>.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class AttachAnalyzer : DiagnosticAnalyzer
@@ -22,7 +22,7 @@ public class AttachAnalyzer : DiagnosticAnalyzer
     public const string MissingRpcContractAttributeId = "StreamJsonRpc0003";
 
     /// <summary>
-    /// The diagnostic descriptor for reporting when Attach is called with an interface lacking the <c>RpcContractAttribute</c>.
+    /// The diagnostic descriptor for reporting when Attach is called with an interface lacking the <c>JsonRpcContractAttribute</c>.
     /// </summary>
     public static readonly DiagnosticDescriptor MissingRpcContractAttribute = new DiagnosticDescriptor(
         id: MissingRpcContractAttributeId,
@@ -81,7 +81,7 @@ public class AttachAnalyzer : DiagnosticAnalyzer
                                 continue;
                             }
 
-                            AttributeData? attData = iface.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.RpcContractAttribute));
+                            AttributeData? attData = iface.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.JsonRpcContractAttribute));
                             if (attData is null)
                             {
                                 context.ReportDiagnostic(Diagnostic.Create(MissingRpcContractAttribute, invocationOp.Syntax.GetLocation(), iface.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));

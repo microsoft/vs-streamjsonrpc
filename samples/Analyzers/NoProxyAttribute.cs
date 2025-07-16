@@ -8,4 +8,4 @@ namespace Samples.Analyzers.NoProxy;
 /// but does not actually trigger proxy generation.
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface)]
-internal class RpcContractAttribute : Attribute;
+internal class JsonRpcContractAttribute : Attribute;

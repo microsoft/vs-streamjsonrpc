@@ -1,6 +1,6 @@
 # StreamJsonRpc0012: Unsupported member
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied may only declare methods.
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may only declare methods.
 
 ## Example violation
 

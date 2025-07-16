@@ -38,7 +38,7 @@ A proxy can only be generated for an interface that meets these requirements:
 
 The RPC interface may derive from <xref:System.IDisposable> and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
 
-Applying the <xref:StreamJsonRpc.RpcContractAttribute> to all RPC interfaces is strongly encouraged, as it has two significant benefits:
+Applying the <xref:StreamJsonRpc.JsonRpcContractAttribute> to all RPC interfaces is strongly encouraged, as it has two significant benefits:
 
 1. Enables analyzers to report warnings due to violations of the above rules at compile-time instead of throwing at runtime.
 1. Enables source generated proxies to be used at runtime instead of proxies created dynamically at runtime, leading to faster startup and [NativeAOT](nativeAOT.md) compatibility.

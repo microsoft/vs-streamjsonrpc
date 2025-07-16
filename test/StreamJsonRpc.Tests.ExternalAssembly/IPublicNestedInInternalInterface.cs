@@ -7,7 +7,7 @@ namespace StreamJsonRpc.Tests.ExternalAssembly;
 
 internal partial interface IInternal
 {
-    [RpcContract]
+    [JsonRpcContract]
     public partial interface IPublicNestedInInternalInterface
     {
         Task<int> SubtractAsync(int a, int b);

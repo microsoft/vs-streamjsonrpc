@@ -1,6 +1,6 @@
 # StreamJsonRpc0015: No generic interfaces
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied may not be declared as generic.
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may not be declared as generic.
 
 ## Example violation
 

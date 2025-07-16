@@ -5,9 +5,9 @@ namespace StreamJsonRpc.Analyzers;
 
 internal static class Types
 {
-    internal static class RpcContractAttribute
+    internal static class JsonRpcContractAttribute
     {
-        internal const string FullName = "StreamJsonRpc.RpcContractAttribute";
+        internal const string FullName = "StreamJsonRpc.JsonRpcContractAttribute";
     }
 
     internal static class ExportRpcContractProxiesAttribute

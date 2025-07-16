@@ -4,6 +4,8 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribut
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpcContractAttribute
+StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
 StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
@@ -21,8 +23,6 @@ StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, Stre
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.RpcProxyMappingAttribute.RpcProxyMappingAttribute(System.Type! proxyClass) -> void
-StreamJsonRpc.RpcContractAttribute
-StreamJsonRpc.RpcContractAttribute.RpcContractAttribute() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.EnumeratorResults() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.get -> bool

@@ -1,6 +1,6 @@
 # StreamJsonRpc0011: RPC methods use supported return types
 
-Methods declared on an RPC interface (including those annotated with <xref:StreamJsonRpc.RpcContractAttribute>) may only return one of the following types:
+Methods declared on an RPC interface (including those annotated with <xref:StreamJsonRpc.JsonRpcContractAttribute>) may only return one of the following types:
 
 - <xref:System.Threading.Tasks.Task>
 - <xref:System.Threading.Tasks.Task`1>

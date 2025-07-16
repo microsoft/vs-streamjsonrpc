@@ -8,7 +8,7 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | ----------------------------------------- | -------- | -------- | --------------------------------------------------------------- |
 | [StreamJsonRpc0001](StreamJsonRpc0001.md) | Usage    | Error    | Inaccessible interface                                          |
 | [StreamJsonRpc0002](StreamJsonRpc0002.md) | Usage    | Warning  | Non-partial interface                                           |
-| [StreamJsonRpc0003](StreamJsonRpc0003.md) | Usage    | Warning  | Use RpcContractAttribute                                        |
+| [StreamJsonRpc0003](StreamJsonRpc0003.md) | Usage    | Warning  | Use JsonRpcContractAttribute                                        |
 | [StreamJsonRpc0011](StreamJsonRpc0011.md) | Usage    | Error    | RPC methods use supported return types                          |
 | [StreamJsonRpc0012](StreamJsonRpc0012.md) | Usage    | Error    | Unsupported member                                              |
 | [StreamJsonRpc0013](StreamJsonRpc0013.md) | Usage    | Error    | No generic methods                                              |

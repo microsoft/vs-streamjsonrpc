@@ -20,7 +20,7 @@ namespace StreamJsonRpc.Generated
 	file static class StreamJsonRpcInterceptor
 	{
 
-		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "z87PzDmDSvi78piOZmmaITYBAABUZXN0MC5jcw==")]
+		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "aW+5aLHFPI2QBoMmbUS8FToBAABUZXN0MC5jcw==")]
 		internal static T AttachIMyService_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc, global::StreamJsonRpc.JsonRpcProxyOptions? options)
 		    where T : class
 		{

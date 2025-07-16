@@ -1,6 +1,6 @@
 # StreamJsonRpc0013: No generic methods
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied may not declare generic methods.
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may not declare generic methods.
 
 ## Example violation
 

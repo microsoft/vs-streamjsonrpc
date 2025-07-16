@@ -1,11 +1,11 @@
 // Suppress the proxy generation because this interface is invalid.
-using RpcContractAttribute = Samples.Analyzers.NoProxy.RpcContractAttribute;
+using JsonRpcContractAttribute = Samples.Analyzers.NoProxy.JsonRpcContractAttribute;
 
 namespace StreamJsonRpc0013.Violation
 {
 #pragma warning disable StreamJsonRpc0013
     #region Violation
-    [RpcContract]
+    [JsonRpcContract]
     partial interface IMyService
     {
         Task AddThis<T>(T item); // StreamJsonRpc0013
@@ -17,7 +17,7 @@ namespace StreamJsonRpc0013.Violation
 namespace StreamJsonRpc0013.Fix
 {
     #region Fix
-    [RpcContract]
+    [JsonRpcContract]
     partial interface IMyService
     {
         Task AddThis(MyItem item);

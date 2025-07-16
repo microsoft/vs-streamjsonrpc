@@ -5,7 +5,7 @@ namespace StreamJsonRpc;
 
 /// <summary>
 /// Emit source generated proxies for RPC interfaces with <see langword="public"/> visibility
-/// when the interface annotated with <see cref="RpcContractAttribute"/> is itself <see langword="public"/>.
+/// when the interface annotated with <see cref="JsonRpcContractAttribute"/> is itself <see langword="public"/>.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = false)]
 public class ExportRpcContractProxiesAttribute : Attribute
@@ -17,7 +17,7 @@ public class ExportRpcContractProxiesAttribute : Attribute
     /// <remarks>
     /// <para>
     /// By default, source generated proxies may be generated for interfaces that are annotated with
-    /// <see cref="RpcContractAttribute"/> in the assembly that declares the interface
+    /// <see cref="JsonRpcContractAttribute"/> in the assembly that declares the interface
     /// or other assemblies that reference the declaring assembly.
     /// Implementations of an RPC interface in another assembly will break when members
     /// are added to the interface.

@@ -15,7 +15,7 @@ namespace StreamJsonRpc.Analyzers;
 /// An analyzer of StreamJsonRpc proxy contracts.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class RpcContractAnalyzer : DiagnosticAnalyzer
+public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
 {
     /// <summary>
     /// Diagnostic ID for StreamJsonRpc0001: Inaccessible interface.
@@ -225,7 +225,7 @@ public class RpcContractAnalyzer : DiagnosticAnalyzer
     private void InspectSymbol(SymbolStartAnalysisContext context, KnownSymbols knownSymbols, INamedTypeSymbol namedType)
     {
         AttributeData? rpcContractAttribute = namedType.GetAttributes()
-            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcContractAttribute));
+            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.JsonRpcContractAttribute));
         if (rpcContractAttribute is null)
         {
             return;

@@ -20,7 +20,7 @@ namespace Proxies
             }
         }
 
-        [RpcContract]
+        [JsonRpcContract]
         internal partial interface ICalculator
         {
             Task<int> AddAsync(int a, int b);

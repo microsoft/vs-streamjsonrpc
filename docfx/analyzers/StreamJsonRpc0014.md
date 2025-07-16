@@ -1,6 +1,6 @@
 # StreamJsonRpc0014: CancellationToken as last parameter
 
-Interfaces with <xref:StreamJsonRpc.RpcContractAttribute> applied may declare methods with <xref:System.Threading.CancellationToken> only when they appear as the last parameter.
+Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may declare methods with <xref:System.Threading.CancellationToken> only when they appear as the last parameter.
 
 ## Example violation
 

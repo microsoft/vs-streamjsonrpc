@@ -9,7 +9,7 @@ public class ProxyGeneratorTests
     public async Task Public_NotNested()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyRpc
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -29,7 +29,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             internal partial class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -44,7 +44,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             internal partial class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -59,7 +59,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             internal class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -76,7 +76,7 @@ public class ProxyGeneratorTests
 
             internal partial class Wrapper
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -91,7 +91,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             namespace A
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -100,7 +100,7 @@ public class ProxyGeneratorTests
 
             namespace B
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -115,7 +115,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             class A
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -124,7 +124,7 @@ public class ProxyGeneratorTests
 
             class B
             {
-                [RpcContract]
+                [JsonRpcContract]
                 public partial interface IMyRpc
                 {
                     Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -137,7 +137,7 @@ public class ProxyGeneratorTests
     public async Task Interface_DerivesFromIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IFoo : IDisposable
             {
                 Task JustCancellationAsync(CancellationToken cancellationToken);
@@ -149,7 +149,7 @@ public class ProxyGeneratorTests
     public async Task Interface_HasDisposeWithoutIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IFoo
             {
                 Task Dispose();
@@ -166,7 +166,7 @@ public class ProxyGeneratorTests
                 Task JustCancellationAsync(CancellationToken cancellationToken);
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IFoo2 : IFoo
             {
                 Task JustAnotherCancellationAsync(CancellationToken cancellationToken);
@@ -188,7 +188,7 @@ public class ProxyGeneratorTests
                 Task<int> AddAsync(int a, int b);
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface ICalc : ICalc1, ICalc2
             {
             }
@@ -209,7 +209,7 @@ public class ProxyGeneratorTests
                 event EventHandler Changed;
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface ICalc : ICalc1, ICalc2
             {
             }
@@ -220,7 +220,7 @@ public class ProxyGeneratorTests
     public async Task Events()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             partial interface IFoo
             {
                 event EventHandler MyEvent;
@@ -233,7 +233,7 @@ public class ProxyGeneratorTests
     public async Task EmptyInterface()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IFoo
             {
             }
@@ -244,7 +244,7 @@ public class ProxyGeneratorTests
     public async Task Overloads()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IFoo
             {
                 Task SayHi();
@@ -258,7 +258,7 @@ public class ProxyGeneratorTests
     public async Task UnsupportedReturnType()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 int Add(int a, int b); // StreamJsonRpc0011
@@ -272,7 +272,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             #nullable enable
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 Task<object?> GetNullableIntAsync(string? value);
@@ -284,7 +284,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachOfTNoOptions()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -304,12 +304,12 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachTwice()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService2
             {
             }
@@ -330,13 +330,13 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachMultipleInterfaces_CollectionInitializer()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 Task Task1();
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService2
             {
                 Task Task2();
@@ -357,13 +357,13 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachMultipleInterfaces_ArrayInitializer()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 Task Task1();
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService2
             {
                 Task Task2();
@@ -384,13 +384,13 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachMultipleInterfaces_OneDerivesFromTheOther()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 Task Task1(string name);
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService2 : IMyService
             {
                 Task Task2(string color);
@@ -411,13 +411,13 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachMultipleInterfaces_DistinctYetRedundantMethods()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
                 Task Task1(string name);
             }
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService2
             {
                 Task Task1(string name);
@@ -438,7 +438,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachWithOptions()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -458,7 +458,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachType()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -478,7 +478,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_StaticStream()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -497,7 +497,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_StaticStreamStream()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -516,7 +516,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_StaticHandler()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -535,7 +535,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_StaticHandlerOptions()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -554,7 +554,7 @@ public class ProxyGeneratorTests
     public async Task Interceptor_AttachTypeWithOptions()
     {
         await VerifyCS.RunDefaultAsync("""
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -576,7 +576,7 @@ public class ProxyGeneratorTests
         await VerifyCS.RunDefaultAsync("""
             [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
 
-            [RpcContract]
+            [JsonRpcContract]
             public partial interface IMyService
             {
             }
@@ -600,7 +600,7 @@ public class ProxyGeneratorTests
 
             [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
 
-            [RpcContract]
+            [JsonRpcContract]
             [StreamJsonRpc.Reflection.RpcProxyMapping(typeof(StreamJsonRpc.Generated.MyServiceProxy))] // sourcegen runs too late in the test harness, so we have to write it ourselves.
             public partial interface IMyService
             {
