@@ -64,7 +64,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task Dispose();
     }
 
-    public interface IServerWithMoreEvents
+    [RpcContract]
+    public partial interface IServerWithMoreEvents
     {
         event EventHandler AnotherEvent;
     }
