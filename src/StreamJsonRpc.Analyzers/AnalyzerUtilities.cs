@@ -37,4 +37,12 @@ internal static class AnalyzerUtilities
 
         return false;
     }
+
+    internal static bool LaunchDebugger()
+    {
+#if DEBUG
+        System.Diagnostics.Debugger.Launch();
+#endif
+        return false;
+    }
 }

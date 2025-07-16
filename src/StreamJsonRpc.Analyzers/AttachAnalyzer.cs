@@ -59,33 +59,39 @@ public class AttachAnalyzer : DiagnosticAnalyzer
                 context.RegisterOperationAction(
                     context =>
                     {
-                        IInvocationOperation invocationOp = (IInvocationOperation)context.Operation;
-                        InvocationExpressionSyntax invocationSyntax = (InvocationExpressionSyntax)invocationOp.Syntax;
-                        if (invocationOp.SemanticModel is null ||
-                            invocationSyntax.Expression is not MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" })
+                        try
                         {
-                            return;
-                        }
-
-                        (GeneratorModels.AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = ProxyGenerator.AnalyzeAttachInvocation(invocationSyntax, invocationOp.SemanticModel, knownSymbols, context.CancellationToken);
-                        if (analysis is null)
-                        {
-                            return;
-                        }
-
-                        // Go through each interface. If we have the syntax for it (as source code), look for the attribute and report a diagnostic if it's missing.
-                        foreach (INamedTypeSymbol iface in analysis.Value.Interfaces)
-                        {
-                            if (iface.Locations.FirstOrDefault()?.IsInSource is not true)
+                            IInvocationOperation invocationOp = (IInvocationOperation)context.Operation;
+                            if (invocationOp.SemanticModel is null ||
+                                invocationOp.Syntax is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" } } invocationSyntax)
                             {
-                                continue;
+                                return;
                             }
 
-                            AttributeData? attData = iface.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.JsonRpcContractAttribute));
-                            if (attData is null)
+                            (GeneratorModels.AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = ProxyGenerator.AnalyzeAttachInvocation(invocationSyntax, invocationOp.SemanticModel, knownSymbols, context.CancellationToken);
+                            if (analysis is null)
                             {
-                                context.ReportDiagnostic(Diagnostic.Create(MissingRpcContractAttribute, invocationOp.Syntax.GetLocation(), iface.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+                                return;
                             }
+
+                            // Go through each interface. If we have the syntax for it (as source code), look for the attribute and report a diagnostic if it's missing.
+                            foreach (INamedTypeSymbol iface in analysis.Value.Interfaces)
+                            {
+                                if (iface.Locations.FirstOrDefault()?.IsInSource is not true)
+                                {
+                                    continue;
+                                }
+
+                                AttributeData? attData = iface.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.JsonRpcContractAttribute));
+                                if (attData is null)
+                                {
+                                    context.ReportDiagnostic(Diagnostic.Create(MissingRpcContractAttribute, invocationOp.Syntax.GetLocation(), iface.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+                                }
+                            }
+                        }
+                        catch (Exception) when (AnalyzerUtilities.LaunchDebugger())
+                        {
+                            throw;
                         }
                     },
                     OperationKind.Invocation);
