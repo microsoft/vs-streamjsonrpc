@@ -367,6 +367,9 @@
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Incoming JSON-RPC message did not conform to a recognized pattern.</value>
   </data>
+  <data name="InterceptedProxiesRequestCannotProvideDynamicProxies" xml:space="preserve">
+    <value>Only source generated proxies are available when using the interceptor with predictable interface types. Either set JsonRpcProxyOptions.ProxyStyle to allow source generated proxies or turn off the interceptor.</value>
+  </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
     <value>Unsupported event handler type on "{0}". Only EventHandler and EventHandler&lt;T&gt; are supported.</value>
     <comment>{0} is a type and member name.</comment>

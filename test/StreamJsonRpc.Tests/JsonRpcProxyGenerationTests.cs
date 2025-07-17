@@ -880,7 +880,23 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
 
-    public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated);
+    public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
+    {
+        /// <summary>
+        /// The interceptor cannot fallback to dynamic proxies at runtime when the Options demands it,
+        /// because doing so would generate linker warnings for NativeAOT apps.
+        /// So if the calling code has the interceptor enabled, and demands dynamic proxies, we have no choice but to fail.
+        /// </summary>
+        [Fact]
+        public void Interceptor_RejectsDynamicDemandAtRuntime()
+        {
+            JsonRpcProxyOptions options = new() { ProxyStyle = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic };
+            var streams = FullDuplexStream.CreateStreams();
+            var rpc = new JsonRpc(streams.Item1);
+            var ex = Assert.Throws<NotSupportedException>(() => rpc.Attach<IServer>(options));
+            this.Logger.WriteLine(ex.Message);
+        }
+    }
 
     public class EmptyClass
     {
