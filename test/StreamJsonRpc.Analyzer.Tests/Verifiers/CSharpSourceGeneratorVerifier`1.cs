@@ -71,6 +71,8 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 #endif
         }
 
+        public GeneratorConfiguration GeneratorConfiguration { get; set; } = GeneratorConfiguration.Default;
+
         public LanguageVersion LanguageVersion { get; set; } = DefaultLanguageVersion;
 
         public async Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, [CallerFilePath] string? testFile = null, [CallerMemberName] string testMethod = null!)
@@ -132,6 +134,8 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                 addlProject.AdditionalReferences.AddRange(this.TestState.AdditionalReferences);
                 addlProject.DocumentationMode = DocumentationMode.Parse;
             }
+
+            this.TestState.AnalyzerConfigFiles.Add(("/.globalconfig", this.GeneratorConfiguration.ToGlobalConfigString()));
 
             return base.RunImplAsync(cancellationToken);
         }

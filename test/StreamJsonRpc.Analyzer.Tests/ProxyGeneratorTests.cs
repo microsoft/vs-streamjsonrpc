@@ -668,7 +668,8 @@ public class ProxyGeneratorTests
 
             namespace StreamJsonRpc.Generated
             {
-                public class MyServiceProxy(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose) : StreamJsonRpc.Reflection.ProxyBase(client, options, marshaledObjectHandle, onDispose), IMyService
+                public class MyServiceProxy(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+                    : StreamJsonRpc.Reflection.ProxyBase(client, options, marshaledObjectHandle, onDispose, requestedInterfaces), IMyService
                 {
                 }
             }

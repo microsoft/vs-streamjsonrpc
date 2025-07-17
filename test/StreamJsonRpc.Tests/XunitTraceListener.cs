@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Text;
 
-internal class XunitTraceListener : TraceListener
+public class XunitTraceListener : TraceListener
 {
     private readonly ITestOutputHelper logger;
     private readonly StringBuilder lineInProgress = new StringBuilder();
     private bool disposed;
 
-    internal XunitTraceListener(ITestOutputHelper logger)
+    public XunitTraceListener(ITestOutputHelper logger)
     {
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }

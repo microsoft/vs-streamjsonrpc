@@ -97,14 +97,16 @@ public partial class ProxyGenerator : IIncrementalGenerator
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
+        IncrementalValueProvider<bool> interceptorsEnabled = context.AnalyzerConfigOptionsProvider.Select((provider, token) => provider.GlobalOptions.TryGetValue("build_property.EnableStreamJsonRpcInterceptors", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase));
 
-        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy).Select(
+        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled)).Select(
             (combined, attach) =>
             {
                 ImmutableArray<ProxyModel> proxies = [.. combined.Left.Left.SelectMany(g => g)];
                 ImmutableArray<AttachUse> attachUses = combined.Left.Right;
-                bool publicProxies = combined.Right;
-                return new FullModel(proxies.ToImmutableEquatableSet(), attachUses.ToImmutableEquatableArray(), publicProxies);
+                bool publicProxies = combined.Right.Left;
+                bool interceptorsEnabled = combined.Right.Right;
+                return new FullModel(proxies.ToImmutableEquatableSet(), attachUses.ToImmutableEquatableArray(), publicProxies, interceptorsEnabled);
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
