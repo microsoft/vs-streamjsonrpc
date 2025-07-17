@@ -171,6 +171,12 @@
   <data name="StreamJsonRpc0005_MessageFormat" xml:space="preserve">
     <value>RpcMarshalable interface {0} must derive from IDisposable or have a call-scoped lifetime.</value>
   </data>
+  <data name="StreamJsonRpc0006_Title" xml:space="preserve">
+    <value>Interfaces in proxy group must be attributed</value>
+  </data>
+  <data name="StreamJsonRpc0006_MessageFormat" xml:space="preserve">
+    <value>All interfaces identified by a JsonRpcProxyInterfaceGroupAttribute must bear the JsonRpcContractAttribute, but the following interface(s) do not: {0}.</value>
+  </data>
   <data name="StreamJsonRpc0003_Title" xml:space="preserve">
     <value>Use JsonRpcContractAttribute</value>
   </data>

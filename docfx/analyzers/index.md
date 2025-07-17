@@ -11,6 +11,7 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | [StreamJsonRpc0003](StreamJsonRpc0003.md) | Usage    | Warning  | Use JsonRpcContractAttribute                                    |
 | [StreamJsonRpc0004](StreamJsonRpc0004.md) | Usage    | Warning  | Use interfaces for proxies                                      |
 | [StreamJsonRpc0005](StreamJsonRpc0005.md) | Usage    | Error    | RpcMarshalable interfaces must be IDisposable                   |
+| [StreamJsonRpc0006](StreamJsonRpc0006.md) | Usage    | Error    | All interfaces in a proxy group must be attributed              |
 | [StreamJsonRpc0011](StreamJsonRpc0011.md) | Usage    | Error    | RPC methods use supported return types                          |
 | [StreamJsonRpc0012](StreamJsonRpc0012.md) | Usage    | Error    | Unsupported member                                              |
 | [StreamJsonRpc0013](StreamJsonRpc0013.md) | Usage    | Error    | No generic methods                                              |

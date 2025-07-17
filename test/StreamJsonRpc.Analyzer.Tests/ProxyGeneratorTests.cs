@@ -588,6 +588,49 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task OneProxyPerInterfaceGroup_OneEmptyGroup()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [JsonRpcContract]
+            [JsonRpcProxyInterfaceGroup]
+            [JsonRpcProxyInterfaceGroup(typeof(IMyService2))]
+            [JsonRpcProxyInterfaceGroup(typeof(IMyService2), typeof(IMyService3))]
+            partial interface IMyService
+            {
+            }
+
+            partial interface IMyService2
+            {
+            }
+
+            partial interface IMyService3
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task OneProxyPerInterfaceGroup_NoEmptyGroup()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [JsonRpcContract]
+            [JsonRpcProxyInterfaceGroup(typeof(IMyService2))]
+            [JsonRpcProxyInterfaceGroup(typeof(IMyService2), typeof(IMyService3))]
+            partial interface IMyService
+            {
+            }
+
+            partial interface IMyService2
+            {
+            }
+
+            partial interface IMyService3
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interceptor_ForbidExternalProxies_SameProject()
     {
         await VerifyCS.RunDefaultAsync("""

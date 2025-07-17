@@ -39,30 +39,34 @@ public partial class ProxyGenerator : IIncrementalGenerator
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<ProxyModel> proxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
+        IncrementalValuesProvider<ImmutableEquatableArray<ProxyModel>> proxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName<ImmutableEquatableArray<ProxyModel>>(
             Types.JsonRpcContractAttribute.FullName,
             (node, cancellationToken) => true,
             (context, cancellationToken) =>
             {
                 if (context.TargetSymbol is not INamedTypeSymbol iface)
                 {
-                    return null;
+                    return [];
                 }
 
                 if (!KnownSymbols.TryCreate(context.SemanticModel.Compilation, out KnownSymbols? symbols))
                 {
-                    return null;
+                    return [];
                 }
 
                 // Skip inaccessible interfaces.
                 if (!context.SemanticModel.Compilation.IsSymbolAccessibleWithin(context.TargetSymbol, context.SemanticModel.Compilation.Assembly))
                 {
                     // Reported by StreamJsonRpc0001
-                    return null;
+                    return [];
                 }
 
-                return new ProxyModel([InterfaceModel.Create(iface, symbols, declaredInThisCompilation: true, cancellationToken)]);
-            }).Where(m => m is not null)!;
+                IEnumerable<ProxyModel> proxies = ExpandInterfaceToGroups(iface, symbols)
+                    .Select(group => new ProxyModel(
+                        [.. group.Select(i => InterfaceModel.Create(i, symbols, declaredInThisCompilation: true, cancellationToken))]));
+
+                return [.. proxies];
+            });
 
         IncrementalValuesProvider<AttachUse> attachUseProvider = context.SyntaxProvider.CreateSyntaxProvider(
             (node, cancellationToken) => node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" } },
@@ -97,7 +101,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy).Select(
             (combined, attach) =>
             {
-                ImmutableArray<ProxyModel> proxies = combined.Left.Left;
+                ImmutableArray<ProxyModel> proxies = [.. combined.Left.Left.SelectMany(g => g)];
                 ImmutableArray<AttachUse> attachUses = combined.Left.Right;
                 bool publicProxies = combined.Right;
                 return new FullModel(proxies.ToImmutableEquatableSet(), attachUses.ToImmutableEquatableArray(), publicProxies);
@@ -307,6 +311,31 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         implementingProxyName = null;
         return false;
+    }
+
+    private static IEnumerable<INamedTypeSymbol[]> ExpandInterfaceToGroups(INamedTypeSymbol primary, KnownSymbols symbols)
+    {
+        bool anyGroupsDefined = false;
+        foreach (AttributeData att in primary.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.JsonRpcProxyInterfaceGroupAttribute))
+            {
+                continue;
+            }
+
+            if (att.ConstructorArguments is not [{ Kind: TypedConstantKind.Array, Values: ImmutableArray<TypedConstant> additionalInterfaces }])
+            {
+                continue;
+            }
+
+            anyGroupsDefined = true;
+            yield return [primary, .. additionalInterfaces.Select(v => v.Value).OfType<INamedTypeSymbol>()];
+        }
+
+        if (!anyGroupsDefined)
+        {
+            yield return [primary]; // No groups defined, so just return the primary interface as its own group.
+        }
     }
 
     private bool AreProxiesPublic(Compilation compilation)

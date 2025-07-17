@@ -6,6 +6,9 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.se
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
+StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute
+StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute.AdditionalInterfaces.get -> System.ReadOnlyMemory<System.Type!>
+StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute.JsonRpcProxyInterfaceGroupAttribute(params System.Type![]! additionalInterfaces) -> void
 StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces.get -> bool
 StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces.set -> void
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation

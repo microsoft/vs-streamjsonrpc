@@ -17,6 +17,11 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.JsonRpcContractAttribute";
     }
 
+    internal static class JsonRpcProxyInterfaceGroupAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute";
+    }
+
     internal static class ExportRpcContractProxiesAttribute
     {
         internal const string Name = "ExportRpcContractProxiesAttribute";
