@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj" />
+    <ProjectReference Include="..\..\src\StreamJsonRpc.Analyzers.CodeFixes\StreamJsonRpc.Analyzers.CodeFixes.csproj" />
     <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
 

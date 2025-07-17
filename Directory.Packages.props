@@ -18,6 +18,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" />
@@ -45,6 +46,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(IsAnalyzerProject)'=='true'">
     <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.IO.Pipelines" Version="9.0.0" />
     <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(IsBenchmarksProject)'=='true' or '$(IsTestProject)'=='true'">

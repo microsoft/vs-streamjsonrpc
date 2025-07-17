@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer, Microsoft.CodeAnalysis.Testing.EmptyCodeFixProvider>;
+using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer, StreamJsonRpc.Analyzers.JsonRpcContractCodeFixProvider>;
 
 public class JsonRpcContractAnalyzerTests
 {
@@ -208,11 +208,20 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_MustDeriveFromIDisposable()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable]
+        string source = """
+            [StreamJsonRpc.RpcMarshalable]
             partial interface {|StreamJsonRpc0005:IMyRpc|}
             {
             }
-            """);
+            """;
+        string fixedSource = """
+            using System;
+
+            [StreamJsonRpc.RpcMarshalable]
+            partial interface IMyRpc : IDisposable
+            {
+            }
+            """;
+        await VerifyCS.VerifyCodeFixAsync(source, fixedSource);
     }
 }

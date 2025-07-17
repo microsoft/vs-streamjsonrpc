@@ -52,7 +52,7 @@ internal class CodeFixVerifier<TAnalyzer, TCodeFix>
         => VerifyCodeFixAsync(source, DiagnosticResult.EmptyDiagnosticResults, fixedSource);
 
     public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string fixedSource)
-        => VerifyCodeFixAsync(source, new[] { expected }, fixedSource);
+        => VerifyCodeFixAsync(source, [expected], fixedSource);
 
     public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult[] expected, [StringSyntax("c#-test")] string fixedSource)
     {

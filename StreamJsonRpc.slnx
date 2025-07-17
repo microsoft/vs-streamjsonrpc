@@ -17,6 +17,7 @@
     <File Path="src/AnalyzerUser.targets" />
     <File Path="src/Directory.Build.props" />
     <File Path="src/Directory.Build.targets" />
+    <Project Path="src/StreamJsonRpc.Analyzers.CodeFixes/StreamJsonRpc.Analyzers.CodeFixes.csproj" Id="968b48cd-bea1-41bc-a725-95f41bff9aed" />
     <Project Path="src/StreamJsonRpc.Analyzers/StreamJsonRpc.Analyzers.csproj" />
     <Project Path="src/StreamJsonRpc/StreamJsonRpc.csproj" />
   </Folder>
