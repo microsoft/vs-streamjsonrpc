@@ -108,7 +108,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 
                     // Update the hard-coded version to the one that would be generated if done with this version.
                     // This is so the just-generated code matches what we load from disk.
-                    code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""{ThisAssembly.AssemblyFileVersion}"")");
+                    code = Regex.Replace(code, @"GeneratedCodeAttribute\(""([^""]+)"", ""[^""]+""\)", m => $@"GeneratedCodeAttribute(""{m.Groups[1].Value}"", ""{AnalyzerAssembly.AssemblyFileVersion}"")");
 
                     project.GeneratedSources.Add((typeof(TSourceGenerator), name, code));
                 }
@@ -187,7 +187,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     continue;
                 }
 
-                if (!expectedNames.Contains(name.Substring(currentTestPrefix.Length)))
+                if (!expectedNames.Contains(name.Substring(currentTestPrefix.Length - fileNamePrefix.Length)))
                 {
                     throw new InvalidOperationException($"Unexpected test resource: {name.Substring(currentTestPrefix.Length)}");
                 }
