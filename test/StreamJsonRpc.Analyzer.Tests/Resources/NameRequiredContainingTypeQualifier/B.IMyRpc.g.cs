@@ -20,7 +20,7 @@ namespace StreamJsonRpc.Generated
 		
 		private string? transformedJustAnotherCancellationAsync1;
 		
-		public B_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+		public B_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, global::System.ReadOnlyMemory<global::System.Type>? requestedInterfaces)
 		    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
 		{
 		}
