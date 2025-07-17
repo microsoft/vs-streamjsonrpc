@@ -55,7 +55,7 @@ public partial class JsonContractResolverTest : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalable : IDisposable
+    public partial interface IMarshalable : IDisposable
     {
         void DoSomething();
     }

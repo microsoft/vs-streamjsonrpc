@@ -28,6 +28,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public const string PartialInterfaceId = "StreamJsonRpc0002";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0005: RpcMarshalable interfaces must be IDisposable.
+    /// </summary>
+    public const string RpcMarshableDisposableId = "StreamJsonRpc0005";
+
+    /// <summary>
     /// Diagnostic ID for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public const string UnsupportedReturnTypeId = "StreamJsonRpc0011";
@@ -80,6 +85,18 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(PartialInterfaceId));
+
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0005: RpcMarshalable interfaces must be IDisposable.
+    /// </summary>
+    public static readonly DiagnosticDescriptor RpcMarshableDisposable = new(
+        id: RpcMarshableDisposableId,
+        title: Strings.StreamJsonRpc0005_Title,
+        messageFormat: Strings.StreamJsonRpc0005_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(RpcMarshableDisposableId));
 
     /// <summary>
     /// Diagnostic for StreamJsonRpc0011: RPC methods use supported return types.
@@ -159,6 +176,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
         InaccessibleInterface,
         PartialInterface,
+        RpcMarshableDisposable,
         UnsupportedReturnType,
         UnsupportedMemberType,
         NoGenericMethods,
@@ -224,13 +242,16 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
 
     private void InspectSymbol(SymbolStartAnalysisContext context, KnownSymbols knownSymbols, INamedTypeSymbol namedType)
     {
-        AttributeData? rpcContractAttribute = namedType.GetAttributes()
-            .FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.JsonRpcContractAttribute));
+        AttributeData? rpcContractAttribute =
+            namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.JsonRpcContractAttribute)) ??
+            namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableAttribute));
         if (rpcContractAttribute is null)
         {
             return;
         }
 
+        bool isRpcMarshalable = SymbolEqualityComparer.Default.Equals(rpcContractAttribute.AttributeClass, knownSymbols.RpcMarshalableAttribute);
+        bool isCallScopedLifetime = rpcContractAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.RpcMarshalableAttribute.CallScopedLifetime).Value.Value is true;
         ImmutableList<Diagnostic> diagnostics = [];
 
         BaseTypeDeclarationSyntax? syntax = namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken) as BaseTypeDeclarationSyntax;
@@ -250,9 +271,14 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             diagnostics = diagnostics.Add(Diagnostic.Create(PartialInterface, additionalLocations[0], additionalLocations.Skip(1), namedType.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat), nonPartialElementsList));
         }
 
-        if (namedType.IsGenericType)
+        if (namedType.IsGenericType && !isRpcMarshalable)
         {
             diagnostics = diagnostics.Add(Diagnostic.Create(NoGenericInterface, namedType.Locations.FirstOrDefault() ?? Location.None));
+        }
+
+        if (isRpcMarshalable && !isCallScopedLifetime && !knownSymbols.IDisposable.IsAssignableFrom(namedType))
+        {
+            diagnostics = diagnostics.Add(Diagnostic.Create(RpcMarshableDisposable, namedType.Locations.FirstOrDefault(), namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
         }
 
         foreach (ISymbol member in namedType.GetAllMembers())
@@ -273,7 +299,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
                 case IMethodSymbol method:
                     this.InspectMethod(context, knownSymbols, method, namedType);
                     break;
-                case IEventSymbol evt:
+                case IEventSymbol evt when !isRpcMarshalable:
                     // Events must be declared with either the EventHandler or EventHandler<T> delegate type.
                     if (evt is not { Type: { Name: "EventHandler", ContainingNamespace: { Name: "System", ContainingNamespace.IsGlobalNamespace: true } } })
                     {

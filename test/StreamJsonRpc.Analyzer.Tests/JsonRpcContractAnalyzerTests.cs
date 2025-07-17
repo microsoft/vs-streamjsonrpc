@@ -166,4 +166,53 @@ public class JsonRpcContractAnalyzerTests
             }
             """);
     }
+
+    /// <summary>
+    /// Generic interfaces <em>are</em> allowed for <see cref="RpcMarshalableAttribute"/> interfaces.
+    /// </summary>
+    [Fact]
+    public async Task RpcMarshalable_GenericInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            partial interface IMyRpc<T> : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            partial interface IMyRpc : IDisposable
+            {
+                Task SayHiAsync();
+                event EventHandler {|StreamJsonRpc0012:Changed|};
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_CallScopedNeedNotBeIDisposable()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable(CallScopedLifetime = true)]
+            partial interface IMyRpc
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_MustDeriveFromIDisposable()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            partial interface {|StreamJsonRpc0005:IMyRpc|}
+            {
+            }
+            """);
+    }
 }

@@ -5,6 +5,13 @@ namespace StreamJsonRpc.Analyzers;
 
 internal static class Types
 {
+    internal static class RpcMarshalableAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.RpcMarshalableAttribute";
+
+        internal const string CallScopedLifetime = "CallScopedLifetime";
+    }
+
     internal static class JsonRpcContractAttribute
     {
         internal const string FullName = "StreamJsonRpc.JsonRpcContractAttribute";
