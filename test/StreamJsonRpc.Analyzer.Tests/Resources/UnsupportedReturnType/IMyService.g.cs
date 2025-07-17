@@ -27,8 +27,8 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
-		public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-		    : base(client, options, marshaledObjectHandle, onDispose)
+		public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+		    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
 		{
 		}
 		

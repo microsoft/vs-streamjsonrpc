@@ -9,8 +9,9 @@ namespace StreamJsonRpc.Reflection;
 /// <param name="options">Options related to this proxy.</param>
 /// <param name="marshaledObjectHandle">The handle for the marshaled object that this proxy represents, if applicable.</param>
 /// <param name="onDispose">A delegate to invoke on disposal instead of disposing <paramref name="client"/>.</param>
+/// <param name="requestedInterfaces">The set of interfaces the client requested for this proxy.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public abstract class ProxyBase(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose) : IJsonRpcClientProxyInternal
+public abstract class ProxyBase(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces) : IJsonRpcClientProxyInternal
 {
     private bool disposed;
 
@@ -35,6 +36,34 @@ public abstract class ProxyBase(JsonRpc client, JsonRpcProxyOptions? options, lo
     protected JsonRpcProxyOptions Options => options ?? JsonRpcProxyOptions.Default;
 
     /// <inheritdoc/>
+    public bool IsInterfaceIntentionallyImplemented(Type contract)
+    {
+        Requires.NotNull(contract);
+
+        // If the type check fails, then the contract is definitely not implemented.
+        if (!contract.IsAssignableFrom(this.GetType()))
+        {
+            return false;
+        }
+
+        if (!requestedInterfaces.HasValue || options?.AcceptProxyWithExtraInterfaces is not true)
+        {
+            // There's no chance this proxy implements too many interfaces.
+            return true;
+        }
+
+        foreach (Type iface in requestedInterfaces.Value.Span)
+        {
+            if (iface == contract)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (this.disposed)
@@ -47,10 +76,6 @@ public abstract class ProxyBase(JsonRpc client, JsonRpcProxyOptions? options, lo
         if (onDispose is not null)
         {
             onDispose();
-        }
-        else if (options?.OnDispose is { } dispose)
-        {
-            dispose();
         }
         else
         {

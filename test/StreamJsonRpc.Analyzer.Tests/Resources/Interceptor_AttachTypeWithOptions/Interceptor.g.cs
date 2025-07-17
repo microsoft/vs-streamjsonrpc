@@ -22,6 +22,6 @@ namespace StreamJsonRpc.Generated
 
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "/Ake8pKuT9MLmPG0sIUEOUYBAABUZXN0MC5jcw==")]
 		internal static object AttachIMyService_Proxy(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType, global::StreamJsonRpc.JsonRpcProxyOptions? options)
-		    => new IMyService_Proxy(jsonRpc, options, null, null);
+		    => new IMyService_Proxy(jsonRpc, options, null, null, null);
 	}
 }

@@ -35,8 +35,8 @@ namespace StreamJsonRpc.Generated
 		
 		private string? transformedJustAnotherCancellationAsync2;
 		
-		public IFoo2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-		    : base(client, options, marshaledObjectHandle, onDispose)
+		public IFoo2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+		    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
 		{
 		}
 		

@@ -24,14 +24,14 @@ namespace StreamJsonRpc.Generated
 		internal static T AttachIMyService_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
 		    where T : class
 		{
-		    return (T)(object)new IMyService_Proxy(jsonRpc, null, null, null);
+		    return (T)(object)new IMyService_Proxy(jsonRpc, null, null, null, null);
 		}
 
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "9j09ocqo2ZNZmE+GlUQV2rUBAABUZXN0MC5jcw==")]
 		internal static T AttachIMyService2_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
 		    where T : class
 		{
-		    return (T)(object)new IMyService2_Proxy(jsonRpc, null, null, null);
+		    return (T)(object)new IMyService2_Proxy(jsonRpc, null, null, null, null);
 		}
 	}
 }

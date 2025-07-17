@@ -258,6 +258,22 @@ internal static class ProxyGeneration
                 jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
             }
 
+            // IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented method
+            {
+                MethodBuilder isInterfaceIntentionallyImplemented = proxyTypeBuilder.DefineMethod(
+                    nameof(IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented),
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Final | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+                    typeof(bool),
+                    [typeof(Type)]);
+                ILGenerator il = isInterfaceIntentionallyImplemented.GetILGenerator();
+
+                // return true;
+                il.Emit(OpCodes.Ldc_I4_1);
+                il.Emit(OpCodes.Ret);
+
+                proxyTypeBuilder.DefineMethodOverride(isInterfaceIntentionallyImplemented, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented))!);
+            }
+
             IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
             MethodInfo invokeWithCancellationAsyncOfTaskMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters().Length == 4);
             MethodInfo invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 4);

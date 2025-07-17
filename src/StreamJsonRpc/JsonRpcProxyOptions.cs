@@ -152,7 +152,13 @@ public class JsonRpcProxyOptions
     /// </summary>
     /// <value>The default value is <see langword="false" />.</value>
     /// <remarks>
+    /// <para>
     /// Does not apply when <see cref="ProxyStyle"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
+    /// </para>
+    /// <para>
+    /// Code that uses the proxy and wants to do feature testing should use <see cref="IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented(Type)"/>
+    /// instead of conditional casts to avoid false positives when this property is <see langword="true"/>.
+    /// </para>
     /// </remarks>
     public bool AcceptProxyWithExtraInterfaces
     {

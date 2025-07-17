@@ -2928,7 +2928,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                         this,
                         options ?? JsonRpcProxyOptions.Default,
                         marshaledObjectHandle,
-                        options?.OnDispose)!;
+                        options?.OnDispose,
+                        (ReadOnlyMemory<Type>?)(Type[])[contractInterface, .. additionalContractInterfaces])!;
                 }
             }
         }

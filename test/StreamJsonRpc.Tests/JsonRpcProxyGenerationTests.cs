@@ -15,14 +15,14 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     private FullDuplexStream clientStream;
     private IServerDerived clientRpc;
 
-    protected JsonRpcProxyGenerationTests(ITestOutputHelper logger, bool avoidSourceGeneratedProxies)
+    protected JsonRpcProxyGenerationTests(ITestOutputHelper logger, JsonRpcProxyOptions.ProxyImplementation proxyImplementation)
         : base(logger)
     {
         var streams = FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        if (avoidSourceGeneratedProxies)
+        if (proxyImplementation == JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
         {
             throw new NotSupportedException();
         }
@@ -184,7 +184,31 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         }
     }
 
+    [JsonRpcContract]
+    [JsonRpcProxyInterfaceGroup(typeof(IInterfaceGroup2))]
+    internal partial interface IInterfaceGroup1;
+
+    [JsonRpcContract]
+    internal partial interface IInterfaceGroup2;
+
     protected JsonRpcProxyOptions DefaultProxyOptions { get; }
+
+    [Fact]
+    public void IsInterfaceIntentionallyImplemented()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var rpc = new JsonRpc(streams.Item1);
+        Type oneStepRemoved = typeof(IInterfaceGroup1); // do this so the source generator cannot 'see' which interface(s) are required by the caller.
+        IJsonRpcClientProxy clientRpc = (IJsonRpcClientProxy)rpc.Attach(oneStepRemoved, new JsonRpcProxyOptions { AcceptProxyWithExtraInterfaces = true });
+
+        // Verify the test gets the multi-interface implementation we expect and require for this to be an effective test.
+        Assert.IsAssignableFrom<IInterfaceGroup1>(clientRpc);
+        Assert.IsAssignableFrom<IInterfaceGroup2>(clientRpc);
+
+        // Now ask the proxy itself whether it was asked to implement both.
+        Assert.True(clientRpc.IsInterfaceIntentionallyImplemented(typeof(IInterfaceGroup1)));
+        Assert.False(clientRpc.IsInterfaceIntentionallyImplemented(typeof(IInterfaceGroup2)));
+    }
 
     [Fact]
     public void InternalInterface_DerivingFromInternalInterfaceInOtherAssembly()
@@ -854,9 +878,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         return proxy;
     }
 
-    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, avoidSourceGeneratedProxies: true);
+    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
 
-    public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, avoidSourceGeneratedProxies: false);
+    public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated);
 
     public class EmptyClass
     {

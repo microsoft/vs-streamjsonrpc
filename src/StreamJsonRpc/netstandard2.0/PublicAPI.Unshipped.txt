@@ -3,6 +3,7 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
+StreamJsonRpc.IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented(System.Type! contract) -> bool
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
@@ -29,14 +30,15 @@ StreamJsonRpc.Reflection.ProxyBase.CalledMethod -> System.EventHandler<string!>?
 StreamJsonRpc.Reflection.ProxyBase.CallingMethod -> System.EventHandler<string!>?
 StreamJsonRpc.Reflection.ProxyBase.Dispose() -> void
 StreamJsonRpc.Reflection.ProxyBase.IsDisposed.get -> bool
+StreamJsonRpc.Reflection.ProxyBase.IsInterfaceIntentionallyImplemented(System.Type! contract) -> bool
 StreamJsonRpc.Reflection.ProxyBase.JsonRpc.get -> StreamJsonRpc.JsonRpc!
 StreamJsonRpc.Reflection.ProxyBase.OnCalledMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.OnCallingMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.Options.get -> StreamJsonRpc.JsonRpcProxyOptions!
-StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, System.Action? onDispose) -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.EnumeratorResults() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.get -> bool
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.init -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
+StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, System.Action? onDispose, System.ReadOnlyMemory<System.Type!>? requestedInterfaces) -> void

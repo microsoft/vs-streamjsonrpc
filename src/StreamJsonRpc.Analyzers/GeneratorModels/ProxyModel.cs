@@ -197,8 +197,8 @@ internal record ProxyModel : FormattableModel
     {
         writer.WriteLine($$"""
 
-                public {{this.Name}}(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-                    : base(client, options, marshaledObjectHandle, onDispose)
+                public {{this.Name}}(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+                    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
                 {
                 """);
 

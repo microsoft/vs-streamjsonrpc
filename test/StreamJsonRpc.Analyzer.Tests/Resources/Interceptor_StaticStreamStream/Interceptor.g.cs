@@ -24,7 +24,7 @@ namespace StreamJsonRpc.Generated
 		internal static T AttachIMyService_Proxy<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
 		{
 		    global::StreamJsonRpc.JsonRpc jsonRpc = new(sendingStream, receivingStream);
-		    IMyService_Proxy proxy = new(jsonRpc, null, null, null);
+		    IMyService_Proxy proxy = new(jsonRpc, null, null, null, null);
 		    jsonRpc.StartListening();
 		    return (T)(object)proxy;
 		}

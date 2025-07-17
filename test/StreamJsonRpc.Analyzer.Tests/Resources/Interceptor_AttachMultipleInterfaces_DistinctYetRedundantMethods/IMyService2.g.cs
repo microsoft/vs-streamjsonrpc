@@ -27,8 +27,8 @@ namespace StreamJsonRpc.Generated
 		
 		private string? transformedTask11;
 		
-		public IMyService2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose)
-		    : base(client, options, marshaledObjectHandle, onDispose)
+		public IMyService2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
+		    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
 		{
 		}
 		

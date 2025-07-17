@@ -24,7 +24,7 @@ namespace StreamJsonRpc.Generated
 		internal static T AttachIMyService_Proxy<T>(this global::StreamJsonRpc.JsonRpc jsonRpc, global::StreamJsonRpc.JsonRpcProxyOptions? options)
 		    where T : class
 		{
-		    return (T)(object)new IMyService_Proxy(jsonRpc, options, null, null);
+		    return (T)(object)new IMyService_Proxy(jsonRpc, options, null, null, null);
 		}
 	}
 }
