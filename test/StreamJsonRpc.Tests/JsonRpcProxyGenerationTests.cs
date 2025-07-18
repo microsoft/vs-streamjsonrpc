@@ -4,8 +4,10 @@
 #pragma warning disable CS0436 // Type conflicts with a type in the external assembly, but we want to test that we can handle this.
 
 using System.Diagnostics;
+using System.Reflection;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using StreamJsonRpc.Reflection;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
 
 public abstract partial class JsonRpcProxyGenerationTests : TestBase
@@ -189,6 +191,16 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     [JsonRpcContract]
     internal partial interface IInterfaceGroup2;
+
+    [JsonRpcContract]
+    internal partial interface ITimeTestedProxy
+    {
+        event EventHandler<CustomEventArgs> TestEvent;
+
+        Task<string> WhatIsYourNameAsync(CancellationToken caancellationToken);
+
+        Task HereIsMyCardAsync(string name);
+    }
 
     protected JsonRpcProxyOptions DefaultProxyOptions { get; }
 
@@ -905,16 +917,62 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
             Type proxyType = typeof(IServer);
             IServer server = (IServer)rpc.Attach(proxyType, this.DefaultProxyOptions);
         }
+
+        [Fact]
+        public async Task CheckedInProxiesFromPastGenerationsStillWork()
+        {
+            // Test each proxy associatd with the time tested proxy interface.
+            int failures = 0;
+            foreach (JsonRpcProxyMappingAttribute mapping in typeof(ITimeTestedProxy).GetCustomAttributes<JsonRpcProxyMappingAttribute>())
+            {
+                try
+                {
+                    var streams = FullDuplexStream.CreateStreams();
+                    using var clientRpc = new JsonRpc(streams.Item1);
+                    TimeTestedServer server = new();
+                    using var serverRpc = JsonRpc.Attach(streams.Item2, server);
+                    var proxy = (ITimeTestedProxy)Activator.CreateInstance(mapping.ProxyClass, clientRpc, new ProxyInputs { ContractInterface = typeof(ITimeTestedProxy) })!;
+                    clientRpc.StartListening();
+
+                    // Test passing data in.
+                    await proxy.HereIsMyCardAsync("My card");
+                    Assert.Equal("My card", server.Card);
+
+                    // Test getting data out.
+                    Assert.Equal("Andrew", await proxy.WhatIsYourNameAsync(this.TimeoutToken));
+
+                    // Test event handling.
+                    TaskCompletionSource<CustomEventArgs> tcs = new();
+                    proxy.TestEvent += (s, e) => tcs.TrySetResult(e);
+                    var args = new CustomEventArgs { Seeds = 42 };
+                    server.RaiseTestEvent(args);
+                    Assert.Equal(args, await tcs.Task.WithCancellation(this.TimeoutToken));
+
+                    this.Logger.WriteLine($"✅ {mapping.ProxyClass.Name}");
+                }
+                catch (Exception ex)
+                {
+                    this.Logger.WriteLine($"❌ {mapping.ProxyClass.Name}");
+                    this.Logger.WriteLine($"  {ex.Message}");
+                    failures++;
+                }
+            }
+
+            Assert.Equal(0, failures);
+        }
     }
+
 #endif
 
     public class EmptyClass
     {
     }
 
-    public class CustomEventArgs : EventArgs
+    public class CustomEventArgs : EventArgs, IEquatable<CustomEventArgs>
     {
         public int Seeds { get; set; }
+
+        public bool Equals(CustomEventArgs? other) => this.Seeds == other?.Seeds;
     }
 
     /// <summary>
@@ -1042,5 +1100,22 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
             => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
+    }
+
+    private class TimeTestedServer : ITimeTestedProxy
+    {
+        public event EventHandler<CustomEventArgs>? TestEvent;
+
+        internal string? Card { get; set; }
+
+        public Task HereIsMyCardAsync(string name)
+        {
+            this.Card = name;
+            return Task.CompletedTask;
+        }
+
+        public Task<string> WhatIsYourNameAsync(CancellationToken caancellationToken) => Task.FromResult("Andrew");
+
+        public void RaiseTestEvent(CustomEventArgs args) => this.TestEvent?.Invoke(this, args);
     }
 }
