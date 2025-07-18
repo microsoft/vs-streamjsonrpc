@@ -23,8 +23,8 @@ namespace StreamJsonRpc.Generated
 		, global::IInternalService
 	{
 		
-		public IInternalServiceznU4si_t_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, global::System.Action? onDispose, global::System.ReadOnlyMemory<global::System.Type>? requestedInterfaces)
-		    : base(client, options, marshaledObjectHandle, onDispose, requestedInterfaces)
+		public IInternalServiceznU4si_t_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
+		    : base(client, inputs)
 		{
 		}
 	}

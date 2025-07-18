@@ -86,8 +86,8 @@ public class AttachAnalyzer : DiagnosticAnalyzer
                                 return;
                             }
 
-                            (GeneratorModels.AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = ProxyGenerator.AnalyzeAttachInvocation(invocationSyntax, invocationOp.SemanticModel, knownSymbols, context.CancellationToken);
-                            if (analysis is null)
+                            (GeneratorModels.AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? analysis = ProxyGenerator.AnalyzeAttachInvocation(invocationSyntax, invocationOp.SemanticModel, knownSymbols, context.CancellationToken);
+                            if (analysis is not { Interfaces: not null })
                             {
                                 return;
                             }

@@ -11,15 +11,15 @@ internal record FullModel
     internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses, bool publicProxies, bool interceptorsEnabled)
     {
         // Generate a proxy for attributed interfaces in this assembly, and for interfaces used by Attach methods.
-        this.Proxies = [.. proxies.Concat(attachUses.Select(a => new ProxyModel(a.Contracts, a.ExternalProxyName))).Distinct()];
+        this.Proxies = [.. proxies.Concat(attachUses.Where(a => a.Contracts is not null).Select(a => new ProxyModel(a.Contracts!, a.ExternalProxyName))).Distinct()];
 
         if (interceptorsEnabled)
         {
             this.Interceptions = [..
-            from use in attachUses
-            group use by (use.Contracts, use.Signature, use.ExternalProxyName) into attachByProxy
-            let proxy = new ProxyModel(attachByProxy.Key.Contracts, attachByProxy.Key.ExternalProxyName)
-            select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation])];
+                from use in attachUses
+                group use by (use.Contracts, use.Signature, use.ExternalProxyName) into attachByProxy
+                let proxy = attachByProxy.Key.Contracts is null ? null : new ProxyModel(attachByProxy.Key.Contracts, attachByProxy.Key.ExternalProxyName)
+                select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation])];
         }
 
         this.PublicProxies = publicProxies;
@@ -87,6 +87,15 @@ internal record FullModel
         {
             model.WriteInterceptor(writer);
         }
+
+        writer.WriteLine("""
+
+            private static global::StreamJsonRpc.IJsonRpcClientProxy StartListening(global::StreamJsonRpc.IJsonRpcClientProxy proxy)
+            {
+                proxy.JsonRpc.StartListening();
+                return proxy;
+            }
+            """);
 
         writer.Indentation--;
         writer.WriteLine($$"""

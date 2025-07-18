@@ -79,7 +79,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? analysis =
+                (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? analysis =
                     TryGetInterceptInfo(invocation, context.SemanticModel, symbols, cancellationToken);
 
                 if (analysis is null)
@@ -92,7 +92,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 return new AttachUse(
                     analysis.Value.InterceptableLocation,
                     analysis.Value.Signature,
-                    [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))],
+                    analysis.Value.Interfaces is null ? null : [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))],
                     analysis.Value.ExternalProxyName);
             }).Where(m => m is not null)!;
 
@@ -112,7 +112,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? AnalyzeAttachInvocation(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? AnalyzeAttachInvocation(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
         Debug.Assert(invocation.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" }, "This method should only be called after this basic check is performed.");
 
@@ -131,17 +131,17 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
-        (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = methodSymbol switch
+        (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? analysis = methodSymbol switch
         {
-            { Parameters: [], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGeneric, new INamedTypeSymbol[] { iface }),
-            { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, [iface]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGeneric, [argumentType]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) => (AttachSignature.InstanceNonGenericOptions, [argumentType]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } when TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) => (AttachSignature.InstanceNonGenericSpanOptions, argumentTypes),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStream, [iface]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }, { Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericStreamStream, [iface]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandler, [iface]),
-            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [INamedTypeSymbol iface] } => (AttachSignature.StaticGenericHandlerOptions, [iface]),
+            { Parameters: [], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.InstanceGeneric, iface is INamedTypeSymbol namedType ? [namedType] : null),
+            { Parameters: [{ Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.InstanceGenericOptions, iface is INamedTypeSymbol namedType ? [namedType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }], TypeArguments: [] } => (AttachSignature.InstanceNonGeneric, TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) ? [argumentType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Type" } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } => (AttachSignature.InstanceNonGenericOptions, TryGetNamedType(parameterType, out INamedTypeSymbol? argumentType) ? [argumentType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments: [{ Name: "Type" }] } parameterType }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [] } => (AttachSignature.InstanceNonGenericSpanOptions, TryGetNamedTypes(parameterType, out INamedTypeSymbol[]? argumentTypes) ? argumentTypes : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.StaticGenericStream, iface is INamedTypeSymbol namedType ? [namedType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "Stream" } }, { Type: INamedTypeSymbol { Name: "Stream" } }], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.StaticGenericStreamStream, iface is INamedTypeSymbol namedType ? [namedType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.StaticGenericHandler, iface is INamedTypeSymbol namedType ? [namedType] : null),
+            { Parameters: [{ Type: INamedTypeSymbol { Name: "IJsonRpcMessageHandler" } }, { Type.Name: "JsonRpcProxyOptions" }], TypeArguments: [ITypeSymbol iface] } => (AttachSignature.StaticGenericHandlerOptions, iface is INamedTypeSymbol namedType ? [namedType] : null),
             _ => null,
         };
 
@@ -207,18 +207,12 @@ public partial class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[] Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
-        (AttachSignature Signature, INamedTypeSymbol[] Interfaces)? analysis = AnalyzeAttachInvocation(invocation, semanticModel, symbols, cancellationToken);
+        (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? analysis = AnalyzeAttachInvocation(invocation, semanticModel, symbols, cancellationToken);
         if (analysis is null)
         {
             // We don't (yet) support intercepting this Attach method.
-            return null;
-        }
-
-        // Only act on interfaces attributed with [JsonRpcContract] so we know they've been vetted.
-        if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcContractAttribute))))
-        {
             return null;
         }
 
@@ -227,15 +221,25 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
-        // Look for an existing external proxy to reuse, if available.
-        if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out string? externalProxyName))
+        string? externalProxyName = null;
+        if (analysis.Value.Interfaces is not null)
         {
-            // Score! There's an existing proxy that suits our needs.
-        }
-        else if (analysis.Value.Interfaces.Any(iface => !IsAllowedToGenerateProxyFor(iface)))
-        {
-            // If we're not allowed to generate a proxy for any of the interfaces, then don't generate a proxy at all since it will be inadequate.
-            return null;
+            // Only act on interfaces attributed with [JsonRpcContract] so we know they've been vetted.
+            if (analysis.Value.Interfaces.Any(iface => !iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcContractAttribute))))
+            {
+                return null;
+            }
+
+            // Look for an existing external proxy to reuse, if available.
+            if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out externalProxyName))
+            {
+                // Score! There's an existing proxy that suits our needs.
+            }
+            else if (analysis.Value.Interfaces.Any(iface => !IsAllowedToGenerateProxyFor(iface)))
+            {
+                // We're not allowed to generate a proxy for at least one of the interfaces, so don't generate a proxy at all since it will be inadequate.
+                return null;
+            }
         }
 
         return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName);

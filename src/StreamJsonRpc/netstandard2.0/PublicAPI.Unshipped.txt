@@ -1,4 +1,6 @@
 static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
+static StreamJsonRpc.Reflection.ProxyBase.CreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool startOrFail) -> StreamJsonRpc.IJsonRpcClientProxy!
+static StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, out StreamJsonRpc.IJsonRpcClientProxy? proxy) -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
@@ -41,4 +43,12 @@ StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.init -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
-StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, StreamJsonRpc.JsonRpcProxyOptions? options, long? marshaledObjectHandle, System.Action? onDispose, System.ReadOnlyMemory<System.Type!>? requestedInterfaces) -> void
+StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, in StreamJsonRpc.Reflection.ProxyInputs inputs) -> void
+StreamJsonRpc.Reflection.ProxyInputs
+StreamJsonRpc.Reflection.ProxyInputs.AdditionalContractInterfaces.get -> System.ReadOnlyMemory<System.Type!>
+StreamJsonRpc.Reflection.ProxyInputs.AdditionalContractInterfaces.init -> void
+StreamJsonRpc.Reflection.ProxyInputs.ContractInterface.get -> System.Type!
+StreamJsonRpc.Reflection.ProxyInputs.ContractInterface.init -> void
+StreamJsonRpc.Reflection.ProxyInputs.Options.get -> StreamJsonRpc.JsonRpcProxyOptions?
+StreamJsonRpc.Reflection.ProxyInputs.Options.init -> void
+StreamJsonRpc.Reflection.ProxyInputs.ProxyInputs() -> void

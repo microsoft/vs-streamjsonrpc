@@ -22,11 +22,12 @@ namespace StreamJsonRpc.Generated
 
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "NKHWiRv0AOMpgFD59TEhrR8BAABUZXN0MC5jcw==")]
 		internal static T AttachIMyService_Proxy<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
+		    => (T)(object)StartListening(new IMyService_Proxy(new(sendingStream, receivingStream), new() { ContractInterface = typeof(T) }));
+		
+		private static global::StreamJsonRpc.IJsonRpcClientProxy StartListening(global::StreamJsonRpc.IJsonRpcClientProxy proxy)
 		{
-		    global::StreamJsonRpc.JsonRpc jsonRpc = new(sendingStream, receivingStream);
-		    IMyService_Proxy proxy = new(jsonRpc, null, null, null, null);
-		    jsonRpc.StartListening();
-		    return (T)(object)proxy;
+		    proxy.JsonRpc.StartListening();
+		    return proxy;
 		}
 	}
 }

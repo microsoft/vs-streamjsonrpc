@@ -18,11 +18,11 @@ namespace StreamJsonRpc.Reflection;
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public class JsonRpcProxyMappingAttribute(
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type proxyClass) : Attribute
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] Type proxyClass) : Attribute
 {
     /// <summary>
     /// Gets the proxy class type implements the RPC interface.
     /// </summary>
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)]
     public Type ProxyClass => proxyClass;
 }

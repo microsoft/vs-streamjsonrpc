@@ -787,7 +787,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = client.Attach<IServerWithParamsObject>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
-        int result = await clientRpc.SumOfParameterObject(1, 2, TestContext.Current.CancellationToken);
+        int result = await clientRpc.SumOfParameterObject(1, 2, this.TimeoutToken);
         Assert.Equal(3, result);
     }
 
@@ -821,7 +821,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = client.Attach<IServerWithParamsObjectNoResult>(new JsonRpcProxyOptions { ServerRequiresNamedArguments = true });
         client.StartListening();
 
-        await clientRpc.SumOfParameterObject(1, 2, TestContext.Current.CancellationToken);
+        await clientRpc.SumOfParameterObject(1, 2, this.TimeoutToken);
         int result = await server.MethodResult.Task;
         Assert.Equal(3, result);
     }
@@ -895,6 +895,15 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
             var rpc = new JsonRpc(streams.Item1);
             var ex = Assert.Throws<NotSupportedException>(() => rpc.Attach<IServer>(options));
             this.Logger.WriteLine(ex.Message);
+        }
+
+        [Fact]
+        public void Interceptor_CanFindProxiesAtRuntime()
+        {
+            var streams = FullDuplexStream.CreateStreams();
+            var rpc = new JsonRpc(streams.Item1);
+            Type proxyType = typeof(IServer);
+            IServer server = (IServer)rpc.Attach(proxyType, this.DefaultProxyOptions);
         }
     }
 #endif

@@ -20,9 +20,9 @@ namespace StreamJsonRpc.Generated
 	file static class StreamJsonRpcInterceptor
 	{
 
-		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "BNZUOHnKoWy/701nB3b+piUBAABUZXN0MC5jcw==")]
-		internal static T AttachIMyService_Proxy<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)
-		    => (T)(object)StartListening(new IMyService_Proxy(new(handler), new() { ContractInterface = typeof(T) }));
+		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "cVvqttm4EUu60nk7bGBrcgkBAABUZXN0MC5jcw==")]
+		internal static object Attach_Unknown(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.ReadOnlySpan<global::System.Type> interfaceTypes, global::StreamJsonRpc.JsonRpcProxyOptions? options)
+		    => global::StreamJsonRpc.Reflection.ProxyBase.CreateProxy(jsonRpc, new() { ContractInterface = interfaceTypes[0], AdditionalContractInterfaces = interfaceTypes.Slice(1).ToArray(), Options = options }, false);
 		
 		private static global::StreamJsonRpc.IJsonRpcClientProxy StartListening(global::StreamJsonRpc.IJsonRpcClientProxy proxy)
 		{

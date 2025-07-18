@@ -588,6 +588,36 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task Interceptor_UnknownTypes_Generic()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            class Test
+            {
+                void Foo<T>(System.IO.Stream s) where T: class
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach<T>();
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interceptor_UnknownTypes_NonGeneric()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            class Test
+            {
+                void Foo(System.IO.Stream s, Type[] interfaces)
+                {
+                    JsonRpc rpc = new(s);
+                    object service = rpc.Attach(interfaces, null);
+                }
+            }
+            """);
+    }
+
+    [Fact]
     public async Task OneProxyPerInterfaceGroup_OneEmptyGroup()
     {
         await VerifyCS.RunDefaultAsync("""
@@ -688,8 +718,8 @@ public class ProxyGeneratorTests
 
             namespace StreamJsonRpc.Generated
             {
-                public class MyServiceProxy(JsonRpc client, JsonRpcProxyOptions? options, long? marshaledObjectHandle, Action? onDispose, ReadOnlyMemory<Type>? requestedInterfaces)
-                    : StreamJsonRpc.Reflection.ProxyBase(client, options, marshaledObjectHandle, onDispose, requestedInterfaces), IMyService
+                public class MyServiceProxy(JsonRpc client, in StreamJsonRpc.Reflection.ProxyInputs inputs)
+                    : StreamJsonRpc.Reflection.ProxyBase(client, inputs), IMyService
                 {
                 }
             }

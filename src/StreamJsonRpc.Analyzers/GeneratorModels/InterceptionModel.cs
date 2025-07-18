@@ -2,7 +2,7 @@
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, ImmutableEquatableArray<InterceptableLocation> Locations)
+internal record InterceptionModel(ProxyModel? Proxy, AttachSignature Signature, ImmutableEquatableArray<InterceptableLocation> Locations)
 {
     internal void WriteInterceptor(SourceWriter writer)
     {
@@ -13,7 +13,12 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
             writer.WriteLine(location.GetInterceptsLocationAttributeSyntax());
         }
 
-        string interceptingMethodName = $"Attach{this.Proxy.Name.Replace('.', '_')}";
+        string interceptingMethodName = this.Proxy is not null ? $"Attach{this.Proxy.Name.Replace('.', '_')}" : "Attach_Unknown";
+
+        string CreateProxyExpression(string inputs, string? jsonRpcCreation = null) =>
+            this.Proxy is null ? $"global::StreamJsonRpc.Reflection.ProxyBase.CreateProxy({jsonRpcCreation ?? "jsonRpc"}, new() {inputs}, {(jsonRpcCreation is not null ? "true" : "false")})" :
+            jsonRpcCreation is null ? $"new {this.Proxy.Name}(jsonRpc, new() {inputs})" :
+            $"StartListening(new {this.Proxy.Name}({jsonRpcCreation}, new() {inputs}))";
 
         switch (this.Signature)
         {
@@ -21,80 +26,56 @@ internal record InterceptionModel(ProxyModel Proxy, AttachSignature Signature, I
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc)
                         where T : class
-                    {
-                        return (T)(object)new {{this.Proxy.Name}}(jsonRpc, null, null, null, null);
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T) }")}};
                     """);
                 break;
             case AttachSignature.InstanceGenericOptions:
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(this global::StreamJsonRpc.JsonRpc jsonRpc, global::StreamJsonRpc.JsonRpcProxyOptions? options)
                         where T : class
-                    {
-                        return (T)(object)new {{this.Proxy.Name}}(jsonRpc, options, null, null, null);
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T), Options = options }")}};
                     """);
                 break;
             case AttachSignature.InstanceNonGeneric:
                 writer.WriteLine($$"""
                     internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType)
-                        => new {{this.Proxy.Name}}(jsonRpc, null, null, null, null);
+                        => {{CreateProxyExpression("{ ContractInterface = interfaceType }")}};
                     """);
                 break;
             case AttachSignature.InstanceNonGenericOptions:
                 writer.WriteLine($$"""
                     internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.Type interfaceType, global::StreamJsonRpc.JsonRpcProxyOptions? options)
-                        => new {{this.Proxy.Name}}(jsonRpc, options, null, null, null);
+                        => {{CreateProxyExpression("{ ContractInterface = interfaceType, Options = options }")}};
                     """);
                 break;
             case AttachSignature.InstanceNonGenericSpanOptions:
                 writer.WriteLine($$"""
                     internal static object {{interceptingMethodName}}(this global::StreamJsonRpc.JsonRpc jsonRpc, global::System.ReadOnlySpan<global::System.Type> interfaceTypes, global::StreamJsonRpc.JsonRpcProxyOptions? options)
-                        => new {{this.Proxy.Name}}(jsonRpc, options, null, null, null);
+                        => {{CreateProxyExpression("{ ContractInterface = interfaceTypes[0], AdditionalContractInterfaces = interfaceTypes.Slice(1).ToArray(), Options = options }")}};
                     """);
                 break;
             case AttachSignature.StaticGenericStream:
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(global::System.IO.Stream stream)
-                    {
-                        global::StreamJsonRpc.JsonRpc jsonRpc = new(stream);
-                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null, null);
-                        jsonRpc.StartListening();
-                        return (T)(object)proxy;
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T) }", "new(stream)")}};
                     """);
                 break;
             case AttachSignature.StaticGenericStreamStream:
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(global::System.IO.Stream sendingStream, global::System.IO.Stream receivingStream)
-                    {
-                        global::StreamJsonRpc.JsonRpc jsonRpc = new(sendingStream, receivingStream);
-                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null, null);
-                        jsonRpc.StartListening();
-                        return (T)(object)proxy;
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T) }", "new(sendingStream, receivingStream)")}};
                     """);
                 break;
             case AttachSignature.StaticGenericHandler:
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)
-                    {
-                        global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
-                        {{this.Proxy.Name}} proxy = new(jsonRpc, null, null, null, null);
-                        jsonRpc.StartListening();
-                        return (T)(object)proxy;
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T) }", "new(handler)")}};
                     """);
                 break;
             case AttachSignature.StaticGenericHandlerOptions:
                 writer.WriteLine($$"""
                     internal static T {{interceptingMethodName}}<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler, global::StreamJsonRpc.JsonRpcProxyOptions? options)
-                    {
-                        global::StreamJsonRpc.JsonRpc jsonRpc = new(handler);
-                        {{this.Proxy.Name}} proxy = new(jsonRpc, options, null, null, null);
-                        jsonRpc.StartListening();
-                        return (T)(object)proxy;
-                    }
+                        => (T)(object){{CreateProxyExpression("{ ContractInterface = typeof(T), Options = options }", "new(handler)")}};
                     """);
                 break;
             default:
