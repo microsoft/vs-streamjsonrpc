@@ -229,7 +229,8 @@ internal record ProxyModel : FormattableModel
         StringBuilder builder = new();
         for (int i = 1; i < sorted.Length; i++)
         {
-            builder.AppendLine(sorted[i]);
+            builder.Append(sorted[i]);
+            builder.Append("\r\n");
         }
 
         byte[] additionalInterfaceBytes = Encoding.UTF8.GetBytes(builder.ToString());
