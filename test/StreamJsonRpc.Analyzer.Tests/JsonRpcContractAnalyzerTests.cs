@@ -1,10 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using StreamJsonRpc.Analyzers;
 using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer, StreamJsonRpc.Analyzers.JsonRpcContractCodeFixProvider>;
 
 public class JsonRpcContractAnalyzerTests
 {
+    public JsonRpcContractAnalyzerTests()
+    {
+        JsonRpcContractCodeFixProvider.NormalizeLineEndings = true;
+    }
+
     [Fact]
     public async Task MethodReturnTypes()
     {
@@ -218,7 +224,7 @@ public class JsonRpcContractAnalyzerTests
             using System;
 
             [StreamJsonRpc.RpcMarshalable]
-            partial interface IMyRpc : IDisposable
+            partial interface IMyRpc: IDisposable
             {
             }
             """;

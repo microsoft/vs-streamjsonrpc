@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Simplification;
+using Microsoft.CodeAnalysis.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace StreamJsonRpc.Analyzers;
@@ -19,6 +20,13 @@ namespace StreamJsonRpc.Analyzers;
 [ExportCodeFixProvider(LanguageNames.CSharp)]
 public class JsonRpcContractCodeFixProvider : CodeFixProvider
 {
+    /// <summary>
+    /// Indicates whether an artificual line normalization happens for tests' sake.
+    /// </summary>
+#pragma warning disable SA1401 // Fields should be private
+    public static bool NormalizeLineEndings;
+#pragma warning restore SA1401 // Fields should be private
+
     /// <inheritdoc/>
     public override ImmutableArray<string> FixableDiagnosticIds => [
         JsonRpcContractAnalyzer.RpcMarshableDisposableId,
@@ -83,6 +91,14 @@ public class JsonRpcContractCodeFixProvider : CodeFixProvider
         modifiedDocument = await ImportAdder.AddImportsAsync(modifiedDocument, Simplifier.AddImportsAnnotation, cancellationToken: cancellationToken);
         modifiedDocument = await Simplifier.ReduceAsync(modifiedDocument, cancellationToken: cancellationToken);
         modifiedDocument = await Formatter.FormatAsync(modifiedDocument, Formatter.Annotation, cancellationToken: cancellationToken);
+
+        // If in tests, normalize to CRLF line endings so codefix tests can pass.
+        if (NormalizeLineEndings)
+        {
+            SourceText text = await modifiedDocument.GetTextAsync(cancellationToken);
+            modifiedDocument = modifiedDocument.WithText(SourceText.From(text.ToString().Replace("\r\n", "\n").Replace("\n", "\r\n")));
+        }
+
         return modifiedDocument;
     }
 }
