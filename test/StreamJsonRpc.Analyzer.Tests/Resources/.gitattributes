@@ -1,0 +1,2 @@
+# Our source generator tests want identical results regardless of platform.
+*.cs text eol=crlf
