@@ -40,34 +40,42 @@ public partial class ProxyGenerator : IIncrementalGenerator
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<ImmutableEquatableArray<ProxyModel>> proxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName<ImmutableEquatableArray<ProxyModel>>(
+        IncrementalValuesProvider<ImmutableEquatableArray<ProxyModel>> rpcContractProxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
             Types.JsonRpcContractAttribute.FullName,
             (node, cancellationToken) => true,
-            (context, cancellationToken) =>
+            PrepareProxy);
+        IncrementalValuesProvider<ImmutableEquatableArray<ProxyModel>> rpcMarshalableProxyProvider = context.SyntaxProvider.ForAttributeWithMetadataName(
+            Types.RpcMarshalableAttribute.FullName,
+            (node, cancellationToken) => true,
+            PrepareProxy);
+        IncrementalValueProvider<ImmutableEquatableSet<ProxyModel>> proxyProvider = rpcContractProxyProvider.Collect().Combine(rpcMarshalableProxyProvider.Collect()).Select(
+            ((ImmutableArray<ImmutableEquatableArray<ProxyModel>> Left, ImmutableArray<ImmutableEquatableArray<ProxyModel>> Right) input, CancellationToken token) => input.Left.SelectMany(p => p).Concat(input.Right.SelectMany(p => p)).ToImmutableEquatableSet());
+
+        ImmutableEquatableArray<ProxyModel> PrepareProxy(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+        {
+            if (context.TargetSymbol is not INamedTypeSymbol iface)
             {
-                if (context.TargetSymbol is not INamedTypeSymbol iface)
-                {
-                    return [];
-                }
+                return [];
+            }
 
-                if (!KnownSymbols.TryCreate(context.SemanticModel.Compilation, out KnownSymbols? symbols))
-                {
-                    return [];
-                }
+            if (!KnownSymbols.TryCreate(context.SemanticModel.Compilation, out KnownSymbols? symbols))
+            {
+                return [];
+            }
 
-                // Skip inaccessible interfaces.
-                if (!context.SemanticModel.Compilation.IsSymbolAccessibleWithin(context.TargetSymbol, context.SemanticModel.Compilation.Assembly))
-                {
-                    // Reported by StreamJsonRpc0001
-                    return [];
-                }
+            // Skip inaccessible interfaces.
+            if (!context.SemanticModel.Compilation.IsSymbolAccessibleWithin(context.TargetSymbol, context.SemanticModel.Compilation.Assembly))
+            {
+                // Reported by StreamJsonRpc0001
+                return [];
+            }
 
-                IEnumerable<ProxyModel> proxies = ExpandInterfaceToGroups(iface, symbols)
-                    .Select(group => new ProxyModel(
-                        [.. group.Select(i => InterfaceModel.Create(i, symbols, declaredInThisCompilation: true, cancellationToken))]));
+            IEnumerable<ProxyModel> proxies = ExpandInterfaceToGroups(iface, symbols)
+                .Select(group => new ProxyModel(
+                    [.. group.Select(i => InterfaceModel.Create(i, symbols, declaredInThisCompilation: true, cancellationToken))]));
 
-                return [.. proxies];
-            });
+            return [.. proxies];
+        }
 
         IncrementalValuesProvider<AttachUse> attachUseProvider = context.SyntaxProvider.CreateSyntaxProvider(
             (node, cancellationToken) => node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Attach" } },
@@ -100,14 +108,14 @@ public partial class ProxyGenerator : IIncrementalGenerator
         IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
         IncrementalValueProvider<bool> interceptorsEnabled = context.AnalyzerConfigOptionsProvider.Select((provider, token) => AreInterceptorsEnabled(provider.GlobalOptions));
 
-        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled)).Select(
+        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled)).Select(
             (combined, attach) =>
             {
-                ImmutableArray<ProxyModel> proxies = [.. combined.Left.Left.SelectMany(g => g)];
+                ImmutableEquatableSet<ProxyModel> proxies = combined.Left.Left;
                 ImmutableArray<AttachUse> attachUses = combined.Left.Right;
                 bool publicProxies = combined.Right.Left;
                 bool interceptorsEnabled = combined.Right.Right;
-                return new FullModel(proxies.ToImmutableEquatableSet(), attachUses.ToImmutableEquatableArray(), publicProxies, interceptorsEnabled);
+                return new FullModel(proxies, attachUses.ToImmutableEquatableArray(), publicProxies, interceptorsEnabled);
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
