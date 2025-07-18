@@ -99,7 +99,8 @@ internal record ProxyModel : FormattableModel
         writer.WriteLine("{");
         writer.Indentation++;
 
-        string visibility = isPublic ? "public" : "internal";
+        bool anyIfaceIsPublic = this.Interfaces.Any(i => i.IsPublic);
+        string visibility = isPublic && anyIfaceIsPublic ? "public" : "internal";
 
         writer.WriteLine($$"""
 

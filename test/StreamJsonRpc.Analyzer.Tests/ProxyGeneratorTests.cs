@@ -631,6 +631,26 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task Export_MixedInterfaceVisibility()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [assembly: ExportRpcContractProxies]
+
+            [JsonRpcContract]
+            [JsonRpcProxyInterfaceGroup]
+            [JsonRpcProxyInterfaceGroup(typeof(IInternalService))]
+            public partial interface IPublicService
+            {
+            }
+
+            [JsonRpcContract]
+            internal partial interface IInternalService
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interceptor_ForbidExternalProxies_SameProject()
     {
         await VerifyCS.RunDefaultAsync("""

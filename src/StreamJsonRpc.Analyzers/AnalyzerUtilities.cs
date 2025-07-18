@@ -38,6 +38,10 @@ internal static class AnalyzerUtilities
         return false;
     }
 
+    /// <summary>Checks whether a given type is public and all its containing types are also public.</summary>
+    internal static bool IsActuallyPublic(this ITypeSymbol type)
+        => type.DeclaredAccessibility == Accessibility.Public && type.ContainingType?.IsActuallyPublic() is not false;
+
     internal static bool LaunchDebugger()
     {
 #if DEBUG

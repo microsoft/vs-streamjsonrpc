@@ -12,6 +12,8 @@ internal record InterfaceModel(string Prefix, string FullName, string Name, Cont
 {
     internal required bool IsPartial { get; init; }
 
+    internal required bool IsPublic { get; init; }
+
     internal bool IsFullyPartial => this.IsPartial && this.Container is null or { IsFullyPartial: true };
 
     internal required bool DeclaredInThisCompilation { get; init; }
@@ -40,6 +42,7 @@ internal record InterfaceModel(string Prefix, string FullName, string Name, Cont
             events)
         {
             IsPartial = iface.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is InterfaceDeclarationSyntax syntax && syntax.Modifiers.Any(SyntaxKind.PartialKeyword),
+            IsPublic = iface.IsActuallyPublic(),
             DeclaredInThisCompilation = declaredInThisCompilation,
         };
     }
