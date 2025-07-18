@@ -2,10 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // Originally copied from https://github.com/eiriktsarpalis/PolyType/blob/main/src/PolyType.Roslyn/SourceWriter.cs
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.Text;
 
 namespace StreamJsonRpc.Analyzers;
@@ -15,13 +13,9 @@ namespace StreamJsonRpc.Analyzers;
 /// </summary>
 internal class SourceWriter
 {
-    /// <summary>
-    /// Horizontal whitespace regex: apply double negation on \s to exclude \r and \n.
-    /// </summary>
-    private const string HWSR = @"[^\S\r\n]*";
-
-    private static readonly Regex NullAssignmentLineRegex =
-        new(@$"{HWSR}\w+{HWSR}={HWSR}null{HWSR},?{HWSR}\r?\n", RegexOptions.Compiled);
+    // Standardize on this because it impacts the roslyn-calculated interceptor magic code,
+    // and we want tests to pass regardless of the platform.
+    private const string NewLine = "\r\n";
 
     private readonly StringBuilder builder = new();
 
@@ -99,31 +93,22 @@ internal class SourceWriter
     {
         this.AddIndentation();
         this.builder.Append(value);
-        this.builder.AppendLine();
+        this.builder.Append(NewLine);
     }
 
     /// <summary>
     /// Appends a new line with the specified text.
     /// </summary>
     /// <param name="text">The text to append.</param>
-    /// <param name="trimNullAssignmentLines">Trims any lines containing 'Identifier = null,' assignments.</param>
     /// <param name="disableIndentation">Append text without preserving the current indentation.</param>
     public void WriteLine(
         [StringSyntax("c#-test")] string text,
-        bool trimNullAssignmentLines = false,
         bool disableIndentation = false)
     {
-        if (trimNullAssignmentLines)
-        {
-            // Since the ns2.0 Regex class doesn't support spans,
-            // use Regex.Replace to preprocess the string instead
-            // of doing a line-by-line replacement.
-            text = NullAssignmentLineRegex.Replace(text, string.Empty);
-        }
-
         if (this.indentation == 0 || disableIndentation)
         {
-            this.builder.AppendLine(text);
+            this.builder.Append(text);
+            this.builder.Append(NewLine);
             return;
         }
 
@@ -135,7 +120,7 @@ internal class SourceWriter
 
             this.AddIndentation();
             this.AppendSpan(nextLine);
-            this.builder.AppendLine();
+            this.builder.Append(NewLine);
         }
         while (!isFinalLine);
     }
@@ -143,7 +128,7 @@ internal class SourceWriter
     /// <summary>
     /// Appends a new line to the source text.
     /// </summary>
-    public void WriteLine() => this.builder.AppendLine();
+    public void WriteLine() => this.builder.Append(NewLine);
 
     /// <summary>
     /// Encodes the currently written source to a <see cref="SourceText"/> instance.
