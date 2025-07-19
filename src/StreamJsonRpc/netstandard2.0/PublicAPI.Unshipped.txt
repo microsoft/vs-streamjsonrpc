@@ -20,10 +20,6 @@ StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated = 2 
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.PreferSourceGenerated = 1 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.set -> void
-StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal
-StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CalledMethod -> System.EventHandler<string!>!
-StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.CallingMethod -> System.EventHandler<string!>!
-StreamJsonRpc.Reflection.IJsonRpcClientProxyInternal.MarshaledObjectHandle.get -> long?
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.JsonRpcProxyMappingAttribute(System.Type! proxyClass) -> void
