@@ -12,8 +12,9 @@ namespace StreamJsonRpc.Reflection;
 /// </summary>
 /// <param name="proxyClass">
 /// The source generated proxy class.
-/// This must implement the interface the attribute is applied to and declare a public constructor
-/// with a particular signature.
+/// This must implement the interface the attribute is applied to,
+/// derive from <see cref="ProxyBase"/>,
+/// and declare a public constructor with a particular signature.
 /// </param>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
