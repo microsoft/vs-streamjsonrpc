@@ -258,20 +258,25 @@ internal static class ProxyGeneration
                 jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
             }
 
-            // IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented method
+            // IJsonRpcClientProxy.As method
             {
-                MethodBuilder isInterfaceIntentionallyImplemented = proxyTypeBuilder.DefineMethod(
-                    nameof(IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented),
+                MethodBuilder asMethod = proxyTypeBuilder.DefineMethod(
+                    nameof(IJsonRpcClientProxy.As),
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Final | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                    typeof(bool),
-                    [typeof(Type)]);
-                ILGenerator il = isInterfaceIntentionallyImplemented.GetILGenerator();
+                    null,
+                    Type.EmptyTypes);
+                GenericTypeParameterBuilder typeArgBuilder = asMethod.DefineGenericParameters("T")[0];
+                typeArgBuilder.SetGenericParameterAttributes(GenericParameterAttributes.ReferenceTypeConstraint);
+                asMethod.SetReturnType(typeArgBuilder);
+                ILGenerator il = asMethod.GetILGenerator();
 
-                // return true;
-                il.Emit(OpCodes.Ldc_I4_1);
+                // return this as T;
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Isinst, typeArgBuilder);
+                il.Emit(OpCodes.Unbox_Any, typeArgBuilder);
                 il.Emit(OpCodes.Ret);
 
-                proxyTypeBuilder.DefineMethodOverride(isInterfaceIntentionallyImplemented, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented))!);
+                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.As))!);
             }
 
             IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));

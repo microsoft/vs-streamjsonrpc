@@ -154,7 +154,7 @@ public class JsonRpcProxyOptions
     /// Does not apply when <see cref="ProxyStyle"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
     /// </para>
     /// <para>
-    /// Code that uses the proxy and wants to do feature testing should use <see cref="IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented(Type)"/>
+    /// Code that uses the proxy and wants to do feature testing should use <see cref="IJsonRpcClientProxy.As{T}()"/>
     /// instead of conditional casts to avoid false positives when this property is <see langword="true"/>.
     /// </para>
     /// </remarks>

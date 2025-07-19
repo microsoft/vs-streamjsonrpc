@@ -5,7 +5,7 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
-StreamJsonRpc.IJsonRpcClientProxy.IsInterfaceIntentionallyImplemented(System.Type! contract) -> bool
+StreamJsonRpc.IJsonRpcClientProxy.As<T>() -> T?
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
@@ -24,11 +24,11 @@ StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.JsonRpcProxyMappingAttribute(System.Type! proxyClass) -> void
 StreamJsonRpc.Reflection.ProxyBase
+StreamJsonRpc.Reflection.ProxyBase.As<T>() -> T?
 StreamJsonRpc.Reflection.ProxyBase.CalledMethod -> System.EventHandler<string!>?
 StreamJsonRpc.Reflection.ProxyBase.CallingMethod -> System.EventHandler<string!>?
 StreamJsonRpc.Reflection.ProxyBase.Dispose() -> void
 StreamJsonRpc.Reflection.ProxyBase.IsDisposed.get -> bool
-StreamJsonRpc.Reflection.ProxyBase.IsInterfaceIntentionallyImplemented(System.Type! contract) -> bool
 StreamJsonRpc.Reflection.ProxyBase.JsonRpc.get -> StreamJsonRpc.JsonRpc!
 StreamJsonRpc.Reflection.ProxyBase.OnCalledMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.OnCallingMethod(string! method) -> void

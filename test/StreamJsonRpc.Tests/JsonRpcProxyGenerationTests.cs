@@ -205,7 +205,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     protected JsonRpcProxyOptions DefaultProxyOptions { get; }
 
     [Fact]
-    public void IsInterfaceIntentionallyImplemented()
+    public void As()
     {
         var streams = FullDuplexStream.CreateStreams();
         var rpc = new JsonRpc(streams.Item1);
@@ -217,8 +217,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Assert.IsAssignableFrom<IInterfaceGroup2>(clientRpc);
 
         // Now ask the proxy itself whether it was asked to implement both.
-        Assert.True(clientRpc.IsInterfaceIntentionallyImplemented(typeof(IInterfaceGroup1)));
-        Assert.False(clientRpc.IsInterfaceIntentionallyImplemented(typeof(IInterfaceGroup2)));
+        Assert.NotNull(clientRpc.As<IInterfaceGroup1>());
+        Assert.Null(clientRpc.As<IInterfaceGroup2>());
     }
 
     [Fact]

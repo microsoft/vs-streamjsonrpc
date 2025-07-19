@@ -156,31 +156,30 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     }
 
     /// <inheritdoc/>
-    public bool IsInterfaceIntentionallyImplemented(Type contract)
+    public T? As<T>()
+        where T : class
     {
-        Requires.NotNull(contract);
-
         // If the type check fails, then the contract is definitely not implemented.
-        if (!contract.IsAssignableFrom(this.GetType()))
+        if (this is not T thisAsThat)
         {
-            return false;
+            return null;
         }
 
         if (!this.requestedInterfaces.HasValue || this.options?.AcceptProxyWithExtraInterfaces is not true)
         {
             // There's no chance this proxy implements too many interfaces.
-            return true;
+            return thisAsThat;
         }
 
         foreach (Type iface in this.requestedInterfaces.Value.Span)
         {
-            if (iface == contract)
+            if (iface == typeof(T))
             {
-                return true;
+                return thisAsThat;
             }
         }
 
-        return false;
+        return null;
     }
 
     /// <inheritdoc/>
