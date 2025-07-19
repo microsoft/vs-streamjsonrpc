@@ -727,8 +727,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
+    /// Calls to this method are intercepted by a source generator and replaced with a NativeAOT-compatible method call
+    /// <see href="https://microsoft.github.io/vs-streamjsonrpc/docs/nativeAOT.html">when the interceptor is enabled</see>.
     /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream stream)
@@ -748,10 +748,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
         where T : class
@@ -772,10 +769,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler)
         where T : class
@@ -794,10 +788,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options)
         where T : class
@@ -813,10 +804,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <returns>An instance of the generated proxy.</returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>()
         where T : class
@@ -830,10 +818,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <typeparamref name="T"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
@@ -846,10 +831,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <paramref name="interfaceType"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType) => this.Attach(interfaceType, options: null);
 
@@ -859,10 +841,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable <paramref name="interfaceType"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
@@ -876,10 +855,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceTypes">The interfaces that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
-    /// <remarks>
-    /// Calls to this method that use a statically discoverable set of <paramref name="interfaceTypes"/> are intercepted
-    /// by a source generator and replaced with a NativeAOT-compatible method call.
-    /// </remarks>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(ReadOnlySpan<Type> interfaceTypes, JsonRpcProxyOptions? options)
     {
@@ -1290,14 +1266,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         throw new NotImplementedException();
     }
 
-    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
-    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
-    internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
-    {
-        this.ThrowIfConfigurationLocked();
-        this.rpcTargetInfo.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext);
-    }
-
     /// <summary>
     /// Creates a JSON-RPC client proxy that implements a given set of interfaces.
     /// </summary>
@@ -1330,6 +1298,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             proxyInputs.Options ?? JsonRpcProxyOptions.Default,
             proxyInputs.MarshaledObjectHandle,
             proxyInputs.Options?.OnDispose)!;
+    }
+
+    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
+    /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
+    internal void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings, SynchronizationContext? synchronizationContext)
+    {
+        this.ThrowIfConfigurationLocked();
+        this.rpcTargetInfo.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext);
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
