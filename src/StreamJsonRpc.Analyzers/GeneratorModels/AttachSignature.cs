@@ -1,5 +1,8 @@
 ﻿namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
+/// <summary>
+/// Identifies which JsonRpc.Attach overload is being intercepted.
+/// </summary>
 internal enum AttachSignature
 {
     /// <summary>

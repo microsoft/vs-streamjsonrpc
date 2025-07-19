@@ -7,6 +7,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
+/// <summary>
+/// A namespace or nesting type that must be reproduced in generated code in order to declare a potentially nested partial type.
+/// </summary>
+/// <param name="Name">The leaf name of the namespace or the name of the nesting type.</param>
+/// <param name="Parent">The parent namespace or nesting type.</param>
 internal abstract record Container(string Name, Container? Parent = null)
 {
     internal abstract bool IsPartial { get; }
