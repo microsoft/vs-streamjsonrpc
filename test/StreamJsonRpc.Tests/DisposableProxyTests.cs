@@ -12,7 +12,7 @@ using Nerdbank.Streams;
 /// <summary>
 /// Tests the proxying of <see cref="IDisposable"/> values.
 /// </summary>
-public abstract class DisposableProxyTests : TestBase
+public abstract partial class DisposableProxyTests : TestBase
 {
     protected readonly Server server = new Server();
     protected readonly JsonRpc serverRpc;
@@ -39,7 +39,8 @@ public abstract class DisposableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    public interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         Task<IDisposable?> GetDisposableAsync(bool returnNull = false);
 

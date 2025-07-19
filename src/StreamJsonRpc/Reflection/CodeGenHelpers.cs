@@ -10,7 +10,6 @@ namespace StreamJsonRpc.Reflection;
 /// This type is only public because mono does not support IgnoresAccessChecksToAttribute. Do not call directly.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-[Obsolete("This class is only for invoking from dynamically generated code.")]
 public static class CodeGenHelpers
 {
 #pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.

@@ -9,7 +9,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using Newtonsoft.Json.Linq;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 

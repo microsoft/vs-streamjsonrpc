@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
 /// </summary>
-public abstract class MarshalableProxyTests : TestBase
+public abstract partial class MarshalableProxyTests : TestBase
 {
     protected readonly Server server = new Server();
     protected readonly JsonRpc serverRpc;
@@ -42,7 +42,7 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalable]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
-    public interface IMarshalableAndSerializable : IMarshalable
+    public partial interface IMarshalableAndSerializable : IMarshalable
     {
         private class MarshalableConverter : JsonConverter
         {
@@ -82,19 +82,19 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalable : INonMarshalable
+    public partial interface IMarshalable : INonMarshalable
     {
     }
 
     [RpcMarshalable(CallScopedLifetime = true)]
-    public interface IMarshalableWithCallScopedLifetime : IMarshalable
+    public partial interface IMarshalableWithCallScopedLifetime : IMarshalable
     {
     }
 
     [RpcMarshalable]
-    public interface IGenericMarshalable<T> : IMarshalable
+    public partial interface IGenericMarshalable<T> : IMarshalable
     {
-        Task<T> DoSomethingWithParameterAsync(T paremeter);
+        Task<T> DoSomethingWithParameterAsync(T parameter);
     }
 
     public interface INonMarshalableDerivedFromMarshalable : IMarshalable
@@ -102,20 +102,26 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface INonDisposableMarshalable
+#pragma warning disable StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
+    public partial interface INonDisposableMarshalable
+#pragma warning restore StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     {
     }
 
     [RpcMarshalable]
-    public interface IMarshalableWithProperties : IDisposable
+    public partial interface IMarshalableWithProperties : IDisposable
     {
+#pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
         int Foo { get; }
+#pragma warning restore StreamJsonRpc0012 // Unsupported member
     }
 
     [RpcMarshalable]
-    public interface IMarshalableWithEvents : IDisposable
+    public partial interface IMarshalableWithEvents : IDisposable
     {
+#pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
         event EventHandler? Foo;
+#pragma warning restore StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
     }
 
     [RpcMarshalable]
@@ -126,7 +132,7 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalableOptionalInterface(5, typeof(IMarshalableSubTypesCombined))]
     [RpcMarshalableOptionalInterface(6, typeof(IMarshalableSubTypeWithIntermediateInterface))]
     [RpcMarshalableOptionalInterface(7, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
-    public interface IMarshalableWithOptionalInterfaces : IDisposable
+    public partial interface IMarshalableWithOptionalInterfaces : IDisposable
     {
         Task<int> GetAsync(int value);
 
@@ -137,12 +143,12 @@ public abstract class MarshalableProxyTests : TestBase
     [RpcMarshalable]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubTypeWithIntermediateInterface))]
-    public interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
+    public partial interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
     {
     }
 
     [RpcMarshalable]
-    public interface IMarshalableNonExtendingBase : IDisposable
+    public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
     }
@@ -156,7 +162,7 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
+    public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
 
@@ -164,13 +170,13 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
+    public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
+    public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
 
@@ -178,7 +184,7 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubType1Extended : IMarshalableSubType1
+    public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
 
@@ -194,14 +200,14 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
+    public partial interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
         Task<int> GetPlusFiveAsync(int value);
     }
 
     [RpcMarshalable]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
-    public interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
+    public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusTwoAsync(int value);
 
@@ -209,17 +215,18 @@ public abstract class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
-    public interface IMarshalableSubType2Extended : IMarshalableSubType2
+    public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
 
     [RpcMarshalable]
-    public interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
+    public partial interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
     {
     }
 
-    public interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);
 

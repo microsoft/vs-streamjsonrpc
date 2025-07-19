@@ -63,7 +63,7 @@ internal static class ProxyGeneration
     /// </param>
     /// <param name="implementedOptionalInterfaces">
     /// Additional marshalable interfaces that the client proxy should implement.
-    /// Methods on these interfaces are invoke using a special name transformation that includes an integer code,
+    /// Methods on these interfaces are invoked using a special name transformation that includes an integer code,
     /// ensuring that methods do not suffer from name collisions across interfaces.
     /// </param>
     /// <returns>The generated type.</returns>
@@ -256,6 +256,27 @@ internal static class ProxyGeneration
 
                 proxyTypeBuilder.DefineMethodOverride(jsonRpcPropertyGetter, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredProperty(nameof(IJsonRpcClientProxy.JsonRpc))!.GetMethod!);
                 jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
+            }
+
+            // IJsonRpcClientProxy.As method
+            {
+                MethodBuilder asMethod = proxyTypeBuilder.DefineMethod(
+                    nameof(IJsonRpcClientProxy.As),
+                    MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Final | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+                    null,
+                    Type.EmptyTypes);
+                GenericTypeParameterBuilder typeArgBuilder = asMethod.DefineGenericParameters("T")[0];
+                typeArgBuilder.SetGenericParameterAttributes(GenericParameterAttributes.ReferenceTypeConstraint);
+                asMethod.SetReturnType(typeArgBuilder);
+                ILGenerator il = asMethod.GetILGenerator();
+
+                // return this as T;
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Isinst, typeArgBuilder);
+                il.Emit(OpCodes.Unbox_Any, typeArgBuilder);
+                il.Emit(OpCodes.Ret);
+
+                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.As))!);
             }
 
             IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));

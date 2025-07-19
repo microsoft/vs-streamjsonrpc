@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <PublishAot>true</PublishAot>
+    <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,4 +17,5 @@
     <!--<TrimmerRootAssembly Include="StreamJsonRpc" />-->
   </ItemGroup>
 
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
 </Project>

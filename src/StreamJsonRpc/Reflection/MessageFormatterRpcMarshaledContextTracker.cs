@@ -338,27 +338,30 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-        object result = this.jsonRpc.Attach(
-            interfaceType,
-            optionalInterfaces?.ToArray(),
-            new JsonRpcProxyOptions(options)
+        object result = this.jsonRpc.CreateProxy(
+            new ProxyInputs
             {
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
-                OnDispose = token.Value.Lifetime == MarshalLifetime.Call ? null : delegate
+                ContractInterface = interfaceType,
+                ImplementedOptionalInterfaces = optionalInterfaces?.ToArray(),
+                Options = new JsonRpcProxyOptions(options)
                 {
-                    if (!this.jsonRpc.IsDisposed)
+                    MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
+                    OnDispose = token.Value.Lifetime == MarshalLifetime.Call ? null : delegate
                     {
-                        // Only forward the Dispose call if the marshaled interface derives from IDisposable.
-                        if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                        if (!this.jsonRpc.IsDisposed)
                         {
-                            this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
-                        }
+                            // Only forward the Dispose call if the marshaled interface derives from IDisposable.
+                            if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                            {
+                                this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
+                            }
 
-                        this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
-                    }
+                            this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                        }
+                    },
                 },
-            },
-            token.Value.Handle);
+                MarshaledObjectHandle = token.Value.Handle,
+            });
         if (options.OnProxyConstructed is object)
         {
             options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);

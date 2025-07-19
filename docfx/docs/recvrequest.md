@@ -99,7 +99,7 @@ class Server
 ```
 
 When you raise the `FileChanged` event on the server, @StreamJsonRpc.JsonRpc will relay that as a notification message
-back to the client. [Learn more about dynamic proxies on the client](dynamicproxy.md) and how they can
+back to the client. [Learn more about proxies on the client](proxies.md) and how they can
 manifest these notifications as natural .NET events on the client.
 
 You can customize the method names used in the event notification by adding the server target object
