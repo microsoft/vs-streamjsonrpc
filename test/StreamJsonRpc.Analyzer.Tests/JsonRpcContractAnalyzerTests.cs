@@ -201,6 +201,39 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task RpcMarshalable_WithOptionalInterfaceAndNoAttribute()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))|}]
+            partial interface IMyRpc : IDisposable
+            {
+            }
+
+            interface IMarshalableSubType1
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_WithOptionalInterface()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
+            partial interface IMyRpc : IDisposable
+            {
+            }
+
+            [RpcMarshalable]
+            partial interface IMarshalableSubType1 : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task RpcMarshalable_CallScopedNeedNotBeIDisposable()
     {
         await VerifyCS.VerifyAnalyzerAsync("""

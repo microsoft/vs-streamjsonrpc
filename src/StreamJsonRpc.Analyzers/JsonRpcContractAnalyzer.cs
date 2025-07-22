@@ -33,6 +33,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public const string RpcMarshableDisposableId = "StreamJsonRpc0005";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0007: Use RpcMarshalableAttribute on optional marshalable interface.
+    /// </summary>
+    public const string UseRpcMarshalableAttributeOnOptionalInterfacesId = "StreamJsonRpc0007";
+
+    /// <summary>
     /// Diagnostic ID for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public const string UnsupportedReturnTypeId = "StreamJsonRpc0011";
@@ -97,6 +102,18 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(RpcMarshableDisposableId));
+
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0007: Use RpcMarshalableAttribute on optional marshalable interface.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UseRpcMarshalableAttributeOnOptionalInterfaces = new(
+        id: UseRpcMarshalableAttributeOnOptionalInterfacesId,
+        title: Strings.StreamJsonRpc0007_Title,
+        messageFormat: Strings.StreamJsonRpc0007_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(UseRpcMarshalableAttributeOnOptionalInterfacesId));
 
     /// <summary>
     /// Diagnostic for StreamJsonRpc0011: RPC methods use supported return types.
@@ -177,6 +194,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         InaccessibleInterface,
         PartialInterface,
         RpcMarshableDisposable,
+        UseRpcMarshalableAttributeOnOptionalInterfaces,
         UnsupportedReturnType,
         UnsupportedMemberType,
         NoGenericMethods,
@@ -254,6 +272,8 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         bool isCallScopedLifetime = rpcContractAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.RpcMarshalableAttribute.CallScopedLifetime).Value.Value is true;
         ImmutableList<Diagnostic> diagnostics = [];
 
+        AttributeData[] optionalIfaceAttrs = [.. namedType.GetAttributes().Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableOptionalInterface))];
+
         BaseTypeDeclarationSyntax? syntax = namedType.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(context.CancellationToken) as BaseTypeDeclarationSyntax;
 
         if (!context.Compilation.IsSymbolAccessibleWithin(namedType, context.Compilation.Assembly))
@@ -279,6 +299,20 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         if (isRpcMarshalable && !isCallScopedLifetime && !knownSymbols.IDisposable.IsAssignableFrom(namedType))
         {
             diagnostics = diagnostics.Add(Diagnostic.Create(RpcMarshableDisposable, namedType.Locations.FirstOrDefault(), namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+        }
+
+        foreach (AttributeData optionalIfaceAttr in optionalIfaceAttrs)
+        {
+            if (optionalIfaceAttr.ConstructorArguments is [_, { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol ifaceType }])
+            {
+                if (!ifaceType.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.RpcMarshalableAttribute)))
+                {
+                    diagnostics = diagnostics.Add(Diagnostic.Create(
+                        UseRpcMarshalableAttributeOnOptionalInterfaces,
+                        optionalIfaceAttr.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation(),
+                        ifaceType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)));
+                }
+            }
         }
 
         foreach (ISymbol member in namedType.GetAllMembers())
