@@ -377,7 +377,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             }
         }
 
-        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo t)
+        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] TypeInfo t)
         {
             // As we enumerate methods, skip accessor methods
             foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
@@ -501,14 +501,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
 
-        for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+        foreach (EventInfo evt in exposedMembersOnType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
-            foreach (EventInfo evt in t.DeclaredEvents)
+            if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
             {
-                if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
-                {
-                    eventInfos.Add(evt);
-                }
+                eventInfos.Add(evt);
             }
         }
 
