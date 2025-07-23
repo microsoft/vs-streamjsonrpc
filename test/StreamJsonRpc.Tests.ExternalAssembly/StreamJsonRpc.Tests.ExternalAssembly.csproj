@@ -5,4 +5,9 @@
     <DisablePolyfills>true</DisablePolyfills>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+  </ItemGroup>
+
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
 </Project>

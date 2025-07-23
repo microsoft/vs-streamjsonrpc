@@ -9,6 +9,7 @@
          to avoid proliferation of #if sections in our test code.
          So suppress it unless we're targeting the oldest framework among our targets. -->
     <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <!-- PolyType generated code constructs a ProgressWithCompletion<T> without a JTF, but for tests we don't care. -->
     <NoWarn>$(NoWarn);VSTHRD012</NoWarn>
   </PropertyGroup>
@@ -80,4 +81,5 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
 </Project>

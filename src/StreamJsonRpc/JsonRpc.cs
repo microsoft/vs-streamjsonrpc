@@ -743,6 +743,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <remarks>
+    /// Calls to this method are intercepted by a source generator and replaced with a NativeAOT-compatible method call
+    /// <see href="https://microsoft.github.io/vs-streamjsonrpc/docs/nativeAOT.html">when the interceptor is enabled</see>.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream stream)
         where T : class
@@ -761,12 +765,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
         where T : class
     {
         var rpc = new JsonRpc(sendingStream, receivingStream);
-        T proxy = rpc.CreateProxy<T>(default, null, JsonRpcProxyOptions.Default, null);
+        T proxy = (T)rpc.CreateProxy(new ProxyInputs { ContractInterface = typeof(T) });
         rpc.StartListening();
         return proxy;
     }
@@ -781,6 +786,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler)
         where T : class
@@ -799,12 +805,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options)
         where T : class
     {
         var rpc = new JsonRpc(handler);
-        T proxy = rpc.CreateProxy<T>(default, null, options, null)!;
+        T proxy = (T)rpc.CreateProxy(new ProxyInputs { ContractInterface = typeof(T), Options = options });
         rpc.StartListening();
         return proxy;
     }
@@ -814,6 +821,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>()
         where T : class
@@ -827,11 +835,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
     {
-        return this.CreateProxy<T>(default, null, options, null);
+        return (T)this.CreateProxy(new ProxyInputs { ContractInterface = typeof(T), Options = options });
     }
 
     /// <summary>
@@ -839,6 +848,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType) => this.Attach(interfaceType, options: null);
 
@@ -848,11 +858,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
         Requires.NotNull(interfaceType, nameof(interfaceType));
-        return this.CreateProxy(interfaceType.GetTypeInfo(), default, null, options ?? JsonRpcProxyOptions.Default, null)!;
+        return this.CreateProxy(new ProxyInputs { ContractInterface = interfaceType.GetTypeInfo(), Options = options });
     }
 
     /// <summary>
@@ -861,11 +872,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceTypes">The interfaces that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(ReadOnlySpan<Type> interfaceTypes, JsonRpcProxyOptions? options)
     {
         Requires.Argument(interfaceTypes.Length > 0, nameof(interfaceTypes), Resources.RequiredArgumentMissing);
-        return this.CreateProxy(interfaceTypes[0], interfaceTypes.Slice(1), null, options ?? JsonRpcProxyOptions.Default, null)!;
+        return this.CreateProxy(new ProxyInputs { ContractInterface = interfaceTypes[0], AdditionalContractInterfaces = interfaceTypes[1..].ToArray(), Options = options });
     }
 
     /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
@@ -1289,11 +1301,38 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         throw new NotImplementedException();
     }
 
-    /// <inheritdoc cref="CreateProxy(Type, ReadOnlySpan{Type}, ReadOnlySpan{ValueTuple{Type, int}}, JsonRpcProxyOptions?, long?)"/>
+    /// <summary>
+    /// Creates a JSON-RPC client proxy that implements a given set of interfaces.
+    /// </summary>
+    /// <param name="proxyInputs">Parameters for the proxy.</param>
+    /// <returns>An instance of the generated proxy.</returns>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
-    internal object Attach(Type contractInterface, (Type Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
+    internal IJsonRpcClientProxyInternal CreateProxy(in ProxyInputs proxyInputs)
     {
-        return this.CreateProxy(contractInterface.GetTypeInfo(), default, implementedOptionalInterfaces, options, marshaledObjectHandle);
+        if (proxyInputs.Options?.ProxySource is not JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic && ProxyBase.TryCreateProxy(this, proxyInputs, out IJsonRpcClientProxy? proxy))
+        {
+            return (IJsonRpcClientProxyInternal)proxy;
+        }
+
+#if !NETSTANDARD2_0
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            throw new NotSupportedException("CreateProxy is not supported if dynamic code is not supported.");
+        }
+#endif
+
+        if (proxyInputs.Options?.ProxySource is JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
+        {
+            throw new NotImplementedException("No source generated proxy is available for the requested interface(s), and dynamic proxies are forbidden by the options.");
+        }
+
+        TypeInfo proxyType = ProxyGeneration.Get(proxyInputs.ContractInterface, proxyInputs.AdditionalContractInterfaces.Span, proxyInputs.ImplementedOptionalInterfaces.Span);
+        return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
+            proxyType.AsType(),
+            this,
+            proxyInputs.Options ?? JsonRpcProxyOptions.Default,
+            proxyInputs.MarshaledObjectHandle,
+            proxyInputs.Options?.OnDispose)!;
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
@@ -2847,41 +2886,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             Verify.FailOperation(Resources.MustNotBeListening);
         }
-    }
-
-    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
-    private T CreateProxy<T>(ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
-        where T : class
-    {
-        return (T)this.CreateProxy(typeof(T).GetTypeInfo(), additionalContractInterfaces, implementedOptionalInterfaces, options, marshaledObjectHandle);
-    }
-
-    /// <summary>
-    /// Creates a JSON-RPC client proxy that implements a given set of interfaces.
-    /// </summary>
-    /// <param name="contractInterface">The interface that describes the functions available on the remote end.</param>
-    /// <param name="additionalContractInterfaces"><inheritdoc cref="ProxyGeneration.Get" path="/param[@name='additionalContractInterfaces']"/></param>
-    /// <param name="implementedOptionalInterfaces">Additional marshalable interfaces that the client proxy should implement.</param>
-    /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null" />, default options will be used.</param>
-    /// <param name="marshaledObjectHandle">The handle to the remote object that is being marshaled via this proxy.</param>
-    /// <returns>An instance of the generated proxy.</returns>
-    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
-    private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
-    {
-#if !NETSTANDARD2_0
-        if (!RuntimeFeature.IsDynamicCodeSupported)
-        {
-            throw new NotSupportedException("CreateProxy is not supported if dynamic code is not supported.");
-        }
-#endif
-
-        TypeInfo proxyType = ProxyGeneration.Get(contractInterface, additionalContractInterfaces, implementedOptionalInterfaces);
-        return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
-            proxyType.AsType(),
-            this,
-            options ?? JsonRpcProxyOptions.Default,
-            marshaledObjectHandle,
-            options?.OnDispose)!;
     }
 
     private struct LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type) : IEquatable<LoadableType>

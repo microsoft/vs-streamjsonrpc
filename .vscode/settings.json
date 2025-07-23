@@ -5,7 +5,7 @@
   "azure-pipelines.1ESPipelineTemplatesSchemaFile": true,
   "omnisharp.enableEditorConfigSupport": true,
   "omnisharp.enableRoslynAnalyzers": true,
-  "dotnet.defaultSolution": "StreamJsonRpc.sln",
+  "dotnet.defaultSolution": "StreamJsonRpc.slnx",
   "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
   "editor.formatOnSave": true,
   "[xml]": {

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
+    <File Path=".github/renovate.json" />
     <File Path="azure-pipelines.yml" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
@@ -12,17 +13,24 @@
   </Folder>
   <Folder Name="/src/">
     <File Path="src/.editorconfig" />
+    <File Path="src/Analyzers.props" />
+    <File Path="src/AnalyzerUser.targets" />
     <File Path="src/Directory.Build.props" />
     <File Path="src/Directory.Build.targets" />
+    <Project Path="src/StreamJsonRpc.Analyzers.CodeFixes/StreamJsonRpc.Analyzers.CodeFixes.csproj" />
+    <Project Path="src/StreamJsonRpc.Analyzers/StreamJsonRpc.Analyzers.csproj" />
     <Project Path="src/StreamJsonRpc/StreamJsonRpc.csproj" />
   </Folder>
   <Folder Name="/test/">
     <File Path="test/.editorconfig" />
     <File Path="test/Directory.Build.props" />
     <File Path="test/Directory.Build.targets" />
+    <Project Path="samples/Samples.csproj" />
     <Project Path="test/Benchmarks/Benchmarks.csproj" />
     <Project Path="test/NativeAOTCompatibility.Test/NativeAOTCompatibility.Test.csproj" />
+    <Project Path="test/StreamJsonRpc.Analyzer.Tests/StreamJsonRpc.Analyzer.Tests.csproj" />
     <Project Path="test/StreamJsonRpc.Tests.ExternalAssembly/StreamJsonRpc.Tests.ExternalAssembly.csproj" />
+    <Project Path="test/StreamJsonRpc.Tests.NoInterceptors/StreamJsonRpc.Tests.NoInterceptors.csproj" />
     <Project Path="test/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj" />
   </Folder>
 </Solution>

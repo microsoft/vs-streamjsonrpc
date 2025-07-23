@@ -2,7 +2,7 @@
 
 StreamJsonRpc allows transmitting [`IObserver<T>`](https://learn.microsoft.com/dotnet/api/system.iobserver-1) objects in arguments and return values.
 
-StreamJsonRpc supports standard .NET events on target objects and interface-backed dynamic proxies.
+StreamJsonRpc supports standard .NET events on target objects and interface-backed proxies.
 But .NET events have several limitations:
 
 1. The RPC target object does not know if or when the client has an event handler attached to receive these events.

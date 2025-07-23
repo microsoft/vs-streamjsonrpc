@@ -13,7 +13,7 @@ using Nerdbank.Streams;
 using Newtonsoft.Json;
 using NBMP = Nerdbank.MessagePack;
 
-public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
+public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 {
     protected readonly Server server = new();
     protected readonly Client client = new();
@@ -38,14 +38,16 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     /// since the server implements the methods on this interface with a return type of Task{T}
     /// but we want the client proxy to NOT be that.
     /// </summary>
-    protected interface IServer2
+    [JsonRpcContract]
+    public partial interface IServer2
     {
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
     }
 
-    protected interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         IAsyncEnumerable<int> GetValuesFromEnumeratedSourceAsync(CancellationToken cancellationToken);
 
@@ -78,7 +80,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<string> CallbackClientAndYieldOneValueAsync(CancellationToken cancellationToken);
     }
 
-    protected interface IClient
+    [JsonRpcContract]
+    public partial interface IClient
     {
         Task DoSomethingAsync(CancellationToken cancellationToken);
     }
@@ -622,7 +625,7 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     }
 
     [DataContract]
-    protected internal class CompoundEnumerableResult
+    public class CompoundEnumerableResult
     {
         [DataMember]
         public string? Message { get; set; }
