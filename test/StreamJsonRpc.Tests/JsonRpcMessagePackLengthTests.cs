@@ -7,14 +7,15 @@ using MessagePack.Formatters;
 using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
 
-public class JsonRpcMessagePackLengthTests : JsonRpcTests
+public partial class JsonRpcMessagePackLengthTests : JsonRpcTests
 {
     public JsonRpcMessagePackLengthTests(ITestOutputHelper logger)
         : base(logger)
     {
     }
 
-    internal interface IMessagePackServer
+    [JsonRpcContract]
+    internal partial interface IMessagePackServer
     {
         Task<UnionBaseClass> ReturnUnionTypeAsync(CancellationToken cancellationToken);
 

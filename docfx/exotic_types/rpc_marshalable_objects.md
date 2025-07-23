@@ -185,7 +185,7 @@ This risk can be mitigated by using call-scoped marshalable interfaces.
 
 ### As an argument without a proxy for an RPC interface
 
-When you are not using an RPC interface and dynamically generated proxy that implements it, you can still pass a marshalable object as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
+When you are not using an RPC interface and generated proxy that implements it, you can still pass a marshalable object as an argument by explicitly passing in the declared parameter types to the @StreamJsonRpc.JsonRpc.InvokeWithCancellationAsync* call:
 
 ```cs
 ICounter arg = new Counter();

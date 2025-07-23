@@ -6,6 +6,8 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MessagePackVersion>2.5.198</MessagePackVersion>
     <MicroBuildVersion>2.0.198</MicroBuildVersion>
+    <RoslynVersion>4.14.0</RoslynVersion>
+    <RoslynVersionForAnalyzers>4.14.0</RoslynVersionForAnalyzers>
     <VisualStudioThreadingVersion>17.14.15</VisualStudioThreadingVersion>
     <CodeAnalysisAnalyzerVersion>4.14.0</CodeAnalysisAnalyzerVersion>
   </PropertyGroup>
@@ -16,6 +18,12 @@
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit" Version="1.1.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="$(CodeAnalysisAnalyzerVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Only" Version="$(VisualStudioThreadingVersion)" />
@@ -36,8 +44,14 @@
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
     <PackageVersion Include="xunit.stafact" Version="2.1.7" />
   </ItemGroup>
-  <ItemGroup Condition="'$(IsBenchmarksProject)'=='true'">
+  <ItemGroup Condition="'$(IsAnalyzerProject)'=='true'">
     <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.IO.Pipelines" Version="9.0.0" />
+    <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsBenchmarksProject)'=='true' or '$(IsTestProject)'=='true'">
+    <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.IO.Pipelines" Version="9.0.0" />
     <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
