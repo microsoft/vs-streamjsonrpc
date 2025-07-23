@@ -94,7 +94,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
     }
 
-    internal static MethodNameMap GetMethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo type)
+    internal static MethodNameMap GetMethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo type)
     {
         MethodNameMap? map;
         lock (MethodNameMaps)
@@ -377,7 +377,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             }
         }
 
-        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo t)
+        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods)] TypeInfo t)
         {
             // As we enumerate methods, skip accessor methods
             foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
@@ -497,18 +497,15 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 #if !NET10_0_OR_GREATER
     [UnconditionalSuppressMessage("Trimming", "IL2065:UnrecognizedReflectionPattern", Justification = "false positive: https://github.com/dotnet/linker/issues/1731")]
 #endif
-    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType)
+    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
 
-        for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
+        foreach (EventInfo evt in exposedMembersOnType.GetEvents(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
         {
-            foreach (EventInfo evt in t.DeclaredEvents)
+            if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
             {
-                if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
-                {
-                    eventInfos.Add(evt);
-                }
+                eventInfos.Add(evt);
             }
         }
 
@@ -591,7 +588,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         private readonly Dictionary<MethodInfo, JsonRpcIgnoreAttribute?> ignoreAttributes = new Dictionary<MethodInfo, JsonRpcIgnoreAttribute?>();
 
         [UnconditionalSuppressMessage("Trimming", "IL2111:UnrecognizedReflectionPattern", Justification = "typeInfo is annotated as preserve All members, so any Types returned from ImplementedInterfaces should be preserved as well. See https://github.com/dotnet/linker/issues/1731.")]
-        internal MethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo typeInfo)
+        internal MethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo typeInfo)
         {
             Requires.NotNull(typeInfo, nameof(typeInfo));
             this.interfaceMaps = typeInfo.IsInterface ? default
