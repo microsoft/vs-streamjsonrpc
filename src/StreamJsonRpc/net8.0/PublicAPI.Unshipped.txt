@@ -1,1 +1,28 @@
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.GetJsonSchema(Nerdbank.MessagePack.JsonSchemaContext! context, PolyType.Abstractions.ITypeShape! typeShape) -> System.Text.Json.Nodes.JsonObject?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context) -> System.Collections.Generic.IAsyncEnumerable<T>?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in System.Collections.Generic.IAsyncEnumerable<T>? value, Nerdbank.MessagePack.SerializationContext context) -> void
+static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
+StreamJsonRpc.JsonRpc.AddLoadableType(System.Type! type) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpc.TraceEvents.IFormatterConverterDeserializationFailure = 22 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.NerdbankMessagePackFormatter
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.AsyncEnumerableConverter() -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
+StreamJsonRpc.NerdbankMessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
+StreamJsonRpc.NerdbankMessagePackFormatter.NerdbankMessagePackFormatter() -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.get -> PolyType.ITypeShapeProvider!
+StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.init -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer.get -> Nerdbank.MessagePack.MessagePackSerializer!
+StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer.init -> void
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.EnumeratorResults() -> void
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.get -> bool
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.init -> void
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
+StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.ProgressProxy(StreamJsonRpc.JsonRpc! rpc, object! token, bool useNamedArguments) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.Report(T value) -> void
+virtual StreamJsonRpc.JsonRpc.LoadTypeTrimSafe(string! typeFullName, string? assemblyName) -> System.Type?

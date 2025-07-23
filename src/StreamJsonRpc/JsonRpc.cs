@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc.Protocol;
@@ -29,13 +31,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private const string JoinableTaskTokenHeaderName = "joinableTaskToken";
 
-    private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethods(BindingFlags.Static | BindingFlags.NonPublic).Single(m => m.Name == nameof(MarshalWithControlledLifetime) && m.IsGenericMethod);
+    private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethod(nameof(MarshalWithControlledLifetimeOpen), BindingFlags.Static | BindingFlags.NonPublic)!;
 
     /// <summary>
     /// A singleton error object that can be returned by <see cref="DispatchIncomingRequestAsync(JsonRpcRequest)"/> in error cases
     /// for requests that are actually notifications and thus the error will be dropped.
     /// </summary>
     private static readonly JsonRpcError DroppedError = new();
+
+    private static readonly ImmutableDictionary<string, LoadableType> DefaultRuntimeDeserializableTypes = ImmutableDictionary.Create<string, LoadableType>()
+        .Add("System.Exception", new LoadableType(typeof(Exception)))
+        .Add("System.ArgumentException", new LoadableType(typeof(ArgumentException)))
+        .Add("System.InvalidOperationException", new LoadableType(typeof(InvalidOperationException)));
+
+#if NET
+    private static readonly MethodInfo ValueTaskAsTaskMethodInfo = typeof(ValueTask<>).GetMethod(nameof(ValueTask<int>.AsTask))!;
+    private static readonly MethodInfo ValueTaskGetResultMethodInfo = typeof(ValueTask<>).GetMethod("get_Result")!;
+    private static readonly MethodInfo TaskGetResultMethodInfo = typeof(Task<>).GetMethod("get_Result")!;
+#endif
 
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     private readonly object syncObject = new object();
@@ -92,6 +105,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
 
+    // TODO: make this a custom collection type so it can be shared across JsonRpc instances.
+    private ImmutableDictionary<string, LoadableType> runtimeDeserializableTypes = DefaultRuntimeDeserializableTypes;
     private Task? readLinesTask;
     private long nextId = 1;
     private int requestsInDispatchCount;
@@ -171,6 +186,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public JsonRpc(Stream stream)
         : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
     {
@@ -187,6 +203,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public JsonRpc(Stream? sendingStream, Stream? receivingStream, object? target = null)
         : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
     {
@@ -204,6 +221,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.UntypedRpcTarget)]
     public JsonRpc(IJsonRpcMessageHandler messageHandler, object? target)
         : this(messageHandler)
     {
@@ -240,6 +259,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
         this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
         this.CancellationStrategy = new StandardCancellationStrategy(this);
+
+        this.AddLoadableType(typeof(Exception));
+        this.AddLoadableType(typeof(InvalidOperationException));
+        this.AddLoadableType(typeof(ArgumentException));
     }
 
     /// <summary>
@@ -424,6 +447,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         /// A base-type that <em>does</em> offer the constructor will be instantiated instead.
         /// </summary>
         ExceptionNotDeserializable,
+
+        /// <summary>
+        /// An error occurred while deserializing a value within an <see cref="IFormatterConverter"/> interface.
+        /// </summary>
+        IFormatterConverterDeserializationFailure,
     }
 
     /// <summary>
@@ -662,6 +690,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
 #pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static JsonRpc Attach(Stream stream, object? target = null)
 #pragma warning restore RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
     {
@@ -679,6 +708,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static JsonRpc Attach(Stream? sendingStream, Stream? receivingStream, object? target = null)
     {
         if (sendingStream is null && receivingStream is null)
@@ -713,6 +743,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream stream)
         where T : class
     {
@@ -730,6 +761,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
         where T : class
     {
@@ -749,6 +781,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler)
         where T : class
     {
@@ -766,6 +799,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public static T Attach<T>(IJsonRpcMessageHandler handler, JsonRpcProxyOptions? options)
         where T : class
     {
@@ -780,6 +814,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>()
         where T : class
     {
@@ -792,6 +827,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <typeparam name="T">The interface that describes the functions available on the remote end.</typeparam>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public T Attach<T>(JsonRpcProxyOptions? options)
         where T : class
     {
@@ -803,6 +839,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType) => this.Attach(interfaceType, options: null);
 
     /// <summary>
@@ -811,6 +848,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceType">The interface that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(Type interfaceType, JsonRpcProxyOptions? options)
     {
         Requires.NotNull(interfaceType, nameof(interfaceType));
@@ -823,6 +861,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="interfaceTypes">The interfaces that describes the functions available on the remote end.</param>
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public object Attach(ReadOnlySpan<Type> interfaceTypes, JsonRpcProxyOptions? options)
     {
         Requires.Argument(interfaceTypes.Length > 0, nameof(interfaceTypes), Resources.RequiredArgumentMissing);
@@ -830,19 +869,28 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="AddLocalRpcTarget(object, JsonRpcTargetOptions?)"/>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.UntypedRpcTarget)]
     public void AddLocalRpcTarget(object target) => this.AddLocalRpcTarget(target, null);
 
     /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.UntypedRpcTarget)]
     public void AddLocalRpcTarget(object target, JsonRpcTargetOptions? options) => this.AddLocalRpcTarget(Requires.NotNull(target, nameof(target)).GetType(), target, options);
 
     /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
     /// <typeparam name="T"><inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)" path="/param[@name='exposingMembersOn']"/></typeparam>
-    public void AddLocalRpcTarget<T>(T target, JsonRpcTargetOptions? options)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    public void AddLocalRpcTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T target, JsonRpcTargetOptions? options)
         where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
     /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
-    public void AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    public void AddLocalRpcTarget(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
+        object target,
+        JsonRpcTargetOptions? options)
     {
         Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
         Requires.NotNull(target, nameof(target));
@@ -906,6 +954,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     {
         Requires.NotNull(methodName, nameof(methodName));
         return this.rpcTargetInfo.GetJsonRpcMethodAttribute(methodName, parameters);
+    }
+
+    /// <summary>
+    /// Gets or sets the set of types that can be deserialized from their name at runtime.
+    /// </summary>
+    /// <remarks>
+    /// This set of types is used by the default implementation of <see cref="LoadTypeTrimSafe(string, string?)"/> to determine
+    /// which types can be deserialized when their name is encountered in an RPC message.
+    /// </remarks>
+    public void AddLoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
+    {
+        Requires.NotNull(type);
+        Requires.Argument(type.FullName is not null, nameof(type), Resources.TypeMustHaveFullName);
+        this.ThrowIfConfigurationLocked();
+        lock (this.syncObject)
+        {
+            this.runtimeDeserializableTypes = this.runtimeDeserializableTypes.SetItem(type.FullName, new LoadableType(type));
+        }
     }
 
     /// <summary>
@@ -1190,26 +1256,28 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Use <see cref="MarshalLimitedArgument{T}(T)"/> for a simpler lifetime model when the object should only be marshaled within the scope of a single RPC call.
     /// </para>
     /// </remarks>
-    internal static IRpcMarshaledContext<T> MarshalWithControlledLifetime<T>(T marshaledObject, JsonRpcTargetOptions options)
+    internal static IRpcMarshaledContext<T> MarshalWithControlledLifetimeOpen<T>(T marshaledObject, JsonRpcTargetOptions options)
         where T : class
     {
         return new RpcMarshaledContext<T>(marshaledObject, options);
     }
 
-    /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
-    /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
-    /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
-    /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
+    /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
+    /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
+    /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
     internal static IRpcMarshaledContext<object> MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
     {
         return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options })!;
     }
 
-    /// <inheritdoc cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/>
+    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
     /// <returns>A proxy value that may be used within an RPC argument so the RPC server may call back into the <paramref name="marshaledObject"/> object on the RPC client.</returns>
     /// <remarks>
     /// <para>
-    /// Use <see cref="MarshalWithControlledLifetime{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
+    /// Use <see cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
     /// This is required when the value is returned from an RPC method or when it is used within an RPC argument and must outlive that RPC invocation.
     /// </para>
     /// </remarks>
@@ -1217,11 +1285,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         where T : class
     {
         // This method is included in the spec, but hasn't been implemented yet and has no callers.
-        // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetime method's responsibilities.
+        // It is here to match the spec and to help give some clarity around the boundaries of the MarshalWithControlledLifetimeOpen method's responsibilities.
         throw new NotImplementedException();
     }
 
     /// <inheritdoc cref="CreateProxy(Type, ReadOnlySpan{Type}, ReadOnlySpan{ValueTuple{Type, int}}, JsonRpcProxyOptions?, long?)"/>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     internal object Attach(Type contractInterface, (Type Type, int Code)[]? implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
         return this.CreateProxy(contractInterface.GetTypeInfo(), default, implementedOptionalInterfaces, options, marshaledObjectHandle);
@@ -1236,7 +1305,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
-    internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
+        object target,
+        JsonRpcTargetOptions? options,
+        bool requestRevertOption)
     {
         return this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption);
     }
@@ -1250,7 +1324,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="revertAddLocalRpcTarget">
     /// An optional object that may be disposed of to revert the addition of the target object.
     /// </param>
-    internal void AddRpcInterfaceToTargetInternal(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTargetInternal([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
         this.rpcTargetInfo.AddRpcInterfaceToTarget(exposingMembersOn, target, options, revertAddLocalRpcTarget);
     }
@@ -1271,6 +1345,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </para>
     /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
     /// </remarks>
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
     protected internal virtual Type? LoadType(string typeFullName, string? assemblyName)
     {
         Requires.NotNull(typeFullName, nameof(typeFullName));
@@ -1304,6 +1380,25 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Type? runtimeType = typeDeclaringAssembly is object ? typeDeclaringAssembly.GetType(typeFullName) : Type.GetType(typeFullName);
         return runtimeType;
     }
+
+    /// <summary>
+    /// When overridden by a derived type, this attempts to load a type based on its full name and possibly assembly name.
+    /// </summary>
+    /// <param name="typeFullName">The <see cref="Type.FullName"/> of the type to be loaded.</param>
+    /// <param name="assemblyName">The assemble name that is expected to define the type, if available. This should be parseable by <see cref="AssemblyName(string)"/>.</param>
+    /// <returns>The loaded <see cref="Type"/>, if one could be found; otherwise <see langword="null" />.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method is used to load types that are strongly referenced by incoming messages during serialization.
+    /// It is important to not load types that may pose a security threat based on the type and the trust level of the remote party.
+    /// </para>
+    /// <para>
+    /// The default implementation of this method matches types registered with <see cref="AddLoadableType(Type)"/>.
+    /// </para>
+    /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
+    /// </remarks>
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+    protected internal virtual Type? LoadTypeTrimSafe(string typeFullName, string? assemblyName) => this.runtimeDeserializableTypes.TryGetValue(typeFullName, out LoadableType type) ? type.Type : null;
 
     /// <summary>
     /// Disposes managed and native resources held by this instance.
@@ -1352,7 +1447,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         bool iserializable = this.ExceptionStrategy == ExceptionProcessing.ISerializable;
         if (!ExceptionSerializationHelpers.IsSerializable(exception))
         {
-            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ExceptionNotSerializable, "An exception of type {0} was thrown but is not serializable.", exception.GetType().AssemblyQualifiedName);
+            if (localRpcEx is null)
+            {
+                this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ExceptionNotSerializable, "An exception of type {0} was thrown but is not serializable.", exception.GetType().AssemblyQualifiedName);
+            }
+
             iserializable = false;
         }
 
@@ -1575,7 +1674,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             }
             else
             {
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.ResponseUnexpectedFormat, JsonConvert.SerializeObject(response)));
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.ResponseUnexpectedFormat, response?.GetType().FullName ?? "(null)"));
             }
         }
         else
@@ -1691,7 +1790,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // Checking on the runtime result object itself is problematic because .NET / C# implements
         // async Task methods to return a Task<VoidTaskResult> instance, and we shouldn't consider
         // the VoidTaskResult internal struct as a meaningful result.
-        return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _)
+        return TryGetTaskOfTOrValueTaskOfTType(targetMethod.ReturnType!.GetTypeInfo(), out _, out _)
             ? await this.HandleInvocationTaskOfTResultAsync(request, resultingTask, cancellationToken).ConfigureAwait(false)
             : this.HandleInvocationTaskResult(request, resultingTask);
     }
@@ -1772,8 +1871,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     /// <param name="taskTypeInfo">The original type of the value returned from an RPC-invoked method.</param>
     /// <param name="taskOfTTypeInfo">Receives the <see cref="Task{T}"/> type that is a base type of <paramref name="taskTypeInfo"/>, if found.</param>
+    /// <param name="isValueTask">Receives a value indicating whether <paramref name="taskOfTTypeInfo"/> is a ValueTask (true) or Task (false).</param>
     /// <returns><see langword="true"/> if <see cref="Task{T}"/> could be found in the type hierarchy; otherwise <see langword="false"/>.</returns>
-    private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, [NotNullWhen(true)] out TypeInfo? taskOfTTypeInfo)
+    private static bool TryGetTaskOfTOrValueTaskOfTType(TypeInfo taskTypeInfo, [NotNullWhen(true)] out TypeInfo? taskOfTTypeInfo, out bool isValueTask)
     {
         Requires.NotNull(taskTypeInfo, nameof(taskTypeInfo));
 
@@ -1781,18 +1881,28 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         TypeInfo? taskTypeInfoLocal = taskTypeInfo;
         while (taskTypeInfoLocal is not null)
         {
-            bool isTaskOfTOrValueTaskOfT = taskTypeInfoLocal.IsGenericType &&
-                (taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(Task<>) || taskTypeInfoLocal.GetGenericTypeDefinition() == typeof(ValueTask<>));
-            if (isTaskOfTOrValueTaskOfT)
+            if (taskTypeInfoLocal.IsGenericType)
             {
-                taskOfTTypeInfo = taskTypeInfoLocal;
-                return true;
+                Type genericTypeDefinition = taskTypeInfoLocal.GetGenericTypeDefinition();
+                if (genericTypeDefinition == typeof(Task<>))
+                {
+                    isValueTask = false;
+                    taskOfTTypeInfo = taskTypeInfoLocal;
+                    return true;
+                }
+                else if (genericTypeDefinition == typeof(ValueTask<>))
+                {
+                    isValueTask = true;
+                    taskOfTTypeInfo = taskTypeInfoLocal;
+                    return true;
+                }
             }
 
             taskTypeInfoLocal = taskTypeInfoLocal.BaseType?.GetTypeInfo();
         }
 
         taskOfTTypeInfo = null;
+        isValueTask = false;
         return false;
     }
 
@@ -1815,7 +1925,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             TypeInfo resultTypeInfo = result.GetType().GetTypeInfo();
             if (resultTypeInfo.IsGenericType && resultTypeInfo.GetGenericTypeDefinition() == typeof(ValueTask<>))
             {
-                task = (Task)resultTypeInfo.GetDeclaredMethod(nameof(ValueTask<int>.AsTask))!.Invoke(result, Array.Empty<object>())!;
+                MethodInfo valueTaskAsTaskMethodInfo =
+#if NET
+                    (MethodInfo)resultTypeInfo.GetMemberWithSameMetadataDefinitionAs(ValueTaskAsTaskMethodInfo);
+#else
+                    resultTypeInfo.GetDeclaredMethod(nameof(ValueTask<int>.AsTask))!;
+#endif
+                task = (Task)valueTaskAsTaskMethodInfo.Invoke(result, Array.Empty<object>())!;
                 return true;
             }
         }
@@ -2308,7 +2424,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private async ValueTask<JsonRpcMessage> HandleInvocationTaskOfTResultAsync(JsonRpcRequest request, Task t, CancellationToken cancellationToken)
     {
         // This method should only be called for methods that declare to return Task<T> (or a derived type), or ValueTask<T>.
-        Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo));
+        Assumes.True(TryGetTaskOfTOrValueTaskOfTType(t.GetType().GetTypeInfo(), out TypeInfo? taskOfTTypeInfo, out bool isValueTask));
 
         object? result = null;
         Type? declaredResultType = null;
@@ -2318,6 +2434,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             // If t is just a Task, there is no Result property on it.
             // We can't really write direct code to deal with Task<T>, since we have no idea of T in this context, so we simply use reflection to
             // read the result at runtime.
+#if NET
+            MethodInfo resultGetter = isValueTask
+                ? (MethodInfo)taskOfTTypeInfo.GetMemberWithSameMetadataDefinitionAs(ValueTaskGetResultMethodInfo)
+                : (MethodInfo)taskOfTTypeInfo.GetMemberWithSameMetadataDefinitionAs(TaskGetResultMethodInfo);
+
+            declaredResultType = resultGetter.ReturnType;
+            result = resultGetter.Invoke(t, Array.Empty<object>());
+#else
 #pragma warning disable VSTHRD103 // misfiring analyzer https://github.com/Microsoft/vs-threading/issues/60
             const string ResultPropertyName = nameof(Task<int>.Result);
 #pragma warning restore VSTHRD103
@@ -2326,6 +2450,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             Assumes.NotNull(resultProperty);
             declaredResultType = resultProperty.PropertyType;
             result = resultProperty.GetValue(t);
+#endif
 
             // Transfer the ultimate success/failure result of the operation from the original successful method to the post-processing step.
             t = this.ProcessResultBeforeSerializingAsync(result, cancellationToken);
@@ -2601,10 +2726,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
                     lock (this.dispatcherMapLock)
                     {
+#if NET
+                        this.resultDispatcherMap.Remove(resultOrError.RequestId, out data);
+#else
                         if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
                         {
                             this.resultDispatcherMap.Remove(resultOrError.RequestId);
                         }
+#endif
                     }
 
                     if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
@@ -2654,6 +2783,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 catch
                 {
                     this.OnResponseReceived(rpc);
+                    throw;
                 }
             }
             else
@@ -2719,6 +2849,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     private T CreateProxy<T>(ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
         where T : class
     {
@@ -2734,8 +2865,16 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null" />, default options will be used.</param>
     /// <param name="marshaledObjectHandle">The handle to the remote object that is being marshaled via this proxy.</param>
     /// <returns>An instance of the generated proxy.</returns>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     private IJsonRpcClientProxyInternal CreateProxy(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces, JsonRpcProxyOptions? options, long? marshaledObjectHandle)
     {
+#if !NETSTANDARD2_0
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            throw new NotSupportedException("CreateProxy is not supported if dynamic code is not supported.");
+        }
+#endif
+
         TypeInfo proxyType = ProxyGeneration.Get(contractInterface, additionalContractInterfaces, implementedOptionalInterfaces);
         return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
             proxyType.AsType(),
@@ -2743,6 +2882,18 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             options ?? JsonRpcProxyOptions.Default,
             marshaledObjectHandle,
             options?.OnDispose)!;
+    }
+
+    private struct LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type) : IEquatable<LoadableType>
+    {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+        public Type Type => type;
+
+        public bool Equals(LoadableType other) => this.Type == other.Type;
+
+        public override int GetHashCode() => type.GetHashCode();
+
+        public override bool Equals(object? obj) => obj is LoadableType other && this.Equals(other);
     }
 
     /// <summary>

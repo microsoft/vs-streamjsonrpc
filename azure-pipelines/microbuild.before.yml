@@ -42,7 +42,7 @@ steps:
 
   - task: MicroBuildSigningPlugin@4
     inputs:
-      signType: Real
+      signType: Test
       zipSources: false
     displayName: 🔧 Install MicroBuild Signing Plugin
 

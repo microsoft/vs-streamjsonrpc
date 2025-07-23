@@ -3,9 +3,6 @@
 
 using System.Text;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcRawStreamTests : TestBase
 {
@@ -46,7 +43,7 @@ public class JsonRpcRawStreamTests : TestBase
 
             // Send a bad json to the server
             byte[] badJson = Encoding.UTF8.GetBytes("Content-Length: 1\r\n\r\n{");
-            await clientStream.WriteAsync(badJson, 0, badJson.Length);
+            await clientStream.WriteAsync(badJson, 0, badJson.Length, TestContext.Current.CancellationToken);
 
             // The server must fire disonnected event because bad json must make it disconnect
             JsonRpcDisconnectedEventArgs args = await disconnectedEventFired.Task.WithCancellation(this.TimeoutToken);

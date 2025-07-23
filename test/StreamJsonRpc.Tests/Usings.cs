@@ -5,4 +5,3 @@ global using Microsoft;
 global using StreamJsonRpc;
 global using StreamJsonRpc.Protocol;
 global using Xunit;
-global using Xunit.Abstractions;

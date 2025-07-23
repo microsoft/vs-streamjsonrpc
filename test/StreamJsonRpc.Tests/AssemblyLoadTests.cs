@@ -2,19 +2,12 @@
 
 #if NETFRAMEWORK
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
+using PolyType;
 
-public class AssemblyLoadTests : TestBase
+public partial class AssemblyLoadTests : TestBase
 {
     public AssemblyLoadTests(ITestOutputHelper logger)
         : base(logger)
@@ -116,7 +109,7 @@ public class AssemblyLoadTests : TestBase
     }
 
 #pragma warning disable CA1812 // Avoid uninstantiated internal classes
-    private class AppDomainTestDriver : MarshalByRefObject
+    private partial class AppDomainTestDriver : MarshalByRefObject
 #pragma warning restore CA1812 // Avoid uninstantiated internal classes
     {
 #pragma warning disable CA1822 // Mark members as static -- all members must be instance for marshalability
@@ -165,7 +158,7 @@ public class AssemblyLoadTests : TestBase
 
         internal void CreateNerdbankMessagePackConnection()
         {
-            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter()));
+            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider }));
         }
 
 #pragma warning restore CA1822 // Mark members as static
@@ -187,6 +180,9 @@ public class AssemblyLoadTests : TestBase
                 throw new NotImplementedException();
             }
         }
+
+        [GenerateShapeFor<bool>]
+        private partial class Witness;
     }
 }
 

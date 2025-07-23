@@ -71,7 +71,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[동일한 이름 및 동일한 매개 변수가 있는 메서드가 이미 등록되어 있습니다.]]></Val>
+            <Val><![CDATA[이름이 같고 매개 변수가 같은 메서드가 이미 등록되었습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -80,7 +80,7 @@
         <Str Cat="Text">
           <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[.NET 메서드 '{0}' 및 '{1}'이(가) 둘 다 동일한 요청 메서드 이름에 매핑될 수 없습니다. '{2}'.]]></Val>
+            <Val><![CDATA[.NET 메서드 '{0}' 및 '{1}' 같은 요청 메서드 이름('{2}')에 매핑할 수 없습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -89,7 +89,7 @@
         <Str Cat="Text">
           <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA['{0}' 메서드의 모든 오버로드 및 재정의는 {1}에 대한 공통 값을 공유해야 합니다.{2}.]]></Val>
+            <Val><![CDATA['{0}' 메서드의 모든 오버로드 및 재정의는 {1}.{2} 공통 값을 공유해야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -98,7 +98,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The JSON-RPC connection with the remote party was lost before the request could complete.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[요청을 완료하기 전에 원격 대상과 JSON-RPC 연결이 끊어졌습니다.]]></Val>
+            <Val><![CDATA[요청을 완료하기 전에 원격 주체와의 JSON-RPC 연결이 끊어졌습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -116,7 +116,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This enumeration has already prefetched elements once.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 열거형은 이미 이전에 요소를 프리페치했습니다.]]></Val>
+            <Val><![CDATA[이 열거형은 이미 요소를 한 번 프리페치했습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -125,7 +125,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The value {0} is not among the recognized or supported members of the enum type.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} 값이 열거형 형식의 인식된 멤버 또는 지원되는 멤버 사이에 속해 있지 않습니다.]]></Val>
+            <Val><![CDATA[{0} 값이 열거형 형식의 인식되거나 지원되는 멤버에 속하지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -161,7 +161,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이름이 "{0}"(이)고 위치가 {1}인 JSON-RPC 인수를 "{2}" 형식에 역직렬화하지 못했습니다. {3}]]></Val>
+            <Val><![CDATA[이름이 "{0}" JSON-RPC 인수를 역직렬화하고 "{2}" 형식에 대한 위치 {1} 실패했습니다. {3}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -170,7 +170,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC result to type {0} failed with {1}: {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 결과를 유형 {0}(으)로 역직렬화하지 못했습니다. {1}: {2}]]></Val>
+            <Val><![CDATA[{1} {2} JSON-RPC 결과를 형식 {0} 역직렬화하지 못했습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -179,7 +179,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A fatal exception was thrown from the server method {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[서버 메서드에서 치명적인 예외가 throw되었습니다. {0}: {1}]]></Val>
+            <Val><![CDATA[서버 메서드 {0} 예외가 발생했습니다. {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -188,7 +188,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The buffer is empty. Call the async method to fill it first.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[버퍼가 비어 있으므로 이를 채우기 위해 비동기 메서드를 호출합니다.]]></Val>
+            <Val><![CDATA[버퍼가 비어 있습니다. 비동기 메서드를 호출하여 먼저 채우십시오.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -197,7 +197,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to cast given Type to IProgress<T>]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[지정된 형식을 IProgress로 캐스팅할 수 없음<T>]]></Val>
+            <Val><![CDATA[지정된 형식을 IProgress<T> 캐스팅할 수 없습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -206,7 +206,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The configuration is locked because this formatter has already been associated with a JsonRpc instance.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 포맷터가 이미 JsonRpc 인스턴스와 연결되어 있기 때문에 구성이 잠겼습니다.]]></Val>
+            <Val><![CDATA[이 포맷터가 이미 JsonRpc instance 연결되어 있으므로 구성이 잠겼습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -215,7 +215,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Failed parsing Content-Length header into a positive integer.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Content-Length 헤더를 양의 정수로 구문 분석할 수 없습니다.]]></Val>
+            <Val><![CDATA[Content-Length 헤더를 양의 정수로 구문 분석하지 못했습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -238,20 +238,11 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
-      <Item ItemId=";InterfacesMustBeUnique" ItemType="0" PsrId="211" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Proxy requested with non-unique set of interfaces.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[고유하지 않은 인터페이스 집합으로 프록시가 요청되었습니다.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
       <Item ItemId=";InvalidAfterListenHasStarted" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed after listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[메시지 수신이 시작된 뒤에는 이 작업이 허용되지 않습니다.]]></Val>
+            <Val><![CDATA[메시지 수신 대기가 시작된 후에는 이 작업이 허용되지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -260,7 +251,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed before listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[메시지 수신이 시작되기 전에는 이 작업이 허용되지 않습니다.]]></Val>
+            <Val><![CDATA[메시지 수신 대기가 시작되기 전에는 이 작업이 허용되지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -323,7 +314,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 추적된 개체를 알림에 포함할 수 없습니다. "Id" 속성이 포함된 메시지만 지원됩니다.]]></Val>
+            <Val><![CDATA[이 추적된 개체는 알림에 포함될 수 없습니다. "id" 속성을 포함한 메시지만 지원됩니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -332,7 +323,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object should not be part of any response or notification.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 추적된 개체는 응답 또는 알림의 일부일 수 없습니다.]]></Val>
+            <Val><![CDATA[이 추적된 개체는 응답 또는 알림의 일부가 아니어야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -341,7 +332,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} has ref or out parameter(s), which is not supported]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0}에 ref 또는 지원되지 않는 출력 매개 변수가 있습니다.]]></Val>
+            <Val><![CDATA[{0} 지원되지 않는 ref 또는 out 매개 변수가 있습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -350,7 +341,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} 매개 변수(CancellationToken 제외)는 {1}이지만 요청에서는 {2}이(가) 제공됩니다.]]></Val>
+            <Val><![CDATA[{0} 매개 변수(CancellationToken 제외): {1} 요청에서 {2}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -368,7 +359,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Listening must be started first.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[수신이 먼저 시작되어야 합니다.]]></Val>
+            <Val><![CDATA[먼저 수신을 시작해야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -377,7 +368,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This cannot be done after listening has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[수신이 시작된 후 이 작업은 완료할 수 없습니다.]]></Val>
+            <Val><![CDATA[수신이 시작된 후에는 이 작업을 수행할 수 없습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -395,7 +386,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 구성에서는 대역 외 스트림/파이프가 지원되지 않습니다. 포맷터에 MultiplexingStream을 설정하셨습니까?]]></Val>
+            <Val><![CDATA[이 구성에서는 대역 외 스트림/파이프가 지원되지 않습니다. 포맷터에 MultiplexingStream을 설정했나요?]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -422,7 +413,7 @@
         <Str Cat="Text">
           <Val><![CDATA[JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 1.0은 명명된 인수(개체 내에서 전달된 매개 변수)를 지원하지 않습니다. 위치 인수(매개 변수 배열)를 사용하거나 프로토콜 버전을 2.0으로 설정하세요.]]></Val>
+            <Val><![CDATA[JSON-RPC 1.0은 명명된 인수(개체 내에서 전달된 매개 변수)를 지원하지 않습니다. 위치 인수(매개 변수 배열)를 사용하거나 프로토콜 버전을 2.0으로 설정하십시오.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -431,7 +422,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A positive integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[양의 정수가 필요합니다.]]></Val>
+            <Val><![CDATA[양의 정수는 필수입니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -467,7 +458,7 @@
         <Str Cat="Text">
           <Val><![CDATA[An argument was not supplied for a required parameter.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[필수 매개 변수에 인수가 제공되지 않았습니다.]]></Val>
+            <Val><![CDATA[필요한 매개 변수에 인수가 제공되지 않았습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -485,7 +476,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Response is not error.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[응답은 오류가 아닙니다.]]></Val>
+            <Val><![CDATA[응답이 오류가 아닙니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -501,10 +492,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됨: {0}]]></Val>
+            <Val><![CDATA[예상치 못한 형식의 응답입니다.  오류 및 결과만 지원되지만 수신된 형식은 {0}입니다.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -539,7 +533,7 @@
         <Str Cat="Text">
           <Val><![CDATA[No method by the name '{0}' is found.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이름이 '{0}'인 메서드를 찾지 못했습니다.]]></Val>
+            <Val><![CDATA[이름 '{0}' 메서드를 찾을 수 없습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -566,7 +560,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The stream must be readable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[스트림은 읽을 수 있는 상태여야 합니다.]]></Val>
+            <Val><![CDATA[스트림은 읽을 수 있어야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -575,7 +569,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The stream must be writeable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[스트림은 쓸 수 있는 상태여야 합니다.]]></Val>
+            <Val><![CDATA[스트림은 쓰기 가능해야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -593,7 +587,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A target object should be supplied if and only if the method is not static.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[메서드가 정적이지 않은 경우에만 대상 개체를 제공해야 합니다.]]></Val>
+            <Val><![CDATA[메서드가 정적이 아닌 경우에만 대상 개체를 제공해야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -620,7 +614,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[포맷터 "{0}"이(가) "{1}"을(를) 구현하지 않기 때문에 텍스트 인코딩이 지원되지 않습니다.]]></Val>
+            <Val><![CDATA[포맷터 "{0}" "{1}" 구현하지 않으므로 텍스트 인코딩이 지원되지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -638,7 +632,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to find method '{0}/{1}' on {2} for the following reasons: {3}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{2}에서 '{0}/{1}' 메서드를 다음과 같은 이유로 찾을 수 없음:{3}]]></Val>
+            <Val><![CDATA[다음과 같은 이유로 {2} '{0}/{1}' 메서드를 찾을 수 없습니다. {3}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -647,7 +641,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unexpected error processing JSON-RPC message: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류 발생: {0}]]></Val>
+            <Val><![CDATA[JSON-RPC 메시지를 처리하는 동안 예기치 않은 오류가 발생했습니다. {0}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -665,7 +659,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A response was received without a request having been sent.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[요청을 보내지 않았는데 응답을 받았습니다.]]></Val>
+            <Val><![CDATA[요청을 보내지 않고 응답을 받았습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -674,7 +668,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unexpected token '{0}' while parsing header.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[헤더를 구문 분석하는 동안 예기치 않은 토큰 '{0}'이(가) 발생했습니다.]]></Val>
+            <Val><![CDATA[헤더를 구문 분석하는 동안 예기치 않은 토큰 '{0}'.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -683,7 +677,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This remote object no longer exists.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[이 원격 개체는 더 이상 없습니다.]]></Val>
+            <Val><![CDATA[이 원격 개체가 더 이상 존재하지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -701,7 +695,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Incoming JSON-RPC message did not conform to a recognized pattern.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[들어오는 JSON-RPC 메시지가 인식되는 패턴과 일치하지 않습니다.]]></Val>
+            <Val><![CDATA[들어오는 JSON-RPC 메시지가 인식된 패턴을 따르지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -710,7 +704,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event handler type on "{0}". Only EventHandler and EventHandler<T> are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA["{0}"의 지원되지 않는 이벤트 처리기 형식. EventHandler 및 EventHandler<T>만 지원됩니다.]]></Val>
+            <Val><![CDATA["{0}" 지원되지 않는 이벤트 처리기 형식입니다. EventHandler 및 EventHandler<T> 지원됩니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -719,7 +713,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Generic methods are not supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[제네릭 메서드가 지원되지 않습니다.]]></Val>
+            <Val><![CDATA[제네릭 메서드는 지원되지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -728,7 +722,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 프로토콜 버전 {0}은(는) 지원되지 않습니다. 지원되는 프로토콜 버전: {1}]]></Val>
+            <Val><![CDATA[지원되지 않는 JSON-RPC 프로토콜 버전이 {0}. 지원되는 프로토콜 버전은 다음과 같습니다. {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -737,7 +731,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA["{0}" 메서드에 지원되지 않는 "{1}" 반환 형식이 있습니다. 태스크 반환 메서드만 지원됩니다.]]></Val>
+            <Val><![CDATA[메서드 "{0}" 지원되지 않는 반환 형식 "{1}". 작업 반환 메서드만 지원됩니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -746,7 +740,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Properties are not supported for service interfaces.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[속성은 서비스 인터페이스에 지원되지 않습니다.]]></Val>
+            <Val><![CDATA[속성은 서비스 인터페이스에 대해 지원되지 않습니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

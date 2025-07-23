@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using Nerdbank.MessagePack;
 
 namespace StreamJsonRpc;
 
@@ -18,6 +19,6 @@ public partial class NerdbankMessagePackFormatter
         /// <remarks>
         /// The buffer is only retained for a short time. If it has already been cleared, the result of this property is an empty sequence.
         /// </remarks>
-        ReadOnlySequence<byte> OriginalMessagePack { get; }
+        RawMessagePack OriginalMessagePack { get; }
     }
 }

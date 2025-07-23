@@ -4,11 +4,16 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using PolyType;
+using PolyType.Abstractions;
 using PolyType.ReflectionProvider;
-using PolyType.SourceGenerator;
 
 public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<NerdbankMessagePackFormatter>
 {
+    private static readonly MessagePackSerializer AnonymousTypeSerializer = new()
+    {
+        Converters = [new ObjectConverter()],
+    };
+
     public NerdbankMessagePackFormatterTests(ITestOutputHelper logger)
         : base(logger)
     {
@@ -106,11 +111,11 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     public async Task BasicJsonRpc()
     {
         var (clientStream, serverStream) = FullDuplexStream.CreatePair();
-        var clientFormatter = new NerdbankMessagePackFormatter();
-        var serverFormatter = new NerdbankMessagePackFormatter();
+        var clientFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
+        var serverFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
 
-        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(), clientFormatter);
-        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(), serverFormatter);
+        var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), clientFormatter);
+        var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), serverFormatter);
 
         var clientRpc = new JsonRpc(clientHandler);
         var serverRpc = new JsonRpc(serverHandler, new Server());
@@ -148,11 +153,11 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void Resolver_RequestArgInNamedArgs_AnonymousType()
     {
-        this.Formatter.SetFormatterProfile(b =>
+        this.Formatter = new()
         {
-            b.RegisterConverter(new CustomConverter());
-            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
+        };
 
         var originalArg = new { Prop1 = 3, Prop2 = 5 };
         var originalRequest = new JsonRpcRequest
@@ -171,11 +176,11 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void Resolver_RequestArgInNamedArgs_DataContractObject()
     {
-        this.Formatter.SetFormatterProfile(b =>
+        this.Formatter = new()
         {
-            b.RegisterConverter(new CustomConverter());
-            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
+        };
 
         var originalArg = new DataContractWithSubsetOfMembersIncluded { ExcludedField = "A", ExcludedProperty = "B", IncludedField = "C", IncludedProperty = "D" };
         var originalRequest = new JsonRpcRequest
@@ -196,11 +201,11 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void Resolver_RequestArgInNamedArgs_NonDataContractObject()
     {
-        this.Formatter.SetFormatterProfile(b =>
+        this.Formatter = new()
         {
-            b.RegisterConverter(new CustomConverter());
-            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
+        };
 
         var originalArg = new NonDataContractWithExcludedMembers { ExcludedField = "A", ExcludedProperty = "B", InternalField = "C", InternalProperty = "D", PublicField = "E", PublicProperty = "F" };
         var originalRequest = new JsonRpcRequest
@@ -237,11 +242,11 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void Resolver_Result()
     {
-        this.Formatter.SetFormatterProfile(b =>
+        this.Formatter = new()
         {
-            b.RegisterConverter(new CustomConverter());
-            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+            UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
+        };
 
         var originalResultValue = new TypeRequiringCustomFormatter { Prop1 = 3, Prop2 = 5 };
         var originalResult = new JsonRpcResult
@@ -273,10 +278,9 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         Assert.Equal(originalErrorData.Prop2, roundtripErrorData.Prop2);
     }
 
-    [SkippableFact]
+    [Fact]
     public void CanDeserializeWithExtraProperty_JsonRpcRequest()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -308,10 +312,9 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         Assert.Equal(dynamic.result, request.GetResult<string>());
     }
 
-    [SkippableFact]
+    [Fact]
     public void CanDeserializeWithExtraProperty_JsonRpcError()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -328,7 +331,6 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     [Fact]
     public void StringsInUserDataAreInterned()
     {
-        Skip.If(this.Formatter is NerdbankMessagePackFormatter, "Dynamic types are not supported for NerdbankMessagePack.");
         var dynamic = new
         {
             jsonrpc = "2.0",
@@ -360,12 +362,10 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
 
     protected override NerdbankMessagePackFormatter CreateFormatter()
     {
-        NerdbankMessagePackFormatter formatter = new();
-        formatter.SetFormatterProfile(b =>
+        NerdbankMessagePackFormatter formatter = new()
         {
-            b.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-            b.AddTypeShapeProvider(ReflectionTypeShapeProvider.Default);
-        });
+            TypeShapeProvider = Witness.ShapeProvider,
+        };
 
         return formatter;
     }
@@ -373,18 +373,12 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     private T Read<T>(object anonymousObject)
         where T : JsonRpcMessage
     {
-        NerdbankMessagePackFormatter.Profile.Builder profileBuilder = this.Formatter.ProfileBuilder;
-        profileBuilder.AddTypeShapeProvider(ShapeProvider_StreamJsonRpc_Tests.Default);
-        profileBuilder.AddTypeShapeProvider(ReflectionTypeShapeProvider.Default);
-        NerdbankMessagePackFormatter.Profile profile = profileBuilder.Build();
-
-        this.Formatter.SetFormatterProfile(profile);
-
         var sequence = new Sequence<byte>();
         var writer = new MessagePackWriter(sequence);
-        profile.SerializeObject(ref writer, anonymousObject);
+        AnonymousTypeSerializer.SerializeObject(ref writer, anonymousObject, ReflectionTypeShapeProvider.Default.Resolve(anonymousObject.GetType()));
         writer.Flush();
-        return (T)this.Formatter.Deserialize(sequence.AsReadOnlySequence);
+        this.Logger.WriteLine(MessagePackSerializer.ConvertToJson(sequence));
+        return (T)this.Formatter.Deserialize(sequence);
     }
 
     [DataContract]
@@ -433,7 +427,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         internal int Prop2 { get; set; }
     }
 
-    private class CustomConverter : MessagePackConverter<TypeRequiringCustomFormatter>
+    internal class CustomConverter : MessagePackConverter<TypeRequiringCustomFormatter>
     {
         public override TypeRequiringCustomFormatter Read(ref MessagePackReader reader, SerializationContext context)
         {
@@ -459,4 +453,26 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         public int Add(int a, int b) => a + b;
     }
+
+    private class ObjectConverter : MessagePackConverter<object>
+    {
+        public override object? Read(ref MessagePackReader reader, SerializationContext context)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(ref MessagePackWriter writer, in object? value, SerializationContext context)
+        {
+            if (value is null)
+            {
+                writer.WriteNil();
+                return;
+            }
+
+            context.GetConverter(value.GetType(), null).WriteObject(ref writer, value, context);
+        }
+    }
+
+    [GenerateShapeFor<CustomType>]
+    private partial class Witness;
 }

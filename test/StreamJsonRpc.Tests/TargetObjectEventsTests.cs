@@ -1,13 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Serialization;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using Nerdbank.MessagePack;
 using PolyType;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public abstract partial class TargetObjectEventsTests : TestBase
 {
@@ -38,9 +33,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
     [MessagePack.Union(key: 0, typeof(Fruit))]
     [GenerateShape]
-#pragma warning disable CS0618 // Type or member is obsolete
-    [KnownSubType(typeof(Fruit), 1)]
-#pragma warning restore CS0618 // Type or member is obsolete
+    [DerivedTypeShape(typeof(Fruit), Tag = 0)]
     public partial interface IFruit
     {
         string Name { get; }
@@ -369,6 +362,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
     [GenerateShape]
     public partial class Fruit : IFruit
     {
+        [ConstructorShape]
         internal Fruit(string name)
         {
             this.Name = name;
@@ -376,6 +370,22 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
         [DataMember]
         public string Name { get; }
+    }
+
+    [DataContract]
+    [GenerateShape]
+    protected internal partial class CustomEventArgs : EventArgs
+    {
+        [DataMember]
+        public int Seeds { get; set; }
+    }
+
+    [DataContract]
+    protected internal class MessageEventArgs<T> : EventArgs
+        where T : class
+    {
+        [DataMember]
+        public T? Message { get; set; }
     }
 
     protected class Client
@@ -495,20 +505,5 @@ public abstract partial class TargetObjectEventsTests : TestBase
 #pragma warning disable CS0067 // Unused member (It's here for reflection to discover)
         public event MyDelegate? MyEvent;
 #pragma warning restore CS0067
-    }
-
-    [DataContract]
-    protected class CustomEventArgs : EventArgs
-    {
-        [DataMember]
-        public int Seeds { get; set; }
-    }
-
-    [DataContract]
-    protected class MessageEventArgs<T> : EventArgs
-        where T : class
-    {
-        [DataMember]
-        public T? Message { get; set; }
     }
 }

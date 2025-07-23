@@ -3,6 +3,7 @@
 
 using System.Runtime.Serialization;
 using PolyType;
+using NBMsgPack = Nerdbank.MessagePack;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -17,7 +18,6 @@ public partial class CommonErrorData
     /// <summary>
     /// Initializes a new instance of the <see cref="CommonErrorData"/> class.
     /// </summary>
-    [ConstructorShape]
     public CommonErrorData()
     {
     }
@@ -42,7 +42,7 @@ public partial class CommonErrorData
     /// </summary>
     [DataMember(Order = 0, Name = "type")]
     [STJ.JsonPropertyName("type"), STJ.JsonPropertyOrder(0)]
-    [PropertyShape(Name = "type", Order = 0)]
+    [PropertyShape(Name = "type"), NBMsgPack.Key(0)]
     public string? TypeName { get; set; }
 
     /// <summary>
@@ -50,7 +50,7 @@ public partial class CommonErrorData
     /// </summary>
     [DataMember(Order = 1, Name = "message")]
     [STJ.JsonPropertyName("message"), STJ.JsonPropertyOrder(1)]
-    [PropertyShape(Name = "message", Order = 1)]
+    [PropertyShape(Name = "message"), NBMsgPack.Key(1)]
     public string? Message { get; set; }
 
     /// <summary>
@@ -58,7 +58,7 @@ public partial class CommonErrorData
     /// </summary>
     [DataMember(Order = 2, Name = "stack")]
     [STJ.JsonPropertyName("stack"), STJ.JsonPropertyOrder(2)]
-    [PropertyShape(Name = "stack", Order = 2)]
+    [PropertyShape(Name = "stack"), NBMsgPack.Key(2)]
     public string? StackTrace { get; set; }
 
     /// <summary>
@@ -66,7 +66,7 @@ public partial class CommonErrorData
     /// </summary>
     [DataMember(Order = 3, Name = "code")]
     [STJ.JsonPropertyName("code"), STJ.JsonPropertyOrder(3)]
-    [PropertyShape(Name = "code", Order = 3)]
+    [PropertyShape(Name = "code"), NBMsgPack.Key(3)]
     public int HResult { get; set; }
 
     /// <summary>
@@ -74,6 +74,6 @@ public partial class CommonErrorData
     /// </summary>
     [DataMember(Order = 4, Name = "inner")]
     [STJ.JsonPropertyName("inner"), STJ.JsonPropertyOrder(4)]
-    [PropertyShape(Name = "inner", Order = 4)]
+    [PropertyShape(Name = "inner"), NBMsgPack.Key(4)]
     public CommonErrorData? Inner { get; set; }
 }

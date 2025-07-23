@@ -44,7 +44,7 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     [Fact]
     public async Task CanInvokeServerMethodWithParameterPassedAsObject()
     {
-        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" });
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), new { test = "test" }, TestContext.Current.CancellationToken);
         Assert.Equal("object {" + Environment.NewLine + "  \"test\": \"test\"" + Environment.NewLine + "}", result1);
     }
 
@@ -120,8 +120,8 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     {
         Task completion = this.serverRpc.Completion;
         byte[] invalidMessage = Encoding.UTF8.GetBytes("A\n\n");
-        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length).WithCancellation(this.TimeoutToken);
-        await this.clientStream.FlushAsync().WithCancellation(this.TimeoutToken);
+        await this.clientStream.WriteAsync(invalidMessage, 0, invalidMessage.Length, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
+        await this.clientStream.FlushAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await Assert.ThrowsAsync<BadRpcHeaderException>(() => completion).WithCancellation(this.TimeoutToken);
         Assert.Same(completion, this.serverRpc.Completion);
     }

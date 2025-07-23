@@ -7,10 +7,6 @@ using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class NewLineDelimitedMessageHandlerTests : TestBase
 {

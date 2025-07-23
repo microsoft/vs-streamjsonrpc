@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -97,6 +98,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// Initializes a new instance of the <see cref="HeaderDelimitedMessageHandler"/> class.
     /// </summary>
     /// <param name="duplexStream">The stream to use for transmitting and receiving messages.</param>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public HeaderDelimitedMessageHandler(Stream duplexStream)
         : this(duplexStream, duplexStream)
     {
@@ -107,6 +109,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     /// </summary>
     /// <param name="sendingStream">The stream to use for transmitting messages.</param>
     /// <param name="receivingStream">The stream to use for receiving messages.</param>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public HeaderDelimitedMessageHandler(Stream? sendingStream, Stream? receivingStream)
         : this(sendingStream, receivingStream, new JsonMessageFormatter())
     {
@@ -314,7 +317,7 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
             var mediaType = MediaTypeHeaderValue.Parse(contentTypeAsText);
             if (mediaType.CharSet is not null)
             {
-                // The common language server protocol accpets 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
+                // The common language server protocol accepts 'utf8' as a valid charset due to an early bug.  To maintain backwards compatibility, 'utf8' will be
                 // accepted here so StreamJsonRpc can be used to support remote language servers following common language protocol.
                 if (mediaType.CharSet.Equals("utf8", StringComparison.OrdinalIgnoreCase))
                 {
@@ -336,17 +339,6 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
         {
             throw new BadRpcHeaderException(ex.Message, ex);
         }
-    }
-
-    private static bool IsLastFourBytesCrlfCrlf(byte[] buffer, int lastIndex)
-    {
-        const byte cr = (byte)'\r';
-        const byte lf = (byte)'\n';
-        return lastIndex >= 4
-            && buffer[lastIndex - 4] == cr
-            && buffer[lastIndex - 3] == lf
-            && buffer[lastIndex - 2] == cr
-            && buffer[lastIndex - 1] == lf;
     }
 
     private static int GetContentLength(ReadOnlySequence<byte> contentLengthValue)

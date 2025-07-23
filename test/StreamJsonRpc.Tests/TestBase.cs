@@ -5,9 +5,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
-using PolyType;
 
-public abstract partial class TestBase : IDisposable
+public abstract class TestBase : IDisposable
 {
     protected static readonly TimeSpan ExpectedTimeout = TimeSpan.FromMilliseconds(200);
 
@@ -24,8 +23,19 @@ public abstract partial class TestBase : IDisposable
     protected TestBase(ITestOutputHelper logger)
     {
         this.Logger = logger;
-        this.timeoutTokenSource = new CancellationTokenSource(TestTimeout);
-        this.timeoutTokenSource.Token.Register(() => this.Logger.WriteLine($"TEST TIMEOUT: {nameof(TestBase)}.{nameof(this.TimeoutToken)} has been canceled due to the test exceeding the {TestTimeout} time limit."));
+        this.timeoutTokenSource = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        this.timeoutTokenSource.CancelAfter(TestTimeout);
+        this.timeoutTokenSource.Token.Register(delegate
+        {
+            try
+            {
+                this.Logger.WriteLine($"TEST TIMEOUT: {nameof(TestBase)}.{nameof(this.TimeoutToken)} has been canceled due to the test exceeding the {TestTimeout} time limit.");
+            }
+            catch (InvalidOperationException)
+            {
+                // test no longer running.
+            }
+        });
     }
 
     protected static CancellationToken ExpectedTimeoutToken => new CancellationTokenSource(ExpectedTimeout).Token;
@@ -53,7 +63,7 @@ public abstract partial class TestBase : IDisposable
         // For some reason the assertion tends to be sketchy when running on Azure Pipelines.
         if (IsTestRunOnAzurePipelines)
         {
-            Skip.If(weakReference.IsAlive);
+            Assert.SkipWhen(weakReference.IsAlive, "Weak reference is still alive.");
         }
 
         Assert.False(weakReference.IsAlive);
@@ -198,9 +208,6 @@ public abstract partial class TestBase : IDisposable
 
         Assert.True(passingAttemptObserved);
     }
-
-    [GenerateShape<FormatterTestBase<NerdbankMessagePackFormatter>.CustomType>]
-    internal partial class TestBaseWitness;
 
 #pragma warning disable SYSLIB0050 // Type or member is obsolete
     private class RoundtripFormatter : IFormatterConverter

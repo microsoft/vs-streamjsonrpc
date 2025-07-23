@@ -53,7 +53,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This cannot be done after GetAsyncEnumerator has already been called.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Když už se zavolala metoda GetAsyncEnumerator, není možné to provést.]]></Val>
+            <Val><![CDATA[Tuto akci nelze provést, pokud již byla volána metoda GetAsyncEnumerator.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -71,7 +71,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Metoda se stejným názvem a rovnocennými parametry už je registrovaná.]]></Val>
+            <Val><![CDATA[Metoda se stejným názvem a ekvivalentními parametry již byla zaregistrována.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -80,7 +80,7 @@
         <Str Cat="Text">
           <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Metody .NET {0} i {1} se nemůžou současně mapovat ke stejnému názvu metody žádosti: {2}.]]></Val>
+            <Val><![CDATA[Metody .NET '{0}' a '{1}' nelze mapovat na stejný název metody požadavku: '{2}'.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -89,7 +89,7 @@
         <Str Cat="Text">
           <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Všechna přetížení a přepisy metody {0} musí mít společnou hodnotu pro {1}.{2}.]]></Val>
+            <Val><![CDATA[Všechna přetížení a přepsání metody '{0}' musí sdílet společnou hodnotu pro {1}.{2}.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -98,7 +98,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The JSON-RPC connection with the remote party was lost before the request could complete.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Připojení JSON-RPC se vzdálenou stranou bylo ztraceno, ještě než se žádost mohla dokončit.]]></Val>
+            <Val><![CDATA[Připojení JSON-RPC se vzdálenou stranou bylo ztraceno před dokončením požadavku.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -116,7 +116,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This enumeration has already prefetched elements once.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Tento výčet už někdy prvky předběžně načetl.]]></Val>
+            <Val><![CDATA[Tento výčet již jednou předběžně načetl elementy.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -161,7 +161,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nepovedlo se deserializovat argument JSON-RPC s názvem {0} a pozicí {1} na typ {2}: {3}]]></Val>
+            <Val><![CDATA[Deserializace argumentu JSON-RPC s "{0}" názvu a pozicí {1} na typ "{2}" se nezdařila: {3}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -170,7 +170,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC result to type {0} failed with {1}: {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Deserializace výsledku JSON-RPC na typ {0} neproběhla úspěšně kvůli {1}: {2}]]></Val>
+            <Val><![CDATA[Deserializace výsledku JSON-RPC na typ {0} selhala s {1}: {2}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -179,7 +179,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A fatal exception was thrown from the server method {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Při volání metody serveru {0} došlo k závažné výjimce: {1}]]></Val>
+            <Val><![CDATA[Z metody serveru {0} došlo k závažné výjimce: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -188,7 +188,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The buffer is empty. Call the async method to fill it first.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Vyrovnávací paměť je prázdná. Nejdříve ji naplňte, a to zavoláním asynchronní metody.]]></Val>
+            <Val><![CDATA[Vyrovnávací paměť je prázdná. Pokud chcete nejdříve vyplnit asynchronní metodu, zavolejte ji.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -197,7 +197,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to cast given Type to IProgress<T>]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Daný typ nejde přetypovat na IProgress<T>]]></Val>
+            <Val><![CDATA[Daný typ nelze přetypovat na<T> IProgress.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -206,7 +206,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The configuration is locked because this formatter has already been associated with a JsonRpc instance.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Konfigurace je zamknutá, protože tento formátovací modul už je přidružený k instanci JsonRpc.]]></Val>
+            <Val><![CDATA[Konfigurace je uzamčena, protože tento formátovací modul již byl přidružen k instanci JsonRpc.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -215,7 +215,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Failed parsing Content-Length header into a positive integer.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Selhalo zparsování hlavičky Content-Length na kladné celé číslo.]]></Val>
+            <Val><![CDATA[Analýza hlavičky Content-Length na kladné celé číslo se nezdařila.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -238,20 +238,11 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
-      <Item ItemId=";InterfacesMustBeUnique" ItemType="0" PsrId="211" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Proxy requested with non-unique set of interfaces.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Proxy server požaduje nejedinečnou sadu rozhraní.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
       <Item ItemId=";InvalidAfterListenHasStarted" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed after listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Po zahájení naslouchání zprávám není tato operace povolená.]]></Val>
+            <Val><![CDATA[Tato operace není povolena po zahájení naslouchání zprávám.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -260,7 +251,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed before listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Před zahájením naslouchání zprávám není tato operace povolená.]]></Val>
+            <Val><![CDATA[Tato operace není povolena před zahájením naslouchání zpráv.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -323,7 +314,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Tento sledovaný objekt se nedá zahrnout do oznámení. Podporují se jen zprávy, které mají vlastnost id.]]></Val>
+            <Val><![CDATA[Tento sledovaný objekt nelze zahrnout do oznámení. Podporují se jen zprávy, které zahrnují vlastnost id.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -332,7 +323,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object should not be part of any response or notification.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Tento sledovaný objekt by neměl být součástí žádné odpovědi nebo oznámení.]]></Val>
+            <Val><![CDATA[Tento sledovaný objekt by neměl být součástí žádné odpovědi ani oznámení.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -341,7 +332,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} has ref or out parameter(s), which is not supported]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} má parametry ref nebo out, což se nepodporuje.]]></Val>
+            <Val><![CDATA[{0} obsahuje parametry ref nebo out, což se nepodporuje.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -350,7 +341,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Parametry {0} (vyjma jakýchkoli objektů CancellationToken): {1}, ale žádost poskytuje {2}.]]></Val>
+            <Val><![CDATA[{0} parametry (kromě jakéhokoli CancellationTokenu): {1}, ale žádost poskytuje {2}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -359,7 +350,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} parameters are not compatible with the arguments provided in the request.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Počet parametrů nekompatibilních s argumenty zadanými v žádosti: {0}]]></Val>
+            <Val><![CDATA[{0} parametry nejsou kompatibilní s argumenty zadanými v požadavku.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -368,7 +359,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Listening must be started first.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nejdříve je potřeba spustit naslouchání.]]></Val>
+            <Val><![CDATA[Nejprve musí být spuštěno naslouchání.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -377,7 +368,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This cannot be done after listening has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Tuto akci nejde provést po spuštění naslouchání.]]></Val>
+            <Val><![CDATA[Toto nelze provést po spuštění naslouchání.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -386,7 +377,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A non-negative integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Je vyžadováno nezáporné celé číslo.]]></Val>
+            <Val><![CDATA[Je požadováno nezáporné celé číslo.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -395,7 +386,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Proudy nebo kanály mimo pásmo nejsou v této konfiguraci podporované. Nastavili jste ve formátovacím modulu MultiplexingStream?]]></Val>
+            <Val><![CDATA[Vzdálené datové proudy nebo kanály nejsou v této konfiguraci podporovány. Nastavili jste ve formátovacím modulu MultiplexingStream?]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -413,7 +404,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Parameter is not in the form of a single object]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Parametr není ve formě jednoho objektu]]></Val>
+            <Val><![CDATA[Parametr nemá tvar jednoho objektu.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -422,7 +413,7 @@
         <Str Cat="Text">
           <Val><![CDATA[JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 1.0 nepodporuje pojmenované argumenty (parametry předané v objektu). Použijte poziční argumenty (pole parametrů) nebo nastavte verzi protokolu na 2.0.]]></Val>
+            <Val><![CDATA[JSON-RPC 1.0 nepodporuje pojmenované argumenty (parametry předané v rámci objektu). Použijte poziční argumenty (pole parametrů) nebo nastavte verzi protokolu na 2.0.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -431,7 +422,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A positive integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Je vyžadováno kladné celé číslo.]]></Val>
+            <Val><![CDATA[Je požadováno kladné celé číslo.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -458,7 +449,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Relay connection has already been established.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Připojení přenosu již bylo navázáno.]]></Val>
+            <Val><![CDATA[Přenosové připojení již bylo navázáno.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -467,7 +458,7 @@
         <Str Cat="Text">
           <Val><![CDATA[An argument was not supplied for a required parameter.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Není zadaný argument pro požadovaný parametr.]]></Val>
+            <Val><![CDATA[Pro požadovaný parametr nebyl zadán argument.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -494,17 +485,20 @@
         <Str Cat="Text">
           <Val><![CDATA[Failed to serialize the response.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nepovedlo se serializovat odpověď.]]></Val>
+            <Val><![CDATA[Odpověď se nepodařilo serializovat.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Odpověď je v neočekávaném formátu. Podporují se jenom chyby a výsledky: {0}]]></Val>
+            <Val><![CDATA[Odpověď má neočekávaný formát.  Podporovány jsou pouze chyby a výsledky, ale byl přijat tento typ: {0}]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -539,7 +533,7 @@
         <Str Cat="Text">
           <Val><![CDATA[No method by the name '{0}' is found.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nenašla se žádná metoda s názvem {0}.]]></Val>
+            <Val><![CDATA[Nebyla nalezena žádná metoda podle názvu '{0}'.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -566,7 +560,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The stream must be readable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Ze streamu musí být možné číst.]]></Val>
+            <Val><![CDATA[Stream musí být čitelný.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -575,7 +569,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The stream must be writeable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Do streamu musí být možné zapisovat.]]></Val>
+            <Val><![CDATA[Datový proud musí být zapisovatelný.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -593,7 +587,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A target object should be supplied if and only if the method is not static.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Cílový objekt by se měl zadat jen a pouze tehdy, pokud metoda není statická.]]></Val>
+            <Val><![CDATA[Cílový objekt by měl být zadán pouze v případě, že metoda není statická.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -620,7 +614,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Kódování textu není podporováno, protože formátovací modul {0} neimplementuje {1}.]]></Val>
+            <Val><![CDATA[Kódování textu není podporováno, protože formátovací modul "{0}" neimplementuje "{1}".]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -638,7 +632,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to find method '{0}/{1}' on {2} for the following reasons: {3}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nebyla nalezena metoda {0}/{1} v {2} z následujících důvodů: {3}]]></Val>
+            <Val><![CDATA[Nepovedlo se najít metodu {0}/{1} na {2} z následujících důvodů: {3}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -665,7 +659,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A response was received without a request having been sent.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Přijala se odpověď, aniž by se odeslal nějaký požadavek.]]></Val>
+            <Val><![CDATA[Byla přijata odpověď bez odeslání žádosti.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -674,7 +668,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unexpected token '{0}' while parsing header.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Neočekávaný token {0} při parsování hlavičky]]></Val>
+            <Val><![CDATA[Při analýze hlavičky '{0}' neočekávaný token.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -683,7 +677,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This remote object no longer exists.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Tento vzdálený objekt neexistuje.]]></Val>
+            <Val><![CDATA[Tento vzdálený objekt již neexistuje.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -692,7 +686,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Příchozí zprávu se nepovedlo rozpoznat jako jeden z definovaných typů zpráv JSON-RPC 2.0.]]></Val>
+            <Val><![CDATA[Příchozí zprávu nejde rozpoznat jako jeden z definovaných typů zpráv JSON-RPC 2.0.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -701,7 +695,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Incoming JSON-RPC message did not conform to a recognized pattern.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Příchozí zpráva JSON-RPC se neshoduje s rozpoznávaným vzorkem.]]></Val>
+            <Val><![CDATA[Příchozí zpráva JSON-RPC neodpovídala rozpoznanému vzoru.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -710,7 +704,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event handler type on "{0}". Only EventHandler and EventHandler<T> are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nepodporovaný typ obslužné rutiny události v {0}. Podporují se jen EventHandler a EventHandler<T>.]]></Val>
+            <Val><![CDATA[Nepodporovaný typ obslužné rutiny události na "{0}" Jsou podporovány pouze<T> EventHandler a EventHandler.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -728,7 +722,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Nepodporovaná verze protokolu JSON-RPC {0}. Podporované jsou tyto verze protokolu: {1}]]></Val>
+            <Val><![CDATA[Nepodporovaná verze protokolu JSON-RPC {0}. Podporované verze protokolu: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -737,7 +731,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Metoda {0} obsahuje nepodporovaný návratový typ {1}. Jsou podporovány jen metody vracející úlohy.]]></Val>
+            <Val><![CDATA["{0}" metody má nepodporovaný návratový typ "{1}". Podporovány jsou pouze metody vracející úlohu.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -746,7 +740,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Properties are not supported for service interfaces.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Vlastnosti nejsou podporovány u rozhraní služby.]]></Val>
+            <Val><![CDATA[Vlastnosti nejsou pro rozhraní služby podporovány.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

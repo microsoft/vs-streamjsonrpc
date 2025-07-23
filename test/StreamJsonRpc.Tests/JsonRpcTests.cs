@@ -9,7 +9,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using Newtonsoft.Json.Linq;
 using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
@@ -110,21 +109,23 @@ public abstract partial class JsonRpcTests : TestBase
 
         this.serverRpc = new JsonRpc(this.serverMessageHandler);
         this.serverRpc.AddLocalRpcTarget<IServerDerived>(this.server, null);
-        this.serverRpc.StartListening();
-
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
+
+        this.AddTracing();
+
+        this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         // Verify that members on the interface and base interfaces are callable.
-        await this.clientRpc.InvokeAsync("AnotherName", new object[] { "my -name" });
-        await this.clientRpc.InvokeAsync(nameof(IServerDerived.MethodOnDerived));
+        await this.clientRpc.InvokeAsync("AnotherName", new object[] { "my -name" }).WithCancellation(this.TimeoutToken);
+        await this.clientRpc.InvokeAsync(nameof(IServerDerived.MethodOnDerived)).WithCancellation(this.TimeoutToken);
 
         // Verify that explicitly interface implementations of members on the interface are callable.
-        Assert.Equal(3, await this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2));
+        Assert.Equal(3, await this.clientRpc.InvokeAsync<int>(nameof(IServer.Add_ExplicitInterfaceImplementation), 1, 2).WithCancellation(this.TimeoutToken));
 
         // Verify that members NOT on the interface are not callable, whether public or internal.
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" }));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod)));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.AsyncMethod), new object[] { "my-name" })).WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.InternalMethod))).WithCancellation(this.TimeoutToken);
     }
 
     [Fact]
@@ -225,7 +226,7 @@ public abstract partial class JsonRpcTests : TestBase
             this.TimeoutToken);
 
         // The connection should be closed because we can't send a response.
-        await disconnected.WaitAsync().WithCancellation(this.TimeoutToken);
+        await disconnected.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
 
         // The method should not have been invoked.
         Assert.False(server.NullPassed);
@@ -241,7 +242,7 @@ public abstract partial class JsonRpcTests : TestBase
         await rpc.NotifyAsync("foo");
 
         // Verify that something was sent.
-        await sendingStream.ReadAsync(new byte[1], 0, 1).WithCancellation(this.TimeoutToken);
+        await sendingStream.ReadAsync(new byte[1], 0, 1, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
 
         // Sending requests should not be allowed, since it requires waiting for a response.
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
@@ -393,7 +394,7 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal("test!", result);
     }
 
-    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
+    [Theory, PairwiseData]
     public async Task CanCallAsyncMethodThatThrows(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -433,13 +434,14 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
-    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
+    [Theory, PairwiseData]
     public async Task CanCallAsyncMethodThatThrowsExceptionWithoutDeserializingConstructor(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
         this.serverRpc.ExceptionStrategy = exceptionStrategy;
+        this.clientRpc.AddLoadableType(typeof(ExceptionMissingDeserializingConstructor));
 
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAnExceptionWithoutDeserializingConstructor)));
         var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
@@ -458,7 +460,7 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task CanCallAsyncMethodThatThrowsExceptionWhileSerializingException()
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -472,13 +474,14 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Null(exception.InnerException);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task ThrowCustomExceptionThatImplementsISerializableProperly()
     {
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
         this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.AddLoadableType(typeof(PrivateSerializableException));
 
         RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.ThrowPrivateSerializableException)));
         Assert.IsType<PrivateSerializableException>(exception.InnerException);
@@ -498,7 +501,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task ThrowsIfCannotFindMethod()
     {
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync("missingMethod", 50));
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new { X = 100 }));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeAsync(nameof(Server.OverloadedMethod), new XAndYProperties { x = 100 }));
     }
 
     [Fact]
@@ -507,13 +510,13 @@ public abstract partial class JsonRpcTests : TestBase
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.serverRpc.InvokeAsync(nameof(Server.OverloadedMethod)));
     }
 
-    [SkippableFact]
+    [Fact]
     [Trait("GC", "")]
     [Trait("TestCategory", "FailsInCloudTest")] // Test showing unstability on Azure Pipelines, but always succeeds locally.
     [Trait("FailsOnMono", "true")]
     public async Task InvokeWithProgressParameter_NoMemoryLeakConfirm()
     {
-        Skip.If(IsRunningUnderLiveUnitTest);
+        Assert.SkipWhen(IsRunningUnderLiveUnitTest, "Live Unit Testing");
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
         GC.Collect();
         Assert.False(weakRef.IsAlive);
@@ -830,9 +833,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task NullableReturnType()
     {
-        int? result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 0);
+        int? result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 0).WithCancellation(this.TimeoutToken);
         Assert.Null(result);
-        result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 5);
+        result = await this.clientRpc.InvokeAsync<int?>(nameof(Server.MethodReturnsNullableInt), 5).WithCancellation(this.TimeoutToken);
         Assert.Equal(5, result);
     }
 
@@ -914,10 +917,10 @@ public abstract partial class JsonRpcTests : TestBase
         // Assert that the second Post call on the server will not happen while the first Post hasn't returned.
         // This is the way we verify that processing incoming requests never becomes concurrent before the
         // invocation is sent to the SynchronizationContext.
-        Task unblockingTask = await Task.WhenAny(invoke1, invoke2, syncContext.PostInvoked.WaitAsync()).WithCancellation(UnexpectedTimeoutToken);
+        Task unblockingTask = await Task.WhenAny(invoke1, invoke2, syncContext.PostInvoked.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(UnexpectedTimeoutToken);
         await unblockingTask; // rethrow any exception that may have occurred while we were waiting.
 
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         Assert.Equal(1, syncContext.PostCalls);
 
         // Allow both calls to proceed.
@@ -1053,7 +1056,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithCancellationAsync_CanCallCancellableMethodWithNoArgs()
     {
-        Assert.Equal(5, await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs)));
+        Assert.Equal(5, await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.AsyncMethodWithCancellationAndNoArgs), cancellationToken: TestContext.Current.CancellationToken));
 
         using (var cts = new CancellationTokenSource())
         {
@@ -1119,7 +1122,7 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
-    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: temporary for development
+    [Theory, PairwiseData]
     public async Task CancelMayStillReturnErrorFromServer(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -1278,7 +1281,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         // Make sure that JsonRpc recognizes a returned ValueTask as a yielding async method rather than just returning immediately.
         Task invokeTask = this.clientRpc.InvokeAsync(nameof(Server.ReturnPlainValueTaskWithYield));
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         Assert.False(invokeTask.IsCompleted);
         this.server.AllowServerMethodToReturn.Set();
         await invokeTask.WithCancellation(this.TimeoutToken);
@@ -1301,7 +1304,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeServerMethodWithNoParameterPassedAsObject()
     {
-        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter));
+        string result1 = await this.clientRpc.InvokeWithParameterObjectAsync<string>(nameof(Server.TestParameter), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("object or array", result1);
     }
 
@@ -1327,7 +1330,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(1, result);
@@ -1349,9 +1352,9 @@ public abstract partial class JsonRpcTests : TestBase
         await this.InvokeMethodWithProgressParameter(progress2);
         await this.InvokeMethodWithProgressParameter(progress3);
 
-        await progress1.WaitAsync();
-        await progress2.WaitAsync();
-        await progress3.WaitAsync();
+        await progress1.WaitAsync(TestContext.Current.CancellationToken);
+        await progress2.WaitAsync(TestContext.Current.CancellationToken);
+        await progress3.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report1);
         Assert.Equal(2, report2);
@@ -1385,7 +1388,7 @@ public abstract partial class JsonRpcTests : TestBase
             received = n;
         });
 
-        Task<int> result = this.clientRpc.InvokeAsync<int>(nameof(Server.MethodWithProgressParameter), [progress]);
+        Task<int> result = this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithProgressParameter), [progress], [typeof(IProgress<int>)], this.TimeoutToken);
         await Assert.ThrowsAsync<OperationCanceledException>(() => result.WithCancellation(ExpectedTimeoutToken));
         evt.Set();
         await result.WithCancellation(this.TimeoutToken);
@@ -1395,7 +1398,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task ReportProgressWithUnserializableData_LeavesTraceEvidence()
     {
         var progress = new Progress<TypeThrowsWhenSerialized>();
-        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithUnserializableProgressType), new object[] { progress }, cancellationToken: this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.MethodWithUnserializableProgressType), new object[] { progress }, [typeof(IProgress<TypeThrowsWhenSerialized>)], cancellationToken: this.TimeoutToken);
 
         // Verify that the trace explains what went wrong with the original exception message.
         while (!this.serverTraces.Messages.Any(m => m.Contains("Can't touch this")))
@@ -1425,7 +1428,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(7, report);
         Assert.Equal(7, sum);
@@ -1439,7 +1442,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(12, report);
         Assert.Equal(12, sum);
@@ -1508,7 +1511,7 @@ public abstract partial class JsonRpcTests : TestBase
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
         rpc.StartListening();
 
-        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYProperties { x = 1, y = 2 }));
+        Assert.Equal(3, await rpc.InvokeWithParameterObjectAsync<int>(nameof(IServer.InstanceMethodWithSingleObjectParameterButNoAttribute), new XAndYProperties { x = 1, y = 2 }, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1519,7 +1522,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>("test/MethodWithSingleObjectParameterWithProgress", new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(7, report);
         Assert.Equal(7, sum);
@@ -1533,22 +1536,22 @@ public abstract partial class JsonRpcTests : TestBase
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new XAndYPropertiesWithProgress { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
-        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
+        Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5, p = progress } }, this.TimeoutToken);
 
-        await progress.WaitAsync();
+        await progress.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, report);
         Assert.Equal(7, sum);
@@ -1561,10 +1564,10 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal(7, sum);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
-        Skip.If(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
+        Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
         int sum = await this.clientRpc.InvokeWithCancellationAsync<int>(nameof(Server.MethodWithParameterContainingIProgress), new object[] { new StrongTypedProgressType { x = 2, y = 5 } }, this.TimeoutToken);
         Assert.Equal(7, sum);
     }
@@ -1947,7 +1950,7 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcMethod("biz.bar", methodInfo, null));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task ServerMethodIsCanceledWhenConnectionDrops()
     {
         this.ReinitializeRpcWithoutListening();
@@ -1957,21 +1960,21 @@ public abstract partial class JsonRpcTests : TestBase
 
         Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
         Assert.False(rpcTask.IsCompleted);
-        await this.server.ServerMethodReached.WaitAsync();
+        await this.server.ServerMethodReached.WaitAsync(TestContext.Current.CancellationToken);
         this.clientStream.Dispose();
         var oce = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
         Assert.Null(oce.InnerException);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task ServerMethodIsNotCanceledWhenConnectionDrops()
     {
         Assert.False(this.serverRpc.CancelLocallyInvokedMethodsWhenConnectionIsClosed);
         Task rpcTask = this.clientRpc.InvokeAsync(nameof(Server.AsyncMethodWithCancellation), "arg");
         Assert.False(rpcTask.IsCompleted);
-        await this.server.ServerMethodReached.WaitAsync();
+        await this.server.ServerMethodReached.WaitAsync(TestContext.Current.CancellationToken);
         this.clientStream.Dispose();
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
         this.server.AllowServerMethodToReturn.Set();
         await this.server.ServerMethodCompleted.Task;
     }
@@ -2249,13 +2252,15 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
     }
 
-    [Theory(Timeout = 2 * 1000), PairwiseData] // TODO: Temporary for development
+    [Theory, PairwiseData]
     public async Task ExceptionTreeThrownFromServerIsDeserializedAtClient(ExceptionProcessing exceptionStrategy)
     {
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
         this.serverRpc.ExceptionStrategy = exceptionStrategy;
+        this.clientRpc.AddLoadableType(typeof(FileNotFoundException));
+        this.clientRpc.AddLoadableType(typeof(ApplicationException));
 
         var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
 
@@ -2409,6 +2414,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task SerializableExceptions()
     {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLoadableType(typeof(FileNotFoundException));
+
         // Create a full exception with inner exceptions. We have to throw so that its stacktrace is initialized.
         Exception? exceptionToSend;
         try
@@ -2478,7 +2486,7 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal(this.serverRpc.ExceptionOptions.RecursionLimit, CountRecursionLevel(this.server.ReceivedException));
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task ExceptionRecursionLimit_ThrownSerialization()
     {
         this.serverRpc.AllowModificationWhileListening = true;
@@ -2494,7 +2502,7 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal(this.clientRpc.ExceptionOptions.RecursionLimit, actualRecursionLevel);
     }
 
-    [Fact(Timeout = 2 * 1000)] // TODO: Temporary for development
+    [Fact]
     public async Task ExceptionRecursionLimit_ThrownDeserialization()
     {
         this.clientRpc.AllowModificationWhileListening = true;
@@ -2515,6 +2523,8 @@ public abstract partial class JsonRpcTests : TestBase
     {
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.ExceptionOptions = new ExceptionFilter(ExceptionSettings.UntrustedData.RecursionLimit);
+        this.serverRpc.AddLoadableType(typeof(TaskCanceledException));
+        this.serverRpc.AddLoadableType(typeof(OperationCanceledException));
 
         Exception originalException = new TaskCanceledException();
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { originalException }, new[] { typeof(Exception) }, this.TimeoutToken);
@@ -2526,6 +2536,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task ArgumentOutOfRangeException_WithNullArgValue()
     {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLoadableType(typeof(ArgumentOutOfRangeException));
+
         Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "msg");
 
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
@@ -2539,6 +2552,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task ArgumentOutOfRangeException_WithStringArgValue()
     {
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.AddLoadableType(typeof(ArgumentOutOfRangeException));
+
         Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "argValue", "msg");
 
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { exceptionToSend }, new[] { typeof(Exception) }, this.TimeoutToken);
@@ -2546,7 +2562,7 @@ public abstract partial class JsonRpcTests : TestBase
         // Make sure the exception is its own unique (deserialized) instance, but equal by value.
         Assert.NotSame(this.server.ReceivedException, exceptionToSend);
 
-        if (this.clientMessageFormatter is MessagePackFormatter)
+        if (this.clientMessageFormatter is MessagePackFormatter or NerdbankMessagePackFormatter)
         {
             // MessagePack cannot (safely) deserialize a typeless value like ArgumentOutOfRangeException.ActualValue,
             // So assert that a placeholder was put there instead.
@@ -2606,14 +2622,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         this.serverRpc.AddLocalRpcTarget(this.server);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-
-        this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-        this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-
-        this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
-        this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
+        this.AddTracing();
 
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
@@ -2650,7 +2659,7 @@ public abstract partial class JsonRpcTests : TestBase
             Assert.IsNotType<CustomISerializableData>(objectOfCustomType);
         }
 
-        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName);
+        this.Logger.WriteLine("objectOfCustomType type: {0}", objectOfCustomType?.GetType().FullName!);
     }
 
     [Fact]
@@ -2927,7 +2936,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         this.clientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         this.server.Tests = this;
@@ -2978,7 +2987,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtc.Factory.SwitchToMainThreadAsync();
+            await jtc.Factory.SwitchToMainThreadAsync(this.TimeoutToken);
             clientCalledBackViaAlternate = true;
         }));
 
@@ -3035,7 +3044,7 @@ public abstract partial class JsonRpcTests : TestBase
         const string CallbackMethodName = "ClientNeedsMainThread";
         alternateClientRpc.AddLocalRpcMethod(CallbackMethodName, new Func<Task>(async delegate
         {
-            await jtf.SwitchToMainThreadAsync();
+            await jtf.SwitchToMainThreadAsync(this.TimeoutToken);
         }));
 
         alternateServerRpc.StartListening();
@@ -3047,6 +3056,7 @@ public abstract partial class JsonRpcTests : TestBase
         });
 
         // Drain any UI thread requests before exiting the test.
+        await this.server.ServerMethodCompleted.Task.WithCancellation(this.TimeoutToken);
         await jtCollection.JoinTillEmptyAsync();
         await Task.Yield();
     }
@@ -3090,12 +3100,12 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData?.HResult);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task InvokeWithParameterObjectAsync_FormatterIntrinsic()
     {
         string arg = "some value";
         object[] variousArgs = this.CreateFormatterIntrinsicParamsObject(arg);
-        Skip.If(variousArgs.Length == 0, "This test is only meaningful when the formatter supports intrinsic types.");
+        Assert.SkipWhen(variousArgs.Length == 0, "This test is only meaningful when the formatter supports intrinsic types.");
 
         foreach (object args in variousArgs)
         {
@@ -3172,6 +3182,11 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
 
+        this.AddTracing();
+    }
+
+    protected void AddTracing()
+    {
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
 
@@ -3291,8 +3306,8 @@ public abstract partial class JsonRpcTests : TestBase
 
         WeakReference weakRef = new WeakReference(progress);
 
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new { p = progress }));
-        Assert.IsType<NotSupportedException>(ex.InnerException);
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.MethodWithProgressParameter), new XAndYPropertiesWithProgress { p = progress }));
+        Assert.IsType<NotSupportedException>(ex.GetBaseException());
 
         await progress.WaitAsync();
 
@@ -3815,7 +3830,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         public void ThrowLocalRpcException()
         {
-            throw new LocalRpcException { ErrorCode = 2, ErrorData = new { myCustomData = "hi" } };
+            throw new LocalRpcException { ErrorCode = 2, ErrorData = new CustomErrorData("hi") };
         }
 
         public void SendException(Exception? ex)
@@ -3861,6 +3876,9 @@ public abstract partial class JsonRpcTests : TestBase
         internal void InternalIgnoredMethod()
         {
         }
+
+        [GenerateShape, MessagePack.MessagePackObject(keyAsPropertyName: true)]
+        internal partial record CustomErrorData(string MyCustomData);
     }
 #pragma warning restore CA1801 // use all parameters
 
@@ -3974,7 +3992,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         [DataMember(Order = 0, IsRequired = true)]
         [STJ.JsonRequired, STJ.JsonPropertyOrder(0)]
-        [PropertyShape(Order = 0)]
+        [PropertyShape(Order = 0, IsRequired = true)]
         public string? Bar { get; set; }
 
         [DataMember(Order = 1)]
@@ -3993,11 +4011,10 @@ public abstract partial class JsonRpcTests : TestBase
         public string? Value { get; set; }
     }
 
-    [Serializable, DataContract]
-    public class CustomISerializableData : ISerializable
+    [Serializable, DataContract, GenerateShape]
+    public partial class CustomISerializableData : ISerializable
     {
         [MessagePack.SerializationConstructor]
-        [ConstructorShape]
         public CustomISerializableData(int major)
         {
             this.Major = major;
@@ -4033,7 +4050,8 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [DataContract]
-    public class XAndYProperties
+    [GenerateShape]
+    public partial class XAndYProperties
     {
         // We disable SA1300 because we must use lowercase members as required to match the parameter names.
 #pragma warning disable SA1300 // Accessible properties should begin with upper-case letter
@@ -4307,6 +4325,16 @@ public abstract partial class JsonRpcTests : TestBase
             }
 
             return base.LoadType(typeFullName, assemblyName);
+        }
+
+        protected override Type? LoadTypeTrimSafe(string typeFullName, string? assemblyName)
+        {
+            if (typeFullName == typeof(ArgumentOutOfRangeException).FullName)
+            {
+                return typeof(ArgumentException);
+            }
+
+            return base.LoadTypeTrimSafe(typeFullName, assemblyName);
         }
     }
 

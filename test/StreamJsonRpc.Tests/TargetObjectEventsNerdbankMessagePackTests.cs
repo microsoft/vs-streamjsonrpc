@@ -1,25 +1,17 @@
-﻿public class TargetObjectEventsNerdbankMessagePackTests : TargetObjectEventsTests
-{
-    public TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger)
-        : base(logger)
-    {
-    }
+﻿using PolyType;
 
+public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger) : TargetObjectEventsTests(logger)
+{
     protected override void InitializeFormattersAndHandlers()
     {
-        var serverMessageFormatter = new NerdbankMessagePackFormatter();
-        var clientMessageFormatter = new NerdbankMessagePackFormatter();
-
-        serverMessageFormatter.SetFormatterProfile(ConfigureContext);
-        clientMessageFormatter.SetFormatterProfile(ConfigureContext);
+        NerdbankMessagePackFormatter serverMessageFormatter = new() { TypeShapeProvider = Witness.ShapeProvider };
+        NerdbankMessagePackFormatter clientMessageFormatter = new() { TypeShapeProvider = Witness.ShapeProvider };
 
         this.serverMessageHandler = new LengthHeaderMessageHandler(this.serverStream, this.serverStream, serverMessageFormatter);
         this.clientMessageHandler = new LengthHeaderMessageHandler(this.clientStream, this.clientStream, clientMessageFormatter);
-
-        void ConfigureContext(NerdbankMessagePackFormatter.Profile.Builder profileBuilder)
-        {
-            profileBuilder.AddTypeShapeProvider(PolyType.SourceGenerator.ShapeProvider_StreamJsonRpc_Tests.Default);
-            profileBuilder.AddTypeShapeProvider(PolyType.ReflectionProvider.ReflectionTypeShapeProvider.Default);
-        }
     }
+
+    [GenerateShapeFor<EventArgs>]
+    [GenerateShapeFor<MessageEventArgs<string>>]
+    private partial class Witness;
 }

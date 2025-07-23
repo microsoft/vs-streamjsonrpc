@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.Serialization;
-using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using PolyType;
 using StreamJsonRpc.Protocol;
@@ -322,7 +321,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <summary>
     /// A base class for top-level property bags that should be declared in the derived formatter class.
     /// </summary>
-    protected internal abstract class TopLevelPropertyBagBase
+    protected abstract class TopLevelPropertyBagBase
     {
         private readonly bool isOutbound;
         private Dictionary<string, (Type, object?)>? outboundProperties;

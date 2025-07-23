@@ -44,7 +44,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A CancellationToken is only allowed as the last parameter.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[CancellationToken は、最後のパラメーターとしてのみ許可されます。]]></Val>
+            <Val><![CDATA[CancellationToken は最後のパラメーターとしてのみ使用できます。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -53,7 +53,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This cannot be done after GetAsyncEnumerator has already been called.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[GetAsyncEnumerator が既に呼び出されている場合は、これを行うことはできません。]]></Val>
+            <Val><![CDATA[GetAsyncEnumerator が既に呼び出された後は、この操作を実行できません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -71,7 +71,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[同じ名前を持つメソッドと同等のパラメーターは既に登録されています。]]></Val>
+            <Val><![CDATA[同じ名前と同等のパラメーターを持つメソッドが既に登録されています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -80,7 +80,7 @@
         <Str Cat="Text">
           <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[.NET メソッド '{0}' と '{1}' を両方とも同じ要求メソッド名 '{2}' にマッピングすることはできません。]]></Val>
+            <Val><![CDATA[.NET メソッド '{0}' と '{1}' の両方を同じ要求メソッド名にマップすることはできません: '{2}'。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -89,7 +89,7 @@
         <Str Cat="Text">
           <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA['{0}' メソッドのすべてのオーバーロードと上書きは、{1}.{2} の共通の値を共有する必要があります。]]></Val>
+            <Val><![CDATA['{0}' メソッドのすべてのオーバーロードとオーバーライドは、{1}.{2} の共通の値を共有する必要があります。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -98,7 +98,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The JSON-RPC connection with the remote party was lost before the request could complete.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[リモート パーティとの JSON-RPC 接続は、要求が完了する前に失われました。]]></Val>
+            <Val><![CDATA[要求が完了する前に、リモート パーティとの JSON-RPC 接続が失われました。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -116,7 +116,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This enumeration has already prefetched elements once.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[この列挙では既に要素が以前にプリフェッチされています。]]></Val>
+            <Val><![CDATA[この列挙には既にプリフェッチされた要素が 1 回あります。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -125,7 +125,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The value {0} is not among the recognized or supported members of the enum type.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} 値は、列挙型の認識されたメンバーまたはサポートされたメンバーに含まれていません。]]></Val>
+            <Val><![CDATA[{0} 値は、列挙型の認識されたメンバーまたはサポートされているメンバーの中にありません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -134,7 +134,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Error writing JSON RPC Message: {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON RPC メッセージの書き込み時のエラー: {0}: {1}]]></Val>
+            <Val><![CDATA[JSON RPC メッセージの書き込み中にエラーが発生しました: {0}: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -161,7 +161,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[名前が "{0}"、位置が {1} の JSON-RPC 引数を型 "{2}" に逆シリアル化できませんでした: {3}]]></Val>
+            <Val><![CDATA[名前が "{0}" で位置が {1} の JSON-RPC 引数を型 "{2}" に逆シリアル化できませんでした: {3}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -170,7 +170,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Deserializing JSON-RPC result to type {0} failed with {1}: {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{1} により、JSON-RPC の結果を型 {0} に逆シリアル化できませんでした: {2}]]></Val>
+            <Val><![CDATA[JSON-RPC の結果を型 {0} に逆シリアル化できませんでした。{1}: {2}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -179,7 +179,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A fatal exception was thrown from the server method {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[致命的な例外がサーバー メソッド {0} からスローされました: {1}]]></Val>
+            <Val><![CDATA[サーバー メソッド {0} から致命的な例外がスローされました: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -188,7 +188,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The buffer is empty. Call the async method to fill it first.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[バッファーが空です。まずそれを埋めるための非同期メソッドを呼び出します。]]></Val>
+            <Val><![CDATA[バッファーが空です。最初に入力する非同期メソッドを呼び出します。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -197,7 +197,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to cast given Type to IProgress<T>]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[指定された型は IProgress<T> にキャストできません]]></Val>
+            <Val><![CDATA[指定された型を IProgress<T> にキャストできません]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -224,7 +224,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The size of the message header exceeds the maximum supported size.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[メッセージ ヘッダーのサイズは、サポートされる最大サイズを超えています。]]></Val>
+            <Val><![CDATA[メッセージ ヘッダーのサイズが、サポートされている最大サイズを超えています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -238,20 +238,11 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
-      <Item ItemId=";InterfacesMustBeUnique" ItemType="0" PsrId="211" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Proxy requested with non-unique set of interfaces.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[一意でないインターフェイスのセットで要求されたプロキシ。]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
       <Item ItemId=";InvalidAfterListenHasStarted" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed after listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[メッセージの聞き取りの開始後に、この操作は許可されていません。]]></Val>
+            <Val><![CDATA[メッセージのリッスンが開始された後は、この操作は許可されません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -260,7 +251,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This operation is not allowed before listening for messages has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[メッセージの聞き取りの開始前に、この操作は許可されていません。]]></Val>
+            <Val><![CDATA[メッセージのリッスンを開始する前に、この操作を実行することはできません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -323,7 +314,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object cannot be included in a notification. Only messages including an "id" property are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[この追跡されたオブジェクトを通知に含めることはできません。"id" プロパティを含むメッセージのみがサポートされています。]]></Val>
+            <Val><![CDATA[この追跡対象オブジェクトを通知に含めることはできません。"id" プロパティを含むメッセージのみがサポートされています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -332,7 +323,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This tracked object should not be part of any response or notification.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[追跡されたこのオブジェクトを応答や通知の一部にすることはできません。]]></Val>
+            <Val><![CDATA[この追跡対象オブジェクトを応答または通知の一部にすることはできません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -350,7 +341,7 @@
         <Str Cat="Text">
           <Val><![CDATA[{0} parameter(s) (excluding any CancellationToken): {1}, but the request supplies {2}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} パラメーター (CancellationToken は除外します): {1}、しかし要求は {2} を提供します]]></Val>
+            <Val><![CDATA[{0} パラメーター (CancellationToken を除く): {1} ですが、要求は {2}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -377,7 +368,7 @@
         <Str Cat="Text">
           <Val><![CDATA[This cannot be done after listening has started.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[リッスンを開始した後でこれを行うことはできません。]]></Val>
+            <Val><![CDATA[リッスンが開始された後は、この操作を実行できません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -395,7 +386,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Out of band streams/pipes are not supported in this configuration. Have you set a MultiplexingStream on the formatter?]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[帯域外のストリームやパイプはこの構成ではサポートされていません。フォーマッタに MultiplexingStream を設定しましたか?]]></Val>
+            <Val><![CDATA[帯域外ストリーム/パイプは、この構成ではサポートされていません。フォーマッタに MultiplexingStream を設定しましたか?]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -413,7 +404,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Parameter is not in the form of a single object]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[パラメーターが単一のオブジェクトの形式ではありません]]></Val>
+            <Val><![CDATA[パラメーターが単一オブジェクトの形式ではありません]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -422,7 +413,7 @@
         <Str Cat="Text">
           <Val><![CDATA[JSON-RPC 1.0 does not support named arguments (parameters passed within an object). Use positional arguments (parameter arrays) or set protocol version to 2.0.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 1.0 は名前付き引数 (オブジェクト内で渡されるパラメーター) をサポートしていません。位置引数 (パラメーター配列) を使用するか、プロトコル バージョンを 2.0 に設定してください。]]></Val>
+            <Val><![CDATA[JSON-RPC 1.0 は、名前付き引数 (オブジェクト内で渡されたパラメーター) をサポートしていません。位置引数 (パラメーター配列) を使用するか、プロトコル バージョンを 2.0 に設定してください。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -467,7 +458,7 @@
         <Str Cat="Text">
           <Val><![CDATA[An argument was not supplied for a required parameter.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[必須のパラメーターに対して引数が指定されませんでした。]]></Val>
+            <Val><![CDATA[必要なパラメーターに引数が指定されませんでした。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -501,10 +492,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[応答が予期しない形式です。エラーと結果のみがサポートされています: {0}]]></Val>
+            <Val><![CDATA[応答が予期しない形式です。 サポートされているのはエラーと結果のみですが、次の種類を受け取りました: {0}]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -539,7 +533,7 @@
         <Str Cat="Text">
           <Val><![CDATA[No method by the name '{0}' is found.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[名前 '{0}' によるメソッドは見つかりませんでした。]]></Val>
+            <Val><![CDATA[名前 '{0}' のメソッドが見つかりません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -566,7 +560,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The stream must be readable.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[ストリームは読み取り可能である必要があります。]]></Val>
+            <Val><![CDATA[ストリームは、読み取り可能である必要があります。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -584,7 +578,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The {0} and {1} parameters exceed length of array.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[{0} と {1} パラメーターが配列の長さを超えました。]]></Val>
+            <Val><![CDATA[{0} パラメーターと {1} パラメーターが配列の長さを超えています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -593,7 +587,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A target object should be supplied if and only if the method is not static.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[メソッドが静的でない場合のみ、ターゲット オブジェクトを指定する必要があります。]]></Val>
+            <Val><![CDATA[メソッドが静的でない場合にのみ、ターゲット オブジェクトを指定する必要があります。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -620,7 +614,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[フォーマッタ "{0}" で "{1}" が実装されていないため、テキストのエンコーディングはサポートされていません。]]></Val>
+            <Val><![CDATA[フォーマッタ "{0}" が "{1}" を実装していないため、テキスト エンコードはサポートされません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -647,7 +641,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unexpected error processing JSON-RPC message: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC メッセージの処理で予期しないエラーが発生しました: {0}]]></Val>
+            <Val><![CDATA[JSON-RPC メッセージの処理中に予期しないエラーが発生しました: {0}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -665,7 +659,7 @@
         <Str Cat="Text">
           <Val><![CDATA[A response was received without a request having been sent.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[応答を受信しましたが、要求は送信されていません。]]></Val>
+            <Val><![CDATA[要求が送信されずに応答を受信しました。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -674,7 +668,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unexpected token '{0}' while parsing header.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[ヘッダーを解析中の予期しないトークン '{0}'。]]></Val>
+            <Val><![CDATA[ヘッダーの解析中に予期しないトークン '{0}'。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -692,7 +686,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unable to recognize incoming message as one the JSON-RPC 2.0 defined message types.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[受信メッセージを JSON-RPC 2.0 定義メッセージの種類として認識できません。]]></Val>
+            <Val><![CDATA[受信メッセージを JSON-RPC 2.0 定義のメッセージ型として認識できません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -701,7 +695,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Incoming JSON-RPC message did not conform to a recognized pattern.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC 受信メッセージは、認識されるパターンに準拠していません。]]></Val>
+            <Val><![CDATA[受信 JSON-RPC メッセージが認識されたパターンに準拠していません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -710,7 +704,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event handler type on "{0}". Only EventHandler and EventHandler<T> are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA["{0}" にサポートされていないイベント ハンドラーの型があります。サポートされているのは、EventHandler と EventHandler<T> のみです。]]></Val>
+            <Val><![CDATA["{0}" でサポートされていないイベント ハンドラーの種類です。EventHandler と EventHandler<T> のみがサポートされています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -719,7 +713,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Generic methods are not supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[ジェネリック メソッドがサポートされていません。]]></Val>
+            <Val><![CDATA[ジェネリック メソッドはサポートされていません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -728,7 +722,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Unsupported JSON-RPC protocol version {0}. The supported protocol versions are: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[JSON-RPC プロトコル バージョン {0} はサポートされていません。サポート対象バージョン: {1}]]></Val>
+            <Val><![CDATA[サポートされていない JSON-RPC プロトコル バージョン {0}。サポートされているプロトコル バージョン: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -737,7 +731,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[メソッド "{0}" にはサポートされていない戻り値の型 "{1}" が含まれています。タスクを返すメソッドのみがサポートされています。]]></Val>
+            <Val><![CDATA[メソッド "{0}" にサポートされていない戻り値の型 "{1}" があります。タスクを返すメソッドのみがサポートされています。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -746,7 +740,7 @@
         <Str Cat="Text">
           <Val><![CDATA[Properties are not supported for service interfaces.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[プロパティは、サービス インターフェイスではサポートされていません。]]></Val>
+            <Val><![CDATA[プロパティはサービス インターフェイスではサポートされていません。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -801,7 +795,7 @@
       <Str Cat="Text">
         <Val><![CDATA[© Microsoft Corporation. All rights reserved.]]></Val>
         <Tgt Cat="Text" Stat="Loc" Orig="New">
-          <Val><![CDATA[(C) Microsoft Corporation. All rights reserved.]]></Val>
+          <Val><![CDATA[© Microsoft Corporation.All rights reserved.]]></Val>
         </Tgt>
       </Str>
       <Disp Icon="Str" />

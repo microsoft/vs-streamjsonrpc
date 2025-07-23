@@ -115,10 +115,14 @@ internal class StandardCancellationStrategy : ICancellationStrategy
         CancellationTokenSource? cts;
         lock (this.inboundCancellationSources)
         {
+#if NET
+            this.inboundCancellationSources.Remove(id, out cts);
+#else
             if (this.inboundCancellationSources.TryGetValue(id, out cts))
             {
                 this.inboundCancellationSources.Remove(id);
             }
+#endif
         }
 
         if (cts is object)

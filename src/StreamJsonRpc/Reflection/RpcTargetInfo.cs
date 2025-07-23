@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Protocol;
 
@@ -45,10 +44,17 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (this.localTargetObjectsToDispose is object)
+        List<object>? objectsToDispose;
+        lock (this.SyncObject)
+        {
+            objectsToDispose = this.localTargetObjectsToDispose;
+            this.localTargetObjectsToDispose = null;
+        }
+
+        if (objectsToDispose is object)
         {
             List<Exception>? exceptions = null;
-            foreach (object target in this.localTargetObjectsToDispose)
+            foreach (object target in objectsToDispose)
             {
                 // We're calling Dispose on the target objects, so switch to the user-supplied SyncContext for those target objects.
                 await this.jsonRpc.SynchronizationContextOrDefault;
@@ -88,7 +94,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
     }
 
-    internal static MethodNameMap GetMethodNameMap(TypeInfo type)
+    internal static MethodNameMap GetMethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo type)
     {
         MethodNameMap? map;
         lock (MethodNameMaps)
@@ -178,7 +184,12 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <remarks>
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
-    internal RevertAddLocalRpcTarget? AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    internal RevertAddLocalRpcTarget? AddLocalRpcTarget(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
+        object target,
+        JsonRpcTargetOptions? options,
+        bool requestRevertOption)
     {
         RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
         options = options ?? JsonRpcTargetOptions.Default;
@@ -244,7 +255,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object..</param>
-    internal void AddRpcInterfaceToTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTarget([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
         Requires.Argument(exposingMembersOn.IsInterface, nameof(exposingMembersOn), Resources.AddRpcInterfaceToTargetParameterNotInterface);
 
@@ -315,7 +326,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="useSingleObjectParameterDeserialization"><inheritdoc cref="JsonRpcTargetOptions.UseSingleObjectParameterDeserialization" path="/summary"/></param>
     /// <param name="clientRequiresNamedArguments"><inheritdoc cref="JsonRpcTargetOptions.ClientRequiresNamedArguments" path="/summary"/></param>
     /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-    private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, bool allowNonPublicInvocation, bool useSingleObjectParameterDeserialization, bool clientRequiresNamedArguments)
+    private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType,
+        bool allowNonPublicInvocation,
+        bool useSingleObjectParameterDeserialization,
+        bool clientRequiresNamedArguments)
     {
         Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
 
@@ -337,26 +352,32 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         MethodNameMap mapping = GetMethodNameMap(exposedMembersOnType);
 
         // We retrieve exposed types differently for interfaces vs. classes
-        var typesToMap = new List<TypeInfo>();
         if (exposedMembersOnType.IsInterface)
         {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            typesToMap.Capacity = 1 + ifaces.Length;
-            typesToMap.Add(exposedMembersOnType.GetTypeInfo());
-            foreach (Type iface in ifaces)
-            {
-                typesToMap.Add(iface.GetTypeInfo());
-            }
+            ActOn(exposedMembersOnType.GetTypeInfo());
+            ActOnInterfaces(exposedMembersOnType);
         }
         else
         {
             for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
             {
-                typesToMap.Add(t);
+                ActOn(t);
             }
         }
 
-        foreach (TypeInfo t in typesToMap)
+#if !NET10_0_OR_GREATER
+        [UnconditionalSuppressMessage("Trimming", "IL2062:UnrecognizedReflectionPattern", Justification = "exposedMembersOnType is annotated as preserve All members, so any Types returned from GetInterfaces should be preserved as well. See https://github.com/dotnet/linker/issues/1731.")]
+#endif
+        void ActOnInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposedMembersOnType)
+        {
+            Type[] interfaces = exposedMembersOnType.GetInterfaces();
+            for (int i = 0; i < interfaces.Length; i++)
+            {
+                ActOn(interfaces[i].GetTypeInfo());
+            }
+        }
+
+        void ActOn([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo t)
         {
             // As we enumerate methods, skip accessor methods
             foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
@@ -473,7 +494,10 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// </summary>
     /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
     /// <returns>A list of EventInfos found.</returns>
-    private static IReadOnlyList<EventInfo> GetEventInfos(TypeInfo exposedMembersOnType)
+#if !NET10_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2065:UnrecognizedReflectionPattern", Justification = "false positive: https://github.com/dotnet/linker/issues/1731")]
+#endif
+    private static IReadOnlyList<EventInfo> GetEventInfos([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo exposedMembersOnType)
     {
         List<EventInfo> eventInfos = new List<EventInfo>();
 
@@ -490,10 +514,10 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         if (exposedMembersOnType.IsInterface)
         {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            foreach (Type iface in ifaces)
+            Type[] interfaces = exposedMembersOnType.GetInterfaces();
+            for (int i = 0; i < interfaces.Length; i++)
             {
-                foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
+                foreach (EventInfo evt in interfaces[i].GetTypeInfo().DeclaredEvents)
                 {
                     if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
                     {
@@ -566,7 +590,8 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         private readonly Dictionary<MethodInfo, JsonRpcMethodAttribute?> methodAttributes = new Dictionary<MethodInfo, JsonRpcMethodAttribute?>();
         private readonly Dictionary<MethodInfo, JsonRpcIgnoreAttribute?> ignoreAttributes = new Dictionary<MethodInfo, JsonRpcIgnoreAttribute?>();
 
-        internal MethodNameMap(TypeInfo typeInfo)
+        [UnconditionalSuppressMessage("Trimming", "IL2111:UnrecognizedReflectionPattern", Justification = "typeInfo is annotated as preserve All members, so any Types returned from ImplementedInterfaces should be preserved as well. See https://github.com/dotnet/linker/issues/1731.")]
+        internal MethodNameMap([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TypeInfo typeInfo)
         {
             Requires.NotNull(typeInfo, nameof(typeInfo));
             this.interfaceMaps = typeInfo.IsInterface ? default
@@ -735,14 +760,15 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     private class EventReceiver : IDisposable
     {
-        private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
-        private static readonly MethodInfo OnEventRaisedGenericMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaisedGeneric));
+        private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetMethod(nameof(OnEventRaised), BindingFlags.Instance | BindingFlags.NonPublic)!;
+        private static readonly MethodInfo OnEventRaisedGenericMethodInfo = typeof(EventReceiver).GetMethod(nameof(OnEventRaisedGeneric), BindingFlags.Instance | BindingFlags.NonPublic)!;
         private readonly JsonRpc jsonRpc;
         private readonly object server;
         private readonly EventInfo eventInfo;
         private readonly Delegate registeredHandler;
         private readonly string rpcEventName;
 
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
         {
             Requires.NotNull(jsonRpc, nameof(jsonRpc));
@@ -763,7 +789,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 // It will work for EventHandler and EventHandler<T>, at least.
                 // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
                 // with the right signature.
-                ParameterInfo[] eventHandlerParameters = eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
+                [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "False positive: https://github.com/dotnet/runtime/issues/114113")]
+                static ParameterInfo[] GetParameters(EventInfo eventInfo) =>
+                    eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
+
+                ParameterInfo[] eventHandlerParameters = GetParameters(eventInfo);
                 if (eventHandlerParameters.Length != 2)
                 {
                     throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
@@ -776,7 +806,13 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
                 else
                 {
-                    MethodInfo closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
+                    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
+                    static MethodInfo GetOnEventRaisedClosedGenericMethod(Type argsType)
+                    {
+                        return OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
+                    }
+
+                    MethodInfo closedGenericMethod = GetOnEventRaisedClosedGenericMethod(argsType);
                     this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType!, this);
                 }
             }

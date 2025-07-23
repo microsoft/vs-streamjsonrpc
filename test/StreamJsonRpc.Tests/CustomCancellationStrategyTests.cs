@@ -4,9 +4,6 @@
 using System.Diagnostics;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class CustomCancellationStrategyTests : TestBase
 {
@@ -68,7 +65,7 @@ public class CustomCancellationStrategyTests : TestBase
     {
         using var cts = new CancellationTokenSource();
         Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { false }, cancellationToken: cts.Token);
-        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync()).WithCancellation(this.TimeoutToken);
+        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(this.TimeoutToken);
         await completingTask;  // rethrow an exception if there is one.
 
         cts.Cancel();
@@ -85,7 +82,7 @@ public class CustomCancellationStrategyTests : TestBase
     {
         using var cts = new CancellationTokenSource();
         Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { true }, cancellationToken: cts.Token);
-        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync()).WithCancellation(this.TimeoutToken);
+        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(this.TimeoutToken);
         await completingTask;  // rethrow an exception if there is one.
 
         cts.Cancel();
@@ -114,7 +111,7 @@ public class CustomCancellationStrategyTests : TestBase
     {
         using var cts = new CancellationTokenSource();
         Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.EmptyMethod), cancellationToken: cts.Token);
-        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync()).WithCancellation(this.TimeoutToken);
+        var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(this.TimeoutToken);
         await completingTask;  // rethrow an exception if there is one.
 
         this.mockStrategy.AllowCancelOutboundRequestToExit.Reset();

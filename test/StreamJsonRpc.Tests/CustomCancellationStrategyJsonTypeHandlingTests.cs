@@ -3,8 +3,6 @@
 
 using System.Text;
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using Xunit.Abstractions;
 
 public class CustomCancellationStrategyJsonTypeHandlingTests : CustomCancellationStrategyTests
 {

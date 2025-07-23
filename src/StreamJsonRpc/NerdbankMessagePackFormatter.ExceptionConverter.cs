@@ -24,7 +24,6 @@ public partial class NerdbankMessagePackFormatter
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
     private class ExceptionConverter<T> : MessagePackConverter<T>
-        where T : Exception
     {
         public static readonly ExceptionConverter<T> Instance = new();
 
@@ -37,7 +36,7 @@ public partial class NerdbankMessagePackFormatter
 
             if (reader.TryReadNil())
             {
-                return null;
+                return default;
             }
 
             // We have to guard our own recursion because the serializer has no visibility into inner exceptions.
@@ -50,11 +49,10 @@ public partial class NerdbankMessagePackFormatter
                     // Exception recursion has gone too deep. Skip this value and return null as if there were no inner exception.
                     // Note that in skipping, the parser may use recursion internally and may still throw if its own limits are exceeded.
                     reader.Skip(context);
-                    return null;
+                    return default;
                 }
 
-                // TODO: Is this the right context?
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataProfile));
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter));
                 int memberCount = reader.ReadMapHeader();
                 for (int i = 0; i < memberCount; i++)
                 {
@@ -65,12 +63,12 @@ public partial class NerdbankMessagePackFormatter
                     // so the caller will get a boxed RawMessagePack struct in that case.
                     // Although we can't do much about *that* in general, we can at least ensure that null values
                     // are represented as null instead of this boxed struct.
-                    var value = reader.TryReadNil() ? null : (object)reader.ReadRaw(context);
+                    RawMessagePack? value = reader.TryReadNil() ? null : reader.ReadRaw(context);
 
                     info.AddSafeValue(name, value);
                 }
 
-                return ExceptionSerializationHelpers.Deserialize<T>(formatter.JsonRpc, info, formatter.JsonRpc.TraceSource);
+                return ExceptionSerializationHelpers.Deserialize<T>(formatter.JsonRpc, info, formatter.JsonRpc.LoadTypeTrimSafe, formatter.JsonRpc.TraceSource);
             }
             finally
             {
@@ -99,18 +97,22 @@ public partial class NerdbankMessagePackFormatter
                     return;
                 }
 
-                // TODO: Is this the right profile?
-                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter.userDataProfile));
-                ExceptionSerializationHelpers.Serialize(value, info);
+                var info = new SerializationInfo(typeof(T), new MessagePackFormatterConverter(formatter));
+                ExceptionSerializationHelpers.Serialize((Exception)(object)value, info);
                 writer.WriteMapHeader(info.GetSafeMemberCount());
                 foreach (SerializationEntry element in info.GetSafeMembers())
                 {
                     writer.Write(element.Name);
-                    formatter.rpcProfile.SerializeObject(
-                        ref writer,
-                        element.Value,
-                        element.ObjectType,
-                        context.CancellationToken);
+                    if (element.Value is null)
+                    {
+                        writer.WriteNil();
+                    }
+                    else
+                    {
+                        // We prefer the declared type but will fallback to the runtime type.
+                        context.GetConverter(formatter.TypeShapeProvider.GetShape(NormalizeType(element.ObjectType)) ?? formatter.TypeShapeProvider.Resolve(NormalizeType(element.Value.GetType())))
+                            .WriteObject(ref writer, element.Value, context);
+                    }
                 }
             }
             finally
@@ -119,9 +121,6 @@ public partial class NerdbankMessagePackFormatter
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(ExceptionConverter<T>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

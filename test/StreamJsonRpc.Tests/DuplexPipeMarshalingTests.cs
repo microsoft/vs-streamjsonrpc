@@ -32,7 +32,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     {
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         Tuple<Nerdbank.FullDuplexStream, Nerdbank.FullDuplexStream> streams = Nerdbank.FullDuplexStream.CreateStreams();
 
@@ -76,8 +76,8 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -86,9 +86,9 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         this.clientRpc.StartListening();
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        return Task.CompletedTask;
+        return default;
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             bytesReceived = await this.clientRpc.InvokeWithCancellationAsync<int>(
                 nameof(Server.AcceptReadablePipe),
-                [ExpectedFileName, pipes.Item2],
+                new object[] { ExpectedFileName, pipes.Item2 },
                 this.TimeoutToken);
         }
         else
@@ -144,7 +144,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             await this.clientRpc.InvokeWithCancellationAsync(
                 nameof(Server.AcceptWritablePipe),
-                [pipes.Item2, bytesToReceive],
+                new object[] { pipes.Item2, bytesToReceive },
                 this.TimeoutToken);
         }
         else
@@ -183,7 +183,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         int bytesReceived = await this.clientRpc.InvokeWithCancellationAsync<int>(
             nameof(Server.AcceptPipeReader),
-            [ExpectedFileName, pipe.Reader],
+            new object[] { ExpectedFileName, pipe.Reader },
             this.TimeoutToken);
 
         Assert.Equal(MemoryBuffer.Length, bytesReceived);
@@ -197,7 +197,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         int bytesToReceive = MemoryBuffer.Length - 1;
         await this.clientRpc.InvokeWithCancellationAsync(
             nameof(Server.AcceptPipeWriter),
-            [pipe.Writer, bytesToReceive],
+            new object[] { pipe.Writer, bytesToReceive },
             this.TimeoutToken);
 
         // Read all that the server wanted us to know, and verify it.
@@ -278,7 +278,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         int receivedBytes = 0;
         while (receivedBytes < bytesToReceive)
         {
-            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes);
+            int count = await duplexStream.Item1.ReadAsync(buffer, receivedBytes, buffer.Length - receivedBytes, TestContext.Current.CancellationToken);
             receivedBytes += count;
         }
 
@@ -333,16 +333,15 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         result.InnerStream.Dispose();
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task PassStreamWithArgsAsSingleObject()
     {
-        Skip.If(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "Dynamic types are not supported with NerdBankMessagePack.");
         MemoryStream ms = new();
         ms.Write(new byte[] { 1, 2, 3 }, 0, 3);
         ms.Position = 0;
         int bytesRead = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
             nameof(Server.AcceptStreamArgInFirstParam),
-            new { innerStream = ms },
+            new Dictionary<string, object?> { ["innerStream"] = ms },
             this.TimeoutToken);
         Assert.Equal(ms.Length, bytesRead);
     }
@@ -458,10 +457,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     {
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
         Task twoWayCom = TwoWayTalkAsync(pipePair.Item1, writeOnOdd: true, this.TimeoutToken);
-        await this.clientRpc.InvokeWithCancellationAsync(
-            serverUsesStream ? nameof(Server.TwoWayStreamAsArg) : nameof(Server.TwoWayPipeAsArg),
-            [false, pipePair.Item2],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(serverUsesStream ? nameof(Server.TwoWayStreamAsArg) : nameof(Server.TwoWayPipeAsArg), new object[] { false, pipePair.Item2 }, this.TimeoutToken);
         await twoWayCom.WithCancellation(this.TimeoutToken); // rethrow any exceptions.
 
         // Confirm that we can see the server is no longer writing.
@@ -473,17 +469,13 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         pipePair.Item1.Input.Complete();
     }
 
-    [SkippableTheory]
+    [Theory]
     [CombinatorialData]
     public async Task ClientCanSendTwoWayStreamToServer(bool serverUsesStream)
     {
-        Skip.If(this.GetType() == typeof(DuplexPipeMarshalingNerdbankMessagePackTests), "This test is not supported with NerdBankMessagePack.");
         (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
         Task twoWayCom = TwoWayTalkAsync(streamPair.Item1, writeOnOdd: true, this.TimeoutToken);
-        await this.clientRpc.InvokeWithCancellationAsync(
-            serverUsesStream ? nameof(Server.TwoWayStreamAsArg) : nameof(Server.TwoWayPipeAsArg),
-            [false, streamPair.Item2],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(serverUsesStream ? nameof(Server.TwoWayStreamAsArg) : nameof(Server.TwoWayPipeAsArg), new object[] { false, streamPair.Item2 }, this.TimeoutToken);
         await twoWayCom.WithCancellation(this.TimeoutToken); // rethrow any exceptions.
 
         streamPair.Item1.Dispose();
@@ -509,10 +501,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     public async Task PipeRemainsOpenAfterSuccessfulServerResult()
     {
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
-        await this.clientRpc.InvokeWithCancellationAsync(
-            nameof(Server.AcceptPipeAndChatLater),
-            [false, pipePair.Item2],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AcceptPipeAndChatLater), new object[] { false, pipePair.Item2 }, this.TimeoutToken);
 
         await WhenAllSucceedOrAnyFault(TwoWayTalkAsync(pipePair.Item1, writeOnOdd: true, this.TimeoutToken), this.server.ChatLaterTask!);
         pipePair.Item1.Output.Complete();
@@ -526,10 +515,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     public async Task ClientClosesChannelsWhenServerErrorsOut()
     {
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
-        await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync(
-            nameof(Server.RejectCall),
-            [pipePair.Item2],
-            this.TimeoutToken));
+        await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeWithCancellationAsync(nameof(Server.RejectCall), new object[] { pipePair.Item2 }, this.TimeoutToken));
 
         // Verify that the pipe is closed.
         ReadResult readResult = await pipePair.Item1.Input.ReadAsync(this.TimeoutToken);
@@ -540,10 +526,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     public async Task PipesCloseWhenConnectionCloses()
     {
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
-        await this.clientRpc.InvokeWithCancellationAsync(
-            nameof(Server.AcceptPipeAndChatLater),
-            [false, pipePair.Item2],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.AcceptPipeAndChatLater), new object[] { false, pipePair.Item2 }, this.TimeoutToken);
 
         this.clientRpc.Dispose();
 
@@ -563,10 +546,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         (IDuplexPipe, IDuplexPipe) pipePair1 = FullDuplexStream.CreatePipePair();
         (IDuplexPipe, IDuplexPipe) pipePair2 = FullDuplexStream.CreatePipePair();
 
-        await this.clientRpc.InvokeWithCancellationAsync(
-            nameof(Server.TwoPipes),
-            [pipePair1.Item2, pipePair2.Item2],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.TwoPipes), new object[] { pipePair1.Item2, pipePair2.Item2 }, this.TimeoutToken);
         pipePair1.Item1.Output.Complete();
         pipePair2.Item1.Output.Complete();
 
@@ -595,7 +575,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     {
         (IDuplexPipe, IDuplexPipe) duplexPipes = FullDuplexStream.CreatePipePair();
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.AcceptReadableStream), "fileName", duplexPipes.Item2));
-        Assert.IsType<NotSupportedException>(ex.InnerException);
+        Assert.IsType<NotSupportedException>(ex.GetBaseException());
     }
 
     /// <summary>
@@ -643,10 +623,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         (IDuplexPipe, IDuplexPipe) pipePair = FullDuplexStream.CreatePipePair();
         Task twoWayCom = TwoWayTalkAsync(pipePair.Item1, writeOnOdd: true, this.TimeoutToken);
-        await this.clientRpc.InvokeWithCancellationAsync(
-            nameof(ServerWithOverloads.OverloadedMethod),
-            [false, pipePair.Item2, "hi"],
-            this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(ServerWithOverloads.OverloadedMethod), new object[] { false, pipePair.Item2, "hi" }, this.TimeoutToken);
         await twoWayCom.WithCancellation(this.TimeoutToken); // rethrow any exceptions.
 
         pipePair.Item1.Output.Complete();
@@ -663,49 +640,13 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         monitoredStream.Disposed += (s, e) => disposedEvent.Set();
 
         bool writing = false;
-        monitoredStream.WillWrite += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Count);
-        };
-        monitoredStream.WillWriteByte += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing 1 byte.");
-        };
-        monitoredStream.WillWriteMemory += (s, e) =>
+        monitoredStream.WillWriteAny += (s, e) =>
         {
             Assert.False(writing);
             writing = true;
             this.Logger.WriteLine("Writing {0} bytes.", e.Length);
         };
-        monitoredStream.WillWriteSpan += (s, e) =>
-        {
-            Assert.False(writing);
-            writing = true;
-            this.Logger.WriteLine("Writing {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWrite += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Count);
-        };
-        monitoredStream.DidWriteByte += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote 1 byte.");
-        };
-        monitoredStream.DidWriteMemory += (s, e) =>
-        {
-            Assert.True(writing);
-            writing = false;
-            this.Logger.WriteLine("Wrote {0} bytes.", e.Length);
-        };
-        monitoredStream.DidWriteSpan += (s, e) =>
+        monitoredStream.DidWriteAny += (s, e) =>
         {
             Assert.True(writing);
             writing = false;
@@ -802,25 +743,6 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         // The server stream should be disposed.
         await serverStreamDisposal.WaitAsync(this.TimeoutToken);
-    }
-
-    [DataContract]
-    [GenerateShape]
-    public partial class StreamContainingClass
-    {
-        [DataMember]
-        [PropertyShape(Ignore = false)]
-        private Stream innerStream;
-
-        [ConstructorShape]
-        public StreamContainingClass(Stream innerStream)
-        {
-            this.innerStream = innerStream;
-        }
-
-        [STJ.JsonPropertyName("innerStream")]
-        [PropertyShape(Name = "innerStream")]
-        public Stream InnerStream => this.innerStream;
     }
 
 #pragma warning disable CA1801 // Review unused parameters
@@ -1051,9 +973,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         public IDuplexPipe? MethodThatReturnsIDuplexPipe() => null;
     }
 
-#pragma warning disable SA1202 // Elements should be ordered by access
-    public class OneWayWrapperStream : Stream
-#pragma warning restore SA1202 // Elements should be ordered by access
+    protected class OneWayWrapperStream : Stream
     {
         private readonly Stream innerStream;
         private readonly bool canRead;
@@ -1080,10 +1000,8 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
         public override bool CanWrite => this.canWrite && this.innerStream.CanWrite;
 
-        [PropertyShape(Ignore = true)]
         public override long Length => throw new NotSupportedException();
 
-        [PropertyShape(Ignore = true)]
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         public override void Flush()
@@ -1159,5 +1077,24 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
 
             base.Dispose(disposing);
         }
+    }
+
+    [DataContract]
+    [GenerateShape]
+#pragma warning disable SA1202 // Elements should be ordered by access
+    public partial class StreamContainingClass
+#pragma warning restore SA1202 // Elements should be ordered by access
+    {
+        [DataMember]
+        private Stream innerStream;
+
+        public StreamContainingClass(Stream innerStream)
+        {
+            this.innerStream = innerStream;
+        }
+
+        [STJ.JsonPropertyName("innerStream")]
+        [PropertyShape(Name = "innerStream")]
+        public Stream InnerStream => this.innerStream;
     }
 }

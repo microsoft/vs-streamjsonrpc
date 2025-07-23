@@ -2,9 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc;
-using Xunit;
-using Xunit.Abstractions;
 
 public class JsonRpcMethodAttributeTests : TestBase
 {
@@ -36,7 +33,7 @@ public class JsonRpcMethodAttributeTests : TestBase
     [Fact]
     public async Task InvokeAsync_InvokesMethodWithAttributeSet()
     {
-        string correctCasingResult = await this.clientRpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod");
+        string correctCasingResult = await this.clientRpc.InvokeWithParameterObjectAsync<string>("test/InvokeTestMethod", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("test method attribute", correctCasingResult);
 
         string baseMethodResult = await this.clientRpc.InvokeAsync<string>("base/InvokeMethodWithAttribute");

@@ -1,9 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 using Nerdbank.MessagePack;
+using PolyType;
 using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
@@ -13,59 +14,88 @@ namespace StreamJsonRpc;
 /// </summary>
 public partial class NerdbankMessagePackFormatter
 {
-    private class MessagePackFormatterConverter : IFormatterConverter
+    private partial class MessagePackFormatterConverter(NerdbankMessagePackFormatter formatter) : IFormatterConverter
     {
-        private readonly Profile formatterContext;
-
-        internal MessagePackFormatterConverter(Profile formatterContext)
-        {
-            this.formatterContext = formatterContext;
-        }
-
 #pragma warning disable CS8766 // This method may in fact return null, and no one cares.
         public object? Convert(object value, Type type)
 #pragma warning restore CS8766
         {
-            return this.formatterContext.DeserializeObject((ReadOnlySequence<byte>)value, type);
-        }
-
-        public object Convert(object value, TypeCode typeCode)
-        {
-            return typeCode switch
+            // We don't support serializing/deserializing the non-generic IDictionary,
+            // since it uses untyped keys and values which we cannot securely hash.
+            if (type == typeof(System.Collections.IDictionary))
             {
-                TypeCode.Object => this.formatterContext.Deserialize<object>((ReadOnlySequence<byte>)value)!,
-                _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
-            };
+                // Force us to deserialize into a semi-typed dictionary.
+                // The string key is a reasonable 99% compatible assumption, and allows us to securely hash the keys.
+                // The untyped values will be alright because we support the primitives types.
+                type = typeof(Dictionary<string, object?>);
+            }
+
+            MessagePackReader reader = this.CreateReader(value);
+            try
+            {
+                return formatter.UserDataSerializer.DeserializeObject(ref reader, formatter.GetUserDataShape(type));
+            }
+            catch (Exception ex)
+            {
+                formatter.JsonRpc?.TraceSource.TraceData(TraceEventType.Error, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, ex);
+                throw;
+            }
         }
 
-        public bool ToBoolean(object value) => this.formatterContext.Deserialize<bool>((ReadOnlySequence<byte>)value);
+        public object Convert(object value, TypeCode typeCode) => typeCode switch
+        {
+            TypeCode.Object => new object(),
+            _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
+        };
 
-        public byte ToByte(object value) => this.formatterContext.Deserialize<byte>((ReadOnlySequence<byte>)value);
+        public bool ToBoolean(object value) => this.CreateReader(value).ReadBoolean();
 
-        public char ToChar(object value) => this.formatterContext.Deserialize<char>((ReadOnlySequence<byte>)value);
+        public byte ToByte(object value) => this.CreateReader(value).ReadByte();
 
-        public DateTime ToDateTime(object value) => this.formatterContext.Deserialize<DateTime>((ReadOnlySequence<byte>)value);
+        public char ToChar(object value) => this.CreateReader(value).ReadChar();
 
-        public decimal ToDecimal(object value) => this.formatterContext.Deserialize<decimal>((ReadOnlySequence<byte>)value);
+        public DateTime ToDateTime(object value) => this.CreateReader(value).ReadDateTime();
 
-        public double ToDouble(object value) => this.formatterContext.Deserialize<double>((ReadOnlySequence<byte>)value);
+        public decimal ToDecimal(object value) => formatter.UserDataSerializer.Deserialize<decimal>((RawMessagePack)value, Witness.ShapeProvider);
 
-        public short ToInt16(object value) => this.formatterContext.Deserialize<short>((ReadOnlySequence<byte>)value);
+        public double ToDouble(object value) => this.CreateReader(value).ReadDouble();
 
-        public int ToInt32(object value) => this.formatterContext.Deserialize<int>((ReadOnlySequence<byte>)value);
+        public short ToInt16(object value) => this.CreateReader(value).ReadInt16();
 
-        public long ToInt64(object value) => this.formatterContext.Deserialize<long>((ReadOnlySequence<byte>)value);
+        public int ToInt32(object value) => this.CreateReader(value).ReadInt32();
 
-        public sbyte ToSByte(object value) => this.formatterContext.Deserialize<sbyte>((ReadOnlySequence<byte>)value);
+        public long ToInt64(object value) => this.CreateReader(value).ReadInt64();
 
-        public float ToSingle(object value) => this.formatterContext.Deserialize<float>((ReadOnlySequence<byte>)value);
+        public sbyte ToSByte(object value) => this.CreateReader(value).ReadSByte();
 
-        public string? ToString(object value) => value is null ? null : this.formatterContext.Deserialize<string?>((ReadOnlySequence<byte>)value);
+        public float ToSingle(object value) => this.CreateReader(value).ReadSingle();
 
-        public ushort ToUInt16(object value) => this.formatterContext.Deserialize<ushort>((ReadOnlySequence<byte>)value);
+        public string? ToString(object value) => value is null ? null : this.CreateReader(value).ReadString();
 
-        public uint ToUInt32(object value) => this.formatterContext.Deserialize<uint>((ReadOnlySequence<byte>)value);
+        public ushort ToUInt16(object value) => this.CreateReader(value).ReadUInt16();
 
-        public ulong ToUInt64(object value) => this.formatterContext.Deserialize<ulong>((ReadOnlySequence<byte>)value);
+        public uint ToUInt32(object value) => this.CreateReader(value).ReadUInt32();
+
+        public ulong ToUInt64(object value) => this.CreateReader(value).ReadUInt64();
+
+        private MessagePackReader CreateReader(object value) => new((RawMessagePack)value);
+
+        [GenerateShapeFor<bool>]
+        [GenerateShapeFor<char>]
+        [GenerateShapeFor<byte>]
+        [GenerateShapeFor<sbyte>]
+        [GenerateShapeFor<ushort>]
+        [GenerateShapeFor<short>]
+        [GenerateShapeFor<uint>]
+        [GenerateShapeFor<int>]
+        [GenerateShapeFor<ulong>]
+        [GenerateShapeFor<long>]
+        [GenerateShapeFor<float>]
+        [GenerateShapeFor<double>]
+        [GenerateShapeFor<string>]
+        [GenerateShapeFor<decimal>]
+        [GenerateShapeFor<DateTime>]
+        [GenerateShapeFor<Dictionary<string, object>>]
+        private partial class Witness;
     }
 }

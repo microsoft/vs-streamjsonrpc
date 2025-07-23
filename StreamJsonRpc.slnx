@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="azure-pipelines.yml" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="stylecop.json" />
+    <File Path="version.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/.editorconfig" />
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
+    <Project Path="src/StreamJsonRpc/StreamJsonRpc.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <File Path="test/.editorconfig" />
+    <File Path="test/Directory.Build.props" />
+    <File Path="test/Directory.Build.targets" />
+    <Project Path="test/Benchmarks/Benchmarks.csproj" />
+    <Project Path="test/NativeAOTCompatibility.Test/NativeAOTCompatibility.Test.csproj" />
+    <Project Path="test/StreamJsonRpc.Tests.ExternalAssembly/StreamJsonRpc.Tests.ExternalAssembly.csproj" />
+    <Project Path="test/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj" />
+  </Folder>
+</Solution>

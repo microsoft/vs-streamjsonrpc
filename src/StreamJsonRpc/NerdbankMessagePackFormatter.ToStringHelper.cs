@@ -21,7 +21,7 @@ public partial class NerdbankMessagePackFormatter
     /// </remarks>
     private class ToStringHelper
     {
-        private ReadOnlySequence<byte>? encodedMessage;
+        private RawMessagePack? encodedMessage;
         private string? jsonString;
 
         public override string ToString()
@@ -34,7 +34,7 @@ public partial class NerdbankMessagePackFormatter
         /// <summary>
         /// Initializes this object to represent a message.
         /// </summary>
-        internal void Activate(ReadOnlySequence<byte> encodedMessage)
+        internal void Activate(RawMessagePack encodedMessage)
         {
             this.encodedMessage = encodedMessage;
         }

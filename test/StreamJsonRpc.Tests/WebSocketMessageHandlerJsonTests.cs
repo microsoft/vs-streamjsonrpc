@@ -1,10 +1,5 @@
 ﻿using System.Text;
-using Microsoft;
 using Newtonsoft.Json;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class WebSocketMessageHandlerJsonTests : WebSocketMessageHandlerTests
 {

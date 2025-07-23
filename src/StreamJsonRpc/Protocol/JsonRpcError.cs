@@ -3,10 +3,10 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
 using PolyType;
 using StreamJsonRpc.Reflection;
-using JsonNET = Newtonsoft.Json.Linq;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -58,15 +58,15 @@ public partial class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JsonNET.JObject
+        return new JsonObject
         {
-            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
-            new JsonNET.JProperty("error", new JsonNET.JObject
+            ["id"] = this.RequestId.AsJsonValue(),
+            ["error"] = new JsonObject
             {
-                new JsonNET.JProperty("code", this.Error?.Code),
-                new JsonNET.JProperty("message", this.Error?.Message),
-            }),
-        }.ToString(Newtonsoft.Json.Formatting.None);
+                ["code"] = this.Error?.Code is not null ? JsonValue.Create((int)this.Error.Code) : null,
+                ["message"] = this.Error?.Message,
+            },
+        }.ToJsonString();
     }
 
     /// <summary>

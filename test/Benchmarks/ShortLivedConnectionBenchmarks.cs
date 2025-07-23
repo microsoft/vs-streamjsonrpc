@@ -5,12 +5,14 @@ using System.IO.Pipelines;
 using BenchmarkDotNet.Attributes;
 using Microsoft;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc;
 
 namespace Benchmarks;
 
 [MemoryDiagnoser]
-public class ShortLivedConnectionBenchmarks
+[GenerateShapeFor<int>]
+public partial class ShortLivedConnectionBenchmarks
 {
     private const int Iterations = 1000;
 
@@ -39,7 +41,7 @@ public class ShortLivedConnectionBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
-                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter()),
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
                 _ => throw Assumes.NotReachable(),
             };
         }

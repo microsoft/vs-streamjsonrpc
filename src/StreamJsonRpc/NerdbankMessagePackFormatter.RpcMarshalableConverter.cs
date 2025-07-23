@@ -18,7 +18,7 @@ public partial class NerdbankMessagePackFormatter
         JsonRpcProxyOptions proxyOptions,
         JsonRpcTargetOptions targetOptions,
         RpcMarshalableAttribute rpcMarshalableAttribute) : MessagePackConverter<T>
-        where T : class
+    ////where T : class // We expect this, but requiring it adds a constraint that some callers cannot statically satisfy.
     {
         [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Reader is passed to rpc context")]
         public override T? Read(ref MessagePackReader reader, SerializationContext context)
@@ -27,12 +27,14 @@ public partial class NerdbankMessagePackFormatter
 
             context.DepthStep();
 
+#pragma warning disable NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods - We need to switch from user data to envelope serializer
             MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = formatter
-                .rpcProfile.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, context.CancellationToken);
+                .envelopeSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, Witness.ShapeProvider, context.CancellationToken);
+#pragma warning restore NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods
 
             return token.HasValue
                 ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)
-                : null;
+                : default;
         }
 
         [SuppressMessage("Usage", "NBMsgPack031:Converters should read or write exactly one msgpack structure", Justification = "Writer is passed to rpc context")]
@@ -49,13 +51,10 @@ public partial class NerdbankMessagePackFormatter
             else
             {
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
-                formatter.rpcProfile.Serialize(ref writer, token, context.CancellationToken);
+                context.GetConverter<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(Witness.ShapeProvider).Write(ref writer, token, context);
             }
         }
 
-        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape)
-        {
-            return CreateUndocumentedSchema(typeof(RpcMarshalableConverter<T>));
-        }
+        public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
 }

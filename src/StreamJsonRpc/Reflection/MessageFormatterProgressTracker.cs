@@ -2,9 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
+
+[assembly: TypeShapeExtension(typeof(IProgress<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -70,7 +74,7 @@ public class MessageFormatterProgressTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>The <see cref="IProgress{T}"/> from given <see cref="Type"/> object, or <see langword="null"/>  if no such interface was found in the given <paramref name="objectType" />.</returns>
-    public static Type? FindIProgressOfT(Type objectType) => TrackerHelpers<IProgress<int>>.FindInterfaceImplementedBy(objectType);
+    public static Type? FindIProgressOfT(Type objectType) => TrackerHelpers.FindIProgressInterfaceImplementedBy(objectType);
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> implements <see cref="IProgress{T}"/>.
@@ -85,14 +89,14 @@ public class MessageFormatterProgressTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool CanSerialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanSerialize(objectType);
+    public static bool CanSerialize(Type objectType) => FindIProgressOfT(objectType) is not null;
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> is a closed generic of <see cref="IProgress{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may be <see cref="IProgress{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> is <see cref="IProgress{T}"/>; otherwise, false.</returns>
-    public static bool CanDeserialize(Type objectType) => TrackerHelpers<IProgress<int>>.CanDeserialize(objectType);
+    public static bool CanDeserialize(Type objectType) => TrackerHelpers.IsIProgress(objectType);
 
     /// <summary>
     /// Gets a <see cref="long"/> type token to use as replacement of an <see cref="object"/> implementing <see cref="IProgress{T}"/> in the JSON message.
@@ -167,12 +171,13 @@ public class MessageFormatterProgressTracker
 
     /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
     /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
-    public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new JsonProgress<T>(rpc, token, clientRequiresNamedArguments);
+    public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new ProgressProxy<T>(rpc, token, clientRequiresNamedArguments);
 
     /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
     /// <remarks>
     /// This overload creates an <see cref="IProgress{T}"/> that does <em>not</em> use named arguments in its notifications.
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public object CreateProgress(JsonRpc rpc, object token, Type valueType) => this.CreateProgress(rpc, token, valueType, clientRequiresNamedArguments: false);
 
     /// <summary>
@@ -183,6 +188,7 @@ public class MessageFormatterProgressTracker
     /// <param name="valueType">A generic type whose first generic type argument is to serve as the type argument for the created <see cref="IProgress{T}"/>.</param>
     /// <param name="clientRequiresNamedArguments"><see langword="true"/> to issue $/progress notifications using named args; <see langword="false"/> to use positional arguments.</param>
 #pragma warning disable CA1822 // Mark members as static
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public object CreateProgress(JsonRpc rpc, object token, Type valueType, bool clientRequiresNamedArguments)
 #pragma warning restore CA1822 // Mark members as static
     {
@@ -190,8 +196,19 @@ public class MessageFormatterProgressTracker
         Requires.NotNull(token, nameof(token));
         Requires.NotNull(valueType, nameof(valueType));
 
-        Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
-        return Activator.CreateInstance(progressType, new object[] { rpc, token, clientRequiresNamedArguments })!;
+        Type progressType = typeof(ProgressProxy<>).MakeGenericType(valueType.GenericTypeArguments[0]);
+        return Activator.CreateInstance(progressType, [rpc, token, clientRequiresNamedArguments])!;
+    }
+
+    /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
+    /// <param name="rpc"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='rpc']"/></param>
+    /// <param name="token"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='token']"/></param>
+    /// <param name="clientRequiresNamedArguments"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='clientRequiresNamedArguments']"/></param>
+    /// <param name="progressProxyType">The closed generic type of <see cref="ProgressProxy{T}"/>.</param>
+    /// <returns>A new instance of <see cref="ProgressProxy{T}"/>.</returns>
+    internal static object CreateJsonProgress(JsonRpc rpc, object token, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type progressProxyType, bool clientRequiresNamedArguments)
+    {
+        return Activator.CreateInstance(progressProxyType, [rpc, token, clientRequiresNamedArguments]) ?? throw Assumes.Fail("Activator.CreateInstance failed.");
     }
 
     private void CleanUpResources(RequestId requestId)
@@ -214,6 +231,10 @@ public class MessageFormatterProgressTracker
     /// </summary>
     public class ProgressParamInformation
     {
+#if NET
+        private static readonly MethodInfo ReportMethodInfo = typeof(IProgress<>).GetMethod("Report")!;
+#endif
+
         /// <summary>
         /// Gets the <see cref="MethodInfo"/> of <see cref="IProgress{T}.Report(T)"/>.
         /// </summary>
@@ -238,7 +259,11 @@ public class MessageFormatterProgressTracker
             Verify.Operation(iProgressOfTType is not null, Resources.FindIProgressOfTError);
 
             this.ValueType = iProgressOfTType.GenericTypeArguments[0];
+#if NET
+            this.reportMethod = (MethodInfo)iProgressOfTType.GetMemberWithSameMetadataDefinitionAs(ReportMethodInfo);
+#else
             this.reportMethod = iProgressOfTType.GetRuntimeMethod(nameof(IProgress<int>.Report), new Type[] { this.ValueType })!;
+#endif
             this.progressObject = progressObject;
             this.Token = token;
         }
@@ -268,19 +293,21 @@ public class MessageFormatterProgressTracker
     /// <summary>
     /// Class that implements <see cref="IProgress{T}"/> and sends <see cref="ProgressRequestSpecialMethod"/> notification when reporting.
     /// </summary>
-    private class JsonProgress<T> : IProgress<T>
+    /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ProgressProxy<T> : IProgress<T>
     {
         private readonly JsonRpc rpc;
         private readonly object token;
         private readonly bool useNamedArguments;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonProgress{T}"/> class.
+        /// Initializes a new instance of the <see cref="ProgressProxy{T}"/> class.
         /// </summary>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The progress token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
         /// <param name="useNamedArguments"><see langword="true"/> to use named arguments; <see langword="false"/> to use positional arguments.</param>
-        public JsonProgress(JsonRpc rpc, object token, bool useNamedArguments)
+        public ProgressProxy(JsonRpc rpc, object token, bool useNamedArguments)
         {
             this.rpc = rpc ?? throw new ArgumentNullException(nameof(rpc));
             this.token = token ?? throw new ArgumentNullException(nameof(token));

@@ -3,12 +3,14 @@
 
 using BenchmarkDotNet.Attributes;
 using Microsoft;
+using PolyType;
 using StreamJsonRpc;
 
 namespace Benchmarks;
 
 [MemoryDiagnoser]
-public class NotifyBenchmarks
+[GenerateShapeFor<int>]
+public partial class NotifyBenchmarks
 {
     private JsonRpc clientRpc = null!;
 
@@ -26,7 +28,7 @@ public class NotifyBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
-                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new NerdbankMessagePackFormatter()),
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
                 _ => throw Assumes.NotReachable(),
             };
         }

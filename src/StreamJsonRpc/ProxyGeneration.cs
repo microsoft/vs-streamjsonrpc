@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -16,6 +17,7 @@ using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
 namespace StreamJsonRpc;
 
+[RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
 internal static class ProxyGeneration
 {
     private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();
@@ -294,8 +296,8 @@ internal static class ProxyGeneration
                     string rpcMethodName = methodNameMap.GetRpcMethodName(method);
                     if (rpcInterfaceCode.HasValue)
                     {
-                        methodName = rpcInterfaceCode + "." + method.Name;
-                        rpcMethodName = rpcInterfaceCode + "." + rpcMethodName;
+                        methodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{method.Name}";
+                        rpcMethodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{rpcMethodName}";
                     }
 
                     ParameterInfo[] methodParameters = method.GetParameters();

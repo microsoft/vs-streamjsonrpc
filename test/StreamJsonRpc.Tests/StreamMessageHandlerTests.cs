@@ -1,13 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class StreamMessageHandlerTests : TestBase
 {
@@ -130,7 +125,7 @@ public class StreamMessageHandlerTests : TestBase
         var write2Task = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
 
         // Give the library extra time to do the wrong thing asynchronously.
-        await Task.Delay(ExpectedTimeout);
+        await Task.Delay(ExpectedTimeout, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, handler.WriteCoreCallCount);
         handler.WriteBlock.Set();

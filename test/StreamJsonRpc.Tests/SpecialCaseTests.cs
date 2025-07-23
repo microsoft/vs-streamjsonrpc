@@ -3,10 +3,6 @@
 
 using System.Diagnostics;
 using Nerdbank.Streams;
-using StreamJsonRpc;
-using StreamJsonRpc.Protocol;
-using Xunit;
-using Xunit.Abstractions;
 
 public class SpecialCaseTests : TestBase
 {
