@@ -21,7 +21,7 @@ namespace StreamJsonRpc.Analyzers;
 public class JsonRpcContractCodeFixProvider : CodeFixProvider
 {
     /// <summary>
-    /// Indicates whether an artificual line normalization happens for tests' sake.
+    /// Indicates whether an artificial line normalization happens for tests' sake.
     /// </summary>
 #pragma warning disable SA1401 // Fields should be private
     public static bool NormalizeLineEndings;

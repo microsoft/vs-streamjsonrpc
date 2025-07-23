@@ -39,7 +39,7 @@ public class JsonRpcProxyOptions
     private bool acceptProxyWithExtraInterfaces;
 
     /// <summary>
-    /// Backing field for the <see cref="ProxyStyle"/> property.
+    /// Backing field for the <see cref="ProxySource"/> property.
     /// </summary>
     private ProxyImplementation proxyImpl = ProxyImplementation.PreferSourceGenerated;
 
@@ -151,7 +151,7 @@ public class JsonRpcProxyOptions
     /// <value>The default value is <see langword="false" />.</value>
     /// <remarks>
     /// <para>
-    /// Does not apply when <see cref="ProxyStyle"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
+    /// Does not apply when <see cref="ProxySource"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
     /// </para>
     /// <para>
     /// Code that uses the proxy and wants to do feature testing should use <see cref="IJsonRpcClientProxy.As{T}()"/>
@@ -172,7 +172,7 @@ public class JsonRpcProxyOptions
     /// Gets or sets the implementation of the proxy to use when generating a client proxy.
     /// </summary>
     /// <value>The default value is <see cref="ProxyImplementation.PreferSourceGenerated"/>.</value>
-    public ProxyImplementation ProxyStyle
+    public ProxyImplementation ProxySource
     {
         get => this.proxyImpl;
         set

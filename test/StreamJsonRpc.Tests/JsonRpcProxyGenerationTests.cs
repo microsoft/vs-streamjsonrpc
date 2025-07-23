@@ -26,7 +26,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.DefaultProxyOptions = new(JsonRpcProxyOptions.Default) { ProxyStyle = proxyImplementation };
+        this.DefaultProxyOptions = new(JsonRpcProxyOptions.Default) { ProxySource = proxyImplementation };
         this.clientRpc = this.AttachJsonRpc<IServerDerived>(this.clientStream);
         var clientJsonRpc = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc;
 
@@ -902,7 +902,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         [Fact]
         public void Interceptor_RejectsDynamicDemandAtRuntime()
         {
-            JsonRpcProxyOptions options = new() { ProxyStyle = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic };
+            JsonRpcProxyOptions options = new() { ProxySource = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic };
             var streams = FullDuplexStream.CreateStreams();
             var rpc = new JsonRpc(streams.Item1);
             var ex = Assert.Throws<NotSupportedException>(() => rpc.Attach<IServer>(options));

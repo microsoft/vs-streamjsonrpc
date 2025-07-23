@@ -27,7 +27,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="inputs">Proxy inputs.</param>
     public ProxyBase(JsonRpc client, in ProxyInputs inputs)
     {
-        if (inputs.Options?.ProxyStyle is JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
+        if (inputs.Options?.ProxySource is JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
         {
             throw new NotSupportedException(Resources.InterceptedProxiesRequestCannotProvideDynamicProxies);
         }

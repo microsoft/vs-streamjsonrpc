@@ -1274,7 +1274,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     internal IJsonRpcClientProxyInternal CreateProxy(in ProxyInputs proxyInputs)
     {
-        if (proxyInputs.Options?.ProxyStyle is not JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic && ProxyBase.TryCreateProxy(this, proxyInputs, out IJsonRpcClientProxy? proxy))
+        if (proxyInputs.Options?.ProxySource is not JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic && ProxyBase.TryCreateProxy(this, proxyInputs, out IJsonRpcClientProxy? proxy))
         {
             return (IJsonRpcClientProxyInternal)proxy;
         }
@@ -1286,7 +1286,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         }
 #endif
 
-        if (proxyInputs.Options?.ProxyStyle is JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
+        if (proxyInputs.Options?.ProxySource is JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
         {
             throw new NotImplementedException("No source generated proxy is available for the requested interface(s), and dynamic proxies are forbidden by the options.");
         }

@@ -18,8 +18,8 @@ StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic = 0 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated = 2 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.PreferSourceGenerated = 1 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
-StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
-StreamJsonRpc.JsonRpcProxyOptions.ProxyStyle.set -> void
+StreamJsonRpc.JsonRpcProxyOptions.ProxySource.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
+StreamJsonRpc.JsonRpcProxyOptions.ProxySource.set -> void
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.JsonRpcProxyMappingAttribute(System.Type! proxyClass) -> void
