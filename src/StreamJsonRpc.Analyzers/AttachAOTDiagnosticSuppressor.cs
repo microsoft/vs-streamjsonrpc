@@ -37,6 +37,12 @@ public class AttachAOTDiagnosticSuppressor : DiagnosticSuppressor
     /// <inheritdoc/>
     public override void ReportSuppressions(SuppressionAnalysisContext context)
     {
+        // Don't suppress diagnostics unless the interceptor is running.
+        if (!ProxyGenerator.AreInterceptorsEnabled(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions))
+        {
+            return;
+        }
+
         if (!KnownSymbols.TryCreate(context.Compilation, out KnownSymbols? symbols))
         {
             return;
