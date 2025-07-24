@@ -15,7 +15,7 @@ public class RpcTargetMetadata
 
     public delegate Delegate CreateEventHandlerDelegate(JsonRpc rpc, string eventName);
 
-    public interface IEventHandlerFactory
+    private interface IEventHandlerFactory
     {
         /// <summary>
         /// Creates an event handler for the specified event.
@@ -29,6 +29,30 @@ public class RpcTargetMetadata
     public required IReadOnlyDictionary<string, ReadOnlyMemory<TargetMethodMetadata>> Methods { get; init; }
 
     public required IReadOnlyList<EventMetadata> Events { get; init; }
+
+#if !NET10_0_OR_GREATER
+    [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+#endif
+    public static RpcTargetMetadata FromInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract)
+    {
+        Requires.NotNull(rpcContract);
+        Requires.Argument(rpcContract.IsInterface, nameof(rpcContract), "The type must be an interface.");
+
+        Builder builder = new();
+        WalkInterface(rpcContract);
+        foreach (Type baseInterfaces in rpcContract.GetInterfaces())
+        {
+            WalkInterface(baseInterfaces);
+        }
+
+        void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+        {
+            AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
+        }
+
+        return builder.ToImmutable();
+    }
 
     public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType)
     {
