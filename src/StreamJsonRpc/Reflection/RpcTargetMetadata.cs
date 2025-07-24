@@ -12,6 +12,9 @@ namespace StreamJsonRpc.Reflection;
 public class RpcTargetMetadata
 {
     private static readonly ConcurrentDictionary<Type, IEventHandlerFactory> EventHandlerFactories = [];
+    private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> Interfaces = [];
+    private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> PublicClass = [];
+    private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> NonPublicClass = [];
 
     public delegate Delegate CreateEventHandlerDelegate(JsonRpc rpc, string eventName);
 
@@ -26,8 +29,14 @@ public class RpcTargetMetadata
         Delegate CreateEventHandler(JsonRpc rpc, string eventName);
     }
 
+    /// <summary>
+    /// Gets the methods that can be invoked on this RPC target.
+    /// </summary>
     public required IReadOnlyDictionary<string, ReadOnlyMemory<TargetMethodMetadata>> Methods { get; init; }
 
+    /// <summary>
+    /// Gets the list of events that can be raised by this RPC target.
+    /// </summary>
     public required IReadOnlyList<EventMetadata> Events { get; init; }
 
 #if !NET10_0_OR_GREATER
@@ -38,20 +47,23 @@ public class RpcTargetMetadata
         Requires.NotNull(rpcContract);
         Requires.Argument(rpcContract.IsInterface, nameof(rpcContract), "The type must be an interface.");
 
-        Builder builder = new();
-        WalkInterface(rpcContract);
-        foreach (Type baseInterfaces in rpcContract.GetInterfaces())
+        return Interfaces.GetOrAdd(rpcContract, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract) =>
         {
-            WalkInterface(baseInterfaces);
-        }
+            Builder builder = new();
+            WalkInterface(rpcContract);
+            foreach (Type baseInterfaces in rpcContract.GetInterfaces())
+            {
+                WalkInterface(baseInterfaces);
+            }
 
-        void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
-        {
-            AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
-            AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
-        }
+            void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+            {
+                AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+                AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
+            }
 
-        return builder.ToImmutable();
+            return builder.ToImmutable();
+        });
     }
 
     public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType)
@@ -59,11 +71,13 @@ public class RpcTargetMetadata
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        Builder builder = new();
-        AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance));
-        AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
-
-        return builder.ToImmutable();
+        return PublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType) =>
+        {
+            Builder builder = new();
+            AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
+            return builder.ToImmutable();
+        });
     }
 
     public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType)
@@ -71,15 +85,22 @@ public class RpcTargetMetadata
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        Builder builder = new();
-        AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
-        AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+        return NonPublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType) =>
+        {
+            Builder builder = new();
+            AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
 
-        return builder.ToImmutable();
+            return builder.ToImmutable();
+        });
     }
 
-    public static void RegisterEventHandlerFactory<T>()
-        where T : struct => EventHandlerFactories.TryAdd(typeof(T), new EventHandlerFactory<T>());
+    /// <summary>
+    /// Creates an event handler factory that supports <see cref="EventHandler{TEventArgs}"/> for a given <typeparamref name="TEventArgs"/>.
+    /// </summary>
+    /// <typeparam name="TEventArgs">The type argument used in <see cref="EventHandler{TEventArgs}"/>.</typeparam>
+    public static void RegisterEventArgs<TEventArgs>()
+        where TEventArgs : struct => EventHandlerFactories.TryAdd(typeof(TEventArgs), new EventHandlerFactory<TEventArgs>());
 
     private static void AddMethods(Builder builder, IEnumerable<MethodInfo> methods)
     {
@@ -205,12 +226,12 @@ public class RpcTargetMetadata
             };
     }
 
-    private class EventHandlerFactory<T> : IEventHandlerFactory
+    private class EventHandlerFactory<TEventArgs> : IEventHandlerFactory
     {
         public Delegate CreateEventHandler(JsonRpc rpc, string eventName)
         {
-            Type[] argTypes = [typeof(T)];
-            return (object? sender, T args) => rpc.NotifyAsync(eventName, [args], argTypes).Forget();
+            Type[] argTypes = [typeof(TEventArgs)];
+            return (object? sender, TEventArgs args) => rpc.NotifyAsync(eventName, [args], argTypes).Forget();
         }
     }
 
