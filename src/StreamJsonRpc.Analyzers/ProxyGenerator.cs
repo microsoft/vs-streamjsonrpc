@@ -8,6 +8,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using StreamJsonRpc.Analyzers;
 using StreamJsonRpc.Analyzers.GeneratorModels;
 
@@ -97,7 +98,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
-        IncrementalValueProvider<bool> interceptorsEnabled = context.AnalyzerConfigOptionsProvider.Select((provider, token) => provider.GlobalOptions.TryGetValue("build_property.EnableStreamJsonRpcInterceptors", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase));
+        IncrementalValueProvider<bool> interceptorsEnabled = context.AnalyzerConfigOptionsProvider.Select((provider, token) => AreInterceptorsEnabled(provider.GlobalOptions));
 
         IncrementalValueProvider<FullModel> fullModel = proxyProvider.Collect().Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled)).Select(
             (combined, attach) =>
@@ -111,6 +112,9 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
     }
+
+    internal static bool AreInterceptorsEnabled(AnalyzerConfigOptions options)
+        => options.TryGetValue("build_property.EnableStreamJsonRpcInterceptors", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
     internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? AnalyzeAttachInvocation(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
