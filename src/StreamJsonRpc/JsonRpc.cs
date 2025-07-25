@@ -1060,10 +1060,23 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
+    [SuppressMessage("ApiDesign", "RS0027:API with optional parameter(s) should have the most parameters amongst its public overloads", Justification = "OverloadResolutionPriority resolves it.")]
     public Task InvokeWithParameterObjectAsync(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
     {
         return this.InvokeWithParameterObjectAsync<object>(targetName, argument, cancellationToken);
     }
+
+    /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+    /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+    /// <param name="argument">An object that captures the parameter names, types, and the arguments to be passed to the RPC method.</param>
+    /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [OverloadResolutionPriority(10)]
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "OverloadResolutionPriority resolves it.")]
+    public Task InvokeWithParameterObjectAsync(string targetName, NamedArgs? argument = null, CancellationToken cancellationToken = default(CancellationToken))
+        => this.InvokeWithParameterObjectAsync(targetName, argument, argument?.DeclaredArgumentTypes, cancellationToken);
 
     /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
     /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
@@ -1072,9 +1085,22 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
     public Task InvokeWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
+        => this.InvokeWithParameterObjectAsync<object>(targetName, argument, argumentDeclaredTypes, cancellationToken);
+
+    /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+    /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+    /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argument']"/></param>
+    /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeWithParameterObjectAsync{TResult}(string, object?, IReadOnlyDictionary{string, Type}?, CancellationToken)" path="/param[@name='argumentDeclaredTypes']"/></param>
+    /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    public Task InvokeWithParameterObjectAsync(string targetName, IReadOnlyDictionary<string, object?>? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
     {
-        return this.InvokeWithParameterObjectAsync<object>(targetName, argument, argumentDeclaredTypes, cancellationToken);
+        // If argument is null, this indicates that the method does not take any parameters.
+        object?[]? argumentToPass = argument is null ? null : [argument];
+        return this.InvokeCoreAsync<object>(this.CreateNewRequestId(), targetName, argumentToPass, positionalArgumentDeclaredTypes: null, argumentDeclaredTypes, cancellationToken, isParameterObject: true);
     }
 
     /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
@@ -1084,9 +1110,27 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
+    [SuppressMessage("ApiDesign", "RS0027:API with optional parameter(s) should have the most parameters amongst its public overloads", Justification = "OverloadResolutionPriority resolves it.")]
     public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument = null, CancellationToken cancellationToken = default(CancellationToken))
     {
-        return this.InvokeWithParameterObjectAsync<TResult>(targetName, argument, null, cancellationToken);
+        return this.InvokeWithParameterObjectAsync<TResult>(targetName, argument, (argument as NamedArgs)?.DeclaredArgumentTypes, cancellationToken);
+    }
+
+    /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
+    /// <typeparam name="TResult">Type of the method result.</typeparam>
+    /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+    /// <param name="argument"><inheritdoc cref="InvokeWithParameterObjectAsync(string, NamedArgs?, CancellationToken)" path="/param[@name='argument']"/></param>
+    /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
+    /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [OverloadResolutionPriority(10)]
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "OverloadResolutionPriority resolves it.")]
+    public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, NamedArgs? argument = null, CancellationToken cancellationToken = default(CancellationToken))
+    {
+        // If argument is null, this indicates that the method does not take any parameters.
+        object?[]? argumentToPass = argument is null ? null : new object?[] { argument };
+        return this.InvokeCoreAsync<TResult>(this.CreateNewRequestId(), targetName, argumentToPass, positionalArgumentDeclaredTypes: null, argument?.DeclaredArgumentTypes, cancellationToken, isParameterObject: true);
     }
 
     /// <summary><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/summary"/></summary>
@@ -1100,6 +1144,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="cancellationToken"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='cancellationToken']"/></param>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/returns"/>
     /// <inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/exception"/>
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
     public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes, CancellationToken cancellationToken)
     {
         // If argument is null, this indicates that the method does not take any parameters.
@@ -1200,7 +1245,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <inheritdoc cref="NotifyWithParameterObjectAsync(string, object?, IReadOnlyDictionary{string, Type}?)"/>
-    public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, null);
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
+    [SuppressMessage("ApiDesign", "RS0027:API with optional parameter(s) should have the most parameters amongst its public overloads", Justification = "OverloadResolutionPriority resolves it.")]
+    public Task NotifyWithParameterObjectAsync(string targetName, object? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, (argument as NamedArgs)?.DeclaredArgumentTypes);
+
+    /// <inheritdoc cref="NotifyWithParameterObjectAsync(string, object?, IReadOnlyDictionary{string, Type}?)"/>
+    [OverloadResolutionPriority(10)]
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "OverloadResolutionPriority resolves it.")]
+    public Task NotifyWithParameterObjectAsync(string targetName, NamedArgs? argument = null) => this.NotifyWithParameterObjectAsync(targetName, argument, argument?.DeclaredArgumentTypes);
 
     /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
     /// <remarks>
@@ -1211,11 +1263,28 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='namedArgumentDeclaredTypes']"/></param>
     /// <returns>A task that completes when the notification has been transmitted.</returns>
     /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
+    [RequiresUnreferencedCode("The untyped 'argument' may be reflected over. Use the NamedArgs overload instead for trim safety.")]
     public Task NotifyWithParameterObjectAsync(string targetName, object? argument, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes)
     {
         // If argument is null, this indicates that the method does not take any parameters.
-        object?[]? argumentToPass = argument is null ? null : new object?[] { argument };
+        object?[]? argumentToPass = argument is null ? null : [argument];
 
+        return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, null, argumentDeclaredTypes, CancellationToken.None, isParameterObject: true);
+    }
+
+    /// <summary><inheritdoc cref="NotifyAsync(string, object?)" path="/summary"/></summary>
+    /// <remarks>
+    /// Any error that happens on the server side is ignored.
+    /// </remarks>
+    /// <param name="targetName"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='targetName']"/></param>
+    /// <param name="namedArguments">A dictionary of parameter names and arguments.</param>
+    /// <param name="argumentDeclaredTypes"><inheritdoc cref="InvokeCoreAsync{TResult}(RequestId, string, IReadOnlyList{object?}?, IReadOnlyList{Type}?, IReadOnlyDictionary{string, Type}?, CancellationToken, bool)" path="/param[@name='namedArgumentDeclaredTypes']"/></param>
+    /// <returns>A task that completes when the notification has been transmitted.</returns>
+    /// <inheritdoc cref="NotifyAsync(string, object?)" path="/exception"/>
+    public Task NotifyWithParameterObjectAsync(string targetName, IReadOnlyDictionary<string, object?>? namedArguments, IReadOnlyDictionary<string, Type>? argumentDeclaredTypes)
+    {
+        // If argument is null, this indicates that the method does not take any parameters.
+        object?[]? argumentToPass = namedArguments is null ? null : [namedArguments];
         return this.InvokeCoreAsync<object>(RequestId.NotSpecified, targetName, argumentToPass, null, argumentDeclaredTypes, CancellationToken.None, isParameterObject: true);
     }
 

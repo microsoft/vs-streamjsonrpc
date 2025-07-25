@@ -10,7 +10,6 @@ using System.Globalization;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
@@ -75,14 +74,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 ExceptionConverter<Exception>.Instance,
             ],
     }.WithObjectConverter();
-
-    /// <summary>
-    /// A cache of property names to declared property types, indexed by their containing parameter object type.
-    /// </summary>
-    /// <remarks>
-    /// All access to this field should be while holding a lock on this member's value.
-    /// </remarks>
-    private static readonly Dictionary<Type, IReadOnlyDictionary<string, Type>> ParameterObjectPropertyTypes = [];
 
     /// <summary>
     /// The serializer context to use for top-level RPC messages.
@@ -181,17 +172,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// <inheritdoc/>
     public void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
     {
-        if (message is Protocol.JsonRpcRequest { ArgumentsList: null, Arguments: not null and not IReadOnlyDictionary<string, object?> } request)
-        {
-            // This request contains named arguments, but not using a standard dictionary.
-            // Convert it to a dictionary so that the parameters can be matched to the method we're invoking.
-            if (GetParamsObjectDictionary(request.Arguments) is { } namedArgs)
-            {
-                request.Arguments = namedArgs.ArgumentValues;
-                request.NamedArgumentDeclaredTypes = namedArgs.ArgumentTypes;
-            }
-        }
-
         var writer = new MessagePackWriter(bufferWriter);
         try
         {
@@ -248,116 +228,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         throw new NotSupportedException($"Type '{typeof(T).FullName}' is not supported for RPC Marshaling.");
     }
 #endif
-
-    /// <summary>
-    /// Extracts a dictionary of property names and values from the specified params object.
-    /// </summary>
-    /// <param name="paramsObject">The params object.</param>
-    /// <returns>A dictionary of argument values and another of declared argument types, or <see langword="null"/> if <paramref name="paramsObject"/> is null.</returns>
-    /// <remarks>
-    /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
-    /// </remarks>
-    [return: NotNullIfNotNull(nameof(paramsObject))]
-    private static (IReadOnlyDictionary<string, object?> ArgumentValues, IReadOnlyDictionary<string, Type> ArgumentTypes)? GetParamsObjectDictionary(object? paramsObject)
-    {
-        if (paramsObject is null)
-        {
-            return default;
-        }
-
-        // Look up the argument types dictionary if we saved it before.
-        Type paramsObjectType = paramsObject.GetType();
-        IReadOnlyDictionary<string, Type>? argumentTypes;
-        lock (ParameterObjectPropertyTypes)
-        {
-            ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out argumentTypes);
-        }
-
-        // If we couldn't find a previously created argument types dictionary, create a mutable one that we'll build this time.
-        Dictionary<string, Type>? mutableArgumentTypes = argumentTypes is null ? [] : null;
-
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-
-        TypeInfo paramsTypeInfo = paramsObject.GetType().GetTypeInfo();
-        bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() is not null;
-
-        BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
-        if (isDataContract)
-        {
-            bindingFlags |= BindingFlags.NonPublic;
-        }
-
-        bool TryGetSerializationInfo(MemberInfo memberInfo, out string key)
-        {
-            key = memberInfo.Name;
-            if (isDataContract)
-            {
-                DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
-                if (dataMemberAttribute is null)
-                {
-                    return false;
-                }
-
-                if (!dataMemberAttribute.EmitDefaultValue)
-                {
-                    throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType!.FullName}.{memberInfo.Name}.");
-                }
-
-                key = dataMemberAttribute.Name ?? memberInfo.Name;
-                return true;
-            }
-            else
-            {
-                return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null;
-            }
-        }
-
-        foreach (PropertyInfo property in paramsTypeInfo.GetProperties(bindingFlags))
-        {
-            if (property.GetMethod is not null)
-            {
-                if (TryGetSerializationInfo(property, out string key))
-                {
-                    result[key] = property.GetValue(paramsObject);
-                    if (mutableArgumentTypes is not null)
-                    {
-                        mutableArgumentTypes[key] = property.PropertyType;
-                    }
-                }
-            }
-        }
-
-        foreach (FieldInfo field in paramsTypeInfo.GetFields(bindingFlags))
-        {
-            if (TryGetSerializationInfo(field, out string key))
-            {
-                result[key] = field.GetValue(paramsObject);
-                if (mutableArgumentTypes is not null)
-                {
-                    mutableArgumentTypes[key] = field.FieldType;
-                }
-            }
-        }
-
-        // If we assembled the argument types dictionary this time, save it for next time.
-        if (mutableArgumentTypes is not null)
-        {
-            lock (ParameterObjectPropertyTypes)
-            {
-                if (ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out IReadOnlyDictionary<string, Type>? lostRace))
-                {
-                    // Of the two, pick the winner to use ourselves so we consolidate on one and allow the GC to collect the loser sooner.
-                    argumentTypes = lostRace;
-                }
-                else
-                {
-                    ParameterObjectPropertyTypes.Add(paramsObjectType, argumentTypes = mutableArgumentTypes);
-                }
-            }
-        }
-
-        return (result, argumentTypes!);
-    }
 
     /// <summary>
     /// Reads a string with an optimized path for the value "2.0".
@@ -696,6 +566,23 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                     writer.Write(entry.Key);
                     formatter.WriteUserData(ref writer, entry.Value, value.NamedArgumentDeclaredTypes?[entry.Key], context);
                 }
+            }
+            else if (value.Arguments is not null)
+            {
+                // We don't understand the format the Arguments object is in, so we just write it as-is.
+                // This requires that a type shape be known for it in the user's supplied type shape provider.
+                // We expect this to serialize as a map.
+                MessagePackConverter namedArgsConverter;
+                try
+                {
+                    namedArgsConverter = context.GetConverter(value.Arguments.GetType(), formatter.TypeShapeProvider);
+                }
+                catch (NotSupportedException ex)
+                {
+                    throw new MessagePackSerializationException("No type shape available for custom named arguments type. Apply [GenerateShape] to the type or wrap the argument object with NamedArgs.Create.", ex);
+                }
+
+                namedArgsConverter.WriteObject(ref writer, value.Arguments, context);
             }
             else
             {

@@ -1078,7 +1078,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task InvokeWithParameterObjectAsync_CanCallCancellableMethodImplementedSynchronously()
     {
         using var cts = new CancellationTokenSource();
-        Task invocationTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.SyncMethodWithCancellation), new { waitForCancellation = true }, cancellationToken: cts.Token);
+        Task invocationTask = this.clientRpc.InvokeWithParameterObjectAsync(nameof(Server.SyncMethodWithCancellation), NamedArgs.Create(new { waitForCancellation = true }), cancellationToken: cts.Token);
         await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
         cts.Cancel();
         await Assert.ThrowsAsync<TaskCanceledException>(() => invocationTask);
@@ -1318,7 +1318,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithParameterObject_DefaultParameters()
     {
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), new { x = 2 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithDefaultParameter), NamedArgs.Create(new { x = 2 }), this.TimeoutToken);
         Assert.Equal(12, sum);
     }
 
@@ -1328,7 +1328,7 @@ public abstract partial class JsonRpcTests : TestBase
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
-        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), NamedArgs.Create(new { p = progress }), this.TimeoutToken);
 
         await progress.WaitAsync(TestContext.Current.CancellationToken);
 
@@ -1367,7 +1367,7 @@ public abstract partial class JsonRpcTests : TestBase
         int report = 0;
         ProgressWithCompletion<int> progress = new ProgressWithCompletion<int>(n => report = n);
 
-        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), new { p = progress }, this.TimeoutToken));
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithInvalidProgressParameter), NamedArgs.Create(new { p = progress }), this.TimeoutToken));
     }
 
     /// <summary>
@@ -1426,7 +1426,7 @@ public abstract partial class JsonRpcTests : TestBase
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2, y = 5 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), NamedArgs.Create(new { p = progress, x = 2, y = 5 }), this.TimeoutToken);
 
         await progress.WaitAsync(TestContext.Current.CancellationToken);
 
@@ -1440,7 +1440,7 @@ public abstract partial class JsonRpcTests : TestBase
         int report = 0;
         var progress = new ProgressWithCompletion<int>(n => Interlocked.Add(ref report, n));
 
-        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), new { p = progress, x = 2 }, this.TimeoutToken);
+        int sum = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressAndMoreParameters), NamedArgs.Create(new { p = progress, x = 2 }), this.TimeoutToken);
 
         await progress.WaitAsync(TestContext.Current.CancellationToken);
 
@@ -3316,7 +3316,7 @@ public abstract partial class JsonRpcTests : TestBase
 
     private async Task InvokeMethodWithProgressParameter(IProgress<int> progress)
     {
-        await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress }, this.TimeoutToken);
+        await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), NamedArgs.Create(new { p = progress }), this.TimeoutToken);
     }
 
     public class BaseClass

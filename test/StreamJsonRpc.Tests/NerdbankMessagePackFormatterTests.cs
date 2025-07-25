@@ -164,7 +164,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         {
             RequestId = new RequestId(1),
             Method = "Eat",
-            Arguments = originalArg,
+            Arguments = NamedArgs.Create(originalArg),
         };
         var roundtripRequest = this.Roundtrip(originalRequest);
         Assert.True(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.Prop1), -1, typeof(int), out object? prop1));
@@ -187,7 +187,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         {
             RequestId = new RequestId(1),
             Method = "Eat",
-            Arguments = originalArg,
+            Arguments = NamedArgs.Create(originalArg),
         };
         var roundtripRequest = this.Roundtrip(originalRequest);
         Assert.False(roundtripRequest.TryGetArgumentByNameOrIndex(nameof(originalArg.ExcludedField), -1, typeof(string), out object? _));
