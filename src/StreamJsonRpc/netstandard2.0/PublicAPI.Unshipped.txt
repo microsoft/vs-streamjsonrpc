@@ -1,4 +1,6 @@
 static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
+static StreamJsonRpc.NamedArgs.Create(System.Type! objectType, object? namedArgsObject) -> StreamJsonRpc.NamedArgs?
+static StreamJsonRpc.NamedArgs.Create<T>(T? namedArgsObject) -> StreamJsonRpc.NamedArgs?
 static StreamJsonRpc.Reflection.ProxyBase.CreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool startOrFail) -> StreamJsonRpc.IJsonRpcClientProxy!
 static StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, out StreamJsonRpc.IJsonRpcClientProxy? proxy) -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute
@@ -12,6 +14,12 @@ override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.
 static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
 StreamJsonRpc.JsonRpc.AddLoadableType(System.Type! type) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, StreamJsonRpc.NamedArgs? argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, StreamJsonRpc.NamedArgs? argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, StreamJsonRpc.NamedArgs? argument = null) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? namedArguments, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
 StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute
@@ -25,6 +33,8 @@ StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated = 2 
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.PreferSourceGenerated = 1 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxySource.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxySource.set -> void
+StreamJsonRpc.NamedArgs
+StreamJsonRpc.NamedArgs.DeclaredArgumentTypes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.JsonRpcProxyMappingAttribute(System.Type! proxyClass) -> void

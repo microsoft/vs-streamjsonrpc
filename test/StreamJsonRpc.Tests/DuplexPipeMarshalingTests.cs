@@ -124,7 +124,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadablePipe),
-                new { fileName = ExpectedFileName, content = pipes.Item2 },
+                NamedArgs.Create(new { fileName = ExpectedFileName, content = pipes.Item2 }),
                 this.TimeoutToken);
         }
 
@@ -151,7 +151,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritablePipe),
-                new { lengthToWrite = bytesToReceive, content = pipes.Item2 },
+                NamedArgs.Create(new { lengthToWrite = bytesToReceive, content = pipes.Item2 }),
                 this.TimeoutToken);
         }
 
@@ -239,7 +239,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadableStream),
-                new { fileName = ExpectedFileName, content = readOnlyStream },
+                NamedArgs.Create(new { fileName = ExpectedFileName, content = readOnlyStream }),
                 this.TimeoutToken);
         }
 
@@ -269,7 +269,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritableStream),
-                new { lengthToWrite = bytesToReceive, content = writeOnlyStream },
+                NamedArgs.Create(new { lengthToWrite = bytesToReceive, content = writeOnlyStream }),
                 this.TimeoutToken);
         }
 

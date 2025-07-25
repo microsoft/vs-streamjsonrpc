@@ -128,7 +128,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        var argument = new Dictionary<string, object> { { "value", new UnionDerivedClass() } };
+        var argument = new Dictionary<string, object?> { { "value", new UnionDerivedClass() } };
         var argumentDeclaredTypes = new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } };
 
         UnionBaseClass? receivedValue;
@@ -172,7 +172,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
         this.serverRpc.AddLocalRpcTarget(server);
         string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
             nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, object?> { { "value", new UnionDerivedClass() } },
             new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
             this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
@@ -181,7 +181,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
         // Exercise the non-init path by repeating
         result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
             nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, object?> { { "value", new UnionDerivedClass() } },
             new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
             this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
@@ -198,7 +198,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        var namedArgs = new { value = (UnionBaseClass)new UnionDerivedClass() };
+        var namedArgs = NamedArgs.Create(new { value = (UnionBaseClass)new UnionDerivedClass() });
 
         UnionBaseClass? receivedValue;
         if (notify)
@@ -238,7 +238,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
     {
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(new MessagePackServer());
-        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), new { value = (UnionBaseClass)new UnionDerivedClass() }, this.TimeoutToken);
+        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), NamedArgs.Create(new { value = (UnionBaseClass)new UnionDerivedClass() }), this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
     }
 
