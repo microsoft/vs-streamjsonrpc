@@ -23,12 +23,15 @@ internal static class ExceptionSerializationHelpers
 
     private static readonly Type[] DeserializingConstructorParameterTypes = new Type[] { typeof(SerializationInfo), typeof(StreamingContext) };
 
-    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    internal delegate Type? ExceptionTypeLoader(string typeName, string? assemblyName);
+    internal interface IExceptionTypeLoader
+    {
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+        Type? Load(string typeName, string? assemblyName);
+    }
 
     private static StreamingContext Context => new StreamingContext(StreamingContextStates.Remoting);
 
-    internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, ExceptionTypeLoader typeLoader, TraceSource? traceSource)
+    internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, IExceptionTypeLoader typeLoader, TraceSource? traceSource)
     ////where T : Exception
     {
         if (!TryGetValue(info, "ClassName", out string? runtimeTypeName) || runtimeTypeName is null)
@@ -37,7 +40,7 @@ internal static class ExceptionSerializationHelpers
         }
 
         TryGetValue(info, AssemblyNameKeyName, out string? runtimeAssemblyName);
-        Type? runtimeType = typeLoader(runtimeTypeName, runtimeAssemblyName);
+        Type? runtimeType = typeLoader.Load(runtimeTypeName, runtimeAssemblyName);
         if (runtimeType is null)
         {
             if (traceSource?.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
@@ -77,7 +80,7 @@ internal static class ExceptionSerializationHelpers
 
             traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
 
-            runtimeType = runtimeType.BaseType is { FullName: not null } ? typeLoader(runtimeType.BaseType.FullName, runtimeType.BaseType.Assembly.FullName) : null;
+            runtimeType = runtimeType.BaseType is { FullName: not null } ? typeLoader.Load(runtimeType.BaseType.FullName, runtimeType.BaseType.Assembly.FullName) : null;
         }
 
         if (ctor is null)

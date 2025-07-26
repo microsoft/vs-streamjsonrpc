@@ -68,7 +68,7 @@ public partial class NerdbankMessagePackFormatter
                     info.AddSafeValue(name, value);
                 }
 
-                return ExceptionSerializationHelpers.Deserialize<T>(formatter.JsonRpc, info, formatter.JsonRpc.LoadTypeTrimSafe, formatter.JsonRpc.TraceSource);
+                return ExceptionSerializationHelpers.Deserialize<T>(formatter.JsonRpc, info, formatter.JsonRpc, formatter.JsonRpc.TraceSource);
             }
             finally
             {
