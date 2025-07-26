@@ -83,7 +83,7 @@ internal class StandardCancellationStrategy : ICancellationStrategy
                     { "id", requestId },
                 };
 
-                await this.JsonRpc.NotifyWithParameterObjectAsync(CancelRequestSpecialMethod, args).ConfigureAwait(false);
+                await this.JsonRpc.NotifyWithParameterObjectAsync(CancelRequestSpecialMethod, args, null).ConfigureAwait(false);
             }
         }).Forget();
     }

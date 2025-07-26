@@ -4,9 +4,9 @@ using Nerdbank.Streams;
 
 namespace NativeAOT;
 
-partial class Program
+partial class SystemTextJson
 {
-    #region STJSample
+    #region Sample
     static async Task Main(string[] args)
     {
         (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
