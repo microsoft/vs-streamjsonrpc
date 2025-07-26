@@ -19,7 +19,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
 /// </summary>
-public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks
+public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks, ExceptionSerializationHelpers.IExceptionTypeLoader
 {
     /// <summary>
     /// The <see cref="System.Threading.SynchronizationContext"/> to use to schedule work on the threadpool.
@@ -1313,6 +1313,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)TraceEvents.MessageReceived, "Received: {0}", encodedMessage);
         }
     }
+
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+    Type? ExceptionSerializationHelpers.IExceptionTypeLoader.Load(string typeFullName, string? assemblyName) => this.LoadTypeTrimSafe(typeFullName, assemblyName);
 
     /// <summary>
     /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.

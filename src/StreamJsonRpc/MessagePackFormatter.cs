@@ -1333,7 +1333,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, this.formatter.JsonRpc.LoadType, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, this.formatter.JsonRpc, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
                 }
                 finally
                 {

@@ -12,11 +12,12 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
    Use the <xref:StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute> to specify sets of interfaces that should be supported.
 
    Set the <xref:StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces?displayProperty=nameWithType> property to `true` to reduce the number of predefined groups for which proxies must be specially generated.
-1. Use <xref:StreamJsonRpc.NerdbankMessagePackFormatter> or <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default <xref:StreamJsonRpc.JsonFormatter>.
+1. Use <xref:StreamJsonRpc.NerdbankMessagePackFormatter> or <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default <xref:StreamJsonRpc.JsonMessageFormatter>.
    <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best and safest experience and greatest set of functionality when you can use MessagePack encoding, but <xref:StreamJsonRpc.SystemTextJsonFormatter> must be used when UTF-8 JSON encoding is required.
 1. Set <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType> property to the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>.
 1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcMethod*> instead of <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget*>.
 1. When constructing proxies, use the <xref:StreamJsonRpc.JsonRpc.Attach*> methods with `typeof` arguments or specific generic type arguments.
+1. When using named parameters (e.g. <xref:StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync*> or <xref:StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync*>), call the overloads that accept <xref:StreamJsonRpc.NamedArgs>.
 1. Avoid [RPC marshalable objects](../exotic_types/rpc_marshalable_objects.md).
 
 ## Sample program
