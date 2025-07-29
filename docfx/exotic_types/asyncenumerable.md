@@ -553,14 +553,14 @@ been returned to the client.
 
 #### Compatibility note
 
-The `MessagePackFormatter` deviates from this spec by formatting the result object above as an array of values instead.
+The <xref:StreamJsonRpc.MessagePackFormatter> deviates from this spec by formatting the result object above as an array of values instead.
 The example above would instead be formatted as:
 
 ```json
 [[4,5,6], false]
 ```
 
-The `NerdbankMessagePackFormatter` does *not* share this spec bug, and thus cannot interoperate with a `MessagePackFormatter` across the wire.
+The <xref:StreamJsonRpc.NerdbankMessagePackFormatter> does *not* share this spec bug, and thus cannot interoperate with a <xref:StreamJsonRpc.MessagePackFormatter> across the wire.
 
 ### Consumer disposes enumerator
 

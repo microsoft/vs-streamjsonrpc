@@ -1185,8 +1185,10 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             {
                 using (formatter.TrackDeserialization(this))
                 {
+                    // The non-generic JsonRpc.InvokeAsync method sets System.Object as the return type just as a filler,
+                    // but we can't deserialize to System.Object.
                     MessagePackReader reader = new(this.MsgPackResult);
-                    this.Result = formatter.userDataSerializer.DeserializeObject(ref reader, formatter.TypeShapeProvider.Resolve(resultType));
+                    this.Result = formatter.userDataSerializer.DeserializeObject(ref reader, formatter.GetUserDataShape(resultType));
                 }
 
                 this.MsgPackResult = default;
@@ -1282,7 +1284,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         }
 
         public MessagePackConverter<T>? CreateConverter<T>(ITypeShape<T> shape)
-            => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new FullProgressConverter<T>() :
+            => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new ProgressConverter<T>() :
                TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
 #if NBMSGPACK_MARSHALING_SUPPORT
@@ -1331,6 +1333,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         public override object? VisitParameter<TArgumentState, TParameterType>(IParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null) => parameterShape.GetSetter();
     }
 
+    [GenerateShapeFor<object>] // required because we use InvokeAsync<object> as filler for no return value.
     [GenerateShapeFor<string>]
     [GenerateShapeFor<TraceParent>]
     [GenerateShapeFor<RequestId>]

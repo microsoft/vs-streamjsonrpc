@@ -1587,11 +1587,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         bool iserializable = this.ExceptionStrategy == ExceptionProcessing.ISerializable;
         if (!ExceptionSerializationHelpers.IsSerializable(exception))
         {
-            if (localRpcEx is null)
-            {
-                this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ExceptionNotSerializable, "An exception of type {0} was thrown but is not serializable.", exception.GetType().AssemblyQualifiedName);
-            }
-
+            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ExceptionNotSerializable, "An exception of type {0} was thrown but is not serializable.", exception.GetType().AssemblyQualifiedName);
             iserializable = false;
         }
 

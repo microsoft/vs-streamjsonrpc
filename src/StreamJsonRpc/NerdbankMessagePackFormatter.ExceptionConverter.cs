@@ -19,9 +19,11 @@ public partial class NerdbankMessagePackFormatter
     /// </summary>
     /// <remarks>
     /// A serializable class will:
-    /// 1. Derive from <see cref="Exception"/>
-    /// 2. Be attributed with <see cref="SerializableAttribute"/>
-    /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
+    /// <list type="number">
+    /// <item>Derive from <see cref="Exception"/></item>
+    /// <item>Be attributed with <see cref="SerializableAttribute"/></item>
+    /// <item>Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).</item>
+    /// </list>
     /// </remarks>
     private class ExceptionConverter<T> : MessagePackConverter<T>
     {

@@ -7,7 +7,6 @@ using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
 using PolyType;
-using JsonNET = Newtonsoft.Json.Linq;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;

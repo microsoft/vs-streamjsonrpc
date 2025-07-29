@@ -18,7 +18,7 @@ public partial class NerdbankMessagePackFormatter
     /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
     /// </summary>
     /// <typeparam name="TClass">The closed <see cref="IProgress{T}"/> interface.</typeparam>
-    private class FullProgressConverter<TClass> : MessagePackConverter<TClass>
+    private class ProgressConverter<TClass> : MessagePackConverter<TClass>
     {
         private Func<JsonRpc, object, bool, TClass>? progressProxyCtor;
 

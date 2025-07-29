@@ -222,7 +222,7 @@ public class MessageFormatterEnumerableTracker
     /// <typeparam name="T">The type of element in the enumeration.</typeparam>
     [DataContract]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public class EnumeratorResults<T>
+    public sealed class EnumeratorResults<T>
     {
         /// <summary>
         /// Gets the slice of values in this segment.

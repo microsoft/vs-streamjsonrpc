@@ -200,17 +200,6 @@ public class MessageFormatterProgressTracker
         return Activator.CreateInstance(progressType, [rpc, token, clientRequiresNamedArguments])!;
     }
 
-    /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
-    /// <param name="rpc"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='rpc']"/></param>
-    /// <param name="token"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='token']"/></param>
-    /// <param name="clientRequiresNamedArguments"><inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)" path="/param[@name='clientRequiresNamedArguments']"/></param>
-    /// <param name="progressProxyType">The closed generic type of <see cref="ProgressProxy{T}"/>.</param>
-    /// <returns>A new instance of <see cref="ProgressProxy{T}"/>.</returns>
-    internal static object CreateJsonProgress(JsonRpc rpc, object token, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type progressProxyType, bool clientRequiresNamedArguments)
-    {
-        return Activator.CreateInstance(progressProxyType, [rpc, token, clientRequiresNamedArguments]) ?? throw Assumes.Fail("Activator.CreateInstance failed.");
-    }
-
     private void CleanUpResources(RequestId requestId)
     {
         lock (this.progressLock)
