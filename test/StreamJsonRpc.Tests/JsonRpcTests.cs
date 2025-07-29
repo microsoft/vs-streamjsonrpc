@@ -2423,13 +2423,15 @@ public abstract partial class JsonRpcTests : TestBase
         {
             try
             {
-                throw new InvalidOperationException("IOE test exception")
+                InvalidOperationException ex = new("IOE test exception");
+
+                // Our more strongly typed and safer serializer does not serialize the Data dictionary.
+                if (this is not JsonRpcNerdbankMessagePackLengthTests)
                 {
-                    Data =
-                    {
-                        { "someKey", "someValue" },
-                    },
-                };
+                    ex.Data["someKey"] = "someValue";
+                }
+
+                throw ex;
             }
             catch (InvalidOperationException inner)
             {

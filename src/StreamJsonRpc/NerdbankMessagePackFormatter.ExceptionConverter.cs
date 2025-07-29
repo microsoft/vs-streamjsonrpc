@@ -107,6 +107,13 @@ public partial class NerdbankMessagePackFormatter
                     {
                         writer.WriteNil();
                     }
+                    else if (element.ObjectType == typeof(System.Collections.IDictionary))
+                    {
+                        // Some exception types tuck data into this dictionary that is assumed to be safe to read back (e.g. use a BinaryFormatter to interpret its data).
+                        // Also, it's difficult to safely deserialize an untyped dictionary because we don't have an hash-collision resistant key comparer for System.Object.
+                        // So just skip it.
+                        writer.WriteNil();
+                    }
                     else
                     {
                         // We prefer the declared type but will fallback to the runtime type.

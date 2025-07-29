@@ -100,6 +100,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private readonly RpcTargetInfo rpcTargetInfo;
 
+    private ExceptionSerializationHelpers.IExceptionTypeLoader? trimUnsafeTypeLoader;
+
     /// <summary>
     /// List of remote RPC targets to call if connection should be relayed.
     /// </summary>
@@ -675,6 +677,15 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Gets the user-specified <see cref="SynchronizationContext"/> or a default instance that will execute work on the threadpool.
     /// </summary>
     internal SynchronizationContext SynchronizationContextOrDefault => this.SynchronizationContext ?? DefaultSynchronizationContext;
+
+    /// <summary>
+    /// Gets a trim unsafe type loader.
+    /// </summary>
+    internal ExceptionSerializationHelpers.IExceptionTypeLoader TrimUnsafeTypeLoader
+    {
+        [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
+        get => this.trimUnsafeTypeLoader ??= new NotTrimSafeTypeLoader(this);
+    }
 
     /// <summary>
     /// Gets a value indicating whether listening has started.
@@ -3028,5 +3039,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         internal Action<JsonRpcMessage?> CompletionHandler { get; }
 
         internal Type? ExpectedResultType { get; }
+    }
+
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
+    private class NotTrimSafeTypeLoader(JsonRpc jsonRpc) : ExceptionSerializationHelpers.IExceptionTypeLoader
+    {
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+        public Type? Load(string typeName, string? assemblyName) => jsonRpc.LoadType(typeName, assemblyName);
     }
 }
