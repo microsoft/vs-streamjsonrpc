@@ -441,7 +441,7 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
         this.serverRpc.ExceptionStrategy = exceptionStrategy;
-        this.clientRpc.AddLoadableType(typeof(ExceptionMissingDeserializingConstructor));
+        this.clientRpc.LoadableTypes.Add(typeof(ExceptionMissingDeserializingConstructor));
 
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.AsyncMethodThatThrowsAnExceptionWithoutDeserializingConstructor)));
         var errorData = Assert.IsType<CommonErrorData>(exception.DeserializedErrorData);
@@ -481,7 +481,7 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
         this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
-        this.clientRpc.AddLoadableType(typeof(PrivateSerializableException));
+        this.clientRpc.LoadableTypes.Add(typeof(PrivateSerializableException));
 
         RemoteInvocationException exception = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync<string>(nameof(Server.ThrowPrivateSerializableException)));
         Assert.IsType<PrivateSerializableException>(exception.InnerException);
@@ -2259,8 +2259,8 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
         this.serverRpc.ExceptionStrategy = exceptionStrategy;
-        this.clientRpc.AddLoadableType(typeof(FileNotFoundException));
-        this.clientRpc.AddLoadableType(typeof(ApplicationException));
+        this.clientRpc.LoadableTypes.Add(typeof(FileNotFoundException));
+        this.clientRpc.LoadableTypes.Add(typeof(ApplicationException));
 
         var exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsDeeplyNestedExceptions)));
 
@@ -2415,7 +2415,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task SerializableExceptions()
     {
         this.serverRpc.AllowModificationWhileListening = true;
-        this.serverRpc.AddLoadableType(typeof(FileNotFoundException));
+        this.serverRpc.LoadableTypes.Add(typeof(FileNotFoundException));
 
         // Create a full exception with inner exceptions. We have to throw so that its stacktrace is initialized.
         Exception? exceptionToSend;
@@ -2521,12 +2521,30 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task LoadableTypesCollectionIsSettable()
+    {
+        LoadableTypeCollection loadableTypes = default;
+        loadableTypes.Add(typeof(TaskCanceledException));
+        loadableTypes.Add(typeof(OperationCanceledException));
+
+        this.serverRpc.AllowModificationWhileListening = true;
+        this.serverRpc.ExceptionOptions = new ExceptionFilter(ExceptionSettings.UntrustedData.RecursionLimit);
+        this.serverRpc.LoadableTypes = loadableTypes;
+
+        Exception originalException = new TaskCanceledException();
+        await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { originalException }, new[] { typeof(Exception) }, this.TimeoutToken);
+
+        // Verify that the server received only the base type of the exception we sent.
+        Assert.IsType<OperationCanceledException>(this.server.ReceivedException);
+    }
+
+    [Fact]
     public async Task ExceptionCanDeserializeExtensibility()
     {
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.ExceptionOptions = new ExceptionFilter(ExceptionSettings.UntrustedData.RecursionLimit);
-        this.serverRpc.AddLoadableType(typeof(TaskCanceledException));
-        this.serverRpc.AddLoadableType(typeof(OperationCanceledException));
+        this.serverRpc.LoadableTypes.Add(typeof(TaskCanceledException));
+        this.serverRpc.LoadableTypes.Add(typeof(OperationCanceledException));
 
         Exception originalException = new TaskCanceledException();
         await this.clientRpc.InvokeWithCancellationAsync(nameof(Server.SendException), new[] { originalException }, new[] { typeof(Exception) }, this.TimeoutToken);
@@ -2539,7 +2557,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task ArgumentOutOfRangeException_WithNullArgValue()
     {
         this.serverRpc.AllowModificationWhileListening = true;
-        this.serverRpc.AddLoadableType(typeof(ArgumentOutOfRangeException));
+        this.serverRpc.LoadableTypes.Add(typeof(ArgumentOutOfRangeException));
 
         Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "msg");
 
@@ -2555,7 +2573,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task ArgumentOutOfRangeException_WithStringArgValue()
     {
         this.serverRpc.AllowModificationWhileListening = true;
-        this.serverRpc.AddLoadableType(typeof(ArgumentOutOfRangeException));
+        this.serverRpc.LoadableTypes.Add(typeof(ArgumentOutOfRangeException));
 
         Exception? exceptionToSend = new ArgumentOutOfRangeException("t", "argValue", "msg");
 

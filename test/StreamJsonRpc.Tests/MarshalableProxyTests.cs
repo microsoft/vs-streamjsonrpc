@@ -994,7 +994,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
         this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
-        this.clientRpc.AddLoadableType(typeof(ExceptionWithAsyncEnumerable));
+        this.clientRpc.LoadableTypes.Add(typeof(ExceptionWithAsyncEnumerable));
 
         MarshalableAndSerializable marshaled = new();
         var outerException = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.client.CallScopedMarshalableThrowsWithAsyncEnumerable(marshaled));

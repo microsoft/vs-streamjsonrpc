@@ -39,10 +39,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private static readonly JsonRpcError DroppedError = new();
 
-    private static readonly ImmutableDictionary<string, LoadableType> DefaultRuntimeDeserializableTypes = ImmutableDictionary.Create<string, LoadableType>()
-        .Add("System.Exception", new LoadableType(typeof(Exception)))
-        .Add("System.ArgumentException", new LoadableType(typeof(ArgumentException)))
-        .Add("System.InvalidOperationException", new LoadableType(typeof(InvalidOperationException)));
+    private static readonly LoadableTypeCollection DefaultRuntimeDeserializableTypes = default(LoadableTypeCollection)
+        .Add(typeof(Exception))
+        .Add(typeof(ArgumentException))
+        .Add(typeof(InvalidOperationException));
 
 #if NET
     private static readonly MethodInfo ValueTaskAsTaskMethodInfo = typeof(ValueTask<>).GetMethod(nameof(ValueTask<int>.AsTask))!;
@@ -102,13 +102,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
     private ExceptionSerializationHelpers.IExceptionTypeLoader? trimUnsafeTypeLoader;
 
+    private LoadableTypeCollection loadableTypes = DefaultRuntimeDeserializableTypes;
+
     /// <summary>
     /// List of remote RPC targets to call if connection should be relayed.
     /// </summary>
     private ImmutableList<JsonRpc> remoteRpcTargets = ImmutableList<JsonRpc>.Empty;
 
-    // TODO: make this a custom collection type so it can be shared across JsonRpc instances.
-    private ImmutableDictionary<string, LoadableType> runtimeDeserializableTypes = DefaultRuntimeDeserializableTypes;
     private Task? readLinesTask;
     private long nextId = 1;
     private int requestsInDispatchCount;
@@ -261,10 +261,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
         this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
         this.CancellationStrategy = new StandardCancellationStrategy(this);
-
-        this.AddLoadableType(typeof(Exception));
-        this.AddLoadableType(typeof(InvalidOperationException));
-        this.AddLoadableType(typeof(ArgumentException));
     }
 
     /// <summary>
@@ -664,6 +660,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Gets the set of types that can be deserialized by name at runtime.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This set of types is used by the default implementation of <see cref="LoadTypeTrimSafe(string, string?)"/> to determine
+    /// which types can be deserialized when their name is encountered in an RPC message.
+    /// At present, it is only used for deserializing <see cref="Exception"/>-derived types.
+    /// </para>
+    /// <para>
+    /// The default collection includes <see cref="Exception" />, <see cref="InvalidOperationException"/> and <see cref="ArgumentException"/>.
+    /// </para>
+    /// <para>
+    /// As a `ref return` property, this property may be set to a collection of loadable types intended for sharing across <see cref="JsonRpc" /> instances.
+    /// </para>
+    /// </remarks>
+    public ref LoadableTypeCollection LoadableTypes => ref this.loadableTypes;
+
+    /// <summary>
     /// Gets the message handler used to send and receive messages.
     /// </summary>
     internal IJsonRpcMessageHandler MessageHandler { get; }
@@ -977,24 +991,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     {
         Requires.NotNull(methodName, nameof(methodName));
         return this.rpcTargetInfo.GetJsonRpcMethodAttribute(methodName, parameters);
-    }
-
-    /// <summary>
-    /// Gets or sets the set of types that can be deserialized from their name at runtime.
-    /// </summary>
-    /// <remarks>
-    /// This set of types is used by the default implementation of <see cref="LoadTypeTrimSafe(string, string?)"/> to determine
-    /// which types can be deserialized when their name is encountered in an RPC message.
-    /// </remarks>
-    public void AddLoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
-    {
-        Requires.NotNull(type);
-        Requires.Argument(type.FullName is not null, nameof(type), Resources.TypeMustHaveFullName);
-        this.ThrowIfConfigurationLocked();
-        lock (this.syncObject)
-        {
-            this.runtimeDeserializableTypes = this.runtimeDeserializableTypes.SetItem(type.FullName, new LoadableType(type));
-        }
     }
 
     /// <summary>
@@ -1533,12 +1529,12 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// It is important to not load types that may pose a security threat based on the type and the trust level of the remote party.
     /// </para>
     /// <para>
-    /// The default implementation of this method matches types registered with <see cref="AddLoadableType(Type)"/>.
+    /// The default implementation of this method matches types registered with the <see cref="LoadableTypes"/> collection.
     /// </para>
     /// <para>Implementations should avoid throwing <see cref="FileLoadException"/>, <see cref="TypeLoadException"/> or other exceptions, preferring to return <see langword="null" /> instead.</para>
     /// </remarks>
     [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-    protected internal virtual Type? LoadTypeTrimSafe(string typeFullName, string? assemblyName) => this.runtimeDeserializableTypes.TryGetValue(typeFullName, out LoadableType type) ? type.Type : null;
+    protected internal virtual Type? LoadTypeTrimSafe(string typeFullName, string? assemblyName) => this.LoadableTypes.TryGetType(typeFullName, out Type? type) ? type : null;
 
     /// <summary>
     /// Disposes managed and native resources held by this instance.
@@ -2983,18 +2979,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             Verify.FailOperation(Resources.MustNotBeListening);
         }
-    }
-
-    private struct LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type) : IEquatable<LoadableType>
-    {
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-        public Type Type => type;
-
-        public bool Equals(LoadableType other) => this.Type == other.Type;
-
-        public override int GetHashCode() => type.GetHashCode();
-
-        public override bool Equals(object? obj) => obj is LoadableType other && this.Equals(other);
     }
 
     /// <summary>
