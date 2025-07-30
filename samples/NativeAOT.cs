@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;
+using StreamJsonRpc.Reflection;
 
 namespace NativeAOT;
 
@@ -12,7 +13,7 @@ partial class Program
         (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
         JsonRpc serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
         JsonRpc clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
-        serverRpc.AddLocalRpcMethod(nameof(Server.AddAsync), new Server().AddAsync);
+        serverRpc.AddLocalRpcTarget(RpcTargetMetadata.FromInterfaces(new(typeof(IServer))), new Server(), null);
         serverRpc.StartListening();
         IServer proxy = clientRpc.Attach<IServer>();
         clientRpc.StartListening();
