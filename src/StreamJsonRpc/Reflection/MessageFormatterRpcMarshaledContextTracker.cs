@@ -257,7 +257,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 optionalInterfacesCodes.Add(attribute.OptionalInterfaceCode);
 
                 this.jsonRpc.AddRpcInterfaceToTargetInternal(
-                    attribute.OptionalInterface,
+                    RpcTargetMetadata.FromInterface(attribute.OptionalInterface),
                     context.Proxy,
                     new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
                     {
