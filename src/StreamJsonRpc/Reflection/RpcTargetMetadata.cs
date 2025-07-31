@@ -32,7 +32,7 @@ public class RpcTargetMetadata
         /// <param name="rpc">The JSON-RPC instance to use for sending notifications.</param>
         /// <param name="eventName">The name of the event to create a handler for.</param>
         /// <returns>A delegate that can be used as an event handler.</returns>
-        Delegate CreateEventHandler(JsonRpc rpc, string eventName);
+        Delegate CreateEventHandler(JsonRpc rpc, string eventName, Type delegateType);
     }
 
     /// <summary>
@@ -66,30 +66,34 @@ public class RpcTargetMetadata
     }
 
 #if !NET10_0_OR_GREATER
-    [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+    [SuppressMessage("Trimming", "IL2062:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+    [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work.")]
 #endif
     public static RpcTargetMetadata FromInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract)
     {
         Requires.NotNull(rpcContract);
         Requires.Argument(rpcContract.IsInterface, nameof(rpcContract), "The type must be an interface.");
 
-        return Interfaces.GetOrAdd(rpcContract, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract) =>
+        if (Interfaces.TryGetValue(rpcContract, out RpcTargetMetadata? result))
         {
-            Builder builder = new(rpcContract);
-            WalkInterface(rpcContract);
-            foreach (Type baseInterfaces in rpcContract.GetInterfaces())
-            {
-                WalkInterface(baseInterfaces);
-            }
+            return result;
+        }
 
-            void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
-            {
-                AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
-                AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
-            }
+        Builder builder = new(rpcContract);
+        WalkInterface(rpcContract);
+        foreach (Type baseInterfaces in rpcContract.GetInterfaces())
+        {
+            WalkInterface(baseInterfaces);
+        }
 
-            return builder.ToImmutable();
-        });
+        void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+        {
+            AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+            AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
+        }
+
+        result = builder.ToImmutable();
+        return Interfaces.TryAdd(rpcContract, result) ? result : Interfaces[rpcContract];
     }
 
     public static RpcTargetMetadata FromInterfaces(InterfaceCollection interfaces)
@@ -98,10 +102,10 @@ public class RpcTargetMetadata
         IReadOnlyList<Type> missingInterfaces = interfaces.GetMissingInterfacesFromSet();
         Requires.Argument(missingInterfaces is [], nameof(interfaces), $"The interface collection is missing interfaces that the primary interface derives from: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
 
-        if (Interfaces.TryGetValue(interfaces.PrimaryInterface, out RpcTargetMetadata? existingMetadata))
+        if (Interfaces.TryGetValue(interfaces.PrimaryInterface, out RpcTargetMetadata? result))
         {
             // If we already have metadata for the primary interface, return it.
-            return existingMetadata;
+            return result;
         }
 
         Builder builder = new(interfaces.PrimaryInterface);
@@ -116,7 +120,7 @@ public class RpcTargetMetadata
             AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
         }
 
-        RpcTargetMetadata result = builder.ToImmutable();
+        result = builder.ToImmutable();
 
         // It's safe to store and share the result because we confirmed that InterfaceCollection is complete,
         // and the collection itself ensures that it does not have an excess of interfaces.
@@ -128,13 +132,17 @@ public class RpcTargetMetadata
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        return PublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType) =>
+        if (PublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
-            Builder builder = new(classType);
-            AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
-            AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
-            return builder.ToImmutable();
-        });
+            return result;
+        }
+
+        Builder builder = new(classType);
+        AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
+        AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
+        result = builder.ToImmutable();
+
+        return PublicClass.TryAdd(classType, result) ? result : PublicClass[classType];
     }
 
     public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
@@ -142,14 +150,17 @@ public class RpcTargetMetadata
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        return NonPublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType) =>
+        if (NonPublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
-            Builder builder = new(classType);
-            AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
-            AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+            return result;
+        }
 
-            return builder.ToImmutable();
-        });
+        Builder builder = new(classType);
+        AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
+        AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
+
+        result = builder.ToImmutable();
+        return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
     }
 
     /// <summary>
@@ -249,12 +260,16 @@ public class RpcTargetMetadata
         {
             if (!argType.IsValueType)
             {
-                Type[] argTypes = [argType];
-                return (rpc, eventName) => (object? sender, object? args) => rpc.NotifyAsync(eventName, new object?[] { args }, argType).Forget();
+                return (rpc, eventName) =>
+                {
+                    Type[] argTypes = [argType];
+                    Delegate d = (object? sender, object? args) => rpc.NotifyAsync(eventName, [args], [argType]).Forget();
+                    return Delegate.CreateDelegate(@event.EventHandlerType, d.Target, d.Method);
+                };
             }
             else if (EventHandlerFactories.TryGetValue(argType, out IEventHandlerFactory? factory))
             {
-                return factory.CreateEventHandler;
+                return (jsonRpc, eventName) => factory.CreateEventHandler(jsonRpc, eventName, @event.EventHandlerType);
             }
             else
             {
@@ -262,7 +277,7 @@ public class RpcTargetMetadata
                 {
                     dynamicEventHandlerFactoryRegistration(argType);
                     Assumes.True(EventHandlerFactories.TryGetValue(argType, out factory));
-                    return factory.CreateEventHandler;
+                    return (jsonRpc, eventName) => factory.CreateEventHandler(jsonRpc, eventName, @event.EventHandlerType);
                 }
 
                 // We don't have a factory registered for this value type.
@@ -459,17 +474,33 @@ public class RpcTargetMetadata
 
     private class EventHandlerFactory<TEventArgs> : IEventHandlerFactory
     {
-        public Delegate CreateEventHandler(JsonRpc rpc, string eventName)
+        public Delegate CreateEventHandler(JsonRpc rpc, string eventName, Type delegateType)
         {
             Type[] argTypes = [typeof(TEventArgs)];
-            return (object? sender, TEventArgs args) => rpc.NotifyAsync(eventName, [args], argTypes).Forget();
+            Delegate d = (object? sender, TEventArgs args) => rpc.NotifyAsync(eventName, [args], argTypes).Forget();
+            return d.Method.CreateDelegate(delegateType, d.Target);
         }
     }
 
     private class Builder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
     {
-        internal ReadOnlyMemory<InterfaceMapping> InterfaceMaps { get; } = type.IsInterface ? default :
-            type.GetTypeInfo().ImplementedInterfaces.Select(type.GetInterfaceMap).ToArray();
+        internal ReadOnlyMemory<InterfaceMapping> InterfaceMaps { get; } = GetInterfaceMaps(type);
+
+        private static ReadOnlyMemory<InterfaceMapping> GetInterfaceMaps([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
+        {
+            if (type.IsInterface)
+            {
+                return default;
+            }
+
+            List<InterfaceMapping> mapping = [];
+            foreach (Type iface in type.GetTypeInfo().ImplementedInterfaces)
+            {
+                mapping.Add(type.GetInterfaceMap(iface));
+            }
+
+            return mapping.ToArray();
+        }
 
         internal Dictionary<string, List<TargetMethodMetadata>> Methods { get; } = new(StringComparer.Ordinal);
 

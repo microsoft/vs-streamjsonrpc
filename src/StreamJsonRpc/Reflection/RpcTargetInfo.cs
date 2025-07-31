@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc.Reflection;
@@ -177,7 +176,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)JsonRpc.TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
                     }
 
-                    var eventReceiver = new EventReceiver(this.jsonRpc, target, evt.Event, options);
+                    var eventReceiver = new EventReceiver(this.jsonRpc, target, evt, options);
                     revertAddLocalRpcTarget?.RecordEventReceiver(eventReceiver);
                     this.eventReceivers.Add(eventReceiver);
                 }
@@ -408,83 +407,35 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     private class EventReceiver : IDisposable
     {
-        private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetMethod(nameof(OnEventRaised), BindingFlags.Instance | BindingFlags.NonPublic)!;
-        private static readonly MethodInfo OnEventRaisedGenericMethodInfo = typeof(EventReceiver).GetMethod(nameof(OnEventRaisedGeneric), BindingFlags.Instance | BindingFlags.NonPublic)!;
         private readonly JsonRpc jsonRpc;
         private readonly object server;
         private readonly EventInfo eventInfo;
         private readonly Delegate registeredHandler;
         private readonly string rpcEventName;
 
-        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-        internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
+        internal EventReceiver(JsonRpc jsonRpc, object server, RpcTargetMetadata.EventMetadata eventMetadata, JsonRpcTargetOptions options)
         {
-            Requires.NotNull(jsonRpc, nameof(jsonRpc));
-            Requires.NotNull(server, nameof(server));
-            Requires.NotNull(eventInfo, nameof(eventInfo));
+            Requires.NotNull(jsonRpc);
+            Requires.NotNull(server);
+            Requires.NotNull(eventMetadata);
 
             options = options ?? JsonRpcTargetOptions.Default;
 
             this.jsonRpc = jsonRpc;
             this.server = server;
-            this.eventInfo = eventInfo;
+            this.eventInfo = eventMetadata.Event;
 
-            this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
+            this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventMetadata.Name) : eventMetadata.Name;
 
-            try
-            {
-                // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
-                // It will work for EventHandler and EventHandler<T>, at least.
-                // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
-                // with the right signature.
-                [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "False positive: https://github.com/dotnet/runtime/issues/114113")]
-                static ParameterInfo[] GetParameters(EventInfo eventInfo) =>
-                    eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
-
-                ParameterInfo[] eventHandlerParameters = GetParameters(eventInfo);
-                if (eventHandlerParameters.Length != 2)
-                {
-                    throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
-                }
-
-                Type argsType = eventHandlerParameters[1].ParameterType;
-                if (typeof(EventArgs).GetTypeInfo().IsAssignableFrom(argsType))
-                {
-                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType!, this);
-                }
-                else
-                {
-                    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
-                    static MethodInfo GetOnEventRaisedClosedGenericMethod(Type argsType)
-                    {
-                        return OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
-                    }
-
-                    MethodInfo closedGenericMethod = GetOnEventRaisedClosedGenericMethod(argsType);
-                    this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType!, this);
-                }
-            }
-            catch (ArgumentException ex)
-            {
-                throw new NotSupportedException("Unsupported event handler type for: " + eventInfo.Name, ex);
-            }
-
-            eventInfo.AddEventHandler(server, this.registeredHandler);
+            this.registeredHandler = eventMetadata.CreateEventHandler(jsonRpc, this.rpcEventName);
+            eventMetadata.Event.AddEventHandler(server, this.registeredHandler);
         }
+
+        event EventHandler<EventArgs> MyEvent;
 
         public void Dispose()
         {
             this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
-        }
-
-        private void OnEventRaisedGeneric<T>(object? sender, T args)
-        {
-            this.jsonRpc.NotifyAsync(this.rpcEventName, arguments: new object?[] { args }, argumentDeclaredTypes: new Type[] { typeof(T) }).Forget();
-        }
-
-        private void OnEventRaised(object? sender, EventArgs args)
-        {
-            this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
         }
     }
 }
