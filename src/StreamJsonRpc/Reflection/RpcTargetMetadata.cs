@@ -98,15 +98,14 @@ public class RpcTargetMetadata
         IReadOnlyList<Type> missingInterfaces = interfaces.GetMissingInterfacesFromSet();
         Requires.Argument(missingInterfaces is [], nameof(interfaces), $"The interface collection is missing interfaces that the primary interface derives from: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
 
-        if (Interfaces.TryGetValue(interfaces[0], out RpcTargetMetadata? existingMetadata))
+        if (Interfaces.TryGetValue(interfaces.PrimaryInterface, out RpcTargetMetadata? existingMetadata))
         {
             // If we already have metadata for the primary interface, return it.
             return existingMetadata;
         }
 
-        Builder builder = new(interfaces[0]);
-        WalkInterface(interfaces[0]);
-        for (int i = 1; i < interfaces.Count; i++)
+        Builder builder = new(interfaces.PrimaryInterface);
+        for (int i = 0; i < interfaces.Count; i++)
         {
             WalkInterface(interfaces[i]);
         }
@@ -124,12 +123,12 @@ public class RpcTargetMetadata
         return Interfaces.TryAdd(interfaces[0], result) ? result : Interfaces[interfaces[0]];
     }
 
-    public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType)
+    public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
     {
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        return PublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType) =>
+        return PublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType) =>
         {
             Builder builder = new(classType);
             AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
@@ -138,12 +137,12 @@ public class RpcTargetMetadata
         });
     }
 
-    public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType)
+    public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
     {
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
 
-        return NonPublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType) =>
+        return NonPublicClass.GetOrAdd(classType, static ([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType) =>
         {
             Builder builder = new(classType);
             AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
@@ -315,6 +314,9 @@ public class RpcTargetMetadata
 
         internal int Count => this.interfaces.Count;
 
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)]
+        internal Type PrimaryInterface => this.primaryInterface;
+
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)]
         internal Type this[int index] => this.interfaces[index].Interface;
 
@@ -464,7 +466,7 @@ public class RpcTargetMetadata
         }
     }
 
-    private class Builder(Type type)
+    private class Builder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
     {
         internal ReadOnlyMemory<InterfaceMapping> InterfaceMaps { get; } = type.IsInterface ? default :
             type.GetTypeInfo().ImplementedInterfaces.Select(type.GetInterfaceMap).ToArray();
