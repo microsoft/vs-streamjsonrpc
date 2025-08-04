@@ -19,21 +19,6 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     private FullDuplexStream clientStream;
     private IServerDerived clientRpc;
 
-    // Sample initialization method that eventually our source generator will emit as an interceptor.
-    static void AddLocalRpcTargetIntercept_Server(JsonRpc jsonRpc, object target, JsonRpcTargetOptions? options = null)
-    {
-        RpcTargetMetadata.RegisterEventArgs<bool>();
-        jsonRpc.AddLocalRpcTarget(RpcTargetMetadata.FromClass(typeof(Server)), target, options);
-    }
-
-    // Sample initialization method that eventually our source generator will emit as an interceptor.
-    static void AddLocalRpcTargetIntercept_IServer(JsonRpc jsonRpc, object target, JsonRpcTargetOptions? options = null)
-    {
-        RpcTargetMetadata.RegisterEventArgs<bool>();
-        RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServerDerived)) { typeof(IServer) });
-        jsonRpc.AddLocalRpcTarget(mapping, target, options);
-    }
-
     protected JsonRpcProxyGenerationTests(ITestOutputHelper logger, JsonRpcProxyOptions.ProxyImplementation proxyImplementation)
         : base(logger)
     {
@@ -47,7 +32,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         this.server = new Server();
         this.serverRpc = new JsonRpc(this.serverStream);
-        AddLocalRpcTargetIntercept_Server(this.serverRpc, this.server); // this.serverRpc.AddLocalRpcTarget(this.server);
+        this.serverRpc.AddLocalRpcTarget(this.server);
         this.serverRpc.StartListening();
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
