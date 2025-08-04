@@ -6,10 +6,7 @@ namespace StreamJsonRpc;
 internal static class PolyfillMethods
 {
 #if NETSTANDARD2_0
-    internal static void Deconstruct<K, V>(this KeyValuePair<K, V> pair, out K key, out V value)
-    {
-        key = pair.Key;
-        value = pair.Value;
-    }
+    internal static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> pair, out TKey key, out TValue value)
+        => (key, value) = (pair.Key, pair.Value);
 #endif
 }

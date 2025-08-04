@@ -148,8 +148,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <param name="targetType">The description of the RPC target.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
-    /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
-    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <see langword="false"/>.</returns>
+    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object.</param>
     /// <remarks>
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
@@ -198,7 +197,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <summary>
     /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
-    /// <param name="targetType">The description of the RPC target.</param>
+    /// <param name="exposingMembersOn">The description of the RPC target.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
@@ -207,13 +206,13 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
     internal RevertAddLocalRpcTarget? AddLocalRpcTarget(
-        RpcTargetMetadata targetType,
+        RpcTargetMetadata exposingMembersOn,
         object target,
         JsonRpcTargetOptions options,
         bool requestRevertOption)
     {
         RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
-        this.AddLocalRpcTarget(targetType, target, options, revert);
+        this.AddLocalRpcTarget(exposingMembersOn, target, options, revert);
         return revert;
     }
 
@@ -329,7 +328,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     }
 
     /// <summary>
-    /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>.
+    /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTarget(RpcTargetMetadata, object, JsonRpcTargetOptions?, bool)"/>.
     /// </summary>
     internal class RevertAddLocalRpcTarget : IDisposable
     {
@@ -430,8 +429,6 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             this.registeredHandler = eventMetadata.CreateEventHandler(jsonRpc, this.rpcEventName);
             eventMetadata.Event.AddEventHandler(server, this.registeredHandler);
         }
-
-        event EventHandler<EventArgs> MyEvent;
 
         public void Dispose()
         {

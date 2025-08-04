@@ -12,6 +12,9 @@ using Microsoft.VisualStudio.Threading;
 
 namespace StreamJsonRpc.Reflection;
 
+/// <summary>
+/// Describes an RPC target type, which can be an interface or a class.
+/// </summary>
 public class RpcTargetMetadata
 {
     private const string ImpliedMethodNameAsyncSuffix = "Async";
@@ -22,6 +25,12 @@ public class RpcTargetMetadata
     private static readonly MethodInfo RegisterEventArgsMethodInfo = typeof(RpcTargetMetadata).GetMethod(nameof(RegisterEventArgs), BindingFlags.Public | BindingFlags.Static) ?? throw Assumes.NotReachable();
     private static Action<Type>? dynamicEventHandlerFactoryRegistration;
 
+    /// <summary>
+    /// Represents a method that creates a delegate to handle a specified JSON-RPC event.
+    /// </summary>
+    /// <param name="rpc">The JSON-RPC connection for which the event handler delegate is being created. Cannot be <see langword="null" />.</param>
+    /// <param name="eventName">The name of the event for which to create the handler delegate. Cannot be <see langword="null" /> or empty.</param>
+    /// <returns>A delegate instance that handles the specified event for the given JSON-RPC connection.</returns>
     public delegate Delegate CreateEventHandlerDelegate(JsonRpc rpc, string eventName);
 
     private interface IEventHandlerFactory
@@ -31,6 +40,7 @@ public class RpcTargetMetadata
         /// </summary>
         /// <param name="rpc">The JSON-RPC instance to use for sending notifications.</param>
         /// <param name="eventName">The name of the event to create a handler for.</param>
+        /// <param name="delegateType">The type of the event/delegate to be returned.</param>
         /// <returns>A delegate that can be used as an event handler.</returns>
         Delegate CreateEventHandler(JsonRpc rpc, string eventName, Type delegateType);
     }
@@ -45,6 +55,9 @@ public class RpcTargetMetadata
     /// </summary>
     public required IReadOnlyList<EventMetadata> Events { get; init; }
 
+    /// <summary>
+    /// Gets the type of the RPC target, which can be an interface or a class.
+    /// </summary>
     public required Type TargetType { get; init; }
 
     /// <summary>
@@ -57,6 +70,7 @@ public class RpcTargetMetadata
     /// or rely on source generation to do so.
     /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
     public static void EnableDynamicEventHandlerCreation()
     {
         dynamicEventHandlerFactoryRegistration ??= (type) =>
@@ -65,38 +79,51 @@ public class RpcTargetMetadata
         };
     }
 
-#if !NET10_0_OR_GREATER
-    [SuppressMessage("Trimming", "IL2062:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
-    [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work.")]
-#endif
+    /// <summary>
+    /// Creates an instance of RpcTargetMetadata that describes the specified RPC contract interface.
+    /// </summary>
+    /// <param name="rpcContract">The interface type that defines the RPC contract. Must not be null and must represent an interface type.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance that provides metadata for the specified RPC contract interface.</returns>
+    /// <remarks>
+    /// <para>
+    /// If metadata for the specified interface has already been created, the existing instance is returned.
+    /// Otherwise, a new metadata instance is generated.
+    /// This method is typically used to obtain metadata required for dispatching or proxying RPC calls based
+    /// on an interface definition.
+    /// </para>
+    /// <para>
+    /// While convenient, this method produces the least trimmable code.
+    /// For a smaller trimmed application, use <see cref="FromInterface(InterfaceCollection)" /> instead.
+    /// </para>
+    /// </remarks>
     public static RpcTargetMetadata FromInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract)
     {
         Requires.NotNull(rpcContract);
         Requires.Argument(rpcContract.IsInterface, nameof(rpcContract), "The type must be an interface.");
 
-        if (Interfaces.TryGetValue(rpcContract, out RpcTargetMetadata? result))
-        {
-            return result;
-        }
-
-        Builder builder = new(rpcContract);
-        WalkInterface(rpcContract);
-        foreach (Type baseInterfaces in rpcContract.GetInterfaces())
-        {
-            WalkInterface(baseInterfaces);
-        }
-
-        void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
-        {
-            AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
-            AddEvents(builder, iface.GetEvents(BindingFlags.Public | BindingFlags.Instance));
-        }
-
-        result = builder.ToImmutable();
-        return Interfaces.TryAdd(rpcContract, result) ? result : Interfaces[rpcContract];
+        return Interfaces.TryGetValue(rpcContract, out RpcTargetMetadata? result)
+            ? result
+            : FromInterface(InterfaceCollection.Create(rpcContract));
     }
 
-    public static RpcTargetMetadata FromInterfaces(InterfaceCollection interfaces)
+    /// <summary>
+    /// Creates metadata describing the RPC target for the specified set of interfaces.
+    /// </summary>
+    /// <param name="interfaces">
+    /// A collection of interfaces, including the primary interface and any interfaces it derives from, to generate
+    /// metadata for.
+    /// </param>
+    /// <returns>An instance of <see cref="RpcTargetMetadata"/> representing the RPC target metadata for the provided interfaces.</returns>
+    /// <remarks>
+    /// <para>
+    /// If metadata for the specified interface has already been created, the existing instance is returned.
+    /// Otherwise, a new metadata instance is generated.
+    /// This method is typically used to obtain metadata required for dispatching or proxying RPC calls based
+    /// on an interface definition.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="interfaces"/> does not represent all the interfaces that the target interface derives from.</exception>
+    public static RpcTargetMetadata FromInterface(InterfaceCollection interfaces)
     {
         Requires.NotNull(interfaces);
         IReadOnlyList<Type> missingInterfaces = interfaces.GetMissingInterfacesFromSet();
@@ -108,7 +135,7 @@ public class RpcTargetMetadata
             return result;
         }
 
-        Builder builder = new(interfaces.PrimaryInterface);
+        Builder builder = new(interfaces);
         for (int i = 0; i < interfaces.Count; i++)
         {
             WalkInterface(interfaces[i]);
@@ -127,17 +154,53 @@ public class RpcTargetMetadata
         return Interfaces.TryAdd(interfaces[0], result) ? result : Interfaces[interfaces[0]];
     }
 
-    public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
+    /// <summary>
+    /// Creates a new instance of <see cref="RpcTargetMetadata"/> for the specified class type, including all of its
+    /// RPC target members.
+    /// </summary>
+    /// <param name="classType">The type representing the class for which to generate metadata. Must not be null and should be a concrete class
+    /// type.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance containing metadata for the specified class and its interfaces.</returns>
+    /// <remarks>
+    /// <para>
+    /// While convenient, this method produces the least trimmable code.
+    /// For a smaller trimmed application, use <see cref="FromClass(Type, ClassAndInterfaces)" /> instead.
+    /// </para>
+    /// </remarks>
+    public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type classType)
+        => FromClass(classType, ClassAndInterfaces.Create(classType));
+
+    /// <summary>
+    /// Creates an instance of <see cref="RpcTargetMetadata"/> for the specified class type using the provided metadata.
+    /// All public methods and events will be exposed to RPC clients,
+    /// unless <see cref="JsonRpcIgnoreAttribute"/> is applied to them.
+    /// </summary>
+    /// <param name="classType">The class <see cref="Type"/> for which to generate metadata. Must be a non-null class type.</param>
+    /// <param name="metadata">The metadata describing the class and its interfaces. Must not be null and must correspond to the specified
+    /// class type.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance representing the public methods and events of the specified class.</returns>
+    /// <remarks>If metadata for the specified class type has already been created, the existing instance is
+    /// returned. Otherwise, a new instance is generated and cached for future use. All interfaces implemented by the
+    /// class must be present in the provided metadata.</remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="metadata"/> does not represent all the interfaces that the target class implements from.
+    /// Also thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
+    /// </exception>
+    public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
+        Requires.NotNull(metadata);
+        Requires.Argument(classType == metadata.ClassType, nameof(metadata), "Metadata must describe the target class.");
+        IReadOnlyList<Type> missingInterfaces = metadata.GetMissingInterfacesFromSet();
+        Requires.Argument(missingInterfaces is [], nameof(metadata), $"The metadata is missing interfaces that the class implements: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
 
         if (PublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
             return result;
         }
 
-        Builder builder = new(classType);
+        Builder builder = new(metadata);
         AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
         AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
         result = builder.ToImmutable();
@@ -145,21 +208,54 @@ public class RpcTargetMetadata
         return PublicClass.TryAdd(classType, result) ? result : PublicClass[classType];
     }
 
-    public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
+    /// <summary>
+    /// Creates an instance of RpcTargetMetadata for the specified class type, including non-public members
+    /// that are not attributed with <see cref="JsonRpcIgnoreAttribute"/>.
+    /// </summary>
+    /// <param name="classType">The type of the class for which to generate metadata. Must not be null.</param>
+    /// <returns>A RpcTargetMetadata instance containing metadata for the specified class type, including its non-public members.</returns>
+    /// <remarks>
+    /// <para>
+    /// While convenient, this method produces the least trimmable code.
+    /// For a smaller trimmed application, use <see cref="FromClassNonPublic(Type, ClassAndInterfaces)" /> instead.
+    /// </para>
+    /// </remarks>
+    public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type classType)
+        => FromClassNonPublic(classType, ClassAndInterfaces.Create(classType));
+
+    /// <summary>
+    /// Creates an instance of <see cref="RpcTargetMetadata"/> for the specified class type using the provided metadata.
+    /// All methods and events will be exposed to RPC clients, including non-public members,
+    /// unless <see cref="JsonRpcIgnoreAttribute"/> is applied to them.
+    /// </summary>
+    /// <param name="classType">The class <see cref="Type"/> for which to generate metadata. Must be a non-null class type.</param>
+    /// <param name="metadata">The metadata describing the class and its interfaces. Must not be null and must correspond to the specified
+    /// class type.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance representing the public methods and events of the specified class.</returns>
+    /// <remarks>If metadata for the specified class type has already been created, the existing instance is
+    /// returned. Otherwise, a new instance is generated and cached for future use. All interfaces implemented by the
+    /// class must be present in the provided metadata.</remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="metadata"/> does not represent all the interfaces that the target class implements from.
+    /// Also thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
+    /// </exception>
+    public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
         Requires.NotNull(classType);
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
+        Requires.NotNull(metadata);
+        Requires.Argument(classType == metadata.ClassType, nameof(metadata), "Metadata must describe the target class.");
 
         if (NonPublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
             return result;
         }
 
-        Builder builder = new(classType);
+        Builder builder = new(metadata);
         AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
         AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
-
         result = builder.ToImmutable();
+
         return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
     }
 
@@ -311,6 +407,127 @@ public class RpcTargetMetadata
         return null;
     }
 
+    private static IReadOnlyList<Type> GetMissingInterfacesFromSet([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type targetType, IReadOnlyList<RpcTargetInterface> interfaces)
+    {
+        List<Type>? missing = null;
+
+        // Verify that all interfaces are present.
+        foreach (Type derivedFrom in targetType.GetInterfaces())
+        {
+            bool found = false;
+            for (int i = 1; i < interfaces.Count; i++)
+            {
+                if (interfaces[i].Interface == derivedFrom)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                missing ??= [];
+                missing.Add(derivedFrom);
+            }
+        }
+
+        return missing ?? [];
+    }
+
+    internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+    {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)]
+        public Type Interface => iface;
+    }
+
+    /// <summary>
+    /// Represents a collection of interfaces implemented by a specified class type for use as an RPC target.
+    /// </summary>
+    /// <remarks>
+    /// Use this class to track and manage the interfaces that a given class type implements,
+    /// typically for remote procedure call (RPC) scenarios. Interfaces must be added explicitly after construction
+    /// using the Add method, unless the Create factory method is used to automatically populate the collection.
+    /// </remarks>
+    public class ClassAndInterfaces
+    {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+        private readonly Type classType;
+
+        private readonly List<RpcTargetInterface> interfaces = [];
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ClassAndInterfaces"/> class.
+        /// </summary>
+        /// <param name="classType">The class type serving as the RPC target.</param>
+        /// <remarks>
+        /// <para>
+        /// After construction, all interfaces that the <paramref name="classType"/> implements
+        /// must be added using the <see cref="Add(Type)"/> method.
+        /// </para>
+        /// <para>
+        /// Use the <see cref="Create(Type)"/> factory method to automate full initialization of this collection,
+        /// at the cost of a less trimmable application.
+        /// </para>
+        /// </remarks>
+        public ClassAndInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type classType)
+        {
+            Requires.NotNull(classType);
+            Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
+
+            this.classType = classType;
+        }
+
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)]
+        internal Type ClassType => this.classType;
+
+        internal int InterfaceCount => this.interfaces.Count;
+
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicMethods)]
+        internal Type this[int index] => this.interfaces[index].Interface;
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="ClassAndInterfaces"/> class that represents the specified class type and all of
+        /// its implemented interfaces.
+        /// </summary>
+        /// <param name="classType">The Type object representing the class to include, along with all interfaces implemented by the class. Must
+        /// not be null.</param>
+        /// <returns>A <see cref="ClassAndInterfaces"/> instance containing the specified class type and all interfaces it implements.</returns>
+        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+        [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+        public static ClassAndInterfaces Create([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type classType)
+        {
+            ClassAndInterfaces result = new(classType);
+            foreach (Type iface in classType.GetInterfaces())
+            {
+                result.Add(iface);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Adds an interface to the set of interfaces supported by the RPC target.
+        /// </summary>
+        /// <param name="iface">The interface type to add. Must be an interface implemented by the target class.</param>
+        public void Add([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+        {
+            Requires.NotNull(iface);
+            Requires.Argument(iface.IsInterface && iface.IsAssignableFrom(this.classType), nameof(iface), "This type must be an interface that the class implements.");
+
+            this.interfaces.Add(new RpcTargetInterface(iface));
+        }
+
+        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.classType, this.interfaces);
+    }
+
+    /// <summary>
+    /// Represents a collection of interface types associated with a primary interface for an RPC target.
+    /// Provides enumeration and management of the primary interface and its base interfaces.
+    /// </summary>
+    /// <remarks>
+    /// This class is typically used to track and expose the set of interfaces implemented by an RPC target,
+    /// ensuring that all relevant contract interfaces are available for reflection or invocation scenarios.
+    /// </remarks>
     public class InterfaceCollection : IEnumerable<Type>
     {
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)]
@@ -318,7 +535,21 @@ public class RpcTargetMetadata
 
         private List<RpcTargetInterface> interfaces;
 
-        public InterfaceCollection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type primaryInterface)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterfaceCollection"/> class.
+        /// </summary>
+        /// <param name="primaryInterface">The primary RPC target interface.</param>
+        /// <remarks>
+        /// <para>
+        /// After construction, all interfaces that the <paramref name="primaryInterface"/> derives from
+        /// must be added using the <see cref="Add(Type)"/> method.
+        /// </para>
+        /// <para>
+        /// Use the <see cref="Create(Type)"/> factory method to automate full initialization of this collection,
+        /// at the cost of a less trimmable application.
+        /// </para>
+        /// </remarks>
+        public InterfaceCollection([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type primaryInterface)
         {
             Requires.NotNull(primaryInterface);
             Requires.Argument(primaryInterface.IsInterface, nameof(primaryInterface), "The type must be an interface.");
@@ -327,15 +558,27 @@ public class RpcTargetMetadata
             this.interfaces = [new(primaryInterface)];
         }
 
+        /// <summary>
+        /// Gets the number of interfaces in the collection, including the primary interface.
+        /// </summary>
         internal int Count => this.interfaces.Count;
 
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.Interfaces)]
         internal Type PrimaryInterface => this.primaryInterface;
 
+        /// <summary>
+        /// Gets the interface type at the specified index in the collection.
+        /// </summary>
+        /// <param name="index">The zero-based index of the interface to retrieve. The zero-index interface is always the <see cref="PrimaryInterface"/>.</param>
+        /// <returns>The <see cref="Type"/> representing the interface at the specified index.</returns>
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)]
         internal Type this[int index] => this.interfaces[index].Interface;
 
-        public void Add([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+        /// <summary>
+        /// Adds an interface to the set of base interfaces for this RPC target.
+        /// </summary>
+        /// <param name="iface">The interface type to add. Must be an interface from which the primary interface derives. Cannot be null.</param>
+        public void Add([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
         {
             Requires.NotNull(iface);
             Requires.Argument(iface.IsInterface && iface.IsAssignableFrom(this.interfaces[0].Interface), nameof(iface), "This type must be an interface from which the primary interface derives.");
@@ -343,70 +586,117 @@ public class RpcTargetMetadata
             this.interfaces.Add(new RpcTargetInterface(iface));
         }
 
+        /// <inheritdoc/>
         public IEnumerator<Type> GetEnumerator() => this.interfaces.Select(t => t.Interface).GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        internal IReadOnlyList<Type> GetMissingInterfacesFromSet()
+        [SuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+        [UnconditionalSuppressMessage("Trimming", "IL2062", Justification = "We use the All link demand on rpcContract, so results of GetInterfaces() should work. See https://github.com/dotnet/linker/issues/1731")]
+        internal static InterfaceCollection Create([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type primaryInterface)
         {
-            List<Type>? missing = null;
-
-            // Verify that all interfaces are present.
-            foreach (Type derivedFrom in this.primaryInterface.GetInterfaces())
+            InterfaceCollection result = new(primaryInterface);
+            foreach (Type iface in primaryInterface.GetInterfaces())
             {
-                bool found = false;
-                for (int i = 1; i < this.interfaces.Count; i++)
-                {
-                    if (this.interfaces[i].Interface == derivedFrom)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    missing ??= [];
-                    missing.Add(derivedFrom);
-                }
+                result.Add(iface);
             }
 
-            return missing ?? [];
+            return result;
         }
+
+        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.primaryInterface, this.interfaces);
     }
 
-    internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
-    {
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)]
-        public Type Interface => iface;
-    }
-
+    /// <summary>
+    /// Provides metadata describing an RPC event.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use this class to access information about an event and its handler in scenarios where events
+    /// are invoked via RPC mechanisms. The metadata includes the event's reflection information, the name of the RPC
+    /// method to invoke, the expected delegate type for the handler, and a factory for creating handler delegates. This
+    /// class is typically used in frameworks or infrastructure that dynamically manage event subscriptions and
+    /// invocations.
+    /// </para>
+    /// <para>
+    /// Instances of this class are generally constructed internally and are not intended to be created
+    /// directly by consumers.
+    /// </para>
+    /// </remarks>
     public class EventMetadata
     {
+        /// <summary>
+        /// Gets the event for which this metadata is describing the handler.
+        /// </summary>
         public required EventInfo Event { get; init; }
 
+        /// <summary>
+        /// Gets the name of the RPC method that this event will invoke when raised.
+        /// </summary>
         public required string Name { get; init; }
 
+        /// <summary>
+        /// Gets the delegate type of the event handler.
+        /// </summary>
         public required Type EventHandlerType { get; init; }
 
+        /// <summary>
+        /// Gets a factory method that creates a delegate to handle the event.
+        /// </summary>
         public required CreateEventHandlerDelegate CreateEventHandler { get; init; }
     }
 
+    /// <summary>
+    /// Represents metadata about an RPC target method.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class is typically used to encapsulate information about a method that can be invoked
+    /// via JSON-RPC. It provides access to the method's reflection data and any custom attributes relevant to JSON-RPC
+    /// dispatch.
+    /// </para>
+    /// <para>
+    /// Instances of this class are generally constructed internally and are not intended to be created
+    /// directly by consumers.
+    /// </para>
+    /// </remarks>
     [DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
     public class TargetMethodMetadata
     {
         private ParameterInfo[]? parameters;
 
+        /// <summary>
+        /// Gets the <see cref="MethodInfo"/> for the RPC target method.
+        /// </summary>
         public required MethodInfo Method { get; init; }
 
+        /// <summary>
+        /// Gets the RPC target name that should invoke this method.
+        /// </summary>
         public required string Name { get; init; }
 
+        /// <summary>
+        /// Gets the <see cref="JsonRpcMethodAttribute"/> that applies to this method, if any.
+        /// </summary>
         public required JsonRpcMethodAttribute? Attribute { get; init; }
 
+        /// <summary>
+        /// Gets the parameters on the method.
+        /// </summary>
+        /// <remarks>
+        /// This is equivalent to <see cref="MethodBase.GetParameters"/>, but cached for performance.
+        /// </remarks>
         internal IReadOnlyList<ParameterInfo> Parameters => this.parameters ??= this.Method.GetParameters() ?? [];
 
+        /// <summary>
+        /// Gets a <see cref="ReadOnlyMemory{T}"/> view of the parameters on the method.
+        /// </summary>
+        /// <seealso cref="Parameters"/>
         internal ReadOnlyMemory<ParameterInfo> ParametersMemory => (ParameterInfo[])this.Parameters;
 
+        /// <summary>
+        /// Gets a value indicating whether the method is declared as public.
+        /// </summary>
         internal bool IsPublic => this.Method.IsPublic;
 
         internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
@@ -420,7 +710,16 @@ public class RpcTargetMetadata
         [ExcludeFromCodeCoverage]
         private string DebuggerDisplay => $"{this.Method.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
 
+        /// <inheritdoc/>
         public override string ToString() => this.DebuggerDisplay;
+
+        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute)
+            => new()
+            {
+                Method = method,
+                Name = attribute?.Name ?? method.Name,
+                Attribute = attribute,
+            };
 
         internal bool EqualSignature(TargetMethodMetadata other)
         {
@@ -444,14 +743,6 @@ public class RpcTargetMetadata
 
             return true;
         }
-
-        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute)
-            => new()
-            {
-                Method = method,
-                Name = attribute?.Name ?? method.Name,
-                Attribute = attribute,
-            };
 
         internal bool MatchesParametersExcludingCancellationToken(ReadOnlySpan<ParameterInfo> parameters)
         {
@@ -482,25 +773,29 @@ public class RpcTargetMetadata
         }
     }
 
-    private class Builder([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
+    private class Builder
     {
-        internal ReadOnlyMemory<InterfaceMapping> InterfaceMaps { get; } = GetInterfaceMaps(type);
-
-        private static ReadOnlyMemory<InterfaceMapping> GetInterfaceMaps([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
+        internal Builder(InterfaceCollection interfaces)
         {
-            if (type.IsInterface)
-            {
-                return default;
-            }
-
-            List<InterfaceMapping> mapping = [];
-            foreach (Type iface in type.GetTypeInfo().ImplementedInterfaces)
-            {
-                mapping.Add(type.GetInterfaceMap(iface));
-            }
-
-            return mapping.ToArray();
+            this.TargetType = interfaces.PrimaryInterface;
         }
+
+        internal Builder(ClassAndInterfaces classAndInterfaces)
+        {
+            this.TargetType = classAndInterfaces.ClassType;
+
+            InterfaceMapping[] mapping = new InterfaceMapping[classAndInterfaces.InterfaceCount];
+            for (int i = 0; i < classAndInterfaces.InterfaceCount; i++)
+            {
+                mapping[i] = this.TargetType.GetTypeInfo().GetInterfaceMap(classAndInterfaces[i]);
+            }
+
+            this.InterfaceMaps = mapping;
+        }
+
+        internal ReadOnlyMemory<InterfaceMapping> InterfaceMaps { get; }
+
+        internal Type TargetType { get; }
 
         internal Dictionary<string, List<TargetMethodMetadata>> Methods { get; } = new(StringComparer.Ordinal);
 
@@ -512,7 +807,7 @@ public class RpcTargetMetadata
 
             return new RpcTargetMetadata
             {
-                TargetType = type,
+                TargetType = this.TargetType,
                 Methods = this.Methods.ToImmutableDictionary(kv => kv.Key, kv => (IReadOnlyList<TargetMethodMetadata>)kv.Value.ToArray()),
                 Events = [.. this.Events],
             };

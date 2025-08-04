@@ -11,9 +11,12 @@ partial class Program
     static async Task Main(string[] args)
     {
         (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
-        JsonRpc serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
-        JsonRpc clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
-        serverRpc.AddLocalRpcTarget(RpcTargetMetadata.FromInterfaces(new(typeof(IServer))), new Server(), null);
+        JsonRpc serverRpc = new(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
+        JsonRpc clientRpc = new(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
+        serverRpc.AddLocalRpcTarget(
+            RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer))),
+            new Server(),
+            null);
         serverRpc.StartListening();
         IServer proxy = clientRpc.Attach<IServer>();
         clientRpc.StartListening();

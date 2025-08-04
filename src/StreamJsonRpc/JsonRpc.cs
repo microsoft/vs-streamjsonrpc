@@ -879,7 +879,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     public void AddLocalRpcTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T target, JsonRpcTargetOptions? options)
         where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
 
-    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
+    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(RpcTargetMetadata, object, JsonRpcTargetOptions?, bool)"/>
     /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public void AddLocalRpcTarget(
@@ -890,17 +890,19 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
         Requires.NotNull(target, nameof(target));
         this.ThrowIfConfigurationLocked();
+
         this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
     }
 
-    public void AddLocalRpcTarget(RpcTargetMetadata targetType, object target, JsonRpcTargetOptions? options)
+    /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+    public void AddLocalRpcTarget(RpcTargetMetadata exposingMembersOn, object target, JsonRpcTargetOptions? options)
     {
-        Requires.NotNull(targetType);
+        Requires.NotNull(exposingMembersOn);
         Requires.NotNull(target);
         this.ThrowIfConfigurationLocked();
 
         options ??= JsonRpcTargetOptions.Default;
-        this.rpcTargetInfo.AddLocalRpcTarget(targetType, target, options, requestRevertOption: false);
+        this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption: false);
     }
 
     /// <summary>

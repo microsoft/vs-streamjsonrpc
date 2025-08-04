@@ -30,7 +30,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     static void AddLocalRpcTargetIntercept_IServer(JsonRpc jsonRpc, object target, JsonRpcTargetOptions? options = null)
     {
         RpcTargetMetadata.RegisterEventArgs<bool>();
-        RpcTargetMetadata mapping = RpcTargetMetadata.FromInterfaces(new(typeof(IServerDerived)) { typeof(IServer) });
+        RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServerDerived)) { typeof(IServer) });
         jsonRpc.AddLocalRpcTarget(mapping, target, options);
     }
 

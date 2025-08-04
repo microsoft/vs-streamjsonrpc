@@ -86,5 +86,9 @@ public class RpcTargetMetadataTests
         public Task MethodDerivedAsync(int value) => throw new NotImplementedException();
 
         public Task RenamedBaseMethod() => throw new NotImplementedException();
+
+        internal void OnBaseEvent() => this.BaseEvent?.Invoke(this, EventArgs.Empty);
+
+        internal void OnDerivedEvent(MyEventArgs e) => this.DerivedEvent?.Invoke(this, e);
     }
 }
