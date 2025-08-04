@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;
 using StreamJsonRpc;
-using StreamJsonRpc.Reflection;
 
 Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather than by executing the program.");
 

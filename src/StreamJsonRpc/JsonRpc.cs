@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
+using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 

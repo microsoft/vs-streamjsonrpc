@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Globalization;
 using System.Reflection;
 using StreamJsonRpc.Protocol;
-using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
 

@@ -10,7 +10,7 @@ using System.Globalization;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
 
-namespace StreamJsonRpc.Reflection;
+namespace StreamJsonRpc;
 
 /// <summary>
 /// Describes an RPC target type, which can be an interface or a class.

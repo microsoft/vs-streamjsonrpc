@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
 using Microsoft.VisualStudio.Threading;
-using StreamJsonRpc.Reflection;
 using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
 // Uncomment the SaveAssembly symbol and run one test to save the generated DLL for inspection in ILSpy as part of debugging.

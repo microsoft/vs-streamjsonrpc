@@ -1,22 +1,22 @@
-override StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.ToString() -> string!
+override StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.ToString() -> string!
 static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
 static StreamJsonRpc.Reflection.ProxyBase.CreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool startOrFail) -> StreamJsonRpc.IJsonRpcClientProxy!
 static StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, out StreamJsonRpc.IJsonRpcClientProxy? proxy) -> bool
-static StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces.Create(System.Type! classType) -> StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.EnableDynamicEventHandlerCreation() -> void
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromClass(System.Type! classType) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromClass(System.Type! classType, StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces! metadata) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromClassNonPublic(System.Type! classType) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromClassNonPublic(System.Type! classType, StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces! metadata) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromInterface(StreamJsonRpc.Reflection.RpcTargetMetadata.InterfaceCollection! interfaces) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.FromInterface(System.Type! rpcContract) -> StreamJsonRpc.Reflection.RpcTargetMetadata!
-static StreamJsonRpc.Reflection.RpcTargetMetadata.RegisterEventArgs<TEventArgs>() -> void
+static StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.Create(System.Type! classType) -> StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces!
+static StreamJsonRpc.RpcTargetMetadata.EnableDynamicEventHandlerCreation() -> void
+static StreamJsonRpc.RpcTargetMetadata.FromClass(System.Type! classType) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromClass(System.Type! classType, StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces! metadata) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromClassNonPublic(System.Type! classType) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromClassNonPublic(System.Type! classType, StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces! metadata) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromInterface(StreamJsonRpc.RpcTargetMetadata.InterfaceCollection! interfaces) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromInterface(System.Type! rpcContract) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.RegisterEventArgs<TEventArgs>() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.get -> bool
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
 StreamJsonRpc.IJsonRpcClientProxy.As<T>() -> T?
-StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.Reflection.RpcTargetMetadata! exposingMembersOn, object! target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
+StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata! exposingMembersOn, object! target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
@@ -59,38 +59,38 @@ StreamJsonRpc.Reflection.ProxyInputs.ContractInterface.init -> void
 StreamJsonRpc.Reflection.ProxyInputs.Options.get -> StreamJsonRpc.JsonRpcProxyOptions?
 StreamJsonRpc.Reflection.ProxyInputs.Options.init -> void
 StreamJsonRpc.Reflection.ProxyInputs.ProxyInputs() -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata
-StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces
-StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces.Add(System.Type! iface) -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.ClassAndInterfaces.ClassAndInterfaces(System.Type! classType) -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.CreateEventHandlerDelegate
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.CreateEventHandler.get -> StreamJsonRpc.Reflection.RpcTargetMetadata.CreateEventHandlerDelegate!
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.CreateEventHandler.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.Event.get -> System.Reflection.EventInfo!
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.Event.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.EventHandlerType.get -> System.Type!
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.EventHandlerType.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.EventMetadata() -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.Name.get -> string!
-StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata.Name.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.Events.get -> System.Collections.Generic.IReadOnlyList<StreamJsonRpc.Reflection.RpcTargetMetadata.EventMetadata!>!
-StreamJsonRpc.Reflection.RpcTargetMetadata.Events.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.InterfaceCollection
-StreamJsonRpc.Reflection.RpcTargetMetadata.InterfaceCollection.Add(System.Type! iface) -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.InterfaceCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Type!>!
-StreamJsonRpc.Reflection.RpcTargetMetadata.InterfaceCollection.InterfaceCollection(System.Type! primaryInterface) -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.Methods.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata!>!>!
-StreamJsonRpc.Reflection.RpcTargetMetadata.Methods.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.RpcTargetMetadata() -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Attribute.get -> StreamJsonRpc.JsonRpcMethodAttribute?
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Attribute.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Method.get -> System.Reflection.MethodInfo!
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Method.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Name.get -> string!
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.Name.init -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetMethodMetadata.TargetMethodMetadata() -> void
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetType.get -> System.Type!
-StreamJsonRpc.Reflection.RpcTargetMetadata.TargetType.init -> void
-virtual StreamJsonRpc.Reflection.RpcTargetMetadata.CreateEventHandlerDelegate.Invoke(StreamJsonRpc.JsonRpc! rpc, string! eventName) -> System.Delegate!
+StreamJsonRpc.RpcTargetMetadata
+StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces
+StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.Add(System.Type! iface) -> void
+StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.ClassAndInterfaces(System.Type! classType) -> void
+StreamJsonRpc.RpcTargetMetadata.CreateEventHandlerDelegate
+StreamJsonRpc.RpcTargetMetadata.EventMetadata
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.CreateEventHandler.get -> StreamJsonRpc.RpcTargetMetadata.CreateEventHandlerDelegate!
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.CreateEventHandler.init -> void
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.Event.get -> System.Reflection.EventInfo!
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.Event.init -> void
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.EventHandlerType.get -> System.Type!
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.EventHandlerType.init -> void
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.EventMetadata() -> void
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.Name.get -> string!
+StreamJsonRpc.RpcTargetMetadata.EventMetadata.Name.init -> void
+StreamJsonRpc.RpcTargetMetadata.Events.get -> System.Collections.Generic.IReadOnlyList<StreamJsonRpc.RpcTargetMetadata.EventMetadata!>!
+StreamJsonRpc.RpcTargetMetadata.Events.init -> void
+StreamJsonRpc.RpcTargetMetadata.InterfaceCollection
+StreamJsonRpc.RpcTargetMetadata.InterfaceCollection.Add(System.Type! iface) -> void
+StreamJsonRpc.RpcTargetMetadata.InterfaceCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Type!>!
+StreamJsonRpc.RpcTargetMetadata.InterfaceCollection.InterfaceCollection(System.Type! primaryInterface) -> void
+StreamJsonRpc.RpcTargetMetadata.Methods.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata!>!>!
+StreamJsonRpc.RpcTargetMetadata.Methods.init -> void
+StreamJsonRpc.RpcTargetMetadata.RpcTargetMetadata() -> void
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Attribute.get -> StreamJsonRpc.JsonRpcMethodAttribute?
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Attribute.init -> void
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Method.get -> System.Reflection.MethodInfo!
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Method.init -> void
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Name.get -> string!
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Name.init -> void
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.TargetMethodMetadata() -> void
+StreamJsonRpc.RpcTargetMetadata.TargetType.get -> System.Type!
+StreamJsonRpc.RpcTargetMetadata.TargetType.init -> void
+virtual StreamJsonRpc.RpcTargetMetadata.CreateEventHandlerDelegate.Invoke(StreamJsonRpc.JsonRpc! rpc, string! eventName) -> System.Delegate!
