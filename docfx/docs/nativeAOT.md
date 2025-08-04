@@ -14,7 +14,7 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
    Set the <xref:StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces?displayProperty=nameWithType> property to `true` to reduce the number of predefined groups for which proxies must be specially generated.
 1. Use the <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default one.
 1. Set <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType> property to the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>.
-1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcMethod*> instead of <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget*>.
+1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata,System.Object,StreamJsonRpc.JsonRpcTargetOptions)?displayProperty=nameWithType> to add RPC target objects rather than other overloads.
 1. When constructing proxies, use the <xref:StreamJsonRpc.JsonRpc.Attach*> methods with `typeof` arguments or specific generic type arguments.
 1. Avoid [RPC marshalable objects](../exotic_types/rpc_marshalable_objects.md).
 

@@ -151,7 +151,7 @@ public class RpcTargetMetadata
 
         // It's safe to store and share the result because we confirmed that InterfaceCollection is complete,
         // and the collection itself ensures that it does not have an excess of interfaces.
-        return Interfaces.TryAdd(interfaces[0], result) ? result : Interfaces[interfaces[0]];
+        return Interfaces.TryAdd(interfaces.PrimaryInterface, result) ? result : Interfaces[interfaces.PrimaryInterface];
     }
 
     /// <summary>
