@@ -193,7 +193,7 @@ public class RpcTargetMetadata
         Requires.NotNull(metadata);
         Requires.Argument(classType == metadata.ClassType, nameof(metadata), "Metadata must describe the target class.");
         IReadOnlyList<Type> missingInterfaces = metadata.GetMissingInterfacesFromSet();
-        Requires.Argument(missingInterfaces is [], nameof(metadata), $"The metadata is missing interfaces that the class implements: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
+        Requires.Argument(missingInterfaces is [], nameof(metadata), $"The metadata is missing interfaces that the {classType.FullName} class implements: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
 
         if (PublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
@@ -407,7 +407,7 @@ public class RpcTargetMetadata
         return null;
     }
 
-    private static IReadOnlyList<Type> GetMissingInterfacesFromSet([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type targetType, IReadOnlyList<RpcTargetInterface> interfaces)
+    private static IReadOnlyList<Type> GetMissingInterfacesFromSet([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type targetType, IReadOnlyList<RpcTargetInterface> interfaces, int startIndex)
     {
         List<Type>? missing = null;
 
@@ -415,7 +415,7 @@ public class RpcTargetMetadata
         foreach (Type derivedFrom in targetType.GetInterfaces())
         {
             bool found = false;
-            for (int i = 1; i < interfaces.Count; i++)
+            for (int i = startIndex; i < interfaces.Count; i++)
             {
                 if (interfaces[i].Interface == derivedFrom)
                 {
@@ -517,7 +517,7 @@ public class RpcTargetMetadata
             this.interfaces.Add(new RpcTargetInterface(iface));
         }
 
-        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.classType, this.interfaces);
+        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.classType, this.interfaces, 0);
     }
 
     /// <summary>
@@ -604,7 +604,7 @@ public class RpcTargetMetadata
             return result;
         }
 
-        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.primaryInterface, this.interfaces);
+        internal IReadOnlyList<Type> GetMissingInterfacesFromSet() => RpcTargetMetadata.GetMissingInterfacesFromSet(this.primaryInterface, this.interfaces, 1);
     }
 
     /// <summary>

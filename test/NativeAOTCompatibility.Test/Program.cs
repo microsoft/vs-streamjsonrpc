@@ -17,10 +17,11 @@ Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather th
 (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
 JsonRpc serverRpc = new(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
 JsonRpc clientRpc = new(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
-serverRpc.AddLocalRpcTarget(
-    RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer))),
-    new Server(),
-    null);
+
+RpcTargetMetadata.RegisterEventArgs<int>();
+var targetMetadata = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer)));
+serverRpc.AddLocalRpcTarget(targetMetadata, new Server(), null);
+
 serverRpc.StartListening();
 IServer proxy = clientRpc.Attach<IServer>();
 clientRpc.StartListening();
@@ -40,12 +41,23 @@ IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
 [JsonRpcContract]
 internal partial interface IServer
 {
+    event EventHandler<int> Added;
+
     Task<int> AddAsync(int a, int b);
 }
 
 internal class Server : IServer
 {
-    public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
+    public event EventHandler<int>? Added;
+
+    public Task<int> AddAsync(int a, int b)
+    {
+        int sum = a + b;
+        this.OnAdded(sum);
+        return Task.FromResult(sum);
+    }
+
+    protected virtual void OnAdded(int sum) => this.Added?.Invoke(this, sum);
 }
 
 [JsonSerializable(typeof(int))]
