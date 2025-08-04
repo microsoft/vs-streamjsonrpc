@@ -179,12 +179,13 @@ public class RpcTargetMetadata
     /// <param name="metadata">The metadata describing the class and its interfaces. Must not be null and must correspond to the specified
     /// class type.</param>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance representing the public methods and events of the specified class.</returns>
-    /// <remarks>If metadata for the specified class type has already been created, the existing instance is
-    /// returned. Otherwise, a new instance is generated and cached for future use. All interfaces implemented by the
-    /// class must be present in the provided metadata.</remarks>
+    /// <remarks>
+    /// If metadata for the specified class type has already been created, the existing instance is returned.
+    /// Otherwise, a new instance is generated. If all interfaces implemented by the
+    /// class are present in the provided metadata, the resulting instance will be cached for later reuse.
+    /// </remarks>
     /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="metadata"/> does not represent all the interfaces that the target class implements from.
-    /// Also thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
+    /// Thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
     /// </exception>
     public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
@@ -192,8 +193,6 @@ public class RpcTargetMetadata
         Requires.Argument(classType.IsClass, nameof(classType), "The type must be a class.");
         Requires.NotNull(metadata);
         Requires.Argument(classType == metadata.ClassType, nameof(metadata), "Metadata must describe the target class.");
-        IReadOnlyList<Type> missingInterfaces = metadata.GetMissingInterfacesFromSet();
-        Requires.Argument(missingInterfaces is [], nameof(metadata), $"The metadata is missing interfaces that the {classType.FullName} class implements: {string.Join(", ", missingInterfaces.Select(t => t.FullName))}.");
 
         if (PublicClass.TryGetValue(classType, out RpcTargetMetadata? result))
         {
@@ -204,6 +203,15 @@ public class RpcTargetMetadata
         AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static));
         AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.Instance));
         result = builder.ToImmutable();
+
+        // If the caller does not have a complete idea of all interfaces that the class implements,
+        // we can still return the result, but we will not cache it since that may pollute other users with
+        // more complete inputs.
+        IReadOnlyList<Type> missingInterfaces = metadata.GetMissingInterfacesFromSet();
+        if (missingInterfaces is not [])
+        {
+            return result;
+        }
 
         return PublicClass.TryAdd(classType, result) ? result : PublicClass[classType];
     }
@@ -232,12 +240,13 @@ public class RpcTargetMetadata
     /// <param name="metadata">The metadata describing the class and its interfaces. Must not be null and must correspond to the specified
     /// class type.</param>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance representing the public methods and events of the specified class.</returns>
-    /// <remarks>If metadata for the specified class type has already been created, the existing instance is
-    /// returned. Otherwise, a new instance is generated and cached for future use. All interfaces implemented by the
-    /// class must be present in the provided metadata.</remarks>
+    /// <remarks>
+    /// If metadata for the specified class type has already been created, the existing instance is returned.
+    /// Otherwise, a new instance is generated. If all interfaces implemented by the
+    /// class are present in the provided metadata, the resulting instance will be cached for later reuse.
+    /// </remarks>
     /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="metadata"/> does not represent all the interfaces that the target class implements from.
-    /// Also thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
+    /// Thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
     /// </exception>
     public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
@@ -255,6 +264,15 @@ public class RpcTargetMetadata
         AddMethods(builder, classType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static));
         AddEvents(builder, classType.GetEvents(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance));
         result = builder.ToImmutable();
+
+        // If the caller does not have a complete idea of all interfaces that the class implements,
+        // we can still return the result, but we will not cache it since that may pollute other users with
+        // more complete inputs.
+        IReadOnlyList<Type> missingInterfaces = metadata.GetMissingInterfacesFromSet();
+        if (missingInterfaces is not [])
+        {
+            return result;
+        }
 
         return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
     }
