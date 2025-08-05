@@ -1,5 +1,7 @@
 override StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.ToString() -> string!
 static StreamJsonRpc.JsonRpcProxyOptions.Default.get -> StreamJsonRpc.JsonRpcProxyOptions!
+static StreamJsonRpc.NamedArgs.Create(System.Type! objectType, object? namedArgsObject) -> StreamJsonRpc.NamedArgs?
+static StreamJsonRpc.NamedArgs.Create<T>(T? namedArgsObject) -> StreamJsonRpc.NamedArgs?
 static StreamJsonRpc.Reflection.ProxyBase.CreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool startOrFail) -> StreamJsonRpc.IJsonRpcClientProxy!
 static StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(StreamJsonRpc.JsonRpc! jsonRpc, in StreamJsonRpc.Reflection.ProxyInputs proxyInputs, out StreamJsonRpc.IJsonRpcClientProxy? proxy) -> bool
 static StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.Create(System.Type! classType) -> StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces!
@@ -17,7 +19,18 @@ StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.ge
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ForbidExternalProxyGeneration.set -> void
 StreamJsonRpc.IJsonRpcClientProxy.As<T>() -> T?
 StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata! exposingMembersOn, object! target, StreamJsonRpc.JsonRpcTargetOptions? options) -> void
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.GetJsonSchema(Nerdbank.MessagePack.JsonSchemaContext! context, PolyType.Abstractions.ITypeShape! typeShape) -> System.Text.Json.Nodes.JsonObject?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context) -> System.Collections.Generic.IAsyncEnumerable<T>?
+override StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in System.Collections.Generic.IAsyncEnumerable<T>? value, Nerdbank.MessagePack.SerializationContext context) -> void
+static readonly StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer -> Nerdbank.MessagePack.MessagePackSerializer!
 StreamJsonRpc.JsonRpc.Attach(System.ReadOnlySpan<System.Type!> interfaceTypes, StreamJsonRpc.JsonRpcProxyOptions? options) -> object!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, StreamJsonRpc.NamedArgs? argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, StreamJsonRpc.NamedArgs? argument = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync<TResult>(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? argument, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+StreamJsonRpc.JsonRpc.LoadableTypes.get -> StreamJsonRpc.LoadableTypeCollection
+StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, StreamJsonRpc.NamedArgs? argument = null) -> System.Threading.Tasks.Task!
+StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? namedArguments, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
 StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute
@@ -31,6 +44,13 @@ StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated = 2 
 StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation.PreferSourceGenerated = 1 -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxySource.get -> StreamJsonRpc.JsonRpcProxyOptions.ProxyImplementation
 StreamJsonRpc.JsonRpcProxyOptions.ProxySource.set -> void
+StreamJsonRpc.LoadableTypeCollection
+StreamJsonRpc.LoadableTypeCollection.Add(System.Type! type) -> StreamJsonRpc.LoadableTypeCollection
+StreamJsonRpc.LoadableTypeCollection.Count.get -> int
+StreamJsonRpc.LoadableTypeCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Type!>!
+StreamJsonRpc.LoadableTypeCollection.LoadableTypeCollection() -> void
+StreamJsonRpc.NamedArgs
+StreamJsonRpc.NamedArgs.DeclaredArgumentTypes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.ProxyClass.get -> System.Type!
 StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute.JsonRpcProxyMappingAttribute(System.Type! proxyClass) -> void
@@ -44,6 +64,18 @@ StreamJsonRpc.Reflection.ProxyBase.JsonRpc.get -> StreamJsonRpc.JsonRpc!
 StreamJsonRpc.Reflection.ProxyBase.OnCalledMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.OnCallingMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.Options.get -> StreamJsonRpc.JsonRpcProxyOptions!
+StreamJsonRpc.JsonRpc.TraceEvents.IFormatterConverterDeserializationFailure = 22 -> StreamJsonRpc.JsonRpc.TraceEvents
+StreamJsonRpc.NerdbankMessagePackFormatter
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>
+StreamJsonRpc.NerdbankMessagePackFormatter.AsyncEnumerableConverter<T>.AsyncEnumerableConverter() -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.Deserialize(System.Buffers.ReadOnlySequence<byte> contentBuffer) -> StreamJsonRpc.Protocol.JsonRpcMessage!
+StreamJsonRpc.NerdbankMessagePackFormatter.GetJsonText(StreamJsonRpc.Protocol.JsonRpcMessage! message) -> object!
+StreamJsonRpc.NerdbankMessagePackFormatter.NerdbankMessagePackFormatter() -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.Serialize(System.Buffers.IBufferWriter<byte>! bufferWriter, StreamJsonRpc.Protocol.JsonRpcMessage! message) -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.get -> PolyType.ITypeShapeProvider!
+StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider.init -> void
+StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer.get -> Nerdbank.MessagePack.MessagePackSerializer!
+StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer.init -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.EnumeratorResults() -> void
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Finished.get -> bool
@@ -94,3 +126,7 @@ StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.TargetMethodMetadata() -> v
 StreamJsonRpc.RpcTargetMetadata.TargetType.get -> System.Type!
 StreamJsonRpc.RpcTargetMetadata.TargetType.init -> void
 virtual StreamJsonRpc.RpcTargetMetadata.CreateEventHandlerDelegate.Invoke(StreamJsonRpc.JsonRpc! rpc, string! eventName) -> System.Delegate!
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.ProgressProxy(StreamJsonRpc.JsonRpc! rpc, object! token, bool useNamedArguments) -> void
+StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<T>.Report(T value) -> void
+virtual StreamJsonRpc.JsonRpc.LoadTypeTrimSafe(string! typeFullName, string? assemblyName) -> System.Type?

@@ -12,14 +12,26 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
    Use the <xref:StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute> to specify sets of interfaces that should be supported.
 
    Set the <xref:StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces?displayProperty=nameWithType> property to `true` to reduce the number of predefined groups for which proxies must be specially generated.
-1. Use the <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default one.
+1. Use <xref:StreamJsonRpc.NerdbankMessagePackFormatter> or <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default <xref:StreamJsonRpc.JsonMessageFormatter>.
+   <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best and safest experience and greatest set of functionality when you can use MessagePack encoding, but <xref:StreamJsonRpc.SystemTextJsonFormatter> must be used when UTF-8 JSON encoding is required.
 1. Set <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType> property to the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>.
 1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata,System.Object,StreamJsonRpc.JsonRpcTargetOptions)?displayProperty=nameWithType> to add RPC target objects rather than other overloads.
 1. When constructing proxies, use the <xref:StreamJsonRpc.JsonRpc.Attach*> methods with `typeof` arguments or specific generic type arguments.
+1. When using named parameters (e.g. <xref:StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync*> or <xref:StreamJsonRpc.JsonRpc.InvokeWithParameterObjectAsync*>), call the overloads that accept <xref:StreamJsonRpc.NamedArgs>.
 1. Avoid [RPC marshalable objects](../exotic_types/rpc_marshalable_objects.md).
 
 ## Sample program
 
 The following program can execute in a NativeAOT published application:
 
-[!code-csharp[](../../samples/NativeAOT.cs#STJSample)]
+### MessagePack
+
+The <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best experience for NativeAOT-safe programs:
+
+[!code-csharp[](../../samples/NativeAOT/NerdbankMessagePack.cs#Sample)]
+
+### UTF-8 JSON
+
+The <xref:StreamJsonRpc.SystemTextJsonFormatter> provides a semi-safe NativeAOT experience for those that require UTF-8 encoded JSON:
+
+[!code-csharp[](../../samples/NativeAOT/SystemTextJson.cs#Sample)]

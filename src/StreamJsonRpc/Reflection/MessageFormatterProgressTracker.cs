@@ -2,9 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
+
+[assembly: TypeShapeExtension(typeof(IProgress<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -167,7 +171,7 @@ public class MessageFormatterProgressTracker
 
     /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
     /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
-    public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new JsonProgress<T>(rpc, token, clientRequiresNamedArguments);
+    public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new ProgressProxy<T>(rpc, token, clientRequiresNamedArguments);
 
     /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
     /// <remarks>
@@ -192,8 +196,8 @@ public class MessageFormatterProgressTracker
         Requires.NotNull(token, nameof(token));
         Requires.NotNull(valueType, nameof(valueType));
 
-        Type progressType = typeof(JsonProgress<>).MakeGenericType(valueType.GenericTypeArguments[0]);
-        return Activator.CreateInstance(progressType, new object[] { rpc, token, clientRequiresNamedArguments })!;
+        Type progressType = typeof(ProgressProxy<>).MakeGenericType(valueType.GenericTypeArguments[0]);
+        return Activator.CreateInstance(progressType, [rpc, token, clientRequiresNamedArguments])!;
     }
 
     private void CleanUpResources(RequestId requestId)
@@ -278,19 +282,21 @@ public class MessageFormatterProgressTracker
     /// <summary>
     /// Class that implements <see cref="IProgress{T}"/> and sends <see cref="ProgressRequestSpecialMethod"/> notification when reporting.
     /// </summary>
-    private class JsonProgress<T> : IProgress<T>
+    /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ProgressProxy<T> : IProgress<T>
     {
         private readonly JsonRpc rpc;
         private readonly object token;
         private readonly bool useNamedArguments;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JsonProgress{T}"/> class.
+        /// Initializes a new instance of the <see cref="ProgressProxy{T}"/> class.
         /// </summary>
         /// <param name="rpc">The <see cref="JsonRpc"/> instance used to send the <see cref="ProgressRequestSpecialMethod"/> notification.</param>
         /// <param name="token">The progress token used to obtain the <see cref="ProgressParamInformation"/> instance from <see cref="progressMap"/>.</param>
         /// <param name="useNamedArguments"><see langword="true"/> to use named arguments; <see langword="false"/> to use positional arguments.</param>
-        public JsonProgress(JsonRpc rpc, object token, bool useNamedArguments)
+        public ProgressProxy(JsonRpc rpc, object token, bool useNamedArguments)
         {
             this.rpc = rpc ?? throw new ArgumentNullException(nameof(rpc));
             this.token = token ?? throw new ArgumentNullException(nameof(token));

@@ -9,6 +9,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
 using static System.FormattableString;
 using STJ = System.Text.Json.Serialization;
 
@@ -17,7 +18,7 @@ namespace StreamJsonRpc.Reflection;
 /// <summary>
 /// Tracks objects that get marshaled using the general marshaling protocol.
 /// </summary>
-internal class MessageFormatterRpcMarshaledContextTracker
+internal partial class MessageFormatterRpcMarshaledContextTracker
 {
     private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> ImplicitlyMarshaledTypes = new (Type, JsonRpcProxyOptions, JsonRpcTargetOptions, RpcMarshalableAttribute)[]
     {
@@ -468,12 +469,16 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
     }
 
+    /// <summary>
+    /// A token that represents a marshaled object.
+    /// </summary>
     [DataContract]
-    internal struct MarshalToken
+    [GenerateShape]
+    internal partial struct MarshalToken
     {
         [MessagePack.SerializationConstructor]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime, int[]? optionalInterfaces)
+        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime = null, int[]? optionalInterfaces = null)
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
         {
             this.Marshaled = __jsonrpc_marshaled;
@@ -484,18 +489,22 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
         [STJ.JsonPropertyName("__jsonrpc_marshaled"), STJ.JsonRequired]
+        [PropertyShape(Name = "__jsonrpc_marshaled")]
         public int Marshaled { get; set; }
 
         [DataMember(Name = "handle", IsRequired = true)]
         [STJ.JsonPropertyName("handle"), STJ.JsonRequired]
+        [PropertyShape(Name = "handle")]
         public long Handle { get; set; }
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
         [STJ.JsonPropertyName("lifetime"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+        [PropertyShape(Name = "lifetime")]
         public string? Lifetime { get; set; }
 
         [DataMember(Name = "optionalInterfaces", EmitDefaultValue = false)]
         [STJ.JsonPropertyName("optionalInterfaces"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+        [PropertyShape(Name = "optionalInterfaces")]
         public int[]? OptionalInterfacesCodes { get; set; }
     }
 

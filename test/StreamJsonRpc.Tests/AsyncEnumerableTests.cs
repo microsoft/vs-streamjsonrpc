@@ -11,6 +11,7 @@ using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using NBMP = Nerdbank.MessagePack;
 
 public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 {
@@ -450,8 +451,10 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         // But for a notification there's no guarantee the server handles the message and no way to get an error back,
         // so it simply should not be allowed since the risk of memory leak is too high.
         var numbers = new int[] { 1, 2, 3 }.AsAsyncEnumerable();
-        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
-        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new { e = numbers } }));
+        Exception ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
+        this.Logger.WriteLine(ex.ToString());
+        ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new CompoundEnumerableResult { Enumeration = numbers } }));
+        this.Logger.WriteLine(ex.ToString());
     }
 
     [Fact]
@@ -810,6 +813,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [JsonConverter(typeof(ThrowingJsonConverter<UnserializableType>))]
     [MessagePackFormatter(typeof(ThrowingMessagePackFormatter<UnserializableType>))]
+    [NBMP.MessagePackConverter(typeof(ThrowingMessagePackNerdbankConverter<UnserializableType>))]
     protected class UnserializableType
     {
     }
@@ -835,6 +839,19 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         }
 
         public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options)
+        {
+            throw new Exception();
+        }
+    }
+
+    protected class ThrowingMessagePackNerdbankConverter<T> : NBMP.MessagePackConverter<T>
+    {
+        public override T? Read(ref NBMP.MessagePackReader reader, NBMP.SerializationContext context)
+        {
+            throw new Exception();
+        }
+
+        public override void Write(ref NBMP.MessagePackWriter writer, in T? value, NBMP.SerializationContext context)
         {
             throw new Exception();
         }
