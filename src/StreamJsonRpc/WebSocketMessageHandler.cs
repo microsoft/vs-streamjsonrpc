@@ -138,7 +138,7 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
     {
         Requires.NotNull(content, nameof(content));
 
-        using (var contentSequenceBuilder = new Sequence<byte>())
+        using (var contentSequenceBuilder = new Sequence<byte>(ArrayPool<byte>.Shared) { MinimumSpanLength = this.sizeHint })
         {
             WebSocketMessageType messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
             this.Formatter.Serialize(contentSequenceBuilder, content);
