@@ -8,9 +8,10 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using PolyType;
 using STJ = System.Text.Json.Serialization;
 
-public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
+public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
 {
     protected readonly Server server = new Server();
     protected JsonRpc serverRpc;
@@ -75,8 +76,8 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         this.serverRpc = new JsonRpc(serverHandler, this.server);
         this.clientRpc = new JsonRpc(clientHandler);
 
-        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
-        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
+        this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
+        this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
 
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
         this.clientRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
@@ -123,7 +124,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadablePipe),
-                new { fileName = ExpectedFileName, content = pipes.Item2 },
+                NamedArgs.Create(new { fileName = ExpectedFileName, content = pipes.Item2 }),
                 this.TimeoutToken);
         }
 
@@ -150,7 +151,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritablePipe),
-                new { lengthToWrite = bytesToReceive, content = pipes.Item2 },
+                NamedArgs.Create(new { lengthToWrite = bytesToReceive, content = pipes.Item2 }),
                 this.TimeoutToken);
         }
 
@@ -238,7 +239,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         {
             bytesReceived = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
                 nameof(Server.AcceptReadableStream),
-                new { fileName = ExpectedFileName, content = readOnlyStream },
+                NamedArgs.Create(new { fileName = ExpectedFileName, content = readOnlyStream }),
                 this.TimeoutToken);
         }
 
@@ -268,7 +269,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         {
             await this.clientRpc.InvokeWithParameterObjectAsync(
                 nameof(Server.AcceptWritableStream),
-                new { lengthToWrite = bytesToReceive, content = writeOnlyStream },
+                NamedArgs.Create(new { lengthToWrite = bytesToReceive, content = writeOnlyStream }),
                 this.TimeoutToken);
         }
 
@@ -338,7 +339,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         MemoryStream ms = new();
         ms.Write(new byte[] { 1, 2, 3 }, 0, 3);
         ms.Position = 0;
-        int bytesRead = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.AcceptStreamArgInFirstParam), new { innerStream = ms }, this.TimeoutToken);
+        int bytesRead = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.AcceptStreamArgInFirstParam),
+            new Dictionary<string, object?> { ["innerStream"] = ms },
+            this.TimeoutToken);
         Assert.Equal(ms.Length, bytesRead);
     }
 
@@ -477,6 +481,22 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         streamPair.Item1.Dispose();
     }
 
+    [Theory]
+    [CombinatorialData]
+    public async Task ClientCanSendTwoWayStreamToServer_WithExplicitTypes(bool serverUsesStream)
+    {
+        (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
+        Task twoWayCom = TwoWayTalkAsync(streamPair.Item1, writeOnOdd: true, this.TimeoutToken);
+        await this.clientRpc.InvokeWithCancellationAsync(
+            serverUsesStream ? nameof(Server.TwoWayStreamAsArg) : nameof(Server.TwoWayPipeAsArg),
+            [false, streamPair.Item2],
+            [typeof(bool), typeof(Stream)],
+            this.TimeoutToken);
+        await twoWayCom.WithCancellation(this.TimeoutToken); // rethrow any exceptions.
+
+        streamPair.Item1.Dispose();
+    }
+
     [Fact]
     public async Task PipeRemainsOpenAfterSuccessfulServerResult()
     {
@@ -555,7 +575,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     {
         (IDuplexPipe, IDuplexPipe) duplexPipes = FullDuplexStream.CreatePipePair();
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.AcceptReadableStream), "fileName", duplexPipes.Item2));
-        Assert.IsType<NotSupportedException>(ex.InnerException);
+        Assert.IsType<NotSupportedException>(ex.GetBaseException());
     }
 
     /// <summary>
@@ -743,7 +763,9 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         public void OverloadedMethod(bool foo, int value, string[] values) => Assert.NotNull(values);
     }
 
-    protected class Server
+#pragma warning disable SA1202 // Elements should be ordered by access
+    public class Server
+#pragma warning restore SA1202 // Elements should be ordered by access
     {
         internal Task? ChatLaterTask { get; private set; }
 
@@ -1058,7 +1080,10 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
     }
 
     [DataContract]
-    protected class StreamContainingClass
+    [GenerateShape]
+#pragma warning disable SA1202 // Elements should be ordered by access
+    public partial class StreamContainingClass
+#pragma warning restore SA1202 // Elements should be ordered by access
     {
         [DataMember]
         private Stream innerStream;
@@ -1069,6 +1094,7 @@ public abstract class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
         }
 
         [STJ.JsonPropertyName("innerStream")]
+        [PropertyShape(Name = "innerStream")]
         public Stream InnerStream => this.innerStream;
     }
 }

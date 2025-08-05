@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
+using Nerdbank.MessagePack;
+using PolyType;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -12,14 +14,17 @@ namespace StreamJsonRpc.Protocol;
 /// Describes the result of a successful method invocation.
 /// </summary>
 [DataContract]
+[GenerateShape]
+[MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcResultConverter))]
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
-public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
+public partial class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
 {
     /// <summary>
     /// Gets or sets the value of the result of an invocation, if any.
     /// </summary>
     [DataMember(Name = "result", Order = 2, IsRequired = true, EmitDefaultValue = true)]
     [STJ.JsonPropertyName("result"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
+    [PropertyShape(Name = "result", Order = 2)]
     public object? Result { get; set; }
 
     /// <summary>
@@ -30,6 +35,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// </remarks>
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public Type? ResultDeclaredType { get; set; }
 
     /// <summary>
@@ -39,6 +45,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -50,6 +57,7 @@ public class JsonRpcResult : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = true)]
     [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
+    [PropertyShape(Name = "id", Order = 1)]
     public RequestId RequestId { get; set; }
 
     /// <summary>

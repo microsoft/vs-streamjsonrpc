@@ -205,11 +205,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         {
             // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
             // the parameters can be matched to the method we're invoking.
-            if (GetParamsObjectDictionary(request.Arguments) is { } namedArgs)
-            {
-                request.Arguments = namedArgs.ArgumentValues;
-                request.NamedArgumentDeclaredTypes = namedArgs.ArgumentTypes;
-            }
+            NamedArgs namedArgs = NamedArgs.Create(request.Arguments.GetType(), request.Arguments);
+            request.Arguments = namedArgs;
+            request.NamedArgumentDeclaredTypes = namedArgs.DeclaredArgumentTypes;
         }
 
         var writer = new MessagePackWriter(contentBuffer);
@@ -248,116 +246,6 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         {
             this.serializationToStringHelper.Deactivate();
         }
-    }
-
-    /// <summary>
-    /// Extracts a dictionary of property names and values from the specified params object.
-    /// </summary>
-    /// <param name="paramsObject">The params object.</param>
-    /// <returns>A dictionary of argument values and another of declared argument types, or <see langword="null"/> if <paramref name="paramsObject"/> is null.</returns>
-    /// <remarks>
-    /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
-    /// </remarks>
-    [return: NotNullIfNotNull("paramsObject")]
-    private static (IReadOnlyDictionary<string, object?> ArgumentValues, IReadOnlyDictionary<string, Type> ArgumentTypes)? GetParamsObjectDictionary(object? paramsObject)
-    {
-        if (paramsObject is null)
-        {
-            return default;
-        }
-
-        // Look up the argument types dictionary if we saved it before.
-        Type paramsObjectType = paramsObject.GetType();
-        IReadOnlyDictionary<string, Type>? argumentTypes;
-        lock (ParameterObjectPropertyTypes)
-        {
-            ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out argumentTypes);
-        }
-
-        // If we couldn't find a previously created argument types dictionary, create a mutable one that we'll build this time.
-        Dictionary<string, Type>? mutableArgumentTypes = argumentTypes is null ? new Dictionary<string, Type>() : null;
-
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-
-        TypeInfo paramsTypeInfo = paramsObject.GetType().GetTypeInfo();
-        bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() is not null;
-
-        BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
-        if (isDataContract)
-        {
-            bindingFlags |= BindingFlags.NonPublic;
-        }
-
-        bool TryGetSerializationInfo(MemberInfo memberInfo, out string key)
-        {
-            key = memberInfo.Name;
-            if (isDataContract)
-            {
-                DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
-                if (dataMemberAttribute is null)
-                {
-                    return false;
-                }
-
-                if (!dataMemberAttribute.EmitDefaultValue)
-                {
-                    throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType!.FullName}.{memberInfo.Name}.");
-                }
-
-                key = dataMemberAttribute.Name ?? memberInfo.Name;
-                return true;
-            }
-            else
-            {
-                return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null;
-            }
-        }
-
-        foreach (PropertyInfo property in paramsTypeInfo.GetProperties(bindingFlags))
-        {
-            if (property.GetMethod is not null)
-            {
-                if (TryGetSerializationInfo(property, out string key))
-                {
-                    result[key] = property.GetValue(paramsObject);
-                    if (mutableArgumentTypes is object)
-                    {
-                        mutableArgumentTypes[key] = property.PropertyType;
-                    }
-                }
-            }
-        }
-
-        foreach (FieldInfo field in paramsTypeInfo.GetFields(bindingFlags))
-        {
-            if (TryGetSerializationInfo(field, out string key))
-            {
-                result[key] = field.GetValue(paramsObject);
-                if (mutableArgumentTypes is object)
-                {
-                    mutableArgumentTypes[key] = field.FieldType;
-                }
-            }
-        }
-
-        // If we assembled the argument types dictionary this time, save it for next time.
-        if (mutableArgumentTypes is object)
-        {
-            lock (ParameterObjectPropertyTypes)
-            {
-                if (ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out IReadOnlyDictionary<string, Type>? lostRace))
-                {
-                    // Of the two, pick the winner to use ourselves so we consolidate on one and allow the GC to collect the loser sooner.
-                    argumentTypes = lostRace;
-                }
-                else
-                {
-                    ParameterObjectPropertyTypes.Add(paramsObjectType, argumentTypes = mutableArgumentTypes);
-                }
-            }
-        }
-
-        return (result, argumentTypes!);
     }
 
     private static ReadOnlySequence<byte> GetSliceForNextToken(ref MessagePackReader reader)
@@ -1445,7 +1333,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, this.formatter.JsonRpc.TrimUnsafeTypeLoader, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
                 }
                 finally
                 {

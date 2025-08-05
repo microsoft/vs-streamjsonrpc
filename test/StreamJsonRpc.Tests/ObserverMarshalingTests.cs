@@ -84,6 +84,9 @@ public abstract partial class ObserverMarshalingTests : TestBase
     [Fact]
     public async Task FaultImmediately()
     {
+        this.clientRpc.AllowModificationWhileListening = true;
+        this.clientRpc.LoadableTypes.Add(typeof(ApplicationException));
+
         var observer = new MockObserver<int>();
         await Task.Run(() => this.client.FaultImmediately(observer), TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         var ex = await Assert.ThrowsAnyAsync<ApplicationException>(() => observer.Completion);

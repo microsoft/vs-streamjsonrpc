@@ -6,8 +6,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using MessagePack;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using PolyType;
 
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
@@ -42,8 +44,22 @@ public abstract partial class MarshalableProxyTests : TestBase
     [RpcMarshalable]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
+    [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
     public partial interface IMarshalableAndSerializable : IMarshalable
     {
+        internal class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
+        {
+            public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Write(ref Nerdbank.MessagePack.MessagePackWriter writer, in IMarshalableAndSerializable? value, Nerdbank.MessagePack.SerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         private class MarshalableConverter : JsonConverter
         {
             public override bool CanConvert(Type objectType)
@@ -64,12 +80,12 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         private class MarshalableFormatter : MessagePack.Formatters.IMessagePackFormatter<IMarshalableAndSerializable>
         {
-            public IMarshalableAndSerializable Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+            public IMarshalableAndSerializable Deserialize(ref MessagePack.MessagePackReader reader, MessagePackSerializerOptions options)
             {
                 throw new NotImplementedException();
             }
 
-            public void Serialize(ref MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
+            public void Serialize(ref MessagePack.MessagePackWriter writer, IMarshalableAndSerializable value, MessagePackSerializerOptions options)
             {
                 throw new NotImplementedException();
             }
@@ -978,6 +994,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
         this.serverRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
+        this.clientRpc.LoadableTypes.Add(typeof(ExceptionWithAsyncEnumerable));
 
         MarshalableAndSerializable marshaled = new();
         var outerException = await Assert.ThrowsAsync<RemoteInvocationException>(() => this.client.CallScopedMarshalableThrowsWithAsyncEnumerable(marshaled));
@@ -1259,8 +1276,10 @@ public abstract partial class MarshalableProxyTests : TestBase
         [DataMember]
         public int Value { get; set; }
 
+        [PropertyShape(Ignore = true)]
         public bool IsDisposed { get; private set; }
 
+        [PropertyShape(Ignore = true)]
         public bool DoSomethingCalled { get; private set; }
 
         public void Dispose()

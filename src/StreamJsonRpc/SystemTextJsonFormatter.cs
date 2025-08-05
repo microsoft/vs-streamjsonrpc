@@ -1072,7 +1072,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     info.AddSafeValue(property.Key, property.Value);
                 }
 
-                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.JsonRpc, info, this.formatter.JsonRpc?.TraceSource);
+                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.JsonRpc, info, this.formatter.JsonRpc.TrimUnsafeTypeLoader, this.formatter.JsonRpc?.TraceSource);
             }
             finally
             {
