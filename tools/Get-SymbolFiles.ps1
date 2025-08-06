@@ -17,6 +17,9 @@ $ActivityName = "Collecting symbols from $Path"
 Write-Progress -Activity $ActivityName -CurrentOperation "Discovery PDB files"
 $PDBs = Get-ChildItem -rec "$Path/*.pdb"
 
+# Remove samples
+$PDBs = $PDBs | Where-Object { $_.FullName -notmatch "samples" }
+
 # Filter PDBs to product OR test related.
 $testregex = "unittest|tests|\.test\.|Benchmarks"
 
