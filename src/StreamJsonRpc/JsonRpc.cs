@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
+using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -921,7 +922,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     public void AddLocalRpcTarget<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T target, JsonRpcTargetOptions? options)
         where T : notnull => this.AddLocalRpcTarget(typeof(T), target, options);
 
-    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
+    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(RpcTargetMetadata, object, JsonRpcTargetOptions?, bool)"/>
     /// <exception cref="InvalidOperationException">Thrown if called after <see cref="StartListening"/> is called and <see cref="AllowModificationWhileListening"/> is <see langword="false"/>.</exception>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public void AddLocalRpcTarget(
@@ -932,7 +933,19 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Requires.NotNull(exposingMembersOn, nameof(exposingMembersOn));
         Requires.NotNull(target, nameof(target));
         this.ThrowIfConfigurationLocked();
+
         this.AddLocalRpcTargetInternal(exposingMembersOn, target, options, requestRevertOption: false);
+    }
+
+    /// <inheritdoc cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?)"/>
+    public void AddLocalRpcTarget(RpcTargetMetadata exposingMembersOn, object target, JsonRpcTargetOptions? options)
+    {
+        Requires.NotNull(exposingMembersOn);
+        Requires.NotNull(target);
+        this.ThrowIfConfigurationLocked();
+
+        options ??= JsonRpcTargetOptions.Default;
+        this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption: false);
     }
 
     /// <summary>
@@ -1440,7 +1453,20 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         this.rpcTargetInfo.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext);
     }
 
-    /// <inheritdoc cref="RpcTargetInfo.AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>
+    /// <summary>
+    /// Adds the specified target as possible object to invoke when incoming messages are received.
+    /// </summary>
+    /// <param name="exposingMembersOn">
+    /// The type whose members define the RPC accessible members of the <paramref name="target"/> object.
+    /// If this type is not an interface, only public members become invokable unless <see cref="JsonRpcTargetOptions.AllowNonPublicInvocation"/> is set to true on the <paramref name="options"/> argument.
+    /// </param>
+    /// <param name="target">Target to invoke when incoming messages are received.</param>
+    /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
+    /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
+    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <see langword="false"/>.</returns>
+    /// <remarks>
+    /// When multiple target objects are added, the first target with a method that matches a request is invoked.
+    /// </remarks>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn,
@@ -1448,21 +1474,30 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         JsonRpcTargetOptions? options,
         bool requestRevertOption)
     {
-        return this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options, requestRevertOption);
+        RpcTargetMetadata.EnableDynamicEventHandlerCreation();
+
+        options ??= JsonRpcTargetOptions.Default;
+        RpcTargetMetadata mapping =
+            exposingMembersOn.IsInterface ? RpcTargetMetadata.FromInterface(exposingMembersOn) :
+            options.AllowNonPublicInvocation ? RpcTargetMetadata.FromClassNonPublic(exposingMembersOn) :
+            RpcTargetMetadata.FromClass(exposingMembersOn);
+
+        return this.rpcTargetInfo.AddLocalRpcTarget(mapping, target, options, requestRevertOption);
     }
 
     /// <summary>
     /// Adds a new RPC interface to an existing target registering additional RPC methods.
     /// </summary>
-    /// <param name="exposingMembersOn">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
+    /// <param name="targetMetadata">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null" />, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">
     /// An optional object that may be disposed of to revert the addition of the target object.
     /// </param>
-    internal void AddRpcInterfaceToTargetInternal([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTargetInternal(RpcTargetMetadata targetMetadata, object target, JsonRpcTargetOptions? options, RpcTargetInfo.RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
-        this.rpcTargetInfo.AddRpcInterfaceToTarget(exposingMembersOn, target, options, revertAddLocalRpcTarget);
+        options ??= JsonRpcTargetOptions.Default;
+        this.rpcTargetInfo.AddRpcInterfaceToTarget(targetMetadata, target, options, revertAddLocalRpcTarget);
     }
 
     /// <summary>

@@ -15,7 +15,7 @@ public sealed class TargetMethod
 {
     private readonly JsonRpcRequest request;
     private readonly object? target;
-    private readonly MethodSignature? signature;
+    private readonly RpcTargetMetadata.TargetMethodMetadata? signature;
     private readonly object?[]? arguments;
     private SynchronizationContext? synchronizationContext;
 
@@ -38,7 +38,7 @@ public sealed class TargetMethod
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            int parameterCount = candidateMethod.Signature.Parameters.Length;
+            int parameterCount = candidateMethod.Signature.Parameters.Count;
             object?[] argumentArray = pool.Rent(parameterCount);
             try
             {
@@ -82,7 +82,7 @@ public sealed class TargetMethod
     /// <summary>
     /// Gets the <see cref="MethodInfo"/> that will be invoked to handle the request, if one was found.
     /// </summary>
-    public MethodInfo? TargetMethodInfo => this.signature?.MethodInfo;
+    public MethodInfo? TargetMethodInfo => this.signature?.Method;
 
     /// <summary>
     /// Gets all the exceptions thrown while trying to deserialize arguments to candidate parameter types.
@@ -107,12 +107,12 @@ public sealed class TargetMethod
         }
     }
 
-    internal Type? ReturnType => this.signature?.MethodInfo.ReturnType;
+    internal Type? ReturnType => this.signature?.Method.ReturnType;
 
     /// <inheritdoc/>
     public override string ToString()
     {
-        return this.signature is not null ? $"{this.signature.MethodInfo.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+        return this.signature is not null ? $"{this.signature.Method.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
     }
 
     internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
@@ -130,7 +130,7 @@ public sealed class TargetMethod
 
         Assumes.NotNull(this.synchronizationContext);
         await this.synchronizationContext;
-        return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
+        return this.signature.Method.Invoke(!this.signature.Method.IsStatic ? this.target : null, this.arguments);
     }
 
     private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
@@ -145,11 +145,11 @@ public sealed class TargetMethod
         this.errorMessages.Add(message);
     }
 
-    private bool TryGetArguments(JsonRpcRequest request, MethodSignature method, Span<object?> arguments)
+    private bool TryGetArguments(JsonRpcRequest request, RpcTargetMetadata.TargetMethodMetadata method, Span<object?> arguments)
     {
         Requires.NotNull(request, nameof(request));
         Requires.NotNull(method, nameof(method));
-        Requires.Argument(arguments.Length == method.Parameters.Length, nameof(arguments), "Length must equal number of parameters in method signature.");
+        Requires.Argument(arguments.Length == method.Parameters.Count, nameof(arguments), "Length must equal number of parameters in method signature.");
 
         // ref and out parameters aren't supported.
         if (method.HasOutOrRefParameters)
@@ -159,7 +159,7 @@ public sealed class TargetMethod
         }
 
         // When there is a CancellationToken parameter, we require that it always be the last parameter.
-        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = new(method.Parameters, 0, method.TotalParamCountExcludingCancellationToken);
+        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = method.ParametersMemory.Span[..method.TotalParamCountExcludingCancellationToken];
         Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
         if (method.HasCancellationTokenParameter)
         {

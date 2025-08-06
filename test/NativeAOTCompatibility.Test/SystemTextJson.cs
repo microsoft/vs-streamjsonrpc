@@ -12,7 +12,11 @@ internal static partial class SystemTextJson
         (Stream clientPipe, Stream serverPipe) = FullDuplexStream.CreatePair();
         JsonRpc serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
         JsonRpc clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
-        serverRpc.AddLocalRpcMethod(nameof(Server.AddAsync), new Server().AddAsync);
+
+        RpcTargetMetadata.RegisterEventArgs<int>();
+        var targetMetadata = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer)));
+        serverRpc.AddLocalRpcTarget(targetMetadata, new Server(), null);
+
         serverRpc.StartListening();
         IServer proxy = clientRpc.Attach<IServer>();
         clientRpc.StartListening();

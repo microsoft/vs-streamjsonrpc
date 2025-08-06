@@ -1507,7 +1507,13 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_UseSingleObjectParameterDeserialization()
     {
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(streams.Item1, streams.Item2)
+        {
+            TraceSource = new TraceSource("Loopback", SourceLevels.Verbose)
+            {
+                Listeners = { new XunitTraceListener(this.Logger) },
+            },
+        };
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
         rpc.StartListening();
 
