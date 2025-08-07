@@ -587,6 +587,14 @@ public class ProxyGeneratorTests
             """);
     }
 
+    /// <summary>
+    /// Tracks the scenario of unknown types being passed to the <c>Attach</c> method.
+    /// </summary>
+    /// <remarks>
+    /// Although the type is unknown, we still want to redirect the API call to
+    /// NativeAOT safe alternatives (that will fail at runtime if the proxy hasn't been generated).
+    /// Projects are required to opt-in to this behavior, so we consider it safe.
+    /// </remarks>
     [Fact]
     public async Task Interceptor_UnknownTypes_Generic()
     {
@@ -602,6 +610,14 @@ public class ProxyGeneratorTests
             """);
     }
 
+    /// <summary>
+    /// Tracks the scenario of unknown types being passed to the <c>Attach</c> method.
+    /// </summary>
+    /// <remarks>
+    /// Although the type is unknown, we still want to redirect the API call to
+    /// NativeAOT safe alternatives (that will fail at runtime if the proxy hasn't been generated).
+    /// Projects are required to opt-in to this behavior, so we consider it safe.
+    /// </remarks>
     [Fact]
     public async Task Interceptor_UnknownTypes_NonGeneric()
     {
