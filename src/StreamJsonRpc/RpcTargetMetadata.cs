@@ -9,6 +9,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
+using PolyType.Abstractions;
+using PolyType.Utilities;
+using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
@@ -275,6 +279,40 @@ public class RpcTargetMetadata
         }
 
         return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
+    }
+
+#if NET
+    public static RpcTargetMetadata FromShape<T>()
+        where T : IShapeable<T> => FromShape(T.GetShape());
+
+    public static RpcTargetMetadata FromShape<T, TProvider>()
+        where TProvider : IShapeable<T> => FromShape(TProvider.GetShape());
+#endif
+
+    public static RpcTargetMetadata FromShape<T>(ITypeShapeProvider provider) => FromShape(provider.Resolve<T>());
+
+    public static RpcTargetMetadata FromShape(ITypeShape shape)
+    {
+        Requires.NotNull(shape);
+
+        Dictionary<string, List<TargetMethodMetadata>> methods = [];
+        foreach (IMethodShape method in shape.Methods)
+        {
+            var methodMetadata = (TargetMethodMetadata)method.Accept(ShapeVisitor.Instance)!;
+            if (!methods.TryGetValue(methodMetadata.Name, out List<TargetMethodMetadata>? methodList))
+            {
+                methods[methodMetadata.Name] = methodList = [];
+            }
+
+            methodList.Add(methodMetadata);
+        }
+
+        return new RpcTargetMetadata
+        {
+            TargetType = shape.Type,
+            Methods = methods.ToImmutableDictionary(kv => kv.Key, kv => (IReadOnlyList<TargetMethodMetadata>)kv.Value),
+            Events = [],
+        };
     }
 
     /// <summary>
@@ -683,20 +721,33 @@ public class RpcTargetMetadata
     {
         private ParameterInfo[]? parameters;
 
+        internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute)
+        {
+            this.IsPublic = method.IsPublic;
+            this.DeclaringType = method.DeclaringType;
+            this.Name = attribute?.Name ?? method.Name;
+            this.MethodInfo = method;
+
+            this.ReturnType = method.ReturnType;
+            ParameterInfo[] parameters = method.GetParameters();
+            this.RequiredParamCount = parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
+            this.HasCancellationTokenParameter = parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
+        }
+
         /// <summary>
         /// Gets the <see cref="MethodInfo"/> for the RPC target method.
         /// </summary>
-        public required MethodInfo Method { get; init; }
+        public MethodInfo MethodInfo { get; }
 
         /// <summary>
         /// Gets the RPC target name that should invoke this method.
         /// </summary>
-        public required string Name { get; init; }
+        public string Name { get; }
 
         /// <summary>
         /// Gets the <see cref="JsonRpcMethodAttribute"/> that applies to this method, if any.
         /// </summary>
-        public required JsonRpcMethodAttribute? Attribute { get; init; }
+        public JsonRpcMethodAttribute? Attribute { get; }
 
         /// <summary>
         /// Gets the parameters on the method.
@@ -704,7 +755,7 @@ public class RpcTargetMetadata
         /// <remarks>
         /// This is equivalent to <see cref="MethodBase.GetParameters"/>, but cached for performance.
         /// </remarks>
-        internal IReadOnlyList<ParameterInfo> Parameters => this.parameters ??= this.Method.GetParameters() ?? [];
+        internal IReadOnlyList<ParameterInfo> Parameters => this.parameters ??= this.MethodInfo.GetParameters() ?? [];
 
         /// <summary>
         /// Gets a <see cref="ReadOnlyMemory{T}"/> view of the parameters on the method.
@@ -712,32 +763,30 @@ public class RpcTargetMetadata
         /// <seealso cref="Parameters"/>
         internal ReadOnlyMemory<ParameterInfo> ParametersMemory => (ParameterInfo[])this.Parameters;
 
+        internal Type ReturnType { get; }
+
         /// <summary>
         /// Gets a value indicating whether the method is declared as public.
         /// </summary>
-        internal bool IsPublic => this.Method.IsPublic;
+        internal bool IsPublic { get; }
 
-        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
+        internal Type DeclaringType { get; }
+
+        internal int RequiredParamCount { get; }
 
         internal int TotalParamCountExcludingCancellationToken => this.HasCancellationTokenParameter ? this.Parameters.Count - 1 : this.Parameters.Count;
 
-        internal bool HasCancellationTokenParameter => this.Parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
+        internal bool HasCancellationTokenParameter { get; }
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 
         [ExcludeFromCodeCoverage]
-        private string DebuggerDisplay => $"{this.Method.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
+        private string DebuggerDisplay => $"{this.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
 
         /// <inheritdoc/>
         public override string ToString() => this.DebuggerDisplay;
 
-        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute)
-            => new()
-            {
-                Method = method,
-                Name = attribute?.Name ?? method.Name,
-                Attribute = attribute,
-            };
+        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute) => new(method, attribute);
 
         internal bool EqualSignature(TargetMethodMetadata other)
         {
@@ -857,5 +906,83 @@ public class RpcTargetMetadata
                 this.Methods.Add(alias, overloads);
             }
         }
+    }
+
+    private class ShapeVisitor : TypeShapeVisitor
+    {
+        internal static readonly ShapeVisitor Instance = new();
+
+        public override object? VisitMethod<TDeclaringType, TArgumentState, TResult>(IMethodShape<TDeclaringType, TArgumentState, TResult> methodShape, object? state = null)
+        {
+            Func<TArgumentState> argumentStateCtor = methodShape.GetArgumentStateConstructor();
+            MethodInvoker<TDeclaringType, TArgumentState, TResult> invoker = methodShape.GetMethodInvoker();
+            var parameterSetters = new MethodParameterSetter<TArgumentState>[methodShape.Parameters.Count];
+
+            for (int i = 0; i < methodShape.Parameters.Count; i++)
+            {
+                parameterSetters[i] = (MethodParameterSetter<TArgumentState>)methodShape.Parameters[i].Accept(this, methodShape)!;
+            }
+
+            if (methodShape.AttributeProvider is null)
+            {
+                throw new InvalidOperationException("Method shape must have an attribute provider.");
+            }
+
+            MethodInfo methodInfo = (MethodInfo)methodShape.AttributeProvider;
+            JsonRpcMethodAttribute? attribute = methodShape.AttributeProvider.GetCustomAttribute<JsonRpcMethodAttribute>();
+            return new TargetMethodMetadata(methodInfo, attribute);
+
+            void ThrowMissingRequiredArguments(ref TArgumentState argumentState)
+            {
+                List<string>? missingParameters = [];
+                foreach (IParameterShape parameter in methodShape.Parameters)
+                {
+                    if (parameter.IsRequired && !argumentState.IsArgumentSet(parameter.Position))
+                    {
+                        missingParameters.Add(parameter.Name);
+                    }
+                }
+
+                throw new RemoteMethodNotFoundException($"Method invocation is missing required parameters: {string.Join(", ", missingParameters)}", methodShape.Name, Protocol.JsonRpcErrorCode.InvalidParams, null, null);
+            }
+        }
+
+        public override object? VisitParameter<TArgumentState, TParameterType>(IParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null)
+        {
+            ParameterInfo? parameterInfo = (ParameterInfo?)parameterShape.AttributeProvider;
+            if (parameterInfo?.IsOut is true || parameterInfo?.ParameterType.IsByRef is true)
+            {
+                // We don't support out or ref parameters in RPC methods.
+                throw new NotSupportedException($"The method {parameterInfo.Member.DeclaringType}.{parameterInfo.Member.Name} has an out or ref parameter, which is not supported in RPC methods.");
+            }
+
+            if (parameterShape.ParameterType.Type == typeof(CancellationToken))
+            {
+                var tokenSetter = (Setter<TArgumentState, CancellationToken>)(object)parameterShape.GetSetter();
+                return new MethodParameterSetter<TArgumentState>((ref TArgumentState state, JsonRpcRequest _, CancellationToken token) =>
+                {
+                    tokenSetter(ref state, token);
+                });
+            }
+
+            Setter<TArgumentState, TParameterType> setter = parameterShape.GetSetter();
+            return new MethodParameterSetter<TArgumentState>((ref TArgumentState state, JsonRpcRequest request, CancellationToken cancellationToken) =>
+            {
+                if (request.TryGetArgumentByNameOrIndex(parameterShape.Name, parameterShape.Position, parameterShape.ParameterType.Type, out object? value))
+                {
+                    if (value is null && !parameterShape.IsNonNullable)
+                    {
+                        throw new ArgumentNullException(parameterShape.Name, "Parameter cannot be null.");
+                    }
+
+                    setter(ref state, (TParameterType)value!);
+                }
+            });
+        }
+
+        private delegate void MethodParameterSetter<TArgumentState>(
+            ref TArgumentState argumentState,
+            JsonRpcRequest request,
+            CancellationToken cancellationToken);
     }
 }

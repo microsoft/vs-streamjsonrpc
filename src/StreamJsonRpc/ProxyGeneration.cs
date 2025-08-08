@@ -302,7 +302,7 @@ internal static class ProxyGeneration
                 {
                     foreach (RpcTargetMetadata.TargetMethodMetadata methodMetadata in overloads)
                     {
-                        MethodInfo method = methodMetadata.Method;
+                        MethodInfo method = methodMetadata.MethodInfo;
                         if (!implementedMethods.Add(method))
                         {
                             continue;

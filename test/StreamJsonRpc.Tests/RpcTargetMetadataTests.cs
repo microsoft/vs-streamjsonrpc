@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-public class RpcTargetMetadataTests
+using PolyType;
+
+public partial class RpcTargetMetadataTests
 {
     internal interface IRpcContractBase
     {
@@ -21,6 +23,26 @@ public class RpcTargetMetadataTests
         event EventHandler<MyEventArgs> DerivedEvent;
 
         Task MethodDerivedAsync(int value);
+    }
+
+    [GenerateShape, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    internal partial interface IShapedContract
+    {
+        event EventHandler DidMath;
+
+        Task<int> AddAsync(int a, int b);
+
+        [MethodShape(Ignore = true)]
+        void Ignored();
+
+        [MethodShape(Name = "Subtract")]
+        Task<int> SubtractAsync(int a, int b);
+    }
+
+    [Fact]
+    public void FromShape()
+    {
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.ShapeProvider);
     }
 
     [Fact]
@@ -89,4 +111,7 @@ public class RpcTargetMetadataTests
 
         internal void OnDerivedEvent(MyEventArgs e) => this.DerivedEvent?.Invoke(this, e);
     }
+
+    [GenerateShapeFor<IShapedContract>]
+    private partial class Witness;
 }

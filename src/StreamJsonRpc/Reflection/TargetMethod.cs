@@ -82,7 +82,7 @@ public sealed class TargetMethod
     /// <summary>
     /// Gets the <see cref="MethodInfo"/> that will be invoked to handle the request, if one was found.
     /// </summary>
-    public MethodInfo? TargetMethodInfo => this.signature?.Method;
+    public MethodInfo? TargetMethodInfo => this.signature?.MethodInfo;
 
     /// <summary>
     /// Gets all the exceptions thrown while trying to deserialize arguments to candidate parameter types.
@@ -107,12 +107,12 @@ public sealed class TargetMethod
         }
     }
 
-    internal Type? ReturnType => this.signature?.Method.ReturnType;
+    internal Type? ReturnType => this.signature?.ReturnType;
 
     /// <inheritdoc/>
     public override string ToString()
     {
-        return this.signature is not null ? $"{this.signature.Method.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+        return this.signature is not null ? $"{this.signature.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
     }
 
     internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
