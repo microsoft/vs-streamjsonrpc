@@ -11,6 +11,7 @@
     <NoWarn>$(NoWarn);SYSLIB0050</NoWarn>
     <!-- Enable warnings regarding AOT compatibility. Learn more about testing strategies at https://devblogs.microsoft.com/dotnet/creating-aot-compatible-libraries/ -->
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+    <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx" />
