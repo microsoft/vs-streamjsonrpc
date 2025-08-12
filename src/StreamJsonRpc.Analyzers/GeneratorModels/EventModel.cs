@@ -31,6 +31,6 @@ internal record EventModel(string Name, string DelegateType, string EventArgsTyp
             return null;
         }
 
-        return new EventModel(evt.Name, evt.Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat), invokeMethod.Parameters[1].Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat));
+        return new EventModel(evt.Name, evt.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), invokeMethod.Parameters[1].Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat));
     }
 }

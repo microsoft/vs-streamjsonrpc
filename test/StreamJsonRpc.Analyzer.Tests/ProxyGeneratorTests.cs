@@ -298,6 +298,81 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task RpcMarshalable()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IMyRpc
+            {
+                Task JustCancellationAsync(CancellationToken cancellationToken);
+                ValueTask AnArgAndCancellationAsync(int arg, CancellationToken cancellationToken);
+                Task<int> AddAsync(int a, int b, CancellationToken cancellationToken);
+                Task<int> MultiplyAsync(int a, int b);
+                void Start(string bah);
+                void StartCancelable(string bah, CancellationToken token);
+                IAsyncEnumerable<int> CountAsync(int start, int count, CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_Generic()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IGenericMarshalable<T>
+            {
+                Task<T> DoSomethingWithParameterAsync(T parameter);
+            }
+            """);
+    }
+
+    /// <summary>
+    /// Verifies that an RpcMarshalable attribute on an interface with both valid and invalid members does not break the build (but it will report a diagnostic, as tested elsewhere).
+    /// </summary>
+    [Fact]
+    public async Task RpcMarshalable_HasPropertyAndMethod()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface INotSoMarshalable
+            {
+                int Age { get; }
+                Task DoSomethingAsync();
+            }
+            """);
+    }
+
+    /// <summary>
+    /// Verifies that an RpcMarshalable attribute on an invalid interface does not break the build (but it will report a diagnostic, as tested elsewhere).
+    /// </summary>
+    [Fact]
+    public async Task RpcMarshalable_HasProperty()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IMarshalableWithProperties
+            {
+                int Age { get; }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_HasEvent()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            #nullable enable
+
+            [RpcMarshalable]
+            public partial interface IMarshalableWithEvents
+            {
+                event EventHandler? Changed;
+            }
+            """);
+    }
+
+    [Fact]
     public async Task Interceptor_AttachOfTNoOptions()
     {
         await VerifyCS.RunDefaultAsync("""

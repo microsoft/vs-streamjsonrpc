@@ -201,6 +201,24 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task RpcMarshalable_DisallowedMembers()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            partial interface IMyRpc : IDisposable
+            {
+                event EventHandler {|StreamJsonRpc0012:Changed|};
+                event EventHandler<int> {|StreamJsonRpc0012:Updated|};
+                event CustomEvent {|StreamJsonRpc0012:Custom|};
+                int {|StreamJsonRpc0012:Count|} { get; }
+                void {|StreamJsonRpc0013:Add|}<T>(T item);
+            }
+
+            delegate void CustomEvent();
+            """);
+    }
+
+    [Fact]
     public async Task RpcMarshalable_WithOptionalInterfaceAndNoAttribute()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
