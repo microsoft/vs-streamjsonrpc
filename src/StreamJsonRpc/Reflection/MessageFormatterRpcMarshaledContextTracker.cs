@@ -20,8 +20,8 @@ namespace StreamJsonRpc.Reflection;
 /// </summary>
 internal partial class MessageFormatterRpcMarshaledContextTracker
 {
-    private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> ImplicitlyMarshaledTypes = new (Type, JsonRpcProxyOptions, JsonRpcTargetOptions, RpcMarshalableAttribute)[]
-    {
+    private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> ImplicitlyMarshaledTypes =
+    [
         (typeof(IDisposable), new JsonRpcProxyOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }, new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase }, new RpcMarshalableAttribute()),
 
         // IObserver<T> support requires special recognition of OnCompleted and OnError be considered terminating calls.
@@ -49,7 +49,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             },
             new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase },
             new RpcMarshalableAttribute()),
-    };
+    ];
 
     private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> MarshaledTypes = new();
     private static readonly (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) RpcMarshalableInterfaceDefaultOptions = (new JsonRpcProxyOptions(), new JsonRpcTargetOptions { NotifyClientOfEvents = false, DisposeOnDisconnect = true });

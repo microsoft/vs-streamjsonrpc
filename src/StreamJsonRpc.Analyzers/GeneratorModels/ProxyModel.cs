@@ -9,7 +9,7 @@ namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
 internal record ProxyModel : FormattableModel
 {
-    private readonly ImmutableEquatableArray<FormattableModel> formattableElements;
+    private readonly ImmutableEquatableArray<FormattableModel> formattableElements = [];
 
     internal ProxyModel(ImmutableEquatableSet<InterfaceModel> interfaces, string? externalProxyName = null)
     {
@@ -20,35 +20,63 @@ internal record ProxyModel : FormattableModel
 
         this.Interfaces = interfaces;
 
+        string nonGenericPart;
+        string? genericPart;
         if (externalProxyName is null)
         {
             string name = CreateProxyName(interfaces);
-            this.Name = $"{name.Replace('.', '_')}_Proxy";
             this.FileName = $"{name.Replace('<', '_').Replace('>', '_')}.g.cs";
+            (nonGenericPart, genericPart) = SplitGenericName(name);
+            string nonGenericProxy = $"{nonGenericPart.Replace('.', '_')}_Proxy";
+            this.Name = nonGenericProxy;
         }
         else
         {
-            this.Name = externalProxyName;
+            (nonGenericPart, genericPart) = SplitGenericName(externalProxyName);
+            this.Name = nonGenericPart;
         }
 
-        int methodSuffix = 0;
-        this.formattableElements = this.Interfaces.SelectMany(i => i.Methods).Concat<FormattableModel>(
-            this.Interfaces.SelectMany(i => i.Events)).Distinct()
-            .Select(e => e is MethodModel method ? method with { UniqueSuffix = ++methodSuffix } : e)
-            .ToImmutableEquatableArray();
+        this.Arity = genericPart is null ? 0 : genericPart.Count(c => c == ',') + 1;
+        this.GenericTypeDefinitionSuffix = genericPart is null ? string.Empty : $"<{new string(',', this.Arity - 1)}>";
+        this.GenericTypeSuffix = genericPart ?? string.Empty;
+
+        this.HasInvalidInterfaces = this.Interfaces.Any(iface => iface.HasUnsupportedMemberTypes);
+
+        if (!this.HasInvalidInterfaces)
+        {
+            int methodSuffix = 0;
+            this.formattableElements = this.Interfaces.SelectMany(i => i.Methods).Concat<FormattableModel>(
+                this.Interfaces.SelectMany(i => i.Events)).Distinct()
+                .Select(e => e is MethodModel method ? method with { UniqueSuffix = ++methodSuffix } : e)
+                .ToImmutableEquatableArray();
+        }
     }
 
     internal ImmutableEquatableSet<InterfaceModel> Interfaces { get; }
 
+    /// <summary>
+    /// Gets the leaf name of the proxy type, excluding generic type parameters.
+    /// </summary>
     internal string Name { get; }
+
+    internal int Arity { get; }
+
+    internal string GenericTypeDefinitionSuffix { get; }
+
+    internal string GenericTypeSuffix { get; }
 
     internal string? FileName { get; }
 
+    internal bool HasInvalidInterfaces { get; }
+
     internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
     {
+        string genericTypeParameters = iface.TypeParameters.Length > 0
+            ? $"<{string.Join(", ", iface.TypeParameters)}>"
+            : string.Empty;
         writer.WriteLine($$"""
-            [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}))]
-            partial interface {{iface.Name}}
+            [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}{{this.GenericTypeDefinitionSuffix}}))]
+            partial interface {{iface.Name}}{{genericTypeParameters}}
             {
             }
             """);
@@ -114,16 +142,20 @@ internal record ProxyModel : FormattableModel
         }
 
         writer.WriteLine($$"""
-            {{visibility}} class {{this.Name}} : global::StreamJsonRpc.Reflection.ProxyBase
+            {{visibility}} class {{this.Name}}{{this.GenericTypeSuffix}} : global::StreamJsonRpc.Reflection.ProxyBase
             """);
 
-        writer.Indentation++;
-        foreach (InterfaceModel iface in this.Interfaces)
+        if (!this.HasInvalidInterfaces)
         {
-            writer.WriteLine($", global::{iface.FullName}");
+            writer.Indentation++;
+            foreach (InterfaceModel iface in this.Interfaces)
+            {
+                writer.WriteLine($", global::{iface.FullName}");
+            }
+
+            writer.Indentation--;
         }
 
-        writer.Indentation--;
         writer.WriteLine("""
                 {
                 """);
@@ -211,6 +243,14 @@ internal record ProxyModel : FormattableModel
         writer.WriteLine("""
                 }
                 """);
+    }
+
+    private static (string NonGenericPart, string? GenericPart) SplitGenericName(string name)
+    {
+        int genericStart = name.IndexOf('<');
+        return genericStart < 0
+            ? (name, null)
+            : (name[..genericStart], name[genericStart..]);
     }
 
     private static string CreateProxyName(ImmutableEquatableSet<InterfaceModel> interfaces)
