@@ -798,6 +798,18 @@ public class JsonRpcProxyGenerationTests : TestBase
         await clientRpc.DoSomethingValueAsync();
     }
 
+    /// <summary>
+    /// Validates that similar proxies are generated in the same dynamic assembly.
+    /// </summary>
+    [Fact]
+    public void ReuseDynamicAssembliesTest()
+    {
+        JsonRpc clientRpc = new(Stream.Null);
+        IServer proxy1 = clientRpc.Attach<IServer>();
+        IServer2 proxy2 = clientRpc.Attach<IServer2>();
+        Assert.Same(proxy1.GetType().Assembly, proxy2.GetType().Assembly);
+    }
+
     public class EmptyClass
     {
     }

@@ -79,7 +79,7 @@ internal class SkipClrVisibilityChecks
         Requires.NotNull(typeInfo, nameof(typeInfo));
 
         var visitedTypes = new HashSet<TypeInfo>();
-        ImmutableHashSet<AssemblyName>.Builder assembliesDeclaringInternalTypes = ImmutableHashSet.CreateBuilder<AssemblyName>(AssemblyNameEqualityComparer.Instance);
+        ImmutableHashSet<AssemblyName>.Builder assembliesDeclaringInternalTypes = ImmutableHashSet.CreateBuilder(AssemblyNameEqualityComparer.Instance);
         CheckForNonPublicTypes(typeInfo, assembliesDeclaringInternalTypes, visitedTypes);
 
         // Enumerate members on the interface that we're going to need to implement.
@@ -252,36 +252,5 @@ internal class SkipClrVisibilityChecks
         il.Emit(OpCodes.Ret);
 
         return tb.CreateTypeInfo()!;
-    }
-
-    private class AssemblyNameEqualityComparer : IEqualityComparer<AssemblyName>
-    {
-        internal static readonly IEqualityComparer<AssemblyName> Instance = new AssemblyNameEqualityComparer();
-
-        private AssemblyNameEqualityComparer()
-        {
-        }
-
-        public bool Equals(AssemblyName? x, AssemblyName? y)
-        {
-            if (x is null && y is null)
-            {
-                return true;
-            }
-
-            if (x is null || y is null)
-            {
-                return false;
-            }
-
-            return string.Equals(x.FullName, y.FullName, StringComparison.OrdinalIgnoreCase);
-        }
-
-        public int GetHashCode(AssemblyName obj)
-        {
-            Requires.NotNull(obj, nameof(obj));
-
-            return StringComparer.OrdinalIgnoreCase.GetHashCode(obj.FullName);
-        }
     }
 }

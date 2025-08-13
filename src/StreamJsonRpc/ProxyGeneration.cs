@@ -752,7 +752,7 @@ internal static class ProxyGeneration
         // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
         // The CLR will not honor any additions to that set once the first generated type is closed.
         // We maintain a dictionary to point at dynamic modules based on the set of skip visibility check assemblies they were generated with.
-        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
+        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(AssemblyNameEqualityComparer.Instance, interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
             .Add(typeof(ProxyGeneration).Assembly.GetName());
         foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
