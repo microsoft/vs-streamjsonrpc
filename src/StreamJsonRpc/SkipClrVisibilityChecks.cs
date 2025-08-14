@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
@@ -17,6 +18,8 @@ namespace StreamJsonRpc;
 /// Gives a dynamic assembly the ability to skip CLR visibility checks,
 /// allowing the assembly to access private members of another assembly.
 /// </summary>
+[RequiresDynamicCode(RuntimeReasons.RefEmit)]
+[RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
 internal class SkipClrVisibilityChecks
 {
     /// <summary>
@@ -130,7 +133,7 @@ internal class SkipClrVisibilityChecks
         }
     }
 
-    private static IEnumerable<TypeInfo> ThisAndBaseTypes(TypeInfo interfaceType)
+    private static IEnumerable<TypeInfo> ThisAndBaseTypes([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TypeInfo interfaceType)
     {
         Assumes.True(interfaceType.IsInterface);
         yield return interfaceType.GetTypeInfo();

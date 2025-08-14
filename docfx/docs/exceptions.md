@@ -42,7 +42,7 @@ This allows the server to inspect the original JSON-RPC request as well as the e
 
 An invocation of an RPC method may throw several exceptions back at the client.
 A full list of these exceptions are documented on each Invoke or Notify method API on the @StreamJsonRpc.JsonRpc class.
-All these exceptions may also be thrown from methods on dynamically generated proxies.
+All these exceptions may also be thrown from methods on generated proxies.
 Relevant to the discussion of handling exceptions thrown from the RPC server are these exceptions which the client should be prepared to handle:
 
 1. <xref:System.OperationCanceledException> - Thrown when the client cancels the request before it is transmitted or when the server acknowledged a cancellation notification and terminated the RPC method at the server.

@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);StreamJsonRpc.Generated</InterceptorsNamespaces>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="EnableStreamJsonRpcInterceptors" />
+  </ItemGroup>
+</Project>

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using Nerdbank.Streams;
@@ -30,6 +31,7 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
     /// The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
     /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
     /// </param>
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public WebSocketMessageHandler(WebSocket webSocket)
         : this(webSocket, new JsonMessageFormatter())
     {
@@ -136,7 +138,7 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
     {
         Requires.NotNull(content, nameof(content));
 
-        using (var contentSequenceBuilder = new Sequence<byte>())
+        using (var contentSequenceBuilder = new Sequence<byte>(ArrayPool<byte>.Shared) { MinimumSpanLength = this.sizeHint })
         {
             WebSocketMessageType messageType = this.Formatter is IJsonRpcMessageTextFormatter ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
             this.Formatter.Serialize(contentSequenceBuilder, content);

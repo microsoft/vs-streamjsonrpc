@@ -58,6 +58,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";CannotMutateFrozenInstance" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[This instance cannot be changed.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[無法變更此執行個體。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";ClientProxyTypeArgumentMustBeAnInterface" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA["{0}" is not an interface.]]></Val>
@@ -72,24 +81,6 @@
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[已登錄具有相同名稱和相等參數的方法。]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodAttributeValue" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA['{0}' 和 '{1}' .NET 方法不能同時對應到相同的要求方法名稱： '{2}'。]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodNameAttribute" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA['{0}' 方法的所有多載和覆寫都必須共用 {1}.{2} 的通用值。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -144,15 +135,6 @@
           <Val><![CDATA[Error writing JSON RPC Result: {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[寫入 JSON RPC 時發生錯誤。結果: {0}: {1}]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";FailureDeserializingJsonRpc" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Failure deserializing incoming JSON RPC '{0}': {1}]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[將連入 JSON RPC '{0}' 還原序列化失敗: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -234,6 +216,15 @@
           <Val><![CDATA[This operation is only appropriate for inbound messages.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[此作業僅適用於傳入訊息。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";InterceptedProxiesRequestCannotProvideDynamicProxies" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Only source generated proxies are available when using the interceptor. Either set JsonRpcProxyOptions.ProxyStyle to allow source generated proxies or turn off the interceptor.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[使用攔截器時，只能使用來源產生的 Proxy。設定 JsonRpcProxyOptions.ProxyStyle 以允許來源產生的 Proxy，或關閉攔截器。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -492,10 +483,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[回應的格式不是預期的。 只支援錯誤和結果： {0}]]></Val>
+            <Val><![CDATA[回應使用未預期的格式。 僅支援錯誤和結果，但收到下列類型: {0}]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -612,6 +606,15 @@
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[不支援文字編碼，因為格式器 "{0}" 未實作 "{1}"。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";TypeMustHaveFullName" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Type must have FullName.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[類型必須有 FullName。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

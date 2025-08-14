@@ -10,8 +10,7 @@ across several messages.
 
 ## Use cases
 
-It is recommended to use strongly-typed proxies (such as [dynamic proxies](../docs/dynamicproxy.md))
-to invoke RPC methods that include `IAsyncEnumerable<T>` types.
+It is recommended to use [strongly-typed proxies](../docs/proxies.md) to invoke RPC methods that include `IAsyncEnumerable<T>` types.
 This helps ensure that the expected parameter and return types are agreed upon by both sides.
 
 ### C# 8 async iterator methods
@@ -54,7 +53,7 @@ A remoted `IAsyncEnumerable<T>` can only be enumerated once.
 Calling `IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken)` more than once will
 result in an @System.InvalidOperationException being thrown.
 
-When *not* using the dynamically generated proxies, acquiring and enumerating an `IAsyncEnumerator<T>` looks like this:
+When *not* using the generated proxies, acquiring and enumerating an `IAsyncEnumerator<T>` looks like this:
 
 ```cs
 var enumerable = await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(
@@ -71,7 +70,7 @@ We pass it again to the `WithCancellation` extension method inside the `foreach`
 so that the token is applied to each iteration of the loop over the enumerable when
 we may be awaiting a network call.
 
-Using the `WithCancellation` extension method is not necessary when using dynamically generated proxies
+Using the `WithCancellation` extension method is not necessary when using generated proxies
 because they automatically propagate the token from the first call to the enumerator.
 
 ### Transmitting large collections
@@ -551,6 +550,17 @@ The generator MAY respond with an error if this is done.
 
 The generator should never return an empty array of values unless the last value in the sequence has already
 been returned to the client.
+
+#### Compatibility note
+
+The <xref:StreamJsonRpc.MessagePackFormatter> deviates from this spec by formatting the result object above as an array of values instead.
+The example above would instead be formatted as:
+
+```json
+[[4,5,6], false]
+```
+
+The <xref:StreamJsonRpc.NerdbankMessagePackFormatter> does *not* share this spec bug, and thus cannot interoperate with a <xref:StreamJsonRpc.MessagePackFormatter> across the wire.
 
 ### Consumer disposes enumerator
 

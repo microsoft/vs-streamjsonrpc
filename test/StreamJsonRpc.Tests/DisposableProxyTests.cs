@@ -12,7 +12,7 @@ using Nerdbank.Streams;
 /// <summary>
 /// Tests the proxying of <see cref="IDisposable"/> values.
 /// </summary>
-public abstract class DisposableProxyTests : TestBase
+public abstract partial class DisposableProxyTests : TestBase
 {
     protected readonly Server server = new Server();
     protected readonly JsonRpc serverRpc;
@@ -39,7 +39,8 @@ public abstract class DisposableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    public interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         Task<IDisposable?> GetDisposableAsync(bool returnNull = false);
 
@@ -73,6 +74,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task IDisposableInNotificationArgumentIsRejected()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync("someMethod", new object?[] { new DisposableAction(() => { }) }, new Type[] { typeof(IDisposable) }));
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
@@ -80,6 +84,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task DisposableReturnValue_DisposeSwallowsSecondCall()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         IDisposable? proxyDisposable = await this.client.GetDisposableAsync();
         Assumes.NotNull(proxyDisposable);
         proxyDisposable.Dispose();
@@ -89,6 +96,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task DisposableReturnValue_IsMarshaledAndLaterCollected()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         var weakRefs = await this.DisposableReturnValue_Helper();
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Proxy);
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Target);
@@ -97,6 +107,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task DisposableArg_IsMarshaledAndLaterCollected()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         var weakRefs = await this.DisposableArg_Helper();
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Proxy);
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Target);
@@ -105,6 +118,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task DisposableWithinArg_IsMarshaledAndLaterCollected()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         var weakRefs = await this.DisposableWithinArg_Helper();
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Proxy);
         await this.AssertWeakReferenceGetsCollectedAsync(weakRefs.Target);
@@ -139,6 +155,9 @@ public abstract class DisposableProxyTests : TestBase
     [Fact]
     public async Task IDisposable_MarshaledBackAndForth()
     {
+#if !NBMSGPACK_MARSHALING_SUPPORT
+        Assert.SkipWhen(this is DisposableProxyNerdbankMessagePackTests, "NerdbankMessagePackFormatter does not yet support marshaled objects.");
+#endif
         IDisposable? disposable = await this.client.GetDisposableAsync().WithCancellation(this.TimeoutToken);
         Assert.NotNull(disposable);
         await this.client.AcceptProxyAsync(disposable).WithCancellation(this.TimeoutToken);

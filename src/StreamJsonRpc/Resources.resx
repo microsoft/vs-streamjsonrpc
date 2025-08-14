@@ -132,16 +132,11 @@
   <data name="CannotBeCalledAfterGetAsyncEnumerator" xml:space="preserve">
     <value>This cannot be done after GetAsyncEnumerator has already been called.</value>
   </data>
+  <data name="CannotMutateFrozenInstance" xml:space="preserve">
+    <value>This instance cannot be changed.</value>
+  </data>
   <data name="ClientProxyTypeArgumentMustBeAnInterface" xml:space="preserve">
     <value>"{0}" is not an interface.</value>
-  </data>
-  <data name="ConflictingMethodAttributeValue" xml:space="preserve">
-    <value>.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.</value>
-    <comment>{0} is the first method name, {1} is the second method name, {2} is the attribute property value.</comment>
-  </data>
-  <data name="ConflictingMethodNameAttribute" xml:space="preserve">
-    <value>All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.</value>
-    <comment>{0} is the method name, {1} is the attribute name, {2} is the attribute property name.</comment>
   </data>
   <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
     <value>A method with the same name and equivalent parameters has already been registered.</value>
@@ -166,10 +161,6 @@
   <data name="ErrorWritingJsonRpcResult" xml:space="preserve">
     <value>Error writing JSON RPC Result: {0}: {1}</value>
     <comment>{0} is the exception type, {1} is the exception message.</comment>
-  </data>
-  <data name="FailureDeserializingJsonRpc" xml:space="preserve">
-    <value>Failure deserializing incoming JSON RPC '{0}': {1}</value>
-    <comment>{0} is the JSON RPC, {1} is the exception message.</comment>
   </data>
   <data name="FailureDeserializingRpcArgument" xml:space="preserve">
     <value>Deserializing JSON-RPC argument with name "{0}" and position {1} to type "{2}" failed: {3}</value>
@@ -288,8 +279,8 @@
     <value>Failed to serialize the response.</value>
   </data>
   <data name="ResponseUnexpectedFormat" xml:space="preserve">
-    <value>Response is in an unexpected format.  Only error and result are supported: {0}</value>
-    <comment>{0} is the response message.</comment>
+    <value>Response is in an unexpected format.  Only error and result are supported, but received type: {0}</value>
+    <comment>{0} is the response object type.</comment>
   </data>
   <data name="RpcMarshalableDuplicatedOptionalInterface" xml:space="preserve">
     <value>Optional interface declarations should be unique. {0} has the same optional interface declared multiple times.</value>
@@ -337,6 +328,9 @@
   <data name="TypedArgumentsLengthMismatch" xml:space="preserve">
     <value>The length of this list must equal the length of the arguments list.</value>
   </data>
+  <data name="TypeMustHaveFullName" xml:space="preserve">
+    <value>Type must have FullName.</value>
+  </data>
   <data name="UnableToFindMethod" xml:space="preserve">
     <value>Unable to find method '{0}/{1}' on {2} for the following reasons: {3}</value>
     <comment>{0} is the method name, {1} is arity, {2} is target class full name, {3} is the error list.</comment>
@@ -363,6 +357,9 @@
   </data>
   <data name="UnrecognizedIncomingJsonRpc" xml:space="preserve">
     <value>Incoming JSON-RPC message did not conform to a recognized pattern.</value>
+  </data>
+  <data name="InterceptedProxiesRequestCannotProvideDynamicProxies" xml:space="preserve">
+    <value>Only source generated proxies are available when using the interceptor. Either set JsonRpcProxyOptions.ProxyStyle to allow source generated proxies or turn off the interceptor.</value>
   </data>
   <data name="UnsupportedEventHandlerTypeOnClientProxyInterface" xml:space="preserve">
     <value>Unsupported event handler type on "{0}". Only EventHandler and EventHandler&lt;T&gt; are supported.</value>

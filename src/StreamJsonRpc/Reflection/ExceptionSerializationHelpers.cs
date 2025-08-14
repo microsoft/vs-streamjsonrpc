@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Serialization;
 
@@ -22,10 +23,16 @@ internal static class ExceptionSerializationHelpers
 
     private static readonly Type[] DeserializingConstructorParameterTypes = new Type[] { typeof(SerializationInfo), typeof(StreamingContext) };
 
+    internal interface IExceptionTypeLoader
+    {
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
+        Type? Load(string typeName, string? assemblyName);
+    }
+
     private static StreamingContext Context => new StreamingContext(StreamingContextStates.Remoting);
 
-    internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, TraceSource? traceSource)
-        where T : Exception
+    internal static T Deserialize<T>(JsonRpc jsonRpc, SerializationInfo info, IExceptionTypeLoader typeLoader, TraceSource? traceSource)
+    ////where T : Exception
     {
         if (!TryGetValue(info, "ClassName", out string? runtimeTypeName) || runtimeTypeName is null)
         {
@@ -33,7 +40,7 @@ internal static class ExceptionSerializationHelpers
         }
 
         TryGetValue(info, AssemblyNameKeyName, out string? runtimeAssemblyName);
-        Type? runtimeType = jsonRpc.LoadType(runtimeTypeName, runtimeAssemblyName);
+        Type? runtimeType = typeLoader.Load(runtimeTypeName, runtimeAssemblyName);
         if (runtimeType is null)
         {
             if (traceSource?.Switch.ShouldTrace(TraceEventType.Warning) ?? false)
@@ -73,7 +80,7 @@ internal static class ExceptionSerializationHelpers
 
             traceSource?.TraceEvent(TraceEventType.Warning, (int)JsonRpc.TraceEvents.ExceptionNotDeserializable, errorMessage);
 
-            runtimeType = runtimeType.BaseType;
+            runtimeType = runtimeType.BaseType is { FullName: not null } ? typeLoader.Load(runtimeType.BaseType.FullName, runtimeType.BaseType.Assembly.FullName) : null;
         }
 
         if (ctor is null)
@@ -81,7 +88,7 @@ internal static class ExceptionSerializationHelpers
             throw new NotSupportedException($"{originalRuntimeType.FullName} is not a supported exception type to deserialize and no adequate substitute could be found.");
         }
 
-        return (T)ctor.Invoke(new object?[] { info, Context });
+        return (T)ctor.Invoke([info, Context]);
     }
 
     internal static void Serialize(Exception exception, SerializationInfo info)
@@ -158,7 +165,8 @@ internal static class ExceptionSerializationHelpers
         }
     }
 
-    private static ConstructorInfo? FindDeserializingConstructor(Type runtimeType) => runtimeType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, DeserializingConstructorParameterTypes, null);
+    private static ConstructorInfo? FindDeserializingConstructor([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicConstructors)] Type runtimeType)
+        => runtimeType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, DeserializingConstructorParameterTypes, null);
 
     private static bool TryGetValue(SerializationInfo info, string key, out string? value)
     {

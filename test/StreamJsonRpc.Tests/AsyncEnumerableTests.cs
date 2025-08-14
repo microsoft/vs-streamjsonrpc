@@ -11,8 +11,9 @@ using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using NBMP = Nerdbank.MessagePack;
 
-public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
+public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 {
     protected readonly Server server = new();
     protected readonly Client client = new();
@@ -37,14 +38,16 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
     /// since the server implements the methods on this interface with a return type of Task{T}
     /// but we want the client proxy to NOT be that.
     /// </summary>
-    protected interface IServer2
+    [JsonRpcContract]
+    public partial interface IServer2
     {
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
     }
 
-    protected interface IServer
+    [JsonRpcContract]
+    public partial interface IServer
     {
         IAsyncEnumerable<int> GetValuesFromEnumeratedSourceAsync(CancellationToken cancellationToken);
 
@@ -77,7 +80,8 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<string> CallbackClientAndYieldOneValueAsync(CancellationToken cancellationToken);
     }
 
-    protected interface IClient
+    [JsonRpcContract]
+    public partial interface IClient
     {
         Task DoSomethingAsync(CancellationToken cancellationToken);
     }
@@ -447,8 +451,10 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         // But for a notification there's no guarantee the server handles the message and no way to get an error back,
         // so it simply should not be allowed since the risk of memory leak is too high.
         var numbers = new int[] { 1, 2, 3 }.AsAsyncEnumerable();
-        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
-        await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new { e = numbers } }));
+        Exception ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { numbers }));
+        this.Logger.WriteLine(ex.ToString());
+        ex = await Assert.ThrowsAnyAsync<Exception>(() => this.clientRpc.NotifyAsync(nameof(Server.PassInNumbersAsync), new object?[] { new CompoundEnumerableResult { Enumeration = numbers } }));
+        this.Logger.WriteLine(ex.ToString());
     }
 
     [Fact]
@@ -616,6 +622,16 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
 
         return weakReferenceToSource;
+    }
+
+    [DataContract]
+    public class CompoundEnumerableResult
+    {
+        [DataMember]
+        public string? Message { get; set; }
+
+        [DataMember]
+        public IAsyncEnumerable<int>? Enumeration { get; set; }
     }
 
     protected class Server : IServer
@@ -795,18 +811,9 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         public Task DoSomethingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
-    [DataContract]
-    protected class CompoundEnumerableResult
-    {
-        [DataMember]
-        public string? Message { get; set; }
-
-        [DataMember]
-        public IAsyncEnumerable<int>? Enumeration { get; set; }
-    }
-
     [JsonConverter(typeof(ThrowingJsonConverter<UnserializableType>))]
     [MessagePackFormatter(typeof(ThrowingMessagePackFormatter<UnserializableType>))]
+    [NBMP.MessagePackConverter(typeof(ThrowingMessagePackNerdbankConverter<UnserializableType>))]
     protected class UnserializableType
     {
     }
@@ -832,6 +839,19 @@ public abstract class AsyncEnumerableTests : TestBase, IAsyncLifetime
         }
 
         public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options)
+        {
+            throw new Exception();
+        }
+    }
+
+    protected class ThrowingMessagePackNerdbankConverter<T> : NBMP.MessagePackConverter<T>
+    {
+        public override T? Read(ref NBMP.MessagePackReader reader, NBMP.SerializationContext context)
+        {
+            throw new Exception();
+        }
+
+        public override void Write(ref NBMP.MessagePackWriter writer, in T? value, NBMP.SerializationContext context)
         {
             throw new Exception();
         }

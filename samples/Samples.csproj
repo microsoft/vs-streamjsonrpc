@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+  </ItemGroup>
+
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
+</Project>

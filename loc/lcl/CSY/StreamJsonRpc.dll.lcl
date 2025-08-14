@@ -58,6 +58,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";CannotMutateFrozenInstance" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[This instance cannot be changed.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Tuto instanci nelze změnit.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";ClientProxyTypeArgumentMustBeAnInterface" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA["{0}" is not an interface.]]></Val>
@@ -72,24 +81,6 @@
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Metoda se stejným názvem a ekvivalentními parametry již byla zaregistrována.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodAttributeValue" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Metody .NET '{0}' a '{1}' nelze mapovat na stejný název metody požadavku: '{2}'.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodNameAttribute" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Všechna přetížení a přepsání metody '{0}' musí sdílet společnou hodnotu pro {1}.{2}.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -144,15 +135,6 @@
           <Val><![CDATA[Error writing JSON RPC Result: {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Chyba při zápisu výsledku JSON RPC: {0}:{1}]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";FailureDeserializingJsonRpc" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Failure deserializing incoming JSON RPC '{0}': {1}]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Chyba při rekonstrukci příchozí RPC JSON {0}:{1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -234,6 +216,15 @@
           <Val><![CDATA[This operation is only appropriate for inbound messages.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Tato operace je vhodná pouze pro příchozí zprávy.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";InterceptedProxiesRequestCannotProvideDynamicProxies" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Only source generated proxies are available when using the interceptor. Either set JsonRpcProxyOptions.ProxyStyle to allow source generated proxies or turn off the interceptor.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Při použití zachycovače jsou k dispozici pouze proxy generované zdrojem. Buď nastavte JsonRpcProxyOptions.ProxyStyle tak, aby povoloval proxy generované zdrojem, nebo vypněte zachycovač.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -492,10 +483,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Odpověď má neočekávaný formát.  Jsou podporovány pouze chyby a výsledky: {0}]]></Val>
+            <Val><![CDATA[Odpověď má neočekávaný formát.  Podporovány jsou pouze chyby a výsledky, ale byl přijat tento typ: {0}]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -612,6 +606,15 @@
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Kódování textu není podporováno, protože formátovací modul "{0}" neimplementuje "{1}".]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";TypeMustHaveFullName" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Type must have FullName.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Typ musí mít úplný název.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

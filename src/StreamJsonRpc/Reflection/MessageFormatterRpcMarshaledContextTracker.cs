@@ -9,6 +9,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
 using static System.FormattableString;
 using STJ = System.Text.Json.Serialization;
 
@@ -17,7 +18,7 @@ namespace StreamJsonRpc.Reflection;
 /// <summary>
 /// Tracks objects that get marshaled using the general marshaling protocol.
 /// </summary>
-internal class MessageFormatterRpcMarshaledContextTracker
+internal partial class MessageFormatterRpcMarshaledContextTracker
 {
     private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> ImplicitlyMarshaledTypes = new (Type, JsonRpcProxyOptions, JsonRpcTargetOptions, RpcMarshalableAttribute)[]
     {
@@ -92,7 +93,11 @@ internal class MessageFormatterRpcMarshaledContextTracker
         MarshallingRealObject = 1,
     }
 
-    internal static bool TryGetMarshalOptionsForType(Type type, [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions, [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions, [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
+    internal static bool TryGetMarshalOptionsForType(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+        [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
+        [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
+        [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
     {
         proxyOptions = null;
         targetOptions = null;
@@ -193,7 +198,12 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <param name="declaredType">The marshalable interface type of <paramref name="marshaledObject"/> as declared in the RPC contract.</param>
     /// <param name="rpcMarshalableAttribute">The attribute that defines certain options that control which marshaling rules will be followed.</param>
     /// <returns>A token to be serialized so the remote party can invoke methods on the marshaled object.</returns>
-    internal MarshalToken GetToken(object marshaledObject, JsonRpcTargetOptions options, Type declaredType, RpcMarshalableAttribute rpcMarshalableAttribute)
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    internal MarshalToken GetToken(
+        object marshaledObject,
+        JsonRpcTargetOptions options,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type declaredType,
+        RpcMarshalableAttribute rpcMarshalableAttribute)
     {
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
         {
@@ -248,7 +258,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
                 optionalInterfacesCodes.Add(attribute.OptionalInterfaceCode);
 
                 this.jsonRpc.AddRpcInterfaceToTargetInternal(
-                    attribute.OptionalInterface,
+                    RpcTargetMetadata.FromInterface(attribute.OptionalInterface),
                     context.Proxy,
                     new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
                     {
@@ -284,6 +294,7 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
     /// <param name="options">The options to feed into proxy generation.</param>
     /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
+    [RequiresUnreferencedCode(RuntimeReasons.RefEmit), RequiresDynamicCode(RuntimeReasons.RefEmit)]
     [return: NotNullIfNotNull("token")]
     internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
     {
@@ -328,24 +339,30 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
 
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-        object result = this.jsonRpc.Attach(
-            interfaceType,
-            optionalInterfaces?.ToArray(),
-            new JsonRpcProxyOptions(options)
+        object result = this.jsonRpc.CreateProxy(
+            new ProxyInputs
             {
-                MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
-                OnDispose = token.Value.Lifetime == MarshalLifetime.Call ? null : delegate
+                ContractInterface = interfaceType,
+                ImplementedOptionalInterfaces = optionalInterfaces?.ToArray(),
+                Options = new JsonRpcProxyOptions(options)
                 {
-                    // Only forward the Dispose call if the marshaled interface derives from IDisposable.
-                    if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                    MethodNameTransform = mn => Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(mn)}"),
+                    OnDispose = token.Value.Lifetime == MarshalLifetime.Call ? null : delegate
                     {
-                        this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
-                    }
+                        if (!this.jsonRpc.IsDisposed)
+                        {
+                            // Only forward the Dispose call if the marshaled interface derives from IDisposable.
+                            if (typeof(IDisposable).IsAssignableFrom(interfaceType))
+                            {
+                                this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
+                            }
 
-                    this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                            this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                        }
+                    },
                 },
-            },
-            token.Value.Handle);
+                MarshaledObjectHandle = token.Value.Handle,
+            });
         if (options.OnProxyConstructed is object)
         {
             options.OnProxyConstructed((IJsonRpcClientProxyInternal)result);
@@ -393,7 +410,9 @@ internal class MessageFormatterRpcMarshaledContextTracker
     /// <param name="attribute">The attribute that appears on the interface.</param>
     /// <exception cref="NotSupportedException">When <paramref name="type"/> is not a valid marshalable interface: this
     /// can happen if <paramref name="type"/> has properties, events or it is not disposable.</exception>
-    private static void ValidateMarshalableInterface(Type type, RpcMarshalableAttribute attribute)
+    private static void ValidateMarshalableInterface(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+        RpcMarshalableAttribute attribute)
     {
         // We only require marshalable interfaces to derive from IDisposable when they are not call-scoped.
         if (!attribute.CallScopedLifetime && !typeof(IDisposable).IsAssignableFrom(type))
@@ -450,12 +469,16 @@ internal class MessageFormatterRpcMarshaledContextTracker
         }
     }
 
+    /// <summary>
+    /// A token that represents a marshaled object.
+    /// </summary>
     [DataContract]
-    internal struct MarshalToken
+    [GenerateShape]
+    internal partial struct MarshalToken
     {
         [MessagePack.SerializationConstructor]
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime, int[]? optionalInterfaces)
+        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime = null, int[]? optionalInterfaces = null)
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
         {
             this.Marshaled = __jsonrpc_marshaled;
@@ -466,18 +489,22 @@ internal class MessageFormatterRpcMarshaledContextTracker
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
         [STJ.JsonPropertyName("__jsonrpc_marshaled"), STJ.JsonRequired]
+        [PropertyShape(Name = "__jsonrpc_marshaled")]
         public int Marshaled { get; set; }
 
         [DataMember(Name = "handle", IsRequired = true)]
         [STJ.JsonPropertyName("handle"), STJ.JsonRequired]
+        [PropertyShape(Name = "handle")]
         public long Handle { get; set; }
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]
         [STJ.JsonPropertyName("lifetime"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+        [PropertyShape(Name = "lifetime")]
         public string? Lifetime { get; set; }
 
         [DataMember(Name = "optionalInterfaces", EmitDefaultValue = false)]
         [STJ.JsonPropertyName("optionalInterfaces"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
+        [PropertyShape(Name = "optionalInterfaces")]
         public int[]? OptionalInterfacesCodes { get; set; }
     }
 

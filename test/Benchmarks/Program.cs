@@ -12,9 +12,9 @@ internal static class Program
     private static async Task Main(string[] args)
     {
         // Allow a special "manual" argument for convenient perfview.exe-monitored runs for GC pressure analysis.
-        if (args.Length == 1 && args[0] == "manual")
+        if (args is ["manual"])
         {
-            var b = new InvokeBenchmarks { Formatter = "MessagePack" };
+            var b = new InvokeBenchmarks { Formatter = "NerdbankMessagePack" };
             b.Setup();
             await b.InvokeAsync_NoArgs();
 

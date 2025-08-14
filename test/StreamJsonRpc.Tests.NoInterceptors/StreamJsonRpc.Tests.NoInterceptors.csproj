@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <OutputType>exe</OutputType>
+    <RootNamespace />
+    <!-- We only want warnings about providing CancellationToken when every target framework accepts it,
+         to avoid proliferation of #if sections in our test code.
+         So suppress it unless we're targeting the oldest framework among our targets. -->
+    <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <DefineConstants>$(DefineConstants);NO_INTERCEPTORS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\StreamJsonRpc.Tests\JsonRpcProxyGenerationTests.cs" Link="JsonRpcProxyGenerationTests.cs" />
+    <Compile Include="..\StreamJsonRpc.Tests\UnreachableAssemblyTools.cs" Link="UnreachableAssemblyTools.cs" />
+    <Compile Include="..\StreamJsonRpc.Tests\Usings.cs" Link="Usings.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
+    <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+    <ProjectReference Include="..\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="Microsoft.AspNetCore" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="System.IO.Pipes" />
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.ValueTuple" />
+    <PackageReference Include="xunit.combinatorial" />
+    <PackageReference Include="xunit.runner.console" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.stafact" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
+  </ItemGroup>
+  <Import Project="..\UnreachableAssembly.targets" />
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
+  <PropertyGroup>
+    <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
+  </PropertyGroup>
+</Project>

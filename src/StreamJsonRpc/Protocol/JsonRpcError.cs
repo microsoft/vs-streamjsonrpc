@@ -3,8 +3,10 @@
 
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Text.Json.Nodes;
+using Nerdbank.MessagePack;
+using PolyType;
 using StreamJsonRpc.Reflection;
-using JsonNET = Newtonsoft.Json.Linq;
 using STJ = System.Text.Json.Serialization;
 
 namespace StreamJsonRpc.Protocol;
@@ -13,14 +15,17 @@ namespace StreamJsonRpc.Protocol;
 /// Describes the error resulting from a <see cref="JsonRpcRequest"/> that failed on the server.
 /// </summary>
 [DataContract]
+[GenerateShape]
+[MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcErrorConverter))]
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
-public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
+public partial class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
 {
     /// <summary>
     /// Gets or sets the detail about the error.
     /// </summary>
     [DataMember(Name = "error", Order = 2, IsRequired = true)]
     [STJ.JsonPropertyName("error"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
+    [PropertyShape(Name = "error", Order = 2)]
     public ErrorDetail? Error { get; set; }
 
     /// <summary>
@@ -30,6 +35,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     [Obsolete("Use " + nameof(RequestId) + " instead.")]
     [IgnoreDataMember]
     [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
     public object? Id
     {
         get => this.RequestId.ObjectValue;
@@ -41,6 +47,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "id", Order = 1, IsRequired = true, EmitDefaultValue = true)]
     [STJ.JsonPropertyName("id"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
+    [PropertyShape(Name = "id", Order = 1)]
     public RequestId RequestId { get; set; }
 
     /// <summary>
@@ -51,22 +58,24 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// <inheritdoc/>
     public override string ToString()
     {
-        return new JsonNET.JObject
+        return new JsonObject
         {
-            new JsonNET.JProperty("id", this.RequestId.ObjectValue),
-            new JsonNET.JProperty("error", new JsonNET.JObject
+            ["id"] = this.RequestId.AsJsonValue(),
+            ["error"] = new JsonObject
             {
-                new JsonNET.JProperty("code", this.Error?.Code),
-                new JsonNET.JProperty("message", this.Error?.Message),
-            }),
-        }.ToString(Newtonsoft.Json.Formatting.None);
+                ["code"] = this.Error?.Code is not null ? JsonValue.Create((int)this.Error.Code) : null,
+                ["message"] = this.Error?.Message,
+            },
+        }.ToJsonString();
     }
 
     /// <summary>
     /// Describes the error.
     /// </summary>
     [DataContract]
-    public class ErrorDetail
+    [GenerateShape]
+    [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcErrorDetailConverter))]
+    public partial class ErrorDetail
     {
         /// <summary>
         /// Gets or sets a number that indicates the error type that occurred.
@@ -77,6 +86,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// </value>
         [DataMember(Name = "code", Order = 0, IsRequired = true)]
         [STJ.JsonPropertyName("code"), STJ.JsonPropertyOrder(0), STJ.JsonRequired]
+        [PropertyShape(Name = "code", Order = 0)]
         public JsonRpcErrorCode Code { get; set; }
 
         /// <summary>
@@ -87,6 +97,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// </remarks>
         [DataMember(Name = "message", Order = 1, IsRequired = true)]
         [STJ.JsonPropertyName("message"), STJ.JsonPropertyOrder(1), STJ.JsonRequired]
+        [PropertyShape(Name = "message", Order = 1)]
         public string? Message { get; set; }
 
         /// <summary>
@@ -95,6 +106,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         [DataMember(Name = "data", Order = 2, IsRequired = false)]
         [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Ignore)]
         [STJ.JsonPropertyName("data"), STJ.JsonPropertyOrder(2)]
+        [PropertyShape(Name = "data", Order = 2)]
         public object? Data { get; set; }
 
         /// <summary>
@@ -129,7 +141,7 @@ public class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
         /// </summary>
         /// <param name="dataType">The type that will be used as the generic type argument to <see cref="GetData{T}"/>.</param>
         /// <remarks>
-        /// Overridding methods in types that retain buffers used to deserialize should deserialize within this method and clear those buffers
+        /// Overriding methods in types that retain buffers used to deserialize should deserialize within this method and clear those buffers
         /// to prevent further access to these buffers which may otherwise happen concurrently with a call to <see cref="IJsonRpcMessageBufferManager.DeserializationComplete"/>
         /// that would recycle the same buffer being deserialized from.
         /// </remarks>

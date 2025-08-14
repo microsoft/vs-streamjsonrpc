@@ -27,6 +27,7 @@ namespace StreamJsonRpc;
 /// The README on that project site describes use cases and its performance compared to alternative
 /// .NET MessagePack implementations and this one appears to be the best by far.
 /// </remarks>
+[RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
     /// <summary>
@@ -204,11 +205,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         {
             // This request contains named arguments, but not using a standard dictionary. Convert it to a dictionary so that
             // the parameters can be matched to the method we're invoking.
-            if (GetParamsObjectDictionary(request.Arguments) is { } namedArgs)
-            {
-                request.Arguments = namedArgs.ArgumentValues;
-                request.NamedArgumentDeclaredTypes = namedArgs.ArgumentTypes;
-            }
+            NamedArgs namedArgs = NamedArgs.Create(request.Arguments.GetType(), request.Arguments);
+            request.Arguments = namedArgs;
+            request.NamedArgumentDeclaredTypes = namedArgs.DeclaredArgumentTypes;
         }
 
         var writer = new MessagePackWriter(contentBuffer);
@@ -247,116 +246,6 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         {
             this.serializationToStringHelper.Deactivate();
         }
-    }
-
-    /// <summary>
-    /// Extracts a dictionary of property names and values from the specified params object.
-    /// </summary>
-    /// <param name="paramsObject">The params object.</param>
-    /// <returns>A dictionary of argument values and another of declared argument types, or <see langword="null"/> if <paramref name="paramsObject"/> is null.</returns>
-    /// <remarks>
-    /// This method supports DataContractSerializer-compliant types. This includes C# anonymous types.
-    /// </remarks>
-    [return: NotNullIfNotNull("paramsObject")]
-    private static (IReadOnlyDictionary<string, object?> ArgumentValues, IReadOnlyDictionary<string, Type> ArgumentTypes)? GetParamsObjectDictionary(object? paramsObject)
-    {
-        if (paramsObject is null)
-        {
-            return default;
-        }
-
-        // Look up the argument types dictionary if we saved it before.
-        Type paramsObjectType = paramsObject.GetType();
-        IReadOnlyDictionary<string, Type>? argumentTypes;
-        lock (ParameterObjectPropertyTypes)
-        {
-            ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out argumentTypes);
-        }
-
-        // If we couldn't find a previously created argument types dictionary, create a mutable one that we'll build this time.
-        Dictionary<string, Type>? mutableArgumentTypes = argumentTypes is null ? new Dictionary<string, Type>() : null;
-
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
-
-        TypeInfo paramsTypeInfo = paramsObject.GetType().GetTypeInfo();
-        bool isDataContract = paramsTypeInfo.GetCustomAttribute<DataContractAttribute>() is not null;
-
-        BindingFlags bindingFlags = BindingFlags.FlattenHierarchy | BindingFlags.Public | BindingFlags.Instance;
-        if (isDataContract)
-        {
-            bindingFlags |= BindingFlags.NonPublic;
-        }
-
-        bool TryGetSerializationInfo(MemberInfo memberInfo, out string key)
-        {
-            key = memberInfo.Name;
-            if (isDataContract)
-            {
-                DataMemberAttribute? dataMemberAttribute = memberInfo.GetCustomAttribute<DataMemberAttribute>();
-                if (dataMemberAttribute is null)
-                {
-                    return false;
-                }
-
-                if (!dataMemberAttribute.EmitDefaultValue)
-                {
-                    throw new NotSupportedException($"(DataMemberAttribute.EmitDefaultValue == false) is not supported but was found on: {memberInfo.DeclaringType!.FullName}.{memberInfo.Name}.");
-                }
-
-                key = dataMemberAttribute.Name ?? memberInfo.Name;
-                return true;
-            }
-            else
-            {
-                return memberInfo.GetCustomAttribute<IgnoreDataMemberAttribute>() is null;
-            }
-        }
-
-        foreach (PropertyInfo property in paramsTypeInfo.GetProperties(bindingFlags))
-        {
-            if (property.GetMethod is not null)
-            {
-                if (TryGetSerializationInfo(property, out string key))
-                {
-                    result[key] = property.GetValue(paramsObject);
-                    if (mutableArgumentTypes is object)
-                    {
-                        mutableArgumentTypes[key] = property.PropertyType;
-                    }
-                }
-            }
-        }
-
-        foreach (FieldInfo field in paramsTypeInfo.GetFields(bindingFlags))
-        {
-            if (TryGetSerializationInfo(field, out string key))
-            {
-                result[key] = field.GetValue(paramsObject);
-                if (mutableArgumentTypes is object)
-                {
-                    mutableArgumentTypes[key] = field.FieldType;
-                }
-            }
-        }
-
-        // If we assembled the argument types dictionary this time, save it for next time.
-        if (mutableArgumentTypes is object)
-        {
-            lock (ParameterObjectPropertyTypes)
-            {
-                if (ParameterObjectPropertyTypes.TryGetValue(paramsObjectType, out IReadOnlyDictionary<string, Type>? lostRace))
-                {
-                    // Of the two, pick the winner to use ourselves so we consolidate on one and allow the GC to collect the loser sooner.
-                    argumentTypes = lostRace;
-                }
-                else
-                {
-                    ParameterObjectPropertyTypes.Add(paramsObjectType, argumentTypes = mutableArgumentTypes);
-                }
-            }
-        }
-
-        return (result, argumentTypes!);
     }
 
     private static ReadOnlySequence<byte> GetSliceForNextToken(ref MessagePackReader reader)
@@ -803,6 +692,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class ProgressFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -870,6 +760,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         /// <summary>
         /// Converts a progress token to an <see cref="IProgress{T}"/> or an <see cref="IProgress{T}"/> into a token.
         /// </summary>
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class PreciseTypeFormatter<TClass> : IMessagePackFormatter<TClass>
         {
             private readonly MessagePackFormatter formatter;
@@ -910,6 +801,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -927,11 +819,11 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             {
                 if (!this.enumerableFormatters.TryGetValue(typeof(T), out IMessagePackFormatter? formatter))
                 {
-                    if (TrackerHelpers<IAsyncEnumerable<int>>.IsActualInterfaceMatch(typeof(T)))
+                    if (TrackerHelpers.IsIAsyncEnumerable(typeof(T)))
                     {
                         formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(PreciseTypeFormatter<>).MakeGenericType(typeof(T).GenericTypeArguments[0]), new object[] { this.mainFormatter });
                     }
-                    else if (TrackerHelpers<IAsyncEnumerable<int>>.FindInterfaceImplementedBy(typeof(T)) is { } iface)
+                    else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is { } iface)
                     {
                         formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(GeneratorFormatter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]), new object[] { this.mainFormatter });
                     }
@@ -1071,6 +963,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private class PipeFormatterResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter mainFormatter;
@@ -1253,6 +1146,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class RpcMarshalableResolver : IFormatterResolver
     {
         private readonly MessagePackFormatter formatter;
@@ -1303,7 +1198,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
 #pragma warning disable CA1812
-    private class RpcMarshalableFormatter<T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
+    private class RpcMarshalableFormatter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] T>(MessagePackFormatter messagePackFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : IMessagePackFormatter<T?>
         where T : class
 #pragma warning restore CA1812
     {
@@ -1336,6 +1233,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     /// 2. Be attributed with <see cref="SerializableAttribute"/>
     /// 3. Declare a constructor with a signature of (<see cref="SerializationInfo"/>, <see cref="StreamingContext"/>).
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
     private class MessagePackExceptionResolver : IFormatterResolver
     {
         /// <summary>
@@ -1378,6 +1277,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
 #pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 #pragma warning disable CA1812
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+        [RequiresUnreferencedCode(RuntimeReasons.LoadType)]
         private class ExceptionFormatter<T> : IMessagePackFormatter<T>
             where T : Exception
 #pragma warning restore CA1812
@@ -1432,7 +1333,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
                     var resolverWrapper = options.Resolver as ResolverWrapper;
                     Report.If(resolverWrapper is null, "Unexpected resolver type.");
-                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
+                    return ExceptionSerializationHelpers.Deserialize<T>(this.formatter.JsonRpc, info, this.formatter.JsonRpc.TrimUnsafeTypeLoader, resolverWrapper?.Formatter.JsonRpc?.TraceSource);
                 }
                 finally
                 {
@@ -1476,6 +1377,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 #pragma warning restore
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcMessageFormatter : IMessagePackFormatter<JsonRpcMessage>
     {
         private readonly MessagePackFormatter formatter;
@@ -1539,6 +1441,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcRequestFormatter : IMessagePackFormatter<Protocol.JsonRpcRequest>
     {
         private readonly MessagePackFormatter formatter;
@@ -1788,6 +1691,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcResultFormatter : IMessagePackFormatter<Protocol.JsonRpcResult>
     {
         private readonly MessagePackFormatter formatter;
@@ -1865,6 +1769,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcErrorFormatter : IMessagePackFormatter<Protocol.JsonRpcError>
     {
         private readonly MessagePackFormatter formatter;
@@ -1935,6 +1840,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
+    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcErrorDetailFormatter : IMessagePackFormatter<Protocol.JsonRpcError.ErrorDetail>
     {
         private static readonly CommonString CodePropertyName = new("code");

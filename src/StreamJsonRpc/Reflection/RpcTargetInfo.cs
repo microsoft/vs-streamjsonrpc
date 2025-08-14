@@ -3,26 +3,23 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using Microsoft;
-using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc.Reflection;
 
 internal class RpcTargetInfo : System.IAsyncDisposable
 {
-    private const string ImpliedMethodNameAsyncSuffix = "Async";
-    private static readonly Dictionary<TypeInfo, MethodNameMap> MethodNameMaps = new Dictionary<TypeInfo, MethodNameMap>();
-    private static readonly Dictionary<(TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization, bool ClientRequiresNamedArguments), Dictionary<string, List<MethodSignature>>> RequestMethodToClrMethodMap = new();
     private readonly JsonRpc jsonRpc;
 
     /// <summary>
     /// A collection of target objects and their map of clr method to <see cref="JsonRpcMethodAttribute"/> values.
     /// </summary>
-    private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new Dictionary<string, List<MethodSignatureAndTarget>>(StringComparer.Ordinal);
+    /// <remarks>
+    /// Access to this collection should be guarded by <see cref="SyncObject"/>.
+    /// </remarks>
+    private readonly Dictionary<string, List<MethodSignatureAndTarget>> targetRequestMethodToClrMethodMap = new(StringComparer.Ordinal);
 
     /// <summary>
     /// A list of event handlers we've registered on target objects that define events. May be <see langword="null"/> if there are no handlers.
@@ -95,32 +92,6 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         }
     }
 
-    internal static MethodNameMap GetMethodNameMap(TypeInfo type)
-    {
-        MethodNameMap? map;
-        lock (MethodNameMaps)
-        {
-            if (MethodNameMaps.TryGetValue(type, out map))
-            {
-                return map;
-            }
-        }
-
-        map = new MethodNameMap(type);
-
-        lock (MethodNameMaps)
-        {
-            if (MethodNameMaps.TryGetValue(type, out MethodNameMap? lostRaceMap))
-            {
-                return lostRaceMap;
-            }
-
-            MethodNameMaps.Add(type, map);
-        }
-
-        return map;
-    }
-
     /// <summary>
     /// Gets the <see cref="JsonRpcMethodAttribute"/> for a previously discovered RPC method, if there is one.
     /// </summary>
@@ -139,7 +110,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 {
                     if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
                     {
-                        return entry.Signature.Attribute;
+                        return entry.Attribute;
                     }
                 }
             }
@@ -174,57 +145,38 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// <summary>
     /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
-    /// <param name="exposingMembersOn">
-    /// The type whose members define the RPC accessible members of the <paramref name="target"/> object.
-    /// If this type is not an interface, only public members become invokable unless <see cref="JsonRpcTargetOptions.AllowNonPublicInvocation"/> is set to true on the <paramref name="options"/> argument.
-    /// </param>
+    /// <param name="targetType">The description of the RPC target.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
-    /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
-    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <see langword="false"/>.</returns>
+    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object.</param>
     /// <remarks>
     /// When multiple target objects are added, the first target with a method that matches a request is invoked.
     /// </remarks>
-    internal RevertAddLocalRpcTarget? AddLocalRpcTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+    internal void AddLocalRpcTarget(
+        RpcTargetMetadata targetType,
+        object target,
+        JsonRpcTargetOptions options,
+        RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
-        RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
-        options = options ?? JsonRpcTargetOptions.Default;
-        IReadOnlyDictionary<string, List<MethodSignature>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), options.AllowNonPublicInvocation, options.UseSingleObjectParameterDeserialization, options.ClientRequiresNamedArguments);
+        Requires.Argument(targetType.TargetType.IsAssignableFrom(target.GetType()), nameof(target), "Target object must be assignable to the target type.");
 
         lock (this.SyncObject)
         {
-            this.AddRpcInterfaceToTarget(mapping, target, options, revert);
+            this.AddRpcInterfaceToTarget(targetType, target, options, revertAddLocalRpcTarget);
 
             if (options.NotifyClientOfEvents)
             {
-                HashSet<string>? eventsDiscovered = null;
-                IReadOnlyList<EventInfo> events = GetEventInfos(exposingMembersOn.GetTypeInfo());
-
-                foreach (EventInfo evt in events)
+                foreach (RpcTargetMetadata.EventMetadata evt in targetType.Events)
                 {
-                    if (this.eventReceivers is null)
-                    {
-                        this.eventReceivers = new List<EventReceiver>();
-                    }
+                    this.eventReceivers ??= [];
 
-                    if (eventsDiscovered is null)
+                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
                     {
-                        eventsDiscovered = new HashSet<string>(StringComparer.Ordinal);
-                    }
-
-                    if (!eventsDiscovered.Add(evt.Name))
-                    {
-                        // Do not add the same event again. It can appear multiple times in a type hierarchy.
-                        continue;
-                    }
-
-                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
+                        this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)JsonRpc.TraceEvents.LocalEventListenerAdded, "Listening for events from {0}.{1} to raise notification.", target.GetType().FullName, evt.Name);
                     }
 
                     var eventReceiver = new EventReceiver(this.jsonRpc, target, evt, options);
-                    revert?.RecordEventReceiver(eventReceiver);
+                    revertAddLocalRpcTarget?.RecordEventReceiver(eventReceiver);
                     this.eventReceivers.Add(eventReceiver);
                 }
             }
@@ -236,29 +188,32 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     this.localTargetObjectsToDispose = new List<object>();
                 }
 
-                revert?.RecordObjectToDispose(target);
+                revertAddLocalRpcTarget?.RecordObjectToDispose(target);
                 this.localTargetObjectsToDispose.Add(target);
             }
         }
-
-        return revert;
     }
 
     /// <summary>
-    /// Adds a new RPC interface to an existing target registering additional RPC methods.
+    /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
-    /// <param name="exposingMembersOn">The interface type whose members define the RPC accessible members of the <paramref name="target"/> object.</param>
+    /// <param name="exposingMembersOn">The description of the RPC target.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
-    /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object..</param>
-    internal void AddRpcInterfaceToTarget(Type exposingMembersOn, object target, JsonRpcTargetOptions? options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    /// <param name="requestRevertOption"><see langword="true"/> to receive an <see cref="IDisposable"/> that can remove the target object; <see langword="false" /> otherwise.</param>
+    /// <returns>An object that may be disposed of to revert the addition of the target object. Will be null if and only if <paramref name="requestRevertOption"/> is <see langword="false"/>.</returns>
+    /// <remarks>
+    /// When multiple target objects are added, the first target with a method that matches a request is invoked.
+    /// </remarks>
+    internal RevertAddLocalRpcTarget? AddLocalRpcTarget(
+        RpcTargetMetadata exposingMembersOn,
+        object target,
+        JsonRpcTargetOptions options,
+        bool requestRevertOption)
     {
-        Requires.Argument(exposingMembersOn.IsInterface, nameof(exposingMembersOn), Resources.AddRpcInterfaceToTargetParameterNotInterface);
-
-        options = options ?? JsonRpcTargetOptions.Default;
-        IReadOnlyDictionary<string, List<MethodSignature>> mapping = GetRequestMethodToClrMethodMap(exposingMembersOn.GetTypeInfo(), allowNonPublicInvocation: true, options.UseSingleObjectParameterDeserialization, options.ClientRequiresNamedArguments);
-
-        this.AddRpcInterfaceToTarget(mapping, target, options, revertAddLocalRpcTarget);
+        RevertAddLocalRpcTarget? revert = requestRevertOption ? new RevertAddLocalRpcTarget(this) : null;
+        this.AddLocalRpcTarget(exposingMembersOn, target, options, revert);
+        return revert;
     }
 
     /// <summary>
@@ -283,11 +238,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
         lock (this.SyncObject)
         {
-            var methodTarget = new MethodSignatureAndTarget(handler, target, methodRpcSettings, synchronizationContext);
+            MethodSignatureAndTarget methodTarget = new(RpcTargetMetadata.TargetMethodMetadata.From(handler, methodRpcSettings), target, attribute: null, synchronizationContext);
             this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
             {
-                if (existingList.Any(m => m.Signature.Equals(methodTarget.Signature)))
+                if (existingList.Any(m => m.Signature.EqualSignature(methodTarget.Signature)))
                 {
                     throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
                 }
@@ -315,216 +270,21 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     }
 
     /// <summary>
-    /// Gets a dictionary which maps a request method name to its clr method name via <see cref="JsonRpcMethodAttribute" /> value.
-    /// </summary>
-    /// <param name="exposedMembersOnType">Type to reflect over and analyze its methods.</param>
-    /// <param name="allowNonPublicInvocation"><inheritdoc cref="JsonRpcTargetOptions.AllowNonPublicInvocation" path="/summary"/></param>
-    /// <param name="useSingleObjectParameterDeserialization"><inheritdoc cref="JsonRpcTargetOptions.UseSingleObjectParameterDeserialization" path="/summary"/></param>
-    /// <param name="clientRequiresNamedArguments"><inheritdoc cref="JsonRpcTargetOptions.ClientRequiresNamedArguments" path="/summary"/></param>
-    /// <returns>Dictionary which maps a request method name to its clr method name.</returns>
-    private static IReadOnlyDictionary<string, List<MethodSignature>> GetRequestMethodToClrMethodMap(TypeInfo exposedMembersOnType, bool allowNonPublicInvocation, bool useSingleObjectParameterDeserialization, bool clientRequiresNamedArguments)
-    {
-        Requires.NotNull(exposedMembersOnType, nameof(exposedMembersOnType));
-
-        (TypeInfo Type, bool AllowNonPublicInvocation, bool UseSingleObjectParameterDeserialization, bool ClientRequiresNamedArguments) key = (exposedMembersOnType, allowNonPublicInvocation, useSingleObjectParameterDeserialization, clientRequiresNamedArguments);
-        Dictionary<string, List<MethodSignature>>? requestMethodToDelegateMap;
-        lock (RequestMethodToClrMethodMap)
-        {
-            if (RequestMethodToClrMethodMap.TryGetValue(key, out requestMethodToDelegateMap))
-            {
-                return requestMethodToDelegateMap;
-            }
-        }
-
-        requestMethodToDelegateMap = new Dictionary<string, List<MethodSignature>>(StringComparer.Ordinal);
-        var clrMethodToRequestMethodMap = new Dictionary<string, string>(StringComparer.Ordinal);
-        var requestMethodToClrMethodNameMap = new Dictionary<string, string>(StringComparer.Ordinal);
-        var candidateAliases = new Dictionary<string, string>(StringComparer.Ordinal);
-
-        MethodNameMap mapping = GetMethodNameMap(exposedMembersOnType);
-
-        // We retrieve exposed types differently for interfaces vs. classes
-        var typesToMap = new List<TypeInfo>();
-        if (exposedMembersOnType.IsInterface)
-        {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            typesToMap.Capacity = 1 + ifaces.Length;
-            typesToMap.Add(exposedMembersOnType.GetTypeInfo());
-            foreach (Type iface in ifaces)
-            {
-                typesToMap.Add(iface.GetTypeInfo());
-            }
-        }
-        else
-        {
-            for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
-            {
-                typesToMap.Add(t);
-            }
-        }
-
-        foreach (TypeInfo t in typesToMap)
-        {
-            // As we enumerate methods, skip accessor methods
-            foreach (MethodInfo method in t.DeclaredMethods.Where(m => !m.IsSpecialName))
-            {
-                if (!key.AllowNonPublicInvocation && !method.IsPublic && !exposedMembersOnType.IsInterface)
-                {
-                    continue;
-                }
-
-                if (mapping.FindIgnoreAttribute(method) is object)
-                {
-                    if (mapping.FindMethodAttribute(method) is object)
-                    {
-                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.JsonRpcMethodAndIgnoreAttributesFound, method.Name));
-                    }
-
-                    continue;
-                }
-
-                var requestName = mapping.GetRpcMethodName(method);
-
-                if (!requestMethodToDelegateMap.TryGetValue(requestName, out List<MethodSignature>? methodList))
-                {
-                    methodList = new List<MethodSignature>();
-                    requestMethodToDelegateMap.Add(requestName, methodList);
-                }
-
-                // Verify that all overloads of this CLR method also claim the same request method name.
-                if (clrMethodToRequestMethodMap.TryGetValue(method.Name, out string? previousRequestNameUse))
-                {
-                    if (!string.Equals(previousRequestNameUse, requestName, StringComparison.Ordinal))
-                    {
-                        Requires.Fail(Resources.ConflictingMethodNameAttribute, method.Name, nameof(JsonRpcMethodAttribute), nameof(JsonRpcMethodAttribute.Name));
-                    }
-                }
-                else
-                {
-                    clrMethodToRequestMethodMap.Add(method.Name, requestName);
-                }
-
-                // Verify that all CLR methods that want to use this request method name are overloads of each other.
-                if (requestMethodToClrMethodNameMap.TryGetValue(requestName, out string? previousClrNameUse))
-                {
-                    if (!string.Equals(method.Name, previousClrNameUse, StringComparison.Ordinal))
-                    {
-                        Requires.Fail(Resources.ConflictingMethodAttributeValue, method.Name, previousClrNameUse, requestName);
-                    }
-                }
-                else
-                {
-                    requestMethodToClrMethodNameMap.Add(requestName, method.Name);
-                }
-
-                JsonRpcMethodAttribute? attribute = mapping.FindMethodAttribute(method);
-
-                if (attribute is null && (key.UseSingleObjectParameterDeserialization || key.ClientRequiresNamedArguments))
-                {
-                    attribute = new JsonRpcMethodAttribute(null)
-                    {
-                        UseSingleObjectParameterDeserialization = key.UseSingleObjectParameterDeserialization,
-                        ClientRequiresNamedArguments = key.ClientRequiresNamedArguments,
-                    };
-                }
-
-                // Skip this method if its signature matches one from a derived type we have already scanned.
-                MethodSignature methodTarget = new MethodSignature(method, attribute);
-                if (methodList.Contains(methodTarget))
-                {
-                    continue;
-                }
-
-                methodList.Add(methodTarget);
-
-                // If no explicit attribute has been applied, and the method ends with Async,
-                // register a request method name that does not include Async as well.
-                if (attribute?.Name is null && method.Name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
-                {
-                    string nonAsyncMethodName = method.Name.Substring(0, method.Name.Length - ImpliedMethodNameAsyncSuffix.Length);
-                    if (!candidateAliases.ContainsKey(nonAsyncMethodName))
-                    {
-                        candidateAliases.Add(nonAsyncMethodName, method.Name);
-                    }
-                }
-            }
-        }
-
-        // Now that all methods have been discovered, add the candidate aliases
-        // if it would not introduce any collisions.
-        foreach (KeyValuePair<string, string> candidateAlias in candidateAliases)
-        {
-            if (!requestMethodToClrMethodNameMap.ContainsKey(candidateAlias.Key))
-            {
-                requestMethodToClrMethodNameMap.Add(candidateAlias.Key, candidateAlias.Value);
-                requestMethodToDelegateMap[candidateAlias.Key] = requestMethodToDelegateMap[candidateAlias.Value].ToList();
-            }
-        }
-
-        lock (RequestMethodToClrMethodMap)
-        {
-            if (RequestMethodToClrMethodMap.TryGetValue(key, out Dictionary<string, List<MethodSignature>>? lostRace))
-            {
-                return lostRace;
-            }
-
-            RequestMethodToClrMethodMap.Add(key, requestMethodToDelegateMap);
-        }
-
-        return requestMethodToDelegateMap;
-    }
-
-    /// <summary>
-    /// Given a type it will extract all events in the type hierarchy. It deals correctly with
-    /// interfaces. Note that it will return duplicates if they appear multiple times in the hierarchy.
-    /// </summary>
-    /// <param name="exposedMembersOnType">Type to reflect over and analyze its events.</param>
-    /// <returns>A list of EventInfos found.</returns>
-    private static IReadOnlyList<EventInfo> GetEventInfos(TypeInfo exposedMembersOnType)
-    {
-        List<EventInfo> eventInfos = new List<EventInfo>();
-
-        for (TypeInfo? t = exposedMembersOnType.GetTypeInfo(); t is not null && t != typeof(object).GetTypeInfo(); t = t.BaseType?.GetTypeInfo())
-        {
-            foreach (EventInfo evt in t.DeclaredEvents)
-            {
-                if (evt.AddMethod is object && evt.AddMethod.IsPublic && !evt.AddMethod.IsStatic)
-                {
-                    eventInfos.Add(evt);
-                }
-            }
-        }
-
-        if (exposedMembersOnType.IsInterface)
-        {
-            Type[] ifaces = exposedMembersOnType.GetInterfaces();
-            foreach (Type iface in ifaces)
-            {
-                foreach (EventInfo evt in iface.GetTypeInfo().DeclaredEvents)
-                {
-                    if (evt.AddMethod is object && !evt.AddMethod.IsStatic)
-                    {
-                        eventInfos.Add(evt);
-                    }
-                }
-            }
-        }
-
-        return eventInfos;
-    }
-
-    /// <summary>
     /// Adds a new RPC interface to an existing target registering RPC methods.
     /// </summary>
-    /// <param name="mapping">The methods to bers of the <paramref name="target"/> object.</param>
+    /// <param name="targetType">A description of the members on <paramref name="target"/> to be mapped in as RPC targets.</param>
     /// <param name="target">Target to invoke when incoming messages are received.</param>
     /// <param name="options">A set of customizations for how the target object is registered. If <see langword="null"/>, default options will be used.</param>
     /// <param name="revertAddLocalRpcTarget">An optional object that may be disposed of to revert the addition of the target object.</param>
-    private void AddRpcInterfaceToTarget(IReadOnlyDictionary<string, List<MethodSignature>> mapping, object target, JsonRpcTargetOptions options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
+    internal void AddRpcInterfaceToTarget(RpcTargetMetadata targetType, object target, JsonRpcTargetOptions options, RevertAddLocalRpcTarget? revertAddLocalRpcTarget)
     {
+        JsonRpcMethodAttribute? pseudoAttribute = (options.ClientRequiresNamedArguments || options.UseSingleObjectParameterDeserialization)
+            ? new() { ClientRequiresNamedArguments = options.ClientRequiresNamedArguments, UseSingleObjectParameterDeserialization = options.UseSingleObjectParameterDeserialization }
+            : null;
+
         lock (this.SyncObject)
         {
-            foreach (KeyValuePair<string, List<MethodSignature>> item in mapping)
+            foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods)
             {
                 string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
                 Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
@@ -535,12 +295,12 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
 
                 // Only add methods that do not have equivalent signatures to what we already have.
-                foreach (MethodSignature newMethod in item.Value)
+                foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
                 {
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
                     if (!alreadyExists || !existingList!.Any(e => e.Equals(newMethod)))
                     {
-                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, null);
+                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
                         existingList!.Add(signatureAndTarget);
@@ -561,110 +321,14 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     {
         Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
 
-        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+        if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Verbose))
         {
-            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Added local RPC method \"{0}\" -> {1}", rpcMethodName, targetMethod);
-        }
-    }
-
-    internal class MethodNameMap
-    {
-        private readonly ReadOnlyMemory<InterfaceMapping> interfaceMaps;
-        private readonly Dictionary<MethodInfo, JsonRpcMethodAttribute?> methodAttributes = new Dictionary<MethodInfo, JsonRpcMethodAttribute?>();
-        private readonly Dictionary<MethodInfo, JsonRpcIgnoreAttribute?> ignoreAttributes = new Dictionary<MethodInfo, JsonRpcIgnoreAttribute?>();
-
-        internal MethodNameMap(TypeInfo typeInfo)
-        {
-            Requires.NotNull(typeInfo, nameof(typeInfo));
-            this.interfaceMaps = typeInfo.IsInterface ? default
-                : typeInfo.ImplementedInterfaces.Select(typeInfo.GetInterfaceMap).ToArray();
-        }
-
-        internal string GetRpcMethodName(MethodInfo method)
-        {
-            Requires.NotNull(method, nameof(method));
-
-            return this.FindMethodAttribute(method)?.Name ?? method.Name;
-        }
-
-        /// <summary>
-        /// Get the <see cref="JsonRpcMethodAttribute"/>, which may appear on the method itself or the interface definition of the method where applicable.
-        /// </summary>
-        /// <param name="method">The method to search for the attribute.</param>
-        /// <returns>The attribute, if found.</returns>
-        internal JsonRpcMethodAttribute? FindMethodAttribute(MethodInfo method)
-        {
-            Requires.NotNull(method, nameof(method));
-
-            JsonRpcMethodAttribute? attribute;
-            lock (this.methodAttributes)
-            {
-                if (this.methodAttributes.TryGetValue(method, out attribute))
-                {
-                    return attribute;
-                }
-            }
-
-            attribute = (JsonRpcMethodAttribute?)method.GetCustomAttribute(typeof(JsonRpcMethodAttribute))
-                ?? (JsonRpcMethodAttribute?)this.FindMethodOnInterface(method)?.GetCustomAttribute(typeof(JsonRpcMethodAttribute));
-
-            lock (this.methodAttributes)
-            {
-                this.methodAttributes[method] = attribute;
-            }
-
-            return attribute;
-        }
-
-        /// <summary>
-        /// Get the <see cref="JsonRpcIgnoreAttribute"/>, which may appear on the method itself or the interface definition of the method where applicable.
-        /// </summary>
-        /// <param name="method">The method to search for the attribute.</param>
-        /// <returns>The attribute, if found.</returns>
-        internal JsonRpcIgnoreAttribute? FindIgnoreAttribute(MethodInfo method)
-        {
-            Requires.NotNull(method, nameof(method));
-
-            JsonRpcIgnoreAttribute? attribute;
-            lock (this.ignoreAttributes)
-            {
-                if (this.ignoreAttributes.TryGetValue(method, out attribute))
-                {
-                    return attribute;
-                }
-            }
-
-            attribute = (JsonRpcIgnoreAttribute?)method.GetCustomAttribute(typeof(JsonRpcIgnoreAttribute))
-                ?? (JsonRpcIgnoreAttribute?)this.FindMethodOnInterface(method)?.GetCustomAttribute(typeof(JsonRpcIgnoreAttribute));
-
-            lock (this.ignoreAttributes)
-            {
-                this.ignoreAttributes[method] = attribute;
-            }
-
-            return attribute;
-        }
-
-        private MethodInfo? FindMethodOnInterface(MethodInfo methodImpl)
-        {
-            Requires.NotNull(methodImpl, nameof(methodImpl));
-
-            for (int i = 0; i < this.interfaceMaps.Length; i++)
-            {
-                InterfaceMapping map = this.interfaceMaps.Span[i];
-                int methodIndex = Array.IndexOf(map.TargetMethods, methodImpl);
-                if (methodIndex >= 0)
-                {
-                    return map.InterfaceMethods[methodIndex];
-                }
-            }
-
-            return null;
+            this.TraceSource.TraceEvent(TraceEventType.Verbose, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Added local RPC method \"{0}\" -> {1}", rpcMethodName, targetMethod);
         }
     }
 
     /// <summary>
-    /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTarget(Type, object, JsonRpcTargetOptions?, bool)"/>.
+    /// A class whose disposal will revert certain effects of a prior call to <see cref="AddLocalRpcTarget(RpcTargetMetadata, object, JsonRpcTargetOptions?, bool)"/>.
     /// </summary>
     internal class RevertAddLocalRpcTarget : IDisposable
     {
@@ -742,72 +406,33 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     private class EventReceiver : IDisposable
     {
-        private static readonly MethodInfo OnEventRaisedMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaised));
-        private static readonly MethodInfo OnEventRaisedGenericMethodInfo = typeof(EventReceiver).GetTypeInfo().DeclaredMethods.Single(m => m.Name == nameof(OnEventRaisedGeneric));
         private readonly JsonRpc jsonRpc;
         private readonly object server;
         private readonly EventInfo eventInfo;
         private readonly Delegate registeredHandler;
         private readonly string rpcEventName;
 
-        internal EventReceiver(JsonRpc jsonRpc, object server, EventInfo eventInfo, JsonRpcTargetOptions options)
+        internal EventReceiver(JsonRpc jsonRpc, object server, RpcTargetMetadata.EventMetadata eventMetadata, JsonRpcTargetOptions options)
         {
-            Requires.NotNull(jsonRpc, nameof(jsonRpc));
-            Requires.NotNull(server, nameof(server));
-            Requires.NotNull(eventInfo, nameof(eventInfo));
+            Requires.NotNull(jsonRpc);
+            Requires.NotNull(server);
+            Requires.NotNull(eventMetadata);
 
             options = options ?? JsonRpcTargetOptions.Default;
 
             this.jsonRpc = jsonRpc;
             this.server = server;
-            this.eventInfo = eventInfo;
+            this.eventInfo = eventMetadata.Event;
 
-            this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventInfo.Name) : eventInfo.Name;
+            this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventMetadata.Name) : eventMetadata.Name;
 
-            try
-            {
-                // This might throw if our EventHandler-modeled method doesn't "fit" the event delegate signature.
-                // It will work for EventHandler and EventHandler<T>, at least.
-                // If we want to support more, we'll likely have to use lightweight code-gen to generate a method
-                // with the right signature.
-                ParameterInfo[] eventHandlerParameters = eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
-                if (eventHandlerParameters.Length != 2)
-                {
-                    throw new NotSupportedException($"Unsupported event handler type for: \"{eventInfo.Name}\". Expected 2 parameters but had {eventHandlerParameters.Length}.");
-                }
-
-                Type argsType = eventHandlerParameters[1].ParameterType;
-                if (typeof(EventArgs).GetTypeInfo().IsAssignableFrom(argsType))
-                {
-                    this.registeredHandler = OnEventRaisedMethodInfo.CreateDelegate(eventInfo.EventHandlerType!, this);
-                }
-                else
-                {
-                    MethodInfo closedGenericMethod = OnEventRaisedGenericMethodInfo.MakeGenericMethod(argsType);
-                    this.registeredHandler = closedGenericMethod.CreateDelegate(eventInfo.EventHandlerType!, this);
-                }
-            }
-            catch (ArgumentException ex)
-            {
-                throw new NotSupportedException("Unsupported event handler type for: " + eventInfo.Name, ex);
-            }
-
-            eventInfo.AddEventHandler(server, this.registeredHandler);
+            this.registeredHandler = eventMetadata.CreateEventHandler(jsonRpc, this.rpcEventName);
+            eventMetadata.Event.AddEventHandler(server, this.registeredHandler);
         }
 
         public void Dispose()
         {
             this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
-        }
-
-        private void OnEventRaisedGeneric<T>(object? sender, T args)
-        {
-            this.jsonRpc.NotifyAsync(this.rpcEventName, arguments: new object?[] { args }, argumentDeclaredTypes: new Type[] { typeof(T) }).Forget();
-        }
-
-        private void OnEventRaised(object? sender, EventArgs args)
-        {
-            this.jsonRpc.NotifyAsync(this.rpcEventName, new object[] { args }).Forget();
         }
     }
 }

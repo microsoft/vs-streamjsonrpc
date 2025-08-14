@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <EnableStreamJsonRpcInterceptors Condition="'$(EnableStreamJsonRpcInterceptors)'==''">true</EnableStreamJsonRpcInterceptors>
+  </PropertyGroup>
+  <ItemGroup>
+    <AnalyzerProjectReference Include="$(RepoRootPath)src\StreamJsonRpc.Analyzers\StreamJsonRpc.Analyzers.csproj" />
+    <AnalyzerProjectReference Include="$(RepoRootPath)src\StreamJsonRpc.Analyzers.CodeFixes\StreamJsonRpc.Analyzers.CodeFixes.csproj" />
+    <ProjectReference Include="@(AnalyzerProjectReference)">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <OutputItemType>AnalyzerAssembly</OutputItemType>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="ConsumeAnalyzersDirectly" AfterTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <Analyzer Include="%(AnalyzerAssembly.Identity)" />
+    </ItemGroup>
+  </Target>
+  <Import Project="$(RepoRootPath)src\StreamJsonRpc.Analyzers\buildTransitive\StreamJsonRpc.targets"/>
+</Project>

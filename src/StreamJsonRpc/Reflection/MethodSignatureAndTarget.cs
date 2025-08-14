@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace StreamJsonRpc;
@@ -11,23 +10,17 @@ namespace StreamJsonRpc;
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 {
-    internal MethodSignatureAndTarget(MethodInfo method, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext)
-    {
-        Requires.NotNull(method, nameof(method));
-
-        this.Signature = new MethodSignature(method, attribute);
-        this.Target = target;
-        this.SynchronizationContext = perMethodSynchronizationContext;
-    }
-
-    internal MethodSignatureAndTarget(MethodSignature signature, object? target, SynchronizationContext? perMethodSynchronizationContext)
+    internal MethodSignatureAndTarget(RpcTargetMetadata.TargetMethodMetadata signature, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext)
     {
         this.Signature = signature;
         this.Target = target;
         this.SynchronizationContext = perMethodSynchronizationContext;
+        this.Attribute = attribute ?? signature.Attribute;
     }
 
-    internal MethodSignature Signature { get; }
+    internal RpcTargetMetadata.TargetMethodMetadata Signature { get; }
+
+    internal JsonRpcMethodAttribute? Attribute { get; }
 
     internal object? Target { get; }
 

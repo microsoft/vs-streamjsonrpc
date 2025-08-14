@@ -7,6 +7,7 @@ using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
 
@@ -436,6 +437,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
 
         void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
@@ -480,6 +482,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         /// </summary>
         [Newtonsoft.Json.JsonIgnore]
         [IgnoreDataMember]
+        [PropertyShape(Ignore = true)]
         public TopLevelPropertyBagBase? TopLevelPropertyBag { get; set; }
 
         void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)

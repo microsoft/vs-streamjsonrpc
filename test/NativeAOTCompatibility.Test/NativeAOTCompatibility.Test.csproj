@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- There is too much public API in the library that is *not* trim safe.
+         We're just going to test specific scenarios in this project's source code. -->
+    <!--<TrimmerRootAssembly Include="StreamJsonRpc" />-->
+  </ItemGroup>
+
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
+</Project>

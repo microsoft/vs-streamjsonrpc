@@ -12,7 +12,7 @@ items:
 - href: troubleshooting.md
 - href: extensibility.md
 - href: vs.md
-
-- href: dynamicproxy.md
+- href: proxies.md
 - href: exceptions.md
 - href: security.md
+- href: nativeAOT.md

@@ -132,133 +132,147 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_ConflictOverloadMethodsThrowsException()
+    public async Task JsonRpcMethodAttribute_ConflictOverloadMethodsThrowsException()
     {
-        var invalidServer = new ConflictingOverloadServer();
+        var serverObject = new ConflictingOverloadServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string result = await clientRpc.InvokeWithCancellationAsync<string>("test/string", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
+        Assert.Equal("conflicting string: Andrew", result);
+
+        result = await clientRpc.InvokeWithCancellationAsync<string>("test/int", ["Andrew", 5], this.TimeoutToken).WithCancellation(this.TimeoutToken);
+        Assert.Equal("conflicting string: Andrew int: 5", result);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodBeforeThrowsException()
+    public async Task JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodBefore()
     {
-        var invalidServer = new MissingMethodAttributeOverloadBeforeServer();
+        var serverObject = new MissingMethodAttributeOverloadBeforeServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>(nameof(MissingMethodAttributeOverloadBeforeServer.InvokeOverloadConflictingMethodAttribute), ["hi"], this.TimeoutToken);
+        Assert.Equal("conflicting string: hi", actual);
+
+        string actual2 = await clientRpc.InvokeWithCancellationAsync<string>("test/string", ["hi", 5], this.TimeoutToken);
+        Assert.Equal("conflicting string: hi int: 5", actual2);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodAfterThrowsException()
+    public async Task JsonRpcMethodAttribute_MissingAttributeOnOverloadMethodAfter()
     {
-        var invalidServer = new MissingMethodAttributeOverloadAfterServer();
+        var serverObject = new MissingMethodAttributeOverloadAfterServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>("test/string", ["hi"], this.TimeoutToken);
+        Assert.Equal("conflicting string: hi", actual);
+
+        string actual2 = await clientRpc.InvokeWithCancellationAsync<string>(nameof(MissingMethodAttributeOverloadAfterServer.InvokeOverloadConflictingMethodAttribute), ["hi", 5], this.TimeoutToken);
+        Assert.Equal("conflicting string: hi int: 5", actual2);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentDerivedMethodsThrowsException()
+    public async Task JsonRpcMethodAttribute_SameAttributeUsedOnDifferentDerivedMethodsThrowsException()
     {
-        var invalidServer = new SameAttributeUsedOnDifferentDerivedMethodsServer();
+        var serverObject = new SameAttributeUsedOnDifferentDerivedMethodsServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>("base/InvokeMethodWithAttribute", ["hi"], this.TimeoutToken);
+        Assert.Equal("conflicting string: hi", actual);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_SameAttributeUsedOnDifferentMethodsThrowsException()
+    public async Task JsonRpcMethodAttribute_OverrideMethodChangesRpcName()
     {
-        var invalidServer = new SameAttributeUsedOnDifferentMethodsServer();
+        var serverObject = new OverrideAndRenameMethodServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>("child/InvokeVirtualMethodOverride", [], this.TimeoutToken);
+        Assert.Equal("child InvokeVirtualMethodOverride", actual);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => clientRpc.InvokeWithCancellationAsync<string>("base/InvokeVirtualMethodOverride", [], this.TimeoutToken));
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_ConflictOverrideMethodsThrowsException()
+    public async Task JsonRpcMethodAttribute_ReplacementNameIsAnotherBaseMethodNameServer()
     {
-        var invalidServer = new InvalidOverrideServer();
+        var serverObject = new ReplacementNameIsAnotherBaseMethodNameServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>("Second", ["hi"], this.TimeoutToken);
+        Assert.Equal("third", actual);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_ReplacementNameIsAnotherBaseMethodNameServerThrowsException()
+    public async Task JsonRpcMethodAttribute_ReplacementNameIsAnotherMethodName()
     {
-        var invalidServer = new ReplacementNameIsAnotherBaseMethodNameServer();
+        var serverObject = new ReplacementNameIsAnotherMethodNameServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+
+        string actual = await clientRpc.InvokeWithCancellationAsync<string>("Second", ["hi"], this.TimeoutToken);
+
+        // The particular method that is invoked isn't well defined, but this one is the one
+        // that is invoked today, probably because it's "first" in declaration order.
+        Assert.Equal("first hi", actual);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_ReplacementNameIsAnotherMethodNameThrowsException()
+    public async Task JsonRpcMethodAttribute_AsyncMethodWithAsyncAddedInAttribute()
     {
-        var invalidServer = new ReplacementNameIsAnotherMethodNameServer();
+        var serverObject = new CollidingAsyncMethodWithAsyncAddedInAttributeServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        string result = await clientRpc.InvokeWithCancellationAsync<string>("FirstAsync", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
+
+        // The particular method that is invoked isn't well defined, but this one is the one
+        // that is invoked today, probably because it's "first" in declaration order.
+        Assert.Equal("firstAsync Andrew", result);
     }
 
     [Fact]
-    public void JsonRpcMethodAttribute_InvalidAsyncMethodWithAsyncAddedInAttributeThrowsException()
+    public async Task JsonRpcMethodAttribute_AsyncMethodWithAsyncRemovedInAttribute()
     {
-        var invalidServer = new InvalidAsyncMethodWithAsyncAddedInAttributeServer();
+        var serverObject = new AsyncMethodWithAsyncRemovedInAttributeServer();
 
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
+        (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
-    }
+        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        string result = await clientRpc.InvokeWithCancellationAsync<string>("First", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
 
-    [Fact]
-    public void JsonRpcMethodAttribute_InvalidAsyncMethodWithAsyncRemovedInAttributeThrowsException()
-    {
-        var invalidServer = new InvalidAsyncMethodWithAsyncRemovedInAttributeServer();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var serverStream = streams.Item1;
-        var clientStream = streams.Item2;
-
-        Assert.Throws<ArgumentException>(() => JsonRpc.Attach(serverStream, clientStream, invalidServer));
-        Assert.Throws<ArgumentException>(() => new JsonRpc(serverStream, clientStream, invalidServer));
+        // The particular method that is invoked isn't well defined, but this one is the one
+        // that is invoked today, probably because it's "first" in declaration order.
+        Assert.Equal("firstAsync Andrew", result);
     }
 
     [Fact]
@@ -333,16 +347,16 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     /// <summary>
-    /// This class is invalid because a derived method has a different <see cref="JsonRpcMethodAttribute" /> value.
+    /// This class has a derived method with a different <see cref="JsonRpcMethodAttribute" /> value from its base.
     /// </summary>
-    public class InvalidOverrideServer : BaseClass
+    public class OverrideAndRenameMethodServer : BaseClass
     {
         [JsonRpcMethod("child/InvokeVirtualMethodOverride")]
         public override string InvokeVirtualMethodOverride() => $"child {nameof(this.InvokeVirtualMethodOverride)}";
     }
 
     /// <summary>
-    /// This class is invalid because overloaded methods have different <see cref="JsonRpcMethodAttribute" /> values.
+    /// This class has overloaded methods with different <see cref="JsonRpcMethodAttribute" /> values.
     /// </summary>
     public class ConflictingOverloadServer : BaseClass
     {
@@ -354,7 +368,7 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     /// <summary>
-    /// This class is invalid because an overloaded method is missing <see cref="JsonRpcMethodAttribute" /> value.
+    /// This class has an overloaded method that's missing a <see cref="JsonRpcMethodAttribute" />.
     /// The method missing the attribute comes before the method with the attribute.
     /// </summary>
     public class MissingMethodAttributeOverloadBeforeServer : BaseClass
@@ -366,7 +380,8 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     /// <summary>
-    /// This class is invalid because an overloaded method is missing <see cref="JsonRpcMethodAttribute" /> value.
+    /// This class has method overloads where one has <see cref="JsonRpcMethodAttribute" /> that renames it,
+    /// and another overload has no attribute.
     /// The method missing the attribute comes after the method with the attribute.
     /// </summary>
     public class MissingMethodAttributeOverloadAfterServer : BaseClass
@@ -378,19 +393,7 @@ public class JsonRpcMethodAttributeTests : TestBase
     }
 
     /// <summary>
-    /// This class is invalid because two different methods in the same class have the same <see cref="JsonRpcMethodAttribute" /> value.
-    /// </summary>
-    public class SameAttributeUsedOnDifferentMethodsServer : BaseClass
-    {
-        [JsonRpcMethod("test/string")]
-        public string First(string test) => $"conflicting string: {test}";
-
-        [JsonRpcMethod("test/string")]
-        public string Second(string arg1, int arg2) => $"conflicting string: {arg1} int: {arg2}";
-    }
-
-    /// <summary>
-    /// This class is invalid because two different methods in the base and derived classes have the same <see cref="JsonRpcMethodAttribute" /> value.
+    /// This class has two different methods in the base and derived classes that have the same <see cref="JsonRpcMethodAttribute" /> value.
     /// </summary>
     public class SameAttributeUsedOnDifferentDerivedMethodsServer : BaseClass
     {
@@ -417,18 +420,18 @@ public class JsonRpcMethodAttributeTests : TestBase
     public class ReplacementNameIsAnotherMethodNameServer
     {
         [JsonRpcMethod("Second")]
-        public string First(string test) => "first";
+        public string First(string test) => $"first {test}";
 
-        public string Second(string test) => "second";
+        public string Second(string test) => $"second {test}";
     }
 
-    public class InvalidAsyncMethodWithAsyncRemovedInAttributeServer
+    public class AsyncMethodWithAsyncRemovedInAttributeServer
     {
         [JsonRpcMethod("First")]
         public async virtual Task<string> FirstAsync(string arg)
         {
             await Task.Yield();
-            return $"first {arg}";
+            return $"firstAsync {arg}";
         }
 
         public async virtual Task<string> First(string arg)
@@ -438,12 +441,12 @@ public class JsonRpcMethodAttributeTests : TestBase
         }
     }
 
-    public class InvalidAsyncMethodWithAsyncAddedInAttributeServer
+    public class CollidingAsyncMethodWithAsyncAddedInAttributeServer
     {
         public async virtual Task<string> FirstAsync(string arg)
         {
             await Task.Yield();
-            return $"first {arg}";
+            return $"firstAsync {arg}";
         }
 
         [JsonRpcMethod("FirstAsync")]

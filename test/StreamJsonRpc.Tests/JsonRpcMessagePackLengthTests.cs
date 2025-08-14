@@ -4,17 +4,13 @@
 using System.Runtime.CompilerServices;
 using MessagePack;
 using MessagePack.Formatters;
-using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
 
-public class JsonRpcMessagePackLengthTests : JsonRpcTests
+public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper logger) : JsonRpcTests(logger)
 {
-    public JsonRpcMessagePackLengthTests(ITestOutputHelper logger)
-        : base(logger)
-    {
-    }
-
-    internal interface IMessagePackServer
+    [JsonRpcContract]
+    internal partial interface IMessagePackServer
     {
         Task<UnionBaseClass> ReturnUnionTypeAsync(CancellationToken cancellationToken);
 
@@ -28,8 +24,6 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         Task<bool> IsExtensionArgNonNull(CustomExtensionType extensionValue);
     }
-
-    protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);
 
     [Fact]
     public override async Task CanPassAndCallPrivateMethodsObjects()
@@ -47,7 +41,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
 
         IDictionary<object, object>? data = (IDictionary<object, object>?)exception.ErrorData;
         Assert.NotNull(data);
-        object myCustomData = data["myCustomData"];
+        object myCustomData = data["MyCustomData"];
         string actual = (string)myCustomData;
         Assert.Equal("hi", actual);
     }
@@ -134,7 +128,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        var argument = new Dictionary<string, object> { { "value", new UnionDerivedClass() } };
+        var argument = new Dictionary<string, object?> { { "value", new UnionDerivedClass() } };
         var argumentDeclaredTypes = new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } };
 
         UnionBaseClass? receivedValue;
@@ -178,7 +172,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         this.serverRpc.AddLocalRpcTarget(server);
         string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
             nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, object?> { { "value", new UnionDerivedClass() } },
             new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
             this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
@@ -187,7 +181,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         // Exercise the non-init path by repeating
         result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(
             nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync),
-            new Dictionary<string, object> { { "value", new UnionDerivedClass() } },
+            new Dictionary<string, object?> { { "value", new UnionDerivedClass() } },
             new Dictionary<string, Type> { { "value", typeof(UnionBaseClass) } },
             this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
@@ -204,7 +198,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         var server = new MessagePackServer();
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(server);
-        var namedArgs = new { value = (UnionBaseClass)new UnionDerivedClass() };
+        var namedArgs = NamedArgs.Create(new { value = (UnionBaseClass)new UnionDerivedClass() });
 
         UnionBaseClass? receivedValue;
         if (notify)
@@ -244,7 +238,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
     {
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.AddLocalRpcTarget(new MessagePackServer());
-        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), new { value = (UnionBaseClass)new UnionDerivedClass() }, this.TimeoutToken);
+        string? result = await this.clientRpc.InvokeWithParameterObjectAsync<string?>(nameof(MessagePackServer.AcceptUnionTypeAndReturnStringAsync), NamedArgs.Create(new { value = (UnionBaseClass)new UnionDerivedClass() }), this.TimeoutToken);
         Assert.Equal(typeof(UnionDerivedClass).Name, result);
     }
 
@@ -384,105 +378,28 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         Assert.True(await clientProxy.IsExtensionArgNonNull(new CustomExtensionType()));
     }
 
-    protected override void InitializeFormattersAndHandlers(
-        Stream serverStream,
-        Stream clientStream,
-        out IJsonRpcMessageFormatter serverMessageFormatter,
-        out IJsonRpcMessageFormatter clientMessageFormatter,
-        out IJsonRpcMessageHandler serverMessageHandler,
-        out IJsonRpcMessageHandler clientMessageHandler,
-        bool controlledFlushingClient)
-    {
-        serverMessageFormatter = new MessagePackFormatter();
-        clientMessageFormatter = new MessagePackFormatter();
-
-        var options = MessagePackFormatter.DefaultUserDataSerializationOptions
-            .WithResolver(CompositeResolver.Create(
-                new IMessagePackFormatter[] { new UnserializableTypeFormatter(), new TypeThrowsWhenDeserializedFormatter(), new CustomExtensionFormatter() },
-                new IFormatterResolver[] { StandardResolverAllowPrivate.Instance }));
-        ((MessagePackFormatter)serverMessageFormatter).SetMessagePackSerializerOptions(options);
-        ((MessagePackFormatter)clientMessageFormatter).SetMessagePackSerializerOptions(options);
-
-        serverMessageHandler = new LengthHeaderMessageHandler(serverStream, serverStream, serverMessageFormatter);
-        clientMessageHandler = controlledFlushingClient
-            ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
-            : new LengthHeaderMessageHandler(clientStream, clientStream, clientMessageFormatter);
-    }
-
     protected override object[] CreateFormatterIntrinsicParamsObject(string arg) => [];
 
     [MessagePackObject]
     [Union(0, typeof(UnionDerivedClass))]
-    public abstract class UnionBaseClass
+    [GenerateShape]
+    [DerivedTypeShape(typeof(UnionDerivedClass))]
+    public abstract partial class UnionBaseClass
     {
     }
 
+    [GenerateShape]
     [MessagePackObject]
-    public class UnionDerivedClass : UnionBaseClass
+    public partial class UnionDerivedClass : UnionBaseClass
     {
     }
 
-    internal class CustomExtensionType
+    [GenerateShape]
+    internal partial class CustomExtensionType
     {
     }
 
-    private class CustomExtensionFormatter : IMessagePackFormatter<CustomExtensionType?>
-    {
-        public CustomExtensionType? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-        {
-            if (reader.TryReadNil())
-            {
-                return null;
-            }
-
-            if (reader.ReadExtensionFormat() is { Header: { TypeCode: 1, Length: 0 } })
-            {
-                return new();
-            }
-
-            throw new Exception("Unexpected extension header.");
-        }
-
-        public void Serialize(ref MessagePackWriter writer, CustomExtensionType? value, MessagePackSerializerOptions options)
-        {
-            if (value is null)
-            {
-                writer.WriteNil();
-            }
-            else
-            {
-                writer.WriteExtensionFormat(new ExtensionResult(1, default(Memory<byte>)));
-            }
-        }
-    }
-
-    private class UnserializableTypeFormatter : IMessagePackFormatter<CustomSerializedType>
-    {
-        public CustomSerializedType Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-        {
-            return new CustomSerializedType { Value = reader.ReadString() };
-        }
-
-        public void Serialize(ref MessagePackWriter writer, CustomSerializedType value, MessagePackSerializerOptions options)
-        {
-            writer.Write(value?.Value);
-        }
-    }
-
-    private class TypeThrowsWhenDeserializedFormatter : IMessagePackFormatter<TypeThrowsWhenDeserialized>
-    {
-        public TypeThrowsWhenDeserialized Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
-        {
-            throw CreateExceptionToBeThrownByDeserializer();
-        }
-
-        public void Serialize(ref MessagePackWriter writer, TypeThrowsWhenDeserialized value, MessagePackSerializerOptions options)
-        {
-            writer.WriteArrayHeader(0);
-        }
-    }
-
-    private class MessagePackServer : IMessagePackServer
+    internal class MessagePackServer : IMessagePackServer
     {
         internal UnionBaseClass? ReceivedValue { get; private set; }
 
@@ -516,7 +433,7 @@ public class JsonRpcMessagePackLengthTests : JsonRpcTests
         public Task<bool> IsExtensionArgNonNull(CustomExtensionType extensionValue) => Task.FromResult(extensionValue is not null);
     }
 
-    private class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler
+    protected class DelayedFlushingHandler : LengthHeaderMessageHandler, IControlledFlushHandler
     {
         public DelayedFlushingHandler(Stream stream, IJsonRpcMessageFormatter formatter)
             : base(stream, stream, formatter)

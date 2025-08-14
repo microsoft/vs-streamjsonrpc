@@ -9,6 +9,9 @@
          to avoid proliferation of #if sections in our test code.
          So suppress it unless we're targeting the oldest framework among our targets. -->
     <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <!-- PolyType generated code constructs a ProgressWithCompletion<T> without a JTF, but for tests we don't care. -->
+    <NoWarn>$(NoWarn);VSTHRD012</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,30 +19,40 @@
     <Compile Include="..\..\src\StreamJsonRpc\SharedUtilities.cs" Link="SharedUtilities.cs" />
     <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
+    <Compile Update="DisposableProxyNerdbankMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxySystemTextJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DuplexPipeMarshalingJsonTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="DuplexPipeMarshalingMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
+    <Compile Update="DuplexPipeMarshalingNerdbankMessagePackTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="DuplexPipeMarshalingSystemTextJsonTests.cs" DependentUpon="DuplexPipeMarshalingTests.cs" />
     <Compile Update="ObserverMarshalingJsonTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
     <Compile Update="ObserverMarshalingMessagePackTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
+    <Compile Update="ObserverMarshalingNerdbankMessagePackTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
     <Compile Update="ObserverMarshalingSystemTextJsonTests.cs" DependentUpon="ObserverMarshalingTests.cs" />
     <Compile Update="JsonRpcJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="JsonRpcSystemTextJsonHeadersTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="JsonRpcMessagePackCSharpLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="JsonRpcMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
+    <Compile Update="JsonRpcNerdbankMessagePackLengthTests.cs" DependentUpon="JsonRpcTests.cs" />
     <Compile Update="AsyncEnumerableJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="AsyncEnumerableMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
+    <Compile Update="AsyncEnumerableNerdbankMessagePackTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="AsyncEnumerableSystemTextJsonTests.cs" DependentUpon="AsyncEnumerableTests.cs" />
     <Compile Update="TargetObjectEventsJsonTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
     <Compile Update="TargetObjectEventsMessagePackTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
+    <Compile Update="TargetObjectEventsNerdbankMessagePackTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
     <Compile Update="TargetObjectEventsSystemTextJsonTests.cs" DependentUpon="TargetObjectEventsTests.cs" />
     <Compile Update="WebSocketMessageHandlerJsonTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
     <Compile Update="WebSocketMessageHandlerMessagePackTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
+    <Compile Update="WebSocketMessageHandlerNerdbankMessagePackTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
     <Compile Update="WebSocketMessageHandlerSystemTextJsonTests.cs" DependentUpon="WebSocketMessageHandlerTests.cs" />
     <Compile Update="MarshalableProxyJsonTests.cs" DependentUpon="MarshalableProxyTests.cs" />
     <Compile Update="MarshalableProxyMessagePackTests.cs" DependentUpon="MarshalableProxyTests.cs" />
+    <Compile Update="MarshalableProxyNerdbankMessagePackTests.cs" DependentUpon="MarshalableProxyTests.cs" />
     <Compile Update="MarshalableProxySystemTextJsonTests.cs" DependentUpon="MarshalableProxyTests.cs" />
     <Compile Update="SystemTextJsonFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
     <Compile Update="MessagePackFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
+    <Compile Update="NerdbankMessagePackFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
     <Compile Update="JsonMessageFormatterTests.cs" DependentUpon="FormatterTestBase.cs" />
     <Compile Update="JsonRpcRemoteTargetJsonMessageFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
     <Compile Update="JsonRpcRemoteTargetSystemTextJsonFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
@@ -47,10 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
-    <ProjectReference Include="..\UnreachableAssembly\UnreachableAssembly.csproj">
-      <!-- We MUST NOT have this assembly in our test assembly's output directory so that it cannot be reached from the default ALC. -->
-      <Private>false</Private>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -72,10 +81,6 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
-  <Target Name="PlaceMissingAssembly" AfterTargets="ResolveReferences">
-    <ItemGroup>
-      <DivertedProjectReferenceOutputs Include="@(ReferencePath)" Condition=" '%(FileName)' == 'UnreachableAssembly' " />
-    </ItemGroup>
-    <Copy SourceFiles="@(DivertedProjectReferenceOutputs)" DestinationFolder="$(OutputPath)hidden" SkipUnchangedFiles="true" />
-  </Target>
+  <Import Project="..\UnreachableAssembly.targets" />
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
 </Project>

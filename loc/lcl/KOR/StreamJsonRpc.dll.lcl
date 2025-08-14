@@ -58,6 +58,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";CannotMutateFrozenInstance" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[This instance cannot be changed.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[이 인스턴스는 변경할 수 없습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";ClientProxyTypeArgumentMustBeAnInterface" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA["{0}" is not an interface.]]></Val>
@@ -72,24 +81,6 @@
           <Val><![CDATA[A method with the same name and equivalent parameters has already been registered.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[이름이 같고 매개 변수가 같은 메서드가 이미 등록되었습니다.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodAttributeValue" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[.NET methods '{0}' and '{1}' cannot both map to the same request method name: '{2}'.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[.NET 메서드 '{0}' 및 '{1}' 같은 요청 메서드 이름('{2}')에 매핑할 수 없습니다.]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";ConflictingMethodNameAttribute" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[All overloads and overrides of the '{0}' method must share a common value for {1}.{2}.]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA['{0}' 메서드의 모든 오버로드 및 재정의는 {1}.{2} 공통 값을 공유해야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -144,15 +135,6 @@
           <Val><![CDATA[Error writing JSON RPC Result: {0}: {1}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[JSON RPC 결과를 쓰는 중 오류 발생: {0}: {1}]]></Val>
-          </Tgt>
-        </Str>
-        <Disp Icon="Str" />
-      </Item>
-      <Item ItemId=";FailureDeserializingJsonRpc" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
-        <Str Cat="Text">
-          <Val><![CDATA[Failure deserializing incoming JSON RPC '{0}': {1}]]></Val>
-          <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[들어오는 JSON RPC '{0}'을(를) 역직렬화하는 중 오류 발생: {1}]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -234,6 +216,15 @@
           <Val><![CDATA[This operation is only appropriate for inbound messages.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[이 작업은 인바운드 메시지에만 적합합니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";InterceptedProxiesRequestCannotProvideDynamicProxies" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Only source generated proxies are available when using the interceptor. Either set JsonRpcProxyOptions.ProxyStyle to allow source generated proxies or turn off the interceptor.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[인터셉터를 사용할 때는 소스에서 생성된 프록시만 사용할 수 있습니다. 소스에서 생성된 프록시를 허용하도록 JsonRpcProxyOptions.ProxyStyle을 설정하거나 인터셉터를 끕니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
@@ -492,10 +483,13 @@
       </Item>
       <Item ItemId=";ResponseUnexpectedFormat" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
-          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported, but received type: {0}]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[예기치 않은 형식의 응답입니다.  오류 및 결과만 지원됩니다. {0}]]></Val>
+            <Val><![CDATA[예상치 못한 형식의 응답입니다.  오류 및 결과만 지원되지만 수신된 형식은 {0}입니다.]]></Val>
           </Tgt>
+          <Prev Cat="Text">
+            <Val><![CDATA[Response is in an unexpected format.  Only error and result are supported: {0}]]></Val>
+          </Prev>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -612,6 +606,15 @@
           <Val><![CDATA[Text encoding is not supported because the formatter "{0}" does not implement "{1}".]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[포맷터 "{0}" "{1}" 구현하지 않으므로 텍스트 인코딩이 지원되지 않습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";TypeMustHaveFullName" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Type must have FullName.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[형식에 FullName이 있어야 합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

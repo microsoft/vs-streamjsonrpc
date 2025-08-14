@@ -3,13 +3,17 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using PolyType;
 using StreamJsonRpc.Protocol;
 using STJ = System.Text.Json.Serialization;
+
+[assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<>)])]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -99,20 +103,14 @@ public class MessageFormatterEnumerableTracker
     /// </summary>
     /// <param name="objectType">The type which may implement <see cref="IAsyncEnumerable{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> implements <see cref="IAsyncEnumerable{T}"/>; otherwise, false.</returns>
-    /// <devremarks>
-    /// We use <see langword="int"/> as a generic type argument in this because what we use doesn't matter, but we must use *something*.
-    /// </devremarks>
-    public static bool CanSerialize(Type objectType) => TrackerHelpers<IAsyncEnumerable<int>>.CanSerialize(objectType);
+    public static bool CanSerialize(Type objectType) => TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(objectType) is not null;
 
     /// <summary>
     /// Checks if a given <see cref="Type"/> is exactly some closed generic type based on <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
     /// <param name="objectType">The type which may be <see cref="IAsyncEnumerable{T}"/>.</param>
     /// <returns>true if given <see cref="Type"/> is <see cref="IAsyncEnumerable{T}"/>; otherwise, false.</returns>
-    /// <devremarks>
-    /// We use <see langword="int"/> as a generic type argument in this because what we use doesn't matter, but we must use *something*.
-    /// </devremarks>
-    public static bool CanDeserialize(Type objectType) => TrackerHelpers<IAsyncEnumerable<int>>.CanDeserialize(objectType);
+    public static bool CanDeserialize(Type objectType) => TrackerHelpers.IsIAsyncEnumerable(objectType);
 
     /// <summary>
     /// Used by the generator to assign a handle to the given <see cref="IAsyncEnumerable{T}"/>.
@@ -216,6 +214,31 @@ public class MessageFormatterEnumerableTracker
                 this.generatorTokensByRequestId.Remove(outboundRequestId);
             }
         }
+    }
+
+    /// <summary>
+    /// A slice of results from an <see cref="IAsyncEnumerable{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of element in the enumeration.</typeparam>
+    [DataContract]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class EnumeratorResults<T>
+    {
+        /// <summary>
+        /// Gets the slice of values in this segment.
+        /// </summary>
+        [DataMember(Name = ValuesPropertyName, Order = 0)]
+        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
+        [PropertyShape(Name = ValuesPropertyName)]
+        public IReadOnlyList<T>? Values { get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether this is definitely the last slice.
+        /// </summary>
+        [DataMember(Name = FinishedPropertyName, Order = 1)]
+        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
+        [PropertyShape(Name = FinishedPropertyName)]
+        public bool Finished { get; init; }
     }
 
     private class GeneratingEnumeratorTracker<T> : IGeneratingEnumeratorTracker
@@ -524,17 +547,5 @@ public class MessageFormatterEnumerableTracker
                 writer.Advance(values.Count);
             }
         }
-    }
-
-    [DataContract]
-    private class EnumeratorResults<T>
-    {
-        [DataMember(Name = ValuesPropertyName, Order = 0)]
-        [STJ.JsonPropertyName(ValuesPropertyName), STJ.JsonPropertyOrder(0)]
-        public IReadOnlyList<T>? Values { get; set; }
-
-        [DataMember(Name = FinishedPropertyName, Order = 1)]
-        [STJ.JsonPropertyName(FinishedPropertyName), STJ.JsonPropertyOrder(1)]
-        public bool Finished { get; set; }
     }
 }
