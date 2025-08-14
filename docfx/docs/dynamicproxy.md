@@ -50,3 +50,25 @@ between client and server.
 Sometimes a client may need to block its caller until a response to a JSON-RPC request comes back.
 The dynamic proxy maintains the same async-only contract that is exposed by the @StreamJsonRpc.JsonRpc class itself.
 [Learn more about sending requests](sendrequest.md), particularly under the heading about async responses.
+
+## AssemblyLoadContext considerations
+
+When in a .NET process with multiple <xref:System.Runtime.Loader.AssemblyLoadContext> instances, you should consider whether StreamJsonRpc is loaded in an <xref:System.Runtime.Loader.AssemblyLoadContext> that can load all the types required by the proxy interface.
+
+By default, StreamJsonRpc will generate dynamic proxies in the <xref:System.Runtime.Loader.AssemblyLoadContext> that StreamJsonRpc is loaded within.
+This means that if your own code is running in a different <xref:System.Runtime.Loader.AssemblyLoadContext> from StreamJsonRpc and ask for a proxy, the proxy may fail to activate from a type load failure even if your calling code *can* or has loaded that type.
+It might also manifest as an <xref:System.MissingMethodException> or <xref:System.InvalidCastException> due to types loading into multiple <xref:System.Runtime.Loader.AssemblyLoadContext> instances.
+
+In such cases, you may control the <xref:System.Runtime.Loader.AssemblyLoadContext> used to generate the proxy by surrounding your proxy request with a call to <xref:System.Runtime.Loader.AssemblyLoadContext.EnterContextualReflection*> (and disposal of its result).
+
+For example, you might use the following code when StreamJsonRpc is loaded into a different <xref:System.Runtime.Loader.AssemblyLoadContext> from your own code:
+
+```cs
+IMyService proxy;
+using (AssemblyLoadContext.EnterContextualReflection(MethodBase.GetCurrentMethod()!.DeclaringType!.Assembly))
+{
+    proxy = jsonRpc.Attach<IMyService>();
+}
+```
+
+This initializes the `proxy` local variable with a proxy that will be able to load all types that your own <xref:System.Runtime.Loader.AssemblyLoadContext> can load.
