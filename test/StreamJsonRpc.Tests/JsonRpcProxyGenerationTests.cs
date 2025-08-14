@@ -853,14 +853,8 @@ public class JsonRpcProxyGenerationTests : TestBase
         // that we can here (the ones from UnreachableAssembly).
         // That's what makes this test effective: it'll fail if the DynamicAssembly is shared across ALCs,
         // thereby verifying that StreamJsonRpc has a dedicated set of DynamicAssemblies for each ALC.
-        // We have to manually set the contextual reflection context to this special ALC
-        // so that StreamJsonRpc knows to get the DynamicAssembly for this ALC.
-        // Otherwise it will default to its own.
-        using (AssemblyLoadContext.EnterContextualReflection(MethodBase.GetCurrentMethod()!.DeclaringType!.Assembly))
-        {
-            JsonRpc clientRpc = new(Stream.Null);
-            clientRpc.Attach<IReferenceAnUnreachableAssembly>();
-        }
+        JsonRpc clientRpc = new(Stream.Null);
+        clientRpc.Attach<IReferenceAnUnreachableAssembly>();
     }
 
 #endif

@@ -53,21 +53,24 @@ The dynamic proxy maintains the same async-only contract that is exposed by the 
 
 ## AssemblyLoadContext considerations
 
-When in a .NET process with multiple <xref:System.Runtime.Loader.AssemblyLoadContext> instances, you should consider whether StreamJsonRpc is loaded in an <xref:System.Runtime.Loader.AssemblyLoadContext> that can load all the types required by the proxy interface.
+When in a .NET process with multiple <xref:System.Runtime.Loader.AssemblyLoadContext> (ALC) instances, you should consider whether StreamJsonRpc is loaded in an ALC that can load all the types required by the proxy interface.
 
-By default, StreamJsonRpc will generate dynamic proxies in the <xref:System.Runtime.Loader.AssemblyLoadContext> that StreamJsonRpc is loaded within.
-This means that if your own code is running in a different <xref:System.Runtime.Loader.AssemblyLoadContext> from StreamJsonRpc and ask for a proxy, the proxy may fail to activate from a type load failure even if your calling code *can* or has loaded that type.
-It might also manifest as an <xref:System.MissingMethodException> or <xref:System.InvalidCastException> due to types loading into multiple <xref:System.Runtime.Loader.AssemblyLoadContext> instances.
+By default, StreamJsonRpc will generate dynamic proxies in the ALC that the (first) interface requested for the proxy is loaded within.
+This is usually the right choice because the interface should be in an ALC that can resolve all the interface's type references.
+When you request a proxy that implements *multiple* interfaces, and if those interfaces are loaded in different ALCs, you *may* need to control which ALC the proxy is generated in.
+The need to control this may manifest as an <xref:System.MissingMethodException> or <xref:System.InvalidCastException> due to types loading into multiple ALC instances.
 
-In such cases, you may control the <xref:System.Runtime.Loader.AssemblyLoadContext> used to generate the proxy by surrounding your proxy request with a call to <xref:System.Runtime.Loader.AssemblyLoadContext.EnterContextualReflection*> (and disposal of its result).
+In such cases, you may control the ALC used to generate the proxy by surrounding your proxy request with a call to <xref:System.Runtime.Loader.AssemblyLoadContext.EnterContextualReflection*> (and disposal of its result).
 
-For example, you might use the following code when StreamJsonRpc is loaded into a different <xref:System.Runtime.Loader.AssemblyLoadContext> from your own code:
+For example, you might use the following code when StreamJsonRpc is loaded into a different ALC from your own code:
 
 ```cs
-IMyService proxy;
-using (AssemblyLoadContext.EnterContextualReflection(MethodBase.GetCurrentMethod()!.DeclaringType!.Assembly))
+// Whatever ALC can resolve *all* type references in *all* proxy interfaces.
+AssemblyLoadContext alc = AssemblyLoadContext.GetLoadContext(MethodBase.GetCurrentMethod()!.DeclaringType!.Assembly);
+IFoo proxy;
+using (AssemblyLoadContext.EnterContextualReflection(alc))
 {
-    proxy = jsonRpc.Attach<IMyService>();
+    proxy = (IFoo)jsonRpc.Attach([typeof(IFoo), typeof(IFoo2)]);
 }
 ```
 

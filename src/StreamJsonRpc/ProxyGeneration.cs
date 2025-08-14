@@ -111,6 +111,7 @@ internal static class ProxyGeneration
             // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
             SortRpcInterfaces(rpcInterfaces);
 
+            // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             Type[] proxyInterfaces = [.. rpcInterfaces.Select(i => i.Type), typeof(IJsonRpcClientProxy), typeof(IJsonRpcClientProxyInternal)];
             ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
 
@@ -764,7 +765,11 @@ internal static class ProxyGeneration
 #if NET
         // We have to key the dynamic assembly by ALC as well, since callers may set a custom contextual reflection context
         // that influences how the assembly will resolve its type references.
-        AssemblyLoadContext alc = AssemblyLoadContext.CurrentContextualReflectionContext ?? AssemblyLoadContext.GetLoadContext(typeof(ProxyGeneration).Assembly) ?? throw new Exception("No ALC for our own assembly!");
+        // If they haven't set a contextual one, we assume the ALC that defines the (first) proxy interface.
+        AssemblyLoadContext alc = AssemblyLoadContext.CurrentContextualReflectionContext
+            ?? AssemblyLoadContext.GetLoadContext(interfaceTypes[0].Assembly)
+            ?? AssemblyLoadContext.GetLoadContext(typeof(ProxyGeneration).Assembly)
+            ?? throw new Exception("No ALC for our own assembly!");
         foreach ((AssemblyLoadContext AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
             if (existingSet.AssemblyLoadContext != alc)
@@ -787,7 +792,14 @@ internal static class ProxyGeneration
         // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking code.
         ////skipVisibilityCheckAssemblies = skipVisibilityCheckAssemblies.Union(AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName()));
 
-        AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
+        AssemblyBuilder assemblyBuilder;
+#if NET
+        using (alc.EnterContextualReflection())
+#endif
+        {
+            assemblyBuilder = CreateProxyAssemblyBuilder();
+        }
+
         ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
         var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
         skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
