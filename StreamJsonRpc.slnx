@@ -32,5 +32,6 @@
     <Project Path="test/StreamJsonRpc.Tests.ExternalAssembly/StreamJsonRpc.Tests.ExternalAssembly.csproj" />
     <Project Path="test/StreamJsonRpc.Tests.NoInterceptors/StreamJsonRpc.Tests.NoInterceptors.csproj" />
     <Project Path="test/StreamJsonRpc.Tests/StreamJsonRpc.Tests.csproj" />
+    <Project Path="test/UnreachableAssembly/UnreachableAssembly.csproj" />
   </Folder>
 </Solution>

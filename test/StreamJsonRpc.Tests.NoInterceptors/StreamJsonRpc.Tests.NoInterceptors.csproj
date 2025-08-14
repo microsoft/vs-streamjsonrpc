@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Compile Include="..\StreamJsonRpc.Tests\JsonRpcProxyGenerationTests.cs" Link="JsonRpcProxyGenerationTests.cs" />
+    <Compile Include="..\StreamJsonRpc.Tests\UnreachableAssemblyTools.cs" Link="UnreachableAssemblyTools.cs" />
     <Compile Include="..\StreamJsonRpc.Tests\Usings.cs" Link="Usings.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -41,6 +42,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
+  <Import Project="..\UnreachableAssembly.targets" />
   <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
   <PropertyGroup>
     <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>

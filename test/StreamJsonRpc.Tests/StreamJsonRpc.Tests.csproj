@@ -81,5 +81,6 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
+  <Import Project="..\UnreachableAssembly.targets" />
   <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
 </Project>
