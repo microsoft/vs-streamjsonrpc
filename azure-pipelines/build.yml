@@ -248,6 +248,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          BuildRequiresAccessToken: ${{ parameters.RealSign }} # Real signing on non-Windows machines requires passing through access token to build steps that sign
           osRID: linux
       - ${{ if parameters.EnableDotNetFormatCheck }}:
         - script: dotnet format --verify-no-changes --exclude test/NativeAOTCompatibility.Test
@@ -284,6 +285,7 @@ jobs:
         parameters:
           Is1ESPT: ${{ parameters.Is1ESPT }}
           RunTests: ${{ parameters.RunTests }}
+          BuildRequiresAccessToken: ${{ parameters.RealSign }} # Real signing on non-Windows machines requires passing through access token to build steps that sign
           osRID: osx
 
   - job: WrapUp
