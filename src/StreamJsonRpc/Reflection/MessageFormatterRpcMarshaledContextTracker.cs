@@ -360,7 +360,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
                                 this.jsonRpc.NotifyAsync(Invariant($"$/invokeProxy/{token.Value.Handle}/{options.MethodNameTransform(nameof(IDisposable.Dispose))}")).Forget();
                             }
 
-                            this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", new { handle = token.Value.Handle, ownedBySender = false }).Forget();
+                            this.jsonRpc.NotifyWithParameterObjectAsync("$/releaseMarshaledObject", NamedArgs.Create(new { handle = token.Value.Handle, ownedBySender = false })).Forget();
                         }
                     },
                 },
