@@ -4,6 +4,7 @@
 #pragma warning disable SA1629 // Documentation should end with a period.
 
 using System.Diagnostics;
+using System.Text;
 
 namespace StreamJsonRpc.Reflection;
 
@@ -47,4 +48,17 @@ public readonly struct ProxyInputs
     /// Gets a description of the requirements on the proxy to be used.
     /// </summary>
     internal string Requirements => $"Implementing interface(s): {string.Join(", ", [this.ContractInterface, .. this.AdditionalContractInterfaces.Span])}.";
+
+    internal Exception CreateNoSourceGeneratedProxyException()
+    {
+        StringBuilder builder = new();
+        builder.Append(this.ContractInterface.FullName ?? this.ContractInterface.Name);
+        foreach (Type additionalInterface in this.AdditionalContractInterfaces.Span)
+        {
+            builder.Append(", ");
+            builder.Append(additionalInterface.FullName ?? additionalInterface.Name);
+        }
+
+        return new NotImplementedException(Resources.FormatNoSourceGeneratedProxyAvailable(builder));
+    }
 }

@@ -30,5 +30,5 @@ internal class NoDynamicProxyFactory : IProxyFactory
     public IJsonRpcClientProxyInternal CreateProxy(JsonRpc jsonRpc, ProxyInputs proxyInputs)
         => ProxyBase.TryCreateProxy(jsonRpc, proxyInputs, out IJsonRpcClientProxy? proxy)
             ? (IJsonRpcClientProxyInternal)proxy
-            : throw new NotImplementedException("No source generated proxy is available for the requested interface(s), and dynamic proxies are forbidden by the options.");
+            : throw proxyInputs.CreateNoSourceGeneratedProxyException();
 }

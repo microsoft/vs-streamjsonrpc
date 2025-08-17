@@ -384,4 +384,7 @@
   <data name="AttributeProviderRequired" xml:space="preserve">
     <value>The shape for {member} must include a value for AttributeProvider.</value>
   </data>
+  <data name="NoSourceGeneratedProxyAvailable" xml:space="preserve">
+    <value>No source generated proxy is available for the requested interface(s): {ifaces}. Dynamic proxies are forbidden by the options.</value>
+  </data>
 </root>

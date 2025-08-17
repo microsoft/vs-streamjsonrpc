@@ -4,6 +4,9 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using PolyType;
+
+[assembly: TypeShapeExtension(typeof(IDisposable), IncludeMethods = MethodShapeFlags.PublicInstance)]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -135,6 +138,15 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         {
             proxy = null;
             return false;
+        }
+
+        // Special case for IDisposable, which is a common contract interface
+        // and which we document that we can create proxies for without any effort on
+        // the user's part.
+        if (proxyInputs.ContractInterface == typeof(IDisposable) && proxyInputs.AdditionalContractInterfaces.IsEmpty)
+        {
+            proxy = new ProxyForIDisposable(jsonRpc, proxyInputs);
+            return true;
         }
 
         // Look for a source generated proxy type first.
@@ -280,4 +292,6 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
 
         return true;
     }
+
+    private class ProxyForIDisposable(JsonRpc client, in ProxyInputs inputs) : ProxyBase(client, inputs), IDisposable;
 }
