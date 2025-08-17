@@ -82,7 +82,7 @@ public sealed class TargetMethod
     /// <summary>
     /// Gets the <see cref="MethodInfo"/> that will be invoked to handle the request, if one was found.
     /// </summary>
-    public MethodInfo? TargetMethodInfo => this.signature?.Method;
+    public MethodInfo? TargetMethodInfo => this.signature?.MethodInfo;
 
     /// <summary>
     /// Gets all the exceptions thrown while trying to deserialize arguments to candidate parameter types.
@@ -107,12 +107,12 @@ public sealed class TargetMethod
         }
     }
 
-    internal Type? ReturnType => this.signature?.Method.ReturnType;
+    internal Type? ReturnType => this.signature?.ReturnType;
 
     /// <inheritdoc/>
     public override string ToString()
     {
-        return this.signature is not null ? $"{this.signature.Method.DeclaringType!.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
+        return this.signature is not null ? $"{this.signature.MethodInfo.DeclaringType?.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
     }
 
     internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
@@ -130,7 +130,7 @@ public sealed class TargetMethod
 
         Assumes.NotNull(this.synchronizationContext);
         await this.synchronizationContext;
-        return this.signature.Method.Invoke(!this.signature.Method.IsStatic ? this.target : null, this.arguments);
+        return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
     }
 
     private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
