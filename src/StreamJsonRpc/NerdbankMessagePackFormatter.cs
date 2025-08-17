@@ -96,6 +96,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// Initializes a new instance of the <see cref="NerdbankMessagePackFormatter"/> class.
     /// </summary>
     public NerdbankMessagePackFormatter()
+        : base(NoDynamicProxyFactory.Instance)
     {
         // Set up initial options for our own message types.
         this.envelopeSerializer = DefaultSerializer with

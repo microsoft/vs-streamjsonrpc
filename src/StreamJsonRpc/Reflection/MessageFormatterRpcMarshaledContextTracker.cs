@@ -59,6 +59,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     private readonly Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
+    private readonly IProxyFactory proxyFactory;
     private long nextUniqueHandle;
 
     /// <summary>
@@ -71,9 +72,10 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// </remarks>
     private ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> outboundRequestIdMarshalMap = ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty;
 
-    internal MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
+    internal MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, IProxyFactory proxyFactory, IJsonRpcFormatterState formatterState)
     {
         this.jsonRpc = jsonRpc;
+        this.proxyFactory = proxyFactory;
         this.formatterState = formatterState;
 
         this.jsonRpc.AddLocalRpcMethod("$/releaseMarshaledObject", ReleaseMarshaledObjectMethodInfo, this);
@@ -295,7 +297,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
     /// <param name="options">The options to feed into proxy generation.</param>
     /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
-    [RequiresUnreferencedCode(RuntimeReasons.RefEmit), RequiresDynamicCode(RuntimeReasons.RefEmit)]
     [return: NotNullIfNotNull("token")]
     internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
     {
@@ -340,7 +341,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         }
 
         // CONSIDER: If we ever support arbitrary RPC interfaces, we'd need to consider how events on those interfaces would work.
-        object result = this.jsonRpc.CreateProxy(
+        object result = this.proxyFactory.CreateProxy(
+            this.jsonRpc,
             new ProxyInputs
             {
                 ContractInterface = interfaceType,

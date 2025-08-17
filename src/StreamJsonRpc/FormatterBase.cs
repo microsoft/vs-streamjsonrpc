@@ -19,6 +19,8 @@ namespace StreamJsonRpc;
 /// </summary>
 public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
 {
+    private readonly IProxyFactory proxyFactory;
+
     private JsonRpc? rpc;
 
     /// <summary>
@@ -55,8 +57,15 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatterBase"/> class.
     /// </summary>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public FormatterBase()
+        : this(DefaultProxyFactory.Instance)
     {
+    }
+
+    private protected FormatterBase(IProxyFactory proxyFactory)
+    {
+        this.proxyFactory = proxyFactory;
     }
 
     /// <summary>
@@ -90,7 +99,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 this.rpc = value;
 
                 this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
-                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
+                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this.proxyFactory, this);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this, this.rpcMarshaledContextTracker);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.MultiplexingStream };
             }
