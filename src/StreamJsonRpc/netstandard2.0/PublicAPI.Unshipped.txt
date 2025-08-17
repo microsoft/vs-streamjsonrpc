@@ -12,6 +12,8 @@ static StreamJsonRpc.RpcTargetMetadata.FromClassNonPublic(System.Type! classType
 static StreamJsonRpc.RpcTargetMetadata.FromClassNonPublic(System.Type! classType, StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces! metadata) -> StreamJsonRpc.RpcTargetMetadata!
 static StreamJsonRpc.RpcTargetMetadata.FromInterface(StreamJsonRpc.RpcTargetMetadata.InterfaceCollection! interfaces) -> StreamJsonRpc.RpcTargetMetadata!
 static StreamJsonRpc.RpcTargetMetadata.FromInterface(System.Type! rpcContract) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromShape(PolyType.Abstractions.ITypeShape! shape) -> StreamJsonRpc.RpcTargetMetadata!
+static StreamJsonRpc.RpcTargetMetadata.FromShape<T>(PolyType.ITypeShapeProvider! provider) -> StreamJsonRpc.RpcTargetMetadata!
 static StreamJsonRpc.RpcTargetMetadata.RegisterEventArgs<TEventArgs>() -> void
 StreamJsonRpc.ExportRpcContractProxiesAttribute
 StreamJsonRpc.ExportRpcContractProxiesAttribute.ExportRpcContractProxiesAttribute() -> void
@@ -117,12 +119,8 @@ StreamJsonRpc.RpcTargetMetadata.Methods.init -> void
 StreamJsonRpc.RpcTargetMetadata.RpcTargetMetadata() -> void
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Attribute.get -> StreamJsonRpc.JsonRpcMethodAttribute?
-StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Attribute.init -> void
-StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Method.get -> System.Reflection.MethodInfo!
-StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Method.init -> void
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.MethodInfo.get -> System.Reflection.MethodInfo!
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Name.get -> string!
-StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Name.init -> void
-StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.TargetMethodMetadata() -> void
 StreamJsonRpc.RpcTargetMetadata.TargetType.get -> System.Type!
 StreamJsonRpc.RpcTargetMetadata.TargetType.init -> void
 virtual StreamJsonRpc.RpcTargetMetadata.CreateEventHandlerDelegate.Invoke(StreamJsonRpc.JsonRpc! rpc, string! eventName) -> System.Delegate!

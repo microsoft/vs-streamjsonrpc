@@ -381,4 +381,7 @@
   <data name="UsableOnceOnly" xml:space="preserve">
     <value>This operation can only be performed once on this object.</value>
   </data>
+  <data name="AttributeProviderRequired" xml:space="preserve">
+    <value>The shape for {member} must include a value for AttributeProvider.</value>
+  </data>
 </root>

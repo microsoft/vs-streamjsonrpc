@@ -14,7 +14,7 @@
     <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Update="Resources.resx" />
+    <EmbeddedResource Update="Resources.resx" EmitFormatMethods="true" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="NerdbankMessagePackFormatter.*.cs" DependentUpon="NerdbankMessagePackFormatter.cs" />

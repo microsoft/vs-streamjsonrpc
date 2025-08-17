@@ -9,6 +9,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+using PolyType;
+using PolyType.Abstractions;
+using PolyType.Utilities;
+using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
@@ -277,6 +281,46 @@ public class RpcTargetMetadata
         return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
     }
 
+#if NET
+    /// <summary>
+    /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.
+    /// </summary>
+    /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
+    public static RpcTargetMetadata FromShape<T>()
+        where T : IShapeable<T> => FromShape(T.GetShape());
+
+    /// <summary>
+    /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.
+    /// </summary>
+    /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
+    /// <typeparam name="TProvider">The provider of type shapes from which to obtain the shape.</typeparam>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
+    public static RpcTargetMetadata FromShape<T, TProvider>()
+        where TProvider : IShapeable<T> => FromShape(TProvider.GetShape());
+#endif
+
+    /// <inheritdoc cref="FromShape(ITypeShape)" path="/summary"/>
+    /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
+    /// <param name="provider">The provider of type shapes from which to obtain the shape.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
+    public static RpcTargetMetadata FromShape<T>(ITypeShapeProvider provider) => FromShape(provider.Resolve<T>());
+
+    /// <summary>
+    /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.
+    /// </summary>
+    /// <param name="shape">The shape to create the metadata from.</param>
+    /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the <paramref name="shape"/>.</returns>
+    public static RpcTargetMetadata FromShape(ITypeShape shape)
+    {
+        Requires.NotNull(shape);
+
+        Builder builder = new(shape);
+        AddMethods(builder, shape.Methods);
+
+        return builder.ToImmutable();
+    }
+
     /// <summary>
     /// Creates an event handler factory that supports <see cref="EventHandler{TEventArgs}"/> for a given <typeparamref name="TEventArgs"/>.
     /// </summary>
@@ -287,15 +331,23 @@ public class RpcTargetMetadata
     public static void RegisterEventArgs<TEventArgs>()
         where TEventArgs : struct => EventHandlerFactories.TryAdd(typeof(TEventArgs), new EventHandlerFactory<TEventArgs>());
 
+    private static void AddMethods(Builder builder, IReadOnlyList<IMethodShape> methods)
+    {
+        foreach (IMethodShape shape in methods)
+        {
+            TryAddCandidateMethod(builder, GetMethodInfo(shape), shape);
+        }
+    }
+
     private static void AddMethods(Builder builder, IEnumerable<MethodInfo> methods)
     {
         foreach (MethodInfo method in methods)
         {
-            TryAddCandidateMethod(builder, method);
+            TryAddCandidateMethod(builder, method, shape: null);
         }
     }
 
-    private static bool TryAddCandidateMethod(Builder builder, MethodInfo method)
+    private static bool TryAddCandidateMethod(Builder builder, MethodInfo method, IMethodShape? shape)
     {
         if (method.IsSpecialName || method.IsConstructor || method.DeclaringType == typeof(object))
         {
@@ -315,14 +367,9 @@ public class RpcTargetMetadata
             return false;
         }
 
-        var methodMetadata = TargetMethodMetadata.From(method, methodAttribute);
+        var methodMetadata = TargetMethodMetadata.From(method, methodAttribute, shape);
 
-        if (!builder.Methods.TryGetValue(methodMetadata.Name, out List<TargetMethodMetadata>? methodList))
-        {
-            builder.Methods[methodMetadata.Name] = methodList = [];
-        }
-
-        methodList.Add(methodMetadata);
+        builder.AddMethod(methodMetadata);
         return true;
     }
 
@@ -451,6 +498,8 @@ public class RpcTargetMetadata
 
         return missing ?? [];
     }
+
+    private static MethodInfo GetMethodInfo(IMethodShape shape) => (MethodInfo)(shape.AttributeProvider ?? throw new ArgumentException(Resources.FormatAttributeProviderRequired($"{shape.DeclaringType.Type.FullName}.{shape.Name}"), nameof(shape)));
 
     internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
     {
@@ -683,20 +732,32 @@ public class RpcTargetMetadata
     {
         private ParameterInfo[]? parameters;
 
+        internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape)
+        {
+            this.IsPublic = method.IsPublic;
+            this.Name = attribute?.Name ?? shape?.Name ?? method.Name;
+            this.MethodInfo = method;
+
+            this.ReturnType = method.ReturnType;
+            ParameterInfo[] parameters = method.GetParameters();
+            this.RequiredParamCount = parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
+            this.HasCancellationTokenParameter = parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
+        }
+
         /// <summary>
         /// Gets the <see cref="MethodInfo"/> for the RPC target method.
         /// </summary>
-        public required MethodInfo Method { get; init; }
+        public MethodInfo MethodInfo { get; }
 
         /// <summary>
         /// Gets the RPC target name that should invoke this method.
         /// </summary>
-        public required string Name { get; init; }
+        public string Name { get; }
 
         /// <summary>
         /// Gets the <see cref="JsonRpcMethodAttribute"/> that applies to this method, if any.
         /// </summary>
-        public required JsonRpcMethodAttribute? Attribute { get; init; }
+        public JsonRpcMethodAttribute? Attribute { get; }
 
         /// <summary>
         /// Gets the parameters on the method.
@@ -704,7 +765,7 @@ public class RpcTargetMetadata
         /// <remarks>
         /// This is equivalent to <see cref="MethodBase.GetParameters"/>, but cached for performance.
         /// </remarks>
-        internal IReadOnlyList<ParameterInfo> Parameters => this.parameters ??= this.Method.GetParameters() ?? [];
+        internal IReadOnlyList<ParameterInfo> Parameters => this.parameters ??= this.MethodInfo.GetParameters() ?? [];
 
         /// <summary>
         /// Gets a <see cref="ReadOnlyMemory{T}"/> view of the parameters on the method.
@@ -712,32 +773,28 @@ public class RpcTargetMetadata
         /// <seealso cref="Parameters"/>
         internal ReadOnlyMemory<ParameterInfo> ParametersMemory => (ParameterInfo[])this.Parameters;
 
+        internal Type ReturnType { get; }
+
         /// <summary>
         /// Gets a value indicating whether the method is declared as public.
         /// </summary>
-        internal bool IsPublic => this.Method.IsPublic;
+        internal bool IsPublic { get; }
 
-        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
+        internal int RequiredParamCount { get; }
 
         internal int TotalParamCountExcludingCancellationToken => this.HasCancellationTokenParameter ? this.Parameters.Count - 1 : this.Parameters.Count;
 
-        internal bool HasCancellationTokenParameter => this.Parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
+        internal bool HasCancellationTokenParameter { get; }
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 
         [ExcludeFromCodeCoverage]
-        private string DebuggerDisplay => $"{this.Method.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
+        private string DebuggerDisplay => $"{this.MethodInfo.DeclaringType}.{this.Name}({string.Join(", ", this.Parameters.Select(p => p.ParameterType.Name))})";
 
         /// <inheritdoc/>
         public override string ToString() => this.DebuggerDisplay;
 
-        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute)
-            => new()
-            {
-                Method = method,
-                Name = attribute?.Name ?? method.Name,
-                Attribute = attribute,
-            };
+        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape) => new(method, attribute, shape);
 
         internal bool EqualSignature(TargetMethodMetadata other)
         {
@@ -793,6 +850,11 @@ public class RpcTargetMetadata
 
     private class Builder
     {
+        internal Builder(ITypeShape shape)
+        {
+            this.TargetType = shape.Type;
+        }
+
         internal Builder(InterfaceCollection interfaces)
         {
             this.TargetType = interfaces.PrimaryInterface;
@@ -818,6 +880,16 @@ public class RpcTargetMetadata
         internal Dictionary<string, List<TargetMethodMetadata>> Methods { get; } = new(StringComparer.Ordinal);
 
         internal List<EventMetadata> Events { get; } = [];
+
+        internal void AddMethod(TargetMethodMetadata methodMetadata)
+        {
+            if (!this.Methods.TryGetValue(methodMetadata.Name, out List<TargetMethodMetadata>? methodList))
+            {
+                this.Methods[methodMetadata.Name] = methodList = [];
+            }
+
+            methodList.Add(methodMetadata);
+        }
 
         internal RpcTargetMetadata ToImmutable()
         {
