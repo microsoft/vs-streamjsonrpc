@@ -56,7 +56,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
     private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]>();
 
-    private readonly Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (IRpcMarshaledContext<object> Context, IDisposable Revert)>();
+    private readonly Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
     private long nextUniqueHandle;
@@ -94,7 +94,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     }
 
     internal static bool TryGetMarshalOptionsForType(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+        Type type,
         [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
         [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
@@ -132,7 +132,9 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
         if (type.GetCustomAttribute<RpcMarshalableAttribute>() is RpcMarshalableAttribute marshalableAttribute)
         {
-            ValidateMarshalableInterface(type, marshalableAttribute);
+            // Validation requires more trim annotations than our NativeAOT callers can provide.
+            // And besides, analyzers should have called out any issues at compile-time.
+            ////ValidateMarshalableInterface(type, marshalableAttribute);
 
             proxyOptions = RpcMarshalableInterfaceDefaultOptions.ProxyOptions;
             targetOptions = RpcMarshalableInterfaceDefaultOptions.TargetOptions;
@@ -194,15 +196,14 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// Prepares a local object to be marshaled over the wire.
     /// </summary>
     /// <param name="marshaledObject">The object to be exposed over RPC.</param>
-    /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <param name="options"><inheritdoc cref="RpcMarshaledContext(Type, object, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
     /// <param name="declaredType">The marshalable interface type of <paramref name="marshaledObject"/> as declared in the RPC contract.</param>
     /// <param name="rpcMarshalableAttribute">The attribute that defines certain options that control which marshaling rules will be followed.</param>
     /// <returns>A token to be serialized so the remote party can invoke methods on the marshaled object.</returns>
-    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     internal MarshalToken GetToken(
         object marshaledObject,
         JsonRpcTargetOptions options,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type declaredType,
+        RpcTargetMetadata declaredType,
         RpcMarshalableAttribute rpcMarshalableAttribute)
     {
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
@@ -234,7 +235,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
         long handle = this.nextUniqueHandle++;
 
-        IRpcMarshaledContext<object> context = JsonRpc.MarshalWithControlledLifetime(declaredType, marshaledObject, options);
+        RpcMarshaledContext context = JsonRpc.MarshalWithControlledLifetime(declaredType.TargetType, marshaledObject, options);
 
         RpcTargetInfo.RevertAddLocalRpcTarget? revert = this.jsonRpc.AddLocalRpcTargetInternal(
             declaredType,
@@ -250,7 +251,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
         Type objectType = marshaledObject.GetType();
         List<int>? optionalInterfacesCodes = null;
-        foreach (RpcMarshalableOptionalInterfaceAttribute attribute in GetMarshalableOptionalInterfaces(declaredType, rpcMarshalableAttribute))
+        foreach (RpcMarshalableOptionalInterfaceAttribute attribute in GetMarshalableOptionalInterfaces(declaredType.TargetType, rpcMarshalableAttribute))
         {
             if (attribute.OptionalInterface.IsAssignableFrom(objectType))
             {
@@ -307,7 +308,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         {
             lock (this.marshaledObjects)
             {
-                if (this.marshaledObjects.TryGetValue(token.Value.Handle, out (IRpcMarshaledContext<object> Context, IDisposable Revert) marshaled))
+                if (this.marshaledObjects.TryGetValue(token.Value.Handle, out (RpcMarshaledContext Context, IDisposable Revert) marshaled))
                 {
                     return marshaled.Context.Proxy;
                 }
@@ -434,13 +435,13 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// <summary>
     /// Releases memory associated with marshaled objects.
     /// </summary>
-    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(object, JsonRpcTargetOptions, Type, RpcMarshalableAttribute)"/> method.</param>
+    /// <param name="handle">The handle to the object as created by the <see cref="GetToken(object, JsonRpcTargetOptions, RpcTargetMetadata, RpcMarshalableAttribute)"/> method.</param>
     /// <param name="ownedBySender"><see langword="true"/> if the <paramref name="handle"/> was created by (and thus the original object owned by) the remote party; <see langword="false"/> if the token and object was created locally.</param>
     private void ReleaseMarshaledObject(long handle, bool ownedBySender)
     {
         lock (this.marshaledObjects)
         {
-            if (this.marshaledObjects.TryGetValue(handle, out (IRpcMarshaledContext<object> Context, IDisposable Revert) info))
+            if (this.marshaledObjects.TryGetValue(handle, out (RpcMarshaledContext Context, IDisposable Revert) info))
             {
                 this.marshaledObjects.Remove(handle);
                 info.Revert.Dispose();

@@ -42,7 +42,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     private MessageFormatterEnumerableTracker? enumerableTracker;
 
     /// <summary>
-    /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+    /// The helper for marshaling <see cref="RpcMarshaledContext"/> in RPC method arguments or return values.
     /// </summary>
     private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
 
@@ -161,7 +161,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     protected JsonRpcMethodAttribute? ApplicableMethodAttributeOnDeserializingMethod { get; private set; }
 
     /// <summary>
-    /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+    /// Gets the helper for marshaling <see cref="RpcMarshaledContext"/> in RPC method arguments or return values.
     /// </summary>
     private protected MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
     {

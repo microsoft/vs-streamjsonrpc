@@ -1,6 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
+using Nerdbank.MessagePack;
+using PolyType.Abstractions;
+using StreamJsonRpc.Reflection;
+
 namespace StreamJsonRpc;
 
 /// <summary>
@@ -8,8 +14,6 @@ namespace StreamJsonRpc;
 /// </summary>
 public partial class NerdbankMessagePackFormatter
 {
-#if NBMSGPACK_MARSHALING_SUPPORT
-
     private class RpcMarshalableConverter<T>(
         JsonRpcProxyOptions proxyOptions,
         JsonRpcTargetOptions targetOptions,
@@ -53,5 +57,4 @@ public partial class NerdbankMessagePackFormatter
 
         public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
-#endif
 }

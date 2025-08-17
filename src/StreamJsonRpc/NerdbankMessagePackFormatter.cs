@@ -31,10 +31,6 @@ namespace StreamJsonRpc;
 /// This formatter prioritizes being trim and NativeAOT safe. As such, it uses <see cref="JsonRpc.LoadTypeTrimSafe(string, string?)"/> instead of <see cref="JsonRpc.LoadType(string, string?)"/> to load exception types to be deserialized.
 /// This trim-friendly method should be overridden to return types that are particularly interesting to the application.
 /// </para>
-/// <para>
-/// <!-- !NBMSGPACK_MARSHALING_SUPPORT -->
-/// This formatter does not support general marshalable objects yet.
-/// </para>
 /// </remarks>
 public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
@@ -60,9 +56,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         ConverterFactories = [ConverterFactory.Instance],
         Converters =
             [
-#if NBMSGPACK_MARSHALING_SUPPORT
                 GetRpcMarshalableConverter<IDisposable>(),
-#endif
                 PipeConverters.PipeReaderConverter.DefaultInstance,
                 PipeConverters.PipeWriterConverter.DefaultInstance,
                 PipeConverters.DuplexPipeConverter.DefaultInstance,
@@ -212,7 +206,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         }
     }
 
-#if NBMSGPACK_MARSHALING_SUPPORT
     internal static MessagePackConverter<T> GetRpcMarshalableConverter<T>()
         where T : class
     {
@@ -227,7 +220,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
         throw new NotSupportedException($"Type '{typeof(T).FullName}' is not supported for RPC Marshaling.");
     }
-#endif
 
     /// <summary>
     /// Reads a string with an optimized path for the value "2.0".
@@ -1287,9 +1279,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new ProgressConverter<T>() :
                TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
-#if NBMSGPACK_MARSHALING_SUPPORT
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute) :
-#endif
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
     }

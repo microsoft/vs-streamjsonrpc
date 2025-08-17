@@ -934,7 +934,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
             public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(typeof(T));
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
                 JsonSerializer.Serialize(writer, token, options);
             }
         }

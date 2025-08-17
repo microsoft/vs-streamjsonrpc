@@ -1218,7 +1218,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(typeof(T));
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
                 MessagePackSerializer.Serialize(ref writer, token, options);
             }
         }
