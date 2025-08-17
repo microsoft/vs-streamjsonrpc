@@ -737,6 +737,7 @@ public class RpcTargetMetadata
             this.IsPublic = method.IsPublic;
             this.Name = attribute?.Name ?? shape?.Name ?? method.Name;
             this.MethodInfo = method;
+            this.Attribute = attribute;
 
             this.ReturnType = method.ReturnType;
             ParameterInfo[] parameters = method.GetParameters();
