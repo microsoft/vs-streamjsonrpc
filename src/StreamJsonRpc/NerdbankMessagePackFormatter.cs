@@ -56,7 +56,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         ConverterFactories = [ConverterFactory.Instance],
         Converters =
             [
-                GetRpcMarshalableConverter<IDisposable>(),
+                GetRpcMarshalableConverter(Witness.ShapeProvider.Resolve<IDisposable>()),
                 PipeConverters.PipeReaderConverter.DefaultInstance,
                 PipeConverters.PipeWriterConverter.DefaultInstance,
                 PipeConverters.DuplexPipeConverter.DefaultInstance,
@@ -206,7 +206,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         }
     }
 
-    internal static MessagePackConverter<T> GetRpcMarshalableConverter<T>()
+    internal static MessagePackConverter<T> GetRpcMarshalableConverter<T>(ITypeShape<T> shape)
         where T : class
     {
         if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(
@@ -215,7 +215,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             out JsonRpcTargetOptions? targetOptions,
             out RpcMarshalableAttribute? attribute))
         {
-            return new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute);
+            return new RpcMarshalableConverter<T>(shape, proxyOptions, targetOptions, attribute);
         }
 
         throw new NotSupportedException($"Type '{typeof(T).FullName}' is not supported for RPC Marshaling.");
@@ -1279,7 +1279,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new ProgressConverter<T>() :
                TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
-               MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(proxyOptions, targetOptions, attribute) :
+               MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(shape, proxyOptions, targetOptions, attribute) :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
     }
@@ -1331,6 +1331,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     [GenerateShapeFor<CommonErrorData>]
     [GenerateShapeFor<RawMessagePack>]
     [GenerateShapeFor<IDictionary>]
+    [GenerateShapeFor<IDisposable>]
     [GenerateShapeFor<Exception>]
     [GenerateShapeFor<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>]
     private partial class Witness;

@@ -15,6 +15,7 @@ namespace StreamJsonRpc;
 public partial class NerdbankMessagePackFormatter
 {
     private class RpcMarshalableConverter<T>(
+        ITypeShape<T> shape,
         JsonRpcProxyOptions proxyOptions,
         JsonRpcTargetOptions targetOptions,
         RpcMarshalableAttribute rpcMarshalableAttribute) : MessagePackConverter<T>
@@ -50,7 +51,8 @@ public partial class NerdbankMessagePackFormatter
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata targetMetadata = RpcTargetMetadata.FromShape(shape);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, targetMetadata, rpcMarshalableAttribute);
                 context.GetConverter<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(Witness.ShapeProvider).Write(ref writer, token, context);
             }
         }
