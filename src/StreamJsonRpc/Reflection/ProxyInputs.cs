@@ -5,6 +5,7 @@
 
 using System.Diagnostics;
 using System.Text;
+using PolyType.Abstractions;
 
 namespace StreamJsonRpc.Reflection;
 
@@ -19,6 +20,16 @@ namespace StreamJsonRpc.Reflection;
 [DebuggerDisplay($"{{{nameof(Requirements)},nq}}")]
 public readonly struct ProxyInputs
 {
+    internal ProxyInputs(ProxyInputs copyFrom)
+    {
+        this.ContractInterface = copyFrom.ContractInterface;
+        this.AdditionalContractInterfaces = copyFrom.AdditionalContractInterfaces;
+        this.Options = copyFrom.Options;
+        this.ImplementedOptionalInterfaces = copyFrom.ImplementedOptionalInterfaces;
+        this.MarshaledObjectHandle = copyFrom.MarshaledObjectHandle;
+        this.ContractInterfaceShape = copyFrom.ContractInterfaceShape;
+    }
+
     /// <summary>
     /// Gets the interface that describes the functions available on the remote end.
     /// </summary>
@@ -43,6 +54,11 @@ public readonly struct ProxyInputs
     /// Gets the handle to the remote object that is being marshaled via this proxy.
     /// </summary>
     internal long? MarshaledObjectHandle { get; init; }
+
+    /// <summary>
+    /// Gets the shape of the contract interface, if available.
+    /// </summary>
+    internal ITypeShape? ContractInterfaceShape { get; init; }
 
     /// <summary>
     /// Gets a description of the requirements on the proxy to be used.

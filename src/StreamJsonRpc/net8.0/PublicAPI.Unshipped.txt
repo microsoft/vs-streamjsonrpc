@@ -65,6 +65,8 @@ StreamJsonRpc.Reflection.ProxyBase.CallingMethod -> System.EventHandler<string!>
 StreamJsonRpc.Reflection.ProxyBase.Dispose() -> void
 StreamJsonRpc.Reflection.ProxyBase.IsDisposed.get -> bool
 StreamJsonRpc.Reflection.ProxyBase.JsonRpc.get -> StreamJsonRpc.JsonRpc!
+StreamJsonRpc.Reflection.ProxyBase.ObserverProxyActivator<T>
+StreamJsonRpc.Reflection.ProxyBase.ObserverProxyActivator<T>.ObserverProxyActivator() -> void
 StreamJsonRpc.Reflection.ProxyBase.OnCalledMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.OnCallingMethod(string! method) -> void
 StreamJsonRpc.Reflection.ProxyBase.Options.get -> StreamJsonRpc.JsonRpcProxyOptions!

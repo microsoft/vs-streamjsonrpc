@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using PolyType;
+using PolyType.Abstractions;
 using static System.FormattableString;
 using STJ = System.Text.Json.Serialization;
 
@@ -296,9 +297,10 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// <param name="interfaceType">The interface the proxy must implement.</param>
     /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
     /// <param name="options">The options to feed into proxy generation.</param>
+    /// <param name="typeShape">The shape of the interface for which a proxy must be produced, if available.</param>
     /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
     [return: NotNullIfNotNull("token")]
-    internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
+    internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options, ITypeShape? typeShape = null)
     {
         if (token is null)
         {
@@ -365,6 +367,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
                     },
                 },
                 MarshaledObjectHandle = token.Value.Handle,
+                ContractInterfaceShape = typeShape,
             });
         if (options.OnProxyConstructed is object)
         {

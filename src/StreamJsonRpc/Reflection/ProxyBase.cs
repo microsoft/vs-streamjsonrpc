@@ -1,12 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Frozen;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using PolyType;
+using PolyType.Abstractions;
+using StreamJsonRpc.Reflection;
 
+// Instruct PolyType to generate shapes with methods included for .NET interfaces that we make special allowances to treat as if they were declared with [RpcMarshalable].
+// Generic interfaces require very special handling to work in NativeAOT environments.
 [assembly: TypeShapeExtension(typeof(IDisposable), IncludeMethods = MethodShapeFlags.PublicInstance)]
+[assembly: TypeShapeExtension(typeof(IObserver<>), IncludeMethods = MethodShapeFlags.PublicInstance, AssociatedTypes = [typeof(ProxyBase.ObserverProxyActivator<>)], Requirements = TypeShapeRequirements.Constructor)]
 
 namespace StreamJsonRpc.Reflection;
 
@@ -16,6 +22,16 @@ namespace StreamJsonRpc.Reflection;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class ProxyBase : IJsonRpcClientProxyInternal
 {
+    /// <summary>
+    /// A map of .NET BCL types that we have special handling for so that users can use them in their RPC interfaces
+    /// as if they had <see cref="RpcMarshalableAttribute"/> applied to them,
+    /// to their activation helpers.
+    /// </summary>
+    private static readonly FrozenDictionary<Type, Type> BclTypesTreatedAsMarshalable = new Dictionary<Type, Type>
+    {
+        [typeof(IObserver<>)] = typeof(ObserverProxyActivator<>),
+    }.ToFrozenDictionary();
+
     private readonly JsonRpc client;
     private readonly JsonRpcProxyOptions? options;
     private readonly long? marshaledObjectHandle;
@@ -61,6 +77,24 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
 
     /// <inheritdoc/>
     public event EventHandler<string>? CalledMethod;
+
+    /// <summary>
+    /// A stub interface used to trigger generation of a source generated proxy for <see cref="IObserver{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of observed value.</typeparam>
+    /// <remarks>
+    /// The proxy is activated by <see cref="ObserverProxyActivator{T}"/>.
+    /// </remarks>
+    [RpcMarshalable]
+    internal interface IObserverProxyGenerator<T> : IObserver<T>, IDisposable;
+
+    /// <summary>
+    /// A non-generic interface that can activate a generic proxy type.
+    /// </summary>
+    private interface IProxyActivator
+    {
+        IJsonRpcClientProxy Activate(JsonRpc client, in ProxyInputs inputs);
+    }
 
     /// <inheritdoc/>
     public JsonRpc JsonRpc => this.client;
@@ -140,13 +174,30 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
             return false;
         }
 
-        // Special case for IDisposable, which is a common contract interface
-        // and which we document that we can create proxies for without any effort on
-        // the user's part.
-        if (proxyInputs.ContractInterface == typeof(IDisposable) && proxyInputs.AdditionalContractInterfaces.IsEmpty)
+        // Special case for certain interfaces which we document that we
+        // can create proxies for without any effort on the user's part.
+        if (proxyInputs.AdditionalContractInterfaces.IsEmpty)
         {
-            proxy = new ProxyForIDisposable(jsonRpc, proxyInputs);
-            return true;
+            if (proxyInputs.ContractInterface == typeof(IDisposable))
+            {
+                proxy = new ProxyForIDisposable(jsonRpc, proxyInputs);
+                return true;
+            }
+            else if (proxyInputs.ContractInterface is { GenericTypeArguments.Length: 1 } && proxyInputs.ContractInterfaceShape is not null)
+            {
+                // To avoid having to dynamically close a generic type, we utilize PolyType associated type shapes to get our activation class,
+                // which is generic and therefore the NativeAOT compiler will have precompiled it and the proxy it depends on.
+                if (BclTypesTreatedAsMarshalable.TryGetValue(proxyInputs.ContractInterface.GetGenericTypeDefinition(), out Type? associatedActivatorType))
+                {
+                    IObjectTypeShape? proxyGenerationShape = (IObjectTypeShape?)proxyInputs.ContractInterfaceShape.GetAssociatedTypeShape(associatedActivatorType);
+                    if (proxyGenerationShape?.GetDefaultConstructor() is { } ctor)
+                    {
+                        IProxyActivator activator = (IProxyActivator)ctor();
+                        proxy = activator.Activate(jsonRpc, proxyInputs);
+                        return true;
+                    }
+                }
+            }
         }
 
         // Look for a source generated proxy type first.
@@ -293,5 +344,40 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         return true;
     }
 
+    /// <summary>
+    /// A helper class that can activate a closed generic proxy for <see cref="IObserver{T}"/> in a NativeAOT-compatible way.
+    /// </summary>
+    /// <typeparam name="T">The type argument for the <see cref="IObserver{T}"/> proxy.</typeparam>
+    /// <remarks>
+    /// <para>
+    /// Because this class has a hard-coded <typeparamref name="T"/> type parameter, it can activate the proxy in a NativeAOT-safe way.
+    /// Instances of this class are obtained via PolyType associated type shapes in order to avoid any code ever having to call
+    /// <see cref="Type.MakeGenericType(Type[])"/> or <see cref="MethodInfo.MakeGenericMethod(Type[])"/> which requires a runtime
+    /// that supports dynamic code generation.
+    /// </para>
+    /// <para>
+    /// The proxy this class activates is generated by the source generator in response to <see cref="IObserverProxyGenerator{T}"/>.
+    /// </para>
+    /// <para>
+    /// This class may be hidden from users, but it is here to trigger source generators to emit code that references it,
+    /// so treat this class just like any other legitimate public API by honoring binary API compatibility requirements.
+    /// </para>
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public class ObserverProxyActivator<T> : IProxyActivator
+    {
+        IJsonRpcClientProxy IProxyActivator.Activate(JsonRpc client, in ProxyInputs inputs) => new Generated.StreamJsonRpc_Reflection_ProxyBase_IObserverProxyGenerator_Proxy<T>(client, inputs);
+    }
+
+    /// <summary>
+    /// A minimal <see cref="ProxyBase"/> derived class that serves as an <see cref="IDisposable"/> proxy.
+    /// </summary>
+    /// <param name="client"><inheritdoc cref="ProxyBase(JsonRpc, in ProxyInputs)" path="/param[@name='client']"/></param>
+    /// <param name="inputs"><inheritdoc cref="ProxyBase(JsonRpc, in ProxyInputs)" path="/param[@name='inputs']"/></param>
+    /// <remarks>
+    /// The base class already implements the <see cref="IDisposable"/> interface.
+    /// The only reason we have to declare this class is because <see cref="ProxyBase"/> is <see langword="abstract"/>
+    /// and we need a concrete type to instantiate.
+    /// </remarks>
     private class ProxyForIDisposable(JsonRpc client, in ProxyInputs inputs) : ProxyBase(client, inputs), IDisposable;
 }

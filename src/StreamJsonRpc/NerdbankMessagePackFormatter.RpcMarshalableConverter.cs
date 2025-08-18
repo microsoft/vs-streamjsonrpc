@@ -34,7 +34,7 @@ public partial class NerdbankMessagePackFormatter
 #pragma warning restore NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods
 
             return token.HasValue
-                ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)
+                ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions, shape)
                 : default;
         }
 
