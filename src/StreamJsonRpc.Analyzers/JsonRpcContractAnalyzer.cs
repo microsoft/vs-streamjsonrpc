@@ -297,10 +297,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         bool isCallScopedLifetime = rpcContractAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.RpcMarshalableAttribute.CallScopedLifetime).Value.Value is true;
         ImmutableList<Diagnostic> diagnostics = [];
         Location typeLocation = namedType.Locations.FirstOrDefault() ?? Location.None;
+        bool hasGenericTypeParameters = namedType.TypeArguments.Any(ta => ta is ITypeParameterSymbol);
 
         // All RPC contracts should have shapes generated for them that include methods.
         AttributeData? generateShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.GenerateShapeAttribute));
-        if (generateShapeAttribute is null || !this.IncludesPublicMethods(generateShapeAttribute))
+        if (!hasGenericTypeParameters && (generateShapeAttribute is null || !this.IncludesPublicMethods(generateShapeAttribute)))
         {
             diagnostics = diagnostics.Add(Diagnostic.Create(
                 GeneratePolyTypeMethodsOnRpcContractInterface,
@@ -322,7 +323,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        if (this.GetNonPartialElements(namedType, context.CancellationToken) is { Count: > 0 } nonPartialElements)
+        if (!hasGenericTypeParameters && this.GetNonPartialElements(namedType, context.CancellationToken) is { Count: > 0 } nonPartialElements)
         {
             Location[] additionalLocations = nonPartialElements.Select(e => e.Location).ToArray();
             string nonPartialElementsList = string.Join(", ", nonPartialElements.Select(e => e.Symbol.ToDisplayString(GenerationHelpers.QualifiedNameOnlyFormat)));

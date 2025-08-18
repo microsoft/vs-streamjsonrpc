@@ -12,6 +12,17 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task OpenGenericRpcMarshalableNeedNotBePartialOrIncludeShape()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            public interface IMyRpcMarshalable<T> : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task MethodReturnTypes()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
