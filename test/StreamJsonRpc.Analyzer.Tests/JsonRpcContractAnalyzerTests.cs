@@ -91,7 +91,6 @@ public class JsonRpcContractAnalyzerTests
             [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             partial interface IMyRpc
             {
-                static int StaticMethodsAreIgnored() => 3;
                 event EventHandler Changed;
                 event EventHandler<int> Updated;
                 event CustomEvent {|StreamJsonRpc0016:Custom|};
@@ -102,6 +101,20 @@ public class JsonRpcContractAnalyzerTests
             delegate void CustomEvent();
             """);
     }
+
+#if NET
+    [Fact]
+    public async Task StaticMembersIgnored()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            partial interface IMyRpc
+            {
+                static int StaticMethodsAreIgnored() => 3;
+            }
+            """);
+    }
+#endif
 
     [Fact]
     public async Task DisallowedMembers_InBaseInterface()

@@ -370,6 +370,7 @@ public class ProxyGeneratorTests
             """);
     }
 
+#if NET
     /// <summary>
     /// Verifies that static members are ignored during proxy generation.
     /// </summary>
@@ -384,6 +385,7 @@ public class ProxyGeneratorTests
             }
             """);
     }
+#endif
 
     /// <summary>
     /// Verifies that an RpcMarshalable attribute on an invalid interface does not break the build (but it will report a diagnostic, as tested elsewhere).
