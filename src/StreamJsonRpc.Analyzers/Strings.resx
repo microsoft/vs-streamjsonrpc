@@ -195,4 +195,10 @@
   <data name="StreamJsonRpc0004_MessageFormat" xml:space="preserve">
     <value>Proxies may only be produced for interfaces that are not open-generics, but {0} is not an interface or is an open generic.</value>
   </data>
+  <data name="StreamJsonRpc0008_Title" xml:space="preserve">
+    <value>Add methods to PolyType shape for RPC contract interface</value>
+  </data>
+  <data name="StreamJsonRpc0008_MessageFormat" xml:space="preserve">
+    <value>The RPC contract type '{0}' should also have the {1} applied so that it works with more formatters.</value>
+  </data>
 </root>

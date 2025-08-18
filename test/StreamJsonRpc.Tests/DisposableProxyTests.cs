@@ -39,7 +39,7 @@ public abstract partial class DisposableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
         Task<IDisposable?> GetDisposableAsync(bool returnNull = false);

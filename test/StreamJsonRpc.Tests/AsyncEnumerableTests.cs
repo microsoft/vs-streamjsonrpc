@@ -38,7 +38,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     /// since the server implements the methods on this interface with a return type of Task{T}
     /// but we want the client proxy to NOT be that.
     /// </summary>
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer2
     {
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
@@ -46,7 +46,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
         IAsyncEnumerable<int> GetValuesFromEnumeratedSourceAsync(CancellationToken cancellationToken);
@@ -80,7 +80,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<string> CallbackClientAndYieldOneValueAsync(CancellationToken cancellationToken);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IClient
     {
         Task DoSomethingAsync(CancellationToken cancellationToken);

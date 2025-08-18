@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using MessagePack;
@@ -41,7 +42,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
@@ -102,12 +103,13 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable(CallScopedLifetime = true)]
+    [RpcMarshalable(CallScopedLifetime = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithCallScopedLifetime : IMarshalable
     {
     }
 
     [RpcMarshalable]
+    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/232")]
     public partial interface IGenericMarshalable<T> : IMarshalable
     {
         Task<T> DoSomethingWithParameterAsync(T parameter);
@@ -117,14 +119,14 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 #pragma warning disable StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     public partial interface INonDisposableMarshalable
 #pragma warning restore StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithProperties : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -132,7 +134,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithEvents : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -140,7 +142,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))]
     [RpcMarshalableOptionalInterface(3, typeof(IMarshalableSubType1Extended))]
@@ -156,14 +158,14 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<string> ToBeRenamedAsync(string s);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubTypeWithIntermediateInterface))]
     public partial interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
@@ -177,7 +179,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
@@ -185,13 +187,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
@@ -199,7 +201,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusOneAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
@@ -216,12 +218,13 @@ public abstract partial class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
+    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
     public partial interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
         Task<int> GetPlusFiveAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
     public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
@@ -230,18 +233,18 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
     {
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);

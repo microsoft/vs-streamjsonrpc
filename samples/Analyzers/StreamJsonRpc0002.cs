@@ -1,3 +1,5 @@
+#pragma warning disable StreamJsonRpc0008
+
 namespace StreamJsonRpc0002.Violation
 {
 #pragma warning disable StreamJsonRpc0002
