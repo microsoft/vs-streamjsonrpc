@@ -32,6 +32,7 @@
     <PackageVersion Include="Nerdbank.MessagePack" Version="0.8.82-rc" />
     <PackageVersion Include="Nerdbank.Streams" Version="2.12.87" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="PolyType" Version="0.52.1" />
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />

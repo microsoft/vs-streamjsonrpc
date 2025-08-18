@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-public class RpcTargetMetadataTests
+using System.ComponentModel.DataAnnotations;
+using PolyType;
+
+public partial class RpcTargetMetadataTests
 {
     internal interface IRpcContractBase
     {
@@ -21,6 +24,42 @@ public class RpcTargetMetadataTests
         event EventHandler<MyEventArgs> DerivedEvent;
 
         Task MethodDerivedAsync(int value);
+    }
+
+    [GenerateShape, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    internal partial interface IShapedContract
+    {
+        event EventHandler DidMath;
+
+        Task<int> AddAsync(int a, int b);
+
+        [MethodShape(Ignore = true)]
+        void Ignored();
+
+        [MethodShape(Name = "Subtract")]
+        Task<int> SubtractAsync(int a, int b);
+
+        [MethodShape(Name = "Multiply"), JsonRpcMethod("Times")]
+        Task<int> MultiplyAsync(int a, int b);
+    }
+
+    [Fact]
+    public void FromShape()
+    {
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.ShapeProvider);
+
+        var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
+        var add = Assert.Single(metadata.Methods["Add"]);
+        Assert.Same(addAsync, add);
+
+        var subtract = Assert.Single(metadata.Methods["Subtract"]);
+        Assert.False(metadata.Methods.ContainsKey("SubtractAsync"));
+
+        // Verify that JsonRpcMethod.Name takes precedence over MethodShape.Name.
+        var multiply = Assert.Single(metadata.Methods["Times"]);
+
+        // Fail the test when support for events is added so we can update the test.
+        Assert.Equal(4, metadata.Methods.Count);
     }
 
     [Fact]
@@ -89,4 +128,7 @@ public class RpcTargetMetadataTests
 
         internal void OnDerivedEvent(MyEventArgs e) => this.DerivedEvent?.Invoke(this, e);
     }
+
+    [GenerateShapeFor<IShapedContract>]
+    private partial class Witness;
 }
