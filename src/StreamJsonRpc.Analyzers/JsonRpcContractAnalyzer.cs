@@ -362,6 +362,9 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
 
             switch (member)
             {
+                case { IsStatic: true }:
+                    // Ignore all static members, as they are not part of the RPC contract.
+                    break;
                 case IMethodSymbol { IsGenericMethod: true } method:
                     ReportMemberDiagnostic(context, namedType, method, location, (loc, addl, memberFormat) => Diagnostic.Create(NoGenericMethods, loc, addl, namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat), member.ToDisplayString(memberFormat)));
                     break;

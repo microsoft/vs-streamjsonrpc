@@ -91,6 +91,7 @@ public class JsonRpcContractAnalyzerTests
             [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             partial interface IMyRpc
             {
+                static int StaticMethodsAreIgnored() => 3;
                 event EventHandler Changed;
                 event EventHandler<int> Updated;
                 event CustomEvent {|StreamJsonRpc0016:Custom|};

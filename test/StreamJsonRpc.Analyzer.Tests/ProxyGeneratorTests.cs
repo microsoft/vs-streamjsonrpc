@@ -371,6 +371,21 @@ public class ProxyGeneratorTests
     }
 
     /// <summary>
+    /// Verifies that static members are ignored during proxy generation.
+    /// </summary>
+    [Fact]
+    public async Task RpcMarshalable_HasStaticMethod()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IMarshalableWithProperties
+            {
+                static int GetInt() => 3;
+            }
+            """);
+    }
+
+    /// <summary>
     /// Verifies that an RpcMarshalable attribute on an invalid interface does not break the build (but it will report a diagnostic, as tested elsewhere).
     /// </summary>
     [Fact]

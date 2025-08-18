@@ -38,6 +38,9 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
         {
             switch (member)
             {
+                case { IsStatic: true }:
+                    // Ignore all static members.
+                    break;
                 case IMethodSymbol method when SymbolEqualityComparer.Default.Equals(method.ContainingType, symbols.IDisposable):
                     // We don't map this special Dispose method.
                     break;
