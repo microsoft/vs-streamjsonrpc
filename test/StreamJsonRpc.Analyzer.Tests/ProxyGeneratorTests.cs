@@ -163,13 +163,40 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
-    public async Task Interface_HasDisposeWithoutIDisposable()
+    public async Task Interface_HasAsyncDisposeWithoutIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
             [JsonRpcContract]
             public partial interface IFoo
             {
                 Task Dispose();
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interface_DerivesFromIDisposal()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IAmDisposable : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interface_HasNestedTypes()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IHaveNestedTypes : IDisposable
+            {
+                Task DoSomethingAsync();
+
+                private class A { }
+                private struct B { }
+                private record C { }
             }
             """);
     }

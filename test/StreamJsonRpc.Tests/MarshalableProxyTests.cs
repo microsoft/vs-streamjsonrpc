@@ -97,7 +97,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task DoSomethingAsync();
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalable : INonMarshalable
     {
     }

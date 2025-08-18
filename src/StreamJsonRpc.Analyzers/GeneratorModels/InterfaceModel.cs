@@ -50,6 +50,9 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
                 case IEventSymbol evt when EventModel.Create(evt, symbols) is EventModel evtModel:
                     events.Add(evtModel);
                     break;
+                case INamedTypeSymbol nestedType:
+                    // We ignore these.
+                    break;
                 default:
                     hasUnsupportedMemberTypes = true;
                     break;
