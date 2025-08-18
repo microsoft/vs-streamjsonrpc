@@ -59,7 +59,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     private readonly Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
-    private readonly IProxyFactory proxyFactory;
+    private readonly ProxyFactory proxyFactory;
     private long nextUniqueHandle;
 
     /// <summary>
@@ -72,7 +72,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// </remarks>
     private ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> outboundRequestIdMarshalMap = ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty;
 
-    internal MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, IProxyFactory proxyFactory, IJsonRpcFormatterState formatterState)
+    internal MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, ProxyFactory proxyFactory, IJsonRpcFormatterState formatterState)
     {
         this.jsonRpc = jsonRpc;
         this.proxyFactory = proxyFactory;

@@ -19,7 +19,7 @@ namespace StreamJsonRpc;
 /// </summary>
 public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
 {
-    private readonly IProxyFactory proxyFactory;
+    private readonly ProxyFactory proxyFactory;
 
     private JsonRpc? rpc;
 
@@ -59,11 +59,11 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// </summary>
     [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public FormatterBase()
-        : this(DefaultProxyFactory.Instance)
+        : this(ProxyFactory.Default)
     {
     }
 
-    private protected FormatterBase(IProxyFactory proxyFactory)
+    private protected FormatterBase(ProxyFactory proxyFactory)
     {
         this.proxyFactory = proxyFactory;
     }
