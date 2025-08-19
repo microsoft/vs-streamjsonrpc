@@ -1,5 +1,3 @@
-using PolyType;
-
 namespace StreamJsonRpc0008.Violation
 {
 #pragma warning disable StreamJsonRpc0008
@@ -15,7 +13,7 @@ namespace StreamJsonRpc0008.Violation
 namespace StreamJsonRpc0008.Fix
 {
     #region Fix
-    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyObject
     {
     }

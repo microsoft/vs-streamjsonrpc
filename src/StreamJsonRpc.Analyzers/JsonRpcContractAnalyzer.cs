@@ -300,15 +300,17 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         bool hasGenericTypeParameters = namedType.TypeArguments.Any(ta => ta is ITypeParameterSymbol);
 
         // All RPC contracts should have shapes generated for them that include methods.
-        AttributeData? generateShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.GenerateShapeAttribute));
-        if (!hasGenericTypeParameters && (generateShapeAttribute is null || !this.IncludesPublicMethods(generateShapeAttribute)))
+        // GenerateShapeAttribute is ineffective on open generic types, so ignore it in that case.
+        AttributeData? generateShapeAttribute = hasGenericTypeParameters ? null : namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.GenerateShapeAttribute));
+        AttributeData? typeShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.TypeShapeAttribute));
+        if (!this.IncludesPublicMethods(typeShapeAttribute) && !this.IncludesPublicMethods(generateShapeAttribute))
         {
             diagnostics = diagnostics.Add(Diagnostic.Create(
                 GeneratePolyTypeMethodsOnRpcContractInterface,
                 typeLocation,
-                [generateShapeAttribute?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)?.GetLocation() ?? Location.None],
+                [(generateShapeAttribute ?? typeShapeAttribute)?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)?.GetLocation() ?? Location.None],
                 namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                $"[GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
+                "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
         }
 
         AttributeData[] optionalIfaceAttrs = [.. namedType.GetAttributes().Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableOptionalInterface))];

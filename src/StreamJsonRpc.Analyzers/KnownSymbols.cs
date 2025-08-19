@@ -13,6 +13,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? ValueTaskOfT,
     INamedTypeSymbol? IAsyncEnumerableOfT,
     INamedTypeSymbol? GenerateShapeAttribute,
+    INamedTypeSymbol? TypeShapeAttribute,
     INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
     INamedTypeSymbol RpcMarshalableAttribute,
@@ -33,6 +34,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         INamedTypeSymbol? asyncEnumerableOfT = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
         INamedTypeSymbol? generateShapeAttribute = compilation.GetTypeByMetadataName("PolyType.GenerateShapeAttribute");
+        INamedTypeSymbol? typeShapeAttribute = compilation.GetTypeByMetadataName("PolyType.TypeShapeAttribute");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
         INamedTypeSymbol? rpcMarshalableAttribute = compilation.GetTypeByMetadataName(Types.RpcMarshalableAttribute.FullName);
@@ -61,7 +63,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
         return true;
     }
 }

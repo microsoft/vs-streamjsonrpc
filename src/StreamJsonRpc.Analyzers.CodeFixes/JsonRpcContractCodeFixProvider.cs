@@ -111,9 +111,9 @@ public class JsonRpcContractCodeFixProvider : CodeFixProvider
                     return context.Document;
                 }
 
-                // Add a whole new GenerateShapeAttribute.
+                // Add a whole new TypeShapeAttribute.
                 BaseTypeDeclarationSyntax modifiedTypeDecl = nodes.TypeDeclaration
-                    .AddAttributeLists(AttributeList(SingletonSeparatedList(Attribute(ParseName("PolyType.GenerateShape")).AddArgumentListArguments(
+                    .AddAttributeLists(AttributeList(SingletonSeparatedList(Attribute(ParseName("PolyType.TypeShape")).AddArgumentListArguments(
                         AttributeArgument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("MethodShapeFlags"), IdentifierName("PublicInstance"))).WithNameEquals(NameEquals(IdentifierName("IncludeMethods"))))))
                     .WithAdditionalAnnotations(Simplifier.AddImportsAnnotation, Formatter.Annotation));
 

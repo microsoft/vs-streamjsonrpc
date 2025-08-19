@@ -86,6 +86,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// The proxy is activated by <see cref="ObserverProxyActivator{T}"/>.
     /// </remarks>
     [RpcMarshalable]
+    [TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal interface IObserverProxyGenerator<T> : IObserver<T>, IDisposable;
 
     /// <summary>

@@ -13,6 +13,6 @@ The following interface serves as an RPC interface but has no PolyType shape wit
 
 ## Resolution
 
-Add a <xref:PolyType.GenerateShapeAttribute> to the interface and set its <xref:PolyType.GenerateShapeAttribute.IncludeMethods> named argument to <xref:PolyType.MethodShapeFlags.PublicInstance> (or a superset of that).
+Add a <xref:PolyType.TypeShapeAttribute> to the interface and set its <xref:PolyType.TypeShapeAttribute.IncludeMethods> named argument to <xref:PolyType.MethodShapeFlags.PublicInstance> (or a superset of that).
 
 [!code-csharp[](../../samples/Analyzers/StreamJsonRpc0008.cs#Fix)]

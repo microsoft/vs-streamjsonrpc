@@ -10,7 +10,6 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
-using PolyType;
 
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
@@ -108,8 +107,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable]
-    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/232")]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IGenericMarshalable<T> : IMarshalable
     {
         Task<T> DoSomethingWithParameterAsync(T parameter);
