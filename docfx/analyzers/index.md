@@ -20,3 +20,6 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | [StreamJsonRpc0014](StreamJsonRpc0014.md) | Usage    | Error    | CancellationToken as last parameter                             |
 | [StreamJsonRpc0015](StreamJsonRpc0015.md) | Usage    | Error    | No generic interfaces                                           |
 | [StreamJsonRpc0016](StreamJsonRpc0016.md) | Usage    | Error    | Unsupported event delegate type                                 |
+| [StreamJsonRpc0030](StreamJsonRpc0030.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> should be applied only to generic interfaces
+| [StreamJsonRpc0031](StreamJsonRpc0031.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> type argument should be a closed instance of the applied type
+| [StreamJsonRpc0032](StreamJsonRpc0032.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> should be accompanied by another contract attribute

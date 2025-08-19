@@ -28,6 +28,8 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
 
     internal required bool DeclaredInThisCompilation { get; init; }
 
+    internal required ImmutableEquatableSet<string> PrescribedTypeArgs { get; init; }
+
     internal static InterfaceModel Create(INamedTypeSymbol iface, KnownSymbols symbols, bool declaredInThisCompilation, CancellationToken cancellationToken)
     {
         bool hasUnsupportedMemberTypes = false;
@@ -62,6 +64,16 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
             }
         }
 
+        HashSet<string> prescribedTypeArgs = [];
+        foreach (AttributeData attr in iface.GetAttributes())
+        {
+            if (attr is { AttributeClass: { TypeArguments: [INamedTypeSymbol { TypeArguments: { Length: > 0 } typeArgs }] } attrClass }
+                && SymbolEqualityComparer.Default.Equals(attrClass.ConstructUnboundGenericType(), symbols.JsonRpcProxyAttribute))
+            {
+                prescribedTypeArgs.Add(string.Join(", ", typeArgs.Select(ta => ta.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat))));
+            }
+        }
+
         return new InterfaceModel(
             iface.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
             iface.Name,
@@ -74,6 +86,7 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
             IsPartial = iface.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is InterfaceDeclarationSyntax syntax && syntax.Modifiers.Any(SyntaxKind.PartialKeyword),
             IsPublic = iface.IsActuallyPublic(),
             DeclaredInThisCompilation = declaredInThisCompilation,
+            PrescribedTypeArgs = prescribedTypeArgs.ToImmutableEquatableSet(),
         };
     }
 }

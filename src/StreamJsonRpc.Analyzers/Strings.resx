@@ -201,4 +201,22 @@
   <data name="StreamJsonRpc0008_MessageFormat" xml:space="preserve">
     <value>The RPC contract type '{0}' should also have the {1} applied so that it works with more formatters.</value>
   </data>
+  <data name="StreamJsonRpc0030_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be applied only to generic interfaces</value>
+  </data>
+  <data name="StreamJsonRpc0031_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; type argument should be a closed instance of the applied type</value>
+  </data>
+  <data name="StreamJsonRpc0032_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be accompanied by JsonRpcContractAttribute or RpcMarshalableAttribute.</value>
+  </data>
+  <data name="StreamJsonRpc0030_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be applied only to generic interfaces, but {0} is not a generic interface.</value>
+  </data>
+  <data name="StreamJsonRpc0031_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; type argument should be a closed instance of the applied type, but {0} has this attribute applied with {1} as a type argument.</value>
+  </data>
+  <data name="StreamJsonRpc0032_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be accompanied by either JsonRpcContractAttribute or RpcMarshalableAttribute, but {0} has neither of these applied.</value>
+  </data>
 </root>

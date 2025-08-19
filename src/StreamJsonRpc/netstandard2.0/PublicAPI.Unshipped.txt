@@ -35,6 +35,8 @@ StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, StreamJ
 StreamJsonRpc.JsonRpc.NotifyWithParameterObjectAsync(string! targetName, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? namedArguments, System.Collections.Generic.IReadOnlyDictionary<string!, System.Type!>? argumentDeclaredTypes) -> System.Threading.Tasks.Task!
 StreamJsonRpc.JsonRpcContractAttribute
 StreamJsonRpc.JsonRpcContractAttribute.JsonRpcContractAttribute() -> void
+StreamJsonRpc.JsonRpcProxyAttribute<T>
+StreamJsonRpc.JsonRpcProxyAttribute<T>.JsonRpcProxyAttribute() -> void
 StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute
 StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute.AdditionalInterfaces.get -> System.ReadOnlyMemory<System.Type!>
 StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute.JsonRpcProxyInterfaceGroupAttribute(params System.Type![]! additionalInterfaces) -> void

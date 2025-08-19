@@ -354,6 +354,32 @@ public class ProxyGeneratorTests
             """);
     }
 
+    [Fact]
+    public async Task RpcMarshalable_GenericWithClosedPrescriptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [JsonRpcProxy<IGenericMarshalable<int>>]
+            public partial interface IGenericMarshalable<T>
+            {
+                Task<T> DoSomethingWithParameterAsync(T parameter);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_GenericWithClosedPrescriptions_Arity2()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [JsonRpcProxy<IGenericMarshalable<int, string>>]
+            public partial interface IGenericMarshalable<T1, T2>
+            {
+                Task<T1> DoSomethingWithParameterAsync(T2 parameter);
+            }
+            """);
+    }
+
     /// <summary>
     /// Verifies that an RpcMarshalable attribute on an interface with both valid and invalid members does not break the build (but it will report a diagnostic, as tested elsewhere).
     /// </summary>

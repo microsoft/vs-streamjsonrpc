@@ -108,6 +108,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [JsonRpcProxy<IGenericMarshalable<int>>]
     public partial interface IGenericMarshalable<T> : IMarshalable
     {
         Task<T> DoSomethingWithParameterAsync(T parameter);

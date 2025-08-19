@@ -19,3 +19,7 @@ StreamJsonRpc0013 | Usage | Error | RPC contracts may not include generic method
 StreamJsonRpc0014 | Usage | Error | CancellationToken may only appear as the last parameter
 StreamJsonRpc0015 | Usage | Error | RPC contracts may not be generic interfaces
 StreamJsonRpc0016 | Usage | Error | Unsupported event delegate type
+StreamJsonRpc0030 | Usage | Error | `JsonRpcProxyAttribute<T>` should be applied only to generic interfaces.
+StreamJsonRpc0031 | Usage | Error | `JsonRpcProxyAttribute<T>` type argument should be a closed instance of the applied type.
+StreamJsonRpc0032 | Usage | Error | `JsonRpcProxyAttribute<T>` should be accompanied by another contract attribute.
+ 
