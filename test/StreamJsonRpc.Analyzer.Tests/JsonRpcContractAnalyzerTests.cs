@@ -386,7 +386,7 @@ public class JsonRpcContractAnalyzerTests
             using StreamJsonRpc;
 
             [JsonRpcContract]
-            [TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             partial interface IRegularContract
             {
             }

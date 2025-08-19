@@ -305,12 +305,14 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         AttributeData? typeShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.TypeShapeAttribute));
         if (!this.IncludesPublicMethods(typeShapeAttribute) && !this.IncludesPublicMethods(generateShapeAttribute))
         {
+            bool preferGenerateShape = generateShapeAttribute is not null || !isRpcMarshalable;
             diagnostics = diagnostics.Add(Diagnostic.Create(
                 GeneratePolyTypeMethodsOnRpcContractInterface,
                 typeLocation,
                 [(generateShapeAttribute ?? typeShapeAttribute)?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)?.GetLocation() ?? Location.None],
+                ImmutableDictionary<string, string?>.Empty.Add("PreferGenerateShape", preferGenerateShape ? "true" : "false"),
                 namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
+                preferGenerateShape ? "[GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]" : "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
         }
 
         AttributeData[] optionalIfaceAttrs = [.. namedType.GetAttributes().Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableOptionalInterface))];

@@ -112,8 +112,9 @@ public class JsonRpcContractCodeFixProvider : CodeFixProvider
                 }
 
                 // Add a whole new TypeShapeAttribute.
+                bool preferGenerateShape = diagnostic.Properties.TryGetValue("PreferGenerateShape", out string? value) && value == "true";
                 BaseTypeDeclarationSyntax modifiedTypeDecl = nodes.TypeDeclaration
-                    .AddAttributeLists(AttributeList(SingletonSeparatedList(Attribute(ParseName("PolyType.TypeShape")).AddArgumentListArguments(
+                    .AddAttributeLists(AttributeList(SingletonSeparatedList(Attribute(ParseName(preferGenerateShape ? "PolyType.GenerateShape" : "PolyType.TypeShape")).AddArgumentListArguments(
                         AttributeArgument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("MethodShapeFlags"), IdentifierName("PublicInstance"))).WithNameEquals(NameEquals(IdentifierName("IncludeMethods"))))))
                     .WithAdditionalAnnotations(Simplifier.AddImportsAnnotation, Formatter.Annotation));
 
