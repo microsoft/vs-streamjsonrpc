@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\AOT.props" />
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <PublishAot>true</PublishAot>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
