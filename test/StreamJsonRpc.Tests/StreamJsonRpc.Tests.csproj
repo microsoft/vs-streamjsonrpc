@@ -47,6 +47,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />
+    <ProjectReference Include="..\UnreachableAssembly\UnreachableAssembly.csproj">
+      <!-- We MUST NOT have this assembly in our test assembly's output directory so that it cannot be reached from the default ALC. -->
+      <Private>false</Private>
+    </ProjectReference>
     <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -68,4 +72,10 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" Condition=" '$(TargetFramework)' == 'net472' " />
   </ItemGroup>
+  <Target Name="PlaceMissingAssembly" AfterTargets="ResolveReferences">
+    <ItemGroup>
+      <DivertedProjectReferenceOutputs Include="@(ReferencePath)" Condition=" '%(FileName)' == 'UnreachableAssembly' " />
+    </ItemGroup>
+    <Copy SourceFiles="@(DivertedProjectReferenceOutputs)" DestinationFolder="$(OutputPath)hidden" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

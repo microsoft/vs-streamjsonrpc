@@ -1,8 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if NET
+using System.Reflection;
+using System.Runtime.Loader;
+#endif
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using StreamJsonRpc.Tests;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
 
 public class JsonRpcProxyGenerationTests : TestBase
@@ -133,6 +138,11 @@ public class JsonRpcProxyGenerationTests : TestBase
     public interface IServerWithGenericMethod
     {
         Task AddAsync<T>(T a, T b);
+    }
+
+    public interface IReferenceAnUnreachableAssembly
+    {
+        Task TakeAsync(UnreachableAssembly.SomeUnreachableClass obj);
     }
 
     internal interface IServerInternal :
@@ -797,6 +807,57 @@ public class JsonRpcProxyGenerationTests : TestBase
         var clientRpc = JsonRpc.Attach<IServerWithValueTasks>(streams.Item1);
         await clientRpc.DoSomethingValueAsync();
     }
+
+    /// <summary>
+    /// Validates that similar proxies are generated in the same dynamic assembly.
+    /// </summary>
+    [Fact]
+    public void ReuseDynamicAssembliesTest()
+    {
+        JsonRpc clientRpc = new(Stream.Null);
+        IServer proxy1 = clientRpc.Attach<IServer>();
+        IServer2 proxy2 = clientRpc.Attach<IServer2>();
+        Assert.Same(proxy1.GetType().Assembly, proxy2.GetType().Assembly);
+    }
+
+#if NET
+    [Fact]
+    public void DynamicAssembliesKeyedByAssemblyLoadContext()
+    {
+        UnreachableAssemblyTools.VerifyUnreachableAssembly();
+
+        // Set up a new ALC that can find the hidden assembly, and ask for the proxy type.
+        AssemblyLoadContext alc = UnreachableAssemblyTools.CreateContextForReachingTheUnreachable();
+
+        JsonRpc clientRpc = new(Stream.Null);
+
+        // Ensure we first generate a proxy in our own default ALC.
+        // The goal being to emit a DynamicAssembly that we *might* reuse
+        // for the later proxy for which the first DynamicAssembly is not appropriate.
+        clientRpc.Attach<IServer>();
+
+        // Now take very specific steps to invoke the rest of the test in the other AssemblyLoadContext.
+        // This is important so that our IReferenceAnUnreachableAssembly type will be able to resolve its
+        // own type references to UnreachableAssembly.dll, which our own default ALC cannot do.
+        MethodInfo helperMethodInfo = typeof(JsonRpcProxyGenerationTests).GetMethod(nameof(DynamicAssembliesKeyedByAssemblyLoadContext_Helper), BindingFlags.NonPublic | BindingFlags.Static)!;
+        MethodInfo helperWithinAlc = UnreachableAssemblyTools.LoadHelperInAlc(alc, helperMethodInfo);
+        helperWithinAlc.Invoke(null, null);
+    }
+
+    private static void DynamicAssembliesKeyedByAssemblyLoadContext_Helper()
+    {
+        // Although this method executes within the special ALC,
+        // StreamJsonRpc is loaded in the default ALC.
+        // Therefore unless StreamJsonRpc is taking care to use a DynamicAssembly
+        // that belongs to *this* ALC, it won't be able to resolve the same type references
+        // that we can here (the ones from UnreachableAssembly).
+        // That's what makes this test effective: it'll fail if the DynamicAssembly is shared across ALCs,
+        // thereby verifying that StreamJsonRpc has a dedicated set of DynamicAssemblies for each ALC.
+        JsonRpc clientRpc = new(Stream.Null);
+        clientRpc.Attach<IReferenceAnUnreachableAssembly>();
+    }
+
+#endif
 
     public class EmptyClass
     {

@@ -21,7 +21,7 @@ parameters:
 # This is just one of a a few mechanisms to enforce code style consistency.
 - name: EnableDotNetFormatCheck
   type: boolean
-  default: true
+  default: false # disable in v2.22 because it's defective (https://github.com/dotnet/sdk/issues/50262)
 # This lists the names of the artifacts that will be published *from every OS build agent*.
 # Any new tools/artifacts/*.ps1 script needs to be added to this list.
 # If an artifact is only generated or collected on one OS, it should NOT be listed here,

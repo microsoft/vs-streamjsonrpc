@@ -5,6 +5,9 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
+#if NET
+using System.Runtime.Loader;
+#endif
 using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Reflection;
 using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
@@ -18,7 +21,11 @@ namespace StreamJsonRpc;
 
 internal static class ProxyGeneration
 {
+#if NET
+    private static readonly List<(AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = [];
+#else
     private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();
+#endif
     private static readonly object BuilderLock = new object();
     private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
     private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
@@ -104,6 +111,9 @@ internal static class ProxyGeneration
             // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
             SortRpcInterfaces(rpcInterfaces);
 
+            // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
+            // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
+            // leading to runtime errors or unexpected behavior when loading types or invoking methods.
             Type[] proxyInterfaces = [.. rpcInterfaces.Select(i => i.Type), typeof(IJsonRpcClientProxy), typeof(IJsonRpcClientProxyInternal)];
             ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
 
@@ -752,10 +762,27 @@ internal static class ProxyGeneration
         // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
         // The CLR will not honor any additions to that set once the first generated type is closed.
         // We maintain a dictionary to point at dynamic modules based on the set of skip visibility check assemblies they were generated with.
-        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
+        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(AssemblyNameEqualityComparer.Instance, interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
             .Add(typeof(ProxyGeneration).Assembly.GetName());
+#if NET
+        // We have to key the dynamic assembly by ALC as well, since callers may set a custom contextual reflection context
+        // that influences how the assembly will resolve its type references.
+        // If they haven't set a contextual one, we assume the ALC that defines the (first) proxy interface.
+        AssemblyLoadContext alc = AssemblyLoadContext.CurrentContextualReflectionContext
+            ?? AssemblyLoadContext.GetLoadContext(interfaceTypes[0].Assembly)
+            ?? AssemblyLoadContext.GetLoadContext(typeof(ProxyGeneration).Assembly)
+            ?? throw new Exception("No ALC for our own assembly!");
+        foreach ((AssemblyLoadContext AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
+        {
+            if (existingSet.AssemblyLoadContext != alc)
+            {
+                continue;
+            }
+
+#else
         foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
+#endif
             if (existingSet.SkipVisibilitySet.IsSupersetOf(skipVisibilityCheckAssemblies))
             {
                 return existingSet.Builder;
@@ -767,11 +794,22 @@ internal static class ProxyGeneration
         // I have disabled this optimization though till we need it since it would sometimes cover up any bugs in the above visibility checking code.
         ////skipVisibilityCheckAssemblies = skipVisibilityCheckAssemblies.Union(AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName()));
 
-        AssemblyBuilder assemblyBuilder = CreateProxyAssemblyBuilder();
+        AssemblyBuilder assemblyBuilder;
+#if NET
+        using (alc.EnterContextualReflection())
+#endif
+        {
+            assemblyBuilder = CreateProxyAssemblyBuilder();
+        }
+
         ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
         var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
         skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
+#if NET
+        TransparentProxyModuleBuilderByVisibilityCheck.Add((alc, skipVisibilityCheckAssemblies, moduleBuilder));
+#else
         TransparentProxyModuleBuilderByVisibilityCheck.Add((skipVisibilityCheckAssemblies, moduleBuilder));
+#endif
 
         return moduleBuilder;
     }
