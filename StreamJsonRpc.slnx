@@ -9,10 +9,12 @@
     <File Path="global.json" />
     <File Path="nuget.config" />
     <File Path="stylecop.json" />
+    <File Path="tools/dirs.proj" />
     <File Path="version.json" />
   </Folder>
   <Folder Name="/src/">
     <File Path="src/.editorconfig" />
+    <File Path="src/dirs.proj" />
     <File Path="src/Analyzers.props" />
     <File Path="src/AnalyzerUser.targets" />
     <File Path="src/Directory.Build.props" />
@@ -23,6 +25,7 @@
   </Folder>
   <Folder Name="/test/">
     <File Path="test/.editorconfig" />
+    <File Path="test/dirs.proj" />
     <File Path="test/Directory.Build.props" />
     <File Path="test/Directory.Build.targets" />
     <Project Path="samples/Samples.csproj" />

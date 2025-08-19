@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.Build.Traversal">
+  <ItemGroup>
+    <ProjectReference Include="**\*.csproj" Exclude="NativeAOTCompatibility.Test\NativeAOTCompatibility.Test.csproj" Publish="false" />
+
+    <MultiRIDProjectReference Include="NativeAOTCompatibility.Test\NativeAOTCompatibility.Test.csproj" />
+  </ItemGroup>
+</Project>
