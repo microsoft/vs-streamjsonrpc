@@ -41,7 +41,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
@@ -97,7 +97,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task DoSomethingAsync();
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalable : INonMarshalable
     {
     }
@@ -118,14 +118,14 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 #pragma warning disable StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     public partial interface INonDisposableMarshalable
 #pragma warning restore StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     {
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithProperties : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -133,7 +133,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithEvents : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -141,7 +141,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))]
     [RpcMarshalableOptionalInterface(3, typeof(IMarshalableSubType1Extended))]
@@ -157,14 +157,14 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<string> ToBeRenamedAsync(string s);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubTypeWithIntermediateInterface))]
     public partial interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
     {
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
@@ -178,7 +178,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
@@ -186,13 +186,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
@@ -200,7 +200,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusOneAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
@@ -223,7 +223,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusFiveAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
     public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
@@ -232,13 +232,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
     {
     }
