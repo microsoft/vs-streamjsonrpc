@@ -12,7 +12,6 @@ using Microsoft.VisualStudio.Threading;
 using PolyType;
 using PolyType.Abstractions;
 using PolyType.Utilities;
-using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
@@ -739,10 +738,8 @@ public class RpcTargetMetadata
             this.MethodInfo = method;
             this.Attribute = attribute;
 
-            this.ReturnType = method.ReturnType;
-            ParameterInfo[] parameters = method.GetParameters();
-            this.RequiredParamCount = parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
-            this.HasCancellationTokenParameter = parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
+            // Avoid inspecting the method signature here, as that triggers assembly loads that we might not ever need.
+            // We'll do it lazily in our property getters instead.
         }
 
         /// <summary>
@@ -774,18 +771,18 @@ public class RpcTargetMetadata
         /// <seealso cref="Parameters"/>
         internal ReadOnlyMemory<ParameterInfo> ParametersMemory => (ParameterInfo[])this.Parameters;
 
-        internal Type ReturnType { get; }
+        internal Type ReturnType => this.MethodInfo.ReturnType;
 
         /// <summary>
         /// Gets a value indicating whether the method is declared as public.
         /// </summary>
         internal bool IsPublic { get; }
 
-        internal int RequiredParamCount { get; }
+        internal int RequiredParamCount => this.Parameters.Count(pi => !pi.IsOptional && pi.ParameterType != typeof(CancellationToken));
 
         internal int TotalParamCountExcludingCancellationToken => this.HasCancellationTokenParameter ? this.Parameters.Count - 1 : this.Parameters.Count;
 
-        internal bool HasCancellationTokenParameter { get; }
+        internal bool HasCancellationTokenParameter => this.Parameters is [.., { ParameterType: { } type }] && type == typeof(CancellationToken);
 
         internal bool HasOutOrRefParameters => this.Parameters.Any(pi => pi.IsOut || pi.ParameterType.IsByRef);
 
