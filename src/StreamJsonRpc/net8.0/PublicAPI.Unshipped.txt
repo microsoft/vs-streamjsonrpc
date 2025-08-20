@@ -91,6 +91,8 @@ StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>?
 StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<T>.Values.init -> void
 StreamJsonRpc.Reflection.ProxyBase.ProxyBase(StreamJsonRpc.JsonRpc! client, in StreamJsonRpc.Reflection.ProxyInputs inputs) -> void
+StreamJsonRpc.Reflection.ProxyBase.TransformEventName(string! name, System.Type! declaringType) -> string!
+StreamJsonRpc.Reflection.ProxyBase.TransformMethodName(string! name, System.Type! declaringType) -> string!
 StreamJsonRpc.Reflection.ProxyInputs
 StreamJsonRpc.Reflection.ProxyInputs.AdditionalContractInterfaces.get -> System.ReadOnlyMemory<System.Type!>
 StreamJsonRpc.Reflection.ProxyInputs.AdditionalContractInterfaces.init -> void

@@ -19,7 +19,7 @@ namespace StreamJsonRpc.Generated
 		public IMarshalableWithEvents_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
 		{
-			this.JsonRpc.AddLocalRpcMethod(this.Options.EventNameTransform("Changed"), this.OnChanged);
+			this.JsonRpc.AddLocalRpcMethod(this.TransformEventName("Changed", typeof(global::IMarshalableWithEvents)), this.OnChanged);
 		}
 		
 		public event global::System.EventHandler? Changed;

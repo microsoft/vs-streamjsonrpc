@@ -114,7 +114,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
         writer.WriteLine($$"""
 
-                {{this.ReturnType}} global::{{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
+                {{this.ReturnType}} {{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
                 {
                 """);
 
@@ -132,7 +132,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                     if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 
                     this.OnCallingMethod("{{this.Name}}");
-                    string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.Options.MethodNameTransform("{{this.RpcMethodName}}");
+                    string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.TransformMethodName("{{this.RpcMethodName}}", typeof({{this.DeclaringInterfaceName}}));
                     global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.Options.ServerRequiresNamedArguments ?
                         this.JsonRpc.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
                         this.JsonRpc.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
@@ -178,7 +178,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
         }
 
         return new MethodModel(
-            method.ContainingType.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
+            method.ContainingType.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat),
             method.Name,
             method.ReturnType.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat),
             ProxyGenerator.ClassifySpecialType(method.ReturnType, symbols),

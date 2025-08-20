@@ -33,9 +33,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     }.ToFrozenDictionary();
 
     private readonly JsonRpc client;
-    private readonly JsonRpcProxyOptions? options;
-    private readonly long? marshaledObjectHandle;
-    private readonly Action? onDispose;
+    private readonly ProxyInputs inputs;
     private readonly ReadOnlyMemory<Type>? requestedInterfaces;
     private bool disposed;
 
@@ -52,9 +50,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         }
 
         this.client = client;
-        this.options = inputs.Options;
-        this.marshaledObjectHandle = inputs.MarshaledObjectHandle;
-        this.onDispose = inputs.Options?.OnDispose;
+        this.inputs = inputs;
 
         Type[] requestedInterfaces = new Type[1 + inputs.AdditionalContractInterfaces.Length + inputs.ImplementedOptionalInterfaces.Length];
         int i = 0;
@@ -104,12 +100,12 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     public bool IsDisposed => this.disposed || this.client.IsDisposed;
 
     /// <inheritdoc/>
-    long? IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.marshaledObjectHandle;
+    long? IJsonRpcClientProxyInternal.MarshaledObjectHandle => this.inputs.MarshaledObjectHandle;
 
     /// <summary>
     /// Gets options related to this proxy.
     /// </summary>
-    protected JsonRpcProxyOptions Options => this.options ?? JsonRpcProxyOptions.Default;
+    protected JsonRpcProxyOptions Options => this.inputs.Options ?? JsonRpcProxyOptions.Default;
 
     /// <summary>
     /// Creates a source generated proxy for the specified <see cref="JsonRpc"/> and <see cref="ProxyInputs"/>.
@@ -229,7 +225,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
             return null;
         }
 
-        if (!this.requestedInterfaces.HasValue || this.options?.AcceptProxyWithExtraInterfaces is not true)
+        if (!this.requestedInterfaces.HasValue || !this.Options.AcceptProxyWithExtraInterfaces)
         {
             // There's no chance this proxy implements too many interfaces.
             return thisAsThat;
@@ -256,14 +252,38 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
 
         this.disposed = true;
 
-        if (this.onDispose is not null)
+        if (this.inputs.Options?.OnDispose is Action dispose)
         {
-            this.onDispose();
+            dispose();
         }
         else
         {
             this.client.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Applies the prescribed transform to obtain the RPC method name from an existing method.
+    /// </summary>
+    /// <param name="name">The name of the method in CLR terms.</param>
+    /// <param name="declaringType">The declaring type of the method.</param>
+    /// <returns>The RPC name of the method.</returns>
+    protected string TransformMethodName(string name, Type declaringType)
+    {
+        // TODO: update this to support optional marshalable interfaces.
+        return this.Options.MethodNameTransform(name);
+    }
+
+    /// <summary>
+    /// Transforms the specified event name using the configured event name transformation logic.
+    /// </summary>
+    /// <param name="name">The name of the event to transform in CLR terms.</param>
+    /// <param name="declaringType">The type that declares the event.</param>
+    /// <returns>The name of the RPC method invoked when the event is raised.</returns>
+    protected string TransformEventName(string name, Type declaringType)
+    {
+        // TODO: update this to support optional marshalable interfaces.
+        return this.Options.EventNameTransform(name);
     }
 
     /// <summary>
