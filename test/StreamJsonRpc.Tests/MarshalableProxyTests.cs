@@ -706,16 +706,16 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
         IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
-        AssertIsNot(proxy1, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy1, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -756,8 +756,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
         Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         // The MethodNameTransform doesn't apply to the marshaled objects
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
@@ -784,8 +784,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
         Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         // The MethodNameTransform doesn't apply to the marshaled objects
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
@@ -807,8 +807,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(2, await proxy.GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -818,8 +818,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -828,9 +828,9 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableUnknownSubType();
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -840,7 +840,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         IMarshalableSubType2? proxy1 = await this.client.GetMarshalableSubType2Async();
         Assert.Equal(1, await proxy1!.GetAsync(1));
@@ -1049,9 +1049,13 @@ public abstract partial class MarshalableProxyTests : TestBase
 
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
 
-    private static void AssertIsNot(object obj, Type type)
+    private void AssertIsNot(object obj, Type type)
     {
-        Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not assignable to {type.FullName}");
+        Assert.False(((IJsonRpcClientProxy)obj).Is(type), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
+        if (this is not MarshalableProxyNerdbankMessagePackTests)
+        {
+            Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
+        }
     }
 
     public class Server : IServer

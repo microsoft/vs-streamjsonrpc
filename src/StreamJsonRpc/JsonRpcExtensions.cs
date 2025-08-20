@@ -21,6 +21,23 @@ public static class JsonRpcExtensions
         Task PrefetchAsync(int count, CancellationToken cancellationToken);
     }
 
+    /// <summary>
+    /// Casts the proxy to the requested interface type, if it (intentionally) implements it.
+    /// </summary>
+    /// <typeparam name="T"><inheritdoc cref="IClientProxy.Is(Type)" path="/param[@name='type']"/></typeparam>
+    /// <returns>
+    /// The receiving object, cast to the requested interface <em>if</em> the proxy implements it and the interface was requested at proxy instantiation time;
+    /// otherwise <see langword="null" />.</returns>
+    /// <remarks>
+    /// Typically a simple conditional cast would be sufficient to determine whether a proxy implements a given interface.
+    /// However when <see cref="JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces"/> is <see langword="true"/> a proxy may be returned
+    /// that implements extra interfaces.
+    /// In such cases, this method can be used to determine whether the proxy was intentionally created to implement the interface
+    /// or not, allowing feature testing to still happen since conditional casting might lead to false positives.
+    /// </remarks>
+    public static T? As<T>(this IClientProxy proxy)
+        where T : class => Requires.NotNull(proxy).Is(typeof(T)) ? (T)(object)proxy : null;
+
 #pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
     /// <summary>
     /// Decorates an <see cref="IAsyncEnumerable{T}"/> with settings that customize how StreamJsonRpc will send its items to the remote party.

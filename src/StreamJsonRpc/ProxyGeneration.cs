@@ -10,6 +10,7 @@ using System.Reflection.Emit;
 using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
+using StreamJsonRpc.Reflection;
 using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
 // Uncomment the SaveAssembly symbol and run one test to save the generated DLL for inspection in ILSpy as part of debugging.
@@ -29,6 +30,8 @@ internal static class ProxyGeneration
 #endif
     private static readonly object BuilderLock = new object();
     private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
+    private static readonly MethodInfo GetTypeMethod = typeof(object).GetRuntimeMethod(nameof(object.GetType), Type.EmptyTypes)!;
+    private static readonly MethodInfo IsAssignableFromMethod = typeof(Type).GetRuntimeMethod(nameof(Type.IsAssignableFrom), [typeof(Type)])!;
     private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
     private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
     private static readonly MethodInfo ActionInvokeMethod = typeof(Action).GetRuntimeMethod(nameof(Action.Invoke), Type.EmptyTypes)!;
@@ -272,25 +275,23 @@ internal static class ProxyGeneration
                 jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
             }
 
-            // IJsonRpcClientProxy.As method
+            // IJsonRpcClientProxy.Is method
             {
                 MethodBuilder asMethod = proxyTypeBuilder.DefineMethod(
-                    nameof(IJsonRpcClientProxy.As),
+                    nameof(IJsonRpcClientProxy.Is),
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Final | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                    null,
-                    Type.EmptyTypes);
-                GenericTypeParameterBuilder typeArgBuilder = asMethod.DefineGenericParameters("T")[0];
-                typeArgBuilder.SetGenericParameterAttributes(GenericParameterAttributes.ReferenceTypeConstraint);
-                asMethod.SetReturnType(typeArgBuilder);
+                    typeof(bool),
+                    [typeof(Type)]);
                 ILGenerator il = asMethod.GetILGenerator();
 
-                // return this as T;
+                // return arg1.IsAssignableFrom(this.GetType());
+                il.Emit(OpCodes.Ldarg_1);
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Isinst, typeArgBuilder);
-                il.Emit(OpCodes.Unbox_Any, typeArgBuilder);
+                il.Emit(OpCodes.Call, GetTypeMethod);
+                il.Emit(OpCodes.Callvirt, IsAssignableFromMethod);
                 il.Emit(OpCodes.Ret);
 
-                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.As))!);
+                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IClientProxy.Is))!);
             }
 
             IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
