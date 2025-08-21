@@ -1418,7 +1418,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             throw proxyInputs.CreateNoSourceGeneratedProxyException();
         }
 
-        TypeInfo proxyType = ProxyGeneration.Get(proxyInputs.ContractInterface, proxyInputs.AdditionalContractInterfaces.Span, proxyInputs.ImplementedOptionalInterfaces.Span);
+        TypeInfo proxyType = ProxyGeneration.Get(proxyInputs);
         return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
             proxyType.AsType(),
             this,
