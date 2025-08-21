@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using PolyType;
 using PolyType.Abstractions;
+using PolyType.Utilities;
 using StreamJsonRpc.Reflection;
 
 // Instruct PolyType to generate shapes with methods included for .NET interfaces that we make special allowances to treat as if they were declared with [RpcMarshalable].
@@ -32,9 +35,12 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         [typeof(IObserver<>)] = typeof(ObserverProxyActivator<>),
     }.ToFrozenDictionary();
 
+    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<Type, int>> OptionalInterfaceCodeCache = [];
+
     private readonly JsonRpc client;
     private readonly ProxyInputs inputs;
     private readonly ReadOnlyMemory<Type>? requestedInterfaces;
+    private readonly IReadOnlyDictionary<Type, int> optionalInterfaceCodes;
     private bool disposed;
 
     /// <summary>
@@ -66,6 +72,35 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         }
 
         this.requestedInterfaces = requestedInterfaces;
+
+        this.optionalInterfaceCodes = OptionalInterfaceCodeCache.GetOrAdd(
+            inputs.ContractInterface,
+            static contract =>
+            {
+                RpcMarshalableAttribute? mainAttribute = (RpcMarshalableAttribute?)contract.GetCustomAttribute(typeof(RpcMarshalableAttribute), inherit: false);
+                if (mainAttribute is null)
+                {
+                    return ImmutableDictionary<Type, int>.Empty;
+                }
+
+                RpcMarshalableOptionalInterfaceAttribute[] optionalInterfaceAttributes = MessageFormatterRpcMarshaledContextTracker.GetMarshalableOptionalInterfaces(contract, mainAttribute);
+                if (optionalInterfaceAttributes is [])
+                {
+                    return ImmutableDictionary<Type, int>.Empty;
+                }
+
+                // TODO: Review how base interfaces of the optional interfaces are impacted by the code we set here.
+                //       Consider overlapping base hierarchies
+                //       Consider how the Additional contracts may bring in some of those base interfaces, theoretically excluding them from requiring a prefixing number.
+                //       Consider reconciling this with the dynamic proxies, which only ever account for the selected subset of optional interfaces when assigning prefixes.
+                Dictionary<Type, int> codes = [];
+                foreach (RpcMarshalableOptionalInterfaceAttribute att in optionalInterfaceAttributes)
+                {
+                    codes.Add(att.OptionalInterface, att.OptionalInterfaceCode);
+                }
+
+                return codes;
+            });
     }
 
     /// <inheritdoc/>
@@ -167,13 +202,14 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     {
         if (proxyInputs.ImplementedOptionalInterfaces.Span is not [])
         {
+            // We don't support this properly yet.
             proxy = null;
             return false;
         }
 
         // Special case for certain interfaces which we document that we
         // can create proxies for without any effort on the user's part.
-        if (proxyInputs.AdditionalContractInterfaces.IsEmpty)
+        if (proxyInputs.AdditionalContractInterfaces.IsEmpty && proxyInputs.ImplementedOptionalInterfaces.IsEmpty)
         {
             if (proxyInputs.ContractInterface == typeof(IDisposable))
             {
@@ -203,7 +239,12 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         {
             // Of the various proxies that implement the interfaces the user requires,
             // look for a match.
-            if (ProxyImplementsCompatibleSetOfInterfaces(attribute.ProxyClass, proxyInputs.ContractInterface, proxyInputs.AdditionalContractInterfaces.Span, proxyInputs.Options))
+            if (ProxyImplementsCompatibleSetOfInterfaces(
+                attribute.ProxyClass,
+                proxyInputs.ContractInterface,
+                proxyInputs.AdditionalContractInterfaces.Span,
+                proxyInputs.ImplementedOptionalInterfaces.Span,
+                proxyInputs.Options))
             {
                 // If the source generated proxy type exists, use it.
                 proxy = (IJsonRpcClientProxyInternal)Activator.CreateInstance(attribute.ProxyClass, jsonRpc, proxyInputs)!;
@@ -270,10 +311,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="declaringType">The declaring type of the method.</param>
     /// <returns>The RPC name of the method.</returns>
     protected string TransformMethodName(string name, Type declaringType)
-    {
-        // TODO: update this to support optional marshalable interfaces.
-        return this.Options.MethodNameTransform(name);
-    }
+        => this.Options.MethodNameTransform(this.optionalInterfaceCodes.TryGetValue(declaringType, out int code) ? $"{code}.{name}" : name);
 
     /// <summary>
     /// Transforms the specified event name using the configured event name transformation logic.
@@ -282,10 +320,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="declaringType">The type that declares the event.</param>
     /// <returns>The name of the RPC method invoked when the event is raised.</returns>
     protected string TransformEventName(string name, Type declaringType)
-    {
-        // TODO: update this to support optional marshalable interfaces.
-        return this.Options.EventNameTransform(name);
-    }
+        => this.Options.EventNameTransform(this.optionalInterfaceCodes.TryGetValue(declaringType, out int code) ? $"{code}.{name}" : name);
 
     /// <summary>
     /// Invokes the <see cref="CallingMethod"/> event.
@@ -305,6 +340,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="proxyClass">The type of the proxy class to be evaluated. This type must implement the specified interfaces.</param>
     /// <param name="contractInterface">The primary contract interface that the proxy class must implement.</param>
     /// <param name="additionalContractInterfaces">A span of additional contract interfaces that the proxy class must also implement.</param>
+    /// <param name="implementedOptionalInterfaces">Another span of contract interfaces that the proxy class must implement.</param>
     /// <param name="options">Options that influence the compatibility check, such as whether extra interfaces are acceptable.</param>
     /// <returns><see langword="true"/> if the proxy class implements the specified contract interface and additional interfaces,
     /// and optionally extra interfaces if allowed by the options; otherwise, <see langword="false"/>.</returns>
@@ -316,6 +352,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type proxyClass,
         Type contractInterface,
         ReadOnlySpan<Type> additionalContractInterfaces,
+        ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces,
         JsonRpcProxyOptions? options)
     {
         HashSet<Type> proxyInterfaces = [.. proxyClass.GetInterfaces()];
@@ -325,6 +362,14 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         }
 
         foreach (Type addl in additionalContractInterfaces)
+        {
+            if (!proxyInterfaces.Remove(addl))
+            {
+                return false;
+            }
+        }
+
+        foreach ((Type addl, _) in implementedOptionalInterfaces)
         {
             if (!proxyInterfaces.Remove(addl))
             {
@@ -352,6 +397,14 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
             }
 
             foreach (Type addl in additionalContractInterfaces)
+            {
+                if (remaining.IsAssignableFrom(addl))
+                {
+                    continue;
+                }
+            }
+
+            foreach ((Type addl, _) in implementedOptionalInterfaces)
             {
                 if (remaining.IsAssignableFrom(addl))
                 {

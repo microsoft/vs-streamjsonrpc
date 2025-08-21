@@ -339,17 +339,27 @@ public partial class ProxyGenerator : IIncrementalGenerator
     /// JsonRpcProxyInterfaceGroupAttribute is present and specifies additional interfaces, each group will include the
     /// primary interface followed by those interfaces. If the attribute is not present, the primary interface is
     /// returned as its own group.</remarks>
-    /// <param name="primary">The primary interface symbol to expand into groups. This symbol is always included as the first element in each
-    /// group.</param>
-    /// <param name="symbols">A container for well-known symbols, including the JsonRpcProxyInterfaceGroupAttribute used to identify interface
-    /// groups.</param>
-    /// <returns>An enumerable collection of interface groups, where each group is an array of INamedTypeSymbol. If no groups are
-    /// defined, a single group containing only the primary interface is returned.</returns>
+    /// <param name="primary">
+    /// The primary interface symbol to expand into groups. This symbol is always included as the first element in each group.
+    /// </param>
+    /// <param name="symbols">
+    /// A container for well-known symbols, including the JsonRpcProxyInterfaceGroupAttribute used to identify interface groups.
+    /// </param>
+    /// <returns>
+    /// An enumerable collection of interface groups, where each group is an array of INamedTypeSymbol. If no groups are
+    /// defined, a single group containing only the primary interface is returned.
+    /// </returns>
     private static IEnumerable<INamedTypeSymbol[]> ExpandInterfaceToGroups(INamedTypeSymbol primary, KnownSymbols symbols)
     {
         bool anyGroupsDefined = false;
+        List<INamedTypeSymbol> optionalMarshalableInterfaces = [];
         foreach (AttributeData att in primary.GetAttributes())
         {
+            if (SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.RpcMarshalableOptionalInterface) && att.ConstructorArguments is [_, { Value: INamedTypeSymbol optionalInterface }])
+            {
+                optionalMarshalableInterfaces.Add(optionalInterface);
+            }
+
             if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.JsonRpcProxyInterfaceGroupAttribute))
             {
                 continue;
@@ -366,7 +376,11 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         if (!anyGroupsDefined)
         {
-            yield return [primary]; // No groups defined, so just return the primary interface as its own group.
+            // No groups defined, so just return the primary interface as its own group.
+            yield return [primary];
+
+            // And if RpcMarshalable optional interfaces were specified, add them to another group.
+            yield return [primary, .. optionalMarshalableInterfaces];
         }
     }
 
