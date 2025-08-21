@@ -69,6 +69,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             ],
     }.WithObjectConverter();
 
+    private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true };
+
     /// <summary>
     /// The serializer context to use for top-level RPC messages.
     /// </summary>
@@ -212,6 +214,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     {
         if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(
             typeof(T),
+            DefaultRpcMarshalableProxyOptions,
             out JsonRpcProxyOptions? proxyOptions,
             out JsonRpcTargetOptions? targetOptions,
             out RpcMarshalableAttribute? attribute))
@@ -1280,7 +1283,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new ProgressConverter<T>() :
                TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
-               MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(shape, proxyOptions, targetOptions, attribute) :
+               MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), DefaultRpcMarshalableProxyOptions, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(shape, proxyOptions, targetOptions, attribute) :
                typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
                null;
     }

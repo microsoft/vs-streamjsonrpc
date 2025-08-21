@@ -1173,7 +1173,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 }
             }
 
-            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute))
+            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute))
             {
                 object formatter = Activator.CreateInstance(
                     typeof(RpcMarshalableFormatter<>).MakeGenericType(typeof(T)),

@@ -53,7 +53,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     ];
 
     private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> MarshaledTypes = new();
-    private static readonly (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions) RpcMarshalableInterfaceDefaultOptions = (new JsonRpcProxyOptions(), new JsonRpcTargetOptions { NotifyClientOfEvents = false, DisposeOnDisconnect = true });
+    private static readonly JsonRpcTargetOptions RpcMarshalableInterfaceDefaultTargetOptions = new() { NotifyClientOfEvents = false, DisposeOnDisconnect = true };
     private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
     private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]>();
 
@@ -98,6 +98,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
     internal static bool TryGetMarshalOptionsForType(
         Type type,
+        JsonRpcProxyOptions defaultProxyOptions,
         [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
         [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
@@ -139,8 +140,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             // And besides, analyzers should have called out any issues at compile-time.
             ////ValidateMarshalableInterface(type, marshalableAttribute);
 
-            proxyOptions = RpcMarshalableInterfaceDefaultOptions.ProxyOptions;
-            targetOptions = RpcMarshalableInterfaceDefaultOptions.TargetOptions;
+            proxyOptions = defaultProxyOptions;
+            targetOptions = RpcMarshalableInterfaceDefaultTargetOptions;
             rpcMarshalableAttribute = marshalableAttribute;
             MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions, rpcMarshalableAttribute));
             return true;
