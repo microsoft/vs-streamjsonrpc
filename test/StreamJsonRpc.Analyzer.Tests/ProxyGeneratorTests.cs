@@ -103,6 +103,27 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task MethodNamesCustomizedByAttribute()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            using PolyType;
+
+            [JsonRpcContract]
+            public partial interface IMyRpc
+            {
+                [JsonRpcMethod("AddRenamed")]
+                Task AddAsync(int a, int b, CancellationToken cancellationToken);
+
+                [MethodShape(Name = "IntegrateRenamed")]
+                Task IntegrateAsync(double from, double to, CancellationToken cancellationToken);
+
+                [MethodShape(Name = "DontWannaSeeThis"), JsonRpcMethod("DivideRenamed")]
+                Task DivideAsync(double from, double to, CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task NamesRequiredNamespaceQualifier()
     {
         await VerifyCS.RunDefaultAsync("""

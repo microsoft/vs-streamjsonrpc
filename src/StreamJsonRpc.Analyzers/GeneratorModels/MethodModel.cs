@@ -166,15 +166,21 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
     internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols)
     {
+        AttributeData? methodShapeAttribute = method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MethodShapeAttribute));
+        AttributeData? jsonRpcMethodAttribute = method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute));
+
         string rpcMethodName = method.Name;
-        if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute)) is { } rpcMethodAttribute)
+
+        // If the method has a MethodShape attribute, prefer its name.
+        if (methodShapeAttribute?.NamedArguments.FirstOrDefault(kv => kv.Key == "Name").Value is { Value: string methodShapeName })
         {
-            // If the method has a JsonRpcMethod attribute, use its name.
-            if (rpcMethodAttribute.ConstructorArguments.Length > 0 &&
-                rpcMethodAttribute.ConstructorArguments[0].Value is string name)
-            {
-                rpcMethodName = name;
-            }
+            rpcMethodName = methodShapeName;
+        }
+
+        // If the method has a JsonRpcMethod attribute, prefer its name above all.
+        if (jsonRpcMethodAttribute is { ConstructorArguments: [{ Value: string jsonRpcMethodName }, ..] })
+        {
+            rpcMethodName = jsonRpcMethodName;
         }
 
         return new MethodModel(

@@ -12,6 +12,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? ValueTask,
     INamedTypeSymbol? ValueTaskOfT,
     INamedTypeSymbol? IAsyncEnumerableOfT,
+    INamedTypeSymbol? MethodShapeAttribute,
     INamedTypeSymbol? GenerateShapeAttribute,
     INamedTypeSymbol? TypeShapeAttribute,
     INamedTypeSymbol CancellationToken,
@@ -34,6 +35,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? valueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
         INamedTypeSymbol? valueTaskOfT = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         INamedTypeSymbol? asyncEnumerableOfT = compilation.GetTypeByMetadataName("System.Collections.Generic.IAsyncEnumerable`1");
+        INamedTypeSymbol? methodShapeAttribute = compilation.GetTypeByMetadataName("PolyType.MethodShapeAttribute");
         INamedTypeSymbol? generateShapeAttribute = compilation.GetTypeByMetadataName("PolyType.GenerateShapeAttribute");
         INamedTypeSymbol? typeShapeAttribute = compilation.GetTypeByMetadataName("PolyType.TypeShapeAttribute");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
@@ -66,7 +68,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, methodShapeAttribute, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, systemType, systemIOStream);
         return true;
     }
 }
