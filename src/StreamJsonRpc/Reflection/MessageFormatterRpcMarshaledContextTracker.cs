@@ -52,7 +52,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             new RpcMarshalableAttribute()),
     ];
 
-    private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> MarshaledTypes = new();
+    private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions? ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> MarshaledTypes = new();
     private static readonly JsonRpcTargetOptions RpcMarshalableInterfaceDefaultTargetOptions = new() { NotifyClientOfEvents = false, DisposeOnDisconnect = true };
     private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
     private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]>();
@@ -111,9 +111,9 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             return false;
         }
 
-        if (MarshaledTypes.TryGetValue(type, out (JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute) options))
+        if (MarshaledTypes.TryGetValue(type, out (JsonRpcProxyOptions? ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute) options))
         {
-            proxyOptions = options.ProxyOptions;
+            proxyOptions = options.ProxyOptions ?? defaultProxyOptions;
             targetOptions = options.TargetOptions;
             rpcMarshalableAttribute = options.Attribute;
             return true;
@@ -143,7 +143,9 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             proxyOptions = defaultProxyOptions;
             targetOptions = RpcMarshalableInterfaceDefaultTargetOptions;
             rpcMarshalableAttribute = marshalableAttribute;
-            MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions, rpcMarshalableAttribute));
+
+            // Custom marshalable objects get proxy options based on the formatter, so don't store this formatter's proxy options in the cache.
+            MarshaledTypes.TryAdd(type, (ProxyOptions: null, targetOptions, rpcMarshalableAttribute));
             return true;
         }
 

@@ -69,7 +69,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             ],
     }.WithObjectConverter();
 
-    private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true };
+    private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new JsonRpcProxyOptions(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true, IsFrozen = true };
 
     /// <summary>
     /// The serializer context to use for top-level RPC messages.

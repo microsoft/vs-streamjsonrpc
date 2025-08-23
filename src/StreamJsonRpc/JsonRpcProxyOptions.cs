@@ -213,5 +213,5 @@ public class JsonRpcProxyOptions
         }
     }
 
-    private bool IsFrozen { get; init; }
+    internal bool IsFrozen { get; init; }
 }
