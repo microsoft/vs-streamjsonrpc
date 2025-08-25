@@ -22,6 +22,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";AttributeProviderRequired" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The shape for {member} must include a value for AttributeProvider.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[A forma para {member} deve incluir um valor para AttributeProvider.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";BothReadableWritableAreNull" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Both readable and writable are null.]]></Val>
