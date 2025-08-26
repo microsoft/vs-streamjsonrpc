@@ -95,7 +95,7 @@ internal static class ProxyGeneration
             }
 
             Type[] contractInterfaces = [contractInterface, .. additionalContractInterfaces];
-            IList<(Type Type, int? Code)> rpcInterfaces = inputs.GetSortedInterfaceAndCodes();
+            IList<(Type Type, int? Code)> rpcInterfaces = GetSortedInterfaceAndCodes(inputs);
 
             // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
@@ -974,6 +974,26 @@ internal static class ProxyGeneration
                 }
             }
         }
+    }
+
+    private static IList<(Type Interface, int? Code)> GetSortedInterfaceAndCodes(ProxyInputs inputs)
+    {
+        List<(Type Type, int? Code)> rpcInterfaces = new(1 + inputs.AdditionalContractInterfaces.Length + inputs.ImplementedOptionalInterfaces.Length);
+        rpcInterfaces.Add((inputs.ContractInterface, null));
+        foreach (Type addl in inputs.AdditionalContractInterfaces.Span)
+        {
+            rpcInterfaces.Add((addl, null));
+        }
+
+        foreach ((Type type, int code) in inputs.ImplementedOptionalInterfaces.Span)
+        {
+            rpcInterfaces.Add((type, code));
+        }
+
+        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
+        ProxyInputs.SortRpcInterfaces(rpcInterfaces);
+
+        return rpcInterfaces;
     }
 
     /// <summary>

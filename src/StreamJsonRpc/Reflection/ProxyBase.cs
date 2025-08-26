@@ -89,14 +89,37 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
                     return ImmutableDictionary<Type, int>.Empty;
                 }
 
-                // TODO: Review how base interfaces of the optional interfaces are impacted by the code we set here.
-                //       Consider overlapping base hierarchies
-                //       Consider how the Additional contracts may bring in some of those base interfaces, theoretically excluding them from requiring a prefixing number.
-                //       Consider reconciling this with the dynamic proxies, which only ever account for the selected subset of optional interfaces when assigning prefixes.
+                (Type, int?)[] sortedOptionalInterfaces = optionalInterfaceAttributes.Select(optionalInterfaceAttributes => (optionalInterfaceAttributes.OptionalInterface, (int?)optionalInterfaceAttributes.OptionalInterfaceCode)).ToArray();
+                ProxyInputs.SortRpcInterfaces(sortedOptionalInterfaces);
+
+                // COMPAT warning: dynamic proxies only ever consider the selected subset of optional interfaces when assigning prefixes.
+                // But this (newer) code considers all possible optional interfaces whether they are selected or not, so that we can share the results
+                // across all such proxies.
+                // It also makes sense that these should be stable assignments so the client knows how to call a particular method, even though it may not
+                // know all the interfaces the server implements.
+                // So if we ever get into a compat issue here, we should probably fix the algorithm in ProxyGeneration.cs to match the one we have here.
                 Dictionary<Type, int> codes = [];
-                foreach (RpcMarshalableOptionalInterfaceAttribute att in optionalInterfaceAttributes)
+                foreach ((Type optionalIface, _) in sortedOptionalInterfaces)
                 {
-                    codes.Add(att.OptionalInterface, att.OptionalInterfaceCode);
+                    // Access the interface through the attribute to avoid trim safety warnings.
+                    RpcMarshalableOptionalInterfaceAttribute attribute = optionalInterfaceAttributes.First(att => att.OptionalInterface == optionalIface);
+                    AddInterfaceCode(optionalIface, attribute.OptionalInterfaceCode);
+
+                    Type[] baseInterfaces = attribute.OptionalInterface.GetInterfaces();
+                    foreach (Type iface in baseInterfaces)
+                    {
+                        AddInterfaceCode(iface, attribute.OptionalInterfaceCode);
+                    }
+                }
+
+                void AddInterfaceCode(Type iface, int code)
+                {
+                    // We never assign a code to an interface that the contract derives from.
+                    // We also follow a first one wins policy (in the sorted collection our caller is enumerating).
+                    if (!iface.IsAssignableFrom(contract) && !codes.ContainsKey(iface))
+                    {
+                        codes.Add(iface, code);
+                    }
                 }
 
                 return codes;
@@ -200,13 +223,6 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// </remarks>
     public static bool TryCreateProxy(JsonRpc jsonRpc, in ProxyInputs proxyInputs, [NotNullWhen(true)] out IJsonRpcClientProxy? proxy)
     {
-        if (proxyInputs.ImplementedOptionalInterfaces.Span is not [])
-        {
-            // We don't support this properly yet.
-            proxy = null;
-            return false;
-        }
-
         // Special case for certain interfaces which we document that we
         // can create proxies for without any effort on the user's part.
         if (proxyInputs.AdditionalContractInterfaces.IsEmpty && proxyInputs.ImplementedOptionalInterfaces.IsEmpty)
@@ -311,7 +327,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="declaringType">The declaring type of the method.</param>
     /// <returns>The RPC name of the method.</returns>
     protected string TransformMethodName(string name, Type declaringType)
-        => this.Options.MethodNameTransform(this.optionalInterfaceCodes.TryGetValue(declaringType, out int code) ? $"{code}.{name}" : name);
+        => this.Options.MethodNameTransform(this.TryGetOptionalInterfaceCode(Requires.NotNull(declaringType), out int code) ? $"{code}.{name}" : name);
 
     /// <summary>
     /// Transforms the specified event name using the configured event name transformation logic.
@@ -320,7 +336,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <param name="declaringType">The type that declares the event.</param>
     /// <returns>The name of the RPC method invoked when the event is raised.</returns>
     protected string TransformEventName(string name, Type declaringType)
-        => this.Options.EventNameTransform(this.optionalInterfaceCodes.TryGetValue(declaringType, out int code) ? $"{code}.{name}" : name);
+        => this.Options.EventNameTransform(this.TryGetOptionalInterfaceCode(Requires.NotNull(declaringType), out int code) ? $"{code}.{name}" : name);
 
     /// <summary>
     /// Invokes the <see cref="CallingMethod"/> event.
@@ -417,6 +433,28 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         }
 
         return true;
+    }
+
+    private bool TryGetOptionalInterfaceCode(Type iface, [MaybeNullWhen(false)] out int code)
+    {
+        // Never produce a code when the interface being tested for is assignable from the primary contract interface
+        // or any of the additional contract interfaces.
+        if (iface.IsAssignableFrom(this.inputs.ContractInterface))
+        {
+            code = default;
+            return false;
+        }
+
+        foreach (Type addl in this.inputs.AdditionalContractInterfaces.Span)
+        {
+            if (iface.IsAssignableFrom(addl))
+            {
+                code = default;
+                return false;
+            }
+        }
+
+        return this.optionalInterfaceCodes.TryGetValue(iface, out code);
     }
 
     /// <summary>

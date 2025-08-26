@@ -69,39 +69,6 @@ public readonly struct ProxyInputs
     /// </summary>
     internal string Requirements => $"Implementing interface(s): {string.Join(", ", [this.ContractInterface, .. this.AdditionalContractInterfaces.Span])}.";
 
-    internal IList<(Type Interface, int? Code)> GetSortedInterfaceAndCodes()
-    {
-        List<(Type Type, int? Code)> rpcInterfaces = new(1 + this.AdditionalContractInterfaces.Length + this.ImplementedOptionalInterfaces.Length);
-        rpcInterfaces.Add((this.ContractInterface, null));
-        foreach (Type addl in this.AdditionalContractInterfaces.Span)
-        {
-            rpcInterfaces.Add((addl, null));
-        }
-
-        foreach ((Type type, int code) in this.ImplementedOptionalInterfaces.Span)
-        {
-            rpcInterfaces.Add((type, code));
-        }
-
-        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
-        SortRpcInterfaces(rpcInterfaces);
-
-        return rpcInterfaces;
-    }
-
-    internal Exception CreateNoSourceGeneratedProxyException()
-    {
-        StringBuilder builder = new();
-        builder.Append(this.ContractInterface.FullName ?? this.ContractInterface.Name);
-        foreach (Type additionalInterface in this.AdditionalContractInterfaces.Span)
-        {
-            builder.Append(", ");
-            builder.Append(additionalInterface.FullName ?? additionalInterface.Name);
-        }
-
-        return new NotImplementedException(Resources.FormatNoSourceGeneratedProxyAvailable(builder));
-    }
-
     /// <summary>
     /// Sorts <paramref name="list"/> so that:
     /// <list type="number">
@@ -111,7 +78,7 @@ public readonly struct ProxyInputs
     /// </list>
     /// </summary>
     /// <param name="list">The list of RPC interfaces to be sorted.</param>
-    private static void SortRpcInterfaces(IList<(Type Type, int? Code)> list)
+    internal static void SortRpcInterfaces(IList<(Type Type, int? Code)> list)
     {
         (Type Type, int? Code, int InheritanceWeight)[] weightedList
             = [.. list.Select(i => (i.Type, i.Code, list.Count(i2 => i2.Type.IsAssignableFrom(i.Type))))];
@@ -134,5 +101,18 @@ public readonly struct ProxyInputs
                 (_, _, _) => a.Code.Value.CompareTo(b.Code.Value),
             };
         }
+    }
+
+    internal Exception CreateNoSourceGeneratedProxyException()
+    {
+        StringBuilder builder = new();
+        builder.Append(this.ContractInterface.FullName ?? this.ContractInterface.Name);
+        foreach (Type additionalInterface in this.AdditionalContractInterfaces.Span)
+        {
+            builder.Append(", ");
+            builder.Append(additionalInterface.FullName ?? additionalInterface.Name);
+        }
+
+        return new NotImplementedException(Resources.FormatNoSourceGeneratedProxyAvailable(builder));
     }
 }
