@@ -135,6 +135,13 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     {
         if (TryGetMarshalOptionsForTypeHelper(type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute))
         {
+            // Because events are not checked by the Nerdbank.MessagePack formatter,
+            // Remove this check when issues related to https://github.com/eiriktsarpalis/PolyType/issues/226 are resolved in this file.
+            if (type.GetEvents().Length > 0)
+            {
+                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasEvents, type.FullName));
+            }
+
             return true;
         }
 

@@ -364,6 +364,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     [Fact]
     public async Task MarshalableInterfaceCannotHaveEvents()
     {
+        Assert.SkipWhen(this is MarshalableProxyNerdbankMessagePackTests, "Events are not yet detectable by PolyType."); // remove when https://github.com/eiriktsarpalis/PolyType/issues/226 is fixed.
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptMarshalableWithEventsAsync(new MarshalableWithEvents()));
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
