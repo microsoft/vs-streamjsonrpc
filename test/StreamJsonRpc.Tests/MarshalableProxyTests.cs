@@ -153,7 +153,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
         Task<int> GetAsync(int value);
 
-        [JsonRpcMethod("RemamedAsync")]
+        [JsonRpcMethod("RenamedAsync")]
         Task<string> ToBeRenamedAsync(string s);
     }
 
@@ -725,15 +725,15 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal("foo", await proxy!.ToBeRenamedAsync("foo"));
 
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/0/RemamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/0/RenamedAsync", "foo"));
 
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
         IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal("foo", await proxy1!.ToBeRenamedAsync("foo"));
         Assert.Equal("foo", await ((IMarshalableSubType1)proxy1)!.ToBeRenamedAsync("foo"));
 
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RemamedAsync", "foo"));
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RemamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RenamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RenamedAsync", "foo"));
     }
 
     [Fact]
