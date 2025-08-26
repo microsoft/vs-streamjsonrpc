@@ -96,49 +96,53 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         MarshallingRealObject = 1,
     }
 
-    internal static bool TryGetMarshalOptionsForType(
-        Type type,
+    internal static bool TryGetMarshalOptionsForType<T>(
+        ITypeShape<T> typeShape,
         JsonRpcProxyOptions defaultProxyOptions,
         [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
         [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
     {
-        proxyOptions = null;
-        targetOptions = null;
-        rpcMarshalableAttribute = null;
-        if (type.IsInterface is false)
+        if (TryGetMarshalOptionsForTypeHelper(typeShape.Type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute))
         {
-            return false;
-        }
-
-        if (MarshaledTypes.TryGetValue(type, out (JsonRpcProxyOptions? ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute) options))
-        {
-            proxyOptions = options.ProxyOptions ?? defaultProxyOptions;
-            targetOptions = options.TargetOptions;
-            rpcMarshalableAttribute = options.Attribute;
             return true;
         }
 
-        foreach ((Type implicitlyMarshaledType, JsonRpcProxyOptions typeProxyOptions, JsonRpcTargetOptions typeTargetOptions, RpcMarshalableAttribute attribute) in ImplicitlyMarshaledTypes)
+        if (typeShape.Type.GetCustomAttribute<RpcMarshalableAttribute>() is RpcMarshalableAttribute marshalableAttribute)
         {
-            if (implicitlyMarshaledType == type ||
-                (implicitlyMarshaledType.IsGenericTypeDefinition &&
-                 type.IsConstructedGenericType &&
-                 implicitlyMarshaledType == type.GetGenericTypeDefinition()))
-            {
-                proxyOptions = typeProxyOptions;
-                targetOptions = typeTargetOptions;
-                rpcMarshalableAttribute = attribute;
-                MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions, rpcMarshalableAttribute));
-                return true;
-            }
+            // Validation requires more trim annotations than our NativeAOT callers can provide.
+            // And besides, analyzers should have called out any issues at compile-time.
+            ValidateMarshalableInterface(typeShape, marshalableAttribute);
+
+            proxyOptions = defaultProxyOptions;
+            targetOptions = RpcMarshalableInterfaceDefaultTargetOptions;
+            rpcMarshalableAttribute = marshalableAttribute;
+
+            // Custom marshalable objects get proxy options based on the formatter, so don't store this formatter's proxy options in the cache.
+            MarshaledTypes.TryAdd(typeShape.Type, (ProxyOptions: null, targetOptions, rpcMarshalableAttribute));
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static bool TryGetMarshalOptionsForType(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
+        JsonRpcProxyOptions defaultProxyOptions,
+        [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
+        [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
+        [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
+    {
+        if (TryGetMarshalOptionsForTypeHelper(type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute))
+        {
+            return true;
         }
 
         if (type.GetCustomAttribute<RpcMarshalableAttribute>() is RpcMarshalableAttribute marshalableAttribute)
         {
             // Validation requires more trim annotations than our NativeAOT callers can provide.
             // And besides, analyzers should have called out any issues at compile-time.
-            ////ValidateMarshalableInterface(type, marshalableAttribute);
+            ValidateMarshalableInterface(type, marshalableAttribute);
 
             proxyOptions = defaultProxyOptions;
             targetOptions = RpcMarshalableInterfaceDefaultTargetOptions;
@@ -410,6 +414,47 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         }
     }
 
+    private static bool TryGetMarshalOptionsForTypeHelper(
+        Type type,
+        JsonRpcProxyOptions defaultProxyOptions,
+        [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
+        [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
+        [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
+    {
+        proxyOptions = null;
+        targetOptions = null;
+        rpcMarshalableAttribute = null;
+        if (type.IsInterface is false)
+        {
+            return false;
+        }
+
+        if (MarshaledTypes.TryGetValue(type, out (JsonRpcProxyOptions? ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute) options))
+        {
+            proxyOptions = options.ProxyOptions ?? defaultProxyOptions;
+            targetOptions = options.TargetOptions;
+            rpcMarshalableAttribute = options.Attribute;
+            return true;
+        }
+
+        foreach ((Type implicitlyMarshaledType, JsonRpcProxyOptions typeProxyOptions, JsonRpcTargetOptions typeTargetOptions, RpcMarshalableAttribute attribute) in ImplicitlyMarshaledTypes)
+        {
+            if (implicitlyMarshaledType == type ||
+                (implicitlyMarshaledType.IsGenericTypeDefinition &&
+                 type.IsConstructedGenericType &&
+                 implicitlyMarshaledType == type.GetGenericTypeDefinition()))
+            {
+                proxyOptions = typeProxyOptions;
+                targetOptions = typeTargetOptions;
+                rpcMarshalableAttribute = attribute;
+                MarshaledTypes.TryAdd(type, (proxyOptions, targetOptions, rpcMarshalableAttribute));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Throws <see cref="NotSupportedException"/> if <paramref name="type"/> is not a valid marshalable interface.
     /// This method doesn't validate that <paramref name="type"/> has the <see cref="RpcMarshalableAttribute"/>
@@ -437,6 +482,37 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         if (type.GetProperties().Length > 0)
         {
             throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasProperties, type.FullName));
+        }
+    }
+
+    /// <summary>
+    /// Throws <see cref="NotSupportedException"/> if <paramref name="typeShape"/> is not a valid marshalable interface.
+    /// This method doesn't validate that <paramref name="typeShape"/> has the <see cref="RpcMarshalableAttribute"/>
+    /// attribute.
+    /// </summary>
+    /// <param name="typeShape">The shape of the interface to validate.</param>
+    /// <param name="attribute">The attribute that appears on the interface.</param>
+    /// <exception cref="NotSupportedException">When <paramref name="typeShape"/> is not a valid marshalable interface: this
+    /// can happen if <paramref name="typeShape"/> has properties, events or it is not disposable.</exception>
+    private static void ValidateMarshalableInterface(
+        ITypeShape typeShape,
+        RpcMarshalableAttribute attribute)
+    {
+        // We only require marshalable interfaces to derive from IDisposable when they are not call-scoped.
+        if (!attribute.CallScopedLifetime && !typeof(IDisposable).IsAssignableFrom(typeShape.Type))
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceNotDisposable, typeShape.Type.FullName));
+        }
+
+        // Enable when https://github.com/eiriktsarpalis/PolyType/issues/226 makes events available.
+        ////if (typeShape.GetEvents().Length > 0)
+        ////{
+        ////    throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasEvents, type.FullName));
+        ////}
+
+        if (typeShape is IObjectTypeShape { Properties.Count: > 0 })
+        {
+            throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasProperties, typeShape.Type.FullName));
         }
     }
 
