@@ -277,16 +277,19 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     {
         Requires.NotNull(type);
 
+        bool assignable = type.IsAssignableFrom(this.GetType());
+
         // If the type check fails, then the contract is definitely not implemented.
-        if (!type.IsAssignableFrom(this.GetType()))
+        if (!assignable)
         {
             return false;
         }
 
         if (!this.requestedInterfaces.HasValue || !this.Options.AcceptProxyWithExtraInterfaces)
         {
-            // There's no chance this proxy implements too many interfaces.
-            return false;
+            // There's no chance this proxy implements too many interfaces,
+            // so fallback to assignability check.
+            return assignable;
         }
 
         foreach (Type iface in this.requestedInterfaces.Value.Span)
