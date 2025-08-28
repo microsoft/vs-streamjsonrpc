@@ -8,7 +8,10 @@
   <Target Name="PlaceMissingAssembly" AfterTargets="ResolveReferences">
     <ItemGroup>
       <DivertedProjectReferenceOutputs Include="@(ReferencePath)" Condition=" '%(FileName)' == 'UnreachableAssembly' " />
+      <Content Include="@(DivertedProjectReferenceOutputs)">
+        <Link>hidden\%(FileName)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
-    <Copy SourceFiles="@(DivertedProjectReferenceOutputs)" DestinationFolder="$(OutputPath)hidden" SkipUnchangedFiles="true" />
   </Target>
 </Project>
