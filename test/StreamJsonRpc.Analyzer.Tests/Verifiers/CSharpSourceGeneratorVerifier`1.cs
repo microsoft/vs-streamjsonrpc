@@ -32,7 +32,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 
     private const LanguageVersion DefaultLanguageVersion = LanguageVersion.CSharp7_3;
 
-    public static Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, [CallerFilePath] string testFile = null!, [CallerMemberName] string testMethod = null!)
+    public static Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, GeneratorConfiguration? configuration = null, [CallerFilePath] string testFile = null!, [CallerMemberName] string testMethod = null!)
     {
         Test test = new(testFile: testFile, testMethod: testMethod)
         {
@@ -47,6 +47,7 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
                     },
                 },
             LanguageVersion = languageVersion,
+            GeneratorConfiguration = configuration ?? GeneratorConfiguration.Default,
         };
 
         return test.RunDefaultAsync(testSource);

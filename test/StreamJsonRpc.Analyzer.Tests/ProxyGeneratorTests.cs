@@ -417,6 +417,85 @@ public class ProxyGeneratorTests
             """);
     }
 
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+            public partial interface IMarshalable
+            {
+            }
+
+            internal partial interface IOptional { }
+
+            class Foo
+            {
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods_NotPublic()
+    {
+        await VerifyCS.RunDefaultAsync(
+            """
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+            public partial interface IMarshalable
+            {
+            }
+
+            internal partial interface IOptional { }
+
+            class Foo
+            {
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """,
+            configuration: GeneratorConfiguration.Default with { PublicRpcMarshalableInterfaceExtensions = false });
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods_NestedInClass()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            namespace NS;
+
+            partial class Wrapper
+            {
+                [RpcMarshalable]
+                [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+                public partial interface IMarshalable
+                {
+                }
+
+                internal partial interface IOptional { }
+
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """);
+    }
+
 #if NET
     /// <summary>
     /// Verifies that static members are ignored during proxy generation.

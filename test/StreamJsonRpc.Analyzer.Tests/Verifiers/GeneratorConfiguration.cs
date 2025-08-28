@@ -9,12 +9,15 @@ internal record GeneratorConfiguration
 
     internal bool InterceptorsEnabled { get; init; } = true;
 
+    internal bool PublicRpcMarshalableInterfaceExtensions { get; init; } = true;
+
     internal string ToGlobalConfigString()
     {
         StringBuilder globalConfigBuilder = new();
         globalConfigBuilder.AppendLine("is_global = true");
         globalConfigBuilder.AppendLine();
         AddProperty("EnableStreamJsonRpcInterceptors", this.InterceptorsEnabled ? "true" : "false");
+        AddProperty("PublicRpcMarshalableInterfaceExtensions", this.PublicRpcMarshalableInterfaceExtensions ? "true" : "false");
 
         return globalConfigBuilder.ToString();
 

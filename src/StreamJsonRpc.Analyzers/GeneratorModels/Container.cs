@@ -22,6 +22,11 @@ internal abstract record Container(string Name, Container? Parent = null)
 
     internal string FullName => this.Parent is null ? this.Name : $"{this.Parent.FullName}.{this.Name}";
 
+    /// <summary>
+    /// Gets the first namespace in the chain of containers, starting with this one.
+    /// </summary>
+    internal Namespace? ThisOrContainingNamespace => this is Namespace ns ? ns : this.Parent?.ThisOrContainingNamespace;
+
     internal static Container? CreateFor(INamespaceOrTypeSymbol? symbol, CancellationToken cancellationToken)
     {
         if (symbol is null or INamespaceSymbol { IsGlobalNamespace: true })

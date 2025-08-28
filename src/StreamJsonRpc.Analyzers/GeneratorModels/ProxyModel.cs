@@ -69,6 +69,8 @@ internal record ProxyModel : FormattableModel
 
     internal bool HasInvalidInterfaces { get; }
 
+    internal bool HasOptionalInterfaces { get; init; }
+
     internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
     {
         string genericTypeParameters = iface.TypeParameters.Length > 0
