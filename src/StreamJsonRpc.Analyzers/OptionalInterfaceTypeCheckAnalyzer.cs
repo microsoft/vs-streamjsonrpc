@@ -85,6 +85,13 @@ public class OptionalInterfaceTypeCheckAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // If the target type isn't attributed with [RpcMarshalable(IsOptional = true)], bail out.
+        AttributeData? targetAttr = targetType.GetAttributes().First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.RpcMarshalableAttribute));
+        if (targetAttr.NamedArguments.FirstOrDefault(kvp => kvp.Key == nameof(Types.RpcMarshalableAttribute.IsOptional)).Value.Value is not true)
+        {
+            return;
+        }
+
         context.ReportDiagnostic(Diagnostic.Create(
             UseIClientProxy,
             context.Operation.Syntax.GetLocation(),

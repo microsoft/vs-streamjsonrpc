@@ -282,7 +282,7 @@ StreamJsonRpc provides the <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAt
 <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> is applied to the interface used in the RPC contract.
 Such an interface must also apply the <xref:StreamJsonRpc.RpcMarshalableAttribute>.
 
-An interface that <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> references must have the <xref:StreamJsonRpc.RpcMarshalableAttribute> attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
+An interface that <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> references must have the <xref:StreamJsonRpc.RpcMarshalableAttribute> attribute applied, set <xref:StreamJsonRpc.RpcMarshalableAttribute.IsOptional> to `true`, and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
 
 The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> on the interface type used in the RPC contract.
 

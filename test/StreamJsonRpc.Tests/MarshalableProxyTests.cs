@@ -164,7 +164,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
@@ -178,7 +178,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
@@ -186,13 +186,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
@@ -200,7 +200,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusOneAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
@@ -216,14 +216,14 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable(IsOptional = true)]
     [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
     public partial interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
         Task<int> GetPlusFiveAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
     public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
@@ -232,7 +232,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
@@ -712,7 +712,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
-        IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        IMarshalableSubType1? proxy1 = (await this.client.GetMarshalableWithOptionalInterfacesAsync())?.As<IMarshalableSubType1>();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
         this.AssertIsNot(proxy1, typeof(IMarshalableSubType2));
@@ -731,7 +731,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
         IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal("foo", await proxy1!.ToBeRenamedAsync("foo"));
-        Assert.Equal("foo", await ((IMarshalableSubType1)proxy1)!.ToBeRenamedAsync("foo"));
+        Assert.Equal("foo", await proxy1!.As<IMarshalableSubType1>()!.ToBeRenamedAsync("foo"));
 
         Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RenamedAsync", "foo"));
         Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RenamedAsync", "foo"));
@@ -755,8 +755,8 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         var proxy = await localRpc.InvokeAsync<IMarshalableWithOptionalInterfaces>("one." + nameof(IServer.GetMarshalableWithOptionalInterfacesAsync));
         Assert.Equal(1, await proxy!.GetAsync(1));
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
-        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1>()!.GetAsync(1));
+        Assert.Equal(2, await proxy.As<IMarshalableSubType1>()!.GetPlusOneAsync(1));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
@@ -783,8 +783,8 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         var proxy = await localRpc.InvokeAsync<IMarshalableWithOptionalInterfaces>("getMarshalableWithOptionalInterfacesAsync");
         Assert.Equal(1, await proxy!.GetAsync(1));
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
-        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
+        Assert.Equal(1, await proxy!.As<IMarshalableSubType1>()!.GetAsync(1));
+        Assert.Equal(2, await proxy!.As<IMarshalableSubType1>()!.GetPlusOneAsync(1));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
@@ -805,7 +805,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     public async Task RpcMarshalableOptionalInterface_IndirectInterfaceImplementation()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1Indirect();
-        IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        IMarshalableSubType1? proxy = (await this.client.GetMarshalableWithOptionalInterfacesAsync())?.As<IMarshalableSubType1>();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(2, await proxy.GetPlusOneAsync(1));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
@@ -816,7 +816,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     public async Task RpcMarshalableOptionalInterface_WithExplicitImplementation()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2();
-        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        IMarshalableSubType2? proxy = (await this.client.GetMarshalableWithOptionalInterfacesAsync())?.As<IMarshalableSubType2>();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
@@ -838,7 +838,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     public async Task RpcMarshalableOptionalInterface_OnlyAttibutesOnDeclaredTypeAreHonored()
     {
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType2Extended();
-        IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
+        IMarshalableSubType2? proxy = (await this.client.GetMarshalableWithOptionalInterfacesAsync())?.As<IMarshalableSubType2>();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
         this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
@@ -846,7 +846,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType2? proxy1 = await this.client.GetMarshalableSubType2Async();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(3, await proxy1.GetPlusTwoAsync(1));
-        Assert.Equal(4, await ((IMarshalableSubType2Extended)proxy1).GetPlusThreeAsync(1));
+        Assert.Equal(4, await proxy1.As<IMarshalableSubType2Extended>()!.GetPlusThreeAsync(1));
     }
 
     [Fact]
@@ -856,7 +856,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
-        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+        Assert.Equal(5, await proxy!.As<IMarshalableNonExtendingBase>()!.GetPlusFourAsync(1));
     }
 
     [Fact]
@@ -874,10 +874,10 @@ public abstract partial class MarshalableProxyTests : TestBase
         // of the RPC contract, so IMarshalableSubTypeWithIntermediateInterface.GetPlusTwoAsync is invoked instead.
         Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy).GetPlusTwoAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetAsync(1));
-        Assert.Equal(2, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusOneAsync(1));
-        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusTwoAsync(1)); // This method negates the result
-        Assert.Equal(4, await ((IMarshalableSubTypeWithIntermediateInterface)proxy).GetPlusThreeAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetAsync(1));
+        Assert.Equal(2, await proxy.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetPlusOneAsync(1));
+        Assert.Equal(-3, await proxy.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await proxy.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetPlusThreeAsync(1));
     }
 
     [Fact]
@@ -887,11 +887,11 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         IMarshalableWithOptionalInterfaces2? proxy2 = await this.client.GetMarshalableWithOptionalInterfaces2Async();
 
-        Assert.Equal(3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy1!).GetPlusTwoAsync(1));
-        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface2)proxy1).GetPlusTwoAsync(1));
+        Assert.Equal(3, await proxy1!.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetPlusTwoAsync(1));
+        Assert.Equal(-3, await proxy1!.As<IMarshalableSubTypeWithIntermediateInterface2>()!.GetPlusTwoAsync(1));
 
-        Assert.Equal(3, await ((IMarshalableSubTypeWithIntermediateInterface)proxy2!).GetPlusTwoAsync(1));
-        Assert.Equal(-3, await ((IMarshalableSubTypeWithIntermediateInterface2)proxy2).GetPlusTwoAsync(1));
+        Assert.Equal(3, await proxy2!.As<IMarshalableSubTypeWithIntermediateInterface>()!.GetPlusTwoAsync(1));
+        Assert.Equal(-3, await proxy2!.As<IMarshalableSubTypeWithIntermediateInterface2>()!.GetPlusTwoAsync(1));
 
         // Since MarshalableSubTypeWithIntermediateInterface1And2 implements the GetPlusTwoAsync methods explicitly
         // and IMarshalableSubTypeIntermediateInterface is not a known optional interface, a call to
@@ -903,8 +903,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         // IMarshalableWithOptionalInterfaces and IMarshalableWithOptionalInterfaces2 have opposite
         // RpcMarshalableOptionalInterface definitions (the order of the optionalInterfaceCode values is inverted)
         // resulting in inverted dispatching.
-        Assert.Equal(3, await ((IMarshalableSubTypeIntermediateInterface)proxy1).GetPlusTwoAsync(1));
-        Assert.Equal(-3, await ((IMarshalableSubTypeIntermediateInterface)proxy2).GetPlusTwoAsync(1));
+        Assert.Equal(3, await proxy1!.As<IMarshalableSubTypeIntermediateInterface>()!.GetPlusTwoAsync(1));
+        Assert.Equal(-3, await proxy2!.As<IMarshalableSubTypeIntermediateInterface>()!.GetPlusTwoAsync(1));
     }
 
     [Fact]

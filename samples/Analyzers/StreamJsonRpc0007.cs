@@ -24,7 +24,7 @@ namespace StreamJsonRpc0007.Fix
     {
     }
 
-    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyObject2 : IDisposable
     {
     }

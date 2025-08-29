@@ -294,7 +294,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
 
         foreach (Type iface in this.requestedInterfaces.Value.Span)
         {
-            if (iface == type)
+            if (type.IsAssignableFrom(iface))
             {
                 return true;
             }

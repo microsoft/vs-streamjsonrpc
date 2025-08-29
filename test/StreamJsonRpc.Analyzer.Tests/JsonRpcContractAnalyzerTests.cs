@@ -315,6 +315,29 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task RpcMarshalable_WithOptionalInterfaceWithoutIsOptionalTrue()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))|}]
+            [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))|}]
+            partial interface IMyRpc : IDisposable
+            {
+            }
+
+            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            partial interface IMarshalableSubType1 : IDisposable
+            {
+            }
+
+            [RpcMarshalable(IsOptional = false), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            partial interface IMarshalableSubType2 : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
     public async Task RpcMarshalable_WithOptionalInterface()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
@@ -324,7 +347,7 @@ public class JsonRpcContractAnalyzerTests
             {
             }
 
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             partial interface IMarshalableSubType1 : IDisposable
             {
             }

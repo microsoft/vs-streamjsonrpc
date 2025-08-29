@@ -348,7 +348,9 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         {
             if (optionalIfaceAttr.ConstructorArguments is [_, { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol ifaceType }])
             {
-                if (!ifaceType.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.RpcMarshalableAttribute)))
+                // TODO: check for IsOptional on the attribute
+                AttributeData? marshalableAttribute = ifaceType.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownSymbols.RpcMarshalableAttribute));
+                if (marshalableAttribute is null || marshalableAttribute.NamedArguments.FirstOrDefault(na => na.Key is Types.RpcMarshalableAttribute.IsOptional).Value is not { Value: true })
                 {
                     diagnostics = diagnostics.Add(Diagnostic.Create(
                         UseRpcMarshalableAttributeOnOptionalInterfaces,

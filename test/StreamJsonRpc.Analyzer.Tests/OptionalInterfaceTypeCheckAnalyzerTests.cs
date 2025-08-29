@@ -11,27 +11,40 @@ public class OptionalInterfaceTypeCheckAnalyzerTests
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcMarshalable]
             [RpcMarshalableOptionalInterface(1, typeof(IMyObject2))]
+            [RpcMarshalableOptionalInterface(2, typeof(IMyObject3))]
             partial interface IMyObject : IDisposable
             {
             }
 
-            [RpcMarshalable]
+            [RpcMarshalable(IsOptional = true)]
             partial interface IMyObject2 : IDisposable
             {
             }
 
-            class OneWay
+            [RpcMarshalable(IsOptional = true)]
+            partial interface IMyObject3 : IDisposable
+            {
+            }
+
+            class FromBaseToOptional
             {
                 bool IsOperator(IMyObject o) => {|StreamJsonRpc0050:o is IMyObject2|};
                 IMyObject2 AsOperator(IMyObject o) => {|StreamJsonRpc0050:o as IMyObject2|};
                 IMyObject2 CastOperator(IMyObject o) => {|StreamJsonRpc0050:(IMyObject2)o|};
             }
 
-            class OtherWay
+            class FromOptionalToBase
             {
-                bool IsOperator(IMyObject2 o) => {|StreamJsonRpc0050:o is IMyObject|};
-                IMyObject AsOperator(IMyObject2 o) => {|StreamJsonRpc0050:o as IMyObject|};
-                IMyObject CastOperator(IMyObject2 o) => {|StreamJsonRpc0050:(IMyObject)o|};
+                bool IsOperator(IMyObject2 o) => o is IMyObject;
+                IMyObject AsOperator(IMyObject2 o) => o as IMyObject;
+                IMyObject CastOperator(IMyObject2 o) => (IMyObject)o;
+            }
+            
+            class BetweenOptionals
+            {
+                bool IsOperator(IMyObject3 o) => {|StreamJsonRpc0050:o is IMyObject2|};
+                IMyObject2 AsOperator(IMyObject3 o) => {|StreamJsonRpc0050:o as IMyObject2|};
+                IMyObject2 CastOperator(IMyObject3 o) => {|StreamJsonRpc0050:(IMyObject2)o|};
             }
             """);
     }
@@ -46,7 +59,7 @@ public class OptionalInterfaceTypeCheckAnalyzerTests
             {
             }
 
-            [RpcMarshalable]
+            [RpcMarshalable(IsOptional = true)]
             partial interface IMyObject2 : IDisposable
             {
             }

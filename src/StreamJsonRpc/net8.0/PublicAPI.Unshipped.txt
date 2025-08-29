@@ -103,6 +103,8 @@ StreamJsonRpc.Reflection.ProxyInputs.ContractInterface.init -> void
 StreamJsonRpc.Reflection.ProxyInputs.Options.get -> StreamJsonRpc.JsonRpcProxyOptions?
 StreamJsonRpc.Reflection.ProxyInputs.Options.init -> void
 StreamJsonRpc.Reflection.ProxyInputs.ProxyInputs() -> void
+StreamJsonRpc.RpcMarshalableAttribute.IsOptional.get -> bool
+StreamJsonRpc.RpcMarshalableAttribute.IsOptional.init -> void
 StreamJsonRpc.RpcTargetMetadata
 StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces
 StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.Add(System.Type! iface) -> void
