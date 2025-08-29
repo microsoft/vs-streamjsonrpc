@@ -86,8 +86,12 @@ public class NamedArgs : IReadOnlyDictionary<string, object?>
             throw new ArgumentException("The object type must not be System.Object.", nameof(objectType));
         }
 
-        (IReadOnlyDictionary<string, Type> types, IReadOnlyDictionary<string, Func<object, object?>> readers) = Arguments.GetOrAdd(objectType, AnalyzeMembers);
-        return new NamedArgs(types, readers, namedArgsObject);
+        if (!Arguments.TryGetValue(objectType, out (IReadOnlyDictionary<string, Type> Types, IReadOnlyDictionary<string, Func<object, object?>> Readers) result))
+        {
+            result = Arguments.GetOrAdd(objectType, AnalyzeMembers(objectType));
+        }
+
+        return new NamedArgs(result.Types, result.Readers, namedArgsObject);
     }
 
     bool IReadOnlyDictionary<string, object?>.ContainsKey(string key) => this.readers.ContainsKey(key);

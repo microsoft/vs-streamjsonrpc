@@ -9,3 +9,9 @@ namespace Samples.Analyzers.NoProxy;
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface)]
 internal class JsonRpcContractAttribute : Attribute;
+
+[AttributeUsage(AttributeTargets.Interface)]
+internal class GenerateShapeAttribute : Attribute
+{
+    public MethodShapeFlags IncludeMethods { get; init; }
+}

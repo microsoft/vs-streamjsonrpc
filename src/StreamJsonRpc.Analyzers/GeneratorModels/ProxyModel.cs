@@ -76,6 +76,16 @@ internal record ProxyModel : FormattableModel
             : string.Empty;
         writer.WriteLine($$"""
             [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}{{this.GenericTypeDefinitionSuffix}}))]
+            """);
+
+        foreach (string prescribedTypeArg in iface.PrescribedTypeArgs)
+        {
+            writer.WriteLine($$"""
+                [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}<{{prescribedTypeArg}}>))]
+                """);
+        }
+
+        writer.WriteLine($$"""
             partial interface {{iface.Name}}{{genericTypeParameters}}
             {
             }

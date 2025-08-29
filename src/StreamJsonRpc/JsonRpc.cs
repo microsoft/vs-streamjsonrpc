@@ -32,8 +32,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private const string JoinableTaskTokenHeaderName = "joinableTaskToken";
 
-    private static readonly MethodInfo MarshalWithControlledLifetimeOpenGenericMethodInfo = typeof(JsonRpc).GetMethod(nameof(MarshalWithControlledLifetimeOpen), BindingFlags.Static | BindingFlags.NonPublic)!;
-
     /// <summary>
     /// A singleton error object that can be returned by <see cref="DispatchIncomingRequestAsync(JsonRpcRequest)"/> in error cases
     /// for requests that are actually notifications and thus the error will be dropped.
@@ -1367,39 +1365,23 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <summary>
     /// Creates a marshallable proxy for a given object that may be sent over RPC such that the receiving side can invoke methods on the given object.
     /// </summary>
-    /// <typeparam name="T">
-    /// The interface type implemented by the <paramref name="marshaledObject"/> that defines the members to expose over RPC.
-    /// </typeparam>
-    /// <param name="marshaledObject">The object to be exposed over RPC.</param>
-    /// <param name="options"><inheritdoc cref="RpcMarshaledContext{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
+    /// <param name="interfaceType"><inheritdoc cref="RpcMarshaledContext(Type, object, JsonRpcTargetOptions)" path="/param[@name='interfaceType']"/></param>
+    /// <param name="marshaledObject"><inheritdoc cref="RpcMarshaledContext(Type, object, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
+    /// <param name="options"><inheritdoc cref="RpcMarshaledContext(Type, object, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
     /// <returns>A lifetime controlling wrapper around a new proxy value.</returns>
     /// <remarks>
     /// <para>
     /// Use <see cref="MarshalLimitedArgument{T}(T)"/> for a simpler lifetime model when the object should only be marshaled within the scope of a single RPC call.
     /// </para>
     /// </remarks>
-    internal static IRpcMarshaledContext<T> MarshalWithControlledLifetimeOpen<T>(T marshaledObject, JsonRpcTargetOptions options)
-        where T : class
-    {
-        return new RpcMarshaledContext<T>(marshaledObject, options);
-    }
+    internal static RpcMarshaledContext MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
+        => new RpcMarshaledContext(interfaceType, marshaledObject, options);
 
-    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
-    /// <param name="interfaceType"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/typeparam"/></param>
-    /// <param name="marshaledObject"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='marshaledObject']"/></param>
-    /// <param name="options"><inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)" path="/param[@name='options']"/></param>
-    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
-    internal static IRpcMarshaledContext<object> MarshalWithControlledLifetime(Type interfaceType, object marshaledObject, JsonRpcTargetOptions options)
-    {
-        return (IRpcMarshaledContext<object>)MarshalWithControlledLifetimeOpenGenericMethodInfo.MakeGenericMethod(interfaceType).Invoke(null, new object?[] { marshaledObject, options })!;
-    }
-
-    /// <inheritdoc cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/>
+    /// <inheritdoc cref="MarshalWithControlledLifetime(Type, object, JsonRpcTargetOptions)"/>
     /// <returns>A proxy value that may be used within an RPC argument so the RPC server may call back into the <paramref name="marshaledObject"/> object on the RPC client.</returns>
     /// <remarks>
     /// <para>
-    /// Use <see cref="MarshalWithControlledLifetimeOpen{T}(T, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
+    /// Use <see cref="MarshalWithControlledLifetime(Type, object, JsonRpcTargetOptions)"/> for greater control and flexibility around lifetime of the proxy.
     /// This is required when the value is returned from an RPC method or when it is used within an RPC argument and must outlive that RPC invocation.
     /// </para>
     /// </remarks>
@@ -1433,10 +1415,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
         if (proxyInputs.Options?.ProxySource is JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
         {
-            throw new NotImplementedException("No source generated proxy is available for the requested interface(s), and dynamic proxies are forbidden by the options.");
+            throw proxyInputs.CreateNoSourceGeneratedProxyException();
         }
 
-        TypeInfo proxyType = ProxyGeneration.Get(proxyInputs.ContractInterface, proxyInputs.AdditionalContractInterfaces.Span, proxyInputs.ImplementedOptionalInterfaces.Span);
+        TypeInfo proxyType = ProxyGeneration.Get(proxyInputs);
         return (IJsonRpcClientProxyInternal)Activator.CreateInstance(
             proxyType.AsType(),
             this,
@@ -1484,6 +1466,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
         return this.rpcTargetInfo.AddLocalRpcTarget(mapping, target, options, requestRevertOption);
     }
+
+    internal RpcTargetInfo.RevertAddLocalRpcTarget? AddLocalRpcTargetInternal(RpcTargetMetadata exposingMembersOn, object target, JsonRpcTargetOptions? options, bool requestRevertOption)
+        => this.rpcTargetInfo.AddLocalRpcTarget(exposingMembersOn, target, options ?? JsonRpcTargetOptions.Default, requestRevertOption);
 
     /// <summary>
     /// Adds a new RPC interface to an existing target registering additional RPC methods.

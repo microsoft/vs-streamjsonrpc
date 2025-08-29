@@ -7,7 +7,7 @@ namespace StreamJsonRpc.Tests.ExternalAssembly;
 
 internal partial interface IInternal
 {
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IPublicNestedInInternalInterface
     {
         Task<int> SubtractAsync(int a, int b);

@@ -3,7 +3,7 @@
 
 namespace StreamJsonRpc.Tests.ExternalAssembly;
 
-[JsonRpcContract]
+[JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 internal partial interface ISomeInternalProxyInterface
 {
     Task<int> SubtractAsync(int a, int b);

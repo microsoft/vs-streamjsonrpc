@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
@@ -30,6 +31,7 @@ public class JsonRpcContractCodeFixProvider : CodeFixProvider
     /// <inheritdoc/>
     public override ImmutableArray<string> FixableDiagnosticIds => [
         JsonRpcContractAnalyzer.RpcMarshableDisposableId,
+        JsonRpcContractAnalyzer.GeneratePolyTypeMethodsOnRpcContractInterfaceId,
     ];
 
     /// <inheritdoc/>
@@ -50,35 +52,73 @@ public class JsonRpcContractCodeFixProvider : CodeFixProvider
                             equivalenceKey: nameof(AddIDisposableBaseTypeAsync)),
                         diagnostic);
                     break;
+                case JsonRpcContractAnalyzer.GeneratePolyTypeMethodsOnRpcContractInterfaceId when diagnostic.AdditionalLocations is [{ } only] && only.Equals(Location.None):
+                    context.RegisterCodeFix(
+                        CodeAction.Create(
+                            title: Strings.GeneratePolyTypeMethodsOnRpcContractInterface_FixTitle,
+                            createChangedDocument: AddMethodShapesAsync,
+                            equivalenceKey: nameof(AddMethodShapesAsync)),
+                        diagnostic);
+                    break;
             }
 
-            async Task<Document> AddIDisposableBaseTypeAsync(CancellationToken cancellation)
+            async Task<(SyntaxNode Root, BaseTypeDeclarationSyntax TypeDeclaration)?> FindSyntax(CancellationToken cancellation)
             {
-                Document document = context.Document;
-                SyntaxNode? root = await document.GetSyntaxRootAsync(cancellation);
+                SyntaxNode? root = await context.Document.GetSyntaxRootAsync(cancellation);
                 if (root is null)
                 {
-                    return document;
+                    return null;
                 }
 
                 BaseTypeDeclarationSyntax? typeDecl = root.FindNode(diagnostic.Location.SourceSpan).FirstAncestorOrSelf<BaseTypeDeclarationSyntax>();
                 if (typeDecl is null)
                 {
-                    return document;
+                    return null;
                 }
 
-                BaseTypeDeclarationSyntax modifiedTypeDecl = typeDecl.AddBaseListTypes(SimpleBaseType(
+                return (root, typeDecl);
+            }
+
+            async Task<Document> FinalizeDocument((SyntaxNode Root, BaseTypeDeclarationSyntax TypeDeclaration) nodes, BaseTypeDeclarationSyntax modifiedTypeDecl, CancellationToken cancellation)
+            {
+                Document modifiedDocument = await AddImportAndSimplifyAsync(context.Document.WithSyntaxRoot(nodes.Root.ReplaceNode(nodes.TypeDeclaration, modifiedTypeDecl)), cancellation);
+                return modifiedDocument;
+            }
+
+            async Task<Document> AddIDisposableBaseTypeAsync(CancellationToken cancellation)
+            {
+                if (await FindSyntax(cancellation) is not { } nodes)
+                {
+                    return context.Document;
+                }
+
+                BaseTypeDeclarationSyntax modifiedTypeDecl = nodes.TypeDeclaration.AddBaseListTypes(SimpleBaseType(
                     ParseTypeName("global::System.IDisposable").WithAdditionalAnnotations(Simplifier.AddImportsAnnotation)));
 
                 // Move the new line for better formatting, if necessary.
-                if (typeDecl.BaseList is null && typeDecl.Identifier.HasTrailingTrivia)
+                if (nodes.TypeDeclaration.BaseList is null && nodes.TypeDeclaration.Identifier.HasTrailingTrivia)
                 {
                     modifiedTypeDecl = modifiedTypeDecl.WithIdentifier(modifiedTypeDecl.Identifier.WithTrailingTrivia(SyntaxTriviaList.Empty));
                 }
 
-                Document modifiedDocument = await AddImportAndSimplifyAsync(document.WithSyntaxRoot(root.ReplaceNode(typeDecl, modifiedTypeDecl)), cancellation);
+                return await FinalizeDocument(nodes, modifiedTypeDecl, cancellation);
+            }
 
-                return modifiedDocument;
+            async Task<Document> AddMethodShapesAsync(CancellationToken cancellation)
+            {
+                if (await FindSyntax(cancellation) is not { } nodes)
+                {
+                    return context.Document;
+                }
+
+                // Add a whole new TypeShapeAttribute.
+                bool preferGenerateShape = diagnostic.Properties.TryGetValue("PreferGenerateShape", out string? value) && value == "true";
+                BaseTypeDeclarationSyntax modifiedTypeDecl = nodes.TypeDeclaration
+                    .AddAttributeLists(AttributeList(SingletonSeparatedList(Attribute(ParseName(preferGenerateShape ? "PolyType.GenerateShape" : "PolyType.TypeShape")).AddArgumentListArguments(
+                        AttributeArgument(MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, IdentifierName("MethodShapeFlags"), IdentifierName("PublicInstance"))).WithNameEquals(NameEquals(IdentifierName("IncludeMethods"))))))
+                    .WithAdditionalAnnotations(Simplifier.AddImportsAnnotation, Formatter.Annotation));
+
+                return await FinalizeDocument(nodes, modifiedTypeDecl, cancellation);
             }
         }
 

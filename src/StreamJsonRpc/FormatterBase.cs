@@ -19,6 +19,8 @@ namespace StreamJsonRpc;
 /// </summary>
 public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
 {
+    private readonly ProxyFactory proxyFactory;
+
     private JsonRpc? rpc;
 
     /// <summary>
@@ -42,7 +44,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     private MessageFormatterEnumerableTracker? enumerableTracker;
 
     /// <summary>
-    /// The helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+    /// The helper for marshaling <see cref="RpcMarshaledContext"/> in RPC method arguments or return values.
     /// </summary>
     private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
 
@@ -55,8 +57,15 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatterBase"/> class.
     /// </summary>
+    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public FormatterBase()
+        : this(ProxyFactory.Default)
     {
+    }
+
+    private protected FormatterBase(ProxyFactory proxyFactory)
+    {
+        this.proxyFactory = proxyFactory;
     }
 
     /// <summary>
@@ -90,7 +99,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 this.rpc = value;
 
                 this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
-                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this);
+                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this.proxyFactory, this);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this, this.rpcMarshaledContextTracker);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.MultiplexingStream };
             }
@@ -161,7 +170,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     protected JsonRpcMethodAttribute? ApplicableMethodAttributeOnDeserializingMethod { get; private set; }
 
     /// <summary>
-    /// Gets the helper for marshaling <see cref="IRpcMarshaledContext{T}"/> in RPC method arguments or return values.
+    /// Gets the helper for marshaling <see cref="RpcMarshaledContext"/> in RPC method arguments or return values.
     /// </summary>
     private protected MessageFormatterRpcMarshaledContextTracker RpcMarshaledContextTracker
     {

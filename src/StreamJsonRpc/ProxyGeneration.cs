@@ -10,6 +10,7 @@ using System.Reflection.Emit;
 using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
+using StreamJsonRpc.Reflection;
 using CodeGenHelpers = StreamJsonRpc.Reflection.CodeGenHelpers;
 
 // Uncomment the SaveAssembly symbol and run one test to save the generated DLL for inspection in ILSpy as part of debugging.
@@ -29,6 +30,8 @@ internal static class ProxyGeneration
 #endif
     private static readonly object BuilderLock = new object();
     private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
+    private static readonly MethodInfo GetTypeMethod = typeof(object).GetRuntimeMethod(nameof(object.GetType), Type.EmptyTypes)!;
+    private static readonly MethodInfo IsAssignableFromMethod = typeof(Type).GetRuntimeMethod(nameof(Type.IsAssignableFrom), [typeof(Type)])!;
     private static readonly MethodInfo DelegateCombineMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Combine), new Type[] { typeof(Delegate), typeof(Delegate) })!;
     private static readonly MethodInfo DelegateRemoveMethod = typeof(Delegate).GetRuntimeMethod(nameof(Delegate.Remove), new Type[] { typeof(Delegate), typeof(Delegate) })!;
     private static readonly MethodInfo ActionInvokeMethod = typeof(Action).GetRuntimeMethod(nameof(Action.Invoke), Type.EmptyTypes)!;
@@ -59,23 +62,13 @@ internal static class ProxyGeneration
     /// <summary>
     /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
     /// </summary>
-    /// <param name="contractInterface">
-    /// The interface that describes the RPC contract, and that the client proxy should implement.
-    /// </param>
-    /// <param name="additionalContractInterfaces">
-    /// An optional list of additional interfaces that the client proxy should implement <em>without</em> the name transformation or event limitations
-    /// involved with <paramref name="implementedOptionalInterfaces"/>.
-    /// This set should have an empty intersection with <paramref name="implementedOptionalInterfaces"/>.
-    /// </param>
-    /// <param name="implementedOptionalInterfaces">
-    /// Additional marshalable interfaces that the client proxy should implement.
-    /// Methods on these interfaces are invoked using a special name transformation that includes an integer code,
-    /// ensuring that methods do not suffer from name collisions across interfaces.
-    /// </param>
+    /// <param name="inputs">Inputs into the proxy to create.</param>
     /// <returns>The generated type.</returns>
-    internal static TypeInfo Get(Type contractInterface, ReadOnlySpan<Type> additionalContractInterfaces, ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces)
+    internal static TypeInfo Get(ProxyInputs inputs)
     {
-        Requires.NotNull(contractInterface, nameof(contractInterface));
+        Type contractInterface = inputs.ContractInterface;
+        ReadOnlySpan<Type> additionalContractInterfaces = inputs.AdditionalContractInterfaces.Span;
+        ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces = inputs.ImplementedOptionalInterfaces.Span;
 
         // Dynamic proxy generation requires the ability to generate dynamic event handlers.
         // Not a problem, since by calling into this method the user has already committed to running on a runtime that supports dynamic code.
@@ -102,20 +95,7 @@ internal static class ProxyGeneration
             }
 
             Type[] contractInterfaces = [contractInterface, .. additionalContractInterfaces];
-            List<(TypeInfo Type, int? Code)> rpcInterfaces = new(1 + additionalContractInterfaces.Length + implementedOptionalInterfaces.Length);
-            rpcInterfaces.Add((contractInterface.GetTypeInfo(), null));
-            foreach (Type addl in additionalContractInterfaces)
-            {
-                rpcInterfaces.Add((addl.GetTypeInfo(), null));
-            }
-
-            foreach ((Type type, int code) in implementedOptionalInterfaces)
-            {
-                rpcInterfaces.Add((type.GetTypeInfo(), code));
-            }
-
-            // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
-            SortRpcInterfaces(rpcInterfaces);
+            IList<(Type Type, int? Code)> rpcInterfaces = GetSortedInterfaceAndCodes(inputs);
 
             // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
@@ -272,25 +252,23 @@ internal static class ProxyGeneration
                 jsonRpcProperty.SetGetMethod(jsonRpcPropertyGetter);
             }
 
-            // IJsonRpcClientProxy.As method
+            // IJsonRpcClientProxy.Is method
             {
                 MethodBuilder asMethod = proxyTypeBuilder.DefineMethod(
-                    nameof(IJsonRpcClientProxy.As),
+                    nameof(IJsonRpcClientProxy.Is),
                     MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Final | MethodAttributes.NewSlot | MethodAttributes.Virtual,
-                    null,
-                    Type.EmptyTypes);
-                GenericTypeParameterBuilder typeArgBuilder = asMethod.DefineGenericParameters("T")[0];
-                typeArgBuilder.SetGenericParameterAttributes(GenericParameterAttributes.ReferenceTypeConstraint);
-                asMethod.SetReturnType(typeArgBuilder);
+                    typeof(bool),
+                    [typeof(Type)]);
                 ILGenerator il = asMethod.GetILGenerator();
 
-                // return this as T;
+                // return arg1.IsAssignableFrom(this.GetType());
+                il.Emit(OpCodes.Ldarg_1);
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Isinst, typeArgBuilder);
-                il.Emit(OpCodes.Unbox_Any, typeArgBuilder);
+                il.Emit(OpCodes.Call, GetTypeMethod);
+                il.Emit(OpCodes.Callvirt, IsAssignableFromMethod);
                 il.Emit(OpCodes.Ret);
 
-                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IJsonRpcClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IJsonRpcClientProxy.As))!);
+                proxyTypeBuilder.DefineMethodOverride(asMethod, typeof(IClientProxy).GetTypeInfo().GetDeclaredMethod(nameof(IClientProxy.Is))!);
             }
 
             IEnumerable<MethodInfo> invokeWithCancellationAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithCancellationAsync));
@@ -334,8 +312,8 @@ internal static class ProxyGeneration
                         string rpcMethodName = name;
                         if (rpcInterfaceCode.HasValue)
                         {
-                            methodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{method.Name}";
-                            rpcMethodName = $"{rpcInterfaceCode.GetValueOrDefault()}.{rpcMethodName}";
+                            methodName = $"{rpcInterfaceCode}.{methodName}";
+                            rpcMethodName = $"{rpcInterfaceCode}.{rpcMethodName}";
                         }
 
                         ParameterInfo[] methodParameters = method.GetParameters();
@@ -491,40 +469,6 @@ internal static class ProxyGeneration
         }
 
         return generatedType;
-    }
-
-    /// <summary>
-    /// Sorts <paramref name="list"/> so that:
-    /// <list type="number">
-    /// <item><description>interfaces that are extending a lesser number of other interfaces in <paramref name="list"/> come first;</description></item>
-    /// <item><description>interfaces extending the same number of other interfaces in <paramref name="list"/>, are ordered by optional interface code;
-    /// where a <see langword="null" /> code comes first.</description></item>
-    /// </list>
-    /// </summary>
-    /// <param name="list">The list of RPC interfaces to be sorted.</param>
-    private static void SortRpcInterfaces(List<(TypeInfo Type, int? Code)> list)
-    {
-        (TypeInfo Type, int? Code, int InheritanceWeight)[] weightedList
-            = list.Select(i => (i.Type, i.Code, list.Count(i2 => i2.Type.IsAssignableFrom(i.Type)))).ToArray();
-        Array.Sort(weightedList, CompareRpcInterfaces);
-
-        for (int i = 0; i < weightedList.Length; i++)
-        {
-            list[i] = (weightedList[i].Type, weightedList[i].Code);
-        }
-
-        int CompareRpcInterfaces((TypeInfo Type, int? Code, int InheritanceWeight) a, (TypeInfo Type, int? Code, int InheritanceWeight) b)
-        {
-            int weightComparison = a.InheritanceWeight.CompareTo(b.InheritanceWeight);
-            return (weightComparison, a.Code, b.Code) switch
-            {
-                (_, _, _) when weightComparison != 0 => weightComparison,
-                (_, null, null) => 0,
-                (_, null, _) => -1,
-                (_, _, null) => 1,
-                (_, _, _) => a.Code.Value.CompareTo(b.Code.Value),
-            };
-        }
     }
 
     private static void EmitRaiseCallEvent(ILGenerator il, FieldBuilder eventHandlerField, string methodName)
@@ -1030,6 +974,26 @@ internal static class ProxyGeneration
                 }
             }
         }
+    }
+
+    private static IList<(Type Interface, int? Code)> GetSortedInterfaceAndCodes(ProxyInputs inputs)
+    {
+        List<(Type Type, int? Code)> rpcInterfaces = new(1 + inputs.AdditionalContractInterfaces.Length + inputs.ImplementedOptionalInterfaces.Length);
+        rpcInterfaces.Add((inputs.ContractInterface, null));
+        foreach (Type addl in inputs.AdditionalContractInterfaces.Span)
+        {
+            rpcInterfaces.Add((addl, null));
+        }
+
+        foreach ((Type type, int code) in inputs.ImplementedOptionalInterfaces.Span)
+        {
+            rpcInterfaces.Add((type, code));
+        }
+
+        // Rpc interfaces must be sorted so that we implement methods from base interfaces before those from their derivations.
+        ProxyInputs.SortRpcInterfaces(rpcInterfaces);
+
+        return rpcInterfaces;
     }
 
     /// <summary>

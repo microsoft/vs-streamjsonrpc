@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using MessagePack;
@@ -9,7 +10,6 @@ using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
-using PolyType;
 
 /// <summary>
 /// Tests the proxying of interfaces marked with <see cref="RpcMarshalableAttribute"/>.
@@ -41,7 +41,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
@@ -97,17 +97,18 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task DoSomethingAsync();
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalable : INonMarshalable
     {
     }
 
-    [RpcMarshalable(CallScopedLifetime = true)]
+    [RpcMarshalable(CallScopedLifetime = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithCallScopedLifetime : IMarshalable
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [JsonRpcProxy<IGenericMarshalable<int>>]
     public partial interface IGenericMarshalable<T> : IMarshalable
     {
         Task<T> DoSomethingWithParameterAsync(T parameter);
@@ -117,14 +118,14 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 #pragma warning disable StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     public partial interface INonDisposableMarshalable
 #pragma warning restore StreamJsonRpc0005 // RpcMarshalable are IDisposable -- runtime fail mode test
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithProperties : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -132,7 +133,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableWithEvents : IDisposable
     {
 #pragma warning disable StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
@@ -140,7 +141,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 #pragma warning restore StreamJsonRpc0012 // Unsupported member -- runtime fail mode test
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))]
     [RpcMarshalableOptionalInterface(3, typeof(IMarshalableSubType1Extended))]
@@ -152,18 +153,18 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
         Task<int> GetAsync(int value);
 
-        [JsonRpcMethod("RemamedAsync")]
+        [JsonRpcMethod("RenamedAsync")]
         Task<string> ToBeRenamedAsync(string s);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubTypeWithIntermediateInterface2))]
     [RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubTypeWithIntermediateInterface))]
     public partial interface IMarshalableWithOptionalInterfaces2 : IMarshalableWithOptionalInterfaces
     {
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
@@ -177,7 +178,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
@@ -185,13 +186,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
@@ -199,7 +200,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusOneAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
@@ -216,12 +217,13 @@ public abstract partial class MarshalableProxyTests : TestBase
     }
 
     [RpcMarshalable]
+    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
     public partial interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
         Task<int> GetPlusFiveAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
     public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
@@ -230,18 +232,18 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableUnknownSubType : IMarshalableWithOptionalInterfaces2
     {
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
         Task<IMarshalable?> GetMarshalableAsync(bool returnNull = false);
@@ -362,6 +364,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     [Fact]
     public async Task MarshalableInterfaceCannotHaveEvents()
     {
+        Assert.SkipWhen(this is MarshalableProxyNerdbankMessagePackTests, "Events are not yet detectable by PolyType."); // remove when https://github.com/eiriktsarpalis/PolyType/issues/226 is fixed.
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptMarshalableWithEventsAsync(new MarshalableWithEvents()));
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
@@ -704,16 +707,16 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableWithOptionalInterfaces();
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
         IMarshalableSubType1? proxy1 = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy1!.GetAsync(1));
         Assert.Equal(2, await proxy1.GetPlusOneAsync(1));
-        AssertIsNot(proxy1, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy1, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy1, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -723,15 +726,15 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal("foo", await proxy!.ToBeRenamedAsync("foo"));
 
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/0/RemamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/0/RenamedAsync", "foo"));
 
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
         IMarshalableWithOptionalInterfaces? proxy1 = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal("foo", await proxy1!.ToBeRenamedAsync("foo"));
         Assert.Equal("foo", await ((IMarshalableSubType1)proxy1)!.ToBeRenamedAsync("foo"));
 
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RemamedAsync", "foo"));
-        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RemamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/RenamedAsync", "foo"));
+        Assert.Equal("foo", await this.clientRpc.InvokeAsync<string>("$/invokeProxy/1/1.RenamedAsync", "foo"));
     }
 
     [Fact]
@@ -754,8 +757,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
         Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         // The MethodNameTransform doesn't apply to the marshaled objects
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
@@ -782,8 +785,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
         Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         // The MethodNameTransform doesn't apply to the marshaled objects
         Assert.Equal(1, await localRpc.InvokeAsync<int>("$/invokeProxy/0/GetAsync", 1));
@@ -805,8 +808,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType1? proxy = (IMarshalableSubType1?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(2, await proxy.GetPlusOneAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -816,8 +819,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -826,9 +829,9 @@ public abstract partial class MarshalableProxyTests : TestBase
         this.server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableUnknownSubType();
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType1));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
     }
 
     [Fact]
@@ -838,7 +841,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableSubType2? proxy = (IMarshalableSubType2?)await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
         Assert.Equal(3, await proxy.GetPlusTwoAsync(1));
-        AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
+        this.AssertIsNot(proxy, typeof(IMarshalableSubType2Extended));
 
         IMarshalableSubType2? proxy1 = await this.client.GetMarshalableSubType2Async();
         Assert.Equal(1, await proxy1!.GetAsync(1));
@@ -1047,9 +1050,13 @@ public abstract partial class MarshalableProxyTests : TestBase
 
     protected abstract IJsonRpcMessageFormatter CreateFormatter();
 
-    private static void AssertIsNot(object obj, Type type)
+    private void AssertIsNot(object obj, Type type)
     {
-        Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not assignable to {type.FullName}");
+        Assert.False(((IJsonRpcClientProxy)obj).Is(type), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
+        if (this is not MarshalableProxyNerdbankMessagePackTests)
+        {
+            Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
+        }
     }
 
     public class Server : IServer

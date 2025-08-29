@@ -46,7 +46,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("JustCancellationAsync");
-			string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.Options.MethodNameTransform("JustCancellationAsync");
+			string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.TransformMethodName("JustCancellationAsync", typeof(global::IFoo));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
@@ -65,7 +65,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("JustAnotherCancellationAsync");
-			string rpcMethodName = this.transformedJustAnotherCancellationAsync2 ??= this.Options.MethodNameTransform("JustAnotherCancellationAsync");
+			string rpcMethodName = this.transformedJustAnotherCancellationAsync2 ??= this.TransformMethodName("JustAnotherCancellationAsync", typeof(global::IFoo2));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
