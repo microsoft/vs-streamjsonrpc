@@ -23,3 +23,4 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | [StreamJsonRpc0030](StreamJsonRpc0030.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> should be applied only to generic interfaces
 | [StreamJsonRpc0031](StreamJsonRpc0031.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> type argument should be a closed instance of the applied type
 | [StreamJsonRpc0032](StreamJsonRpc0032.md) | Usage    | Error    | <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> should be accompanied by another contract attribute
+| [StreamJsonRpc0050](StreamJsonRpc0050.md) | Usage    | Warning  | Use <xref:StreamJsonRpc.IClientProxy.Is(System.Type)?displayProperty=nameWithType> or <xref:StreamJsonRpc.JsonRpcExtensions.As``1(StreamJsonRpc.IClientProxy)?displayProperty=nameWithType>

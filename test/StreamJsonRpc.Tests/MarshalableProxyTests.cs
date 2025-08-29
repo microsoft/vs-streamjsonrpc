@@ -914,22 +914,22 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
-        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+        Assert.Equal(5, await proxy.As<IMarshalableNonExtendingBase>()!.GetPlusFourAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
-        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1>()!.GetAsync(1));
+        Assert.Equal(2, await proxy.As<IMarshalableSubType1>()!.GetPlusOneAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1>()!.GetMinusOneAsync(2));
 
-        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
-        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
-        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
-        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
-        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
-        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1Extended>()!.GetAsync(1));
+        Assert.Equal(-2, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType1Extended>()!.GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusThreeAsync(1));
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType1Extended>()!.GetMinusTwoAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
-        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
-        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType2>()!.GetAsync(1));
+        Assert.Equal(3, await proxy.As<IMarshalableSubType2>()!.GetPlusTwoAsync(1));
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType2>()!.GetMinusTwoAsync(1));
     }
 
     [Fact]
@@ -939,28 +939,28 @@ public abstract partial class MarshalableProxyTests : TestBase
         IMarshalableWithOptionalInterfaces? proxy = await this.client.GetMarshalableWithOptionalInterfacesAsync();
         Assert.Equal(1, await proxy!.GetAsync(1));
 
-        Assert.Equal(5, await ((IMarshalableNonExtendingBase)proxy).GetPlusFourAsync(1));
+        Assert.Equal(5, await proxy.As<IMarshalableNonExtendingBase>()!.GetPlusFourAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetAsync(1));
-        Assert.Equal(2, await ((IMarshalableSubType1)proxy).GetPlusOneAsync(1));
-        Assert.Equal(1, await ((IMarshalableSubType1)proxy).GetMinusOneAsync(2));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1>()!.GetAsync(1));
+        Assert.Equal(2, await proxy.As<IMarshalableSubType1>()!.GetPlusOneAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1>()!.GetMinusOneAsync(2));
 
-        Assert.Equal(1, await ((IMarshalableSubType1Extended)proxy).GetAsync(1));
-        Assert.Equal(-2, await ((IMarshalableSubType1Extended)proxy).GetPlusOneAsync(1)); // This method negates the result
-        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusOneAsync(2)); // This method negates the result
-        Assert.Equal(-3, await ((IMarshalableSubType1Extended)proxy).GetPlusTwoAsync(1)); // This method negates the result
-        Assert.Equal(4, await ((IMarshalableSubType1Extended)proxy).GetPlusThreeAsync(1));
-        Assert.Equal(-1, await ((IMarshalableSubType1Extended)proxy).GetMinusTwoAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType1Extended>()!.GetAsync(1));
+        Assert.Equal(-2, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType1Extended>()!.GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(-3, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusTwoAsync(1)); // This method negates the result
+        Assert.Equal(4, await proxy.As<IMarshalableSubType1Extended>()!.GetPlusThreeAsync(1));
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType1Extended>()!.GetMinusTwoAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubType2)proxy).GetAsync(1));
-        Assert.Equal(3, await ((IMarshalableSubType2)proxy).GetPlusTwoAsync(1));
-        Assert.Equal(-1, await ((IMarshalableSubType2)proxy).GetMinusTwoAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubType2>()!.GetAsync(1));
+        Assert.Equal(3, await proxy.As<IMarshalableSubType2>()!.GetPlusTwoAsync(1));
+        Assert.Equal(-1, await proxy.As<IMarshalableSubType2>()!.GetMinusTwoAsync(1));
 
-        Assert.Equal(1, await ((IMarshalableSubTypesCombined)proxy).GetAsync(1));
-        Assert.Equal(-2, await ((IMarshalableSubTypesCombined)proxy).GetPlusOneAsync(1)); // This method negates the result
-        Assert.Equal(-1, await ((IMarshalableSubTypesCombined)proxy).GetMinusOneAsync(2)); // This method negates the result
-        Assert.Equal(4, await ((IMarshalableSubTypesCombined)proxy).GetPlusThreeAsync(1));
-        Assert.Equal(6, await ((IMarshalableSubTypesCombined)proxy).GetPlusFiveAsync(1));
+        Assert.Equal(1, await proxy.As<IMarshalableSubTypesCombined>()!.GetAsync(1));
+        Assert.Equal(-2, await proxy.As<IMarshalableSubTypesCombined>()!.GetPlusOneAsync(1)); // This method negates the result
+        Assert.Equal(-1, await proxy.As<IMarshalableSubTypesCombined>()!.GetMinusOneAsync(2)); // This method negates the result
+        Assert.Equal(4, await proxy.As<IMarshalableSubTypesCombined>()!.GetPlusThreeAsync(1));
+        Assert.Equal(6, await proxy.As<IMarshalableSubTypesCombined>()!.GetPlusFiveAsync(1));
     }
 
     [Fact]
@@ -1088,12 +1088,12 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         public Task<IMarshalableWithOptionalInterfaces2?> GetMarshalableWithOptionalInterfaces2Async()
         {
-            return Task.FromResult((IMarshalableWithOptionalInterfaces2?)this.ReturnedMarshalableWithOptionalInterfaces);
+            return Task.FromResult(this.ReturnedMarshalableWithOptionalInterfaces?.As<IMarshalableWithOptionalInterfaces2>());
         }
 
         public Task<IMarshalableSubType2?> GetMarshalableSubType2Async()
         {
-            return Task.FromResult((IMarshalableSubType2?)this.ReturnedMarshalableWithOptionalInterfaces);
+            return Task.FromResult(this.ReturnedMarshalableWithOptionalInterfaces?.As<IMarshalableSubType2>());
         }
 
         public Task<IGenericMarshalable<int>?> GetGenericMarshalableAsync(bool returnNull)

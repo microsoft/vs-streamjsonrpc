@@ -4,10 +4,21 @@
 namespace StreamJsonRpc;
 
 /// <summary>
-/// Implemented by proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
-/// or other libraries that create "local" proxies that wish to offer similar functionality to a remote proxy so that callers
-/// can treat the proxies the same whether the service is remote or local.
+/// Indicates whether an RPC marshaled object implements an interface.
 /// </summary>
+/// <remarks>
+/// <para>
+/// When casting or type checking between two <see cref="RpcMarshalableAttribute"/>-annotated interfaces,
+/// it is preferable to use the <see cref="Is(Type)" /> or <see cref="JsonRpcExtensions.As{T}" /> methods rather than a direct cast or traditional type check.
+/// This is because the interface may be implemented by a proxy object that implements more interfaces than the marshaled object actually implements.
+/// Using these methods informs the caller as to the actual interfaces that are supported by the remote object.
+/// </para>
+/// <para>
+/// This interface is implemented by RPC proxies returned from <see cref="JsonRpc.Attach{T}(IJsonRpcMessageHandler, JsonRpcProxyOptions)"/> and its overloads
+/// or as RPC marshalable objects.
+/// If proxies are generated for these interfaces by any other system, that proxy should also implement this interface to participate in similar dynamic type checking.
+/// </para>
+/// </remarks>
 public interface IClientProxy
 {
     /// <summary>

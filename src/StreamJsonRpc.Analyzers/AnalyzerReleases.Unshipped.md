@@ -22,4 +22,4 @@ StreamJsonRpc0016 | Usage | Error | Unsupported event delegate type
 StreamJsonRpc0030 | Usage | Error | `JsonRpcProxyAttribute<T>` should be applied only to generic interfaces.
 StreamJsonRpc0031 | Usage | Error | `JsonRpcProxyAttribute<T>` type argument should be a closed instance of the applied type.
 StreamJsonRpc0032 | Usage | Error | `JsonRpcProxyAttribute<T>` should be accompanied by another contract attribute.
- 
+StreamJsonRpc0050 | Usage | Warning | Use IClientProxy.Is or JsonRpcExtensions.As.
