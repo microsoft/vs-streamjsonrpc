@@ -156,7 +156,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             ?? throw new MessagePackSerializationException("Failed to deserialize JSON-RPC message.");
 
         IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
-        this.deserializationToStringHelper.Activate((RawMessagePack)contentBuffer);
+        this.deserializationToStringHelper.Activate((RawMessagePack)contentBuffer, this.UserDataSerializer);
         try
         {
             tracingCallbacks?.OnMessageDeserialized(message, this.deserializationToStringHelper);
@@ -186,7 +186,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
     /// <inheritdoc/>
     public object GetJsonText(JsonRpcMessage message) => message is IJsonRpcMessagePackRetention retainedMsgPack
-        ? MessagePackSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack)
+        ? this.UserDataSerializer.ConvertToJson(retainedMsgPack.OriginalMessagePack)
         : throw new NotSupportedException();
 
     /// <inheritdoc/>
@@ -201,7 +201,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
     {
         IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
-        this.serializationToStringHelper.Activate((RawMessagePack)encodedMessage);
+        this.serializationToStringHelper.Activate((RawMessagePack)encodedMessage, this.UserDataSerializer);
         try
         {
             tracingCallbacks?.OnMessageSerialized(message, this.serializationToStringHelper);

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Buffers;
 using Nerdbank.MessagePack;
 
 namespace StreamJsonRpc;
@@ -22,21 +21,23 @@ public partial class NerdbankMessagePackFormatter
     private class ToStringHelper
     {
         private RawMessagePack? encodedMessage;
+        private MessagePackSerializer? serializer;
         private string? jsonString;
 
         public override string ToString()
         {
-            Verify.Operation(this.encodedMessage.HasValue, "This object has not been activated. It may have already been recycled.");
+            Verify.Operation(this.encodedMessage.HasValue && this.serializer is not null, "This object has not been activated. It may have already been recycled.");
 
-            return this.jsonString ??= MessagePackSerializer.ConvertToJson(this.encodedMessage.Value);
+            return this.jsonString ??= this.serializer.ConvertToJson(this.encodedMessage.Value);
         }
 
         /// <summary>
         /// Initializes this object to represent a message.
         /// </summary>
-        internal void Activate(RawMessagePack encodedMessage)
+        internal void Activate(RawMessagePack encodedMessage, MessagePackSerializer serializer)
         {
             this.encodedMessage = encodedMessage;
+            this.serializer = serializer;
         }
 
         /// <summary>
@@ -46,6 +47,7 @@ public partial class NerdbankMessagePackFormatter
         {
             this.encodedMessage = null;
             this.jsonString = null;
+            this.serializer = null;
         }
     }
 }

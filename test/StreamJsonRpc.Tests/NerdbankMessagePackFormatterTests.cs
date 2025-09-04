@@ -377,7 +377,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         var writer = new MessagePackWriter(sequence);
         AnonymousTypeSerializer.SerializeObject(ref writer, anonymousObject, ReflectionTypeShapeProvider.Default.Resolve(anonymousObject.GetType()));
         writer.Flush();
-        this.Logger.WriteLine(MessagePackSerializer.ConvertToJson(sequence));
+        this.Logger.WriteLine(this.Formatter.UserDataSerializer.ConvertToJson(sequence));
         return (T)this.Formatter.Deserialize(sequence);
     }
 
