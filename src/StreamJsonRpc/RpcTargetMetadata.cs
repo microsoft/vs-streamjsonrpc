@@ -360,6 +360,7 @@ public class RpcTargetMetadata
 
         JsonRpcIgnoreAttribute? ignoreAttribute = FindMethodAttribute<JsonRpcIgnoreAttribute>(builder, method);
         JsonRpcMethodAttribute? methodAttribute = FindMethodAttribute<JsonRpcMethodAttribute>(builder, method);
+        MethodShapeAttribute? methodShapeAttribute = FindMethodAttribute<MethodShapeAttribute>(builder, method);
 
         if (ignoreAttribute is not null)
         {
@@ -371,7 +372,7 @@ public class RpcTargetMetadata
             return false;
         }
 
-        var methodMetadata = TargetMethodMetadata.From(method, methodAttribute, shape);
+        TargetMethodMetadata methodMetadata = TargetMethodMetadata.From(method, methodAttribute, shape, methodShapeAttribute);
 
         builder.AddMethod(methodMetadata);
         return true;
@@ -736,12 +737,13 @@ public class RpcTargetMetadata
     {
         private ParameterInfo[]? parameters;
 
-        internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape)
+        internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape, MethodShapeAttribute? methodShapeAttribute)
         {
             this.IsPublic = method.IsPublic;
-            this.Name = attribute?.Name ?? shape?.Name ?? method.Name;
+            this.Name = attribute?.Name ?? shape?.Name ?? methodShapeAttribute?.Name ?? method.Name;
             this.MethodInfo = method;
             this.Attribute = attribute;
+            this.MethodShapeAttribute = methodShapeAttribute;
 
             // Avoid inspecting the method signature here, as that triggers assembly loads that we might not ever need.
             // We'll do it lazily in our property getters instead.
@@ -761,6 +763,16 @@ public class RpcTargetMetadata
         /// Gets the <see cref="JsonRpcMethodAttribute"/> that applies to this method, if any.
         /// </summary>
         public JsonRpcMethodAttribute? Attribute { get; }
+
+        /// <summary>
+        /// Gets the <see cref="MethodShapeAttribute"/> that applies to this method, if any.
+        /// </summary>
+        public MethodShapeAttribute? MethodShapeAttribute { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this method has a name explicitly given by either a <see cref="JsonRpcMethodAttribute"/> or a <see cref="MethodShapeAttribute"/>.
+        /// </summary>
+        internal bool HasExplicitlySpecifiedName => (this.Attribute?.Name ?? this.MethodShapeAttribute?.Name) is not null;
 
         /// <summary>
         /// Gets the parameters on the method.
@@ -797,7 +809,7 @@ public class RpcTargetMetadata
         /// <inheritdoc/>
         public override string ToString() => this.DebuggerDisplay;
 
-        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape) => new(method, attribute, shape);
+        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape, MethodShapeAttribute? methodShapeAttribute) => new(method, attribute, shape, methodShapeAttribute);
 
         internal bool EqualSignature(TargetMethodMetadata other)
         {
@@ -919,10 +931,10 @@ public class RpcTargetMetadata
                     string alias = name[..^ImpliedMethodNameAsyncSuffix.Length];
                     if (!this.Methods.ContainsKey(alias))
                     {
-                        List<TargetMethodMetadata> implicitlyNamed = [.. overloads.Where(o => o.Attribute?.Name is null)];
+                        List<TargetMethodMetadata> implicitlyNamed = [.. overloads.Where(o => !o.HasExplicitlySpecifiedName)];
                         if (implicitlyNamed.Count > 0)
                         {
-                            aliasedMethods.Add(alias, [.. overloads.Where(o => o.Attribute?.Name is null)]);
+                            aliasedMethods.Add(alias, [.. overloads.Where(o => !o.HasExplicitlySpecifiedName)]);
                         }
                     }
                 }

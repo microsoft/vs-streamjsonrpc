@@ -10,6 +10,7 @@ using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using PolyType;
 using StreamJsonRpc.Reflection;
 using StreamJsonRpc.Tests;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
@@ -91,6 +92,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     public partial interface IRpcWithAsyncSuffixedMethod
     {
         Task DoSomethingAsync();
+
+        [MethodShape(Name = "RenamedByShape")]
+        Task DoShapeThingAsync();
     }
 
     ////[JsonRpcContract] Defining this attribute would produce a compile error, but we're testing runtime handling of the invalid case.
@@ -907,6 +911,18 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         this.serverRpc.AddLocalRpcMethod(nameof(IRpcWithAsyncSuffixedMethod.DoSomethingAsync), new Action(() => { }));
         var proxy = this.clientJsonRpc.Attach<IRpcWithAsyncSuffixedMethod>(this.DefaultProxyOptions);
         await proxy.DoSomethingAsync().WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task ShapeRenamedMethod()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+
+        // Very deliberately add just a lone method with an explicit name.
+        // This verifies that proxies invoke methods without mangling their name (e.g. trimming the "Async" suffix).
+        this.serverRpc.AddLocalRpcMethod("RenamedByShape", new Action(() => { }));
+        var proxy = this.clientJsonRpc.Attach<IRpcWithAsyncSuffixedMethod>(this.DefaultProxyOptions);
+        await proxy.DoShapeThingAsync().WithCancellation(this.TimeoutToken);
     }
 
     /// <summary>
