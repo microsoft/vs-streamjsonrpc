@@ -284,7 +284,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         lock (this.SyncObject)
         {
-            foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods)
+            foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
             {
                 string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
                 Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");

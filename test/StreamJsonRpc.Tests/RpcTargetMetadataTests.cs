@@ -49,7 +49,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.ShapeProvider);
 
         var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
-        var add = Assert.Single(metadata.Methods["Add"]);
+        var add = Assert.Single(metadata.AliasedMethods["Add"]);
         Assert.Same(addAsync, add);
 
         var subtract = Assert.Single(metadata.Methods["Subtract"]);
@@ -59,7 +59,8 @@ public partial class RpcTargetMetadataTests
         var multiply = Assert.Single(metadata.Methods["Times"]);
 
         // Fail the test when support for events is added so we can update the test.
-        Assert.Equal(4, metadata.Methods.Count);
+        Assert.Equal(3, metadata.Methods.Count);
+        Assert.Single(metadata.AliasedMethods);
     }
 
     [Fact]

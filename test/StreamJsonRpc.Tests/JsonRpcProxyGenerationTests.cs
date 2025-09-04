@@ -22,6 +22,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     private FullDuplexStream clientStream;
     private IServerDerived clientRpc;
+    private JsonRpc clientJsonRpc;
 
     protected JsonRpcProxyGenerationTests(ITestOutputHelper logger, JsonRpcProxyOptions.ProxyImplementation proxyImplementation)
         : base(logger)
@@ -32,7 +33,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         this.DefaultProxyOptions = new(JsonRpcProxyOptions.Default) { ProxySource = proxyImplementation };
         this.clientRpc = this.AttachJsonRpc<IServerDerived>(this.clientStream);
-        var clientJsonRpc = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc;
+        this.clientJsonRpc = ((IJsonRpcClientProxy)this.clientRpc).JsonRpc;
 
         this.server = new Server();
         this.serverRpc = new JsonRpc(this.serverStream);
@@ -40,9 +41,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         this.serverRpc.StartListening();
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose | SourceLevels.ActivityTracing);
-        clientJsonRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
+        this.clientJsonRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose | SourceLevels.ActivityTracing);
         this.serverRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
-        clientJsonRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
+        this.clientJsonRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
     [JsonRpcContract]
@@ -84,6 +85,12 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         [JsonRpcMethod("AnotherName")]
         Task<string> ARoseByAsync(string name);
+    }
+
+    [JsonRpcContract]
+    public partial interface IRpcWithAsyncSuffixedMethod
+    {
+        Task DoSomethingAsync();
     }
 
     ////[JsonRpcContract] Defining this attribute would produce a compile error, but we're testing runtime handling of the invalid case.
@@ -888,6 +895,18 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         var clientRpc = this.AttachJsonRpc<IServerWithValueTasks>(streams.Item1);
         await clientRpc.DoSomethingValueAsync();
+    }
+
+    [Fact]
+    public async Task ClientProxiesDoNotUseAliasedNames()
+    {
+        this.serverRpc.AllowModificationWhileListening = true;
+
+        // Very deliberately add just a lone method with an explicit name.
+        // This verifies that proxies invoke methods without mangling their name (e.g. trimming the "Async" suffix).
+        this.serverRpc.AddLocalRpcMethod(nameof(IRpcWithAsyncSuffixedMethod.DoSomethingAsync), new Action(() => { }));
+        var proxy = this.clientJsonRpc.Attach<IRpcWithAsyncSuffixedMethod>(this.DefaultProxyOptions);
+        await proxy.DoSomethingAsync().WithCancellation(this.TimeoutToken);
     }
 
     /// <summary>
