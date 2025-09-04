@@ -49,9 +49,14 @@ public class RpcTargetMetadata
     }
 
     /// <summary>
-    /// Gets the methods that can be invoked on this RPC target.
+    /// Gets the (unaliased) methods that can be invoked on this RPC target.
     /// </summary>
     public required IReadOnlyDictionary<string, IReadOnlyList<TargetMethodMetadata>> Methods { get; init; }
+
+    /// <summary>
+    /// Gets method aliases that can be invoked on this RPC target.
+    /// </summary>
+    public required IReadOnlyDictionary<string, IReadOnlyList<TargetMethodMetadata>> AliasedMethods { get; init; }
 
     /// <summary>
     /// Gets the list of events that can be raised by this RPC target.
@@ -891,21 +896,22 @@ public class RpcTargetMetadata
 
         internal RpcTargetMetadata ToImmutable()
         {
-            this.GenerateAliases();
+            ImmutableDictionary<string, IReadOnlyList<TargetMethodMetadata>> aliases = this.GenerateAliases();
 
             return new RpcTargetMetadata
             {
                 TargetType = this.TargetType,
                 Methods = this.Methods.ToImmutableDictionary(kv => kv.Key, kv => (IReadOnlyList<TargetMethodMetadata>)kv.Value.ToArray()),
+                AliasedMethods = aliases,
                 Events = [.. this.Events],
             };
         }
 
-        private void GenerateAliases()
+        private ImmutableDictionary<string, IReadOnlyList<TargetMethodMetadata>> GenerateAliases()
         {
             // Create aliases for methods ending in Async that don't have the JsonRpcMethodAttribute,
             // when renaming them would not create overload collisions with the shortened name.
-            Dictionary<string, List<TargetMethodMetadata>> aliasedMethods = [];
+            ImmutableDictionary<string, IReadOnlyList<TargetMethodMetadata>>.Builder aliasedMethods = ImmutableDictionary.CreateBuilder<string, IReadOnlyList<TargetMethodMetadata>>(StringComparer.Ordinal);
             foreach ((string name, List<TargetMethodMetadata> overloads) in this.Methods)
             {
                 if (name.EndsWith(ImpliedMethodNameAsyncSuffix, StringComparison.Ordinal))
@@ -922,10 +928,7 @@ public class RpcTargetMetadata
                 }
             }
 
-            foreach ((string alias, List<TargetMethodMetadata> overloads) in aliasedMethods)
-            {
-                this.Methods.Add(alias, overloads);
-            }
+            return aliasedMethods.ToImmutable();
         }
     }
 }

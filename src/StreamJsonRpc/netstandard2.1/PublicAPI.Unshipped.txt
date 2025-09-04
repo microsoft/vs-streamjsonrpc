@@ -94,6 +94,8 @@ StreamJsonRpc.Reflection.ProxyInputs.Options.get -> StreamJsonRpc.JsonRpcProxyOp
 StreamJsonRpc.Reflection.ProxyInputs.Options.init -> void
 StreamJsonRpc.Reflection.ProxyInputs.ProxyInputs() -> void
 StreamJsonRpc.RpcTargetMetadata
+StreamJsonRpc.RpcTargetMetadata.AliasedMethods.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata!>!>!
+StreamJsonRpc.RpcTargetMetadata.AliasedMethods.init -> void
 StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces
 StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.Add(System.Type! iface) -> void
 StreamJsonRpc.RpcTargetMetadata.ClassAndInterfaces.ClassAndInterfaces(System.Type! classType) -> void
