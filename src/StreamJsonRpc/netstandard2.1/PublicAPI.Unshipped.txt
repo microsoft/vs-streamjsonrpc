@@ -122,6 +122,7 @@ StreamJsonRpc.RpcTargetMetadata.RpcTargetMetadata() -> void
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Attribute.get -> StreamJsonRpc.JsonRpcMethodAttribute?
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.MethodInfo.get -> System.Reflection.MethodInfo!
+StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.MethodShapeAttribute.get -> PolyType.MethodShapeAttribute?
 StreamJsonRpc.RpcTargetMetadata.TargetMethodMetadata.Name.get -> string!
 StreamJsonRpc.RpcTargetMetadata.TargetType.get -> System.Type!
 StreamJsonRpc.RpcTargetMetadata.TargetType.init -> void

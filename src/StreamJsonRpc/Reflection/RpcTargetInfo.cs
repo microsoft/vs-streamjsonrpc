@@ -238,7 +238,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
         lock (this.SyncObject)
         {
-            MethodSignatureAndTarget methodTarget = new(RpcTargetMetadata.TargetMethodMetadata.From(handler, methodRpcSettings, shape: null), target, attribute: null, synchronizationContext);
+            MethodSignatureAndTarget methodTarget = new(RpcTargetMetadata.TargetMethodMetadata.From(handler, methodRpcSettings, shape: null, methodShapeAttribute: null), target, attribute: null, synchronizationContext);
             this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
             {

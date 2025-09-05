@@ -167,6 +167,15 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
     internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols)
     {
         string rpcMethodName = method.Name;
+        if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MethodShapeAttribute)) is { } methodShapeAttribute)
+        {
+            // If the method has a MethodShape attribute, use its name.
+            if (methodShapeAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.MethodShapeAttribute.NameProperty).Value.Value is string name)
+            {
+                rpcMethodName = name;
+            }
+        }
+
         if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute)) is { } rpcMethodAttribute)
         {
             // If the method has a JsonRpcMethod attribute, use its name.
