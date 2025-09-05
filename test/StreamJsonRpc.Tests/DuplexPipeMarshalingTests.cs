@@ -764,7 +764,8 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     }
 
 #pragma warning disable SA1202 // Elements should be ordered by access
-    public class Server
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial class Server
 #pragma warning restore SA1202 // Elements should be ordered by access
     {
         internal Task? ChatLaterTask { get; private set; }

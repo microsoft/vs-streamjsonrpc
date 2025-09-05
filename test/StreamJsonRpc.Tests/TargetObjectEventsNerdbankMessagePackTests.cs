@@ -11,7 +11,6 @@ public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelpe
         this.clientMessageHandler = new LengthHeaderMessageHandler(this.clientStream, this.clientStream, clientMessageFormatter);
     }
 
-    [GenerateShapeFor<EventArgs>]
-    [GenerateShapeFor<MessageEventArgs<string>>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

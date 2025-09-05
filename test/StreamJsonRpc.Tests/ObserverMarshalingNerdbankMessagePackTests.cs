@@ -7,7 +7,6 @@ public partial class ObserverMarshalingNerdbankMessagePackTests(ITestOutputHelpe
 {
     protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
 
-    [GenerateShapeFor<ApplicationException>]
-    [GenerateShapeFor<IObserver<int>>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

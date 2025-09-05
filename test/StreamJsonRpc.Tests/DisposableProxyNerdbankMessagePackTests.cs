@@ -10,9 +10,6 @@ public partial class DisposableProxyNerdbankMessagePackTests(ITestOutputHelper l
 
     protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
 
-    [GenerateShapeFor<ProxyContainer>]
-    [GenerateShapeFor<DataContainer>]
-    [GenerateShapeFor<Data>]
-    [GenerateShapeFor<IDisposableObservable>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

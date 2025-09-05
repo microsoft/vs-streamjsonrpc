@@ -3357,6 +3357,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial class Server : BaseClass, IServerDerived
     {
         internal const string ExceptionMessage = "some message";
@@ -4424,4 +4425,9 @@ public abstract partial class JsonRpcTests : TestBase
 
         public override bool CanDeserialize(Type type) => typeof(Exception).IsAssignableFrom(type) && !typeof(TaskCanceledException).IsAssignableFrom(type);
     }
+
+    [GenerateShapeFor<StrongTypedProgressType>] // used on client side only
+    [GenerateShapeFor<InternalClass>] // Implementation detail of the server method
+    [GenerateShapeFor<TypeThrowsWhenSerialized>] // this isn't in any API, but a client tries to serialize it.
+    private partial class Witness;
 }

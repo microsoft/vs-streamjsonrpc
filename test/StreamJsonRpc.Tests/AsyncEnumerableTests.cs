@@ -11,6 +11,7 @@ using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+using PolyType;
 using NBMP = Nerdbank.MessagePack;
 
 public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.IO.Pipelines;
 using PolyType;
 
 public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMarshalingTests
@@ -29,9 +28,6 @@ public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMa
         this.clientMessageFormatter = clientFormatter;
     }
 
-    [GenerateShapeFor<IDuplexPipe>]
-    [GenerateShapeFor<Stream>]
-    [GenerateShapeFor<PipeReader>]
-    [GenerateShapeFor<PipeWriter>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

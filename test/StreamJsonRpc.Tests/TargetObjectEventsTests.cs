@@ -506,4 +506,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         public event MyDelegate? MyEvent;
 #pragma warning restore CS0067
     }
+
+    [GenerateShapeFor<MessageEventArgs<string>>] // internal member on Client class.
+    private partial class Witness;
 }
