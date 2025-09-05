@@ -38,7 +38,7 @@ public abstract partial class ObserverMarshalingTests : TestBase
         this.serverRpc.StartListening();
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer : IDisposable
     {
         Task PushCompleteAndReturn(IObserver<int> observer);

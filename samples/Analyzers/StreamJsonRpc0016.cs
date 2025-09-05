@@ -5,7 +5,7 @@ namespace StreamJsonRpc0016.Violation
 {
 #pragma warning disable StreamJsonRpc0016
     #region Violation
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyService
     {
         event MyDelegate MyEvent; // StreamJsonRpc0016
@@ -21,7 +21,7 @@ namespace StreamJsonRpc0016.Violation
 namespace StreamJsonRpc0016.Fix
 {
     #region Fix
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyService
     {
         event EventHandler MyEvent;

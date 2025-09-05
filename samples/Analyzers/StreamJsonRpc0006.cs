@@ -17,13 +17,13 @@ namespace StreamJsonRpc0006.Violation
 namespace StreamJsonRpc0006.Fix
 {
     #region Fix
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonRpcProxyInterfaceGroup(typeof(IMyService2))]
     partial interface IMyService
     {
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyService2
     {
     }

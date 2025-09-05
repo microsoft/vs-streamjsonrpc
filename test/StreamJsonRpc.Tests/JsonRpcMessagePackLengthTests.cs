@@ -9,7 +9,7 @@ using PolyType;
 
 public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper logger) : JsonRpcTests(logger)
 {
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IMessagePackServer
     {
         Task<UnionBaseClass> ReturnUnionTypeAsync(CancellationToken cancellationToken);

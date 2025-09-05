@@ -5,12 +5,12 @@ using Microsoft.CodeAnalysis;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record EventModel(string Name, string DelegateType, string EventArgsType) : FormattableModel
+internal record EventModel(string DeclaringType, string Name, string DelegateType, string EventArgsType) : FormattableModel
 {
     internal override void WriteHookupStatements(SourceWriter writer)
     {
         writer.WriteLine($"""
-                this.JsonRpc.AddLocalRpcMethod(this.Options.EventNameTransform("{this.Name}"), this.On{this.Name});
+                this.JsonRpc.AddLocalRpcMethod(this.TransformEventName("{this.Name}", typeof({this.DeclaringType})), this.On{this.Name});
                 """);
     }
 
@@ -31,6 +31,6 @@ internal record EventModel(string Name, string DelegateType, string EventArgsTyp
             return null;
         }
 
-        return new EventModel(evt.Name, evt.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), invokeMethod.Parameters[1].Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat));
+        return new EventModel(evt.ContainingType.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat), evt.Name, evt.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), invokeMethod.Parameters[1].Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat));
     }
 }

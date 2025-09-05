@@ -251,10 +251,10 @@ jobs:
           BuildRequiresAccessToken: ${{ parameters.RealSign }} # Real signing on non-Windows machines requires passing through access token to build steps that sign
           osRID: linux
       - ${{ if parameters.EnableDotNetFormatCheck }}:
-        - script: dotnet format --verify-no-changes --exclude test/NativeAOTCompatibility.Test
+        - script: |
+            dotnet build # workaround for https://github.com/dotnet/sdk/issues/50499
+            dotnet format --verify-no-changes --exclude test/NativeAOTCompatibility.Test
           displayName: 💅 Verify formatted code
-          env:
-            dotnetformat: true # part of a workaround for https://github.com/dotnet/sdk/issues/44951
 
   - ${{ if parameters.EnableMacOSBuild }}:
     - job: macOS

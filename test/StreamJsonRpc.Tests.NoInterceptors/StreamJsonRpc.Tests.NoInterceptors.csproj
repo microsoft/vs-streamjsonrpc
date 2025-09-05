@@ -9,6 +9,8 @@
          to avoid proliferation of #if sections in our test code.
          So suppress it unless we're targeting the oldest framework among our targets. -->
     <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
+    <!-- Until https://github.com/eiriktsarpalis/PolyType/pull/234 merges, we must suppress CS0436 project-wide. -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <DefineConstants>$(DefineConstants);NO_INTERCEPTORS</DefineConstants>
   </PropertyGroup>

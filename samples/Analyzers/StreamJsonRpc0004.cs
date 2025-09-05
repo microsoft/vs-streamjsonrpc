@@ -25,7 +25,7 @@ namespace StreamJsonRpc0004.Fix
     partial class Wrapper
     {
         #region Fix
-        [JsonRpcContract]
+        [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
         internal partial interface IMyService
         {
         }

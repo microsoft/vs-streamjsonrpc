@@ -43,6 +43,8 @@ Applying the <xref:StreamJsonRpc.JsonRpcContractAttribute> to all RPC interfaces
 1. Enables analyzers to report warnings due to violations of the above rules at compile-time instead of throwing at runtime.
 1. Enables source generated proxies to be used at runtime instead of proxies created dynamically at runtime, leading to faster startup and [NativeAOT](nativeAOT.md) compatibility.
 
+Interfaces with either <xref:StreamJsonRpc.JsonRpcContractAttribute> or <xref:StreamJsonRpc.RpcMarshalableAttribute> applied should also apply <xref:PolyType.GenerateShapeAttribute> with its <xref:PolyType.GenerateShapeAttribute.IncludeMethods> set to <xref:PolyType.MethodShapeFlags.PublicInstance>.
+
 ### Server-side concerns
 
 On the server side, these same methods may be simple and naturally synchronous.

@@ -103,6 +103,27 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task MethodNamesCustomizedByAttribute()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            using PolyType;
+
+            [JsonRpcContract]
+            public partial interface IMyRpc
+            {
+                [JsonRpcMethod("AddRenamed")]
+                Task AddAsync(int a, int b, CancellationToken cancellationToken);
+
+                [MethodShape(Name = "IntegrateRenamed")]
+                Task IntegrateAsync(double from, double to, CancellationToken cancellationToken);
+
+                [MethodShape(Name = "DontWannaSeeThis"), JsonRpcMethod("DivideRenamed")]
+                Task DivideAsync(double from, double to, CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task NamesRequiredNamespaceQualifier()
     {
         await VerifyCS.RunDefaultAsync("""
@@ -163,13 +184,40 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
-    public async Task Interface_HasDisposeWithoutIDisposable()
+    public async Task Interface_HasAsyncDisposeWithoutIDisposable()
     {
         await VerifyCS.RunDefaultAsync("""
             [JsonRpcContract]
             public partial interface IFoo
             {
                 Task Dispose();
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interface_DerivesFromIDisposal()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IAmDisposable : IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task Interface_HasNestedTypes()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IHaveNestedTypes : IDisposable
+            {
+                Task DoSomethingAsync();
+
+                private class A { }
+                private struct B { }
+                private record C { }
             }
             """);
     }
@@ -327,6 +375,32 @@ public class ProxyGeneratorTests
             """);
     }
 
+    [Fact]
+    public async Task RpcMarshalable_GenericWithClosedPrescriptions()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [JsonRpcProxy<IGenericMarshalable<int>>]
+            public partial interface IGenericMarshalable<T>
+            {
+                Task<T> DoSomethingWithParameterAsync(T parameter);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_GenericWithClosedPrescriptions_Arity2()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [JsonRpcProxy<IGenericMarshalable<int, string>>]
+            public partial interface IGenericMarshalable<T1, T2>
+            {
+                Task<T1> DoSomethingWithParameterAsync(T2 parameter);
+            }
+            """);
+    }
+
     /// <summary>
     /// Verifies that an RpcMarshalable attribute on an interface with both valid and invalid members does not break the build (but it will report a diagnostic, as tested elsewhere).
     /// </summary>
@@ -342,6 +416,102 @@ public class ProxyGeneratorTests
             }
             """);
     }
+
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+            public partial interface IMarshalable
+            {
+            }
+
+            internal partial interface IOptional { }
+
+            class Foo
+            {
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods_NotPublic()
+    {
+        await VerifyCS.RunDefaultAsync(
+            """
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+            public partial interface IMarshalable
+            {
+            }
+
+            internal partial interface IOptional { }
+
+            class Foo
+            {
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """,
+            configuration: GeneratorConfiguration.Default with { PublicRpcMarshalableInterfaceExtensions = false });
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_OptionalInterfaces_WithExtensionMethods_NestedInClass()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            namespace NS;
+
+            partial class Wrapper
+            {
+                [RpcMarshalable]
+                [RpcMarshalableOptionalInterfaceAttribute(1, typeof(IOptional))]
+                public partial interface IMarshalable
+                {
+                }
+
+                internal partial interface IOptional { }
+
+                public static void Bar(IMarshalable m)
+                {
+                    IOptional opt = m.As<IOptional>();
+                    IMarshalable back = opt.As<IMarshalable>();
+                    bool can = m.Is(typeof(IOptional));
+                    can = opt.Is(typeof(IMarshalable));
+                }
+            }
+            """);
+    }
+
+#if NET
+    /// <summary>
+    /// Verifies that static members are ignored during proxy generation.
+    /// </summary>
+    [Fact]
+    public async Task RpcMarshalable_HasStaticMethod()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IMarshalableWithProperties
+            {
+                static int GetInt() => 3;
+            }
+            """);
+    }
+#endif
 
     /// <summary>
     /// Verifies that an RpcMarshalable attribute on an invalid interface does not break the build (but it will report a diagnostic, as tested elsewhere).

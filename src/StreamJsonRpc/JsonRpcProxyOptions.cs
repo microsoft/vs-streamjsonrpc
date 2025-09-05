@@ -154,7 +154,8 @@ public class JsonRpcProxyOptions
     /// Does not apply when <see cref="ProxySource"/> is set to <see cref="ProxyImplementation.AlwaysDynamic"/>.
     /// </para>
     /// <para>
-    /// Code that uses the proxy and wants to do feature testing should use <see cref="IJsonRpcClientProxy.As{T}()"/>
+    /// Code that uses the proxy and wants to do feature testing should use <see cref="IClientProxy.Is(Type)"/>
+    /// or <see cref="JsonRpcExtensions.As{T}(IClientProxy)"/>
     /// instead of conditional casts to avoid false positives when this property is <see langword="true"/>.
     /// </para>
     /// </remarks>
@@ -212,5 +213,5 @@ public class JsonRpcProxyOptions
         }
     }
 
-    private bool IsFrozen { get; init; }
+    internal bool IsFrozen { get; init; }
 }

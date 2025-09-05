@@ -2,7 +2,7 @@ namespace StreamJsonRpc0005.Violation
 {
 #pragma warning disable StreamJsonRpc0005
     #region Violation
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyObject
     {
     }
@@ -13,7 +13,7 @@ namespace StreamJsonRpc0005.Violation
 namespace StreamJsonRpc0005.Fix1
 {
     #region Fix1
-    [RpcMarshalable]
+    [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyObject : IDisposable
     {
     }
@@ -23,7 +23,7 @@ namespace StreamJsonRpc0005.Fix1
 namespace StreamJsonRpc0005.Fix2
 {
     #region Fix2
-    [RpcMarshalable(CallScopedLifetime = true)]
+    [RpcMarshalable(CallScopedLifetime = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     partial interface IMyObject
     {
     }

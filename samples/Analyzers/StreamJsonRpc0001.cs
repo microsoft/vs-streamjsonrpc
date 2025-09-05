@@ -1,6 +1,8 @@
+#pragma warning disable StreamJsonRpc0008
+
 namespace StreamJsonRpc0001.Violation
 {
-#pragma warning disable StreamJsonRpc0001
+#pragma warning disable StreamJsonRpc0001, PT0005
     #region Violation
     internal partial class Wrapper
     {
@@ -11,7 +13,7 @@ namespace StreamJsonRpc0001.Violation
         }
     }
     #endregion
-#pragma warning restore StreamJsonRpc0001
+#pragma warning restore StreamJsonRpc0001, PT0005
 }
 
 namespace StreamJsonRpc0001.Fix

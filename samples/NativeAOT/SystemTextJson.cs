@@ -38,7 +38,7 @@ partial class SystemTextJson
     [JsonSerializable(typeof(int))]
     partial class SourceGenerationContext : JsonSerializerContext;
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IServer
     {
         event EventHandler<int> Added;

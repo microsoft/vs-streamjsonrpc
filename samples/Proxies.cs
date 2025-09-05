@@ -20,7 +20,7 @@ namespace Proxies
             }
         }
 
-        [JsonRpcContract]
+        [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
         internal partial interface ICalculator
         {
             Task<int> AddAsync(int a, int b);

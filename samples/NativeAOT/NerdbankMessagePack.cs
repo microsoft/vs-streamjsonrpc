@@ -25,7 +25,7 @@ partial class NerdbankMessagePack
         TypeShapeProvider = Witness.ShapeProvider,
     };
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IServer
     {
         Task<int> AddAsync(int a, int b);

@@ -34,7 +34,7 @@ public partial class JsonContractResolverTest : TestBase
         this.serverRpc.StartListening();
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer : IDisposable
     {
         Task GiveObserver(IObserver<int> observer);
@@ -54,7 +54,7 @@ public partial class JsonContractResolverTest : TestBase
         Task<Container<IMarshalable>> GetMarshalableContainer();
     }
 
-    [RpcMarshalable]
+    [RpcMarshalable, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalable : IDisposable
     {
         void DoSomething();

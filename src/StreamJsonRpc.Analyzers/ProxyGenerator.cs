@@ -70,9 +70,14 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 return [];
             }
 
+            bool hasOptionalInterfaces = iface.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.RpcMarshalableOptionalInterface));
+
             IEnumerable<ProxyModel> proxies = ExpandInterfaceToGroups(iface, symbols)
                 .Select(group => new ProxyModel(
-                    [.. group.Select(i => InterfaceModel.Create(i, symbols, declaredInThisCompilation: true, cancellationToken))]));
+                    [.. group.Select(i => InterfaceModel.Create(i, symbols, declaredInThisCompilation: true, cancellationToken))])
+                {
+                    HasOptionalInterfaces = hasOptionalInterfaces,
+                });
 
             return [.. proxies];
         }
@@ -107,22 +112,33 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
         IncrementalValueProvider<bool> interceptorsEnabled = context.AnalyzerConfigOptionsProvider.Select((provider, token) => AreInterceptorsEnabled(provider.GlobalOptions));
+        IncrementalValueProvider<bool> publicRpcMarshalableInterfaceExtensions = context.AnalyzerConfigOptionsProvider.Select((provider, token) => IsOptionEnabled(provider.GlobalOptions, "PublicRpcMarshalableInterfaceExtensions"));
 
-        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled)).Select(
+        IncrementalValueProvider<FullModel> fullModel = proxyProvider.Combine(attachUseProvider.Collect()).Combine(publicProxy.Combine(interceptorsEnabled.Combine(publicRpcMarshalableInterfaceExtensions))).Select(
             (combined, attach) =>
             {
                 ImmutableEquatableSet<ProxyModel> proxies = combined.Left.Left;
-                ImmutableArray<AttachUse> attachUses = combined.Left.Right;
+                ImmutableEquatableArray<AttachUse> attachUses = combined.Left.Right.ToImmutableEquatableArray();
+                ImmutableEquatableSet<InterfaceModel> optionalInterfacesOrTheirPrimaries = proxies
+                    .Where(p => p.HasOptionalInterfaces)
+                    .SelectMany(p => p.Interfaces)
+                    .ToImmutableEquatableSet();
                 bool publicProxies = combined.Right.Left;
-                bool interceptorsEnabled = combined.Right.Right;
-                return new FullModel(proxies, attachUses.ToImmutableEquatableArray(), publicProxies, interceptorsEnabled);
+                (bool interceptorsEnabled, bool publicRpcMarshalableInterfaceExtensions) = combined.Right.Right;
+                return new FullModel(proxies, attachUses, optionalInterfacesOrTheirPrimaries, interceptorsEnabled)
+                {
+                    PublicProxies = publicProxies,
+                    PublicRpcMarshalableInterfaceExtensions = publicRpcMarshalableInterfaceExtensions,
+                };
             });
 
         context.RegisterSourceOutput(fullModel, (context, model) => model.GenerateSource(context));
     }
 
-    internal static bool AreInterceptorsEnabled(AnalyzerConfigOptions options)
-        => options.TryGetValue("build_property.EnableStreamJsonRpcInterceptors", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+    internal static bool AreInterceptorsEnabled(AnalyzerConfigOptions options) => IsOptionEnabled(options, "EnableStreamJsonRpcInterceptors");
+
+    internal static bool IsOptionEnabled(AnalyzerConfigOptions options, string optionName)
+        => options.TryGetValue($"build_property.{optionName}", out string? value) && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
     internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? AnalyzeAttachInvocation(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
@@ -339,17 +355,27 @@ public partial class ProxyGenerator : IIncrementalGenerator
     /// JsonRpcProxyInterfaceGroupAttribute is present and specifies additional interfaces, each group will include the
     /// primary interface followed by those interfaces. If the attribute is not present, the primary interface is
     /// returned as its own group.</remarks>
-    /// <param name="primary">The primary interface symbol to expand into groups. This symbol is always included as the first element in each
-    /// group.</param>
-    /// <param name="symbols">A container for well-known symbols, including the JsonRpcProxyInterfaceGroupAttribute used to identify interface
-    /// groups.</param>
-    /// <returns>An enumerable collection of interface groups, where each group is an array of INamedTypeSymbol. If no groups are
-    /// defined, a single group containing only the primary interface is returned.</returns>
+    /// <param name="primary">
+    /// The primary interface symbol to expand into groups. This symbol is always included as the first element in each group.
+    /// </param>
+    /// <param name="symbols">
+    /// A container for well-known symbols, including the JsonRpcProxyInterfaceGroupAttribute used to identify interface groups.
+    /// </param>
+    /// <returns>
+    /// An enumerable collection of interface groups, where each group is an array of INamedTypeSymbol. If no groups are
+    /// defined, a single group containing only the primary interface is returned.
+    /// </returns>
     private static IEnumerable<INamedTypeSymbol[]> ExpandInterfaceToGroups(INamedTypeSymbol primary, KnownSymbols symbols)
     {
         bool anyGroupsDefined = false;
+        List<INamedTypeSymbol> optionalMarshalableInterfaces = [];
         foreach (AttributeData att in primary.GetAttributes())
         {
+            if (SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.RpcMarshalableOptionalInterface) && att.ConstructorArguments is [_, { Value: INamedTypeSymbol optionalInterface }])
+            {
+                optionalMarshalableInterfaces.Add(optionalInterface);
+            }
+
             if (!SymbolEqualityComparer.Default.Equals(att.AttributeClass, symbols.JsonRpcProxyInterfaceGroupAttribute))
             {
                 continue;
@@ -366,7 +392,11 @@ public partial class ProxyGenerator : IIncrementalGenerator
 
         if (!anyGroupsDefined)
         {
-            yield return [primary]; // No groups defined, so just return the primary interface as its own group.
+            // No groups defined, so just return the primary interface as its own group.
+            yield return [primary];
+
+            // And if RpcMarshalable optional interfaces were specified, add them to another group.
+            yield return [primary, .. optionalMarshalableInterfaces];
         }
     }
 

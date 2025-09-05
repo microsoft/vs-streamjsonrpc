@@ -4,13 +4,13 @@
 #pragma warning disable CS0436 // Type conflicts with a type in the external assembly, but we want to test that we can handle this.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 #if NET
 using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
-using PolyType;
 using StreamJsonRpc.Reflection;
 using StreamJsonRpc.Tests;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
@@ -47,7 +47,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         this.clientJsonRpc.TraceSource.Listeners.Add(new XunitTraceListener(this.Logger));
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
         event EventHandler ItHappened;
@@ -71,13 +71,13 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task Dispose();
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithMoreEvents
     {
         event EventHandler AnotherEvent;
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerDerived : IServer
     {
         Task HeavyWorkAsync(CancellationToken cancellationToken);
@@ -88,7 +88,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IRpcWithAsyncSuffixedMethod
     {
         Task DoSomethingAsync();
@@ -103,7 +103,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> HeavyWorkAsync(CancellationToken cancellationToken, int param1);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer3
     {
         Task<string> SayHiAsync();
@@ -112,18 +112,18 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<string> ARoseByAsync(string name);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer2
     {
         Task<int> MultiplyAsync(int a, int b);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IDisposableServer2 : IDisposable, IServer2
     {
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithParamsObject
     {
         Task<int> SumOfParameterObject(int a, int b);
@@ -131,7 +131,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithParamsObjectNoResult
     {
         Task SumOfParameterObject(int a, int b);
@@ -139,7 +139,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task SumOfParameterObject(int a, int b, CancellationToken cancellationToken);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithValueTasks
     {
         ValueTask DoSomethingValueAsync();
@@ -152,7 +152,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         int Add(int a, int b);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithVoidReturnType
     {
         void Notify(int a, int b);
@@ -178,12 +178,14 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract]
+    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Source generated shapes cause this to fail unrelated tests.")]
     public partial interface IReferenceAnUnreachableAssembly
     {
         Task TakeAsync(UnreachableAssembly.SomeUnreachableClass obj);
     }
 
     [JsonRpcContract]
+    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
     internal partial interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,
@@ -192,7 +194,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task<int> AddAsync(int a, int b);
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IServerInternalWithInternalTypesFromOtherAssemblies
     {
         Task<ExAssembly.SomeOtherInternalType> SomeMethodAsync();
@@ -200,20 +202,20 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     internal partial interface IRemoteService
     {
-        [JsonRpcContract]
+        [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
         internal partial interface ICallback : ExAssembly.IInternalGenericInterface<ExAssembly.SomeOtherInternalType?>
         {
         }
     }
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonRpcProxyInterfaceGroup(typeof(IInterfaceGroup2))]
     internal partial interface IInterfaceGroup1;
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IInterfaceGroup2;
 
-    [JsonRpcContract]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface ITimeTestedProxy
     {
         event EventHandler<CustomEventArgs> TestEvent;

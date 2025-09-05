@@ -24,4 +24,9 @@ public class RpcMarshalableAttribute : Attribute
     /// The original object owner retains ownership of the lifetime of the object after the RPC call.</para>
     /// </remarks>
     public bool CallScopedLifetime { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the interface may appear as an <see cref="RpcMarshalableOptionalInterfaceAttribute.OptionalInterface"/>.
+    /// </summary>
+    public bool IsOptional { get; init; }
 }

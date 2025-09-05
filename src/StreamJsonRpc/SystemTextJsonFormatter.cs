@@ -908,12 +908,12 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         public override bool CanConvert(Type typeToConvert)
         {
-            return MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, out _, out _, out _);
+            return MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, JsonRpcProxyOptions.Default, out _, out _, out _);
         }
 
         public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            Assumes.True(MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute));
+            Assumes.True(MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute));
             return (JsonConverter)Activator.CreateInstance(
                 typeof(Converter<>).MakeGenericType(typeToConvert),
                 this.formatter,
@@ -934,7 +934,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
             public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(typeof(T));
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
                 JsonSerializer.Serialize(writer, token, options);
             }
         }

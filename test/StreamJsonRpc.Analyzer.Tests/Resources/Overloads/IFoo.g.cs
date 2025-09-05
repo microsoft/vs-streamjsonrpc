@@ -62,7 +62,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi1 ??= this.Options.MethodNameTransform("SayHi");
+			string rpcMethodName = this.transformedSayHi1 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
@@ -81,7 +81,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi2 ??= this.Options.MethodNameTransform("SayHi");
+			string rpcMethodName = this.transformedSayHi2 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
@@ -101,7 +101,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi3 ??= this.Options.MethodNameTransform("SayHi");
+			string rpcMethodName = this.transformedSayHi3 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);

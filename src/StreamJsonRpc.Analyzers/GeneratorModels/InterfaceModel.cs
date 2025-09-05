@@ -28,6 +28,8 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
 
     internal required bool DeclaredInThisCompilation { get; init; }
 
+    internal required ImmutableEquatableSet<string> PrescribedTypeArgs { get; init; }
+
     internal static InterfaceModel Create(INamedTypeSymbol iface, KnownSymbols symbols, bool declaredInThisCompilation, CancellationToken cancellationToken)
     {
         bool hasUnsupportedMemberTypes = false;
@@ -38,6 +40,9 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
         {
             switch (member)
             {
+                case { IsStatic: true }:
+                    // Ignore all static members.
+                    break;
                 case IMethodSymbol method when SymbolEqualityComparer.Default.Equals(method.ContainingType, symbols.IDisposable):
                     // We don't map this special Dispose method.
                     break;
@@ -50,9 +55,22 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
                 case IEventSymbol evt when EventModel.Create(evt, symbols) is EventModel evtModel:
                     events.Add(evtModel);
                     break;
+                case INamedTypeSymbol nestedType:
+                    // We ignore these.
+                    break;
                 default:
                     hasUnsupportedMemberTypes = true;
                     break;
+            }
+        }
+
+        HashSet<string> prescribedTypeArgs = [];
+        foreach (AttributeData attr in iface.GetAttributes())
+        {
+            if (attr is { AttributeClass: { TypeArguments: [INamedTypeSymbol { TypeArguments: { Length: > 0 } typeArgs }] } attrClass }
+                && SymbolEqualityComparer.Default.Equals(attrClass.ConstructUnboundGenericType(), symbols.JsonRpcProxyAttribute))
+            {
+                prescribedTypeArgs.Add(string.Join(", ", typeArgs.Select(ta => ta.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat))));
             }
         }
 
@@ -68,6 +86,7 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
             IsPartial = iface.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is InterfaceDeclarationSyntax syntax && syntax.Modifiers.Any(SyntaxKind.PartialKeyword),
             IsPublic = iface.IsActuallyPublic(),
             DeclaredInThisCompilation = declaredInThisCompilation,
+            PrescribedTypeArgs = prescribedTypeArgs.ToImmutableEquatableSet(),
         };
     }
 }

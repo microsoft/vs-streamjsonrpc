@@ -114,7 +114,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
         writer.WriteLine($$"""
 
-                {{this.ReturnType}} global::{{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
+                {{this.ReturnType}} {{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
                 {
                 """);
 
@@ -132,7 +132,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                     if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 
                     this.OnCallingMethod("{{this.Name}}");
-                    string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.Options.MethodNameTransform("{{this.RpcMethodName}}");
+                    string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.TransformMethodName("{{this.RpcMethodName}}", typeof({{this.DeclaringInterfaceName}}));
                     global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.Options.ServerRequiresNamedArguments ?
                         this.JsonRpc.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
                         this.JsonRpc.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
@@ -166,28 +166,25 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
     internal static MethodModel Create(IMethodSymbol method, KnownSymbols symbols)
     {
+        AttributeData? methodShapeAttribute = method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MethodShapeAttribute));
+        AttributeData? jsonRpcMethodAttribute = method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute));
+
         string rpcMethodName = method.Name;
-        if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MethodShapeAttribute)) is { } methodShapeAttribute)
+
+        // If the method has a MethodShape attribute, prefer its name.
+        if (methodShapeAttribute?.NamedArguments.FirstOrDefault(kv => kv.Key == Types.MethodShapeAttribute.NameProperty).Value is { Value: string methodShapeName })
         {
-            // If the method has a MethodShape attribute, use its name.
-            if (methodShapeAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.MethodShapeAttribute.NameProperty).Value.Value is string name)
-            {
-                rpcMethodName = name;
-            }
+            rpcMethodName = methodShapeName;
         }
 
-        if (method.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcMethodAttribute)) is { } rpcMethodAttribute)
+        // If the method has a JsonRpcMethod attribute, prefer its name above all.
+        if (jsonRpcMethodAttribute is { ConstructorArguments: [{ Value: string jsonRpcMethodName }, ..] })
         {
-            // If the method has a JsonRpcMethod attribute, use its name.
-            if (rpcMethodAttribute.ConstructorArguments.Length > 0 &&
-                rpcMethodAttribute.ConstructorArguments[0].Value is string name)
-            {
-                rpcMethodName = name;
-            }
+            rpcMethodName = jsonRpcMethodName;
         }
 
         return new MethodModel(
-            method.ContainingType.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
+            method.ContainingType.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat),
             method.Name,
             method.ReturnType.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat),
             ProxyGenerator.ClassifySpecialType(method.ReturnType, symbols),
