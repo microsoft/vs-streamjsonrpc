@@ -16,10 +16,6 @@ public partial class AsyncEnumerableNerdbankMessagePackTests : AsyncEnumerableTe
         this.clientMessageFormatter = new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
     }
 
-    [GenerateShapeFor<IReadOnlyList<int>>]
-    [GenerateShapeFor<IReadOnlyList<string>>]
-    [GenerateShapeFor<IReadOnlyList<CompoundEnumerableResult>>]
-    [GenerateShapeFor<IAsyncEnumerable<string>>]
-    [GenerateShapeFor<CompoundEnumerableResult>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

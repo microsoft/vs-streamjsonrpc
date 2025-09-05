@@ -7,6 +7,6 @@ public partial class WebSocketMessageHandlerNerdbankMessagePackTests : WebSocket
     {
     }
 
-    [GenerateShapeFor<int>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

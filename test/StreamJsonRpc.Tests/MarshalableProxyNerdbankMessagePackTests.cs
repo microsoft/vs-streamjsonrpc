@@ -15,29 +15,6 @@ public partial class MarshalableProxyNerdbankMessagePackTests : MarshalableProxy
 
     protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
 
-    [GenerateShapeFor<Data>]
-    [GenerateShapeFor<DataContainer>]
-    [GenerateShapeFor<IMarshalable>]
-    [GenerateShapeFor<ProxyContainer<IMarshalable>>]
-    [GenerateShapeFor<ProxyContainer<IMarshalableAndSerializable>>]
-    [GenerateShapeFor<ProxyContainer<IGenericMarshalable<int>>>]
-    [GenerateShapeFor<IMarshalableWithProperties>]
-    [GenerateShapeFor<IMarshalableWithEvents>]
-    [GenerateShapeFor<IMarshalableAndSerializable>]
-    [GenerateShapeFor<IMarshalableWithCallScopedLifetime>]
-    [GenerateShapeFor<INonDisposableMarshalable>]
-    [GenerateShapeFor<IMarshalableSubType1>]
-    [GenerateShapeFor<IMarshalableSubType2>]
-    [GenerateShapeFor<IMarshalableSubType1Extended>]
-    [GenerateShapeFor<IMarshalableNonExtendingBase>]
-    [GenerateShapeFor<IMarshalableSubTypesCombined>]
-    [GenerateShapeFor<IMarshalableSubTypeWithIntermediateInterface>]
-    [GenerateShapeFor<IMarshalableSubTypeWithIntermediateInterface2>]
-    [GenerateShapeFor<IMarshalableWithOptionalInterfaces>]
-    [GenerateShapeFor<IMarshalableWithOptionalInterfaces2>]
-    [GenerateShapeFor<IMarshalableSubType2Extended>]
-    [GenerateShapeFor<IGenericMarshalable<int>>]
-    [GenerateShapeFor<IAsyncEnumerable<int>>]
-    [GenerateShapeFor<IAsyncEnumerable<string>>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }

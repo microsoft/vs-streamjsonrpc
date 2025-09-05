@@ -105,22 +105,6 @@ public partial class JsonRpcNerdbankMessagePackLengthTests(ITestOutputHelper log
         }
     }
 
-    [GenerateShapeFor<System.Collections.IDictionary>]
-    [GenerateShapeFor<int?>]
-    [GenerateShapeFor<double>]
-    [GenerateShapeFor<Guid>]
-    [GenerateShapeFor<InternalClass>]
-    [GenerateShapeFor<Server.CustomErrorData>]
-    [GenerateShapeFor<IProgress<int>>]
-    [GenerateShapeFor<IProgress<TypeThrowsWhenSerialized>>]
-    [GenerateShapeFor<IProgress<UnionBaseClass>>]
-    [GenerateShapeFor<IProgress<CustomSerializedType>>]
-    [GenerateShapeFor<IAsyncEnumerable<UnionBaseClass>>]
-    [GenerateShapeFor<TypeThrowsWhenSerialized>]
-    [GenerateShapeFor<TypeThrowsWhenDeserialized>]
-    [GenerateShapeFor<StrongTypedProgressType>]
-    [GenerateShapeFor<XAndYPropertiesWithProgress>]
-    [GenerateShapeFor<VAndWProperties>]
-    [GenerateShapeFor<Exception>]
+    [GenerateShapeFor<bool>]
     private partial class Witness;
 }
