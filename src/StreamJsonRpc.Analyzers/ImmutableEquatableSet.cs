@@ -25,7 +25,7 @@ public static class ImmutableEquatableSet
     /// <returns>A new <see cref="ImmutableEquatableSet{T}"/> instance containing the specified values.</returns>
     public static ImmutableEquatableSet<T> ToImmutableEquatableSet<T>(this IEnumerable<T> values)
         where T : IEquatable<T>
-        => values is ICollection<T> { Count: 0 } ? ImmutableEquatableSet<T>.Empty : ImmutableEquatableSet<T>.UnsafeCreateFromHashSet(new(values));
+        => values is ICollection<T> { Count: 0 } ? ImmutableEquatableSet<T>.Empty : ImmutableEquatableSet<T>.UnsafeCreateFromHashSet([.. values]);
 
     /// <summary>
     /// Creates a new <see cref="ImmutableEquatableSet{T}"/> instance from the specified values.

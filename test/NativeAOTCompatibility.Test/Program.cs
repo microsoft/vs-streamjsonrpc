@@ -5,6 +5,7 @@
 #pragma warning disable SA1649 // File name should match first type name
 
 using NativeAOTCompatibility.Test;
+using PolyType;
 using StreamJsonRpc;
 
 Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather than by executing the program.");
@@ -14,7 +15,7 @@ Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather th
 await NerdbankMessagePack.RunAsync();
 await SystemTextJson.RunAsync();
 
-[JsonRpcContract]
+[JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
 internal partial interface IServer
 {
     event EventHandler<int> Added;

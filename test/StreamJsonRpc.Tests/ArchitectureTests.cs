@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
 public class ArchitectureTests
 {
     /// <summary>
@@ -14,6 +17,6 @@ public class ArchitectureTests
     [Fact]
     public void NoInterceptors()
     {
-        Assert.DoesNotContain(typeof(JsonRpc).Assembly.GetTypes(), t => t.Namespace == "StreamJsonRpc.Generated");
+        Assert.DoesNotContain(typeof(JsonRpc).Assembly.GetTypes(), t => t.Namespace == "StreamJsonRpc.Generated" && t.Name != "StreamJsonRpc_Reflection_ProxyBase_IObserverProxyGenerator_Proxy`1" && t.GetCustomAttribute<CompilerGeneratedAttribute>() is null);
     }
 }

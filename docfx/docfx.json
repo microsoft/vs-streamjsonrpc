@@ -31,6 +31,8 @@
 			}
 		],
 		"xref": [
+			"https://eiriktsarpalis.github.io/PolyType/xrefmap.yml",
+			"https://aarnott.github.io/Nerdbank.MessagePack/xrefmap.yml",
       "https://dotnet.github.io/Nerdbank.Streams/xrefmap.yml",
 			"https://microsoft.github.io/vs-threading/xrefmap.yml",
 			"https://microsoft.github.io/vs-validation/xrefmap.yml",

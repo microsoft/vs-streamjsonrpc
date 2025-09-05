@@ -1,7 +1,7 @@
 # `RpcMarshalableAttribute`
 
 StreamJsonRpc typically *serializes* values that are passed in arguments or return values of RPC methods, which effectively transmits the data of an object or struct to the remote party.
-By applying the `RpcMarshalableAttribute` to an interface, it a proxy can be sent to effectively marshal *behavior* to the remote party instead of data, similar to other [exotic types](index.md).
+By applying the <xref:StreamJsonRpc.RpcMarshalableAttribute> to an interface, it a proxy can be sent to effectively marshal *behavior* to the remote party instead of data, similar to other [exotic types](index.md).
 
 StreamJsonRpc allows transmitting marshalable objects (i.e., objects implementing a marshalable interface) in arguments and return values.
 
@@ -13,7 +13,7 @@ Marshalable interfaces must:
 
 The object that implements a marshalable interface may include properties and events as well as other additional members but only the methods defined by the marshalable interface will be available on the proxy, and the data will not be serialized.
 
-The `RpcMarshalableAttribute` must be applied directly to the interface used as the return type, parameter type, or member type within a return type or parameter type's object graph.
+The <xref:StreamJsonRpc.RpcMarshalableAttribute> must be applied directly to the interface used as the return type, parameter type, or member type within a return type or parameter type's object graph.
 The attribute is not inherited.
 In fact different interfaces in a type hierarchy can have this attribute applied with distinct settings, and only the settings on the attribute applied directly to the interface used will apply.
 
@@ -275,27 +275,34 @@ These resources are released and the `IDisposable.Dispose()` method is invoked o
 * The receiver calls `IDisposable.Dispose()` on the proxy.
 * The JSON-RPC connection is closed.
 
-## `RpcMarshalableOptionalInterfaceAttribute`
+## <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute>
 
-StreamJsonRpc provides the `RpcMarshalableOptionalInterfaceAttribute` to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
+StreamJsonRpc provides the <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> to specify that marshalable objects implementing an RPC interface can optionally implement additional interfaces.
 
-`RpcMarshalableOptionalInterfaceAttribute` is applied to the interface used in the RPC contract.
-Such an interface must also apply the `RpcMarshalableAttribute`.
+<xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> is applied to the interface used in the RPC contract.
+Such an interface must also apply the <xref:StreamJsonRpc.RpcMarshalableAttribute>.
 
-An interface that `RpcMarshalableOptionalInterfaceAttribute` references must have the `RpcMarshalableAttribute` attribute and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
+An interface that <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> references must have the <xref:StreamJsonRpc.RpcMarshalableAttribute> attribute applied, set <xref:StreamJsonRpc.RpcMarshalableAttribute.IsOptional> to `true`, and must adhere to all the requirements of marshalable interfaces as described earlier in this document.
 
-The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with `RpcMarshalableOptionalInterfaceAttribute` on the interface type used in the RPC contract.
-The receiver of the proxy can use the [is](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/is) operator to check if an optional interface is implemented without throwing an `InvalidCastException` when the interface is not implemented.
+The proxy object created for the receiver of a marshaled object will implement all the interfaces that are both implemented by the original object and that are identified with <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> on the interface type used in the RPC contract.
+
+The receiver of the proxy should avoid using standard type check or cast operators such as [is](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/is) to check if an optional interface is implemented because a proxy *may* implement more interfaces than the marshaled object does.
+Instead, test proxies for optional interfaces using the <xref:StreamJsonRpc.IClientProxy.Is(System.Type)> method or <xref:StreamJsonRpc.JsonRpcExtensions.As``1(StreamJsonRpc.IClientProxy)> extension method.
+
+An <xref:StreamJsonRpc.RpcMarshalableAttribute> interface that also carries <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> attributes will lead to generation of extension methods for itself and for each of the optional interfaces.
+These extension methods expose the <xref:StreamJsonRpc.IClientProxy.Is(System.Type)> and <xref:StreamJsonRpc.JsonRpcExtensions.As``1(StreamJsonRpc.IClientProxy)> methods so they are conveniently accessible via these RPC interfaces more directly so that conditional casting to <xref:StreamJsonRpc.IClientProxy> is not required at each callsite.
+
+The `PublicRpcMarshalableInterfaceExtensions` MSBuild property can be set to `true` in the project file to cause these extension methods to be declares on a `public` extension class rather than an `internal` one, so that referencing assemblies that use these proxies can have the same level of convenience in testing for optional interfaces.
 
 ### Use cases
 
-`RpcMarshalableOptionalInterfaceAttribute` is useful in a few scenarios:
+<xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> is useful in a few scenarios:
 
 1. when adding new methods to an existing marshalable interface would break backward compatibility for another scenario,
 1. when the host of the marshaled object may deem it appropriate to expose different behaviors based on the scenario,
 1. when an RPC method returns marshalable objects which may optionally implement additional functionality based on the arguments passed to that method.
 
-For example, the following code shows how `RpcMarshalableOptionalInterfaceAttribute` can be added to the `ICounter` interface from the earlier sample:
+For example, the following code shows how <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> can be added to the `ICounter` interface from the earlier sample:
 
 ```cs
 [RpcMarshalable]
@@ -331,8 +338,8 @@ The proxy receiver will be able to perceive through type checks which interfaces
 
 #### Backward compatibility
 
-The `optionalInterfaceCode` values used in `RpcMarshalableOptionalInterfaceAttribute` are used as part of the wire protocol.
-While it can be backward compatible to remove an `RpcMarshalableOptionalInterfaceAttribute` from an interface, its `optionalInterfaceCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
+The `optionalInterfaceCode` values used in <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> are used as part of the wire protocol.
+While it can be backward compatible to remove an <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> from an interface, its `optionalInterfaceCode` value should never be reused to add a different interface to the same interface declaration to avoid an older remote party misinterpreting the value as identifying the older interface.
 
 #### Method name conflicts and non-marshalable interfaces
 
@@ -388,7 +395,7 @@ Method call | Invoked server-side method | Conditions
 `((IBaz)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz` | If the marshalable object implements `IBaz`
 `((IBaz2)proxy).DoBazAsync()` | `DoBazAsync` as defined by `IBaz2` | If the marshalable object implements `IBaz2`
 
-⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz` or  `IBaz2`, since `IBar` is not listed in an `RpcMarshalableOptionalInterfaceAttribute` of `IFoo`.
+⚠️ An attempt to cast proxy to `IBar` would fail, even if the original object implemented that interface, if that object did not also implement `IBaz` or  `IBaz2`, since `IBar` is not listed in an <xref:StreamJsonRpc.RpcMarshalableOptionalInterfaceAttribute> of `IFoo`.
 
 A call to `((IBar)proxy).DoFooAsync()` would result in the following behavior:
 

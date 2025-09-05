@@ -1173,7 +1173,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 }
             }
 
-            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute))
+            if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeof(T), JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute))
             {
                 object formatter = Activator.CreateInstance(
                     typeof(RpcMarshalableFormatter<>).MakeGenericType(typeof(T)),
@@ -1218,7 +1218,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(typeof(T));
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = messagePackFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
                 MessagePackSerializer.Serialize(ref writer, token, options);
             }
         }

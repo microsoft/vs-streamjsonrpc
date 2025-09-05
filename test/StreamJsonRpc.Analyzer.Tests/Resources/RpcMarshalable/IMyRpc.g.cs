@@ -114,7 +114,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("JustCancellationAsync");
-			string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.Options.MethodNameTransform("JustCancellationAsync");
+			string rpcMethodName = this.transformedJustCancellationAsync1 ??= this.TransformMethodName("JustCancellationAsync", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
@@ -133,7 +133,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AnArgAndCancellationAsync");
-			string rpcMethodName = this.transformedAnArgAndCancellationAsync2 ??= this.Options.MethodNameTransform("AnArgAndCancellationAsync");
+			string rpcMethodName = this.transformedAnArgAndCancellationAsync2 ??= this.TransformMethodName("AnArgAndCancellationAsync", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), AnArgAndCancellationAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [arg], AnArgAndCancellationAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
@@ -153,7 +153,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync3 ??= this.Options.MethodNameTransform("AddAsync");
+			string rpcMethodName = this.transformedAddAsync3 ??= this.TransformMethodName("AddAsync", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
@@ -174,7 +174,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("MultiplyAsync");
-			string rpcMethodName = this.transformedMultiplyAsync4 ??= this.Options.MethodNameTransform("MultiplyAsync");
+			string rpcMethodName = this.transformedMultiplyAsync4 ??= this.TransformMethodName("MultiplyAsync", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), MultiplyAsyncNamedArgumentDeclaredTypes4, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], MultiplyAsyncPositionalArgumentDeclaredTypes4, default);
@@ -195,7 +195,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("Start");
-			string rpcMethodName = this.transformedStart5 ??= this.Options.MethodNameTransform("Start");
+			string rpcMethodName = this.transformedStart5 ??= this.TransformMethodName("Start", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), StartNamedArgumentDeclaredTypes5) :
 			    this.JsonRpc.NotifyAsync(rpcMethodName, [bah], StartPositionalArgumentDeclaredTypes5);
@@ -215,7 +215,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("StartCancelable");
-			string rpcMethodName = this.transformedStartCancelable6 ??= this.Options.MethodNameTransform("StartCancelable");
+			string rpcMethodName = this.transformedStartCancelable6 ??= this.TransformMethodName("StartCancelable", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.NotifyWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), StartCancelableNamedArgumentDeclaredTypes6) :
 			    this.JsonRpc.NotifyAsync(rpcMethodName, [bah], StartCancelablePositionalArgumentDeclaredTypes6);
@@ -235,7 +235,7 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("CountAsync");
-			string rpcMethodName = this.transformedCountAsync7 ??= this.Options.MethodNameTransform("CountAsync");
+			string rpcMethodName = this.transformedCountAsync7 ??= this.TransformMethodName("CountAsync", typeof(global::IMyRpc));
 			global::System.Threading.Tasks.Task<global::System.Collections.Generic.IAsyncEnumerable<int>> result = this.Options.ServerRequiresNamedArguments ?
 			    this.JsonRpc.InvokeWithParameterObjectAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, ConstructNamedArgs(), CountAsyncNamedArgumentDeclaredTypes7, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync<global::System.Collections.Generic.IAsyncEnumerable<int>>(rpcMethodName, [start, count], CountAsyncPositionalArgumentDeclaredTypes7, cancellationToken);

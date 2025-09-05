@@ -10,6 +10,8 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.RpcMarshalableAttribute";
 
         internal const string CallScopedLifetime = "CallScopedLifetime";
+
+        internal const string IsOptional = "IsOptional";
     }
 
     internal static class RpcMarshalableOptionalInterfaceAttribute
@@ -20,6 +22,11 @@ internal static class Types
     internal static class JsonRpcContractAttribute
     {
         internal const string FullName = "StreamJsonRpc.JsonRpcContractAttribute";
+    }
+
+    internal static class JsonRpcProxyAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.JsonRpcProxyAttribute`1";
     }
 
     internal static class JsonRpcProxyInterfaceGroupAttribute

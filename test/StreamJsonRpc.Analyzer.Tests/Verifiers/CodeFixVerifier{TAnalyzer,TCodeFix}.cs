@@ -30,6 +30,7 @@ internal class CodeFixVerifier<TAnalyzer, TCodeFix>
             using System;
             using System.Threading;
             using System.Threading.Tasks;
+            using PolyType;
             using StreamJsonRpc;
 
             {source}

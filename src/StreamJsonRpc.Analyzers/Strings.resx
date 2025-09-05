@@ -175,7 +175,7 @@
     <value>Use RpcMarshalableAttribute on optional marshalable interface</value>
   </data>
   <data name="StreamJsonRpc0007_MessageFormat" xml:space="preserve">
-    <value>RpcMarshalable optional interface {0} must be attributed with RpcMarshalableAttribute.</value>
+    <value>RpcMarshalable optional interface {0} must be attributed with [RpcMarshalableAttribute(IsOptional = true)].</value>
   </data>
   <data name="StreamJsonRpc0006_Title" xml:space="preserve">
     <value>Interfaces in proxy group must be attributed</value>
@@ -194,5 +194,35 @@
   </data>
   <data name="StreamJsonRpc0004_MessageFormat" xml:space="preserve">
     <value>Proxies may only be produced for interfaces that are not open-generics, but {0} is not an interface or is an open generic.</value>
+  </data>
+  <data name="StreamJsonRpc0008_Title" xml:space="preserve">
+    <value>Add methods to PolyType shape for RPC contract interface</value>
+  </data>
+  <data name="StreamJsonRpc0008_MessageFormat" xml:space="preserve">
+    <value>The RPC contract type '{0}' should also have the {1} applied so that it works with more formatters.</value>
+  </data>
+  <data name="StreamJsonRpc0030_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be applied only to generic interfaces</value>
+  </data>
+  <data name="StreamJsonRpc0031_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; type argument should be a closed instance of the applied type</value>
+  </data>
+  <data name="StreamJsonRpc0032_Title" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be accompanied by JsonRpcContractAttribute or RpcMarshalableAttribute.</value>
+  </data>
+  <data name="StreamJsonRpc0030_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be applied only to generic interfaces, but {0} is not a generic interface.</value>
+  </data>
+  <data name="StreamJsonRpc0031_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; type argument should be a closed instance of the applied type, but {0} has this attribute applied with {1} as a type argument.</value>
+  </data>
+  <data name="StreamJsonRpc0032_MessageFormat" xml:space="preserve">
+    <value>JsonRpcProxyAttribute&lt;T&gt; should be accompanied by either JsonRpcContractAttribute or RpcMarshalableAttribute, but {0} has neither of these applied.</value>
+  </data>
+  <data name="StreamJsonRpc0050_Title" xml:space="preserve">
+    <value>Use IClientProxy.Is or JsonRpcExtensions.As</value>
+  </data>
+  <data name="StreamJsonRpc0050_MessageFormat" xml:space="preserve">
+    <value>Use IClientProxy.Is, JsonRpcExtensions.As or the source-generated extension methods by the same names on your RPC marshalable interfaces to cast or type check between RpcMarshalable interfaces {0} and {1}.</value>
   </data>
 </root>

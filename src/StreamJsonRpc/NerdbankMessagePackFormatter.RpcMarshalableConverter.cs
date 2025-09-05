@@ -1,6 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
+using Nerdbank.MessagePack;
+using PolyType.Abstractions;
+using StreamJsonRpc.Reflection;
+
 namespace StreamJsonRpc;
 
 /// <summary>
@@ -8,9 +14,8 @@ namespace StreamJsonRpc;
 /// </summary>
 public partial class NerdbankMessagePackFormatter
 {
-#if NBMSGPACK_MARSHALING_SUPPORT
-
     private class RpcMarshalableConverter<T>(
+        ITypeShape<T> shape,
         JsonRpcProxyOptions proxyOptions,
         JsonRpcTargetOptions targetOptions,
         RpcMarshalableAttribute rpcMarshalableAttribute) : MessagePackConverter<T>
@@ -29,7 +34,7 @@ public partial class NerdbankMessagePackFormatter
 #pragma warning restore NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods
 
             return token.HasValue
-                ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions)
+                ? (T?)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions, shape)
                 : default;
         }
 
@@ -46,12 +51,12 @@ public partial class NerdbankMessagePackFormatter
             }
             else
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, typeof(T), rpcMarshalableAttribute);
+                RpcTargetMetadata targetMetadata = RpcTargetMetadata.FromShape(shape);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, targetMetadata, rpcMarshalableAttribute);
                 context.GetConverter<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(Witness.ShapeProvider).Write(ref writer, token, context);
             }
         }
 
         public override JsonObject? GetJsonSchema(JsonSchemaContext context, ITypeShape typeShape) => null;
     }
-#endif
 }
