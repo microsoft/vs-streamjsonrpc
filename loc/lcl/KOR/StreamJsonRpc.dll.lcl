@@ -373,6 +373,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";NoSourceGeneratedProxyAvailable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[No source generated proxy is available for the requested interface(s): {ifaces}. Dynamic proxies are forbidden by the options.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[요청한 인터페이스에 대해 생성된 프록시가 없습니다: {ifaces}. 옵션에 따라 동적 프록시는 금지되어 있습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";NonNegativeIntegerRequired" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[A non-negative integer is required.]]></Val>

@@ -373,6 +373,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";NoSourceGeneratedProxyAvailable" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[No source generated proxy is available for the requested interface(s): {ifaces}. Dynamic proxies are forbidden by the options.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Pro požadovaná rozhraní není k dispozici žádný generovaný proxy server: {ifaces}. Dynamické proxy servery jsou zakázány možnostmi.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";NonNegativeIntegerRequired" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[A non-negative integer is required.]]></Val>
