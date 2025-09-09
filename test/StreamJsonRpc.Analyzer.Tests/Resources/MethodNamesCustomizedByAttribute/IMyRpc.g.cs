@@ -30,34 +30,6 @@ namespace StreamJsonRpc.Generated
 		
 		private string? transformedAddAsync1;
 		
-		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> IntegrateAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-		{
-			["from"] = typeof(double),
-			["to"] = typeof(double),
-		};
-		
-		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> IntegrateAsyncPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
-		{
-			typeof(double),
-			typeof(double),
-		};
-		
-		private string? transformedIntegrateAsync2;
-		
-		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DivideAsyncNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
-		{
-			["from"] = typeof(double),
-			["to"] = typeof(double),
-		};
-		
-		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DivideAsyncPositionalArgumentDeclaredTypes3 = new global::System.Collections.Generic.List<global::System.Type>
-		{
-			typeof(double),
-			typeof(double),
-		};
-		
-		private string? transformedDivideAsync3;
-		
 		public IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
 		{
@@ -81,48 +53,6 @@ namespace StreamJsonRpc.Generated
 			    {
 					["a"] = a,
 					["b"] = b,
-				};
-		}
-		
-		global::System.Threading.Tasks.Task global::IMyRpc.IntegrateAsync(double from, double to, global::System.Threading.CancellationToken cancellationToken)
-		{
-			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
-			
-			this.OnCallingMethod("IntegrateAsync");
-			string rpcMethodName = this.transformedIntegrateAsync2 ??= this.TransformMethodName("IntegrateRenamed", typeof(global::IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), IntegrateAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [from, to], IntegrateAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
-			this.OnCalledMethod("IntegrateAsync");
-			
-			return result;
-			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
-			    {
-					["from"] = from,
-					["to"] = to,
-				};
-		}
-		
-		global::System.Threading.Tasks.Task global::IMyRpc.DivideAsync(double from, double to, global::System.Threading.CancellationToken cancellationToken)
-		{
-			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
-			
-			this.OnCallingMethod("DivideAsync");
-			string rpcMethodName = this.transformedDivideAsync3 ??= this.TransformMethodName("DivideRenamed", typeof(global::IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DivideAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [from, to], DivideAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
-			this.OnCalledMethod("DivideAsync");
-			
-			return result;
-			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
-			    {
-					["from"] = from,
-					["to"] = to,
 				};
 		}
 	}

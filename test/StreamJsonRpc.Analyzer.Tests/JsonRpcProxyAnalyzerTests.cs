@@ -8,6 +8,7 @@ public class JsonRpcProxyAnalyzerTests
     [Fact]
     public async Task ProperUse()
     {
+#if POLYTYPE
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             [JsonRpcProxy<IMyRpcMarshalable<int>>]
@@ -21,11 +22,27 @@ public class JsonRpcProxyAnalyzerTests
             {
             }
             """);
+#else
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            [JsonRpcProxy<IMyRpcMarshalable<int>>]
+            public partial interface IMyRpcMarshalable<T> : IDisposable
+            {
+            }
+
+            [JsonRpcContract]
+            [JsonRpcProxy<IMyRpcContract<int>>]
+            public partial interface IMyRpcContract<T>
+            {
+            }
+            """);
+#endif
     }
 
     [Fact]
     public async Task NotOnGenericInterface()
     {
+#if POLYTYPE
         await VerifyCS.VerifyAnalyzerAsync("""
             [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             [{|StreamJsonRpc0030:JsonRpcProxy<IMyRpcMarshalable>|}]
@@ -33,11 +50,21 @@ public class JsonRpcProxyAnalyzerTests
             {
             }
             """);
+#else
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable]
+            [{|StreamJsonRpc0030:JsonRpcProxy<IMyRpcMarshalable>|}]
+            public partial interface IMyRpcMarshalable : IDisposable
+            {
+            }
+            """);
+#endif
     }
 
     [Fact]
     public async Task TypeArgIsNotClosedAppliedInterface()
     {
+#if POLYTYPE
         await VerifyCS.VerifyAnalyzerAsync("""
             [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
             [{|StreamJsonRpc0031:JsonRpcProxy<int>|}]
@@ -45,6 +72,15 @@ public class JsonRpcProxyAnalyzerTests
             {
             }
             """);
+#else
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract]
+            [{|StreamJsonRpc0031:JsonRpcProxy<int>|}]
+            public partial interface IMyRpcMarshalable<T>
+            {
+            }
+            """);
+#endif
     }
 
     [Fact]

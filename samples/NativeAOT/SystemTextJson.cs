@@ -13,7 +13,9 @@ partial class SystemTextJson
         JsonRpc serverRpc = new(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
         JsonRpc clientRpc = new(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
 
+#if POLYTYPE
         RpcTargetMetadata.RegisterEventArgs<int>();
+#endif
         var targetMetadata = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer)));
 
         serverRpc.AddLocalRpcTarget(targetMetadata, new Server(), null);

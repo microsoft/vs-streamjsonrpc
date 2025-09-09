@@ -9,9 +9,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+#if POLYTYPE
 using PolyType;
 using PolyType.Abstractions;
 using PolyType.Utilities;
+#endif
 
 namespace StreamJsonRpc;
 
@@ -25,7 +27,7 @@ public class RpcTargetMetadata
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> Interfaces = [];
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> PublicClass = [];
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> NonPublicClass = [];
-    private static readonly MethodInfo RegisterEventArgsMethodInfo = typeof(RpcTargetMetadata).GetMethod(nameof(RegisterEventArgs), BindingFlags.Public | BindingFlags.Static) ?? throw Assumes.NotReachable();
+    private static readonly MethodInfo RegisterEventArgsMethodInfo = typeof(RpcTargetMetadata).GetMethod(nameof(RegisterEventArgs), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static) ?? throw Assumes.NotReachable();
     private static Action<Type>? dynamicEventHandlerFactoryRegistration;
 
     /// <summary>
@@ -285,6 +287,7 @@ public class RpcTargetMetadata
         return NonPublicClass.TryAdd(classType, result) ? result : NonPublicClass[classType];
     }
 
+#if POLYTYPE
 #if NET
     /// <summary>
     /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.
@@ -324,6 +327,7 @@ public class RpcTargetMetadata
 
         return builder.ToImmutable();
     }
+#endif
 
     /// <summary>
     /// Creates an event handler factory that supports <see cref="EventHandler{TEventArgs}"/> for a given <typeparamref name="TEventArgs"/>.
@@ -332,9 +336,14 @@ public class RpcTargetMetadata
     /// The type argument used in <see cref="EventHandler{TEventArgs}"/>.
     /// Only structs are supported because only value types need registration. Reference types work without registration.
     /// </typeparam>
+#if POLYTYPE
     public static void RegisterEventArgs<TEventArgs>()
+#else
+    private static void RegisterEventArgs<TEventArgs>()
+#endif
         where TEventArgs : struct => EventHandlerFactories.TryAdd(typeof(TEventArgs), new EventHandlerFactory<TEventArgs>());
 
+#if POLYTYPE
     private static void AddMethods(Builder builder, IReadOnlyList<IMethodShape> methods)
     {
         foreach (IMethodShape shape in methods)
@@ -342,16 +351,25 @@ public class RpcTargetMetadata
             TryAddCandidateMethod(builder, GetMethodInfo(shape), shape);
         }
     }
+#endif
 
     private static void AddMethods(Builder builder, IEnumerable<MethodInfo> methods)
     {
         foreach (MethodInfo method in methods)
         {
+#if POLYTYPE
             TryAddCandidateMethod(builder, method, shape: null);
+#else
+            TryAddCandidateMethod(builder, method);
+#endif
         }
     }
 
+#if POLYTYPE
     private static bool TryAddCandidateMethod(Builder builder, MethodInfo method, IMethodShape? shape)
+#else
+    private static bool TryAddCandidateMethod(Builder builder, MethodInfo method)
+#endif
     {
         if (method.IsSpecialName || method.IsConstructor || method.DeclaringType == typeof(object))
         {
@@ -360,7 +378,9 @@ public class RpcTargetMetadata
 
         JsonRpcIgnoreAttribute? ignoreAttribute = FindMethodAttribute<JsonRpcIgnoreAttribute>(builder, method);
         JsonRpcMethodAttribute? methodAttribute = FindMethodAttribute<JsonRpcMethodAttribute>(builder, method);
+#if POLYTYPE
         MethodShapeAttribute? methodShapeAttribute = FindMethodAttribute<MethodShapeAttribute>(builder, method);
+#endif
 
         if (ignoreAttribute is not null)
         {
@@ -372,7 +392,11 @@ public class RpcTargetMetadata
             return false;
         }
 
+#if POLYTYPE
         TargetMethodMetadata methodMetadata = TargetMethodMetadata.From(method, methodAttribute, shape, methodShapeAttribute);
+#else
+        TargetMethodMetadata methodMetadata = TargetMethodMetadata.From(method, methodAttribute);
+#endif
 
         builder.AddMethod(methodMetadata);
         return true;
@@ -447,7 +471,11 @@ public class RpcTargetMetadata
                 }
 
                 // We don't have a factory registered for this value type.
+#if POLYTYPE
                 throw new NotSupportedException($"{@event.DeclaringType}.{@event.Name} event uses {argType} as its second parameter. Structs used as event args must be registered beforehand using {nameof(RpcTargetMetadata)}.{nameof(RegisterEventArgs)}<T>().");
+#else
+                throw Assumes.NotReachable();
+#endif
             }
         }
 
@@ -504,7 +532,9 @@ public class RpcTargetMetadata
         return missing ?? [];
     }
 
+#if POLYTYPE
     private static MethodInfo GetMethodInfo(IMethodShape shape) => (MethodInfo)(shape.AttributeProvider ?? throw new ArgumentException(Resources.FormatAttributeProviderRequired($"{shape.DeclaringType.Type.FullName}.{shape.Name}"), nameof(shape)));
+#endif
 
     internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
     {
@@ -737,13 +767,23 @@ public class RpcTargetMetadata
     {
         private ParameterInfo[]? parameters;
 
+#if POLYTYPE
         internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape, MethodShapeAttribute? methodShapeAttribute)
+#else
+        internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute)
+#endif
         {
             this.IsPublic = method.IsPublic;
+#if POLYTYPE
             this.Name = attribute?.Name ?? shape?.Name ?? methodShapeAttribute?.Name ?? method.Name;
+#else
+            this.Name = attribute?.Name ?? method.Name;
+#endif
             this.MethodInfo = method;
             this.Attribute = attribute;
+#if POLYTYPE
             this.MethodShapeAttribute = methodShapeAttribute;
+#endif
 
             // Avoid inspecting the method signature here, as that triggers assembly loads that we might not ever need.
             // We'll do it lazily in our property getters instead.
@@ -764,15 +804,24 @@ public class RpcTargetMetadata
         /// </summary>
         public JsonRpcMethodAttribute? Attribute { get; }
 
+#if POLYTYPE
         /// <summary>
         /// Gets the <see cref="MethodShapeAttribute"/> that applies to this method, if any.
         /// </summary>
         public MethodShapeAttribute? MethodShapeAttribute { get; }
+#endif
 
+#if POLYTYPE
         /// <summary>
         /// Gets a value indicating whether this method has a name explicitly given by either a <see cref="JsonRpcMethodAttribute"/> or a <see cref="MethodShapeAttribute"/>.
         /// </summary>
         internal bool HasExplicitlySpecifiedName => (this.Attribute?.Name ?? this.MethodShapeAttribute?.Name) is not null;
+#else
+        /// <summary>
+        /// Gets a value indicating whether this method has a name explicitly given by a <see cref="JsonRpcMethodAttribute"/>.
+        /// </summary>
+        internal bool HasExplicitlySpecifiedName => this.Attribute?.Name is not null;
+#endif
 
         /// <summary>
         /// Gets the parameters on the method.
@@ -809,7 +858,11 @@ public class RpcTargetMetadata
         /// <inheritdoc/>
         public override string ToString() => this.DebuggerDisplay;
 
+#if POLYTYPE
         internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape, MethodShapeAttribute? methodShapeAttribute) => new(method, attribute, shape, methodShapeAttribute);
+#else
+        internal static TargetMethodMetadata From(MethodInfo method, JsonRpcMethodAttribute? attribute) => new(method, attribute);
+#endif
 
         internal bool EqualSignature(TargetMethodMetadata other)
         {
@@ -865,10 +918,12 @@ public class RpcTargetMetadata
 
     private class Builder
     {
+#if POLYTYPE
         internal Builder(ITypeShape shape)
         {
             this.TargetType = shape.Type;
         }
+#endif
 
         internal Builder(InterfaceCollection interfaces)
         {

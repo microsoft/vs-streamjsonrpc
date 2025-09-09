@@ -11,8 +11,10 @@ using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json;
+#if POLYTYPE
 using PolyType;
 using NBMP = Nerdbank.MessagePack;
+#endif
 
 public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 {
@@ -814,7 +816,9 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
     [JsonConverter(typeof(ThrowingJsonConverter<UnserializableType>))]
     [MessagePackFormatter(typeof(ThrowingMessagePackFormatter<UnserializableType>))]
+#if POLYTYPE
     [NBMP.MessagePackConverter(typeof(ThrowingMessagePackNerdbankConverter<UnserializableType>))]
+#endif
     protected class UnserializableType
     {
     }
@@ -845,6 +849,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         }
     }
 
+#if POLYTYPE
     protected class ThrowingMessagePackNerdbankConverter<T> : NBMP.MessagePackConverter<T>
     {
         public override T? Read(ref NBMP.MessagePackReader reader, NBMP.SerializationContext context)
@@ -857,4 +862,5 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
             throw new Exception();
         }
     }
+#endif
 }

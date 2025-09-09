@@ -7,15 +7,19 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+#if POLYTYPE
 using PolyType;
 using PolyType.Abstractions;
 using PolyType.Utilities;
 using StreamJsonRpc.Reflection;
+#endif
 
+#if POLYTYPE
 // Instruct PolyType to generate shapes with methods included for .NET interfaces that we make special allowances to treat as if they were declared with [RpcMarshalable].
 // Generic interfaces require very special handling to work in NativeAOT environments.
 [assembly: TypeShapeExtension(typeof(IDisposable), IncludeMethods = MethodShapeFlags.PublicInstance)]
 [assembly: TypeShapeExtension(typeof(IObserver<>), IncludeMethods = MethodShapeFlags.PublicInstance, AssociatedTypes = [typeof(ProxyBase.ObserverProxyActivator<>)], Requirements = TypeShapeRequirements.Constructor)]
+#endif
 
 namespace StreamJsonRpc.Reflection;
 
@@ -140,7 +144,9 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// The proxy is activated by <see cref="ObserverProxyActivator{T}"/>.
     /// </remarks>
     [RpcMarshalable]
+#if POLYTYPE
     [TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+#endif
     internal interface IObserverProxyGenerator<T> : IObserver<T>, IDisposable;
 
     /// <summary>
@@ -232,6 +238,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
                 proxy = new ProxyForIDisposable(jsonRpc, proxyInputs);
                 return true;
             }
+#if POLYTYPE
             else if (proxyInputs.ContractInterface is { GenericTypeArguments.Length: 1 } && proxyInputs.ContractInterfaceShape is not null)
             {
                 // To avoid having to dynamically close a generic type, we utilize PolyType associated type shapes to get our activation class,
@@ -247,6 +254,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
                     }
                 }
             }
+#endif
         }
 
         // Look for a source generated proxy type first.
