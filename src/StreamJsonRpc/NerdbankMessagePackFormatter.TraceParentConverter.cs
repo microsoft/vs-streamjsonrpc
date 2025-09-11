@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
-using PolyType.Abstractions;
+using PolyType;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;

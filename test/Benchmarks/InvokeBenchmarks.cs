@@ -38,7 +38,7 @@ public partial class InvokeBenchmarks
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
 #if POLYTYPE
-                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = GeneratedTypeShapeProvider }),
 #endif
                 _ => throw Assumes.NotReachable(),
             };

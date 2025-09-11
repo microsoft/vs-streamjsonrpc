@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
+using PolyType;
 using PolyType.Abstractions;
 using StreamJsonRpc.Reflection;
 
@@ -40,7 +41,7 @@ public partial class NerdbankMessagePackFormatter
 
             if (this.progressProxyCtor is null)
             {
-                ITypeShape typeShape = context.TypeShapeProvider?.Resolve(typeof(TClass)) ?? throw new InvalidOperationException("No TypeShapeProvider available.");
+                ITypeShape typeShape = context.TypeShapeProvider?.GetTypeShapeOrThrow(typeof(TClass)) ?? throw new InvalidOperationException("No TypeShapeProvider available.");
                 IObjectTypeShape progressProxyShape = (IObjectTypeShape?)typeShape.GetAssociatedTypeShape(typeof(MessageFormatterProgressTracker.ProgressProxy<>)) ?? throw new InvalidOperationException("Unable to get ProgressProxy associated shape.");
                 this.progressProxyCtor = (Func<JsonRpc, object, bool, TClass>?)progressProxyShape.Constructor?.Accept(NonDefaultConstructorVisitor<JsonRpc, object, bool>.Instance) ?? throw new InvalidOperationException("Unable to construct IProgress<T> proxy.");
             }

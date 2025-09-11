@@ -22,7 +22,7 @@ partial class NerdbankMessagePack
 
     static IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter()
     {
-        TypeShapeProvider = Witness.ShapeProvider,
+        TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
     };
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]

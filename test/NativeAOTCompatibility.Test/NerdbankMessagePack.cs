@@ -29,7 +29,7 @@ internal static partial class NerdbankMessagePack
 
     private static IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter()
     {
-        TypeShapeProvider = Witness.ShapeProvider,
+        TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
     };
 
     [GenerateShapeFor<int>]

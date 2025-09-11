@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
-using PolyType.Abstractions;
+using PolyType;
 
 namespace StreamJsonRpc;
 

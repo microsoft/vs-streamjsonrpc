@@ -161,7 +161,7 @@ public partial class AssemblyLoadTests : TestBase
 #if POLYTYPE
         internal void CreateNerdbankMessagePackConnection()
         {
-            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider }));
+            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.GeneratedTypeShapeProvider }));
         }
 #endif
 

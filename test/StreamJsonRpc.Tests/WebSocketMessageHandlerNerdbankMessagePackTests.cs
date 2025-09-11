@@ -3,7 +3,7 @@
 public partial class WebSocketMessageHandlerNerdbankMessagePackTests : WebSocketMessageHandlerTests
 {
     public WebSocketMessageHandlerNerdbankMessagePackTests(ITestOutputHelper logger)
-        : base(new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider }, logger)
+        : base(new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.GeneratedTypeShapeProvider }, logger)
     {
     }
 

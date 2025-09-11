@@ -8,7 +8,7 @@ public partial class DisposableProxyNerdbankMessagePackTests(ITestOutputHelper l
 {
     protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);
 
-    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
 
     [GenerateShapeFor<bool>]
     private partial class Witness;

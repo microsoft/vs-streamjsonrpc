@@ -3,8 +3,6 @@ using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.MessagePack;
 using Nerdbank.Streams;
-using PolyType;
-using PolyType.Abstractions;
 using PolyType.ReflectionProvider;
 
 public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<NerdbankMessagePackFormatter>
@@ -111,8 +109,8 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     public async Task BasicJsonRpc()
     {
         var (clientStream, serverStream) = FullDuplexStream.CreatePair();
-        var clientFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
-        var serverFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
+        var clientFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
+        var serverFormatter = new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
 
         var clientHandler = new LengthHeaderMessageHandler(clientStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), clientFormatter);
         var serverHandler = new LengthHeaderMessageHandler(serverStream.UsePipe(cancellationToken: TestContext.Current.CancellationToken), serverFormatter);
@@ -155,7 +153,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         this.Formatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
         };
 
@@ -178,7 +176,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         this.Formatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
         };
 
@@ -203,7 +201,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         this.Formatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
         };
 
@@ -244,7 +242,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         this.Formatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = this.Formatter.UserDataSerializer with { Converters = [.. this.Formatter.UserDataSerializer.Converters, new CustomConverter()] },
         };
 
@@ -364,7 +362,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         NerdbankMessagePackFormatter formatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
         };
 
         return formatter;
@@ -375,7 +373,7 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     {
         var sequence = new Sequence<byte>();
         var writer = new MessagePackWriter(sequence);
-        AnonymousTypeSerializer.SerializeObject(ref writer, anonymousObject, ReflectionTypeShapeProvider.Default.Resolve(anonymousObject.GetType()));
+        AnonymousTypeSerializer.SerializeObject(ref writer, anonymousObject, ReflectionTypeShapeProvider.Default.GetTypeShapeOrThrow(anonymousObject.GetType()));
         writer.Flush();
         this.Logger.WriteLine(this.Formatter.UserDataSerializer.ConvertToJson(sequence));
         return (T)this.Formatter.Deserialize(sequence);

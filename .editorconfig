@@ -212,8 +212,5 @@ dotnet_diagnostic.CSIsNull001.severity = warning
 # CSIsNull002: Use `is object` for non-null checks
 dotnet_diagnostic.CSIsNull002.severity = warning
 
-# NBMsgPack051: Prefer .NET APIs over netstandard ones.
-dotnet_diagnostic.NBMsgPack051.severity = silent
-
 [*.sln]
 indent_style = tab

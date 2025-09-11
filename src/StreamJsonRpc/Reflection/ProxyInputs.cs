@@ -6,7 +6,7 @@
 using System.Diagnostics;
 using System.Text;
 #if POLYTYPE
-using PolyType.Abstractions;
+using PolyType;
 #endif
 
 namespace StreamJsonRpc.Reflection;
