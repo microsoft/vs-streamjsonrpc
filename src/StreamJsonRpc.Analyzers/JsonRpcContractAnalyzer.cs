@@ -303,7 +303,6 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         // GenerateShapeAttribute is ineffective on open generic types, so ignore it in that case.
         AttributeData? generateShapeAttribute = hasGenericTypeParameters ? null : namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.GenerateShapeAttribute));
         AttributeData? typeShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.TypeShapeAttribute));
-#if POLYTYPE
         if (!this.IncludesPublicMethods(typeShapeAttribute) && !this.IncludesPublicMethods(generateShapeAttribute))
         {
             bool preferGenerateShape = generateShapeAttribute is not null || !isRpcMarshalable;
@@ -315,7 +314,6 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
                 namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
                 preferGenerateShape ? "[GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]" : "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
         }
-#endif
 
         AttributeData[] optionalIfaceAttrs = [.. namedType.GetAttributes().Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableOptionalInterface))];
 

@@ -56,7 +56,6 @@ public partial class AssemblyLoadTests : TestBase
         }
     }
 
-#if POLYTYPE
     [Fact]
     public void NerdbankMessagePackDoesNotLoadNewtonsoftJsonUnnecessarily()
     {
@@ -77,7 +76,6 @@ public partial class AssemblyLoadTests : TestBase
             AppDomain.Unload(testDomain);
         }
     }
-#endif
 
     [Fact]
     public void MockFormatterDoesNotLoadJsonOrMessagePackUnnecessarily()
@@ -158,12 +156,10 @@ public partial class AssemblyLoadTests : TestBase
             var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new MessagePackFormatter()));
         }
 
-#if POLYTYPE
         internal void CreateNerdbankMessagePackConnection()
         {
             var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider }));
         }
-#endif
 
 #pragma warning restore CA1822 // Mark members as static
 

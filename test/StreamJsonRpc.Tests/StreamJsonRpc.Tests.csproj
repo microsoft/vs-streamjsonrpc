@@ -14,13 +14,10 @@
     <NoWarn>$(NoWarn);VSTHRD012</NoWarn>
     <!-- This warning cannot be suppressed via #pragma https://github.com/eiriktsarpalis/PolyType/issues/196#issuecomment-3194972366 -->
     <NoWarn>$(NoWarn);PT0021</NoWarn>
-    <!-- Our PolyType polyfills produce a bunch of these warnings. -->
-    <NoWarn Condition="'$(SupportPolyType)' != 'true'" >$(NoWarn);CS0436</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\..\src\StreamJsonRpc\DisposableAction.cs" Link="DisposableAction.cs" />
-    <Compile Include="..\..\src\StreamJsonRpc\PolyTypePolyfill.cs" Link="PolyTypePolyfill.cs" />
     <Compile Include="..\..\src\StreamJsonRpc\SharedUtilities.cs" Link="SharedUtilities.cs" />
     <Compile Update="DisposableProxyJsonTests.cs" DependentUpon="DisposableProxyTests.cs" />
     <Compile Update="DisposableProxyMessagePackTests.cs" DependentUpon="DisposableProxyTests.cs" />
@@ -62,7 +59,6 @@
     <Compile Update="JsonRpcRemoteTargetJsonMessageFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
     <Compile Update="JsonRpcRemoteTargetSystemTextJsonFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
     <Compile Update="JsonRpcRemoteTargetMessagePackFormatterTests.cs" DependentUpon="JsonRpcRemoteTargetTests.cs" />
-    <Compile Remove="*NerdbankMessagePack*.cs" Condition="'$(SupportPolyType)' != 'true'" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StreamJsonRpc.Tests.ExternalAssembly\StreamJsonRpc.Tests.ExternalAssembly.csproj" />

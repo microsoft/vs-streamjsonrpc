@@ -915,7 +915,6 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         await proxy.DoSomethingAsync().WithCancellation(this.TimeoutToken);
     }
 
-#if POLYTYPE
     [Fact]
     public async Task ShapeRenamedMethod()
     {
@@ -927,7 +926,6 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var proxy = this.clientJsonRpc.Attach<IRpcWithAsyncSuffixedMethod>(this.DefaultProxyOptions);
         await proxy.DoShapeThingAsync().WithCancellation(this.TimeoutToken);
     }
-#endif
 
     /// <summary>
     /// Validates that similar proxies are generated in the same dynamic assembly.

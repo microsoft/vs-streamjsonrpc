@@ -2,15 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-#if POLYTYPE
 using Nerdbank.MessagePack;
-#endif
 
 namespace StreamJsonRpc.Protocol;
 
-#if POLYTYPE
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.TraceParentConverter))]
-#endif
 internal unsafe struct TraceParent
 {
     internal const int VersionByteCount = 1;

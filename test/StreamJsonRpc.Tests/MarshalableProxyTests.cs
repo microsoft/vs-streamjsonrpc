@@ -7,9 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using MessagePack;
 using Microsoft.VisualStudio.Threading;
-#if POLYTYPE
 using Nerdbank.MessagePack;
-#endif
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 
@@ -46,12 +44,9 @@ public abstract partial class MarshalableProxyTests : TestBase
     [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
-#if POLYTYPE
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
-#endif
     public partial interface IMarshalableAndSerializable : IMarshalable
     {
-#if POLYTYPE
         internal class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
         {
             public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
@@ -64,7 +59,6 @@ public abstract partial class MarshalableProxyTests : TestBase
                 throw new NotImplementedException();
             }
         }
-#endif
 
         private class MarshalableConverter : JsonConverter
         {
@@ -370,9 +364,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     [Fact]
     public async Task MarshalableInterfaceCannotHaveEvents()
     {
-#if POLYTYPE
         Assert.SkipWhen(this is MarshalableProxyNerdbankMessagePackTests, "Events are not yet detectable by PolyType."); // remove when https://github.com/eiriktsarpalis/PolyType/issues/226 is fixed.
-#endif
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptMarshalableWithEventsAsync(new MarshalableWithEvents()));
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
@@ -1061,9 +1053,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     private void AssertIsNot(object obj, Type type)
     {
         Assert.False(((IJsonRpcClientProxy)obj).Is(type), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
-#if POLYTYPE
         if (this is not MarshalableProxyNerdbankMessagePackTests)
-#endif
         {
             Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
         }
