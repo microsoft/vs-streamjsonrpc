@@ -12,6 +12,5 @@ The other is designated as optional and thus needs the attribute.
 ## Resolution
 
 Add <xref:StreamJsonRpc.RpcMarshalableAttribute> to the optional interface, taking care to set <xref:StreamJsonRpc.RpcMarshalableAttribute.IsOptional> to true.
-We also add <xref:PolyType.TypeShapeAttribute> as required by [StreamJsonRpc0008](StreamJsonRpc0008.md).
 
 [!code-csharp[](../../samples/Analyzers/StreamJsonRpc0007.cs#Fix)]
