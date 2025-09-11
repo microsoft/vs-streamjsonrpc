@@ -4,7 +4,9 @@
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
+#if POLYTYPE
 using Nerdbank.MessagePack;
+#endif
 using PolyType;
 using StreamJsonRpc.Reflection;
 using STJ = System.Text.Json.Serialization;
@@ -16,7 +18,9 @@ namespace StreamJsonRpc.Protocol;
 /// </summary>
 [DataContract]
 [GenerateShape]
+#if POLYTYPE
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcErrorConverter))]
+#endif
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
 public partial class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
 {
@@ -74,7 +78,9 @@ public partial class JsonRpcError : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataContract]
     [GenerateShape]
+#if POLYTYPE
     [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcErrorDetailConverter))]
+#endif
     public partial class ErrorDetail
     {
         /// <summary>

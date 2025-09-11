@@ -3,7 +3,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+#if POLYTYPE
 using Nerdbank.MessagePack;
+#endif
 using PolyType;
 using STJ = System.Text.Json.Serialization;
 
@@ -16,7 +18,9 @@ namespace StreamJsonRpc.Protocol;
 [KnownType(typeof(JsonRpcRequest))]
 [KnownType(typeof(JsonRpcResult))]
 [KnownType(typeof(JsonRpcError))]
+#if POLYTYPE
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcMessageConverter))]
+#endif
 [GenerateShape]
 public abstract partial class JsonRpcMessage
 {

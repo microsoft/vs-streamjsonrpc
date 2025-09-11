@@ -19,6 +19,7 @@
 					"**/*.{md,yml}"
 				],
 				"exclude": [
+					"analyzers/StreamJsonRpc0008.md",
 					"_site/**"
 				]
 			}

@@ -113,7 +113,20 @@ public class ProxyGeneratorTests
             {
                 [JsonRpcMethod("AddRenamed")]
                 Task AddAsync(int a, int b, CancellationToken cancellationToken);
+            }
+            """);
+    }
 
+#if POLYTYPE
+    [Fact]
+    public async Task MethodNamesCustomizedByAttribute_PolyType()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            using PolyType;
+
+            [JsonRpcContract]
+            public partial interface IMyRpc
+            {
                 [MethodShape(Name = "IntegrateRenamed")]
                 Task IntegrateAsync(double from, double to, CancellationToken cancellationToken);
 
@@ -122,6 +135,7 @@ public class ProxyGeneratorTests
             }
             """);
     }
+#endif
 
     [Fact]
     public async Task NamesRequiredNamespaceQualifier()

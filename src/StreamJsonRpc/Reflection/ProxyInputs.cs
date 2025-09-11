@@ -5,7 +5,9 @@
 
 using System.Diagnostics;
 using System.Text;
+#if POLYTYPE
 using PolyType.Abstractions;
+#endif
 
 namespace StreamJsonRpc.Reflection;
 
@@ -27,7 +29,9 @@ public readonly struct ProxyInputs
         this.Options = copyFrom.Options;
         this.ImplementedOptionalInterfaces = copyFrom.ImplementedOptionalInterfaces;
         this.MarshaledObjectHandle = copyFrom.MarshaledObjectHandle;
+#if POLYTYPE
         this.ContractInterfaceShape = copyFrom.ContractInterfaceShape;
+#endif
     }
 
     /// <summary>
@@ -59,10 +63,12 @@ public readonly struct ProxyInputs
     /// </summary>
     internal long? MarshaledObjectHandle { get; init; }
 
+#if POLYTYPE
     /// <summary>
     /// Gets the shape of the contract interface, if available.
     /// </summary>
     internal ITypeShape? ContractInterfaceShape { get; init; }
+#endif
 
     /// <summary>
     /// Gets a description of the requirements on the proxy to be used.

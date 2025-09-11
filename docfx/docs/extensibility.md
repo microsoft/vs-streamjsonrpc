@@ -76,17 +76,6 @@ Interop with other parties is most likely with a UTF-8 text encoding of JSON-RPC
 
 StreamJsonRpc includes the following <xref:StreamJsonRpc.IJsonRpcMessageFormatter> implementations:
 
-1. <xref:StreamJsonRpc.NerdbankMessagePackFormatter> - Uses the [`Nerdbank.MessagePack` library][NBMsgPack] to serialize
-    each message using the very fast and compact binary [MessagePack format][MessagePackFormat].
-    This formatter is NativeAOT ready.
-    Any RPC method parameters and return types that require custom serialization may provide it
-    with a `MessagePackConverter<T>`-derived class.
-    All custom converters can be added to the serializer at <xref:StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer>.
-    All RPC method parameter or return types must have type shapes generated for them via [a witness class](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html).
-
-    This formatter is not fully wire format compatible with <xref:StreamJsonRpc.MessagePackFormatter>,
-    so matching formatters on both sides of an RPC connection is recommended.
-
 1. <xref:StreamJsonRpc.JsonMessageFormatter> - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
     The text encoding is configurable via a property.
     All RPC method parameters and return types must be serializable by Newtonsoft.Json.
@@ -110,18 +99,6 @@ We have helper classes to make this straightforward.
 Refer to the source code from our built-in formatters to see how to use these helper classes.
 
 ### Choosing your formatter
-
-#### When to use <xref:StreamJsonRpc.NerdbankMessagePackFormatter>
-
-The very best performance comes from using the <xref:StreamJsonRpc.NerdbankMessagePackFormatter> with the <xref:StreamJsonRpc.LengthHeaderMessageHandler>.
-This combination is the fastest and produces the most compact serialized format.
-
-The [MessagePack format][MessagePackFormat] is a fast, binary serialization format that resembles the
-structure of JSON. It can be used as a substitute for JSON when both parties agree on the protocol for
-significant wins in terms of performance and payload size.
-
-The <xref:StreamJsonRpc.MessagePackFormatter> is an older formatter that is not NativeAOT ready.
-Using it is only advisable for purposes of maintaining serialized format compatibility, since the serialized schema between the two MessagePack formatters varies slightly.
 
 #### When to use <xref:StreamJsonRpc.SystemTextJsonFormatter>
 

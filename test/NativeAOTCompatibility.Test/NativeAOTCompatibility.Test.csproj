@@ -9,6 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="**\*NerdbankMessagePack*.cs" Condition="'$(SupportPolyType)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\StreamJsonRpc\PolyTypePolyfill.cs" Link="PolyTypePolyfill.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
 
@@ -18,5 +26,5 @@
     <!--<TrimmerRootAssembly Include="StreamJsonRpc" />-->
   </ItemGroup>
 
-  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
 </Project>

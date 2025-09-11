@@ -560,8 +560,6 @@ The example above would instead be formatted as:
 [[4,5,6], false]
 ```
 
-The <xref:StreamJsonRpc.NerdbankMessagePackFormatter> does *not* share this spec bug, and thus cannot interoperate with a <xref:StreamJsonRpc.MessagePackFormatter> across the wire.
-
 ### Consumer disposes enumerator
 
 When the consumer aborts enumeration before the generator has sent `finished: true`,

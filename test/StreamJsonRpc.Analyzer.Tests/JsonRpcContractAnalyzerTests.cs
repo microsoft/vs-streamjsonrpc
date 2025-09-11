@@ -6,6 +6,12 @@ using VerifyCS = CodeFixVerifier<StreamJsonRpc.Analyzers.JsonRpcContractAnalyzer
 
 public class JsonRpcContractAnalyzerTests
 {
+#if POLYTYPE
+    private const string MethodShapes = ", TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)";
+#else
+    private const string MethodShapes = "";
+#endif
+
     public JsonRpcContractAnalyzerTests()
     {
         JsonRpcContractCodeFixProvider.NormalizeLineEndings = true;
@@ -14,14 +20,15 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task OpenGenericRpcMarshalableNeedNotBePartial()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             public interface IMyRpcMarshalable<T> : IDisposable
             {
             }
             """);
     }
 
+#if POLYTYPE
     [Fact]
     public async Task OpenGenericRpcMarshalableShouldHaveTypeShapeMethods()
     {
@@ -76,12 +83,13 @@ public class JsonRpcContractAnalyzerTests
             """;
         await VerifyCS.VerifyCodeFixAsync(source, fixedSource);
     }
+#endif
 
     [Fact]
     public async Task MethodReturnTypes()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             public partial interface IMyRpc
             {
                 Task<int> TaskOfTAsync();
@@ -97,10 +105,10 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task InaccessibleInterface_Private()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
+        await VerifyCS.VerifyAnalyzerAsync($$"""
             internal partial class Wrapper
             {
-                [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+                [JsonRpcContract{{MethodShapes}}]
                 private partial interface {|StreamJsonRpc0001:IMyRpc|}
                 {
                 }
@@ -111,10 +119,10 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task InaccessibleInterface_Protected()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
+        await VerifyCS.VerifyAnalyzerAsync($$"""
             public partial class Wrapper
             {
-                [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+                [JsonRpcContract{{MethodShapes}}]
                 protected partial interface {|StreamJsonRpc0001:IMyRpc|}
                 {
                 }
@@ -125,10 +133,10 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task InternalInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
+        await VerifyCS.VerifyAnalyzerAsync($$"""
             internal partial class Wrapper
             {
-                [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+                [JsonRpcContract{{MethodShapes}}]
                 internal partial interface IMyRpc
                 {
                 }
@@ -139,10 +147,10 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task NonPartialInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
+        await VerifyCS.VerifyAnalyzerAsync($$"""
             internal class Wrapper
             {
-                [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+                [JsonRpcContract{{MethodShapes}}]
                 internal interface {|StreamJsonRpc0002:IMyRpc|}
                 {
                 }
@@ -153,8 +161,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task DisallowedMembers()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface IMyRpc
             {
                 event EventHandler Changed;
@@ -172,8 +180,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task StaticMembersIgnored()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface IMyRpc
             {
                 static int StaticMethodsAreIgnored() => 3;
@@ -185,8 +193,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task DisallowedMembers_InBaseInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase|}|}|}
             {
             }
@@ -207,8 +215,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task DisallowedMembers_InBaseInterfaceTwoStepsAway()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface IMyRpc : {|StreamJsonRpc0013:{|StreamJsonRpc0012:{|StreamJsonRpc0016:IBase2|}|}|}
                         {
             }
@@ -231,8 +239,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task CancellationTokenPositions()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface IMyRpc
             {
                 Task AddAsync(int a, int b, CancellationToken token);
@@ -245,8 +253,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task GenericInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [JsonRpcContract{{MethodShapes}}]
             partial interface {|StreamJsonRpc0015:IMyRpc|}<T>
             {
             }
@@ -259,8 +267,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_GenericInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             partial interface IMyRpc<T> : IDisposable
             {
             }
@@ -270,8 +278,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             partial interface IMyRpc : IDisposable
             {
                 Task SayHiAsync();
@@ -283,8 +291,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_DisallowedMembers()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             partial interface IMyRpc : IDisposable
             {
                 event EventHandler {|StreamJsonRpc0012:Changed|};
@@ -301,8 +309,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_WithOptionalInterfaceAndNoAttribute()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))|}]
             partial interface IMyRpc : IDisposable
             {
@@ -317,20 +325,20 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_WithOptionalInterfaceWithoutIsOptionalTrue()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))|}]
             [{|StreamJsonRpc0007:RpcMarshalableOptionalInterface(2, typeof(IMarshalableSubType2))|}]
             partial interface IMyRpc : IDisposable
             {
             }
 
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [RpcMarshalable{{MethodShapes}}]
             partial interface IMarshalableSubType1 : IDisposable
             {
             }
 
-            [RpcMarshalable(IsOptional = false), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [RpcMarshalable(IsOptional = false){{MethodShapes}}]
             partial interface IMarshalableSubType2 : IDisposable
             {
             }
@@ -340,14 +348,14 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_WithOptionalInterface()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable{{MethodShapes}}]
             [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType1))]
             partial interface IMyRpc : IDisposable
             {
             }
 
-            [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [RpcMarshalable(IsOptional = true){{MethodShapes}}]
             partial interface IMarshalableSubType1 : IDisposable
             {
             }
@@ -357,8 +365,8 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_CallScopedNeedNotBeIDisposable()
     {
-        await VerifyCS.VerifyAnalyzerAsync("""
-            [RpcMarshalable(CallScopedLifetime = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+        await VerifyCS.VerifyAnalyzerAsync($$"""
+            [RpcMarshalable(CallScopedLifetime = true){{MethodShapes}}]
             partial interface IMyRpc
             {
             }
@@ -368,19 +376,19 @@ public class JsonRpcContractAnalyzerTests
     [Fact]
     public async Task RpcMarshalable_MustDeriveFromIDisposable()
     {
-        string source = """
+        string source = $$"""
             using PolyType;
 
-            [StreamJsonRpc.RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [StreamJsonRpc.RpcMarshalable{{MethodShapes}}]
             partial interface {|StreamJsonRpc0005:IMyRpc|}
             {
             }
             """;
-        string fixedSource = """
+        string fixedSource = $$"""
             using System;
             using PolyType;
 
-            [StreamJsonRpc.RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            [StreamJsonRpc.RpcMarshalable{{MethodShapes}}]
             partial interface IMyRpc: IDisposable
             {
             }
@@ -388,6 +396,7 @@ public class JsonRpcContractAnalyzerTests
         await VerifyCS.VerifyCodeFixAsync(source, fixedSource);
     }
 
+#if POLYTYPE
     [Fact]
     public async Task RpcInterfacesNeedMethodsIncludedInShape_Fixable()
     {
@@ -452,4 +461,5 @@ public class JsonRpcContractAnalyzerTests
             """;
         await VerifyCS.VerifyAnalyzerAsync(source);
     }
+#endif
 }
