@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
-using PolyType.Abstractions;
+using PolyType;
 using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
@@ -30,7 +30,7 @@ public partial class NerdbankMessagePackFormatter
 
 #pragma warning disable NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods - We need to switch from user data to envelope serializer
             MessageFormatterRpcMarshaledContextTracker.MarshalToken? token = formatter
-                .envelopeSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, Witness.ShapeProvider, context.CancellationToken);
+                .envelopeSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken?>(ref reader, Witness.GeneratedTypeShapeProvider, context.CancellationToken);
 #pragma warning restore NBMsgPack030 // Converters should not call top-level `MessagePackSerializer` methods
 
             return token.HasValue
@@ -53,7 +53,7 @@ public partial class NerdbankMessagePackFormatter
             {
                 RpcTargetMetadata targetMetadata = RpcTargetMetadata.FromShape(shape);
                 MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, targetMetadata, rpcMarshalableAttribute);
-                context.GetConverter<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(Witness.ShapeProvider).Write(ref writer, token, context);
+                context.GetConverter<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(Witness.GeneratedTypeShapeProvider).Write(ref writer, token, context);
             }
         }
 

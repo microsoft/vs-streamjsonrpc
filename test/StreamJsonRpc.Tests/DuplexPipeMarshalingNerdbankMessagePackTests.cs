@@ -15,13 +15,13 @@ public partial class DuplexPipeMarshalingNerdbankMessagePackTests : DuplexPipeMa
         NerdbankMessagePackFormatter serverFormatter = new()
         {
             MultiplexingStream = this.serverMx,
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
         };
 
         NerdbankMessagePackFormatter clientFormatter = new()
         {
             MultiplexingStream = this.clientMx,
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
         };
 
         this.serverMessageFormatter = serverFormatter;

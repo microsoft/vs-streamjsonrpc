@@ -5,7 +5,7 @@ using PolyType;
 
 public partial class ObserverMarshalingNerdbankMessagePackTests(ITestOutputHelper logger) : ObserverMarshalingTests(logger)
 {
-    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.ShapeProvider };
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
 
     [GenerateShapeFor<bool>]
     private partial class Witness;
