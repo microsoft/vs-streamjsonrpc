@@ -67,6 +67,9 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
                 ExceptionConverter<Exception>.Instance,
             ],
+        DerivedTypeUnions = [
+            DerivedTypeUnion.CreateDisabled(typeof(JsonRpcMessage)),
+        ],
     }.WithObjectConverter();
 
     private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new JsonRpcProxyOptions(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true, IsFrozen = true };
