@@ -292,7 +292,7 @@ public class RpcTargetMetadata
     /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
     public static RpcTargetMetadata FromShape<T>()
-        where T : IShapeable<T> => FromShape(T.GetShape());
+        where T : IShapeable<T> => FromShape(T.GetTypeShape());
 
     /// <summary>
     /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.
@@ -301,14 +301,14 @@ public class RpcTargetMetadata
     /// <typeparam name="TProvider">The provider of type shapes from which to obtain the shape.</typeparam>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
     public static RpcTargetMetadata FromShape<T, TProvider>()
-        where TProvider : IShapeable<T> => FromShape(TProvider.GetShape());
+        where TProvider : IShapeable<T> => FromShape(TProvider.GetTypeShape());
 #endif
 
     /// <inheritdoc cref="FromShape(ITypeShape)" path="/summary"/>
     /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
     /// <param name="provider">The provider of type shapes from which to obtain the shape.</param>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
-    public static RpcTargetMetadata FromShape<T>(ITypeShapeProvider provider) => FromShape(provider.Resolve<T>());
+    public static RpcTargetMetadata FromShape<T>(ITypeShapeProvider provider) => FromShape(provider.GetTypeShapeOrThrow<T>());
 
     /// <summary>
     /// Creates an <see cref="RpcTargetMetadata"/> instance from the specified shape.

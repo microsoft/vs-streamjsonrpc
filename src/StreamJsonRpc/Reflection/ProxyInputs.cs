@@ -5,7 +5,7 @@
 
 using System.Diagnostics;
 using System.Text;
-using PolyType.Abstractions;
+using PolyType;
 
 namespace StreamJsonRpc.Reflection;
 

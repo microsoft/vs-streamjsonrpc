@@ -5,6 +5,7 @@ trigger:
     - main
     - 'v?.*'
     - 'validate/*'
+    - feature/polytype
   paths:
     exclude:
     - .github/

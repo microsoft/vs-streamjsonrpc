@@ -56,7 +56,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         ConverterFactories = [ConverterFactory.Instance],
         Converters =
             [
-                GetRpcMarshalableConverter(Witness.ShapeProvider.Resolve<IDisposable>()),
+                GetRpcMarshalableConverter(Witness.GeneratedTypeShapeProvider.GetTypeShapeOrThrow<IDisposable>()),
                 PipeConverters.PipeReaderConverter.DefaultInstance,
                 PipeConverters.PipeWriterConverter.DefaultInstance,
                 PipeConverters.DuplexPipeConverter.DefaultInstance,
@@ -67,6 +67,9 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
                 ExceptionConverter<Exception>.Instance,
             ],
+        DerivedTypeUnions = [
+            DerivedTypeUnion.CreateDisabled(typeof(JsonRpcMessage)),
+        ],
     }.WithObjectConverter();
 
     private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new JsonRpcProxyOptions(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true, IsFrozen = true };
@@ -149,7 +152,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
     {
-        JsonRpcMessage message = this.envelopeSerializer.Deserialize<JsonRpcMessage>(contentBuffer, Witness.ShapeProvider)
+        JsonRpcMessage message = this.envelopeSerializer.Deserialize<JsonRpcMessage>(contentBuffer, Witness.GeneratedTypeShapeProvider)
             ?? throw new MessagePackSerializationException("Failed to deserialize JSON-RPC message.");
 
         IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
@@ -172,7 +175,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         var writer = new MessagePackWriter(bufferWriter);
         try
         {
-            this.envelopeSerializer.Serialize(ref writer, message, Witness.ShapeProvider);
+            this.envelopeSerializer.Serialize(ref writer, message, Witness.GeneratedTypeShapeProvider);
             writer.Flush();
         }
         catch (Exception ex)
@@ -250,7 +253,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     private static void ReadUnknownProperty(ref MessagePackReader reader, in SerializationContext context, ref Dictionary<string, RawMessagePack>? topLevelProperties)
     {
         topLevelProperties ??= new Dictionary<string, RawMessagePack>(StringComparer.Ordinal);
-        string name = context.GetConverter<string>(Witness.ShapeProvider).Read(ref reader, context) ?? throw new MessagePackSerializationException("Unexpected nil at property name position.");
+        string name = context.GetConverter<string>(Witness.GeneratedTypeShapeProvider).Read(ref reader, context) ?? throw new MessagePackSerializationException("Unexpected nil at property name position.");
         topLevelProperties.Add(name, reader.ReadRaw(context));
     }
 
@@ -298,7 +301,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
         // We prefer to get the shape from the user shape provider, but will fallback to our own for built-in types.
         // But if that fails too, try again with Resolve on the user shape provider so that it throws an exception explaining that the user needs to provide it.
-        return this.TypeShapeProvider.GetShape(type) ?? Witness.ShapeProvider.GetShape(type) ?? this.TypeShapeProvider.Resolve(type);
+        return this.TypeShapeProvider.GetTypeShape(type) ?? Witness.GeneratedTypeShapeProvider.GetTypeShape(type) ?? this.TypeShapeProvider.GetTypeShapeOrThrow(type);
     }
 
     private void WriteUserData(ref MessagePackWriter writer, object? value, Type? valueType, SerializationContext context)
@@ -439,7 +442,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 }
                 else if (MethodPropertyName.TryRead(ref reader))
                 {
-                    result.Method = context.GetConverter<string>(Witness.ShapeProvider).Read(ref reader, context);
+                    result.Method = context.GetConverter<string>(Witness.GeneratedTypeShapeProvider).Read(ref reader, context);
                 }
                 else if (ParamsPropertyName.TryRead(ref reader))
                 {
@@ -463,7 +466,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                             for (int i = 0; i < namedArgsCount; i++)
                             {
                                 // Use a string converter so that strings can be interned.
-                                string propertyName = context.GetConverter<string>(Witness.ShapeProvider).Read(ref reader, context) ?? throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
+                                string propertyName = context.GetConverter<string>(Witness.GeneratedTypeShapeProvider).Read(ref reader, context) ?? throw new MessagePackSerializationException(Resources.UnexpectedNullValueInMap);
                                 namedArgs.Add(propertyName, reader.ReadRaw(context));
                             }
 
@@ -538,7 +541,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             if (!value.RequestId.IsEmpty)
             {
                 writer.Write(IdPropertyName);
-                context.GetConverter<RequestId>(Witness.ShapeProvider).Write(ref writer, value.RequestId, context);
+                context.GetConverter<RequestId>(Witness.GeneratedTypeShapeProvider).Write(ref writer, value.RequestId, context);
             }
 
             writer.Write(MethodPropertyName);
@@ -588,7 +591,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             if (value.TraceParent?.Length > 0)
             {
                 writer.Write(TraceParentPropertyName);
-                context.GetConverter<TraceParent>(Witness.ShapeProvider).Write(ref writer, new TraceParent(value.TraceParent), context);
+                context.GetConverter<TraceParent>(Witness.GeneratedTypeShapeProvider).Write(ref writer, new TraceParent(value.TraceParent), context);
 
                 if (value.TraceState?.Length > 0)
                 {
@@ -664,7 +667,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
                 // We assume the key is a frequent string, and the value is unique,
                 // so we optimize whether to use string interning or not on that basis.
-                resultBuilder.Append(context.GetConverter<string>(Witness.ShapeProvider).Read(ref reader, context));
+                resultBuilder.Append(context.GetConverter<string>(Witness.GeneratedTypeShapeProvider).Read(ref reader, context));
                 resultBuilder.Append('=');
                 resultBuilder.Append(reader.ReadString());
             }
@@ -943,7 +946,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 // We generally leave error data for the user to provide the shape for.
                 // But for CommonErrorData, we can take responsibility for that.
                 // We also take responsibility for Exception serialization (for now).
-                ITypeShapeProvider provider = value.Data is CommonErrorData or Exception ? Witness.ShapeProvider : formatter.TypeShapeProvider;
+                ITypeShapeProvider provider = value.Data is CommonErrorData or Exception ? Witness.GeneratedTypeShapeProvider : formatter.TypeShapeProvider;
                 Type declaredType = value.Data is Exception ? typeof(Exception) : value.Data.GetType();
                 context.GetConverter(declaredType, provider).WriteObject(ref writer, value.Data, context);
             }
@@ -1014,7 +1017,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> entry in this.OutboundProperties)
                 {
                     writer.Write(entry.Key);
-                    this.formatter.userDataSerializer.SerializeObject(ref writer, entry.Value.Value, this.formatter.TypeShapeProvider.Resolve(entry.Value.DeclaredType));
+                    this.formatter.userDataSerializer.SerializeObject(ref writer, entry.Value.Value, this.formatter.TypeShapeProvider.GetTypeShapeOrThrow(entry.Value.DeclaredType));
                 }
             }
         }
@@ -1079,7 +1082,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                         {
                             typedArguments[0] = this.formatter.userDataSerializer.DeserializeObject(
                                 ref reader,
-                                this.formatter.TypeShapeProvider.Resolve(parameters[0].ParameterType));
+                                this.formatter.TypeShapeProvider.GetTypeShapeOrThrow(parameters[0].ParameterType));
 
                             return ArgumentMatchResult.Success;
                         }
@@ -1240,8 +1243,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 try
                 {
                     return
-                        (dataType == typeof(Exception) || dataType == typeof(CommonErrorData)) ? formatter.envelopeSerializer.DeserializeObject(ref reader, Witness.ShapeProvider.Resolve(dataType)) :
-                        formatter.userDataSerializer.DeserializeObject(ref reader, formatter.TypeShapeProvider.Resolve(dataType));
+                        (dataType == typeof(Exception) || dataType == typeof(CommonErrorData)) ? formatter.envelopeSerializer.DeserializeObject(ref reader, Witness.GeneratedTypeShapeProvider.GetTypeShapeOrThrow(dataType)) :
+                        formatter.userDataSerializer.DeserializeObject(ref reader, formatter.TypeShapeProvider.GetTypeShapeOrThrow(dataType));
                 }
                 catch (MessagePackSerializationException)
                 {

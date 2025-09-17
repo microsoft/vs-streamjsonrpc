@@ -51,7 +51,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "method", Order = 2, IsRequired = true)]
     [STJ.JsonPropertyName("method"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
-    [PropertyShape(Name = "method", Order = 2)]
+    [PropertyShape(Name = "method", Order = 2, IsRequired = true)]
     public string? Method { get; set; }
 
     /// <summary>

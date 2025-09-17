@@ -569,11 +569,9 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     internal partial struct MarshalToken
     {
         [MessagePack.SerializationConstructor]
-#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
-        public MarshalToken(int __jsonrpc_marshaled, long handle, string? lifetime = null, int[]? optionalInterfaces = null)
-#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+        public MarshalToken(int marshaled, long handle, string? lifetime = null, int[]? optionalInterfaces = null)
         {
-            this.Marshaled = __jsonrpc_marshaled;
+            this.Marshaled = marshaled;
             this.Handle = handle;
             this.Lifetime = lifetime;
             this.OptionalInterfacesCodes = optionalInterfaces;
@@ -581,12 +579,12 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
         [DataMember(Name = "__jsonrpc_marshaled", IsRequired = true)]
         [STJ.JsonPropertyName("__jsonrpc_marshaled"), STJ.JsonRequired]
-        [PropertyShape(Name = "__jsonrpc_marshaled")]
+        [PropertyShape(Name = "__jsonrpc_marshaled", IsRequired = true)]
         public int Marshaled { get; set; }
 
         [DataMember(Name = "handle", IsRequired = true)]
         [STJ.JsonPropertyName("handle"), STJ.JsonRequired]
-        [PropertyShape(Name = "handle")]
+        [PropertyShape(Name = "handle", IsRequired = true)]
         public long Handle { get; set; }
 
         [DataMember(Name = "lifetime", EmitDefaultValue = false)]

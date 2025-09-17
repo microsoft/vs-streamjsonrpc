@@ -158,7 +158,7 @@ public partial class AssemblyLoadTests : TestBase
 
         internal void CreateNerdbankMessagePackConnection()
         {
-            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider }));
+            var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.GeneratedTypeShapeProvider }));
         }
 
 #pragma warning restore CA1822 // Mark members as static

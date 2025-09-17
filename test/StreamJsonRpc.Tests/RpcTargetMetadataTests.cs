@@ -45,7 +45,7 @@ public partial class RpcTargetMetadataTests
     [Fact]
     public void FromShape()
     {
-        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.ShapeProvider);
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.GeneratedTypeShapeProvider);
 
         var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
         var add = Assert.Single(metadata.AliasedMethods["Add"]);

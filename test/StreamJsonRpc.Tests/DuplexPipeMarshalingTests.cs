@@ -8,7 +8,6 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using PolyType;
 using STJ = System.Text.Json.Serialization;
 
 public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifetime
@@ -1095,7 +1094,6 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         }
 
         [STJ.JsonPropertyName("innerStream")]
-        [PropertyShape(Name = "innerStream")]
         public Stream InnerStream => this.innerStream;
     }
 }
