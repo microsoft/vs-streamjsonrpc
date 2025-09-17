@@ -13,9 +13,7 @@ using PolyType;
 using StreamJsonRpc.Protocol;
 using STJ = System.Text.Json.Serialization;
 
-#if POLYTYPE
 [assembly: TypeShapeExtension(typeof(IAsyncEnumerable<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterEnumerableTracker.EnumeratorResults<>)])]
-#endif
 
 namespace StreamJsonRpc.Reflection;
 

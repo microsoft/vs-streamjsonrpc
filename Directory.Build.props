@@ -15,10 +15,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 
-    <SupportPolyType Condition="'$(SupportPolyType)' == ''">false</SupportPolyType>
-    <DefineConstants Condition="'$(SupportPolyType)' == 'true'">$(DefineConstants);POLYTYPE</DefineConstants>
-    <NoWarn Condition="'$(SupportPolyType)' == 'true'">$(NoWarn);RS0016</NoWarn>
-
     <!-- https://github.com/dotnet/msbuild/blob/main/documentation/ProjectReference-Protocol.md#setplatform-negotiation -->
     <EnableDynamicPlatformResolution>true</EnableDynamicPlatformResolution>
 

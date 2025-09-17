@@ -41,9 +41,7 @@ public partial class ShortLivedConnectionBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
-#if POLYTYPE
                 "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
-#endif
                 _ => throw Assumes.NotReachable(),
             };
         }

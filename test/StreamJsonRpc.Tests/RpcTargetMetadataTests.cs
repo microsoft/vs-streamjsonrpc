@@ -42,7 +42,6 @@ public partial class RpcTargetMetadataTests
         Task<int> MultiplyAsync(int a, int b);
     }
 
-#if POLYTYPE
     [Fact]
     public void FromShape()
     {
@@ -62,7 +61,6 @@ public partial class RpcTargetMetadataTests
         Assert.Equal(3, metadata.Methods.Count);
         Assert.Single(metadata.AliasedMethods);
     }
-#endif
 
     [Fact]
     public void FromInterface_ReturnsInheritedMembers()

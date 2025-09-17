@@ -6,13 +6,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
-#if POLYTYPE
 using PolyType;
-#endif
 
-#if POLYTYPE
 [assembly: TypeShapeExtension(typeof(IProgress<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<>)], Requirements = TypeShapeRequirements.Constructor)]
-#endif
 
 namespace StreamJsonRpc.Reflection;
 

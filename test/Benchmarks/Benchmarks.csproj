@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\StreamJsonRpc\PolyTypePolyfill.cs" Link="PolyTypePolyfill.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" />
   </ItemGroup>

@@ -10,9 +10,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using PolyType;
-#if POLYTYPE
 using PolyType.Abstractions;
-#endif
 using static System.FormattableString;
 using STJ = System.Text.Json.Serialization;
 
@@ -98,7 +96,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         MarshallingRealObject = 1,
     }
 
-#if POLYTYPE
     internal static bool TryGetMarshalOptionsForType<T>(
         ITypeShape<T> typeShape,
         JsonRpcProxyOptions defaultProxyOptions,
@@ -128,7 +125,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
         return false;
     }
-#endif
 
     internal static bool TryGetMarshalOptionsForType(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
@@ -309,7 +305,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime, optionalInterfacesCodes?.ToArray());
     }
 
-#if POLYTYPE
     /// <summary>
     /// Creates a proxy for a remote object.
     /// </summary>
@@ -318,21 +313,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// <param name="options">The options to feed into proxy generation.</param>
     /// <param name="typeShape">The shape of the interface for which a proxy must be produced, if available.</param>
     /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
-#else
-    /// <summary>
-    /// Creates a proxy for a remote object.
-    /// </summary>
-    /// <param name="interfaceType">The interface the proxy must implement.</param>
-    /// <param name="token">The token received from the remote party that includes the handle to the remote object.</param>
-    /// <param name="options">The options to feed into proxy generation.</param>
-    /// <returns>The generated proxy, or <see langword="null"/> if <paramref name="token"/> is null.</returns>
-#endif
     [return: NotNullIfNotNull("token")]
-#if POLYTYPE
     internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options, ITypeShape? typeShape = null)
-#else
-    internal object? GetObject(Type interfaceType, MarshalToken? token, JsonRpcProxyOptions options)
-#endif
     {
         if (token is null)
         {
@@ -399,9 +381,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
                     },
                 },
                 MarshaledObjectHandle = token.Value.Handle,
-#if POLYTYPE
                 ContractInterfaceShape = typeShape,
-#endif
             });
         if (options.OnProxyConstructed is object)
         {
@@ -512,7 +492,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         }
     }
 
-#if POLYTYPE
     /// <summary>
     /// Throws <see cref="NotSupportedException"/> if <paramref name="typeShape"/> is not a valid marshalable interface.
     /// This method doesn't validate that <paramref name="typeShape"/> has the <see cref="RpcMarshalableAttribute"/>
@@ -543,7 +522,6 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasProperties, typeShape.Type.FullName));
         }
     }
-#endif
 
     /// <summary>
     /// Releases memory associated with marshaled objects.
