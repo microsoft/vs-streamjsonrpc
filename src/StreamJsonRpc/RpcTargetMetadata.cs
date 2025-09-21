@@ -321,6 +321,7 @@ public class RpcTargetMetadata
 
         Builder builder = new(shape);
         AddMethods(builder, shape.Methods);
+        AddEvents(builder, shape.Events);
 
         return builder.ToImmutable();
     }
@@ -386,6 +387,25 @@ public class RpcTargetMetadata
         }
     }
 
+    private static void AddEvents(Builder builder, IReadOnlyList<IEventShape> events)
+    {
+        foreach (IEventShape shape in events)
+        {
+            TryAddCandidateEvent(builder, shape);
+        }
+    }
+
+    private static bool TryAddCandidateEvent(Builder builder, IEventShape shape)
+    {
+        if (shape.Accept(EventShapeVisitor.Instance, builder) is EventMetadata eventMetadata)
+        {
+            builder.Events.Add(eventMetadata);
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryAddCandidateEvent(Builder builder, EventInfo @event)
     {
         if (@event.EventHandlerType is null)
@@ -415,10 +435,11 @@ public class RpcTargetMetadata
 
         builder.Events.Add(new EventMetadata
         {
-            Event = @event,
             Name = @event.Name,
             EventHandlerType = @event.EventHandlerType,
             CreateEventHandler = createEventHandler,
+            AddEventHandler = (target, handler) => @event.AddEventHandler(target, handler),
+            RemoveEventHandler = (target, handler) => @event.RemoveEventHandler(target, handler),
         });
         return true;
 
@@ -698,11 +719,6 @@ public class RpcTargetMetadata
     public class EventMetadata
     {
         /// <summary>
-        /// Gets the event for which this metadata is describing the handler.
-        /// </summary>
-        public required EventInfo Event { get; init; }
-
-        /// <summary>
         /// Gets the name of the RPC method that this event will invoke when raised.
         /// </summary>
         public required string Name { get; init; }
@@ -716,6 +732,16 @@ public class RpcTargetMetadata
         /// Gets a factory method that creates a delegate to handle the event.
         /// </summary>
         public required CreateEventHandlerDelegate CreateEventHandler { get; init; }
+
+        /// <summary>
+        /// Gets a function that will add an event handler for this event to a given target object.
+        /// </summary>
+        public required Action<object?, Delegate> AddEventHandler { get; init; }
+
+        /// <summary>
+        /// Gets a function that will remove an event handler for this event to a given target object.
+        /// </summary>
+        public required Action<object?, Delegate> RemoveEventHandler { get; init; }
     }
 
     /// <summary>
@@ -941,6 +967,67 @@ public class RpcTargetMetadata
             }
 
             return aliasedMethods.ToImmutable();
+        }
+    }
+
+    private class EventShapeVisitor : TypeShapeVisitor
+    {
+        internal static readonly EventShapeVisitor Instance = new();
+
+        public override object? VisitEvent<TDeclaringType, TEventHandler>(IEventShape<TDeclaringType, TEventHandler> eventShape, object? state = null)
+        {
+            if (eventShape is not { IsStatic: false } ||
+                eventShape.HandlerType.Accept(this) is not CreateEventHandlerDelegate createEventHandlerDelegate)
+            {
+                return null;
+            }
+
+            Setter<TDeclaringType?, TEventHandler> addHandler = eventShape.GetAddHandler();
+            Setter<TDeclaringType?, TEventHandler> removeHandler = eventShape.GetRemoveHandler();
+
+            return new EventMetadata
+            {
+                Name = eventShape.Name,
+                EventHandlerType = eventShape.HandlerType.Type,
+                CreateEventHandler = createEventHandlerDelegate,
+                AddEventHandler = (target, handler) =>
+                {
+                    TDeclaringType? typedTarget = (TDeclaringType?)target;
+                    addHandler(ref typedTarget, (TEventHandler)(object)handler!);
+                },
+                RemoveEventHandler = (target, handler) =>
+                {
+                    TDeclaringType? typedTarget = (TDeclaringType?)target;
+                    removeHandler(ref typedTarget, (TEventHandler)(object)handler!);
+                },
+            };
+        }
+
+        public override object? VisitFunction<TFunction, TArgumentState, TResult>(IFunctionTypeShape<TFunction, TArgumentState, TResult> functionShape, object? state = null)
+        {
+            if (functionShape is not { IsVoidLike: true, IsAsync: false, Parameters: [{ Name: "sender" }, { } parameterShape] })
+            {
+                return null;
+            }
+
+            Type[] argTypes = [parameterShape.ParameterType.Type];
+            var argGetter = (Getter<TArgumentState, object?>)parameterShape.Accept(this, state)!;
+            return new CreateEventHandlerDelegate((rpc, name) =>
+            {
+                return (Delegate)(object)functionShape.FromDelegate((ref TArgumentState argState) =>
+                {
+                    object? arg = argGetter(ref argState);
+                    rpc.NotifyAsync(name, [arg], argTypes).Forget();
+                    return default!;
+                })!;
+            });
+        }
+
+        public override object? VisitParameter<TArgumentState, TParameterType>(IParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null)
+        {
+            // Return a delegate that boxes the argument as an object.
+            Getter<TArgumentState, TParameterType> argGetter = parameterShape.GetGetter();
+            return new Getter<TArgumentState, object?>((ref TArgumentState argState) => argGetter(ref argState));
         }
     }
 }
