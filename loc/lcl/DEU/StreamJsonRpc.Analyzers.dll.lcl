@@ -1,0 +1,275 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LCX SchemaVersion="6.0" Name="D:\a\_work\1\s\bin\StreamJsonRpc.Analyzers\Release\netstandard2.0\StreamJsonRpc.Analyzers.dll" PsrId="211" SrcCul="en-US" xmlns="http://schemas.microsoft.com/locstudio/2006/6/lcx" TgtCul="de-DE">
+  <OwnedComments>
+    <Cmt Name="Dev" />
+    <Cmt Name="LcxAdmin" />
+    <Cmt Name="RCCX" />
+  </OwnedComments>
+  <Item ItemId=";Managed Resources" ItemType="0" PsrId="211" Leaf="true">
+    <Disp Icon="Expand" Expand="true" Disp="true" LocTbl="false" />
+  </Item>
+  <Item ItemId=";StreamJsonRpc.Analyzers.Strings.resources" ItemType="0" PsrId="211" Leaf="false">
+    <Disp Icon="Expand" Expand="true" Disp="true" LocTbl="false" Path=" \ ;Managed Resources \ 0 \ 0" />
+    <Item ItemId=";Strings" ItemType="0" PsrId="211" Leaf="false">
+      <Disp Icon="Str" Disp="true" LocTbl="false" />
+      <Item ItemId=";StreamJsonRpc0001_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract {0} must be declared with at least `internal` visibility.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0001_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Accessible interface]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0002_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract interface {0} should be declared as partial to enable source generated proxies to be discovered at runtime, but the following type(s) are not partial: {1}]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0002_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Declare partial interface]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0003_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Apply the JsonRpcContractAttribute to {0} for better analysis and higher runtime performance.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0003_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use JsonRpcContractAttribute]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0004_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Proxies may only be produced for interfaces that are not open-generics, but {0} is not an interface or is an open generic.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0004_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use interfaces for proxies]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0005_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RpcMarshalable interface {0} must derive from IDisposable or have a call-scoped lifetime.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0005_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RpcMarshalable are IDisposable]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0006_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[All interfaces identified by a JsonRpcProxyInterfaceGroupAttribute must bear the JsonRpcContractAttribute, but the following interface(s) do not: {0}.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0006_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Interfaces in proxy group must be attributed]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0007_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RpcMarshalable optional interface {0} must be attributed with [RpcMarshalableAttribute(IsOptional = true)]5D;.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0007_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use RpcMarshalableAttribute on optional marshalable interface]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0008_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The RPC contract type '{0}' should also have the {1} applied so that it works with more formatters.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0008_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Add methods to PolyType shape for RPC contract interface]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0011_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The return type {0} on {1} is not supported in RPC methods.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0011_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Supported return types]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0012_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract {0} may not declare unsupported member {1}.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0012_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Unsupported member]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0013_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract {0} may not include generic method {1}.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0013_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[No generic methods]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0014_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract {0} method {1} may declare CancellationToken only as the last parameter.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0014_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[CancellationToken as last parameter]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0015_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contracts may not be declared with generic interfaces.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0015_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[No generic interfaces]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0016_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC contract events must be declared with either `EventHandler` or `EventHandler<T>` delegate types.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0016_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Unsupported event delegate]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0030_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> should be applied only to generic interfaces, but {0} is not a generic interface.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0030_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> should be applied only to generic interfaces]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0031_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> type argument should be a closed instance of the applied type, but {0} has this attribute applied with {1} as a type argument.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0031_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> type argument should be a closed instance of the applied type]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0032_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> should be accompanied by either JsonRpcContractAttribute or RpcMarshalableAttribute, but {0} has neither of these applied.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0032_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[JsonRpcProxyAttribute<T> should be accompanied by JsonRpcContractAttribute or RpcMarshalableAttribute.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0050_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use IClientProxy.Is, JsonRpcExtensions.As or the source-generated extension methods by the same names on your RPC marshalable interfaces to cast or type check between RpcMarshalable interfaces {0} and {1}.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0050_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use IClientProxy.Is or JsonRpcExtensions.As]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+    </Item>
+  </Item>
+  <Item ItemId=";Version" ItemType="0" PsrId="211" Leaf="false">
+    <Disp Icon="Ver" Disp="true" LocTbl="false" Path=" \ ;Version \ 8 \ 0" />
+    <Item ItemId=";CompanyName" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text">
+        <Val><![CDATA[Microsoft]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+    <Item ItemId=";FileDescription" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text">
+        <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+    <Item ItemId=";InternalName" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text" DevLk="true">
+        <Val><![CDATA[StreamJsonRpc.Analyzers.dll]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+    <Item ItemId=";LegalCopyright" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text">
+        <Val><![CDATA[© Microsoft Corporation. All rights reserved.]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+    <Item ItemId=";OriginalFilename" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text" DevLk="true">
+        <Val><![CDATA[StreamJsonRpc.Analyzers.dll]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+    <Item ItemId=";ProductName" ItemType="0" PsrId="211" Leaf="true">
+      <Str Cat="Text">
+        <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+      </Str>
+      <Disp Icon="Str" />
+    </Item>
+  </Item>
+  <Item ItemId=";Version" ItemType="8" PsrId="211" Leaf="true">
+    <Disp Icon="Expand" Expand="true" Disp="true" LocTbl="false" />
+  </Item>
+<Settings Name="@vsLocTools@\default.lss" Type="Lss" /></LCX>
