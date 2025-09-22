@@ -30,6 +30,8 @@ namespace StreamJsonRpc;
 [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
+    private static readonly ProxyFactory ProxyFactory = ProxyFactory.Default;
+
     /// <summary>
     /// The constant "jsonrpc", in its various forms.
     /// </summary>
@@ -247,6 +249,9 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             this.serializationToStringHelper.Deactivate();
         }
     }
+
+    /// <inheritdoc/>
+    private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.Dynamic(rpc, ProxyFactory, this);
 
     private static ReadOnlySequence<byte> GetSliceForNextToken(ref MessagePackReader reader)
     {

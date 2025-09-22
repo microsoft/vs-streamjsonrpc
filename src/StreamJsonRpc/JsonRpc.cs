@@ -1456,8 +1456,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         JsonRpcTargetOptions? options,
         bool requestRevertOption)
     {
-        RpcTargetMetadata.EnableDynamicEventHandlerCreation();
-
         options ??= JsonRpcTargetOptions.Default;
         RpcTargetMetadata mapping =
             exposingMembersOn.IsInterface ? RpcTargetMetadata.FromInterface(exposingMembersOn) :

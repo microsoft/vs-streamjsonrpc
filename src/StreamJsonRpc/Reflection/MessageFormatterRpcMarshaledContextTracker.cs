@@ -19,7 +19,7 @@ namespace StreamJsonRpc.Reflection;
 /// <summary>
 /// Tracks objects that get marshaled using the general marshaling protocol.
 /// </summary>
-internal partial class MessageFormatterRpcMarshaledContextTracker
+internal abstract partial class MessageFormatterRpcMarshaledContextTracker
 {
     private static readonly IReadOnlyCollection<(Type ImplicitlyMarshaledType, JsonRpcProxyOptions ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> ImplicitlyMarshaledTypes =
     [
@@ -73,7 +73,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     /// </remarks>
     private ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> outboundRequestIdMarshalMap = ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty;
 
-    internal MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, ProxyFactory proxyFactory, IJsonRpcFormatterState formatterState)
+    protected MessageFormatterRpcMarshaledContextTracker(JsonRpc jsonRpc, ProxyFactory proxyFactory, IJsonRpcFormatterState formatterState)
     {
         this.jsonRpc = jsonRpc;
         this.proxyFactory = proxyFactory;
@@ -276,7 +276,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
                 optionalInterfacesCodes.Add(attribute.OptionalInterfaceCode);
 
                 this.jsonRpc.AddRpcInterfaceToTargetInternal(
-                    RpcTargetMetadata.FromInterface(attribute.OptionalInterface),
+                    this.GetRpcTargetMetadata(attribute.OptionalInterface),
                     context.Proxy,
                     new JsonRpcTargetOptions(context.JsonRpcTargetOptions)
                     {
@@ -420,6 +420,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             return null;
         }
     }
+
+    protected abstract RpcTargetMetadata GetRpcTargetMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType);
 
     private static bool TryGetMarshalOptionsForTypeHelper(
         Type type,
@@ -596,6 +598,17 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         [STJ.JsonPropertyName("optionalInterfaces"), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
         [PropertyShape(Name = "optionalInterfaces")]
         public int[]? OptionalInterfacesCodes { get; set; }
+    }
+
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    internal class Dynamic(JsonRpc jsonRpc, ProxyFactory proxyFactory, IJsonRpcFormatterState formatterState) : MessageFormatterRpcMarshaledContextTracker(jsonRpc, proxyFactory, formatterState)
+    {
+        protected override RpcTargetMetadata GetRpcTargetMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType) => RpcTargetMetadata.FromInterface(interfaceType);
+    }
+
+    internal class PolyTypeShape(JsonRpc jsonRpc, ProxyFactory proxyFactory, IJsonRpcFormatterState formatterState, ITypeShapeProvider typeShapeProvider) : MessageFormatterRpcMarshaledContextTracker(jsonRpc, proxyFactory, formatterState)
+    {
+        protected override RpcTargetMetadata GetRpcTargetMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType) => RpcTargetMetadata.FromShape(typeShapeProvider.GetTypeShapeOrThrow(interfaceType));
     }
 
     /// <summary>
