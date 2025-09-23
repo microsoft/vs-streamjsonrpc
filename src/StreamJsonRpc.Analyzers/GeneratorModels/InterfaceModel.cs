@@ -18,7 +18,7 @@ namespace StreamJsonRpc.Analyzers.GeneratorModels;
 /// <param name="Methods">The methods in the interface.</param>
 /// <param name="Events">The events in the interface.</param>
 /// <param name="HasUnsupportedMemberTypes">Indicates whether the interface has additional members that are not supported.</param>
-internal record InterfaceModel(string FullName, string Name, ImmutableEquatableArray<string> TypeParameters, Container? Container, ImmutableEquatableArray<MethodModel> Methods, ImmutableEquatableArray<EventModel> Events, bool HasUnsupportedMemberTypes)
+internal record InterfaceModel(string FullName, string Name, ImmutableEquatableArray<(VarianceKind Variance, string Identifier)> TypeParameters, Container? Container, ImmutableEquatableArray<MethodModel> Methods, ImmutableEquatableArray<EventModel> Events, bool HasUnsupportedMemberTypes)
 {
     internal required bool IsPartial { get; init; }
 
@@ -77,7 +77,7 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
         return new InterfaceModel(
             iface.ToDisplayString(ProxyGenerator.FullyQualifiedNoGlobalWithNullableFormat),
             iface.Name,
-            [.. iface.TypeParameters.Select(tp => tp.Name)],
+            [.. iface.TypeParameters.Select(tp => (tp.Variance, tp.Name))],
             Container.CreateFor((INamespaceOrTypeSymbol?)iface.ContainingType ?? iface.ContainingNamespace, cancellationToken),
             methods.ToImmutableEquatableArray(),
             events.ToImmutableEquatableArray(),

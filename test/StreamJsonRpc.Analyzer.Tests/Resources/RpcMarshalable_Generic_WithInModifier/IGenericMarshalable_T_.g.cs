@@ -4,9 +4,8 @@
 #pragma warning disable CS0436 // prefer local types to imported ones
 #pragma warning disable // Disable all warnings so that [Experimental] APIs don't flag anything.
 
-[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IGenericMarshalable_Proxy<,>))]
-[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IGenericMarshalable_Proxy<int, string>))]
-partial interface IGenericMarshalable<T1, T2>
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IGenericMarshalable_Proxy<>))]
+partial interface IGenericMarshalable<in T>
 {
 }
 
@@ -14,18 +13,18 @@ namespace StreamJsonRpc.Generated
 {
 	
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-	internal class IGenericMarshalable_Proxy<T1, T2> : global::StreamJsonRpc.Reflection.ProxyBase
-		, global::IGenericMarshalable<T1, T2>
+	internal class IGenericMarshalable_Proxy<T> : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::IGenericMarshalable<T>
 	{
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DoSomethingWithParameterAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
-			["parameter"] = typeof(T2),
+			["parameter"] = typeof(T),
 		};
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> DoSomethingWithParameterAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 		{
-			typeof(T2),
+			typeof(T),
 		};
 		
 		private string? transformedDoSomethingWithParameterAsync1;
@@ -35,15 +34,15 @@ namespace StreamJsonRpc.Generated
 		{
 		}
 		
-		global::System.Threading.Tasks.Task<T1> global::IGenericMarshalable<T1, T2>.DoSomethingWithParameterAsync(T2 parameter)
+		global::System.Threading.Tasks.Task global::IGenericMarshalable<T>.DoSomethingWithParameterAsync(T parameter)
 		{
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("DoSomethingWithParameterAsync");
-			string rpcMethodName = this.transformedDoSomethingWithParameterAsync1 ??= this.TransformMethodName("DoSomethingWithParameterAsync", typeof(global::IGenericMarshalable<T1, T2>));
-			global::System.Threading.Tasks.Task<T1> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<T1>(rpcMethodName, ConstructNamedArgs(), DoSomethingWithParameterAsyncNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync<T1>(rpcMethodName, [parameter], DoSomethingWithParameterAsyncPositionalArgumentDeclaredTypes1, default);
+			string rpcMethodName = this.transformedDoSomethingWithParameterAsync1 ??= this.TransformMethodName("DoSomethingWithParameterAsync", typeof(global::IGenericMarshalable<T>));
+			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DoSomethingWithParameterAsyncNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [parameter], DoSomethingWithParameterAsyncPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("DoSomethingWithParameterAsync");
 			
 			return result;

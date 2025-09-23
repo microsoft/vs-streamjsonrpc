@@ -4,8 +4,13 @@
 #pragma warning disable CS0436 // prefer local types to imported ones
 #pragma warning disable // Disable all warnings so that [Experimental] APIs don't flag anything.
 
-[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.ICalc_Proxy))]
-partial interface ICalc
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.SomeExperimentalInterfaceMDGoEVkn_Proxy))]
+partial interface SomeExperimentalInterface
+{
+}
+
+[global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.SomeExperimentalInterfaceMDGoEVkn_Proxy))]
+partial interface SomeExperimentalInterface2
 {
 }
 
@@ -13,20 +18,21 @@ namespace StreamJsonRpc.Generated
 {
 	
 	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("StreamJsonRpc.Analyzers", "x.x.x.x")]
-	internal class ICalc_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
-		, global::ICalc
+	internal class SomeExperimentalInterfaceMDGoEVkn_Proxy : global::StreamJsonRpc.Reflection.ProxyBase
+		, global::SomeExperimentalInterface
+		, global::SomeExperimentalInterface2
 	{
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddAsyncNamedArgumentDeclaredTypes1 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
 			["a"] = typeof(int),
-			["b"] = typeof(int),
+			["t"] = typeof(global::CustomType),
 		};
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddAsyncPositionalArgumentDeclaredTypes1 = new global::System.Collections.Generic.List<global::System.Type>
 		{
 			typeof(int),
-			typeof(int),
+			typeof(global::CustomType),
 		};
 		
 		private string? transformedAddAsync1;
@@ -34,31 +40,31 @@ namespace StreamJsonRpc.Generated
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
 			["a"] = typeof(int),
-			["b"] = typeof(int),
+			["t"] = typeof(global::CustomType),
 		};
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyList<global::System.Type> AddAsyncPositionalArgumentDeclaredTypes2 = new global::System.Collections.Generic.List<global::System.Type>
 		{
 			typeof(int),
-			typeof(int),
+			typeof(global::CustomType),
 		};
 		
 		private string? transformedAddAsync2;
 		
-		public ICalc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
+		public SomeExperimentalInterfaceMDGoEVkn_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
 		{
 		}
 		
-		global::System.Threading.Tasks.Task<int> global::ICalc1.AddAsync(int a, int b)
+		global::System.Threading.Tasks.Task<int> global::SomeExperimentalInterface.AddAsync(int a, global::CustomType t, global::System.Threading.CancellationToken token)
 		{
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::ICalc1));
+			string rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface));
 			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes1, default);
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, token) :
+			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes1, token);
 			this.OnCalledMethod("AddAsync");
 			
 			return result;
@@ -67,19 +73,19 @@ namespace StreamJsonRpc.Generated
 			    => new()
 			    {
 					["a"] = a,
-					["b"] = b,
+					["t"] = t,
 				};
 		}
 		
-		global::System.Threading.Tasks.Task<int> global::ICalc2.AddAsync(int a, int b)
+		global::System.Threading.Tasks.Task<int> global::SomeExperimentalInterface2.AddAsync(int a, global::CustomType t, global::System.Threading.CancellationToken token)
 		{
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync2 ??= this.TransformMethodName("AddAsync", typeof(global::ICalc2));
+			string rpcMethodName = this.transformedAddAsync2 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface2));
 			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes2, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes2, default);
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes2, token) :
+			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes2, token);
 			this.OnCalledMethod("AddAsync");
 			
 			return result;
@@ -88,7 +94,7 @@ namespace StreamJsonRpc.Generated
 			    => new()
 			    {
 					["a"] = a,
-					["b"] = b,
+					["t"] = t,
 				};
 		}
 	}
