@@ -12,6 +12,7 @@
     <!-- Enable warnings regarding AOT compatibility. Learn more about testing strategies at https://devblogs.microsoft.com/dotnet/creating-aot-compatible-libraries/ -->
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
+    <PackageValidationBaselineVersion>2.22.11</PackageValidationBaselineVersion>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx" EmitFormatMethods="true" />
@@ -27,7 +28,6 @@
     <PackageReference Include="Nerdbank.MessagePack" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Newtonsoft.Json" />
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="compile"/>
