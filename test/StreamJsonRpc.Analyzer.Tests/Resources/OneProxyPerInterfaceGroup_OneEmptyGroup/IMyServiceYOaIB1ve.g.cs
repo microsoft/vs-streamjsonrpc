@@ -2,6 +2,7 @@
 
 #nullable enable
 #pragma warning disable CS0436 // prefer local types to imported ones
+#pragma warning disable // Disable all warnings so that [Experimental] APIs don't flag anything.
 
 [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof(StreamJsonRpc.Generated.IMyServiceYOaIB1ve_Proxy))]
 partial interface IMyService
