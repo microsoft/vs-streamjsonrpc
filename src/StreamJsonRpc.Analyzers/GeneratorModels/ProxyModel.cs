@@ -74,7 +74,7 @@ internal record ProxyModel : FormattableModel
     internal void WriteInterfaceMapping(SourceWriter writer, InterfaceModel iface)
     {
         string genericTypeParameters = iface.TypeParameters.Length > 0
-            ? $"<{string.Join(", ", iface.TypeParameters)}>"
+            ? $"<{string.Join(", ", iface.TypeParameters.Select(WriteTypeParameter))}>"
             : string.Empty;
         writer.WriteLine($$"""
             [global::StreamJsonRpc.Reflection.JsonRpcProxyMappingAttribute(typeof({{ProxyGenerator.GenerationNamespace}}.{{this.Name}}{{this.GenericTypeDefinitionSuffix}}))]
@@ -291,4 +291,12 @@ internal record ProxyModel : FormattableModel
         string additionalInterfaceHashString = Convert.ToBase64String(additionalInterfaceHash).TrimEnd('=').Replace('+', '_').Replace('/', '_');
         return $"{sorted[0]}{additionalInterfaceHashString[..8]}";
     }
+
+    private static string WriteTypeParameter((VarianceKind Variance, string Identifier) typeParameter) => typeParameter.Variance switch
+    {
+        VarianceKind.None => typeParameter.Identifier,
+        VarianceKind.In => $"in {typeParameter.Identifier}",
+        VarianceKind.Out => $"out {typeParameter.Identifier}",
+        _ => throw new InvalidOperationException($"Unknown variance kind: {typeParameter.Variance}."),
+    };
 }
