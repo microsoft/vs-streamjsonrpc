@@ -376,6 +376,30 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task RpcMarshalable_Generic_WithInModifier()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IGenericMarshalable<in T>
+            {
+                Task DoSomethingWithParameterAsync(T parameter);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task RpcMarshalable_Generic_WithOutModifier()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            [RpcMarshalable]
+            public partial interface IGenericMarshalable<out T>
+            {
+                Task DoSomethingWithParameterAsync();
+            }
+            """);
+    }
+
+    [Fact]
     public async Task RpcMarshalable_GenericWithClosedPrescriptions()
     {
         await VerifyCS.RunDefaultAsync("""
