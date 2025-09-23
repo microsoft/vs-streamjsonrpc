@@ -439,6 +439,34 @@ public class ProxyGeneratorTests
             """);
     }
 
+#if NET
+    [Fact]
+    public async Task ExperimentalApis()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            using System.Diagnostics.CodeAnalysis;
+
+            [Experimental("MYEXPERIMENT1")]
+            public struct CustomType { }
+
+            [RpcMarshalable]
+            [RpcMarshalableOptionalInterfaceAttribute(1, typeof(SomeExperimentalInterface2))]
+            [Experimental("MYEXPERIMENT2")]
+            public partial interface SomeExperimentalInterface
+            {
+                Task<int> AddAsync(int a, CustomType t, CancellationToken token);
+            }
+
+            [RpcMarshalable(IsOptional = true)]
+            [Experimental("MYEXPERIMENT2")]
+            public partial interface SomeExperimentalInterface2 : IDisposable
+            {
+                Task<int> AddAsync(int a, CustomType t, CancellationToken token);
+            }
+            """);
+    }
+#endif
+
     /// <summary>
     /// Verifies that an RpcMarshalable attribute on an interface with both valid and invalid members does not break the build (but it will report a diagnostic, as tested elsewhere).
     /// </summary>
