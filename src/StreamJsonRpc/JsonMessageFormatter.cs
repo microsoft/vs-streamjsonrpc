@@ -34,6 +34,8 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// </summary>
     internal const string ExceptionDataKey = "JToken";
 
+    private static readonly ProxyFactory ProxyFactory = ProxyFactory.Default;
+
     /// <summary>
     /// JSON parse settings.
     /// </summary>
@@ -365,6 +367,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
 
         base.Dispose(disposing);
     }
+
+    /// <inheritdoc/>
+    private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.Dynamic(rpc, ProxyFactory, this);
 
     private static IReadOnlyDictionary<string, object> PartiallyParseNamedArguments(JObject args)
     {

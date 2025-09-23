@@ -70,7 +70,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromInterface(rpcContract);
 
         Assert.Contains(metadata.Methods, m => m.Key == nameof(IRpcContractBase.MethodBaseAsync));
-        Assert.Contains(metadata.Events, e => e.Event.Name == nameof(IRpcContractBase.BaseEvent));
+        Assert.Contains(metadata.Events, e => e.Name == nameof(IRpcContractBase.BaseEvent));
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromInterface(rpcContract);
 
         Assert.Contains(metadata.Methods, m => m.Key == nameof(IRpcContractDerived.MethodDerivedAsync));
-        Assert.Contains(metadata.Events, e => e.Event.Name == nameof(IRpcContractDerived.DerivedEvent));
+        Assert.Contains(metadata.Events, e => e.Name == nameof(IRpcContractDerived.DerivedEvent));
     }
 
     [Fact]

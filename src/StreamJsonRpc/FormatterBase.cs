@@ -19,8 +19,6 @@ namespace StreamJsonRpc;
 /// </summary>
 public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
 {
-    private readonly ProxyFactory proxyFactory;
-
     private JsonRpc? rpc;
 
     /// <summary>
@@ -57,15 +55,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatterBase"/> class.
     /// </summary>
-    [RequiresDynamicCode(RuntimeReasons.RefEmit), RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
     public FormatterBase()
-        : this(ProxyFactory.Default)
     {
-    }
-
-    private protected FormatterBase(ProxyFactory proxyFactory)
-    {
-        this.proxyFactory = proxyFactory;
     }
 
     /// <summary>
@@ -99,7 +90,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 this.rpc = value;
 
                 this.formatterProgressTracker = new MessageFormatterProgressTracker(value, this);
-                this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this.proxyFactory, this);
+                this.rpcMarshaledContextTracker = this.CreateMessageFormatterRpcMarshaledContextTracker(value);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this, this.rpcMarshaledContextTracker);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.MultiplexingStream };
             }
@@ -218,6 +209,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <param name="message">The message being serialized.</param>
     /// <returns>A value to dispose of when serialization has completed.</returns>
     protected SerializationTracking TrackSerialization(JsonRpcMessage message) => new(this, message);
+
+    private protected abstract MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc);
 
     private protected void TryHandleSpecialIncomingMessage(JsonRpcMessage message)
     {

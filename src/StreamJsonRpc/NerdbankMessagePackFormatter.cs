@@ -72,6 +72,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         ],
     }.WithObjectConverter();
 
+    private static readonly ProxyFactory ProxyFactory = ProxyFactory.NoDynamic;
+
     private static readonly JsonRpcProxyOptions DefaultRpcMarshalableProxyOptions = new JsonRpcProxyOptions(JsonRpcProxyOptions.Default) { AcceptProxyWithExtraInterfaces = true, IsFrozen = true };
 
     /// <summary>
@@ -101,7 +103,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// Initializes a new instance of the <see cref="NerdbankMessagePackFormatter"/> class.
     /// </summary>
     public NerdbankMessagePackFormatter()
-        : base(ProxyFactory.NoDynamic)
     {
         // Set up initial options for our own message types.
         this.envelopeSerializer = DefaultSerializer with
@@ -211,6 +212,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             this.serializationToStringHelper.Deactivate();
         }
     }
+
+    private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.PolyTypeShape(rpc, ProxyFactory, this, this.TypeShapeProvider);
 
     private static MessagePackConverter<T> GetRpcMarshalableConverter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.PublicProperties)] T>(ITypeShape<T> shape)
         where T : class
