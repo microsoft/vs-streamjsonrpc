@@ -115,9 +115,9 @@ internal record FullModel
                     string visibility = iface.IsPublic ? "public" : "internal";
                     writer.WriteLine($$"""
                         /// <inheritdoc cref="global::StreamJsonRpc.IClientProxy.Is(global::System.Type)"/>
-                        {{visibility}} static bool Is(this {{iface.FullName}} self, global::System.Type type) => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.Is(type) : type.IsAssignableFrom(self.GetType());
+                        {{visibility}} static bool Is(this {{iface.FullName}}? self, global::System.Type type) => self switch { null => false, global::StreamJsonRpc.IClientProxy proxy => proxy.Is(type), _ => type.IsAssignableFrom(self.GetType()) };
                         /// <inheritdoc cref="global::StreamJsonRpc.JsonRpcExtensions.As{T}(global::StreamJsonRpc.IClientProxy)"/>
-                        {{visibility}} static T? As<T>(this {{iface.FullName}} self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
+                        {{visibility}} static T? As<T>(this {{iface.FullName}}? self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
                         """);
                     if (first)
                     {
