@@ -219,32 +219,6 @@ jobs:
         IsOptProf: ${{ parameters.IsOptProf }}
         SkipCodesignVerify: ${{ parameters.SkipCodesignVerify }}
 
-- job: PolyType
-  pool: ${{ parameters.linuxPool }}
-  ${{ if eq(variables['system.collectionId'], '011b8bdf-6d56-4f87-be0d-0092136884d9') }}:
-    templateContext:
-      outputParentDirectory: $(Build.ArtifactStagingDirectory)
-      outputs:
-      - ${{ each artifact_name in parameters.artifact_names }}:
-        - ${{ if or(ne(artifact_name, 'testResults'), parameters.RunTests) }}:
-          - output: pipelineArtifact
-            displayName: 📢 Publish ${{ artifact_name }}-PolyType
-            targetPath: $(Build.ArtifactStagingDirectory)/${{ artifact_name }}-PolyType
-            artifactName: ${{ artifact_name }}-PolyType
-            condition: succeededOrFailed()
-  variables:
-    SupportPolyType: true
-  steps:
-  - checkout: self
-    fetchDepth: 0 # avoid shallow clone so nbgv can do its work.
-    clean: true
-  - template: install-dependencies.yml
-  - template: dotnet.yml
-    parameters:
-      Is1ESPT: ${{ parameters.Is1ESPT }}
-      RunTests: ${{ parameters.RunTests }}
-      osRID: linux
-
 - ${{ if not(parameters.IsOptProf) }}:
   - ${{ if parameters.EnableLinuxBuild }}:
     - job: Linux
