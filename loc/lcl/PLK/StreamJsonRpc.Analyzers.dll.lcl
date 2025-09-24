@@ -16,216 +16,324 @@
       <Item ItemId=";StreamJsonRpc0001_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract {0} must be declared with at least `internal` visibility.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Kontrakt {0} zdalnego wywołania procedury musi być zadeklarowany z co najmniej widocznością „internal”.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0001_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Accessible interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Interfejs z ułatwieniami dostępu]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0002_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract interface {0} should be declared as partial to enable source generated proxies to be discovered at runtime, but the following type(s) are not partial: {1}]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Interfejs {0} kontraktu zdalnego wywołania procedury powinien być zadeklarowany jako częściowy, aby umożliwić odnajdywanie źródłowych serwerów proxy w czasie wykonywania, ale następujące typy nie są częściowe: {1}]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0002_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Declare partial interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Deklarowanie interfejsu częściowego]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0003_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Apply the JsonRpcContractAttribute to {0} for better analysis and higher runtime performance.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Zastosuj atrybut JsonRpcContractAttribute, aby {0} dla lepszej analizy i wyższej wydajności środowiska uruchomieniowego.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0003_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Use JsonRpcContractAttribute]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Użyj atrybutu JsonRpcContractAttribute]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0004_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Proxies may only be produced for interfaces that are not open-generics, but {0} is not an interface or is an open generic.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Serwery proxy mogą być tworzone tylko dla interfejsów, które nie są typami ogólnymi typu open, ale {0} nie jest interfejsem lub jest typu ogólnego typu open.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0004_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Use interfaces for proxies]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Używanie interfejsów dla serwerów proxy]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0005_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RpcMarshalable interface {0} must derive from IDisposable or have a call-scoped lifetime.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Interfejs RpcMarshalable {0} musi dziedziczyć po IDisposable lub mieć czas życia ograniczony do wywołania.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0005_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RpcMarshalable are IDisposable]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[RpcMarshalable to IDisposable]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0006_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[All interfaces identified by a JsonRpcProxyInterfaceGroupAttribute must bear the JsonRpcContractAttribute, but the following interface(s) do not: {0}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Wszystkie interfejsy identyfikowane przez atrybut JsonRpcProxyInterfaceGroupAttribute muszą zawierać atrybut JsonRpcContractAttribute, ale następujące interfejsy go nie mają: {0}.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0006_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Interfaces in proxy group must be attributed]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Interfejsy w grupie serwerów proxy muszą mieć atrybut]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0007_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RpcMarshalable optional interface {0} must be attributed with [RpcMarshalableAttribute(IsOptional = true)]5D;.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Opcjonalny interfejs RpcMarshalable {0} musi mieć atrybut [RpcMarshalableAttribute(IsOptional = true)]5D;.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0007_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Use RpcMarshalableAttribute on optional marshalable interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Używanie atrybutu RpcMarshalableAttribute w opcjonalnym interfejsie obsługującym serializację]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0008_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The RPC contract type '{0}' should also have the {1} applied so that it works with more formatters.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Typ kontraktu zdalnego wywołania procedury „{0}" również powinien mieć zastosowany {1}, aby działał z większą liczbą formatów.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0008_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Add methods to PolyType shape for RPC contract interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Dodawanie metod do kształtu PolyType dla interfejsu kontraktu zdalnego wywołania procedury]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0011_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The return type {0} on {1} is not supported in RPC methods.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Zwracany typ {0} w {1} jest nieobsługiwany w metodach zdalnego wywołania procedury.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0011_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Supported return types]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Obsługiwane typy zwracane]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0012_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract {0} may not declare unsupported member {1}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Kontrakt {0} zdalnego wywołania procedury nie może deklarować nieobsługiwanego elementu członkowskiego {1}.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0012_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Unsupported member]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Nieobsługiwany element członkowski]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0013_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract {0} may not include generic method {1}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Kontrakt {0} zdalnego wywołania procedury nie może zawierać metody ogólnej {1}.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0013_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[No generic methods]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Brak metod ogólnych]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0014_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract {0} method {1} may declare CancellationToken only as the last parameter.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Metoda {1} kontraktu {0} zdalnego wywołania procedury może deklarować element CancellationToken tylko jako ostatni parametr.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0014_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[CancellationToken as last parameter]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[CancellationToken jako ostatni parametr]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0015_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contracts may not be declared with generic interfaces.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Kontrakty zdalnego wywołania procedury nie mogą być deklarowane przy użyciu interfejsów ogólnych.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0015_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[No generic interfaces]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Brak interfejsów ogólnych]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0016_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC contract events must be declared with either `EventHandler` or `EventHandler<T>` delegate types.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Zdarzenia kontraktu zdalnego wywołania procedury muszą być zadeklarowane przy użyciu typów delegatów „EventHandler” lub „EventHandler<T>”.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0016_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event delegate]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Nieobsługiwany delegat zdarzenia]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0030_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> should be applied only to generic interfaces, but {0} is not a generic interface.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Atrybut JsonRpcProxyAttribute<T> powinien być stosowany tylko do interfejsów ogólnych, ale {0} nie jest interfejsem ogólnym.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0030_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> should be applied only to generic interfaces]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Atrybut JsonRpcProxyAttribute<T> powinien być stosowany tylko do interfejsów ogólnych]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0031_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> type argument should be a closed instance of the applied type, but {0} has this attribute applied with {1} as a type argument.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Argument typu JsonRpcProxyAttribute<T> powinien być zamkniętym wystąpieniem zastosowanego typu, ale {0} ma ten atrybut zastosowany z {1} jako argumentem typu.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0031_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> type argument should be a closed instance of the applied type]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Argument typu JsonRpcProxyAttribute<T> powinien być zamkniętym wystąpieniem zastosowanego typu]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0032_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> should be accompanied by either JsonRpcContractAttribute or RpcMarshalableAttribute, but {0} has neither of these applied.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Atrybutowi JsonRpcProxyAttribute<T> powinien towarzyszyć atrybut JsonRpcContractAttribute lub RpcMarshalableAttribute, ale {0} nie posiada żadnego z tych atrybutów.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0032_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[JsonRpcProxyAttribute<T> should be accompanied by JsonRpcContractAttribute or RpcMarshalableAttribute.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Atrybutowi JsonRpcProxyAttribute<T> powinien towarzyszyć atrybut JsonRpcContractAttribute lub RpcMarshalableAttribute.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0050_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Use IClientProxy.Is, JsonRpcExtensions.As or the source-generated extension methods by the same names on your RPC marshalable interfaces to cast or type check between RpcMarshalable interfaces {0} and {1}.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Użyj IClientProxy.Is, JsonRpcExtensions.As lub metod rozszerzenia wygenerowanych przez źródło przy użyciu tych samych nazw w interfejsach zdalnego wywołania procedury obsługujących serializację do rzutowania lub sprawdzania typu między interfejsami RpcMarshalable {0} i {1}.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0050_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Use IClientProxy.Is or JsonRpcExtensions.As]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Użyj IClientProxy.Is lub JsonRpcExtensions.As]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -245,6 +353,9 @@
     <Item ItemId=";FileDescription" ItemType="0" PsrId="211" Leaf="true">
       <Str Cat="Text">
         <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+        <Tgt Cat="Text" Stat="Loc" Orig="New">
+          <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+        </Tgt>
       </Str>
       <Disp Icon="Str" />
     </Item>
@@ -272,6 +383,9 @@
     <Item ItemId=";ProductName" ItemType="0" PsrId="211" Leaf="true">
       <Str Cat="Text">
         <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+        <Tgt Cat="Text" Stat="Loc" Orig="New">
+          <Val><![CDATA[StreamJsonRpc.Analyzers]]></Val>
+        </Tgt>
       </Str>
       <Disp Icon="Str" />
     </Item>
