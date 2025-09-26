@@ -24,7 +24,6 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A formatter that emits UTF-8 encoded JSON where user data should be serializable via the <see cref="JsonSerializer"/>.
 /// </summary>
-[RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
     private static readonly JsonWriterOptions WriterOptions = new() { };
@@ -162,7 +161,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         RequestId ReadRequestId()
         {
             return document.RootElement.TryGetProperty(Utf8Strings.id, out JsonElement idElement)
-                ? idElement.Deserialize<RequestId>(BuiltInSerializerOptions)
+                ? idElement.Deserialize(SourceGenerationContext.Default.RequestId)
             : RequestId.NotSpecified;
         }
 
@@ -308,13 +307,17 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
                 void WriteUserData(object? value, Type? declaredType)
                 {
-                    if (declaredType is not null && value is not null)
+                    if (value is null)
                     {
-                        JsonSerializer.Serialize(writer, value, declaredType, this.massagedUserDataSerializerOptions);
+                        writer.WriteNullValue();
+                    }
+                    else if (declaredType is not null)
+                    {
+                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions.GetTypeInfo(declaredType));
                     }
                     else
                     {
-                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
+                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions.GetTypeInfo(value.GetType()));
                     }
                 }
             }
@@ -394,7 +397,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class TopLevelPropertyBag : TopLevelPropertyBagBase
     {
         private readonly JsonDocument? incomingMessage;
@@ -439,7 +441,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> property in this.OutboundProperties)
                 {
                     writer.WritePropertyName(property.Key);
-                    JsonSerializer.Serialize(writer, property.Value.Value, this.jsonSerializerOptions);
+                    JsonSerializer.Serialize(writer, property.Value.Value, this.jsonSerializerOptions.GetTypeInfo(property.Value.DeclaredType));
                 }
             }
         }
@@ -448,7 +450,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             if (this.incomingMessage?.RootElement.TryGetProperty(name, out JsonElement serializedValue) is true)
             {
-                value = serializedValue.Deserialize<T>(this.jsonSerializerOptions);
+                value = serializedValue.Deserialize<T>((JsonTypeInfo<T>)this.jsonSerializerOptions.GetTypeInfo(typeof(T)));
                 return true;
             }
 
@@ -457,7 +459,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcRequest : JsonRpcRequestBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -503,7 +504,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 // Support for opt-in to deserializing all named arguments into a single parameter.
                 if (parameters.Length == 1 && this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true && this.JsonArguments is not null)
                 {
-                    typedArguments[0] = this.JsonArguments.Value.Deserialize(parameters[0].ParameterType, this.formatter.massagedUserDataSerializerOptions);
+                    typedArguments[0] = this.JsonArguments.Value.Deserialize(this.formatter.massagedUserDataSerializerOptions.GetTypeInfo(parameters[0].ParameterType));
                     return ArgumentMatchResult.Success;
                 }
 
@@ -549,7 +550,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 {
                     try
                     {
-                        value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions);
+                        value = valueElement?.Deserialize(this.formatter.massagedUserDataSerializerOptions.GetTypeInfo(typeHint ?? typeof(object)));
                     }
                     catch (Exception ex)
                     {
@@ -605,7 +606,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcResult : JsonRpcResultBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -628,7 +628,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
             return this.JsonResult is null
                 ? (T)this.Result!
-                : this.JsonResult.Value.Deserialize<T>(this.formatter.massagedUserDataSerializerOptions)!;
+                : this.JsonResult.Value.Deserialize((JsonTypeInfo<T>)this.formatter.massagedUserDataSerializerOptions.GetTypeInfo(typeof(T)))!;
         }
 
         protected internal override void SetExpectedResultType(Type resultType)
@@ -639,7 +639,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 using (this.formatter.TrackDeserialization(this))
                 {
-                    this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions);
+                    this.Result = this.JsonResult.Value.Deserialize(this.formatter.massagedUserDataSerializerOptions.GetTypeInfo(resultType));
                 }
 
                 this.JsonResult = default;
@@ -662,7 +662,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonRpcError : JsonRpcErrorBase
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -692,7 +691,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter.deserializingDocument = null;
         }
 
-        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
         internal new class ErrorDetail : Protocol.JsonRpcError.ErrorDetail
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -714,14 +712,14 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
                 try
                 {
-                    return this.JsonData.Value.Deserialize(dataType, this.formatter.massagedUserDataSerializerOptions);
+                    return this.JsonData.Value.Deserialize(this.formatter.massagedUserDataSerializerOptions.GetTypeInfo(dataType));
                 }
                 catch (JsonException)
                 {
                     // Deserialization failed. Try returning array/dictionary based primitive objects.
                     try
                     {
-                        return this.JsonData.Value.Deserialize<object>(this.formatter.massagedUserDataSerializerOptions);
+                        return this.JsonData.Value.Deserialize(SourceGenerationContext.Default.Object);
                     }
                     catch (JsonException)
                     {
@@ -1380,5 +1378,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [JsonSerializable(typeof(RequestId))]
+    [JsonSerializable(typeof(object))]
     private partial class SourceGenerationContext : JsonSerializerContext;
 }
