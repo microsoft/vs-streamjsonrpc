@@ -694,6 +694,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <summary>
     /// Gets a trim unsafe type loader.
     /// </summary>
+    /// <remarks>
+    /// A trim-safe loader is implemented by <see cref="JsonRpc"/> itself.
+    /// </remarks>
     internal ExceptionSerializationHelpers.IExceptionTypeLoader TrimUnsafeTypeLoader
     {
         [RequiresUnreferencedCode(RuntimeReasons.LoadType)]

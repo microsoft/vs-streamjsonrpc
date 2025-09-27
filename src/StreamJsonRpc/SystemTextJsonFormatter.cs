@@ -771,7 +771,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters)]
     private class ProgressConverterFactory : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -823,7 +822,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class AsyncEnumerableConverter : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -894,7 +892,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class RpcMarshalableConverterFactory : JsonConverterFactory
     {
         private readonly SystemTextJsonFormatter formatter;
@@ -1027,7 +1024,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class ExceptionConverter : JsonConverter<Exception>
     {
         /// <summary>
@@ -1071,7 +1067,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     info.AddSafeValue(property.Key, property.Value);
                 }
 
-                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.JsonRpc, info, this.formatter.JsonRpc.TrimUnsafeTypeLoader, this.formatter.JsonRpc?.TraceSource);
+                return ExceptionSerializationHelpers.Deserialize<Exception>(this.formatter.JsonRpc, info, this.formatter.JsonRpc, this.formatter.JsonRpc?.TraceSource);
             }
             finally
             {
@@ -1099,7 +1095,30 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 foreach (SerializationEntry element in info.GetSafeMembers())
                 {
                     writer.WritePropertyName(element.Name);
-                    JsonSerializer.Serialize(writer, element.Value, options);
+                    if (element.Value is null)
+                    {
+                        writer.WriteNullValue();
+                    }
+                    else if (element.ObjectType == typeof(System.Collections.IDictionary))
+                    {
+                        // Some exception types tuck data into this dictionary that is assumed to be safe to read back (e.g. use a BinaryFormatter to interpret its data).
+                        // Also, it's difficult to safely deserialize an untyped dictionary because we don't have an hash-collision resistant key comparer for System.Object.
+                        // So just skip it.
+                        writer.WriteNullValue();
+                    }
+                    else
+                    {
+                        // We prefer the declared type but will fallback to the runtime type.
+                        Type preferredType = NormalizeType(element.ObjectType);
+                        Type fallbackType = NormalizeType(element.Value.GetType());
+                        if (!this.formatter.massagedUserDataSerializerOptions.TryGetTypeInfo(preferredType, out JsonTypeInfo? typeInfo) &&
+                            !this.formatter.massagedUserDataSerializerOptions.TryGetTypeInfo(fallbackType, out typeInfo))
+                        {
+                            throw new NotSupportedException($"Unable to find JsonTypeInfo for {preferredType} or {fallbackType}.");
+                        }
+
+                        JsonSerializer.Serialize(writer, element.Value, typeInfo);
+                    }
                 }
 
                 writer.WriteEndObject();
@@ -1115,7 +1134,6 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class JsonConverterFormatter : IFormatterConverter
     {
         private readonly JsonSerializerOptions serializerOptions;
@@ -1137,14 +1155,14 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 return DeserializePrimitive(jsonValue);
             }
 
-            return jsonValue.Deserialize(type, this.serializerOptions)!;
+            return jsonValue.Deserialize(this.serializerOptions.GetTypeInfo(type))!;
         }
 
         public object Convert(object value, TypeCode typeCode)
         {
             return typeCode switch
             {
-                TypeCode.Object => ((JsonNode)value).Deserialize(typeof(object), this.serializerOptions)!,
+                TypeCode.Object => ((JsonNode)value).Deserialize(this.serializerOptions.GetTypeInfo(typeof(object)))!,
                 _ => ExceptionSerializationHelpers.Convert(this, value, typeCode),
             };
         }

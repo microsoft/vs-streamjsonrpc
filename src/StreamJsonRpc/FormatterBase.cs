@@ -219,6 +219,40 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <returns>A value to dispose of when serialization has completed.</returns>
     protected SerializationTracking TrackSerialization(JsonRpcMessage message) => new(this, message);
 
+    private protected static Type NormalizeType(Type type)
+    {
+        if (TrackerHelpers.FindIProgressInterfaceImplementedBy(type) is Type iface)
+        {
+            type = iface;
+        }
+        else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(type) is Type iface2)
+        {
+            type = iface2;
+        }
+        else if (typeof(IDuplexPipe).IsAssignableFrom(type))
+        {
+            type = typeof(IDuplexPipe);
+        }
+        else if (typeof(PipeWriter).IsAssignableFrom(type))
+        {
+            type = typeof(PipeWriter);
+        }
+        else if (typeof(PipeReader).IsAssignableFrom(type))
+        {
+            type = typeof(PipeReader);
+        }
+        else if (typeof(Stream).IsAssignableFrom(type))
+        {
+            type = typeof(Stream);
+        }
+        else if (typeof(Exception).IsAssignableFrom(type))
+        {
+            type = typeof(Exception);
+        }
+
+        return type;
+    }
+
     private protected void TryHandleSpecialIncomingMessage(JsonRpcMessage message)
     {
         switch (message)
