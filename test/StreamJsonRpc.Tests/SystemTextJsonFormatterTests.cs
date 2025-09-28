@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;
 
-public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonFormatter>
+public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonFormatter>
 {
     public SystemTextJsonFormatterTests(ITestOutputHelper logger)
         : base(logger)
@@ -68,7 +68,7 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
         Assert.Equal(1, doc.RootElement.GetProperty("params")[0].GetProperty("B").GetInt32());
     }
 
-    protected override SystemTextJsonFormatter CreateFormatter() => new();
+    protected override SystemTextJsonFormatter CreateFormatter() => new() { JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext2.Default } };
 
     [DataContract]
     public class DCSClass
@@ -84,4 +84,10 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
         [JsonPropertyName("B")]
         public int C { get; set; }
     }
+
+    [JsonSerializable(typeof(DCSClass))]
+    [JsonSerializable(typeof(STJClass))]
+    [JsonSerializable(typeof(CustomType))]
+    [JsonSerializable(typeof(string))]
+    private partial class SourceGenerationContext2 : JsonSerializerContext;
 }

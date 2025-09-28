@@ -5,9 +5,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json.Linq;
 
-public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
+public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
 {
     public JsonRpcSystemTextJsonHeadersTests(ITestOutputHelper logger)
         : base(logger)
@@ -44,6 +43,7 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
                 {
                     new TypeThrowsWhenDeserializedConverter(),
                 },
+                TypeInfoResolver = SourceGenerationContext.Default,
             },
         };
         serverMessageFormatter = new SystemTextJsonFormatter
@@ -54,6 +54,7 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
                 {
                     new TypeThrowsWhenDeserializedConverter(),
                 },
+                TypeInfoResolver = SourceGenerationContext.Default,
             },
         };
 
@@ -101,4 +102,8 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
             writer.WriteEndObject();
         }
     }
+
+    [JsonSerializable(typeof(string))]
+    [JsonSerializable(typeof(Exception))]
+    private partial class SourceGenerationContext : JsonSerializerContext;
 }
