@@ -102,6 +102,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 this.rpcMarshaledContextTracker = new MessageFormatterRpcMarshaledContextTracker(value, this.proxyFactory, this);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this, this.rpcMarshaledContextTracker);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.MultiplexingStream };
+                this.IsInitialized = true;
             }
         }
     }
@@ -185,6 +186,11 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// Gets the message whose arguments are being deserialized.
     /// </summary>
     private protected JsonRpcMessage? DeserializingMessage { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether this formatter has been connected to a <see cref="StreamJsonRpc.JsonRpc"/> instance.
+    /// </summary>
+    private protected bool IsInitialized { get; private set; }
 
     /// <inheritdoc/>
     public void Dispose()
@@ -284,6 +290,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 break;
         }
     }
+
+    private protected void ThrowIfInitialized() => Verify.Operation(!this.IsInitialized, "Formatter already initialized.");
 
     /// <summary>
     /// Tracks deserialization of a message.

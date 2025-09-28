@@ -47,6 +47,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    private readonly Dictionary<Type, IGenericTypeArgStore> genericLifts = [];
+
     private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
 
     private JsonSerializerOptions massagedUserDataSerializerOptions;
@@ -328,6 +330,22 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
+    /// <summary>
+    /// Registers a type that may be used as a generic type argument for some generic value to be serialized,
+    /// such as <see cref="IProgress{T}"/> or <see cref="IAsyncEnumerable{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The type argument to some generic type.</typeparam>
+    public void RegisterGenericType<T>()
+    {
+        this.ThrowIfInitialized();
+        if (this.genericLifts.ContainsKey(typeof(T)))
+        {
+            return;
+        }
+
+        this.genericLifts.Add(typeof(T), new GenericTypeArgStore<T>());
+    }
+
     void IJsonRpcFormatterTracingCallbacks.OnSerializationComplete(JsonRpcMessage message, ReadOnlySequence<byte> encodedMessage)
     {
         IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
@@ -366,6 +384,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         options.Converters.Add(new ExceptionConverter(this));
 
         return options;
+    }
+
+    private object? GenericMethodInvoke(Type typeArg, IGenericTypeArgAssist assist, object? state = null)
+    {
+        if (!this.genericLifts.TryGetValue(typeArg, out IGenericTypeArgStore? lift))
+        {
+            throw new NotImplementedException($"{nameof(this.RegisterGenericType)}<T>() must be called first with type argument: {typeArg}.");
+        }
+
+        return lift.Invoke(assist, state);
     }
 
     private static class Utf8Strings
@@ -771,7 +799,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    private class ProgressConverterFactory : JsonConverterFactory
+    private class ProgressConverterFactory : JsonConverterFactory, IGenericTypeArgAssist
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -786,12 +814,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             Type? iface = TrackerHelpers.FindIProgressInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
-            Type genericTypeArg = iface.GetGenericArguments()[0];
-            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
-            return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
+            return (JsonConverter)this.formatter.GenericMethodInvoke(iface.GetGenericArguments()[0], this)!;
         }
 
-        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+        object IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
+
         private class Converter<T> : JsonConverter<IProgress<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -812,7 +839,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 };
 
                 bool clientRequiresNamedArgs = this.formatter.ApplicableMethodAttributeOnDeserializingMethod is { ClientRequiresNamedArguments: true };
-                return (IProgress<T>)this.formatter.FormatterProgressTracker.CreateProgress(this.formatter.JsonRpc, token, typeToConvert, clientRequiresNamedArgs);
+                return (IProgress<T>)this.formatter.FormatterProgressTracker.CreateProgress<T>(this.formatter.JsonRpc, token, clientRequiresNamedArgs);
             }
 
             public override void Write(Utf8JsonWriter writer, IProgress<T> value, JsonSerializerOptions options)
@@ -822,7 +849,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    private class AsyncEnumerableConverter : JsonConverterFactory
+    private class AsyncEnumerableConverter : JsonConverterFactory, IGenericTypeArgAssist
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -837,12 +864,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             Type? iface = TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
-            Type genericTypeArg = iface.GetGenericArguments()[0];
-            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
-            return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
+            return (JsonConverter)this.formatter.GenericMethodInvoke(iface.GetGenericArguments()[0], this)!;
         }
 
-        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+        object? IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
+
         private class Converter<T> : JsonConverter<IAsyncEnumerable<T>>
         {
             private readonly SystemTextJsonFormatter formatter;
@@ -865,7 +891,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 IReadOnlyList<T>? prefetchedItems = null;
                 if (wrapper.RootElement.TryGetProperty(MessageFormatterEnumerableTracker.ValuesPropertyName, out JsonElement prefetchedElement))
                 {
-                    prefetchedItems = prefetchedElement.Deserialize<IReadOnlyList<T>>(options);
+                    prefetchedItems = prefetchedElement.Deserialize((JsonTypeInfo<IReadOnlyList<T>>)options.GetTypeInfo(typeof(IReadOnlyList<T>)));
                 }
 
                 return this.formatter.EnumerableTracker.CreateEnumerableProxy(handle, prefetchedItems);
@@ -884,7 +910,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 if (prefetched.Elements.Count > 0)
                 {
                     writer.WritePropertyName(MessageFormatterEnumerableTracker.ValuesPropertyName);
-                    JsonSerializer.Serialize(writer, prefetched.Elements, options);
+                    JsonSerializer.Serialize(writer, prefetched.Elements, options.GetTypeInfo(typeof(IReadOnlyList<T>)));
                 }
 
                 writer.WriteEndObject();
@@ -892,7 +918,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
     }
 
-    private class RpcMarshalableConverterFactory : JsonConverterFactory
+    private class RpcMarshalableConverterFactory : JsonConverterFactory, IGenericTypeArgAssist
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -908,30 +934,44 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
         {
-            Assumes.True(MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(typeToConvert, JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute));
-            return (JsonConverter)Activator.CreateInstance(
-                typeof(Converter<>).MakeGenericType(typeToConvert),
-                this.formatter,
-                proxyOptions,
-                targetOptions,
-                attribute)!;
+            return (JsonConverter)this.formatter.GenericMethodInvoke(typeToConvert, this)!;
         }
 
-        [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-        private class Converter<T>(SystemTextJsonFormatter formatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter<T>
-            where T : class
+        object? IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
+
+        private class Converter<T> : JsonConverter<T>
         {
+            private readonly SystemTextJsonFormatter formatter;
+            private readonly JsonRpcProxyOptions proxyOptions;
+            private readonly JsonRpcTargetOptions targetOptions;
+            private readonly RpcMarshalableAttribute rpcMarshalableAttribute;
+
+            public Converter(SystemTextJsonFormatter formatter)
+            {
+                Assumes.True(MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(
+                    typeof(T),
+                    JsonRpcProxyOptions.Default,
+                    out JsonRpcProxyOptions? proxyOptions,
+                    out JsonRpcTargetOptions? targetOptions,
+                    out RpcMarshalableAttribute? attribute));
+
+                this.formatter = formatter;
+                this.proxyOptions = proxyOptions;
+                this.targetOptions = targetOptions;
+                this.rpcMarshalableAttribute = attribute;
+            }
+
             public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = JsonSerializer.Deserialize<MessageFormatterRpcMarshaledContextTracker.MarshalToken>(ref reader, options);
-                return (T)formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, proxyOptions);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = JsonSerializer.Deserialize(ref reader, SourceGenerationContext.Default.MarshalToken);
+                return (T)this.formatter.RpcMarshaledContextTracker.GetObject(typeof(T), token, this.proxyOptions);
             }
 
             public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
                 RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(typeof(T));
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = formatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
-                JsonSerializer.Serialize(writer, token, options);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = this.formatter.RpcMarshaledContextTracker.GetToken(value!, this.targetOptions, mapping, this.rpcMarshalableAttribute);
+                JsonSerializer.Serialize(writer, token, SourceGenerationContext.Default.MarshalToken);
             }
         }
     }
@@ -1396,6 +1436,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [JsonSerializable(typeof(RequestId))]
+    [JsonSerializable(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken))]
     [JsonSerializable(typeof(object))]
     private partial class SourceGenerationContext : JsonSerializerContext;
 }
