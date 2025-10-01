@@ -35,33 +35,28 @@ public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         out IJsonRpcMessageHandler clientMessageHandler,
         bool controlledFlushingClient)
     {
-        clientMessageFormatter = new SystemTextJsonFormatter
-        {
-            JsonSerializerOptions =
-            {
-                Converters =
-                {
-                    new TypeThrowsWhenDeserializedConverter(),
-                },
-                TypeInfoResolver = SourceGenerationContext.Default,
-            },
-        };
-        serverMessageFormatter = new SystemTextJsonFormatter
-        {
-            JsonSerializerOptions =
-            {
-                Converters =
-                {
-                    new TypeThrowsWhenDeserializedConverter(),
-                },
-                TypeInfoResolver = SourceGenerationContext.Default,
-            },
-        };
+        clientMessageFormatter = CreateFormatter();
+        serverMessageFormatter = CreateFormatter();
 
         serverMessageHandler = new HeaderDelimitedMessageHandler(serverStream, serverStream, serverMessageFormatter);
         clientMessageHandler = controlledFlushingClient
             ? new DelayedFlushingHandler(clientStream, clientMessageFormatter)
             : new HeaderDelimitedMessageHandler(clientStream, clientStream, clientMessageFormatter);
+
+        static SystemTextJsonFormatter CreateFormatter()
+        {
+            SystemTextJsonFormatter formatter = new()
+            {
+                JsonSerializerOptions =
+                {
+                    TypeInfoResolver = SourceGenerationContext.Default,
+                },
+            };
+            formatter.RegisterGenericType<int>();
+            formatter.RegisterGenericType<CustomSerializedType>();
+            formatter.RegisterGenericType<TypeThrowsWhenSerialized>();
+            return formatter;
+        }
     }
 
     protected override object[] CreateFormatterIntrinsicParamsObject(string arg) =>
@@ -89,7 +84,7 @@ public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         }
     }
 
-    private class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
+    public class TypeThrowsWhenDeserializedConverter : JsonConverter<TypeThrowsWhenDeserialized>
     {
         public override TypeThrowsWhenDeserialized? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
@@ -104,6 +99,32 @@ public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
     }
 
     [JsonSerializable(typeof(string))]
+    [JsonSerializable(typeof(int?))]
+    [JsonSerializable(typeof(bool))]
+    [JsonSerializable(typeof(double))]
+    [JsonSerializable(typeof(Guid))]
+    [JsonSerializable(typeof(JsonElement))]
+    [JsonSerializable(typeof(JsonObject))]
     [JsonSerializable(typeof(Exception))]
+    [JsonSerializable(typeof(ArgumentOutOfRangeException))]
+    [JsonSerializable(typeof(PrivateSerializableException))]
+    [JsonSerializable(typeof(JsonException))]
+    [JsonSerializable(typeof(FileNotFoundException))]
+    [JsonSerializable(typeof(Foo))]
+    [JsonSerializable(typeof(Server.CustomErrorData))]
+    [JsonSerializable(typeof(ExceptionMissingDeserializingConstructor))]
+    [JsonSerializable(typeof(TypeThrowsWhenSerialized))]
+    [JsonSerializable(typeof(TypeThrowsWhenDeserialized))]
+    [JsonSerializable(typeof(InvalidOperationException))]
+    [JsonSerializable(typeof(VAndWProperties))]
+    [JsonSerializable(typeof(XAndYProperties))]
+    [JsonSerializable(typeof(XAndYPropertiesWithProgress))]
+    [JsonSerializable(typeof(ParamsObjectWithCustomNames))]
+    [JsonSerializable(typeof(InternalClass))]
+    [JsonSerializable(typeof(StrongTypedProgressType))]
+    [JsonSerializable(typeof(ProgressWithCompletion<CustomSerializedType>))]
+    [JsonSerializable(typeof(CustomSerializedType))]
+    [JsonSerializable(typeof(IProgress<CustomSerializedType>))]
+    [JsonSerializable(typeof(IProgress<TypeThrowsWhenSerialized>))]
     private partial class SourceGenerationContext : JsonSerializerContext;
 }

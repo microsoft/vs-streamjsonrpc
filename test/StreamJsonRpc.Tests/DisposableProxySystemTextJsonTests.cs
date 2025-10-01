@@ -2,8 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
-public class DisposableProxySystemTextJsonTests : DisposableProxyTests
+public partial class DisposableProxySystemTextJsonTests : DisposableProxyTests
 {
     public DisposableProxySystemTextJsonTests(ITestOutputHelper logger)
         : base(logger)
@@ -12,5 +13,16 @@ public class DisposableProxySystemTextJsonTests : DisposableProxyTests
 
     protected override Type FormatterExceptionType => typeof(JsonException);
 
-    protected override IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter();
+    protected override IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter
+    {
+        JsonSerializerOptions =
+        {
+            TypeInfoResolver = SourceGenerationContext3.Default,
+        },
+    };
+
+    [JsonSerializable(typeof(bool))]
+    [JsonSerializable(typeof(DataContainer))]
+    [JsonSerializable(typeof(IDisposable))]
+    private partial class SourceGenerationContext3 : JsonSerializerContext;
 }

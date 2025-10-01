@@ -7,9 +7,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
@@ -4072,6 +4072,7 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
+    [JsonConverter(typeof(JsonRpcSystemTextJsonHeadersTests.TypeThrowsWhenDeserializedConverter))]
     public class TypeThrowsWhenDeserialized
     {
     }
@@ -4301,7 +4302,7 @@ public abstract partial class JsonRpcTests : TestBase
     /// An exception that throws while being serialized.
     /// </summary>
     [Serializable]
-    private class ExceptionMissingDeserializingConstructor : InvalidOperationException
+    protected class ExceptionMissingDeserializingConstructor : InvalidOperationException
     {
         public ExceptionMissingDeserializingConstructor(string message)
             : base(message)
@@ -4310,7 +4311,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Serializable]
-    private class PrivateSerializableException : Exception
+    protected class PrivateSerializableException : Exception
     {
         public PrivateSerializableException()
         {
