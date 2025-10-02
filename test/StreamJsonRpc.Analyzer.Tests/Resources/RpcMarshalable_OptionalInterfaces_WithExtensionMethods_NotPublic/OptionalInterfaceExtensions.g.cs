@@ -11,12 +11,12 @@ using StreamJsonRpc;
 internal static partial class StreamJsonRpcOptionalInterfaceAccessors
 {
 	/// <inheritdoc cref="global::StreamJsonRpc.IClientProxy.Is(global::System.Type)"/>
-	public static bool Is(this IMarshalable self, global::System.Type type) => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.Is(type) : type.IsAssignableFrom(self.GetType());
+	public static bool Is(this IMarshalable? self, global::System.Type type) => self switch { null => false, global::StreamJsonRpc.IClientProxy proxy => proxy.Is(type), _ => type.IsAssignableFrom(self.GetType()) };
 	/// <inheritdoc cref="global::StreamJsonRpc.JsonRpcExtensions.As{T}(global::StreamJsonRpc.IClientProxy)"/>
-	public static T? As<T>(this IMarshalable self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
+	public static T? As<T>(this IMarshalable? self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
 
 	/// <inheritdoc cref="global::StreamJsonRpc.IClientProxy.Is(global::System.Type)"/>
-	internal static bool Is(this IOptional self, global::System.Type type) => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.Is(type) : type.IsAssignableFrom(self.GetType());
+	internal static bool Is(this IOptional? self, global::System.Type type) => self switch { null => false, global::StreamJsonRpc.IClientProxy proxy => proxy.Is(type), _ => type.IsAssignableFrom(self.GetType()) };
 	/// <inheritdoc cref="global::StreamJsonRpc.JsonRpcExtensions.As{T}(global::StreamJsonRpc.IClientProxy)"/>
-	internal static T? As<T>(this IOptional self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
+	internal static T? As<T>(this IOptional? self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
 }

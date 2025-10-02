@@ -13,13 +13,13 @@ namespace NS
 	internal static partial class StreamJsonRpcOptionalInterfaceAccessors
 	{
 		/// <inheritdoc cref="global::StreamJsonRpc.IClientProxy.Is(global::System.Type)"/>
-		internal static bool Is(this NS.Wrapper.IMarshalable self, global::System.Type type) => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.Is(type) : type.IsAssignableFrom(self.GetType());
+		internal static bool Is(this NS.Wrapper.IMarshalable? self, global::System.Type type) => self switch { null => false, global::StreamJsonRpc.IClientProxy proxy => proxy.Is(type), _ => type.IsAssignableFrom(self.GetType()) };
 		/// <inheritdoc cref="global::StreamJsonRpc.JsonRpcExtensions.As{T}(global::StreamJsonRpc.IClientProxy)"/>
-		internal static T? As<T>(this NS.Wrapper.IMarshalable self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
+		internal static T? As<T>(this NS.Wrapper.IMarshalable? self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
 
 		/// <inheritdoc cref="global::StreamJsonRpc.IClientProxy.Is(global::System.Type)"/>
-		internal static bool Is(this NS.Wrapper.IOptional self, global::System.Type type) => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.Is(type) : type.IsAssignableFrom(self.GetType());
+		internal static bool Is(this NS.Wrapper.IOptional? self, global::System.Type type) => self switch { null => false, global::StreamJsonRpc.IClientProxy proxy => proxy.Is(type), _ => type.IsAssignableFrom(self.GetType()) };
 		/// <inheritdoc cref="global::StreamJsonRpc.JsonRpcExtensions.As{T}(global::StreamJsonRpc.IClientProxy)"/>
-		internal static T? As<T>(this NS.Wrapper.IOptional self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
+		internal static T? As<T>(this NS.Wrapper.IOptional? self) where T : class => self is global::StreamJsonRpc.IClientProxy proxy ? proxy.As<T>() : self as T;
 	}
 }

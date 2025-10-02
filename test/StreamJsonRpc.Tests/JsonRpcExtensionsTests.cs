@@ -11,6 +11,13 @@ public class JsonRpcExtensionsTests : TestBase
     }
 
     [Fact]
+    public void As_NullArg()
+    {
+        // Non-null tests are exercised elsewhere.
+        Assert.Null(JsonRpcExtensions.As<IDisposable>(null));
+    }
+
+    [Fact]
     public async Task AsAsyncEnumerable()
     {
         await AssertExpectedValues(SmallList.AsAsyncEnumerable());

@@ -35,8 +35,8 @@ public static class JsonRpcExtensions
     /// In such cases, this method can be used to determine whether the proxy was intentionally created to implement the interface
     /// or not, allowing feature testing to still happen since conditional casting might lead to false positives.
     /// </remarks>
-    public static T? As<T>(this IClientProxy proxy)
-        where T : class => Requires.NotNull(proxy).Is(typeof(T)) ? (T)(object)proxy : null;
+    public static T? As<T>(this IClientProxy? proxy)
+        where T : class => proxy?.Is(typeof(T)) is true ? (T)(object)proxy : null;
 
 #pragma warning disable VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
     /// <summary>
