@@ -409,6 +409,7 @@ public class JsonRpcContractAnalyzerTests
     public async Task RpcInterfacesNeedMethodsIncludedInShape_Fixable()
     {
         string source = """
+            using PolyType;
             using StreamJsonRpc;
 
             [JsonRpcContract]

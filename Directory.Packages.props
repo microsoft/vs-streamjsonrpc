@@ -27,10 +27,10 @@
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Only" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Validation" Version="17.13.22" />
-    <PackageVersion Include="Nerdbank.MessagePack" Version="0.10.25-rc" />
+    <PackageVersion Include="Nerdbank.MessagePack" Version="0.10.63-rc" />
     <PackageVersion Include="Nerdbank.Streams" Version="2.13.16" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="PolyType" Version="1.0.0-rc.3.g3df5f2012b" />
+    <PackageVersion Include="PolyType" Version="1.0.0-rc.5" />
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
     <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
