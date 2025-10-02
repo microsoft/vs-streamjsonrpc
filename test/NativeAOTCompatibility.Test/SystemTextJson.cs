@@ -13,8 +13,7 @@ internal static partial class SystemTextJson
         JsonRpc serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverPipe, CreateFormatter()));
         JsonRpc clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(clientPipe, CreateFormatter()));
 
-        RpcTargetMetadata.RegisterEventArgs<int>();
-        var targetMetadata = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer)));
+        var targetMetadata = RpcTargetMetadata.FromShape<IServer>();
         serverRpc.AddLocalRpcTarget(targetMetadata, new Server(), null);
 
         serverRpc.StartListening();

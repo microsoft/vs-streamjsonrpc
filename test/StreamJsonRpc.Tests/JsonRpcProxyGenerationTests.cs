@@ -184,8 +184,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task TakeAsync(UnreachableAssembly.SomeUnreachableClass obj);
     }
 
-    [JsonRpcContract]
-    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,

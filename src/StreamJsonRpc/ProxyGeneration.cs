@@ -70,10 +70,6 @@ internal static class ProxyGeneration
         ReadOnlySpan<Type> additionalContractInterfaces = inputs.AdditionalContractInterfaces.Span;
         ReadOnlySpan<(Type Type, int Code)> implementedOptionalInterfaces = inputs.ImplementedOptionalInterfaces.Span;
 
-        // Dynamic proxy generation requires the ability to generate dynamic event handlers.
-        // Not a problem, since by calling into this method the user has already committed to running on a runtime that supports dynamic code.
-        RpcTargetMetadata.EnableDynamicEventHandlerCreation();
-
         VerifySupported(contractInterface.IsInterface, Resources.ClientProxyTypeArgumentMustBeAnInterface, contractInterface);
         foreach (TypeInfo additionalContract in additionalContractInterfaces)
         {

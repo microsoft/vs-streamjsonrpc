@@ -43,6 +43,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public const string GeneratePolyTypeMethodsOnRpcContractInterfaceId = "StreamJsonRpc0008";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0009: Use GenerateShapeAttribute on optional marshalable interface.
+    /// </summary>
+    public const string UseGenerateShapeOnOptionalMarshalableInterfaceId = "StreamJsonRpc0009";
+
+    /// <summary>
     /// Diagnostic ID for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public const string UnsupportedReturnTypeId = "StreamJsonRpc0011";
@@ -133,6 +138,18 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         helpLinkUri: AnalyzerUtilities.GetHelpLink(GeneratePolyTypeMethodsOnRpcContractInterfaceId));
 
     /// <summary>
+    /// Diagnostic for StreamJsonRpc0009: Use GenerateShapeAttribute on optional marshalable interface.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UseGenerateShapeOnOptionalMarshalableInterface = new(
+        id: UseGenerateShapeOnOptionalMarshalableInterfaceId,
+        title: Strings.StreamJsonRpc0009_Title,
+        messageFormat: Strings.StreamJsonRpc0009_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(UseGenerateShapeOnOptionalMarshalableInterfaceId));
+
+    /// <summary>
     /// Diagnostic for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public static readonly DiagnosticDescriptor UnsupportedReturnType = new(
@@ -213,6 +230,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         RpcMarshableDisposable,
         UseRpcMarshalableAttributeOnOptionalInterfaces,
         GeneratePolyTypeMethodsOnRpcContractInterface,
+        UseGenerateShapeOnOptionalMarshalableInterface,
         UnsupportedReturnType,
         UnsupportedMemberType,
         NoGenericMethods,
@@ -294,6 +312,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         }
 
         bool isRpcMarshalable = SymbolEqualityComparer.Default.Equals(rpcContractAttribute.AttributeClass, knownSymbols.RpcMarshalableAttribute);
+        bool isRpcMarshalableOptional = isRpcMarshalable && rpcContractAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.RpcMarshalableAttribute.IsOptional).Value.Value is true;
         bool isCallScopedLifetime = rpcContractAttribute.NamedArguments.FirstOrDefault(a => a.Key == Types.RpcMarshalableAttribute.CallScopedLifetime).Value.Value is true;
         ImmutableList<Diagnostic> diagnostics = [];
         Location typeLocation = namedType.Locations.FirstOrDefault() ?? Location.None;
@@ -303,16 +322,26 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         // GenerateShapeAttribute is ineffective on open generic types, so ignore it in that case.
         AttributeData? generateShapeAttribute = hasGenericTypeParameters ? null : namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.GenerateShapeAttribute));
         AttributeData? typeShapeAttribute = namedType.GetAttributes().FirstOrDefault(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.TypeShapeAttribute));
+        bool preferGenerateShape = generateShapeAttribute is not null || !isRpcMarshalable || isRpcMarshalableOptional;
+        string proposedShapeFix = preferGenerateShape ? "[GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]" : "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]";
         if (!this.IncludesPublicMethods(typeShapeAttribute) && !this.IncludesPublicMethods(generateShapeAttribute))
         {
-            bool preferGenerateShape = generateShapeAttribute is not null || !isRpcMarshalable;
             diagnostics = diagnostics.Add(Diagnostic.Create(
                 GeneratePolyTypeMethodsOnRpcContractInterface,
                 typeLocation,
                 [(generateShapeAttribute ?? typeShapeAttribute)?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)?.GetLocation() ?? Location.None],
                 ImmutableDictionary<string, string?>.Empty.Add("PreferGenerateShape", preferGenerateShape ? "true" : "false"),
                 namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
-                preferGenerateShape ? "[GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]" : "[TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]"));
+                proposedShapeFix));
+        }
+        else if (generateShapeAttribute is null && isRpcMarshalableOptional)
+        {
+            diagnostics = diagnostics.Add(Diagnostic.Create(
+                UseGenerateShapeOnOptionalMarshalableInterface,
+                typeShapeAttribute?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)?.GetLocation() ?? typeLocation ?? Location.None,
+                ImmutableDictionary<string, string?>.Empty.Add("PreferGenerateShape", preferGenerateShape ? "true" : "false"),
+                namedType.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+                proposedShapeFix));
         }
 
         AttributeData[] optionalIfaceAttrs = [.. namedType.GetAttributes().Where(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, knownSymbols.RpcMarshalableOptionalInterface))];

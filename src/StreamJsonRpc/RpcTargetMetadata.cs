@@ -25,8 +25,6 @@ public class RpcTargetMetadata
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> Interfaces = [];
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> PublicClass = [];
     private static readonly ConcurrentDictionary<Type, RpcTargetMetadata> NonPublicClass = [];
-    private static readonly MethodInfo RegisterEventArgsMethodInfo = typeof(RpcTargetMetadata).GetMethod(nameof(RegisterEventArgs), BindingFlags.Public | BindingFlags.Static) ?? throw Assumes.NotReachable();
-    private static Action<Type>? dynamicEventHandlerFactoryRegistration;
 
     /// <summary>
     /// Represents a method that creates a delegate to handle a specified JSON-RPC event.
@@ -69,25 +67,6 @@ public class RpcTargetMetadata
     public required Type TargetType { get; init; }
 
     /// <summary>
-    /// Enables dynamic generation of event handlers for <see cref="EventHandler{TEventArgs}"/> delegates
-    /// where <c>TEventArgs</c> is a value type.
-    /// </summary>
-    /// <remarks>
-    /// This method is not safe to use in NativeAOT applications.
-    /// Such applications should either call <see cref="RegisterEventArgs{TEventArgs}"/> directly for each value-type type argument,
-    /// or rely on source generation to do so.
-    /// </remarks>
-    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    [UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "The generic method we construct has no dynamic member access requirements.")]
-    public static void EnableDynamicEventHandlerCreation()
-    {
-        dynamicEventHandlerFactoryRegistration ??= (type) =>
-        {
-            RegisterEventArgsMethodInfo.MakeGenericMethod(type).Invoke(null, null);
-        };
-    }
-
-    /// <summary>
     /// Creates an instance of RpcTargetMetadata that describes the specified RPC contract interface.
     /// </summary>
     /// <param name="rpcContract">The interface type that defines the RPC contract. Must not be null and must represent an interface type.</param>
@@ -104,6 +83,7 @@ public class RpcTargetMetadata
     /// For a smaller trimmed application, use <see cref="FromInterface(InterfaceCollection)" /> instead.
     /// </para>
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type rpcContract)
     {
         Requires.NotNull(rpcContract);
@@ -131,6 +111,7 @@ public class RpcTargetMetadata
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown if <paramref name="interfaces"/> does not represent all the interfaces that the target interface derives from.</exception>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromInterface(InterfaceCollection interfaces)
     {
         Requires.NotNull(interfaces);
@@ -149,6 +130,7 @@ public class RpcTargetMetadata
             WalkInterface(interfaces[i]);
         }
 
+        [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         void WalkInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
         {
             AddMethods(builder, iface.GetMethods(BindingFlags.Public | BindingFlags.Instance));
@@ -175,6 +157,7 @@ public class RpcTargetMetadata
     /// For a smaller trimmed application, use <see cref="FromClass(Type, ClassAndInterfaces)" /> instead.
     /// </para>
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type classType)
         => FromClass(classType, ClassAndInterfaces.Create(classType));
 
@@ -195,6 +178,7 @@ public class RpcTargetMetadata
     /// <exception cref="ArgumentException">
     /// Thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
     /// </exception>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromClass([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
         Requires.NotNull(classType);
@@ -236,6 +220,7 @@ public class RpcTargetMetadata
     /// For a smaller trimmed application, use <see cref="FromClassNonPublic(Type, ClassAndInterfaces)" /> instead.
     /// </para>
     /// </remarks>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type classType)
         => FromClassNonPublic(classType, ClassAndInterfaces.Create(classType));
 
@@ -256,6 +241,7 @@ public class RpcTargetMetadata
     /// <exception cref="ArgumentException">
     /// Thrown if the <paramref name="classType"/> does not match the <see cref="ClassAndInterfaces.ClassType"/> in the provided metadata.
     /// </exception>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     public static RpcTargetMetadata FromClassNonPublic([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.NonPublicEvents)] Type classType, ClassAndInterfaces metadata)
     {
         Requires.NotNull(classType);
@@ -321,19 +307,10 @@ public class RpcTargetMetadata
 
         Builder builder = new(shape);
         AddMethods(builder, shape.Methods);
+        AddEvents(builder, shape.Events);
 
         return builder.ToImmutable();
     }
-
-    /// <summary>
-    /// Creates an event handler factory that supports <see cref="EventHandler{TEventArgs}"/> for a given <typeparamref name="TEventArgs"/>.
-    /// </summary>
-    /// <typeparam name="TEventArgs">
-    /// The type argument used in <see cref="EventHandler{TEventArgs}"/>.
-    /// Only structs are supported because only value types need registration. Reference types work without registration.
-    /// </typeparam>
-    public static void RegisterEventArgs<TEventArgs>()
-        where TEventArgs : struct => EventHandlerFactories.TryAdd(typeof(TEventArgs), new EventHandlerFactory<TEventArgs>());
 
     private static void AddMethods(Builder builder, IReadOnlyList<IMethodShape> methods)
     {
@@ -378,6 +355,7 @@ public class RpcTargetMetadata
         return true;
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private static void AddEvents(Builder builder, IEnumerable<EventInfo> events)
     {
         foreach (EventInfo @event in events)
@@ -386,6 +364,26 @@ public class RpcTargetMetadata
         }
     }
 
+    private static void AddEvents(Builder builder, IReadOnlyList<IEventShape> events)
+    {
+        foreach (IEventShape shape in events)
+        {
+            TryAddCandidateEvent(builder, shape);
+        }
+    }
+
+    private static bool TryAddCandidateEvent(Builder builder, IEventShape shape)
+    {
+        if (shape.Accept(EventShapeVisitor.Instance, builder) is EventMetadata eventMetadata)
+        {
+            builder.Events.Add(eventMetadata);
+            return true;
+        }
+
+        return false;
+    }
+
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     private static bool TryAddCandidateEvent(Builder builder, EventInfo @event)
     {
         if (@event.EventHandlerType is null)
@@ -415,10 +413,11 @@ public class RpcTargetMetadata
 
         builder.Events.Add(new EventMetadata
         {
-            Event = @event,
             Name = @event.Name,
             EventHandlerType = @event.EventHandlerType,
             CreateEventHandler = createEventHandler,
+            AddEventHandler = (target, handler) => @event.AddEventHandler(target, handler),
+            RemoveEventHandler = (target, handler) => @event.RemoveEventHandler(target, handler),
         });
         return true;
 
@@ -433,21 +432,10 @@ public class RpcTargetMetadata
                     return Delegate.CreateDelegate(@event.EventHandlerType, d.Target, d.Method);
                 };
             }
-            else if (EventHandlerFactories.TryGetValue(argType, out IEventHandlerFactory? factory))
-            {
-                return (jsonRpc, eventName) => factory.CreateEventHandler(jsonRpc, eventName, @event.EventHandlerType);
-            }
             else
             {
-                if (dynamicEventHandlerFactoryRegistration is not null)
-                {
-                    dynamicEventHandlerFactoryRegistration(argType);
-                    Assumes.True(EventHandlerFactories.TryGetValue(argType, out factory));
-                    return (jsonRpc, eventName) => factory.CreateEventHandler(jsonRpc, eventName, @event.EventHandlerType);
-                }
-
-                // We don't have a factory registered for this value type.
-                throw new NotSupportedException($"{@event.DeclaringType}.{@event.Name} event uses {argType} as its second parameter. Structs used as event args must be registered beforehand using {nameof(RpcTargetMetadata)}.{nameof(RegisterEventArgs)}<T>().");
+                IEventHandlerFactory factory = EventHandlerFactories.GetOrAdd(argType, static t => (IEventHandlerFactory)Activator.CreateInstance(typeof(EventHandlerFactory<>).MakeGenericType(t))!);
+                return (jsonRpc, eventName) => factory.CreateEventHandler(jsonRpc, eventName, @event.EventHandlerType);
             }
         }
 
@@ -698,11 +686,6 @@ public class RpcTargetMetadata
     public class EventMetadata
     {
         /// <summary>
-        /// Gets the event for which this metadata is describing the handler.
-        /// </summary>
-        public required EventInfo Event { get; init; }
-
-        /// <summary>
         /// Gets the name of the RPC method that this event will invoke when raised.
         /// </summary>
         public required string Name { get; init; }
@@ -716,6 +699,16 @@ public class RpcTargetMetadata
         /// Gets a factory method that creates a delegate to handle the event.
         /// </summary>
         public required CreateEventHandlerDelegate CreateEventHandler { get; init; }
+
+        /// <summary>
+        /// Gets a function that will add an event handler for this event to a given target object.
+        /// </summary>
+        public required Action<object?, Delegate> AddEventHandler { get; init; }
+
+        /// <summary>
+        /// Gets a function that will remove an event handler for this event to a given target object.
+        /// </summary>
+        public required Action<object?, Delegate> RemoveEventHandler { get; init; }
     }
 
     /// <summary>
@@ -941,6 +934,67 @@ public class RpcTargetMetadata
             }
 
             return aliasedMethods.ToImmutable();
+        }
+    }
+
+    private class EventShapeVisitor : TypeShapeVisitor
+    {
+        internal static readonly EventShapeVisitor Instance = new();
+
+        public override object? VisitEvent<TDeclaringType, TEventHandler>(IEventShape<TDeclaringType, TEventHandler> eventShape, object? state = null)
+        {
+            if (eventShape is not { IsStatic: false } ||
+                eventShape.HandlerType.Accept(this) is not CreateEventHandlerDelegate createEventHandlerDelegate)
+            {
+                return null;
+            }
+
+            Setter<TDeclaringType?, TEventHandler> addHandler = eventShape.GetAddHandler();
+            Setter<TDeclaringType?, TEventHandler> removeHandler = eventShape.GetRemoveHandler();
+
+            return new EventMetadata
+            {
+                Name = eventShape.Name,
+                EventHandlerType = eventShape.HandlerType.Type,
+                CreateEventHandler = createEventHandlerDelegate,
+                AddEventHandler = (target, handler) =>
+                {
+                    TDeclaringType? typedTarget = (TDeclaringType?)target;
+                    addHandler(ref typedTarget, (TEventHandler)(object)handler!);
+                },
+                RemoveEventHandler = (target, handler) =>
+                {
+                    TDeclaringType? typedTarget = (TDeclaringType?)target;
+                    removeHandler(ref typedTarget, (TEventHandler)(object)handler!);
+                },
+            };
+        }
+
+        public override object? VisitFunction<TFunction, TArgumentState, TResult>(IFunctionTypeShape<TFunction, TArgumentState, TResult> functionShape, object? state = null)
+        {
+            if (functionShape is not { IsVoidLike: true, IsAsync: false, Parameters: [{ Name: "sender" }, { } parameterShape] })
+            {
+                return null;
+            }
+
+            Type[] argTypes = [parameterShape.ParameterType.Type];
+            var argGetter = (Getter<TArgumentState, object?>)parameterShape.Accept(this, state)!;
+            return new CreateEventHandlerDelegate((rpc, name) =>
+            {
+                return (Delegate)(object)functionShape.FromDelegate((ref TArgumentState argState) =>
+                {
+                    object? arg = argGetter(ref argState);
+                    rpc.NotifyAsync(name, [arg], argTypes).Forget();
+                    return default!;
+                })!;
+            });
+        }
+
+        public override object? VisitParameter<TArgumentState, TParameterType>(IParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null)
+        {
+            // Return a delegate that boxes the argument as an object.
+            Getter<TArgumentState, TParameterType> argGetter = parameterShape.GetGetter();
+            return new Getter<TArgumentState, object?>((ref TArgumentState argState) => argGetter(ref argState));
         }
     }
 }
