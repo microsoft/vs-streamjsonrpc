@@ -13,7 +13,7 @@
     <!-- PolyType generated code constructs a ProgressWithCompletion<T> without a JTF, but for tests we don't care. -->
     <NoWarn>$(NoWarn);VSTHRD012</NoWarn>
     <!-- This warning cannot be suppressed via #pragma https://github.com/eiriktsarpalis/PolyType/issues/196#issuecomment-3194972366 -->
-    <NoWarn>$(NoWarn);PT0021</NoWarn>
+    <NoWarn>$(NoWarn);PT0021;PT0022</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

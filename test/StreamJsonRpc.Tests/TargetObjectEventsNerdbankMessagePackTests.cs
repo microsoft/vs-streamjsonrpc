@@ -11,6 +11,14 @@ public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelpe
         this.clientMessageHandler = new LengthHeaderMessageHandler(this.clientStream, this.clientStream, clientMessageFormatter);
     }
 
-    [GenerateShapeFor<bool>]
+    protected override JsonRpc CreateJsonRpcWithTargetObject<T>(IJsonRpcMessageHandler messageHandler, T targetObject, JsonRpcTargetOptions? options)
+    {
+        JsonRpc jsonRpc = new(messageHandler);
+        jsonRpc.AddLocalRpcTarget(RpcTargetMetadata.FromShape<T>(Witness.GeneratedTypeShapeProvider), targetObject, options);
+        return jsonRpc;
+    }
+
+    [GenerateShapeFor<Server>(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [GenerateShapeFor<Client>(IncludeMethods = MethodShapeFlags.PublicInstance)]
     private partial class Witness;
 }
