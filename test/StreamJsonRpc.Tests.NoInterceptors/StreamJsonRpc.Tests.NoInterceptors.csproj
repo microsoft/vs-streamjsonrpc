@@ -11,6 +11,8 @@
     <NoWarn Condition="'$(TargetFramework)'!='net472'">$(NoWarn);xUnit1051</NoWarn>
     <!-- Until https://github.com/eiriktsarpalis/PolyType/pull/234 merges, we must suppress CS0436 project-wide. -->
     <NoWarn>$(NoWarn);CS0436</NoWarn>
+    <!-- This warning cannot be suppressed via #pragma https://github.com/eiriktsarpalis/PolyType/issues/196#issuecomment-3194972366 -->
+    <NoWarn>$(NoWarn);PT0022</NoWarn>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <DefineConstants>$(DefineConstants);NO_INTERCEPTORS</DefineConstants>
   </PropertyGroup>
