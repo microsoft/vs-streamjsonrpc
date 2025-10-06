@@ -6,7 +6,6 @@ schedules:
   branches:
     include:
     - main
-    - feature/polytype
 
 parameters:
 # As an entrypoint pipeline yml file, all parameters here show up in the Queue Run dialog.
