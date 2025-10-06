@@ -396,7 +396,10 @@ public partial class ProxyGenerator : IIncrementalGenerator
             yield return [primary];
 
             // And if RpcMarshalable optional interfaces were specified, add them to another group.
-            yield return [primary, .. optionalMarshalableInterfaces];
+            if (optionalMarshalableInterfaces.Count > 0)
+            {
+                yield return [primary, .. optionalMarshalableInterfaces];
+            }
         }
     }
 
