@@ -35,6 +35,7 @@ When building a Visual Studio extension, you should not include StreamJsonRpc in
 | VS 2022.13 | 1.5.x, 2.21.x
 | VS 2022.14 | 1.5.x, 2.22.x
 | VS 2026.0  | 1.5.x, 2.23.x
+| VS 2026.3  | 1.5.x, 2.24.x
 
 StreamJsonRpc versions are forwards and backwards compatible "over the wire". For example it is perfectly legitimate to use StreamJsonRpc 2.4 on the server-side even if the client only uses 1.0, or vice versa. If an RPC method utilizes a newer StreamJsonRpc feature (e.g. `IAsyncEnumerable<T>` return value) and an older client that doesn't support these specially marshaled objects is used to call that method, a memory leak on the server may result.
 
