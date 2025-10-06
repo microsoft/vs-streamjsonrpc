@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -258,40 +257,6 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         topLevelProperties ??= new Dictionary<string, RawMessagePack>(StringComparer.Ordinal);
         string name = context.GetConverter<string>(Witness.GeneratedTypeShapeProvider).Read(ref reader, context) ?? throw new MessagePackSerializationException("Unexpected nil at property name position.");
         topLevelProperties.Add(name, reader.ReadRaw(context));
-    }
-
-    private static Type NormalizeType(Type type)
-    {
-        if (TrackerHelpers.FindIProgressInterfaceImplementedBy(type) is Type iface)
-        {
-            type = iface;
-        }
-        else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(type) is Type iface2)
-        {
-            type = iface2;
-        }
-        else if (typeof(IDuplexPipe).IsAssignableFrom(type))
-        {
-            type = typeof(IDuplexPipe);
-        }
-        else if (typeof(PipeWriter).IsAssignableFrom(type))
-        {
-            type = typeof(PipeWriter);
-        }
-        else if (typeof(PipeReader).IsAssignableFrom(type))
-        {
-            type = typeof(PipeReader);
-        }
-        else if (typeof(Stream).IsAssignableFrom(type))
-        {
-            type = typeof(Stream);
-        }
-        else if (typeof(Exception).IsAssignableFrom(type))
-        {
-            type = typeof(Exception);
-        }
-
-        return type;
     }
 
     private static T ActivateAssociatedType<T>(ITypeShape shape, Type associatedType)

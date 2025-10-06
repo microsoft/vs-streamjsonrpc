@@ -93,6 +93,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 this.rpcMarshaledContextTracker = this.CreateMessageFormatterRpcMarshaledContextTracker(value);
                 this.enumerableTracker = new MessageFormatterEnumerableTracker(value, this, this.rpcMarshaledContextTracker);
                 this.duplexPipeTracker = new MessageFormatterDuplexPipeTracker(value, this) { MultiplexingStream = this.MultiplexingStream };
+                this.IsInitialized = true;
             }
         }
     }
@@ -177,6 +178,11 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// </summary>
     private protected JsonRpcMessage? DeserializingMessage { get; private set; }
 
+    /// <summary>
+    /// Gets a value indicating whether this formatter has been connected to a <see cref="StreamJsonRpc.JsonRpc"/> instance.
+    /// </summary>
+    private protected bool IsInitialized { get; private set; }
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -209,6 +215,40 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
     /// <param name="message">The message being serialized.</param>
     /// <returns>A value to dispose of when serialization has completed.</returns>
     protected SerializationTracking TrackSerialization(JsonRpcMessage message) => new(this, message);
+
+    private protected static Type NormalizeType(Type type)
+    {
+        if (TrackerHelpers.FindIProgressInterfaceImplementedBy(type) is Type iface)
+        {
+            type = iface;
+        }
+        else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(type) is Type iface2)
+        {
+            type = iface2;
+        }
+        else if (typeof(IDuplexPipe).IsAssignableFrom(type))
+        {
+            type = typeof(IDuplexPipe);
+        }
+        else if (typeof(PipeWriter).IsAssignableFrom(type))
+        {
+            type = typeof(PipeWriter);
+        }
+        else if (typeof(PipeReader).IsAssignableFrom(type))
+        {
+            type = typeof(PipeReader);
+        }
+        else if (typeof(Stream).IsAssignableFrom(type))
+        {
+            type = typeof(Stream);
+        }
+        else if (typeof(Exception).IsAssignableFrom(type))
+        {
+            type = typeof(Exception);
+        }
+
+        return type;
+    }
 
     private protected abstract MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc);
 
@@ -243,6 +283,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
                 break;
         }
     }
+
+    private protected void ThrowIfInitialized() => Verify.Operation(!this.IsInitialized, "Formatter already initialized.");
 
     /// <summary>
     /// Tracks deserialization of a message.
