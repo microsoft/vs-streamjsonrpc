@@ -28,9 +28,7 @@ public partial class NotifyBenchmarks
             {
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
-#if POLYTYPE
-                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = ShapeProvider }),
-#endif
+                "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = GeneratedTypeShapeProvider }),
                 _ => throw Assumes.NotReachable(),
             };
         }

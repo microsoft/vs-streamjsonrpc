@@ -39,14 +39,18 @@ public abstract partial class TargetObjectEventsTests : TestBase
         string Name { get; }
     }
 
-    public interface IServer
+    [JsonRpcContract]
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServer
     {
         event EventHandler InterfaceEvent;
 
         event EventHandler ExplicitInterfaceImplementation_Event;
     }
 
-    public interface IServerDerived : IServer
+    [JsonRpcContract]
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServerDerived : IServer
     {
         event EventHandler DerivedInterfaceEvent;
     }
@@ -57,10 +61,9 @@ public abstract partial class TargetObjectEventsTests : TestBase
     public void ServerEventRespondsToOptions(bool registerOn)
     {
         var streams = FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpc(streams.Item1, streams.Item1);
         var options = new JsonRpcTargetOptions { NotifyClientOfEvents = registerOn };
         var server = new Server();
-        rpc.AddLocalRpcTarget(server, options);
+        var rpc = this.CreateJsonRpcWithTargetObject(streams.Item1, server, options);
         if (registerOn)
         {
             Assert.NotNull(server.ServerEventAccessor);
@@ -172,8 +175,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
             return clrMethodName;
         };
 
-        var serverRpc = new JsonRpc(this.serverStream, this.serverStream);
-        serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
+        this.CreateJsonRpcWithTargetObject(this.serverStream, this.server, new JsonRpcTargetOptions { MethodNameTransform = methodNameTransform });
     }
 
     [Fact]
@@ -198,10 +200,8 @@ public abstract partial class TargetObjectEventsTests : TestBase
         var clientWithoutTransform = new Client();
         var clientWithTransform = new Client();
 
-        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
+        this.serverRpc = this.CreateJsonRpcWithTargetObject(this.serverStream, serverWithTransform, new JsonRpcTargetOptions { EventNameTransform = eventNameTransform });
         this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
-
-        this.serverRpc.AddLocalRpcTarget(serverWithTransform, new JsonRpcTargetOptions { EventNameTransform = eventNameTransform });
 
         // We have to use MethodNameTransform here as Client uses methods to listen for events on server
         this.clientRpc.AddLocalRpcTarget(clientWithoutTransform);
@@ -229,8 +229,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream);
-        this.serverRpc.AddLocalRpcTarget<IServer>(this.server, null);
+        this.serverRpc = this.CreateJsonRpcWithTargetObject<IServer>(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
         this.clientRpc = new JsonRpc(this.clientStream);
@@ -262,8 +261,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream);
-        this.serverRpc.AddLocalRpcTarget<IServerDerived>(this.server, null);
+        this.serverRpc = this.CreateJsonRpcWithTargetObject<IServerDerived>(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
         this.clientRpc = new JsonRpc(this.clientStream);
@@ -301,8 +299,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream);
-        this.serverRpc.AddLocalRpcTarget<Server>(this.server, null);
+        this.serverRpc = this.CreateJsonRpcWithTargetObject(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
         this.clientRpc = new JsonRpc(this.clientStream);
@@ -340,6 +337,18 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
     protected abstract void InitializeFormattersAndHandlers();
 
+    protected virtual JsonRpc CreateJsonRpcWithTargetObject<T>(Stream stream, T targetObject, JsonRpcTargetOptions? options = null)
+        where T : notnull
+        => this.CreateJsonRpcWithTargetObject(new HeaderDelimitedMessageHandler(stream), targetObject, options);
+
+    protected virtual JsonRpc CreateJsonRpcWithTargetObject<T>(IJsonRpcMessageHandler messageHandler, T targetObject, JsonRpcTargetOptions? options = null)
+        where T : notnull
+    {
+        JsonRpc jsonRpc = new(messageHandler);
+        jsonRpc.AddLocalRpcTarget(targetObject, options);
+        return jsonRpc;
+    }
+
     private void ReinitializeRpcWithoutListening()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -348,8 +357,8 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
         this.InitializeFormattersAndHandlers();
 
-        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
-        this.clientRpc = new JsonRpc(this.clientMessageHandler, this.client);
+        this.serverRpc = this.CreateJsonRpcWithTargetObject(this.serverMessageHandler, this.server);
+        this.clientRpc = this.CreateJsonRpcWithTargetObject(this.clientMessageHandler, this.client);
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
@@ -388,7 +397,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         public T? Message { get; set; }
     }
 
-    protected class Client
+    protected internal class Client
     {
         internal Action<EventArgs>? ServerEventRaised { get; set; }
 
@@ -411,12 +420,12 @@ public abstract partial class TargetObjectEventsTests : TestBase
         public void IFruitEvent(IFruit args) => this.ServerIFruitEventRaised?.Invoke(args);
     }
 
-    protected abstract class ServerBase
+    protected internal abstract class ServerBase
     {
         public abstract event EventHandler? AbstractBaseEvent;
     }
 
-    protected class Server : ServerBase, IServerDerived
+    protected internal class Server : ServerBase, IServerDerived
     {
         private EventHandler? explicitInterfaceImplementationEvent;
 

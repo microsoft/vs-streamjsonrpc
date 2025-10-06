@@ -27,6 +27,8 @@ namespace StreamJsonRpc;
 [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
 public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcMessageTextFormatter, IJsonRpcInstanceContainer, IJsonRpcMessageFactory, IJsonRpcFormatterTracingCallbacks
 {
+    private static readonly ProxyFactory ProxyFactory = ProxyFactory.Default;
+
     private static readonly JsonWriterOptions WriterOptions = new() { };
 
     private static readonly JsonDocumentOptions DocumentOptions = new() { };
@@ -344,6 +346,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     Protocol.JsonRpcError IJsonRpcMessageFactory.CreateErrorMessage() => new JsonRpcError(this);
 
     Protocol.JsonRpcResult IJsonRpcMessageFactory.CreateResultMessage() => new JsonRpcResult(this);
+
+    /// <inheritdoc/>
+    private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.Dynamic(rpc, ProxyFactory, this);
 
     private JsonSerializerOptions MassageUserDataSerializerOptions(JsonSerializerOptions options)
     {

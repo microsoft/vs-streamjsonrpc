@@ -4,7 +4,7 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using Nerdbank.MessagePack;
-using PolyType.Abstractions;
+using PolyType;
 using StreamJsonRpc.Reflection;
 
 namespace StreamJsonRpc;
@@ -119,7 +119,7 @@ public partial class NerdbankMessagePackFormatter
                     else
                     {
                         // We prefer the declared type but will fallback to the runtime type.
-                        context.GetConverter(formatter.TypeShapeProvider.GetShape(NormalizeType(element.ObjectType)) ?? formatter.TypeShapeProvider.Resolve(NormalizeType(element.Value.GetType())))
+                        context.GetConverter(formatter.TypeShapeProvider.GetTypeShape(NormalizeType(element.ObjectType)) ?? formatter.TypeShapeProvider.GetTypeShapeOrThrow(NormalizeType(element.Value.GetType())))
                             .WriteObject(ref writer, element.Value, context);
                     }
                 }

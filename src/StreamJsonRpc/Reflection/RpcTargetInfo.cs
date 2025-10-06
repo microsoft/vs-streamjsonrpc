@@ -238,11 +238,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         string rpcMethodName = methodRpcSettings?.Name ?? handler.Name;
         lock (this.SyncObject)
         {
-#if POLYTYPE
             MethodSignatureAndTarget methodTarget = new(RpcTargetMetadata.TargetMethodMetadata.From(handler, methodRpcSettings, shape: null, methodShapeAttribute: null), target, attribute: null, synchronizationContext);
-#else
-            MethodSignatureAndTarget methodTarget = new(RpcTargetMetadata.TargetMethodMetadata.From(handler, methodRpcSettings), target, attribute: null, synchronizationContext);
-#endif
             this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
             {
@@ -412,7 +408,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     {
         private readonly JsonRpc jsonRpc;
         private readonly object server;
-        private readonly EventInfo eventInfo;
+        private readonly Action<object?, Delegate> removeEventHandler;
         private readonly Delegate registeredHandler;
         private readonly string rpcEventName;
 
@@ -426,17 +422,17 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
             this.jsonRpc = jsonRpc;
             this.server = server;
-            this.eventInfo = eventMetadata.Event;
+            this.removeEventHandler = eventMetadata.RemoveEventHandler;
 
             this.rpcEventName = options.EventNameTransform is not null ? options.EventNameTransform(eventMetadata.Name) : eventMetadata.Name;
 
             this.registeredHandler = eventMetadata.CreateEventHandler(jsonRpc, this.rpcEventName);
-            eventMetadata.Event.AddEventHandler(server, this.registeredHandler);
+            eventMetadata.AddEventHandler(server, this.registeredHandler);
         }
 
         public void Dispose()
         {
-            this.eventInfo.RemoveEventHandler(this.server, this.registeredHandler);
+            this.removeEventHandler(this.server, this.registeredHandler);
         }
     }
 }

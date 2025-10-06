@@ -12,8 +12,8 @@ public partial class AsyncEnumerableNerdbankMessagePackTests : AsyncEnumerableTe
 
     protected override void InitializeFormattersAndHandlers()
     {
-        this.serverMessageFormatter = new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
-        this.clientMessageFormatter = new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.ShapeProvider };
+        this.serverMessageFormatter = new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
+        this.clientMessageFormatter = new NerdbankMessagePackFormatter() { TypeShapeProvider = Witness.GeneratedTypeShapeProvider };
     }
 
     [GenerateShapeFor<bool>]

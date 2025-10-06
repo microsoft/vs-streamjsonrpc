@@ -5,9 +5,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
-#if POLYTYPE
 using Nerdbank.MessagePack;
-#endif
 using PolyType;
 using STJ = System.Text.Json.Serialization;
 
@@ -18,9 +16,7 @@ namespace StreamJsonRpc.Protocol;
 /// </summary>
 [DataContract]
 [GenerateShape]
-#if POLYTYPE
 [MessagePackConverter(typeof(NerdbankMessagePackFormatter.JsonRpcRequestConverter))]
-#endif
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 {
@@ -55,7 +51,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </summary>
     [DataMember(Name = "method", Order = 2, IsRequired = true)]
     [STJ.JsonPropertyName("method"), STJ.JsonPropertyOrder(2), STJ.JsonRequired]
-    [PropertyShape(Name = "method", Order = 2)]
+    [PropertyShape(Name = "method", Order = 2, IsRequired = true)]
     public string? Method { get; set; }
 
     /// <summary>

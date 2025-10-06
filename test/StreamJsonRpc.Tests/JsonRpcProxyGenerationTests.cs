@@ -184,8 +184,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task TakeAsync(UnreachableAssembly.SomeUnreachableClass obj);
     }
 
-    [JsonRpcContract]
-    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IServerInternal :
         ExAssembly.ISomeInternalProxyInterface,
         IServerInternalWithInternalTypesFromOtherAssemblies,
@@ -915,7 +914,6 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         await proxy.DoSomethingAsync().WithCancellation(this.TimeoutToken);
     }
 
-#if POLYTYPE
     [Fact]
     public async Task ShapeRenamedMethod()
     {
@@ -927,7 +925,6 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var proxy = this.clientJsonRpc.Attach<IRpcWithAsyncSuffixedMethod>(this.DefaultProxyOptions);
         await proxy.DoShapeThingAsync().WithCancellation(this.TimeoutToken);
     }
-#endif
 
     /// <summary>
     /// Validates that similar proxies are generated in the same dynamic assembly.

@@ -9,6 +9,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
@@ -2431,9 +2432,7 @@ public abstract partial class JsonRpcTests : TestBase
                 InvalidOperationException ex = new("IOE test exception");
 
                 // Our more strongly typed and safer serializer does not serialize the Data dictionary.
-#if POLYTYPE
                 if (this is not JsonRpcNerdbankMessagePackLengthTests)
-#endif
                 {
                     ex.Data["someKey"] = "someValue";
                 }
@@ -2589,11 +2588,7 @@ public abstract partial class JsonRpcTests : TestBase
         // Make sure the exception is its own unique (deserialized) instance, but equal by value.
         Assert.NotSame(this.server.ReceivedException, exceptionToSend);
 
-#if POLYTYPE
         if (this.clientMessageFormatter is MessagePackFormatter or NerdbankMessagePackFormatter)
-#else
-        if (this.clientMessageFormatter is MessagePackFormatter)
-#endif
         {
             // MessagePack cannot (safely) deserialize a typeless value like ArgumentOutOfRangeException.ActualValue,
             // So assert that a placeholder was put there instead.

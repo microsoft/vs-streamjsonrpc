@@ -19,7 +19,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests(ITestOutputHelper log
     {
         NerdbankMessagePackFormatter serverFormatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = NerdbankMessagePackFormatter.DefaultSerializer with
             {
                 Converters =
@@ -34,7 +34,7 @@ public partial class JsonRpcNerdbankMessagePackLengthTests(ITestOutputHelper log
 
         NerdbankMessagePackFormatter clientFormatter = new()
         {
-            TypeShapeProvider = Witness.ShapeProvider,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
             UserDataSerializer = serverFormatter.UserDataSerializer,
         };
 
