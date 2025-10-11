@@ -96,8 +96,8 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
         MarshallingRealObject = 1,
     }
 
-    internal static bool TryGetMarshalOptionsForType<T>(
-        ITypeShape<T> typeShape,
+    internal static bool TryGetMarshalOptionsForType(
+        ITypeShape typeShape,
         JsonRpcProxyOptions defaultProxyOptions,
         [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
