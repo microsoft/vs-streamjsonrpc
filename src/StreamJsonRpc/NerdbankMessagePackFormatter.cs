@@ -1242,7 +1242,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         }
     }
 
-    private class ConverterFactory : IMessagePackConverterFactory
+    private class ConverterFactory : IMessagePackConverterFactory, ITypeShapeFunc
     {
         internal static readonly ConverterFactory Instance = new();
 
@@ -1250,12 +1250,20 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         {
         }
 
-        public MessagePackConverter<T>? CreateConverter<T>(ITypeShape<T> shape)
-            => MessageFormatterProgressTracker.CanDeserialize(typeof(T)) || MessageFormatterProgressTracker.CanSerialize(typeof(T)) ? new ProgressConverter<T>() :
-               TrackerHelpers.IsIAsyncEnumerable(typeof(T)) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
-               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
+        public MessagePackConverter? CreateConverter(ITypeShape shape)
+            => MessageFormatterProgressTracker.CanDeserialize(shape.Type) || MessageFormatterProgressTracker.CanSerialize(shape.Type) ||
+               TrackerHelpers.IsIAsyncEnumerable(shape.Type) ||
+               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(shape.Type) is Type ||
+               MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(shape, DefaultRpcMarshalableProxyOptions, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ||
+               typeof(Exception).IsAssignableFrom(shape.Type)
+               ? this.Invoke(shape) : null;
+
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> shape, object? state)
+            => MessageFormatterProgressTracker.CanDeserialize(shape.Type) || MessageFormatterProgressTracker.CanSerialize(shape.Type) ? new ProgressConverter<T>() :
+               TrackerHelpers.IsIAsyncEnumerable(shape.Type) ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
+               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(shape.Type) is Type iface ? ActivateAssociatedType<MessagePackConverter<T>>(shape, typeof(AsyncEnumerableConverter<>)) :
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(shape, DefaultRpcMarshalableProxyOptions, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ? new RpcMarshalableConverter<T>(shape, proxyOptions, targetOptions, attribute) :
-               typeof(Exception).IsAssignableFrom(typeof(T)) ? new ExceptionConverter<T>() :
+               typeof(Exception).IsAssignableFrom(shape.Type) ? new ExceptionConverter<T>() :
                null;
     }
 
