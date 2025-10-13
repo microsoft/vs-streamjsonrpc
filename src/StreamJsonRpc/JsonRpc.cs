@@ -237,10 +237,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Initializes a new instance of the <see cref="JsonRpc"/> class.
     /// </summary>
     /// <param name="messageHandler">The message handler to use to transmit and receive RPC messages.</param>
+    /// <param name="cancellationStrategy">
+    /// An optional cancellation strategy used to control how in-flight requests
+    /// are cancelled. If <see langword="null"/>, the default strategy <see cref="StandardCancellationStrategy"/> is used.
+    /// </param>
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
-    public JsonRpc(IJsonRpcMessageHandler messageHandler)
+    public JsonRpc(IJsonRpcMessageHandler messageHandler, ICancellationStrategy? cancellationStrategy = null)
     {
         Requires.NotNull(messageHandler, nameof(messageHandler));
 
@@ -259,7 +263,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         // If ordering is not required and higher throughput is desired, the owner of this instance can clear this property
         // so that all incoming messages are queued to the threadpool, allowing immediate concurrency.
         this.SynchronizationContext = new NonConcurrentSynchronizationContext(sticky: false);
-        this.CancellationStrategy = new StandardCancellationStrategy(this);
+        this.CancellationStrategy = cancellationStrategy ?? new StandardCancellationStrategy(this);
     }
 
     /// <summary>
