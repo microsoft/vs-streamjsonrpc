@@ -107,9 +107,10 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
         [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
     {
-        if (TryGetMarshalOptionsForTypeHelper(typeShape.Type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute))
+        bool? helperResult = TryGetMarshalOptionsForTypeHelper(typeShape.Type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute);
+        if (helperResult is not null)
         {
-            return true;
+            return helperResult.Value;
         }
 
         if (TryGetRpcMarshalableAttribute(typeShape.Type, out RpcMarshalableAttribute? marshalableAttribute))
@@ -138,16 +139,20 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         [NotNullWhen(true)] out JsonRpcTargetOptions? targetOptions,
         [NotNullWhen(true)] out RpcMarshalableAttribute? rpcMarshalableAttribute)
     {
-        if (TryGetMarshalOptionsForTypeHelper(type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute))
+        bool? helperResult = TryGetMarshalOptionsForTypeHelper(type, defaultProxyOptions, out proxyOptions, out targetOptions, out rpcMarshalableAttribute);
+        if (helperResult is not null)
         {
-            // Because events are not checked by the Nerdbank.MessagePack formatter,
-            // Remove this check when issues related to https://github.com/eiriktsarpalis/PolyType/issues/226 are resolved in this file.
-            if (type.GetEvents().Length > 0)
+            if (helperResult is true)
             {
-                throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasEvents, type.FullName));
+                // Because events are not checked by the Nerdbank.MessagePack formatter,
+                // Remove this check when issues related to https://github.com/eiriktsarpalis/PolyType/issues/226 are resolved in this file.
+                if (type.GetEvents().Length > 0)
+                {
+                    throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.MarshalableInterfaceHasEvents, type.FullName));
+                }
             }
 
-            return true;
+            return helperResult.Value;
         }
 
         if (TryGetRpcMarshalableAttribute(type, out RpcMarshalableAttribute? marshalableAttribute))
@@ -442,7 +447,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         }
     }
 
-    private static bool TryGetMarshalOptionsForTypeHelper(
+    private static bool? TryGetMarshalOptionsForTypeHelper(
         Type type,
         JsonRpcProxyOptions defaultProxyOptions,
         [NotNullWhen(true)] out JsonRpcProxyOptions? proxyOptions,
@@ -454,6 +459,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         rpcMarshalableAttribute = null;
         if (type.IsInterface is false)
         {
+            // Definitely not.
             return false;
         }
 
@@ -480,7 +486,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             }
         }
 
-        return false;
+        // Unknown. Caller may want to do more work.
+        return null;
     }
 
     /// <summary>
