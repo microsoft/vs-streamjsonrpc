@@ -2,14 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using MessagePack;
 using Microsoft.VisualStudio.Threading;
-#if POLYTYPE
 using Nerdbank.MessagePack;
-#endif
 using Nerdbank.Streams;
 using Newtonsoft.Json;
 
@@ -46,12 +43,9 @@ public abstract partial class MarshalableProxyTests : TestBase
     [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [JsonConverter(typeof(MarshalableConverter))]
     [MessagePackFormatter(typeof(MarshalableFormatter))]
-#if POLYTYPE
     [MessagePackConverter(typeof(MarshalableNerdbankConverter))]
-#endif
     public partial interface IMarshalableAndSerializable : IMarshalable
     {
-#if POLYTYPE
         internal class MarshalableNerdbankConverter : Nerdbank.MessagePack.MessagePackConverter<IMarshalableAndSerializable>
         {
             public override IMarshalableAndSerializable? Read(ref Nerdbank.MessagePack.MessagePackReader reader, Nerdbank.MessagePack.SerializationContext context)
@@ -64,7 +58,6 @@ public abstract partial class MarshalableProxyTests : TestBase
                 throw new NotImplementedException();
             }
         }
-#endif
 
         private class MarshalableConverter : JsonConverter
         {
@@ -170,7 +163,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     {
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableNonExtendingBase : IDisposable
     {
         Task<int> GetPlusFourAsync(int value);
@@ -184,7 +177,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
@@ -192,13 +185,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetPlusThreeAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypeWithIntermediateInterface2 : IMarshalableSubTypeIntermediateInterface
     {
         new Task<int> GetPlusTwoAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1 : IMarshalableWithOptionalInterfaces2
     {
         Task<int> GetPlusOneAsync(int value);
@@ -206,7 +199,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusOneAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType1Extended : IMarshalableSubType1
     {
         new Task<int> GetAsync(int value);
@@ -222,14 +215,13 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true)]
-    [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Blocked by https://github.com/eiriktsarpalis/PolyType/issues/233")]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubTypesCombined : IMarshalableSubType1Extended, IMarshalableSubType2, IMarshalableNonExtendingBase
     {
         Task<int> GetPlusFiveAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalableOptionalInterface(1, typeof(IMarshalableSubType2Extended))]
     public partial interface IMarshalableSubType2 : IMarshalableWithOptionalInterfaces2
     {
@@ -238,7 +230,7 @@ public abstract partial class MarshalableProxyTests : TestBase
         Task<int> GetMinusTwoAsync(int value);
     }
 
-    [RpcMarshalable(IsOptional = true), TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [RpcMarshalable(IsOptional = true), GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IMarshalableSubType2Extended : IMarshalableSubType2
     {
         Task<int> GetPlusThreeAsync(int value);
@@ -370,9 +362,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     [Fact]
     public async Task MarshalableInterfaceCannotHaveEvents()
     {
-#if POLYTYPE
         Assert.SkipWhen(this is MarshalableProxyNerdbankMessagePackTests, "Events are not yet detectable by PolyType."); // remove when https://github.com/eiriktsarpalis/PolyType/issues/226 is fixed.
-#endif
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => this.client.AcceptMarshalableWithEventsAsync(new MarshalableWithEvents()));
         Assert.True(IsExceptionOrInnerOfType<NotSupportedException>(ex));
     }
@@ -1061,9 +1051,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     private void AssertIsNot(object obj, Type type)
     {
         Assert.False(((IJsonRpcClientProxy)obj).Is(type), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
-#if POLYTYPE
         if (this is not MarshalableProxyNerdbankMessagePackTests)
-#endif
         {
             Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
         }

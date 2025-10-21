@@ -12,9 +12,7 @@ Console.WriteLine("This test is run by \"dotnet publish -r [RID]-x64\" rather th
 
 // That said, this "program" can run select scenarios to verify that they work in a Native AOT environment.
 // When TUnit fixes https://github.com/thomhurst/TUnit/issues/2458, we can move this part of the program to unit tests.
-#if POLYTYPE
 await NerdbankMessagePack.RunAsync();
-#endif
 await SystemTextJson.RunAsync();
 
 [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]

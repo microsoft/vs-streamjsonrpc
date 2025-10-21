@@ -42,11 +42,10 @@ public partial class RpcTargetMetadataTests
         Task<int> MultiplyAsync(int a, int b);
     }
 
-#if POLYTYPE
     [Fact]
     public void FromShape()
     {
-        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.ShapeProvider);
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.GeneratedTypeShapeProvider);
 
         var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
         var add = Assert.Single(metadata.AliasedMethods["Add"]);
@@ -62,7 +61,6 @@ public partial class RpcTargetMetadataTests
         Assert.Equal(3, metadata.Methods.Count);
         Assert.Single(metadata.AliasedMethods);
     }
-#endif
 
     [Fact]
     public void FromInterface_ReturnsInheritedMembers()
@@ -72,7 +70,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromInterface(rpcContract);
 
         Assert.Contains(metadata.Methods, m => m.Key == nameof(IRpcContractBase.MethodBaseAsync));
-        Assert.Contains(metadata.Events, e => e.Event.Name == nameof(IRpcContractBase.BaseEvent));
+        Assert.Contains(metadata.Events, e => e.Name == nameof(IRpcContractBase.BaseEvent));
     }
 
     [Fact]
@@ -83,7 +81,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromInterface(rpcContract);
 
         Assert.Contains(metadata.Methods, m => m.Key == nameof(IRpcContractDerived.MethodDerivedAsync));
-        Assert.Contains(metadata.Events, e => e.Event.Name == nameof(IRpcContractDerived.DerivedEvent));
+        Assert.Contains(metadata.Events, e => e.Name == nameof(IRpcContractDerived.DerivedEvent));
     }
 
     [Fact]

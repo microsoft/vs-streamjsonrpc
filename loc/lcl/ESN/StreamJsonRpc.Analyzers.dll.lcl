@@ -157,6 +157,24 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";StreamJsonRpc0009_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The type '{0}' should use {1} since it is an optional RPC marshalable contract type.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[El tipo "{0}" debe usar {1} que es un tipo de contrato opcional que se puede serializar mediante RPC.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0009_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Use GenerateShapeAttribute on optional marshalable interface]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Uso de GenerateShapeAttribute en una interfaz serializable opcional]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";StreamJsonRpc0011_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The return type {0} on {1} is not supported in RPC methods.]]></Val>

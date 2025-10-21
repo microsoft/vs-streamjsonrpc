@@ -6,13 +6,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
-#if POLYTYPE
 using PolyType;
-#endif
 
-#if POLYTYPE
 [assembly: TypeShapeExtension(typeof(IProgress<>), AssociatedTypes = [typeof(StreamJsonRpc.Reflection.MessageFormatterProgressTracker.ProgressProxy<>)], Requirements = TypeShapeRequirements.Constructor)]
-#endif
 
 namespace StreamJsonRpc.Reflection;
 
@@ -176,13 +172,6 @@ public class MessageFormatterProgressTracker
     /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
     /// <typeparam name="T">The type of the value to be reported by <see cref="IProgress{T}"/>.</typeparam>
     public IProgress<T> CreateProgress<T>(JsonRpc rpc, object token, bool clientRequiresNamedArguments) => new ProgressProxy<T>(rpc, token, clientRequiresNamedArguments);
-
-    /// <inheritdoc cref="CreateProgress(JsonRpc, object, Type, bool)"/>
-    /// <remarks>
-    /// This overload creates an <see cref="IProgress{T}"/> that does <em>not</em> use named arguments in its notifications.
-    /// </remarks>
-    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
-    public object CreateProgress(JsonRpc rpc, object token, Type valueType) => this.CreateProgress(rpc, token, valueType, clientRequiresNamedArguments: false);
 
     /// <summary>
     /// Creates a new instance of <see cref="IProgress{T}"/> to use on the receiving end of an RPC call.

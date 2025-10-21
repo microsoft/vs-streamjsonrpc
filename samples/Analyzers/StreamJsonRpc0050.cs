@@ -9,7 +9,7 @@ namespace StreamJsonRpc0050.Violation
     {
     }
 
-    [TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalable(IsOptional = true)]
     partial interface IMyObject2 : IDisposable
     {
@@ -35,7 +35,7 @@ namespace StreamJsonRpc0050.Fix
     {
     }
 
-    [TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [RpcMarshalable(IsOptional = true)]
     partial interface IMyObject2 : IDisposable
     {

@@ -15,8 +15,7 @@ internal static partial class NerdbankMessagePack
         JsonRpc serverRpc = new JsonRpc(new LengthHeaderMessageHandler(serverPipe, serverPipe, CreateFormatter()));
         JsonRpc clientRpc = new JsonRpc(new LengthHeaderMessageHandler(clientPipe, clientPipe, CreateFormatter()));
 
-        RpcTargetMetadata.RegisterEventArgs<int>();
-        var targetMetadata = RpcTargetMetadata.FromInterface(new RpcTargetMetadata.InterfaceCollection(typeof(IServer)));
+        var targetMetadata = RpcTargetMetadata.FromShape<IServer>();
         serverRpc.AddLocalRpcTarget(targetMetadata, new Server(), null);
 
         serverRpc.StartListening();
@@ -29,7 +28,7 @@ internal static partial class NerdbankMessagePack
 
     private static IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter()
     {
-        TypeShapeProvider = Witness.ShapeProvider,
+        TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
     };
 
     [GenerateShapeFor<int>]

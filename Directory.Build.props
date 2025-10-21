@@ -16,10 +16,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 
-    <SupportPolyType Condition="'$(SupportPolyType)' == ''">false</SupportPolyType>
-    <DefineConstants Condition="'$(SupportPolyType)' == 'true'">$(DefineConstants);POLYTYPE</DefineConstants>
-    <NoWarn Condition="'$(SupportPolyType)' == 'true'">$(NoWarn);RS0016</NoWarn>
-
     <!-- https://learn.microsoft.com/en-us/dotnet/fundamentals/apicompat/package-validation/overview -->
     <EnablePackageValidation>true</EnablePackageValidation>
 
