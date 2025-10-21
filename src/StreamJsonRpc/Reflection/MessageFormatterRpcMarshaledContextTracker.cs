@@ -57,7 +57,8 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
     private static readonly ConcurrentDictionary<Type, (JsonRpcProxyOptions? ProxyOptions, JsonRpcTargetOptions TargetOptions, RpcMarshalableAttribute Attribute)> MarshaledTypes = new();
     private static readonly JsonRpcTargetOptions RpcMarshalableInterfaceDefaultTargetOptions = new() { NotifyClientOfEvents = false, DisposeOnDisconnect = true };
     private static readonly MethodInfo ReleaseMarshaledObjectMethodInfo = typeof(MessageFormatterRpcMarshaledContextTracker).GetMethod(nameof(ReleaseMarshaledObject), BindingFlags.NonPublic | BindingFlags.Instance)!;
-    private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]>();
+    private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new();
+    private static readonly ConcurrentDictionary<Type, RpcMarshalableAttribute?> RpcMarshalableAttributeCache = new();
 
     private readonly Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
@@ -111,7 +112,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             return true;
         }
 
-        if (typeShape.Type.GetCustomAttribute<RpcMarshalableAttribute>() is RpcMarshalableAttribute marshalableAttribute)
+        if (TryGetRpcMarshalableAttribute(typeShape.Type, out RpcMarshalableAttribute? marshalableAttribute))
         {
             // Validation requires more trim annotations than our NativeAOT callers can provide.
             // And besides, analyzers should have called out any issues at compile-time.
@@ -149,7 +150,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
             return true;
         }
 
-        if (type.GetCustomAttribute<RpcMarshalableAttribute>() is RpcMarshalableAttribute marshalableAttribute)
+        if (TryGetRpcMarshalableAttribute(type, out RpcMarshalableAttribute? marshalableAttribute))
         {
             // Validation requires more trim annotations than our NativeAOT callers can provide.
             // And besides, analyzers should have called out any issues at compile-time.
@@ -199,7 +200,7 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
 
             foreach (RpcMarshalableOptionalInterfaceAttribute attribute in attributes)
             {
-                if (attribute.OptionalInterface.GetCustomAttribute<RpcMarshalableAttribute>() is null)
+                if (!TryGetRpcMarshalableAttribute(attribute.OptionalInterface, out _))
                 {
                     throw new NotSupportedException(string.Format(CultureInfo.CurrentCulture, Resources.RpcMarshalableOptionalInterfaceMustBeMarshalable, attribute.OptionalInterface.FullName));
                 }
@@ -544,6 +545,12 @@ internal partial class MessageFormatterRpcMarshaledContextTracker
         }
     }
 #endif
+
+    private static bool TryGetRpcMarshalableAttribute(Type type, [NotNullWhen(true)] out RpcMarshalableAttribute? attribute)
+    {
+        attribute = RpcMarshalableAttributeCache.GetOrAdd(type, static type => type.GetCustomAttribute<RpcMarshalableAttribute>());
+        return attribute is not null;
+    }
 
     /// <summary>
     /// Releases memory associated with marshaled objects.
