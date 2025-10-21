@@ -1250,12 +1250,13 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         {
         }
 
-        public MessagePackConverter? CreateConverter(ITypeShape shape)
-            => MessageFormatterProgressTracker.CanDeserialize(shape.Type) || MessageFormatterProgressTracker.CanSerialize(shape.Type) ||
-               TrackerHelpers.IsIAsyncEnumerable(shape.Type) ||
-               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(shape.Type) is Type ||
+        public MessagePackConverter? CreateConverter(Type type, ITypeShape? shape, in ConverterContext context)
+            => shape is not null && (
+               MessageFormatterProgressTracker.CanDeserialize(type) || MessageFormatterProgressTracker.CanSerialize(type) ||
+               TrackerHelpers.IsIAsyncEnumerable(type) ||
+               TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(type) is Type ||
                MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(shape, DefaultRpcMarshalableProxyOptions, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? attribute) ||
-               typeof(Exception).IsAssignableFrom(shape.Type)
+               typeof(Exception).IsAssignableFrom(type))
                ? this.Invoke(shape) : null;
 
         object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> shape, object? state)
