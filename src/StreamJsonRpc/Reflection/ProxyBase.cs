@@ -177,9 +177,9 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
     /// <returns>The created <see cref="IJsonRpcClientProxy"/> instance.</returns>
     /// <remarks>
     /// If a compatible proxy is found, it is returned; otherwise, the <see cref="JsonRpc"/> instance is disposed (if <paramref name="startOrFail"/> is <see langword="true"/>)
-    /// and a <see cref="NotSupportedException"/> is thrown.
+    /// and a <see cref="NotImplementedException"/> is thrown.
     /// </remarks>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="NotImplementedException">
     /// Thrown if no compatible source generated proxy can be found for the specified requirements in <paramref name="proxyInputs"/>.
     /// </exception>
     public static IJsonRpcClientProxy CreateProxy(JsonRpc jsonRpc, in ProxyInputs proxyInputs, bool startOrFail)
@@ -283,6 +283,12 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         if (!assignable)
         {
             return false;
+        }
+
+        // If the type is one of the built-in interfaces that every proxy always implements, always return true.
+        if (type.IsAssignableFrom(typeof(ProxyBase)))
+        {
+            return true;
         }
 
         if (!this.requestedInterfaces.HasValue || !this.Options.AcceptProxyWithExtraInterfaces)
