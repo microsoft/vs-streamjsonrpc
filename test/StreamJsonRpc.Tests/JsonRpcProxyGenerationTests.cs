@@ -241,6 +241,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         // Now ask the proxy itself whether it was asked to implement both.
         Assert.NotNull(clientRpc.As<IInterfaceGroup1>());
         Assert.Null(clientRpc.As<IInterfaceGroup2>());
+
+        // Verify that built-in interfaces also report successfully.
+        Assert.NotNull(clientRpc.As<IDisposable>());
+        Assert.NotNull(clientRpc.As<IJsonRpcClientProxy>());
+        Assert.NotNull(clientRpc.As<IClientProxy>());
     }
 
     [Fact]
