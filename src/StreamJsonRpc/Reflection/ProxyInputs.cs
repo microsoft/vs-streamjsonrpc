@@ -67,7 +67,7 @@ public readonly struct ProxyInputs
     /// <summary>
     /// Gets a description of the requirements on the proxy to be used.
     /// </summary>
-    internal string Requirements => $"Implementing interface(s): {string.Join(", ", [this.ContractInterface, .. this.AdditionalContractInterfaces.Span])}.";
+    internal string Requirements => $"Implementing interface(s): {string.Join(", ", [this.ContractInterface, .. this.AdditionalContractInterfaces.Span])}";
 
     /// <summary>
     /// Sorts <paramref name="list"/> so that:
