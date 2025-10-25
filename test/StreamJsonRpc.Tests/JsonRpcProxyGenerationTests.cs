@@ -997,9 +997,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
 #if NO_INTERCEPTORS
     public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
-#else
+#endif
+
     public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
     {
+#if !NO_INTERCEPTORS
         /// <summary>
         /// The interceptor cannot fallback to dynamic proxies at runtime when the Options demands it,
         /// because doing so would generate linker warnings for NativeAOT apps.
@@ -1066,9 +1068,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
             Assert.Equal(0, failures);
         }
-    }
-
 #endif
+    }
 
     public class EmptyClass
     {

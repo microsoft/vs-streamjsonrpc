@@ -381,22 +381,17 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         JsonRpcProxyOptions? options)
     {
         HashSet<Type> proxyInterfaces = [.. proxyClass.GetInterfaces()];
-        if (!proxyInterfaces.Remove(contractInterface))
-        {
-            return false;
-        }
 
-        foreach (Type addl in additionalContractInterfaces)
-        {
-            if (!proxyInterfaces.Remove(addl))
-            {
-                return false;
-            }
-        }
-
+        // Put all the interfaces required into a set so that duplicates are removed.
+        HashSet<Type> requiredInterfaces = [contractInterface, .. additionalContractInterfaces];
         foreach ((Type addl, _) in implementedOptionalInterfaces)
         {
-            if (!proxyInterfaces.Remove(addl))
+            requiredInterfaces.Add(addl);
+        }
+
+        foreach (Type reqd in requiredInterfaces)
+        {
+            if (!proxyInterfaces.Remove(reqd))
             {
                 return false;
             }
@@ -421,20 +416,33 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
                 continue;
             }
 
+            bool ok = false;
             foreach (Type addl in additionalContractInterfaces)
             {
                 if (remaining.IsAssignableFrom(addl))
                 {
+                    ok = true;
                     continue;
                 }
+            }
+
+            if (ok)
+            {
+                continue;
             }
 
             foreach ((Type addl, _) in implementedOptionalInterfaces)
             {
                 if (remaining.IsAssignableFrom(addl))
                 {
+                    ok = true;
                     continue;
                 }
+            }
+
+            if (ok)
+            {
+                continue;
             }
 
             // This is an extra, unwanted interface.
