@@ -18,6 +18,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// Describes an RPC target type, which can be an interface or a class.
 /// </summary>
+[DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
 public class RpcTargetMetadata
 {
     private const string ImpliedMethodNameAsyncSuffix = "Async";
@@ -65,6 +66,8 @@ public class RpcTargetMetadata
     /// Gets the type of the RPC target, which can be an interface or a class.
     /// </summary>
     public required Type TargetType { get; init; }
+
+    private string DebuggerDisplay => this.TargetType.FullName ?? string.Empty;
 
     /// <summary>
     /// Creates an instance of RpcTargetMetadata that describes the specified RPC contract interface.
