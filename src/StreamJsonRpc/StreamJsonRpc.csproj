@@ -40,10 +40,6 @@
     <PackageReference Include="System.Threading.Tasks.Dataflow" PrivateAssets="compile" />
   </ItemGroup>
   <ItemGroup>
-    <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Shipped.txt" />
-    <AdditionalFiles Include="$(TargetFramework)\PublicAPI.Unshipped.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Using Include="Microsoft" />
   </ItemGroup>
   <ItemGroup>
