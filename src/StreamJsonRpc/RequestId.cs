@@ -12,6 +12,7 @@ namespace StreamJsonRpc;
 /// Represents the ID of a request, whether it is a number or a string.
 /// </summary>
 [JsonConverter(typeof(RequestIdJsonConverter))]
+[System.Text.Json.Serialization.JsonConverter(typeof(RequestIdSTJsonConverter))]
 public struct RequestId : IEquatable<RequestId>
 {
     /// <summary>

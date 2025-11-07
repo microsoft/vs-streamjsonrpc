@@ -1051,7 +1051,7 @@ public abstract partial class MarshalableProxyTests : TestBase
     private void AssertIsNot(object obj, Type type)
     {
         Assert.False(((IJsonRpcClientProxy)obj).Is(type), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
-        if (this is not MarshalableProxyNerdbankMessagePackTests)
+        if (this is not (MarshalableProxyNerdbankMessagePackTests or MarshalableProxyPolyTypeJsonTests))
         {
             Assert.False(type.IsAssignableFrom(obj.GetType()), $"Object of type {obj.GetType().FullName} is not expected to be assignable to {type.FullName}");
         }

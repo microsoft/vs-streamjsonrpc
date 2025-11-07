@@ -1,7 +1,24 @@
-﻿using System.Runtime.Serialization;
+﻿#pragma warning disable SA1402 // File may only contain a single type
+
+using System.Runtime.Serialization;
 using Nerdbank.Streams;
 
-public abstract class FormatterTestBase<TFormatter> : TestBase
+public abstract class FormatterTestBase : TestBase
+{
+    protected FormatterTestBase(ITestOutputHelper logger)
+        : base(logger)
+    {
+    }
+
+    [DataContract]
+    public class CustomType
+    {
+        [DataMember]
+        public int Age { get; set; }
+    }
+}
+
+public abstract class FormatterTestBase<TFormatter> : FormatterTestBase
     where TFormatter : IJsonRpcMessageFormatter
 {
     private TFormatter? formatter;
@@ -102,12 +119,5 @@ public abstract class FormatterTestBase<TFormatter> : TestBase
         this.Formatter.Serialize(sequence, value);
         var actual = (T)this.Formatter.Deserialize(sequence);
         return actual;
-    }
-
-    [DataContract]
-    public class CustomType
-    {
-        [DataMember]
-        public int Age { get; set; }
     }
 }

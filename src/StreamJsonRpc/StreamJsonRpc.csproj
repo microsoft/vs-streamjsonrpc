@@ -23,14 +23,14 @@
   <ItemGroup>
     <PackageReference Include="MessagePack" />
     <PackageReference Include="MessagePackAnalyzer" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Only" />
     <PackageReference Include="Nerdbank.MessagePack" />
     <PackageReference Include="Nerdbank.Streams" />
     <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'== 'netstandard2.0'">
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="compile"/>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="compile" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)'!= '.NETCoreApp'">
     <PackageReference Include="System.Collections.Immutable" />
@@ -50,6 +50,6 @@
       <TfmSpecificPackageFile Include="%(AnalyzerAssembly.Identity)" PackagePath="analyzers\cs\" />
     </ItemGroup>
   </Target>
-  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets"/>
+  <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
   <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>

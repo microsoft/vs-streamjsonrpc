@@ -7,9 +7,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
-using PolyType;
 using JsonNET = Newtonsoft.Json;
 using STJ = System.Text.Json.Serialization;
 
@@ -343,6 +343,8 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task CanInvokeMethodThatReturnsTaskOfInternalClass()
     {
+        Assert.SkipWhen(this is JsonRpcPolyTypeJsonHeadersTests, "Not (yet) supported.");
+
         // JsonRpc does not invoke non-public members in the default configuration. A public member cannot have Task<NonPublicType> result.
         // Though it can have result of just Task<object> type, which carries a NonPublicType instance.
         InternalClass result = await this.clientRpc.InvokeAsync<InternalClass>(nameof(Server.MethodThatReturnsTaskOfInternalClass));
@@ -437,6 +439,8 @@ public abstract partial class JsonRpcTests : TestBase
     [Theory, PairwiseData]
     public async Task CanCallAsyncMethodThatThrowsExceptionWithoutDeserializingConstructor(ExceptionProcessing exceptionStrategy)
     {
+        Assert.SkipWhen(this is JsonRpcPolyTypeJsonHeadersTests, "Not (yet) supported.");
+
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = exceptionStrategy;
@@ -477,6 +481,8 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task ThrowCustomExceptionThatImplementsISerializableProperly()
     {
+        Assert.SkipWhen(this is JsonRpcPolyTypeJsonHeadersTests, "Not (yet) supported.");
+
         this.clientRpc.AllowModificationWhileListening = true;
         this.serverRpc.AllowModificationWhileListening = true;
         this.clientRpc.ExceptionStrategy = ExceptionProcessing.ISerializable;
@@ -2420,6 +2426,8 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task SerializableExceptions()
     {
+        Assert.SkipWhen(this is JsonRpcPolyTypeJsonHeadersTests, "Not (yet) supported.");
+
         this.serverRpc.AllowModificationWhileListening = true;
         this.serverRpc.LoadableTypes.Add(typeof(FileNotFoundException));
 
@@ -3098,6 +3106,8 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public virtual async Task CanPassAndCallPrivateMethodsObjects()
     {
+        Assert.SkipWhen(this is JsonRpcPolyTypeJsonHeadersTests, "Not (yet) supported.");
+
         var result = await this.clientRpc.InvokeAsync<Foo>(nameof(Server.MethodThatAcceptsFoo), new Foo { Bar = "bar", Bazz = 1000 });
         Assert.NotNull(result);
         Assert.Equal("bar!", result.Bar);
@@ -4072,6 +4082,7 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
+    [JsonConverter(typeof(JsonRpcPolyTypeJsonHeadersTests.TypeThrowsWhenDeserializedConverter))]
     public class TypeThrowsWhenDeserialized
     {
     }
@@ -4149,6 +4160,46 @@ public abstract partial class JsonRpcTests : TestBase
         public IDisposable? ApplyInboundActivity(JsonRpcRequest request) => this.Inbound?.Invoke(request);
 
         public void ApplyOutboundActivity(JsonRpcRequest request) => this.Outbound?.Invoke(request);
+    }
+
+    /// <summary>
+    /// An exception that throws while being serialized.
+    /// </summary>
+    [Serializable]
+    protected class ExceptionMissingDeserializingConstructor : InvalidOperationException
+    {
+        public ExceptionMissingDeserializingConstructor(string message)
+            : base(message)
+        {
+        }
+    }
+
+    [Serializable]
+    protected class PrivateSerializableException : Exception
+    {
+        public PrivateSerializableException()
+        {
+        }
+
+        public PrivateSerializableException(string message)
+            : base(message)
+        {
+        }
+
+        public PrivateSerializableException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+#if NET8_0_OR_GREATER
+        [Obsolete]
+#endif
+        protected PrivateSerializableException(
+          SerializationInfo info,
+          StreamingContext context)
+            : base(info, context)
+        {
+        }
     }
 
     /// <summary>
@@ -4294,46 +4345,6 @@ public abstract partial class JsonRpcTests : TestBase
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             throw new InvalidOperationException("This exception always throws when serialized.");
-        }
-    }
-
-    /// <summary>
-    /// An exception that throws while being serialized.
-    /// </summary>
-    [Serializable]
-    private class ExceptionMissingDeserializingConstructor : InvalidOperationException
-    {
-        public ExceptionMissingDeserializingConstructor(string message)
-            : base(message)
-        {
-        }
-    }
-
-    [Serializable]
-    private class PrivateSerializableException : Exception
-    {
-        public PrivateSerializableException()
-        {
-        }
-
-        public PrivateSerializableException(string message)
-            : base(message)
-        {
-        }
-
-        public PrivateSerializableException(string message, Exception inner)
-            : base(message, inner)
-        {
-        }
-
-#if NET8_0_OR_GREATER
-        [Obsolete]
-#endif
-        protected PrivateSerializableException(
-          SerializationInfo info,
-          StreamingContext context)
-            : base(info, context)
-        {
         }
     }
 
