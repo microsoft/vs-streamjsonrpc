@@ -5,7 +5,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MessagePackVersion>2.5.198</MessagePackVersion>
-    <MicroBuildVersion>2.0.201</MicroBuildVersion>
+    <MicroBuildVersion>2.0.208</MicroBuildVersion>
     <RoslynVersion>4.14.0</RoslynVersion>
     <CodeAnalysisAnalyzerVersion>4.14.0</CodeAnalysisAnalyzerVersion>
     <VisualStudioThreadingVersion>17.14.15</VisualStudioThreadingVersion>
@@ -57,7 +57,7 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageVersion Include="xunit.v3" Version="3.1.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.0" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(CodeAnalysisAnalyzerVersion)" />
@@ -68,7 +68,7 @@
     <GlobalPackageReference Include="DotNetAnalyzers.DocumentationAnalyzers" Version="1.0.0-beta.59" />
     <GlobalPackageReference Include="Microsoft.VisualStudio.Internal.MicroBuild.VisualStudio" Version="$(MicroBuildVersion)" />
     <!-- The condition works around https://github.com/dotnet/sdk/issues/44951 -->
-    <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.8.118" Condition="!('$(TF_BUILD)'=='true' and '$(dotnetformat)'=='true')" />
+    <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.9.50" Condition="!('$(TF_BUILD)'=='true' and '$(dotnetformat)'=='true')" />
     <GlobalPackageReference Include="PolySharp" Version="1.15.0" Condition="'$(DisablePolyfills)'!='true'" />
     <GlobalPackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556" />
   </ItemGroup>
