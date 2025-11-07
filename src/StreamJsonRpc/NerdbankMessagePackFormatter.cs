@@ -152,7 +152,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
     {
-        JsonRpcMessage message = this.envelopeSerializer.Deserialize<JsonRpcMessage>(contentBuffer, Witness.GeneratedTypeShapeProvider)
+        JsonRpcMessage message = this.envelopeSerializer.Deserialize(contentBuffer, PolyType.SourceGenerator.TypeShapeProvider_StreamJsonRpc.Default.JsonRpcMessage)
             ?? throw new MessagePackSerializationException("Failed to deserialize JSON-RPC message.");
 
         IJsonRpcTracingCallbacks? tracingCallbacks = this.JsonRpc;
@@ -175,7 +175,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         var writer = new MessagePackWriter(bufferWriter);
         try
         {
-            this.envelopeSerializer.Serialize(ref writer, message, Witness.GeneratedTypeShapeProvider);
+            this.envelopeSerializer.Serialize(ref writer, message, PolyType.SourceGenerator.TypeShapeProvider_StreamJsonRpc.Default.JsonRpcMessage);
             writer.Flush();
         }
         catch (Exception ex)
@@ -1001,7 +1001,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
             if (this.inboundUnknownProperties.TryGetValue(name, out RawMessagePack serializedValue) is true)
             {
-                value = this.formatter.userDataSerializer.Deserialize<T>(serializedValue, this.formatter.TypeShapeProvider);
+                value = this.formatter.userDataSerializer.Deserialize(serializedValue, this.formatter.TypeShapeProvider.GetTypeShapeOrThrow<T>());
                 return true;
             }
 
@@ -1140,7 +1140,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
             return this.MsgPackResult.MsgPack.IsEmpty
                 ? (T)this.Result!
-                : formatter.userDataSerializer.Deserialize<T>(this.MsgPackResult, formatter.TypeShapeProvider)
+                : formatter.userDataSerializer.Deserialize(this.MsgPackResult, formatter.TypeShapeProvider.GetTypeShapeOrThrow<T>())
                 ?? throw new MessagePackSerializationException("Failed to deserialize result.");
         }
 
