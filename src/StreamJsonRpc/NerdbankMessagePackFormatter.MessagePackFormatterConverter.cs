@@ -56,7 +56,7 @@ public partial class NerdbankMessagePackFormatter
 
         public DateTime ToDateTime(object value) => this.CreateReader(value).ReadDateTime();
 
-        public decimal ToDecimal(object value) => formatter.UserDataSerializer.Deserialize<decimal>((RawMessagePack)value, Witness.GeneratedTypeShapeProvider);
+        public decimal ToDecimal(object value) => formatter.UserDataSerializer.Deserialize((RawMessagePack)value, PolyType.SourceGenerator.TypeShapeProvider_StreamJsonRpc.Default.Decimal);
 
         public double ToDouble(object value) => this.CreateReader(value).ReadDouble();
 
