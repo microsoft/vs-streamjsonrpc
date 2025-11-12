@@ -29,4 +29,3 @@ jobs:
       run: dotnet build -c Release src/StreamJsonRpc.Analyzers.CodeFixes
     - name: 📚 Verify docfx build
       run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
-      if: runner.os == 'Linux'
