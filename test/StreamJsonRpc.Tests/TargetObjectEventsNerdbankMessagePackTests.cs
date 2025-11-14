@@ -1,6 +1,4 @@
-﻿using PolyType;
-
-public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger) : TargetObjectEventsTests(logger)
+﻿public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelper logger) : TargetObjectEventsTests(logger)
 {
     protected override void InitializeFormattersAndHandlers()
     {
@@ -14,7 +12,7 @@ public partial class TargetObjectEventsNerdbankMessagePackTests(ITestOutputHelpe
     protected override JsonRpc CreateJsonRpcWithTargetObject<T>(IJsonRpcMessageHandler messageHandler, T targetObject, JsonRpcTargetOptions? options)
     {
         JsonRpc jsonRpc = new(messageHandler);
-        jsonRpc.AddLocalRpcTarget(RpcTargetMetadata.FromShape<T>(Witness.GeneratedTypeShapeProvider), targetObject, options);
+        jsonRpc.AddLocalRpcTarget(RpcTargetMetadata.FromShape(Witness.GeneratedTypeShapeProvider.GetTypeShapeOrThrow<T>()), targetObject, options);
         return jsonRpc;
     }
 

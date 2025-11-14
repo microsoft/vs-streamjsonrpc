@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using PolyType;
-
 public partial class RpcTargetMetadataTests
 {
     internal interface IRpcContractBase
@@ -45,7 +43,7 @@ public partial class RpcTargetMetadataTests
     [Fact]
     public void FromShape()
     {
-        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>(Witness.GeneratedTypeShapeProvider);
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape(PolyType.SourceGenerator.TypeShapeProvider_StreamJsonRpc_Tests.Default.IShapedContract);
 
         var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
         var add = Assert.Single(metadata.AliasedMethods["Add"]);
