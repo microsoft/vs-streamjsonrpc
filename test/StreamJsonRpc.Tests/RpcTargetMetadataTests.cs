@@ -43,7 +43,27 @@ public partial class RpcTargetMetadataTests
     [Fact]
     public void FromShape()
     {
-        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape(PolyType.SourceGenerator.TypeShapeProvider_StreamJsonRpc_Tests.Default.IShapedContract);
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract>();
+
+        var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
+        var add = Assert.Single(metadata.AliasedMethods["Add"]);
+        Assert.Same(addAsync, add);
+
+        var subtract = Assert.Single(metadata.Methods["Subtract"]);
+        Assert.False(metadata.Methods.ContainsKey("SubtractAsync"));
+
+        // Verify that JsonRpcMethod.Name takes precedence over MethodShape.Name.
+        var multiply = Assert.Single(metadata.Methods["Times"]);
+
+        // Fail the test when support for events is added so we can update the test.
+        Assert.Equal(3, metadata.Methods.Count);
+        Assert.Single(metadata.AliasedMethods);
+    }
+
+    [Fact]
+    public void FromShape_TProvider()
+    {
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromShape<IShapedContract, Witness>();
 
         var addAsync = Assert.Single(metadata.Methods["AddAsync"]);
         var add = Assert.Single(metadata.AliasedMethods["Add"]);
@@ -128,5 +148,6 @@ public partial class RpcTargetMetadataTests
     }
 
     [GenerateShapeFor<bool>]
+    [GenerateShapeFor<IShapedContract>]
     private partial class Witness;
 }
