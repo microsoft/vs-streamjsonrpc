@@ -495,7 +495,7 @@ public class RpcTargetMetadata
         return missing ?? [];
     }
 
-    private static MethodInfo GetMethodInfo(IMethodShape shape) => (MethodInfo)(shape.AttributeProvider ?? throw new ArgumentException(Resources.FormatAttributeProviderRequired($"{shape.DeclaringType.Type.FullName}.{shape.Name}"), nameof(shape)));
+    private static MethodInfo GetMethodInfo(IMethodShape shape) => (MethodInfo)(shape.MethodBase ?? throw new ArgumentException(Resources.FormatAttributeProviderRequired($"{shape.DeclaringType.Type.FullName}.{shape.Name}"), nameof(shape)));
 
     internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
     {
