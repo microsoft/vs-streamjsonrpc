@@ -297,6 +297,7 @@ public class RpcTargetMetadata
     /// <typeparam name="T">The type for which a shape should be obtained and <see cref="RpcTargetMetadata"/> generated for.</typeparam>
     /// <param name="provider">The provider of type shapes from which to obtain the shape.</param>
     /// <returns>An <see cref="RpcTargetMetadata"/> instance initialized from the shape of the <typeparamref name="T"/>.</returns>
+    [Obsolete("Use FromShape(ITypeShape) instead. This API will be removed soon.")]
     public static RpcTargetMetadata FromShape<T>(ITypeShapeProvider provider) => FromShape(provider.GetTypeShapeOrThrow<T>());
 
     /// <summary>
