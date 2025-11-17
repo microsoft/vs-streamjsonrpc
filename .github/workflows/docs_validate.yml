@@ -29,3 +29,5 @@ jobs:
       run: dotnet build -c Release src/StreamJsonRpc.Analyzers.CodeFixes
     - name: 📚 Verify docfx build
       run: dotnet docfx docfx/docfx.json --warningsAsErrors --disableGitFeatures
+      env:
+        DocFx: true # Workaround https://github.com/dotnet/docfx/issues/10808

@@ -38,6 +38,9 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols Condition=" '$(DebugType)' != 'embedded' ">true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Workaround https://github.com/dotnet/docfx/issues/10808 -->
+    <DefineConstants Condition="'$(DocFx)'!='true'">$(DefineConstants);NOTDOCFX</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -1,4 +1,6 @@
-﻿using System.ComponentModel;
+﻿#if NOTDOCFX // Workaround https://github.com/dotnet/docfx/issues/10808
+
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using PolyType.Abstractions;
 
@@ -54,3 +56,5 @@ public static class RpcTargetMetadataExtensions
         "It is recommended to switch to statically resolved IShapeable<T> APIs or upgrade your app to .NET 9 or later.";
 #endif
 }
+
+#endif
