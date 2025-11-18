@@ -32,6 +32,8 @@ jobs:
 
     - run: dotnet docfx docfx/docfx.json
       name: 📚 Generate documentation
+      env:
+        DocFx: true # Workaround https://github.com/dotnet/docfx/issues/10808
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4

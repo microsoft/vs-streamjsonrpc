@@ -1050,6 +1050,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// Converts an enumeration token to an <see cref="IAsyncEnumerable{T}"/>.
     /// </summary>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableConsumerConverter : JsonConverter
     {
         private static readonly MethodInfo ReadJsonOpenGenericMethod = typeof(AsyncEnumerableConsumerConverter).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).Single(m => m.Name == nameof(ReadJson) && m.IsGenericMethod);
@@ -1109,6 +1110,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     /// Converts an instance of <see cref="IAsyncEnumerable{T}"/> to an enumeration token.
     /// </summary>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.CloseGenerics)]
     private class AsyncEnumerableGeneratorConverter : JsonConverter
     {
         private static readonly MethodInfo WriteJsonOpenGenericMethod = typeof(AsyncEnumerableGeneratorConverter).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name == nameof(WriteJson) && m.IsGenericMethod);
