@@ -11,7 +11,7 @@
     <VisualStudioThreadingVersion>17.14.15</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.7" />
+    <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackVersion)" />
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
