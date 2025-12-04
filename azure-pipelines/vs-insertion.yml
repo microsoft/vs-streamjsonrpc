@@ -15,7 +15,6 @@ resources:
     trigger:
       tags:
       - Real signed
-      - auto-insertion
 
 variables:
 - template: GlobalVariables.yml
@@ -26,14 +25,16 @@ extends:
     settings:
       networkIsolationPolicy: Permissive,CFSClean
     sdl:
-      sourceAnalysisPool: VSEngSS-MicroBuild2022-1ES
+      sourceAnalysisPool: VSEng-MicroBuildVSStable
+    sbom:
+      enabled: false
 
     stages:
     - stage: insertion
       jobs:
       - job: insertion
         displayName: VS insertion
-        pool: VSEngSS-MicroBuild2022-1ES
+        pool: VSEng-MicroBuildVSStable
         templateContext:
           outputParentDirectory: $(Pipeline.Workspace)/CI
         steps:
@@ -66,6 +67,7 @@ extends:
             InsertionPayloadName: $(Build.Repository.Name) $(Build.BuildNumber)
             InsertionBuildPolicies: Request Perf DDRITs
             InsertionReviewers: $(Build.RequestedFor),Andrew Arnott
+            CustomScriptExecutionCommand: $(Pipeline.Workspace)\CI\VSInsertion-Windows\vs-insertion-script.ps1
             AutoCompletePR: true
             AutoCompleteMergeStrategy: Squash
             ShallowClone: true

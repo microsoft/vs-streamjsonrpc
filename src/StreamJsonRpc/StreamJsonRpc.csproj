@@ -51,5 +51,5 @@
     </ItemGroup>
   </Target>
   <Import Project="$(RepoRootPath)src\AnalyzerUser.targets" />
-  <Import Project="OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
+  <Import Project="..\OptProf.targets" Condition=" '$(TargetFramework)' == 'netstandard2.0' " />
 </Project>
