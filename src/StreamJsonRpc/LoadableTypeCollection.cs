@@ -4,8 +4,6 @@
 using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using Microsoft;
 
 namespace StreamJsonRpc;
 
@@ -62,14 +60,19 @@ public struct LoadableTypeCollection : IReadOnlyCollection<Type>
         return false;
     }
 
-    private struct LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type) : IEquatable<LoadableType>
+    private struct LoadableType : IEquatable<LoadableType>
     {
+        public LoadableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)] Type type)
+        {
+            this.Type = type;
+        }
+
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors)]
-        public Type Type => type;
+        public Type Type { get; }
 
         public bool Equals(LoadableType other) => this.Type == other.Type;
 
-        public override int GetHashCode() => type.GetHashCode();
+        public override int GetHashCode() => this.Type.GetHashCode();
 
         public override bool Equals(object? obj) => obj is LoadableType other && this.Equals(other);
     }

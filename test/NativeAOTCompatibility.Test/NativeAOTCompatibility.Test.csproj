@@ -2,7 +2,7 @@
   <Import Project="..\AOT.props" />
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
