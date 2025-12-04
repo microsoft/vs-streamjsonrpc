@@ -10,20 +10,27 @@ namespace StreamJsonRpc.Reflection;
 /// An attribute that is used by our source generator to map an RPC interface to a
 /// source generated proxy class.
 /// </summary>
-/// <param name="proxyClass">
-/// The source generated proxy class.
-/// This must implement the interface the attribute is applied to,
-/// derive from <see cref="ProxyBase"/>,
-/// and declare a public constructor with a particular signature.
-/// </param>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public class JsonRpcProxyMappingAttribute(
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] Type proxyClass) : Attribute
+public class JsonRpcProxyMappingAttribute : Attribute
 {
     /// <summary>
-    /// Gets the proxy class type implements the RPC interface.
+    /// Initializes a new instance of the <see cref="JsonRpcProxyMappingAttribute"/> class.
+    /// </summary>
+    /// <param name="proxyClass">
+    /// The source generated proxy class.
+    /// This must implement the interface the attribute is applied to,
+    /// derive from <see cref="ProxyBase"/>,
+    /// and declare a public constructor with a particular signature.
+    /// </param>
+    public JsonRpcProxyMappingAttribute([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] Type proxyClass)
+    {
+        this.ProxyClass = proxyClass;
+    }
+
+    /// <summary>
+    /// Gets the proxy class type that implements the RPC interface.
     /// </summary>
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)]
-    public Type ProxyClass => proxyClass;
+    public Type ProxyClass { get; }
 }

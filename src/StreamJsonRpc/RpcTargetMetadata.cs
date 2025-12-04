@@ -491,10 +491,15 @@ public class RpcTargetMetadata
 
     private static MethodInfo GetMethodInfo(IMethodShape shape) => (MethodInfo)(shape.MethodBase ?? throw new ArgumentException(Resources.FormatAttributeProviderRequired($"{shape.DeclaringType.Type.FullName}.{shape.Name}"), nameof(shape)));
 
-    internal struct RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+    internal struct RpcTargetInterface
     {
+        public RpcTargetInterface([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)] Type iface)
+        {
+            this.Interface = iface;
+        }
+
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicEvents)]
-        public Type Interface => iface;
+        public Type Interface { get; }
     }
 
     /// <summary>
