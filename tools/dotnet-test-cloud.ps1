@@ -20,7 +20,9 @@ Param(
     [string]$Agent='Local',
     [switch]$PublishResults,
     [switch]$x86,
-    [string]$dotnet32
+    [string]$dotnet32,
+    [switch]$netfxOnly,
+    [string]$logIsolationName
 )
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
@@ -45,13 +47,23 @@ if ($x86) {
   }
 }
 
-$testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs test.binlog)
+$binlogName = if ($logIsolationName) { "test_$logIsolationName.binlog" } else { "test.binlog" }
+$testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs $binlogName)
+
 $testLogs = Join-Path $ArtifactStagingFolder test_logs
+if ($logIsolationName) {
+    $testLogs = Join-Path $testLogs $logIsolationName
+}
 
 $globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
 $isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+$extraArgs = @()
+
+if ($netfxOnly) {
+    $extraArgs += '--framework','net472'
+}
+
 if ($isMTP) {
-    $extraArgs = @()
     if ($OnCI) { $extraArgs += '--no-progress' }
     & $dotnet test --solution $RepoRoot `
         --no-build `
@@ -84,7 +96,8 @@ if ($isMTP) {
         --blame-crash `
         -bl:"$testBinLog" `
         --diag "$testDiagLog;TraceLevel=info" `
-        --logger trx
+        --logger trx `
+        @extraArgs
 
     $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
 }
@@ -97,6 +110,7 @@ $trxFiles |% {
   }
 
   if ($PublishResults) {
+    $runTitleIsolationSuffix = if ($logIsolationName) { ", $logIsolationName" } else { "" }
     $x = [xml](Get-Content -LiteralPath $_)
     $runTitle = $null
     if ($x.TestRun.TestDefinitions -and $x.TestRun.TestDefinitions.GetElementsByTagName('UnitTest')) {
@@ -105,13 +119,13 @@ $trxFiles |% {
         if ($matches.rid) {
           $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid), $Agent)"
         } else {
-          $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix, $Agent)"
+          $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix$runTitleIsolationSuffix, $Agent)"
         }
       }
     }
     if (!$runTitle) {
       $unknownCounter += 1;
-      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitleSuffix)";
+      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitleSuffix$runTitleIsolationSuffix)";
     }
 
     Write-Host "##vso[results.publish type=VSTest;runTitle=$runTitle;publishRunAttachments=true;resultFiles=$_;failTaskOnFailedTests=true;testRunSystem=VSTS - PTR;]"
