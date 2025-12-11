@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
+
+  <ItemGroup>
+    <PackageVersion Update="System.Collections.Immutable" Version="9.0.0" />
+    <PackageVersion Update="System.IO.Pipelines" Version="9.0.0" />
+    <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
+  </ItemGroup>
+</Project>

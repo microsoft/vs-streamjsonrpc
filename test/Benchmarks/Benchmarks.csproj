@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net472</TargetFrameworks>
+    <IsTestProject>false</IsTestProject>
     <IsBenchmarksProject>true</IsBenchmarksProject>
   </PropertyGroup>
 

@@ -20,12 +20,14 @@ Param(
     [string]$Agent='Local',
     [switch]$PublishResults,
     [switch]$x86,
-    [string]$dotnet32
+    [string]$dotnet32,
+    [switch]$netfxOnly,
+    [string]$logIsolationName
 )
 
 $RepoRoot = (Resolve-Path "$PSScriptRoot/..").Path
 $ArtifactStagingFolder = & "$PSScriptRoot/Get-ArtifactsStagingDirectory.ps1"
-$FailsOnMonoFilter = & "$PSScriptRoot/variables/FailsOnMonoFilter.ps1"
+$OnCI = ($env:CI -or $env:TF_BUILD)
 
 $dotnet = 'dotnet'
 if ($x86) {
@@ -45,26 +47,70 @@ if ($x86) {
   }
 }
 
-$testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs test.binlog)
-$testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
+$binlogName = if ($logIsolationName) { "test_$logIsolationName.binlog" } else { "test.binlog" }
+$testBinLog = Join-Path $ArtifactStagingFolder (Join-Path build_logs $binlogName)
 
-& $dotnet test $RepoRoot `
-    --no-build `
-    -c $Configuration `
-    --filter "TestCategory!=FailsInCloudTest$FailsOnMonoFilter" `
-    --collect "Code Coverage;Format=cobertura" `
-    --settings "$PSScriptRoot/test.runsettings" `
-    --blame-hang-timeout 60s `
-    --blame-crash `
-    -bl:"$testBinLog" `
-    --diag "$testDiagLog;TraceLevel=info" `
-    --logger trx `
+$testLogs = Join-Path $ArtifactStagingFolder test_logs
+if ($logIsolationName) {
+    $testLogs = Join-Path $testLogs $logIsolationName
+}
+
+$globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
+$isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
+$extraArgs = @()
+
+if ($netfxOnly) {
+    $extraArgs += '--framework','net472'
+}
+
+if ($isMTP) {
+    if ($OnCI) { $extraArgs += '--no-progress' }
+    & $dotnet test --solution $RepoRoot `
+        --no-build `
+        -c $Configuration `
+        -bl:"$testBinLog" `
+        --filter-not-trait 'TestCategory=FailsInCloudTest' `
+        --coverage `
+        --coverage-output-format cobertura `
+        --coverage-settings "$PSScriptRoot/test.runsettings" `
+        --hangdump `
+        --hangdump-timeout 60s `
+        --crashdump `
+        --diagnostic `
+        --diagnostic-output-directory $testLogs `
+        --diagnostic-verbosity Information `
+        --results-directory $testLogs `
+        --report-trx `
+        @extraArgs
+
+    $trxFiles = Get-ChildItem -Recurse -Path $testLogs\*.trx
+} else {
+    $testDiagLog = Join-Path $ArtifactStagingFolder (Join-Path test_logs diag.log)
+    & $dotnet test $RepoRoot `
+        --no-build `
+        -c $Configuration `
+        --filter "TestCategory!=FailsInCloudTest" `
+        --collect "Code Coverage;Format=cobertura" `
+        --settings "$PSScriptRoot/test.runsettings" `
+        --blame-hang-timeout 60s `
+        --blame-crash `
+        -bl:"$testBinLog" `
+        --diag "$testDiagLog;TraceLevel=info" `
+        --logger trx `
+        @extraArgs
+
+    $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
+}
 
 $unknownCounter = 0
-Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
-  Copy-Item $_ -Destination $ArtifactStagingFolder/test_logs/
+$trxFiles |% {
+  New-Item $testLogs -ItemType Directory -Force | Out-Null
+  if (!($_.FullName.StartsWith($testLogs))) {
+    Copy-Item $_ -Destination $testLogs
+  }
 
   if ($PublishResults) {
+    $runTitleIsolationSuffix = if ($logIsolationName) { ", $logIsolationName" } else { "" }
     $x = [xml](Get-Content -LiteralPath $_)
     $runTitle = $null
     if ($x.TestRun.TestDefinitions -and $x.TestRun.TestDefinitions.GetElementsByTagName('UnitTest')) {
@@ -73,13 +119,13 @@ Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx |% {
         if ($matches.rid) {
           $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid), $Agent)"
         } else {
-          $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix, $Agent)"
+          $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix$runTitleIsolationSuffix, $Agent)"
         }
       }
     }
     if (!$runTitle) {
       $unknownCounter += 1;
-      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitleSuffix)";
+      $runTitle = "unknown$unknownCounter ($Agent$x86RunTitleSuffix$runTitleIsolationSuffix)";
     }
 
     Write-Host "##vso[results.publish type=VSTest;runTitle=$runTitle;publishRunAttachments=true;resultFiles=$_;failTaskOnFailedTests=true;testRunSystem=VSTS - PTR;]"
