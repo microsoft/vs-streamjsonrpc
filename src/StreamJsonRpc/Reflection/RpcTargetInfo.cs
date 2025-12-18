@@ -42,6 +42,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Unregister event handlers first to prevent any events from being raised during disposal.
+        this.UnregisterEventHandlersFromTargetObjects();
+
         List<object>? objectsToDispose;
         lock (this.SyncObject)
         {

@@ -150,6 +150,80 @@ public abstract partial class TargetObjectEventsTests : TestBase
         Assert.Null(this.server.ServerEventWithCustomArgsAccessor);
     }
 
+    /// <summary>
+    /// Verifies that event handlers are unregistered when multiple connections are established and disposed.
+    /// This tests for a memory leak where event handlers would accumulate if not properly unregistered on disposal.
+    /// </summary>
+    [Fact]
+    public void EventHandlersUnregisteredOnMultipleConnectionDisposals()
+    {
+        // Use a shared server object across multiple connections to simulate the real-world scenario
+        var sharedServer = new Server();
+
+        // Verify no handlers initially
+        Assert.Null(sharedServer.ServerEventAccessor);
+        Assert.Null(sharedServer.ServerEventWithCustomArgsAccessor);
+
+        // Create and dispose multiple connections
+        for (int i = 0; i < 3; i++)
+        {
+            var streams = FullDuplexStream.CreateStreams();
+            var rpc = this.CreateJsonRpcWithTargetObject(streams.Item1, sharedServer);
+            rpc.StartListening();
+
+            // Verify handler is registered
+            Assert.NotNull(sharedServer.ServerEventAccessor);
+            Assert.NotNull(sharedServer.ServerEventWithCustomArgsAccessor);
+
+            // Count the number of handlers attached
+            int serverEventHandlerCount = sharedServer.ServerEventAccessor?.GetInvocationList().Length ?? 0;
+            int customArgsEventHandlerCount = sharedServer.ServerEventWithCustomArgsAccessor?.GetInvocationList().Length ?? 0;
+
+            // Should only have one handler per event, not accumulating
+            Assert.Equal(1, serverEventHandlerCount);
+            Assert.Equal(1, customArgsEventHandlerCount);
+
+            // Dispose the connection
+            rpc.Dispose();
+
+            // Verify handlers are unregistered after disposal
+            Assert.Null(sharedServer.ServerEventAccessor);
+            Assert.Null(sharedServer.ServerEventWithCustomArgsAccessor);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that event handlers are unregistered when the stream is closed without explicit disposal.
+    /// This simulates the scenario where a websocket connection drops unexpectedly.
+    /// </summary>
+    [Fact]
+    public async Task EventHandlersUnregisteredWhenStreamClosesUnexpectedly()
+    {
+        var sharedServer = new Server();
+
+        // Verify no handlers initially
+        Assert.Null(sharedServer.ServerEventAccessor);
+
+        var streams = FullDuplexStream.CreateStreams();
+        var serverRpc = this.CreateJsonRpcWithTargetObject(streams.Item1, sharedServer);
+        var clientRpc = new JsonRpc(streams.Item2);
+
+        serverRpc.StartListening();
+        clientRpc.StartListening();
+
+        // Verify handler is registered
+        Assert.NotNull(sharedServer.ServerEventAccessor);
+
+        // Simulate connection drop by closing the stream without disposing JsonRpc
+        streams.Item2.Dispose();
+
+        // Wait for the disconnection to be detected
+        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+
+        // Verify handlers are unregistered after stream closure
+        Assert.Null(sharedServer.ServerEventAccessor);
+    }
+
     /// <summary>Ensures that JsonRpc only adds one event handler to target objects where events are declared multiple times in an type hierarchy.</summary>
     /// <remarks>This is a regression test for <see href="https://github.com/microsoft/vs-streamjsonrpc/issues/481">this bug</see>.</remarks>
     [Fact]
