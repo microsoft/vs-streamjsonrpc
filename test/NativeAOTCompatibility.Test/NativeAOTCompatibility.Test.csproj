@@ -6,6 +6,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <IsTestProject>false</IsTestProject>
   </PropertyGroup>
 
