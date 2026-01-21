@@ -12,7 +12,7 @@
     <!-- Enable warnings regarding AOT compatibility. Learn more about testing strategies at https://devblogs.microsoft.com/dotnet/creating-aot-compatible-libraries/ -->
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
-    <PackageValidationBaselineVersion>2.22.11</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>2.24.84</PackageValidationBaselineVersion>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources.resx" EmitFormatMethods="true" />
