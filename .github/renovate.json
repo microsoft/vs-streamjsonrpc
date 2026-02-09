@@ -8,7 +8,7 @@
 	"packageRules": [
 		{
 			"matchPackageNames": [ "Microsoft.AspNetCore.TestHost" ],
-			"allowedVersions": "<2.3"
+			"allowedVersions": "<2.4"
 		},
 		{
 			"matchJsonata": [ "sharedVariableName='RoslynVersion'" ],

@@ -813,6 +813,7 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     }
 
     [JsonConverter(typeof(ThrowingJsonConverter<UnserializableType>))]
+    [System.Text.Json.Serialization.JsonConverter(typeof(ThrowingSystemTextJsonConverter<UnserializableType>))]
     [MessagePackFormatter(typeof(ThrowingMessagePackFormatter<UnserializableType>))]
     [NBMP.MessagePackConverter(typeof(ThrowingMessagePackNerdbankConverter<UnserializableType>))]
     protected class UnserializableType
@@ -853,6 +854,19 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         }
 
         public override void Write(ref NBMP.MessagePackWriter writer, in T? value, NBMP.SerializationContext context)
+        {
+            throw new Exception();
+        }
+    }
+
+    protected class ThrowingSystemTextJsonConverter<T> : System.Text.Json.Serialization.JsonConverter<T>
+    {
+        public override T? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {
+            throw new Exception();
+        }
+
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, T value, System.Text.Json.JsonSerializerOptions options)
         {
             throw new Exception();
         }
