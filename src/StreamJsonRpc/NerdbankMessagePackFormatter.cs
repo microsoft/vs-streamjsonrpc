@@ -131,7 +131,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     public MessagePackSerializer UserDataSerializer
     {
         get => this.userDataSerializer;
-        [MemberNotNull(nameof(this.userDataSerializer))]
+        [MemberNotNull(nameof(userDataSerializer))]
         init
         {
             Requires.NotNull(value);
