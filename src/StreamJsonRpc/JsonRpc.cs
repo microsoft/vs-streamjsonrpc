@@ -20,6 +20,7 @@ namespace StreamJsonRpc;
 /// <summary>
 /// Manages a JSON-RPC connection with another entity over a <see cref="Stream"/>.
 /// </summary>
+[DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonRpcTracingCallbacks, ExceptionSerializationHelpers.IExceptionTypeLoader
 {
     /// <summary>
@@ -512,6 +513,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Gets a human-readable name that can be used to identify this <see cref="JsonRpc"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// This value is not used for any RPC functionality. It's merely an aid to help backtrace this instance to its creator.
+    /// </remarks>
+    public string? DisplayName { get; init; }
+
+    /// <summary>
     /// Gets a <see cref="Task"/> that completes when this instance is disposed or when listening has stopped
     /// whether by error, disposal or the stream closing.
     /// </summary>
@@ -707,6 +716,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Gets a value indicating whether listening has started.
     /// </summary>
     private bool HasListeningStarted => this.readLinesTask is not null;
+
+    private string DebuggerDisplay => $"JsonRpc: {this.DisplayName ?? "(anonymous)"}";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
