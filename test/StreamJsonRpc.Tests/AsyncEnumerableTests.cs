@@ -58,6 +58,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         IAsyncEnumerable<int> GetNumbersAsync(CancellationToken cancellationToken);
 
+        IAsyncEnumerable<int> GetNumbersThatWerePassedInAsync(IAsyncEnumerable<int> numbers, CancellationToken cancellationToken);
+
         IAsyncEnumerable<int> GetNumbersNoCancellationAsync();
 
         IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync(CancellationToken cancellationToken);
@@ -135,6 +137,25 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<int> enumerable = useProxy
             ? this.clientProxy.Value.GetNumbersAsync(this.TimeoutToken)
             : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersAsync), cancellationToken: this.TimeoutToken);
+        await foreach (int number in enumerable)
+        {
+            realizedValuesCount++;
+            this.Logger.WriteLine(number.ToString(CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal(Server.ValuesReturnedByEnumerables, realizedValuesCount);
+    }
+
+    [Theory]
+    [PairwiseData]
+    public async Task GetIAsyncEnumerableAsReturnTypeAndParameter(bool useProxy)
+    {
+        IAsyncEnumerable<int>? numbers = Enumerable.Range(1, Server.ValuesReturnedByEnumerables).AsAsyncEnumerable();
+
+        int realizedValuesCount = 0;
+        IAsyncEnumerable<int> enumerable = useProxy
+            ? this.clientProxy.Value.GetNumbersThatWerePassedInAsync(numbers, this.TimeoutToken)
+            : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersThatWerePassedInAsync), new object[] { numbers }, this.TimeoutToken);
         await foreach (int number in enumerable)
         {
             realizedValuesCount++;
@@ -695,6 +716,14 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
             finally
             {
                 this.MethodExited.Set();
+            }
+        }
+
+        public async IAsyncEnumerable<int> GetNumbersThatWerePassedInAsync(IAsyncEnumerable<int> numbers, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (int number in numbers.WithCancellation(cancellationToken))
+            {
+                yield return number;
             }
         }
 
