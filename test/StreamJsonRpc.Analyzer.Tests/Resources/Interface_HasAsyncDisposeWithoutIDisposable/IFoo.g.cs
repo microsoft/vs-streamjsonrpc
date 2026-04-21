@@ -37,13 +37,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("Dispose");
-			string rpcMethodName = this.transformedDispose1 ??= this.TransformMethodName("Dispose", typeof(global::IFoo));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DisposeNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
+			string __rpcMethodName = this.transformedDispose1 ??= this.TransformMethodName("Dispose", typeof(global::IFoo));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), DisposeNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], DisposePositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("Dispose");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

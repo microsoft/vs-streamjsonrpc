@@ -39,13 +39,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("GetNullableIntAsync");
-			string rpcMethodName = this.transformedGetNullableIntAsync1 ??= this.TransformMethodName("GetNullableIntAsync", typeof(global::IMyService));
-			global::System.Threading.Tasks.Task<object?> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(rpcMethodName, ConstructNamedArgs(), GetNullableIntAsyncNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync<object?>(rpcMethodName, [value], GetNullableIntAsyncPositionalArgumentDeclaredTypes1, default);
+			string __rpcMethodName = this.transformedGetNullableIntAsync1 ??= this.TransformMethodName("GetNullableIntAsync", typeof(global::IMyService));
+			global::System.Threading.Tasks.Task<object?> __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(__rpcMethodName, ConstructNamedArgs(), GetNullableIntAsyncNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync<object?>(__rpcMethodName, [value], GetNullableIntAsyncPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("GetNullableIntAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

@@ -40,13 +40,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("DoSomethingWithParameterAsync");
-			string rpcMethodName = this.transformedDoSomethingWithParameterAsync1 ??= this.TransformMethodName("DoSomethingWithParameterAsync", typeof(global::IGenericMarshalable<T1, T2>));
-			global::System.Threading.Tasks.Task<T1> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<T1>(rpcMethodName, ConstructNamedArgs(), DoSomethingWithParameterAsyncNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync<T1>(rpcMethodName, [parameter], DoSomethingWithParameterAsyncPositionalArgumentDeclaredTypes1, default);
+			string __rpcMethodName = this.transformedDoSomethingWithParameterAsync1 ??= this.TransformMethodName("DoSomethingWithParameterAsync", typeof(global::IGenericMarshalable<T1, T2>));
+			global::System.Threading.Tasks.Task<T1> __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync<T1>(__rpcMethodName, ConstructNamedArgs(), DoSomethingWithParameterAsyncNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync<T1>(__rpcMethodName, [parameter], DoSomethingWithParameterAsyncPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("DoSomethingWithParameterAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

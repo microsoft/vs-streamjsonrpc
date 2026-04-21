@@ -69,13 +69,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddRenamed", typeof(global::IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
+			string __rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddRenamed", typeof(global::IMyRpc));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 			this.OnCalledMethod("AddAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()
@@ -90,13 +90,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("IntegrateAsync");
-			string rpcMethodName = this.transformedIntegrateAsync2 ??= this.TransformMethodName("IntegrateRenamed", typeof(global::IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), IntegrateAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [from, to], IntegrateAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
+			string __rpcMethodName = this.transformedIntegrateAsync2 ??= this.TransformMethodName("IntegrateRenamed", typeof(global::IMyRpc));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), IntegrateAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [from, to], IntegrateAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
 			this.OnCalledMethod("IntegrateAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()
@@ -111,13 +111,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("DivideAsync");
-			string rpcMethodName = this.transformedDivideAsync3 ??= this.TransformMethodName("DivideRenamed", typeof(global::IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), DivideAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [from, to], DivideAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
+			string __rpcMethodName = this.transformedDivideAsync3 ??= this.TransformMethodName("DivideRenamed", typeof(global::IMyRpc));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), DivideAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [from, to], DivideAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
 			this.OnCalledMethod("DivideAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

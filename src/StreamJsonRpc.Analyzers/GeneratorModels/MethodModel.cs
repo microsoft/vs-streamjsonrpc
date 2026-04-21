@@ -31,9 +31,9 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
     private string? ReturnExpression => this.ReturnSpecialType switch
     {
         RpcSpecialType.Void => string.Empty,
-        RpcSpecialType.Task => "result",
-        RpcSpecialType.ValueTask => $"new {this.ReturnType}(result)",
-        RpcSpecialType.IAsyncEnumerable => $"global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(result, {this.CancellationTokenExpression ?? "default"})",
+        RpcSpecialType.Task => "__result",
+        RpcSpecialType.ValueTask => $"new {this.ReturnType}(__result)",
+        RpcSpecialType.IAsyncEnumerable => $"global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateAsyncEnumerableProxy(__result, {this.CancellationTokenExpression ?? "default"})",
         _ => null,
     };
 
@@ -132,10 +132,10 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                     if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 
                     this.OnCallingMethod("{{this.Name}}");
-                    string rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.TransformMethodName("{{this.RpcMethodName}}", typeof({{this.DeclaringInterfaceName}}));
-                    global::System.Threading.Tasks.Task{{returnTypeArg}} result = this.Options.ServerRequiresNamedArguments ?
-                        this.JsonRpc.{{namedArgsInvocationMethodName}}(rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
-                        this.JsonRpc.{{positionalArgsInvocationMethodName}}(rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
+                    string __rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.TransformMethodName("{{this.RpcMethodName}}", typeof({{this.DeclaringInterfaceName}}));
+                    global::System.Threading.Tasks.Task{{returnTypeArg}} __result = this.Options.ServerRequiresNamedArguments ?
+                        this.JsonRpc.{{namedArgsInvocationMethodName}}(__rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
+                        this.JsonRpc.{{positionalArgsInvocationMethodName}}(__rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
                     this.OnCalledMethod("{{this.Name}}");
 
                     return {{this.ReturnExpression}};

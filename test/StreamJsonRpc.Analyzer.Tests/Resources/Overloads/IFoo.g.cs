@@ -63,13 +63,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi1 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
+			string __rpcMethodName = this.transformedSayHi1 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("SayHi");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()
@@ -82,13 +82,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi2 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
+			string __rpcMethodName = this.transformedSayHi2 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
 			this.OnCalledMethod("SayHi");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()
@@ -102,13 +102,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("SayHi");
-			string rpcMethodName = this.transformedSayHi3 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
+			string __rpcMethodName = this.transformedSayHi3 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
 			this.OnCalledMethod("SayHi");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

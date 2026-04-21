@@ -40,13 +40,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("JustAnotherCancellationAsync");
-			string rpcMethodName = this.transformedJustAnotherCancellationAsync1 ??= this.TransformMethodName("JustAnotherCancellationAsync", typeof(global::B.IMyRpc));
-			global::System.Threading.Tasks.Task result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(rpcMethodName, ConstructNamedArgs(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
-			    this.JsonRpc.InvokeWithCancellationAsync(rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
+			string __rpcMethodName = this.transformedJustAnotherCancellationAsync1 ??= this.TransformMethodName("JustAnotherCancellationAsync", typeof(global::B.IMyRpc));
+			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), JustAnotherCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], JustAnotherCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 			this.OnCalledMethod("JustAnotherCancellationAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

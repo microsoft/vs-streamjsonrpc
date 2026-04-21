@@ -61,13 +61,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface));
-			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, token) :
-			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes1, token);
+			string __rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface));
+			global::System.Threading.Tasks.Task<int> __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, token) :
+			    this.JsonRpc.InvokeWithCancellationAsync<int>(__rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes1, token);
 			this.OnCalledMethod("AddAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()
@@ -82,13 +82,13 @@ namespace StreamJsonRpc.Generated
 			if (this.IsDisposed) throw new global::System.ObjectDisposedException(this.GetType().FullName);
 			
 			this.OnCallingMethod("AddAsync");
-			string rpcMethodName = this.transformedAddAsync2 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface2));
-			global::System.Threading.Tasks.Task<int> result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes2, token) :
-			    this.JsonRpc.InvokeWithCancellationAsync<int>(rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes2, token);
+			string __rpcMethodName = this.transformedAddAsync2 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface2));
+			global::System.Threading.Tasks.Task<int> __result = this.Options.ServerRequiresNamedArguments ?
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes2, token) :
+			    this.JsonRpc.InvokeWithCancellationAsync<int>(__rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes2, token);
 			this.OnCalledMethod("AddAsync");
 			
-			return result;
+			return __result;
 			
 			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
 			    => new()

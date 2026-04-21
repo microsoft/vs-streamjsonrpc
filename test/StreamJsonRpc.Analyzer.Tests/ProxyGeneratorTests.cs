@@ -364,6 +364,20 @@ public class ProxyGeneratorTests
     }
 
     [Fact]
+    public async Task RpcMarshalable_ParameterNameCollision()
+    {
+        await VerifyCS.RunDefaultAsync("""
+            using PolyType;
+
+            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IAsyncTaskMonitor : IDisposable
+            {
+                Task OnCompleted(string rpcMethodName, int result, CancellationToken cancellationToken = default);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task RpcMarshalable_Generic()
     {
         await VerifyCS.RunDefaultAsync("""
