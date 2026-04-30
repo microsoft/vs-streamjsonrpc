@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <MicrosoftTestingPlatformVersion>2.2.1</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>2.2.2</MicrosoftTestingPlatformVersion>
     <MessagePackVersion>2.5.198</MessagePackVersion>
     <MicroBuildVersion>2.0.226</MicroBuildVersion>
     <RoslynVersion>4.14.0</RoslynVersion>
