@@ -21,6 +21,8 @@ internal partial interface IServer
     event EventHandler<int> Added;
 
     Task<int> AddAsync(int a, int b);
+
+    Task<IDisposable> SubscribeAsync();
 }
 
 internal class Server : IServer
@@ -34,5 +36,12 @@ internal class Server : IServer
         return Task.FromResult(sum);
     }
 
+    public Task<IDisposable> SubscribeAsync() => Task.FromResult<IDisposable>(new Disposable(() => Console.WriteLine("Subscription disposed server ACK.")));
+
     protected virtual void OnAdded(int sum) => this.Added?.Invoke(this, sum);
+
+    private class Disposable(Action action) : IDisposable
+    {
+        public void Dispose() => action();
+    }
 }

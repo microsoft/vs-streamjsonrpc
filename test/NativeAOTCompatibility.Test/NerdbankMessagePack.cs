@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Nerdbank.MessagePack;
 using Nerdbank.Streams;
 using PolyType;
 using StreamJsonRpc;
@@ -24,11 +25,20 @@ internal static partial class NerdbankMessagePack
 
         int sum = await proxy.AddAsync(2, 5);
         Console.WriteLine($"2 + 5 = {sum}");
+
+        IDisposable subscription = await proxy.SubscribeAsync();
+        Console.WriteLine("Subscribed.");
+        subscription.Dispose();
+        Console.WriteLine("Subscription disposed client ACK.");
     }
 
     private static IJsonRpcMessageFormatter CreateFormatter() => new NerdbankMessagePackFormatter()
     {
         TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
+        UserDataSerializer = NerdbankMessagePackFormatter.DefaultSerializer with
+        {
+            PropertyNamingPolicy = MessagePackNamingPolicy.CamelCase,
+        },
     };
 
     [GenerateShapeFor<int>]
