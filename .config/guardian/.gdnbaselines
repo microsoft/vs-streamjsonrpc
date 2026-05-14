@@ -1,0 +1,167 @@
+{
+  "properties": {
+    "helpUri": "https://eng.ms/docs/microsoft-security/security/azure-security/cloudai-security-fundamentals-engineering/security-integration/guardian-wiki/microsoft-guardian/general/baselines"
+  },
+  "version": "1.0.0",
+  "baselines": {
+    "default": {
+      "name": "default",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "lastUpdatedDate": "2026-05-14 03:34:26Z"
+    }
+  },
+  "results": {
+    "80788a65a114039733b83ffb8ed84b4c0043a637b74f0c70827aaf3d7f4b2c5a": {
+      "signature": "80788a65a114039733b83ffb8ed84b4c0043a637b74f0c70827aaf3d7f4b2c5a",
+      "alternativeSignatures": [
+        "45723e3655314948de65b804b7cf6d870cfbf08a0cfcd145698506642ff3a64e",
+        "54db2c991bc1df00e54b7121e4215f2e88b9d6a770b119c401ace16263befbc7",
+        "f58f47df5cd35cc51486d4c5520f63c62672224abf61d492cefc199caba1db6d"
+      ],
+      "target": "test/StreamJsonRpc.Tests/AsyncEnumerableJsonTypeHandlingTests.cs",
+      "line": 28,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "f036df9d7dcfd9c623192c76811fbf3ede0f6790a127b3215da9ca486e55de45": {
+      "signature": "f036df9d7dcfd9c623192c76811fbf3ede0f6790a127b3215da9ca486e55de45",
+      "alternativeSignatures": [
+        "48c7cf31f6db7885f8a06320e3713d95de7b0ef118f97de46b2fde8c0f0fac37",
+        "ea4837db6082c6e3ab99c081c006cde620490c91aeb178435560079a4cbcfa43",
+        "8bda5d12fe4496fca251fbfff684cbe1341282482c9cd04b0fd9d146c808ae88"
+      ],
+      "target": "test/StreamJsonRpc.Tests/CustomCancellationStrategyJsonTypeHandlingTests.cs",
+      "line": 29,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "5db199ab5fcfa82a90c6a7716be4e0e59e06ad68bf0e21b196642e8bb37ef969": {
+      "signature": "5db199ab5fcfa82a90c6a7716be4e0e59e06ad68bf0e21b196642e8bb37ef969",
+      "alternativeSignatures": [
+        "079cc44c92e04e478428d00f0d913e5f9ca3d97a144502dfe2f937b2b3455e4d",
+        "6771b81d2bdbc37bb20253b5c8ad3ee480f2309b5c3281b55e36dd2a1849e835",
+        "86be2659ca8396f14afbd0d34d23f66d6aa1dfdb11d195c4bf9ac1239602c258"
+      ],
+      "target": "test/StreamJsonRpc.Tests/InteropTestBase.cs",
+      "line": 19,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "5ba2a627453cc2292eb14edc37de061f07efdf20ff12d563e7fed8c47c2fc5a7": {
+      "signature": "5ba2a627453cc2292eb14edc37de061f07efdf20ff12d563e7fed8c47c2fc5a7",
+      "alternativeSignatures": [
+        "81161e7c3df419bc3f52ac6e98044f9aae36a9fe2f5782a8103c157ff27a56b5",
+        "c1bed2a4c75c65ce1eb9989bbb2dbf4ebedb171ef76f943beac809cb990c48d4",
+        "5d8c359393a4430bfbf1a7a62f5185b56a08bec262c7b637f6b53567b3b3f191"
+      ],
+      "target": "test/StreamJsonRpc.Tests/JsonRpcJsonHeadersTypeHandlingTests.cs",
+      "line": 41,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "e75b251a7890c2205c865f7d276a1bf58afab4858c8d15df063b8738dbba57d9": {
+      "signature": "e75b251a7890c2205c865f7d276a1bf58afab4858c8d15df063b8738dbba57d9",
+      "alternativeSignatures": [
+        "ef1c1098ce7c367f6605d109f79b9213ff9e9252bc2a11ef5633b612279cfc07",
+        "95922acc386178c630eba0d765569de5d56397bf94c467469129de38f44e9891",
+        "89d58ae580b6b60b28e5f8193570450054be8096f0622d80dd33bed07618d568"
+      ],
+      "target": "test/StreamJsonRpc.Tests/JsonRpcTests.cs",
+      "line": 97,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "33a8c2425ff159ca4c09d3601bde16451f10f640a41906f1069baaae4004db17": {
+      "signature": "33a8c2425ff159ca4c09d3601bde16451f10f640a41906f1069baaae4004db17",
+      "alternativeSignatures": [
+        "df194da82bb06feb7c27e1a9a6a42470d849c45a7890cad954c21c49a7d23e62",
+        "d4afa10908ef78f41574dccf48839d925659b72cfca4ec11d5a9f9af444ed1d4",
+        "4cde83ed9338f3a76588eee93e43cfbd34cf793613846d2d2e230bf776b50c2e"
+      ],
+      "target": "test/StreamJsonRpc.Tests/JsonRpcTests.cs",
+      "line": 2687,
+      "uriBaseId": "file:///D:/a/_work/1/s/",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA2326",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "683bbd5aa3cbd433996bd18d8ba03385ce3a46ae751d926ef9f96acc17af6a7e": {
+      "signature": "683bbd5aa3cbd433996bd18d8ba03385ce3a46ae751d926ef9f96acc17af6a7e",
+      "alternativeSignatures": [
+        "b10af9831e058307021787bd6ba50ce32eba4809cd80516774e4b2242bb7b693",
+        "17e1901483114c3901dfba51ff8a80dac602bcebf606cd18b70ec5fea765fd36",
+        "64d5200bd553111f2b491ea5b7c18504f93260bbf0c42d448aa292b5641b1731"
+      ],
+      "target": "test/StreamJsonRpc.Analyzer.Tests/Verifiers/CSharpSourceGeneratorVerifier`1.cs",
+      "line": 97,
+      "uriBaseId": "file:///D:/a/_work/1/s/test/StreamJsonRpc.Analyzer.Tests/Verifiers/CSharpSourceGeneratorVerifier%601.cs",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA1310",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    },
+    "2c9a2ded49208784a488cb0b7dfcbc461b1991605457223c2fa9b4fab244358d": {
+      "signature": "2c9a2ded49208784a488cb0b7dfcbc461b1991605457223c2fa9b4fab244358d",
+      "alternativeSignatures": [
+        "f0279a29aa6c38b096fcf7dbe496a29947fde1ea2dd1faaacf051b4d978eca37",
+        "9f3296211e88d64bb05c101e8bf2a85f9916d2c16258d7b0041fe5c45040316e",
+        "879fd43a753aee6bff1b812cfeae750781e1342c2585002a7c5bf23cfba450f2"
+      ],
+      "target": "test/StreamJsonRpc.Analyzer.Tests/Verifiers/CSharpSourceGeneratorVerifier`1.cs",
+      "line": 190,
+      "uriBaseId": "file:///D:/a/_work/1/s/test/StreamJsonRpc.Analyzer.Tests/Verifiers/CSharpSourceGeneratorVerifier%601.cs",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "roslynanalyzers",
+      "ruleId": "CA1310",
+      "createdDate": "2026-05-14 03:34:26Z",
+      "expirationDate": "2026-10-31 04:15:10Z",
+      "justification": "This error is baselined with an expiration date of 180 days from 2026-05-14 04:15:10Z"
+    }
+  }
+}
