@@ -1,5 +1,6 @@
-﻿using Nerdbank.Streams;
-using PolyType;
+﻿#pragma warning disable CS8892 // These Main methods will be ignored
+
+using Nerdbank.Streams;
 
 namespace NativeAOT;
 
@@ -36,7 +37,8 @@ partial class NerdbankMessagePack
         public Task<int> AddAsync(int a, int b) => Task.FromResult(a + b);
     }
 
-    // Every data type used in the RPC methods must be annotated for serialization.
+    // Just one attribute with any type argument is sufficient to trigger
+    // a source generator to expose the TypeShapeProvider with all types used in the app.
     [GenerateShapeFor<int>]
     private partial class Witness;
     #endregion

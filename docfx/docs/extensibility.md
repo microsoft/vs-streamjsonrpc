@@ -80,12 +80,24 @@ StreamJsonRpc includes the following <xref:StreamJsonRpc.IJsonRpcMessageFormatte
     each message using the very fast and compact binary [MessagePack format][MessagePackFormat].
     This formatter is NativeAOT ready.
     Any RPC method parameters and return types that require custom serialization may provide it
-    with a `MessagePackConverter<T>`-derived class.
+    with a <xref:Nerdbank.MessagePack.MessagePackConverter`1>-derived class.
     All custom converters can be added to the serializer at <xref:StreamJsonRpc.NerdbankMessagePackFormatter.UserDataSerializer>.
     All RPC method parameter or return types must have type shapes generated for them via [a witness class](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html).
 
     This formatter is not fully wire format compatible with <xref:StreamJsonRpc.MessagePackFormatter>,
     so matching formatters on both sides of an RPC connection is recommended.
+
+    Create the formatter with the required <xref:StreamJsonRpc.NerdbankMessagePackFormatter.TypeShapeProvider>
+    and optionally with serializer customizations.
+    When customizing the serializer, always base the new serializer on the default one defined by <xref:StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer> as shown below:
+
+    [!code-csharp[](../../samples/Extensibility.cs#CreateNBMsgPackFormatter)]
+
+    In the above sample, the type shape provider comes from a [witness class](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes), which you can trivially define like this:
+
+    [!code-csharp[](../../samples/Extensibility.cs#PolyTypeWitness)]
+
+   Learn more about [witness classes](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes) and [customizing serialization](https://aarnott.github.io/Nerdbank.MessagePack/docs/customizing-serialization.html).
 
 1. <xref:StreamJsonRpc.JsonMessageFormatter> - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
     The text encoding is configurable via a property.

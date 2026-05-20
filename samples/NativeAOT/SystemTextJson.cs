@@ -1,3 +1,5 @@
+#pragma warning disable CS8892 // These Main methods will be ignored
+
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Nerdbank.Streams;

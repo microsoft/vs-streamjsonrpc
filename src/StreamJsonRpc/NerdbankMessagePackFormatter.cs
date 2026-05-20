@@ -101,6 +101,24 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// <summary>
     /// Initializes a new instance of the <see cref="NerdbankMessagePackFormatter"/> class.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Creating this formatter requires setting the <see cref="TypeShapeProvider"/> property.
+    /// A type shape provider is best obtained from the <c>GeneratedTypeShapeProvider</c> property
+    /// that is source generated onto a "witness" class, which is a <see langword="partial"/> <see langword="class"/>
+    /// with at least one <see cref="GenerateShapeForAttribute{T}"/> attribute on it.
+    /// </para>
+    /// <para>
+    /// When customizing the <see cref="UserDataSerializer"/> property, always base the new value on the
+    /// <see cref="DefaultSerializer"/> property.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code source="../../samples/Extensibility.cs" region="CreateNBMsgPackFormatter" lang="C#" />
+    /// <code source="../../samples/Extensibility.cs" region="PolyTypeWitness" lang="C#" />
+    /// </example>
+    /// <seealso href="https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes">Witness classes</seealso>
+    /// <seealso href="https://aarnott.github.io/Nerdbank.MessagePack/docs/customizing-serialization.html">Customizing serialization</seealso>
     public NerdbankMessagePackFormatter()
     {
         // Set up initial options for our own message types.
