@@ -21,4 +21,26 @@ internal static class Polyfills
         }
     }
 #endif
+
+#if !NET
+    internal static unsafe bool TryGetChars(this Encoding encoding, ReadOnlySpan<byte> utf8Bytes, Span<char> chars, out int charsWritten)
+    {
+        fixed (byte* pBytes = utf8Bytes)
+        {
+            fixed (char* pChars = chars)
+            {
+                try
+                {
+                    charsWritten = encoding.GetChars(pBytes, utf8Bytes.Length, pChars, chars.Length);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    charsWritten = 0;
+                    return false;
+                }
+            }
+        }
+    }
+#endif
 }

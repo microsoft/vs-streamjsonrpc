@@ -335,6 +335,48 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         Assert.Equal(dynamic.error.code, (int?)request.Error?.Code);
     }
 
+    [Theory]
+    [InlineData(false, MessagePackType.Array)]
+    [InlineData(true, MessagePackType.String)]
+    public void TraceParentAsW3CStringControlsSerializationFormat(
+        bool traceParentAsW3CString,
+        MessagePackType expectedMessagePackType)
+    {
+        const string TraceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+        MessagePackFormatter formatter = new() { TraceParentAsW3CString = traceParentAsW3CString };
+        var request = new JsonRpcRequest
+        {
+            Method = "something",
+            ArgumentsList = Array.Empty<object?>(),
+            TraceParent = TraceParent,
+        };
+
+        var sequence = new Sequence<byte>();
+        formatter.Serialize(sequence, request);
+
+        this.Logger.WriteLine(MessagePackSerializer.ConvertToJson(sequence, cancellationToken: this.TimeoutToken));
+
+        var reader = new MessagePackReader(sequence.AsReadOnlySequence);
+        int propertyCount = reader.ReadMapHeader();
+        bool foundTraceParent = false;
+        for (int i = 0; i < propertyCount; i++)
+        {
+            string? propertyName = reader.ReadString();
+            Assert.NotNull(propertyName);
+            if (propertyName == "traceparent")
+            {
+                Assert.Equal(expectedMessagePackType, reader.NextMessagePackType);
+                foundTraceParent = true;
+            }
+
+            reader.Skip();
+        }
+
+        Assert.True(foundTraceParent);
+        var actual = Assert.IsAssignableFrom<JsonRpcRequest>(formatter.Deserialize(sequence.AsReadOnlySequence));
+        Assert.Equal(TraceParent, actual.TraceParent);
+    }
+
     [Fact]
     public void StringsInUserDataAreInterned()
     {

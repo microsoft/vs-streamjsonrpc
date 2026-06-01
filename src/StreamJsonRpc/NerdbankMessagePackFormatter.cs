@@ -167,6 +167,15 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the W3C <c>traceparent</c> property
+    /// should be serialized as a string instead of a more compact binary format.
+    /// </summary>
+    /// <value>The default value is <see langword="false"/>.</value>
+    public bool TraceParentAsW3CString { get; init; }
+
+    private MessagePackConverter<TraceParent> TraceParentConverter => this.TraceParentAsW3CString ? TraceParentAsStringConverter.Instance : TraceParentAsBinaryConverter.Instance;
+
     /// <inheritdoc/>
     public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer)
     {
@@ -470,7 +479,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                 }
                 else if (TraceParentPropertyName.TryRead(ref reader))
                 {
-                    TraceParent traceParent = context.GetConverter<TraceParent>(null).Read(ref reader, context);
+                    TraceParent traceParent = formatter.TraceParentConverter.Read(ref reader, context);
                     result.TraceParent = traceParent.ToString();
                 }
                 else if (TraceStatePropertyName.TryRead(ref reader))
@@ -577,7 +586,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
             if (value.TraceParent?.Length > 0)
             {
                 writer.Write(TraceParentPropertyName);
-                context.GetConverter<TraceParent>(Witness.GeneratedTypeShapeProvider).Write(ref writer, new TraceParent(value.TraceParent), context);
+                formatter.TraceParentConverter.Write(ref writer, new TraceParent(value.TraceParent), context);
 
                 if (value.TraceState?.Length > 0)
                 {
