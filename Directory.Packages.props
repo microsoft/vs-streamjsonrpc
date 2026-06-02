@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <MicrosoftTestingPlatformVersion>2.2.2</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>2.2.3</MicrosoftTestingPlatformVersion>
     <MessagePackVersion>2.5.198</MessagePackVersion>
     <MicroBuildVersion>2.0.226</MicroBuildVersion>
     <RoslynVersion>4.14.0</RoslynVersion>
@@ -50,7 +50,7 @@
     <PackageVersion Update="System.Reflection.Metadata" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.6.2" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.7.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CrashDump" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingPlatformVersion)" />
@@ -67,7 +67,7 @@
     <GlobalPackageReference Include="Microsoft.VisualStudio.Internal.MicroBuild.VisualStudio" Version="$(MicroBuildVersion)" />
     <!-- The condition works around https://github.com/dotnet/sdk/issues/44951 -->
     <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.9.50" Condition="!('$(TF_BUILD)'=='true' and '$(dotnetformat)'=='true')" />
-    <GlobalPackageReference Include="PolySharp" Version="1.15.0" Condition="'$(DisablePolyfills)'!='true'" />
+    <GlobalPackageReference Include="PolySharp" Version="1.16.0" Condition="'$(DisablePolyfills)'!='true'" />
     <GlobalPackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556" />
   </ItemGroup>
 </Project>
