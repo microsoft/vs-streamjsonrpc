@@ -169,6 +169,17 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
     /// <summary>
+    /// Gets a value indicating whether the W3C <c>traceparent</c> property
+    /// should be serialized as a string instead of a more compact binary format.
+    /// </summary>
+    /// <value>The default value is <see langword="false"/>.</value>
+    public bool TraceParentAsW3CString { get; init; }
+
+    private IMessagePackFormatter<TraceParent> TraceParentFormatter => this.TraceParentAsW3CString
+        ? TraceParentAsStringFormatter.Instance
+        : TraceParentAsBinaryFormatter.Instance;
+
+    /// <summary>
     /// Sets the <see cref="MessagePackSerializerOptions"/> to use for serialization of user data.
     /// </summary>
     /// <param name="options">
@@ -367,7 +378,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             new JsonRpcResultFormatter(this),
             new JsonRpcErrorFormatter(this),
             new JsonRpcErrorDetailFormatter(this),
-            new TraceParentFormatter(),
+            new TraceParentDelegatingFormatter(this),
         };
         var resolvers = new IFormatterResolver[]
         {
@@ -1527,7 +1538,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                 }
                 else if (TraceParentPropertyName.TryRead(stringKey))
                 {
-                    TraceParent traceParent = options.Resolver.GetFormatterWithVerify<TraceParent>().Deserialize(ref reader, options);
+                    TraceParent traceParent = this.formatter.TraceParentFormatter.Deserialize(ref reader, options);
                     result.TraceParent = traceParent.ToString();
                 }
                 else if (TraceStatePropertyName.TryRead(stringKey))
@@ -1620,7 +1631,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             if (value.TraceParent?.Length > 0)
             {
                 TraceParentPropertyName.Write(ref writer);
-                options.Resolver.GetFormatterWithVerify<TraceParent>().Serialize(ref writer, new TraceParent(value.TraceParent), options);
+                this.formatter.TraceParentFormatter.Serialize(ref writer, new TraceParent(value.TraceParent), options);
 
                 if (value.TraceState?.Length > 0)
                 {
@@ -1933,8 +1944,23 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         }
     }
 
-    private class TraceParentFormatter : IMessagePackFormatter<TraceParent>
+    private class TraceParentDelegatingFormatter(MessagePackFormatter formatter) : IMessagePackFormatter<TraceParent>
     {
+        public TraceParent Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            return formatter.TraceParentFormatter.Deserialize(ref reader, options);
+        }
+
+        public void Serialize(ref MessagePackWriter writer, TraceParent value, MessagePackSerializerOptions options)
+        {
+            formatter.TraceParentFormatter.Serialize(ref writer, value, options);
+        }
+    }
+
+    private class TraceParentAsBinaryFormatter : IMessagePackFormatter<TraceParent>
+    {
+        internal static readonly TraceParentAsBinaryFormatter Instance = new();
+
         public unsafe TraceParent Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
             if (reader.ReadArrayHeader() != 2)
@@ -1980,6 +2006,44 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             writer.Write(new ReadOnlySpan<byte>(value.TraceId, TraceParent.TraceIdByteCount));
             writer.Write(new ReadOnlySpan<byte>(value.ParentId, TraceParent.ParentIdByteCount));
             writer.Write((byte)value.Flags);
+        }
+    }
+
+    private class TraceParentAsStringFormatter : IMessagePackFormatter<TraceParent>
+    {
+        internal static readonly TraceParentAsStringFormatter Instance = new();
+
+        public TraceParent Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            ReadOnlySequence<byte> utf8Sequence = reader.ReadStringSequence() ?? throw new MessagePackSerializationException("Unexpected null value.");
+            if (utf8Sequence.Length != TraceParent.Length)
+            {
+                throw new MessagePackSerializationException("Unexpected length for traceparent string.");
+            }
+
+            Span<byte> utf8Bytes = stackalloc byte[TraceParent.Length];
+            utf8Sequence.CopyTo(utf8Bytes);
+
+            Span<char> chars = stackalloc char[TraceParent.Length];
+            if (!Encoding.UTF8.TryGetChars(utf8Bytes, chars, out int charsWritten))
+            {
+                throw new MessagePackSerializationException("Invalid UTF-8 in traceparent string.");
+            }
+
+            return new TraceParent(chars);
+        }
+
+        public void Serialize(ref MessagePackWriter writer, TraceParent value, MessagePackSerializerOptions options)
+        {
+            if (value.Version != 0)
+            {
+                throw new NotSupportedException("traceparent version " + value.Version + " is not supported.");
+            }
+
+            Span<char> chars = stackalloc char[TraceParent.Length];
+            value.WriteTo(chars);
+
+            writer.Write(chars.ToString());
         }
     }
 

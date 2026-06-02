@@ -326,6 +326,53 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
         Assert.Equal(dynamic.error.code, (int?)request.Error?.Code);
     }
 
+    [Theory]
+    [InlineData(false, MessagePackType.Array)]
+    [InlineData(true, MessagePackType.String)]
+    public void TraceParentAsW3CStringControlsSerializationFormat(
+        bool traceParentAsW3CString,
+        MessagePackType expectedMessagePackType)
+    {
+        const string TraceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+        NerdbankMessagePackFormatter formatter = new()
+        {
+            TraceParentAsW3CString = traceParentAsW3CString,
+            TypeShapeProvider = Witness.GeneratedTypeShapeProvider,
+        };
+        var request = new JsonRpcRequest
+        {
+            Method = "something",
+            ArgumentsList = Array.Empty<object?>(),
+            TraceParent = TraceParent,
+        };
+
+        var sequence = new Sequence<byte>();
+        formatter.Serialize(sequence, request);
+
+        this.Logger.WriteLine(formatter.UserDataSerializer.ConvertToJson(sequence, new MessagePackSerializer.JsonOptions { Indentation = "  " }));
+
+        var reader = new MessagePackReader(sequence.AsReadOnlySequence);
+        SerializationContext context = new();
+        int propertyCount = reader.ReadMapHeader();
+        bool foundTraceParent = false;
+        for (int i = 0; i < propertyCount; i++)
+        {
+            string? propertyName = reader.ReadString();
+            Assert.NotNull(propertyName);
+            if (propertyName == "traceparent")
+            {
+                Assert.Equal(expectedMessagePackType, reader.NextMessagePackType);
+                foundTraceParent = true;
+            }
+
+            reader.Skip(context);
+        }
+
+        Assert.True(foundTraceParent);
+        var actual = Assert.IsAssignableFrom<JsonRpcRequest>(formatter.Deserialize(sequence.AsReadOnlySequence));
+        Assert.Equal(TraceParent, actual.TraceParent);
+    }
+
     [Fact]
     public void StringsInUserDataAreInterned()
     {

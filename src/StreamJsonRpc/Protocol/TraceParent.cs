@@ -2,17 +2,23 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using Nerdbank.MessagePack;
 
 namespace StreamJsonRpc.Protocol;
 
-[MessagePackConverter(typeof(NerdbankMessagePackFormatter.TraceParentConverter))]
 internal unsafe struct TraceParent
 {
     internal const int VersionByteCount = 1;
     internal const int ParentIdByteCount = 8;
     internal const int TraceIdByteCount = 16;
     internal const int FlagsByteCount = 1;
+
+    /// <summary>
+    /// The number of characters in a serialized traceparent value.
+    /// </summary>
+    /// <devremarks>
+    /// When calculating the number of characters required, double each 'byte' we have to encode since we're using hex.
+    /// </devremarks>
+    internal const int Length = (VersionByteCount * 2) + 1 + (TraceIdByteCount * 2) + 1 + (ParentIdByteCount * 2) + 1 + (FlagsByteCount * 2);
 
     internal byte Version;
 
@@ -23,49 +29,54 @@ internal unsafe struct TraceParent
     internal TraceFlags Flags;
 
     internal TraceParent(string? traceparent)
+        : this(traceparent is null ? default : traceparent.AsSpan())
     {
-        if (traceparent is null)
+    }
+
+    internal TraceParent(ReadOnlySpan<char> traceparent)
+    {
+        if (traceparent is [])
         {
             this.Version = 0;
             this.Flags = TraceFlags.None;
             return;
         }
 
-        ReadOnlySpan<char> traceparentChars = traceparent.AsSpan();
-
         // Decode version
-        ReadOnlySpan<char> slice = Consume(ref traceparentChars, VersionByteCount * 2);
+        ReadOnlySpan<char> slice = Consume(ref traceparent, VersionByteCount * 2);
         fixed (byte* pVersion = &this.Version)
         {
             Hex.Decode(slice, new Span<byte>(pVersion, 1));
         }
 
-        ConsumeHyphen(ref traceparentChars);
+        ConsumeHyphen(ref traceparent);
 
         // Decode traceid
-        slice = Consume(ref traceparentChars, TraceIdByteCount * 2);
+        slice = Consume(ref traceparent, TraceIdByteCount * 2);
         fixed (byte* pTraceId = this.TraceId)
         {
             Hex.Decode(slice, new Span<byte>(pTraceId, TraceIdByteCount));
         }
 
-        ConsumeHyphen(ref traceparentChars);
+        ConsumeHyphen(ref traceparent);
 
         // Decode parentid
-        slice = Consume(ref traceparentChars, ParentIdByteCount * 2);
+        slice = Consume(ref traceparent, ParentIdByteCount * 2);
         fixed (byte* pParentId = this.ParentId)
         {
             Hex.Decode(slice, new Span<byte>(pParentId, ParentIdByteCount));
         }
 
-        ConsumeHyphen(ref traceparentChars);
+        ConsumeHyphen(ref traceparent);
 
         // Decode flags
-        slice = Consume(ref traceparentChars, FlagsByteCount * 2);
+        slice = Consume(ref traceparent, FlagsByteCount * 2);
         fixed (TraceFlags* pFlags = &this.Flags)
         {
             Hex.Decode(slice, new Span<byte>(pFlags, 1));
         }
+
+        Requires.Argument(traceparent is [], nameof(traceparent), "Expected traceparent to be fully consumed.");
 
         static void ConsumeHyphen(ref ReadOnlySpan<char> value)
         {
@@ -112,9 +123,22 @@ internal unsafe struct TraceParent
 
     public override string ToString()
     {
-        // When calculating the number of characters required, double each 'byte' we have to encode since we're using hex.
-        Span<char> traceparent = stackalloc char[(VersionByteCount * 2) + 1 + (TraceIdByteCount * 2) + 1 + (ParentIdByteCount * 2) + 1 + (FlagsByteCount * 2)];
-        Span<char> traceParentRemaining = traceparent;
+        Span<char> chars = stackalloc char[Length];
+        this.WriteTo(chars);
+        return chars.ToString();
+    }
+
+    /// <summary>
+    /// Serializes the <see cref="TraceParent"/> value as a string.
+    /// </summary>
+    /// <param name="destination">The span to write to. This must be at least <see cref="Length"/> in length.</param>
+    /// <returns>The number of characters written to <paramref name="destination"/>. Always equal to <see cref="Length"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="destination"/> is shorter than <see cref="Length"/>.</exception>
+    internal int WriteTo(Span<char> destination)
+    {
+        Requires.Argument(destination.Length >= Length, nameof(destination), $"Destination must be at least {Length} characters in length.");
+
+        Span<char> traceParentRemaining = destination;
 
         fixed (byte* pVersion = &this.Version)
         {
@@ -142,9 +166,9 @@ internal unsafe struct TraceParent
             Hex.Encode(new ReadOnlySpan<byte>(pFlags, 1), ref traceParentRemaining);
         }
 
-        Debug.Assert(traceParentRemaining.Length == 0, "Characters were not initialized.");
+        Debug.Assert(traceParentRemaining is [], "Characters were not initialized.");
 
-        return traceparent.ToString();
+        return Length;
 
         static void AddHyphen(ref Span<char> value)
         {

@@ -7,12 +7,39 @@ namespace StreamJsonRpc;
 
 internal static class Polyfills
 {
+#if NETSTANDARD2_0
+    internal static void Deconstruct<TKey, TValue>(this KeyValuePair<TKey, TValue> pair, out TKey key, out TValue value)
+        => (key, value) = (pair.Key, pair.Value);
+#endif
+
 #if !(NETSTANDARD2_1_OR_GREATER || NET)
     internal static unsafe string GetString(this Encoding encoding, ReadOnlySpan<byte> utf8Bytes)
     {
         fixed (byte* pBytes = utf8Bytes)
         {
             return encoding.GetString(pBytes, utf8Bytes.Length);
+        }
+    }
+#endif
+
+#if !NET
+    internal static unsafe bool TryGetChars(this Encoding encoding, ReadOnlySpan<byte> utf8Bytes, Span<char> chars, out int charsWritten)
+    {
+        fixed (byte* pBytes = utf8Bytes)
+        {
+            fixed (char* pChars = chars)
+            {
+                try
+                {
+                    charsWritten = encoding.GetChars(pBytes, utf8Bytes.Length, pChars, chars.Length);
+                    return true;
+                }
+                catch (ArgumentException)
+                {
+                    charsWritten = 0;
+                    return false;
+                }
+            }
         }
     }
 #endif
