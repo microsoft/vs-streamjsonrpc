@@ -115,9 +115,24 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     private readonly ToStringHelper deserializationToStringHelper = new ToStringHelper();
 
     /// <summary>
+    /// Backing field for the <see cref="InternStrings" /> property.
+    /// </summary>
+    private bool internStrings = true;
+
+    /// <summary>
     /// The options to use for serializing user data (e.g. arguments, return values and errors).
     /// </summary>
     private MessagePackSerializerOptions userDataSerializationOptions;
+
+    /// <summary>
+    /// The original value supplied to <see cref="SetMessagePackSerializerOptions(MessagePackSerializerOptions)"/>
+    /// before we mutated it into <see cref="userDataSerializationOptions"/>.
+    /// </summary>
+    /// <remarks>
+    /// This value is useful when we have to rebuild the final serialization options
+    /// due to some other configuration change.
+    /// </remarks>
+    private MessagePackSerializerOptions originalUserDataSerializationOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessagePackFormatter"/> class.
@@ -136,6 +151,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         this.exceptionResolver = new MessagePackExceptionResolver(this);
 
         // Set up default user data resolver.
+        this.originalUserDataSerializationOptions = DefaultUserDataSerializationOptions;
         this.userDataSerializationOptions = this.MassageUserDataOptions(DefaultUserDataSerializationOptions);
     }
 
@@ -169,6 +185,28 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether user data should be deserialized
+    /// with string interning.
+    /// </summary>
+    /// <value>The default value is <see langword="true" />.</value>
+    public bool InternStrings
+    {
+        get => this.internStrings;
+        set
+        {
+            if (this.internStrings == value)
+            {
+                return;
+            }
+
+            this.internStrings = value;
+
+            // Reinitialize with the new setting.
+            this.userDataSerializationOptions = this.MassageUserDataOptions(this.originalUserDataSerializationOptions);
+        }
+    }
+
+    /// <summary>
     /// Gets a value indicating whether the W3C <c>traceparent</c> property
     /// should be serialized as a string instead of a more compact binary format.
     /// </summary>
@@ -189,6 +227,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
     {
         Requires.NotNull(options, nameof(options));
 
+        this.originalUserDataSerializationOptions = options;
         this.userDataSerializationOptions = this.MassageUserDataOptions(options);
     }
 
@@ -340,14 +379,18 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
         };
 
         // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
-        var resolvers = new IFormatterResolver[]
+        List<IFormatterResolver> resolvers =
+        [
+            new RpcMarshalableResolver(this), // Support for marshalled objects.
+        ];
+
+        if (this.InternStrings)
         {
-            // Support for marshalled objects.
-            new RpcMarshalableResolver(this),
+            resolvers.Add(StringInterningResolver);
+        }
 
-            // Intern strings to reduce memory usage.
-            StringInterningResolver,
-
+        resolvers.AddRange(
+        [
             userSuppliedOptions.Resolver,
 
             // Add stateless, non-specialized resolvers that help basic functionality to "just work".
@@ -358,7 +401,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             this.asyncEnumerableFormatterResolver,
             this.pipeFormatterResolver,
             this.exceptionResolver,
-        };
+        ]);
 
         // Wrap the resolver in another class as a way to pass information to our custom formatters.
         IFormatterResolver userDataResolver = new ResolverWrapper(CompositeResolver.Create(formatters, resolvers), this);

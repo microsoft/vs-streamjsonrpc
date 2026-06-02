@@ -409,6 +409,55 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         Assert.Same(request1.Method, request2.Method); // reference equality to ensure it was interned.
     }
 
+    [Fact]
+    public void InternStrings_DefaultValueIsTrue()
+    {
+        MessagePackFormatter formatter = new();
+        Assert.True(formatter.InternStrings);
+    }
+
+    [Fact]
+    public void InternStrings_CanBeDisabledBeforeSetMessagePackSerializerOptions()
+    {
+        MessagePackFormatter formatter = new()
+        {
+            InternStrings = false,
+        };
+
+        Assert.False(this.AreTwoIdenticalStringsInterned(formatter));
+    }
+
+    [Fact]
+    public void InternStrings_CanBeDisabledAfterSetMessagePackSerializerOptions()
+    {
+        MessagePackFormatter formatter = new();
+        formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard);
+        formatter.InternStrings = false;
+
+        Assert.False(this.AreTwoIdenticalStringsInterned(formatter));
+    }
+
+    [Fact]
+    public void InternStrings_CanBeReEnabledBeforeSetMessagePackSerializerOptions()
+    {
+        MessagePackFormatter formatter = new();
+        formatter.InternStrings = false;
+        formatter.InternStrings = true;
+
+        Assert.True(this.AreTwoIdenticalStringsInterned(formatter));
+    }
+
+    [Fact]
+    public void InternStrings_CanBeReEnabledAfterSetMessagePackSerializerOptions()
+    {
+        MessagePackFormatter formatter = new();
+        formatter.InternStrings = false;
+        formatter.SetMessagePackSerializerOptions(MessagePackSerializerOptions.Standard);
+        formatter.InternStrings = true;
+
+        Assert.True(this.AreTwoIdenticalStringsInterned(formatter));
+    }
+
     protected override MessagePackFormatter CreateFormatter() => new();
 
     private T Read<T>(object anonymousObject)
@@ -419,6 +468,26 @@ public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
         MessagePackSerializer.Serialize(ref writer, anonymousObject, MessagePackSerializerOptions.Standard);
         writer.Flush();
         return (T)this.Formatter.Deserialize(sequence);
+    }
+
+    private bool AreTwoIdenticalStringsInterned(MessagePackFormatter formatter)
+    {
+        var anonymousObject = new
+        {
+            jsonrpc = "2.0",
+            method = "test",
+            @params = new object[] { "duplicate", "duplicate" },
+        };
+
+        var sequence = new Sequence<byte>();
+        var writer = new MessagePackWriter(sequence);
+        MessagePackSerializer.Serialize(ref writer, anonymousObject, MessagePackSerializerOptions.Standard);
+        writer.Flush();
+
+        var request = (JsonRpcRequest)formatter.Deserialize(sequence);
+        Assert.True(request.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg1));
+        Assert.True(request.TryGetArgumentByNameOrIndex(null, 1, typeof(string), out object? arg2));
+        return ReferenceEquals(arg1, arg2);
     }
 
     [DataContract]
