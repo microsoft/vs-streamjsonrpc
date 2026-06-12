@@ -107,7 +107,7 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
                 byte[] rented = pool.Rent(memory.Length);
                 try
                 {
-                    result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(rented), cancellationToken).ConfigureAwait(false);
+                    result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(rented, 0, memory.Length), cancellationToken).ConfigureAwait(false);
                     rented.AsSpan(0, result.Count).CopyTo(memory.Span);
                 }
                 finally
