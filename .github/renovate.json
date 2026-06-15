@@ -11,7 +11,7 @@
 			"allowedVersions": "<2.3"
 		},
 		{
-			"matchJsonata": [ "sharedVariableName='RoslynVersion'" ],
+			"matchJsonata": [ "sharedVariableName='RoslynVersionForAnalyzers'" ],
 			"enabled": false
 		}
 	]
