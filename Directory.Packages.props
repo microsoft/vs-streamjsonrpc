@@ -48,7 +48,7 @@
   <ItemGroup Condition="'$(IsAnalyzerProject)'=='true'">
     <PackageVersion Update="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Update="System.IO.Pipelines" Version="8.0.0" />
-    <PackageVersion Update="System.Reflection.Metadata" Version="8.0.0" />
+    <PackageVersion Update="System.Reflection.Metadata" Version="8.0.1" />
     <PackageVersion Update="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersionForAnalyzers)" />
     <PackageVersion Update="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersionForAnalyzers)" />
     <PackageVersion Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersionForAnalyzers)" />
