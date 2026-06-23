@@ -71,10 +71,12 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 
         clientRpc.StartListening();
         serverRpc.StartListening();
-        clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        clientRpc.OutboundRequestTimeout = ExpectedTimeout;
         clientRpc.BlockRequestSend = true;
+        Task<int> invokeTask = clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync));
+        await clientRpc.RequestSendBlocked.WaitAsync(this.TimeoutToken);
 
-        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync)));
+        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
         Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
     }
 
@@ -183,10 +185,13 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 
         public bool BlockRequestSend { get; set; }
 
+        public AsyncAutoResetEvent RequestSendBlocked { get; } = new AsyncAutoResetEvent();
+
         protected override async ValueTask SendAsync(JsonRpcMessage message, CancellationToken cancellationToken)
         {
             if (this.BlockRequestSend && message is JsonRpcRequest)
             {
+                this.RequestSendBlocked.Set();
                 await Task.Delay(Timeout.Infinite, cancellationToken);
             }
 

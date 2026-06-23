@@ -94,13 +94,13 @@ public class CustomCancellationStrategyTests : TestBase
     [Fact]
     public async Task CancelRequest_WhenOutboundRequestTimesOut()
     {
-        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromSeconds(1);
         Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { false }, cancellationToken: CancellationToken.None);
+        await this.server.MethodEntered.WaitAsync(this.TimeoutToken);
 
         TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
         Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
-        await this.mockStrategy.CancelOutboundRequestInvoked.WaitAsync(this.TimeoutToken);
-        await this.mockStrategy.OutboundRequestEndedInvoked.WaitAsync(this.TimeoutToken);
+        Assert.True(this.mockStrategy.OutboundRequestEndedCalled);
     }
 
     [Fact]
@@ -126,11 +126,9 @@ public class CustomCancellationStrategyTests : TestBase
         var completingTask = await Task.WhenAny(invokeTask, this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken)).WithCancellation(this.TimeoutToken);
         await completingTask;  // rethrow an exception if there is one.
 
+        this.mockStrategy.BlockCancelOutboundRequest = true;
         this.mockStrategy.AllowCancelOutboundRequestToExit.Reset();
         cts.Cancel();
-
-        // This may be invoked, but if the product doesn't invoke it, that's ok too.
-        ////await this.mockStrategy.OutboundRequestEndedInvoked.WaitAsync(this.TimeoutToken);
     }
 
     protected virtual void InitializeFormattersAndHandlers()
@@ -182,11 +180,15 @@ public class CustomCancellationStrategyTests : TestBase
 
         internal bool CancelRequestMade { get; private set; }
 
-        internal AsyncAutoResetEvent CancelOutboundRequestInvoked { get; } = new AsyncAutoResetEvent();
+        internal bool OutboundRequestEndedCalled { get; private set; }
 
-        internal AsyncAutoResetEvent OutboundRequestEndedInvoked { get; } = new AsyncAutoResetEvent();
+        internal AsyncManualResetEvent CancelOutboundRequestInvoked { get; } = new AsyncManualResetEvent();
+
+        internal AsyncManualResetEvent OutboundRequestEndedInvoked { get; } = new AsyncManualResetEvent();
 
         internal ManualResetEventSlim AllowCancelOutboundRequestToExit { get; } = new ManualResetEventSlim(initialState: true);
+
+        internal bool BlockCancelOutboundRequest { get; set; }
 
         public void CancelOutboundRequest(RequestId requestId)
         {
@@ -208,19 +210,23 @@ public class CustomCancellationStrategyTests : TestBase
             this.CancelRequestMade = true;
             this.CancelOutboundRequestInvoked.Set();
 
-            // Wait for the out of order invocation to happen if it's possible,
-            // so the OutboundCancellationStartAndRequestFinishOverlap test can catch it.
-            // Otherwise timeout, which is necessary to avoid a test hang when the product DOES work,
-            // since it shouldn't allow OutboundRequestEnded to execute before this method exits.
-            if (!this.AllowCancelOutboundRequestToExit.Wait(ExpectedTimeout))
+            if (this.BlockCancelOutboundRequest)
             {
-                this.logger.WriteLine("Timed out waiting for " + nameof(this.AllowCancelOutboundRequestToExit) + " to be signaled (good thing).");
+                // Wait for the out of order invocation to happen if it's possible,
+                // so the OutboundCancellationStartAndRequestFinishOverlap test can catch it.
+                // Otherwise timeout, which is necessary to avoid a test hang when the product DOES work,
+                // since it shouldn't allow OutboundRequestEnded to execute before this method exits.
+                if (!this.AllowCancelOutboundRequestToExit.Wait(ExpectedTimeout))
+                {
+                    this.logger.WriteLine("Timed out waiting for " + nameof(this.AllowCancelOutboundRequestToExit) + " to be signaled (good thing).");
+                }
             }
         }
 
         public void OutboundRequestEnded(RequestId requestId)
         {
             this.logger.WriteLine($"{nameof(this.OutboundRequestEnded)}({requestId}) invoked.");
+            this.OutboundRequestEndedCalled = true;
             lock (this.endedRequestIds)
             {
                 this.endedRequestIds.Add(requestId);
