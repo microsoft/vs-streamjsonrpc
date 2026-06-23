@@ -93,7 +93,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, Location InvocationLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? analysis =
+                (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? analysis =
                     TryGetInterceptInfo(invocation, context.SemanticModel, symbols, cancellationToken);
 
                 if (analysis is null)
@@ -108,7 +108,6 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     analysis.Value.Signature,
                     analysis.Value.Interfaces is null ? null : [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))],
                     analysis.Value.ExternalProxyName,
-                    analysis.Value.InvocationLocation,
                     analysis.Value.ExternalProxyAccessible);
             }).Where(m => m is not null)!;
 
@@ -237,7 +236,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, Location InvocationLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
         (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? analysis = AnalyzeAttachInvocation(invocation, semanticModel, symbols, cancellationToken);
         if (analysis is null)
@@ -251,7 +250,6 @@ public partial class ProxyGenerator : IIncrementalGenerator
             return null;
         }
 
-        Location invocationLocation = invocation.GetLocation();
         string? externalProxyName = null;
         bool externalProxyAccessible = true;
         if (analysis.Value.Interfaces is not null)
@@ -274,7 +272,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
             }
         }
 
-        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, invocationLocation, externalProxyName, externalProxyAccessible);
+        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName, externalProxyAccessible);
 
         bool IsAllowedToGenerateProxyFor(INamedTypeSymbol iface)
         {

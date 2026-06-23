@@ -38,7 +38,7 @@ namespace StreamJsonRpc.Generated
 		        jsonRpc.Dispose();
 		    }
 		
-		    throw new global::System.NotImplementedException("Unable to find a source generated proxy filling the specified requirements.");
+		    throw new global::System.NotImplementedException("Unable to find a source generated proxy filling the specified requirements. Research the NativeAOT topic in the documentation at https://microsoft.github.io/vs-streamjsonrpc");
 		}
 		
 		private static global::StreamJsonRpc.IJsonRpcClientProxy StartListening(global::StreamJsonRpc.IJsonRpcClientProxy proxy)
