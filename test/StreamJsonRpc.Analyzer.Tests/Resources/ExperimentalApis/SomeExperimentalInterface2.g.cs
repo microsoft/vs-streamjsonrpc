@@ -29,7 +29,15 @@ namespace StreamJsonRpc.Generated
 			typeof(global::CustomType),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> AddAsyncParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+			"a",
+			"t",
+		};
+		
 		private string? transformedAddAsync1;
+		private int AddAsyncParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? AddAsyncTransformedNamedArgumentDeclaredTypes1;
 		
 		public SomeExperimentalInterface2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -42,19 +50,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("AddAsync");
 			string __rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::SomeExperimentalInterface2));
+			int __parameterNameTransformState = this.AddAsyncParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, AddAsyncParameterNames1);
+			    this.AddAsyncParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.AddAsyncTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, AddAsyncParameterNames1, AddAsyncPositionalArgumentDeclaredTypes1) :
+			    AddAsyncNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task<int> __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, token) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, token) :
 			    this.JsonRpc.InvokeWithCancellationAsync<int>(__rpcMethodName, [a, t], AddAsyncPositionalArgumentDeclaredTypes1, token);
 			this.OnCalledMethod("AddAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["a"] = a,
-					["t"] = t,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("a")] = a,
+				[this.Options.ParameterNameTransform("t")] = t,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["a"] = a,
+				["t"] = t,
+			    };
+			}
 		}
 	}
 }

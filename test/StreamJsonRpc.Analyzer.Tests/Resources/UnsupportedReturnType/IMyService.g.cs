@@ -29,6 +29,8 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
+		private string? transformedAdd1;
+		
 		public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
 		{

@@ -27,7 +27,14 @@ namespace StreamJsonRpc.Generated
 			typeof(string),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> GetNullableIntAsyncParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+			"value",
+		};
+		
 		private string? transformedGetNullableIntAsync1;
+		private int GetNullableIntAsyncParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? GetNullableIntAsyncTransformedNamedArgumentDeclaredTypes1;
 		
 		public IMyService_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -40,18 +47,39 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("GetNullableIntAsync");
 			string __rpcMethodName = this.transformedGetNullableIntAsync1 ??= this.TransformMethodName("GetNullableIntAsync", typeof(global::IMyService));
+			int __parameterNameTransformState = this.GetNullableIntAsyncParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, GetNullableIntAsyncParameterNames1);
+			    this.GetNullableIntAsyncParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.GetNullableIntAsyncTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, GetNullableIntAsyncParameterNames1, GetNullableIntAsyncPositionalArgumentDeclaredTypes1) :
+			    GetNullableIntAsyncNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task<object?> __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(__rpcMethodName, ConstructNamedArgs(), GetNullableIntAsyncNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync<object?>(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync<object?>(__rpcMethodName, [value], GetNullableIntAsyncPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("GetNullableIntAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["value"] = value,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("value")] = value,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["value"] = value,
+			    };
+			}
 		}
 	}
 }

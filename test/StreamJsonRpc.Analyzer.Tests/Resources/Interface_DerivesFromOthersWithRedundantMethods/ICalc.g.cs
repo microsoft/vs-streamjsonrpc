@@ -29,7 +29,15 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> AddAsyncParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+			"a",
+			"b",
+		};
+		
 		private string? transformedAddAsync1;
+		private int AddAsyncParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? AddAsyncTransformedNamedArgumentDeclaredTypes1;
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> AddAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
@@ -43,7 +51,15 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> AddAsyncParameterNames2 = new global::System.Collections.Generic.List<string>
+		{
+			"a",
+			"b",
+		};
+		
 		private string? transformedAddAsync2;
+		private int AddAsyncParameterNameTransformState2;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? AddAsyncTransformedNamedArgumentDeclaredTypes2;
 		
 		public ICalc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -56,19 +72,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("AddAsync");
 			string __rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddAsync", typeof(global::ICalc1));
+			int __parameterNameTransformState = this.AddAsyncParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, AddAsyncParameterNames1);
+			    this.AddAsyncParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.AddAsyncTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, AddAsyncParameterNames1, AddAsyncPositionalArgumentDeclaredTypes1) :
+			    AddAsyncNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task<int> __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync<int>(__rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("AddAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["a"] = a,
-					["b"] = b,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("a")] = a,
+				[this.Options.ParameterNameTransform("b")] = b,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["a"] = a,
+				["b"] = b,
+			    };
+			}
 		}
 		
 		global::System.Threading.Tasks.Task<int> global::ICalc2.AddAsync(int a, int b)
@@ -77,19 +115,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("AddAsync");
 			string __rpcMethodName = this.transformedAddAsync2 ??= this.TransformMethodName("AddAsync", typeof(global::ICalc2));
+			int __parameterNameTransformState = this.AddAsyncParameterNameTransformState2;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, AddAsyncParameterNames2);
+			    this.AddAsyncParameterNameTransformState2 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.AddAsyncTransformedNamedArgumentDeclaredTypes2 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, AddAsyncParameterNames2, AddAsyncPositionalArgumentDeclaredTypes2) :
+			    AddAsyncNamedArgumentDeclaredTypes2;
 			global::System.Threading.Tasks.Task<int> __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes2, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync<int>(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync<int>(__rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes2, default);
 			this.OnCalledMethod("AddAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["a"] = a,
-					["b"] = b,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("a")] = a,
+				[this.Options.ParameterNameTransform("b")] = b,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["a"] = a,
+				["b"] = b,
+			    };
+			}
 		}
 	}
 }

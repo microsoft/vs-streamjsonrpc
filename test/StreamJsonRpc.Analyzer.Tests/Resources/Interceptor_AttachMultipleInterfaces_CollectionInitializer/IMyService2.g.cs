@@ -25,7 +25,13 @@ namespace StreamJsonRpc.Generated
 		{
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> Task2ParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+		};
+		
 		private string? transformedTask21;
+		private int Task2ParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? Task2TransformedNamedArgumentDeclaredTypes1;
 		
 		public IMyService2_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -38,17 +44,37 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("Task2");
 			string __rpcMethodName = this.transformedTask21 ??= this.TransformMethodName("Task2", typeof(global::IMyService2));
+			int __parameterNameTransformState = this.Task2ParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, Task2ParameterNames1);
+			    this.Task2ParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.Task2TransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, Task2ParameterNames1, Task2PositionalArgumentDeclaredTypes1) :
+			    Task2NamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), Task2NamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], Task2PositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("Task2");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-				};
+			        return new()
+			        {
+			        };
+			    }
+			
+			    return new()
+			    {
+			    };
+			}
 		}
 	}
 }
