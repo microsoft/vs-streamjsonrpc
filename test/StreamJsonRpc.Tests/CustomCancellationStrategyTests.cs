@@ -99,7 +99,7 @@ public class CustomCancellationStrategyTests : TestBase
 
         TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
         Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
-        Assert.True(this.mockStrategy.CancelRequestMade);
+        await this.mockStrategy.CancelOutboundRequestInvoked.WaitAsync(this.TimeoutToken);
         await this.mockStrategy.OutboundRequestEndedInvoked.WaitAsync(this.TimeoutToken);
     }
 
@@ -182,6 +182,8 @@ public class CustomCancellationStrategyTests : TestBase
 
         internal bool CancelRequestMade { get; private set; }
 
+        internal AsyncAutoResetEvent CancelOutboundRequestInvoked { get; } = new AsyncAutoResetEvent();
+
         internal AsyncAutoResetEvent OutboundRequestEndedInvoked { get; } = new AsyncAutoResetEvent();
 
         internal ManualResetEventSlim AllowCancelOutboundRequestToExit { get; } = new ManualResetEventSlim(initialState: true);
@@ -204,6 +206,7 @@ public class CustomCancellationStrategyTests : TestBase
 
             cts?.Cancel();
             this.CancelRequestMade = true;
+            this.CancelOutboundRequestInvoked.Set();
 
             // Wait for the out of order invocation to happen if it's possible,
             // so the OutboundCancellationStartAndRequestFinishOverlap test can catch it.

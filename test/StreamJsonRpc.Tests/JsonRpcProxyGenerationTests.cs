@@ -551,7 +551,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [Fact]
     public async Task CallMethod_UsesJsonRpcOutboundRequestTimeout()
     {
-        this.clientJsonRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        this.clientJsonRpc.OutboundRequestTimeout = ExpectedTimeout;
         this.server.ResumeMethod.Reset();
         Task task = this.clientRpc.HeavyWorkAsync(CancellationToken.None);
         await this.server.MethodEntered.WaitAsync(TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);

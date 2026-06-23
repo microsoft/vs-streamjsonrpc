@@ -1050,7 +1050,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task InvokeWithCancellationAsync_UsesOutboundRequestTimeout()
     {
-        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        this.clientRpc.OutboundRequestTimeout = ExpectedTimeout;
         Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, CancellationToken.None);
         await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
 

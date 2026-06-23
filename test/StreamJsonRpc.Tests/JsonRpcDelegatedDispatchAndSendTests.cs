@@ -62,6 +62,22 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         }
     }
 
+    [Fact]
+    public async Task InvokeAsync_UsesOutboundRequestTimeoutWhenSendAsyncTimesOut()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new BlockingSendJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2), this.server);
+
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+        clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        clientRpc.BlockRequestSend = true;
+
+        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync)));
+        Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
+    }
+
 #pragma warning disable CA1801 // use all parameters
     public class Server
     {
@@ -155,6 +171,26 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
             }
 
             return base.SendAsync(message, cancellationToken);
+        }
+    }
+
+    private sealed class BlockingSendJsonRpc : DelegatedJsonRpc
+    {
+        public BlockingSendJsonRpc(IJsonRpcMessageHandler handler)
+            : base(handler)
+        {
+        }
+
+        public bool BlockRequestSend { get; set; }
+
+        protected override async ValueTask SendAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            if (this.BlockRequestSend && message is JsonRpcRequest)
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+
+            await base.SendAsync(message, cancellationToken);
         }
     }
 
