@@ -127,6 +127,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private bool cancelLocallyInvokedMethodsWhenConnectionIsClosed;
 
     /// <summary>
+    /// Backing field for the <see cref="OutboundRequestTimeout"/> property.
+    /// Stores timeout ticks, with 0 representing <see langword="null"/>.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private long outboundRequestTimeoutTicks;
+
+    /// <summary>
     /// Backing field for the <see cref="SynchronizationContext"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -611,15 +618,23 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <exception cref="ArgumentOutOfRangeException">Thrown if a non-positive timeout value is assigned.</exception>
     public TimeSpan? OutboundRequestTimeout
     {
-        get;
+        get
+        {
+            long timeoutTicks = Interlocked.Read(ref this.outboundRequestTimeoutTicks);
+            return timeoutTicks == 0 ? null : TimeSpan.FromTicks(timeoutTicks);
+        }
+
         set
         {
             if (value is TimeSpan timeout)
             {
                 Requires.Range(timeout > TimeSpan.Zero, nameof(value), Resources.PositiveTimeSpanRequired);
+                Interlocked.Exchange(ref this.outboundRequestTimeoutTicks, timeout.Ticks);
             }
-
-            field = value;
+            else
+            {
+                Interlocked.Exchange(ref this.outboundRequestTimeoutTicks, 0);
+            }
         }
     }
 
@@ -2322,7 +2337,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         {
             throw new OperationCanceledException(ex.Message, ex, cancellationToken);
         }
-        catch (OperationCanceledException ex) when (timeoutCancellationSource?.IsCancellationRequested is true && !cancellationToken.IsCancellationRequested && !this.DisconnectedToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (timeoutCancellationSource?.IsCancellationRequested is true && !cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException(Resources.FormatOutboundInvocationTimedOut(nameof(this.OutboundRequestTimeout)), ex);
         }
