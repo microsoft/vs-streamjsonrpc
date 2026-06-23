@@ -55,6 +55,11 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.JsonRpcMethodAttribute";
     }
 
+    internal static class JsonRpcParameterAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.JsonRpcParameterAttribute";
+    }
+
     internal static class MethodShapeAttribute
     {
         internal const string FullName = "PolyType.MethodShapeAttribute";

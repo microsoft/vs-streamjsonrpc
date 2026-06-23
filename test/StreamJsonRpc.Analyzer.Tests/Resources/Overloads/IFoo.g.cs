@@ -25,7 +25,13 @@ namespace StreamJsonRpc.Generated
 		{
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> SayHiParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+		};
+		
 		private string? transformedSayHi1;
+		private int SayHiParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? SayHiTransformedNamedArgumentDeclaredTypes1;
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
@@ -37,7 +43,14 @@ namespace StreamJsonRpc.Generated
 			typeof(string),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> SayHiParameterNames2 = new global::System.Collections.Generic.List<string>
+		{
+			"name",
+		};
+		
 		private string? transformedSayHi2;
+		private int SayHiParameterNameTransformState2;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? SayHiTransformedNamedArgumentDeclaredTypes2;
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> SayHiNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
@@ -51,7 +64,15 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> SayHiParameterNames3 = new global::System.Collections.Generic.List<string>
+		{
+			"name",
+			"age",
+		};
+		
 		private string? transformedSayHi3;
+		private int SayHiParameterNameTransformState3;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? SayHiTransformedNamedArgumentDeclaredTypes3;
 		
 		public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -64,17 +85,37 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("SayHi");
 			string __rpcMethodName = this.transformedSayHi1 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			int __parameterNameTransformState = this.SayHiParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, SayHiParameterNames1);
+			    this.SayHiParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.SayHiTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, SayHiParameterNames1, SayHiPositionalArgumentDeclaredTypes1) :
+			    SayHiNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes1, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], SayHiPositionalArgumentDeclaredTypes1, default);
 			this.OnCalledMethod("SayHi");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-				};
+			        return new()
+			        {
+			        };
+			    }
+			
+			    return new()
+			    {
+			    };
+			}
 		}
 		
 		global::System.Threading.Tasks.Task global::IFoo.SayHi(string name)
@@ -83,18 +124,39 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("SayHi");
 			string __rpcMethodName = this.transformedSayHi2 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			int __parameterNameTransformState = this.SayHiParameterNameTransformState2;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, SayHiParameterNames2);
+			    this.SayHiParameterNameTransformState2 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.SayHiTransformedNamedArgumentDeclaredTypes2 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, SayHiParameterNames2, SayHiPositionalArgumentDeclaredTypes2) :
+			    SayHiNamedArgumentDeclaredTypes2;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes2, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [name], SayHiPositionalArgumentDeclaredTypes2, default);
 			this.OnCalledMethod("SayHi");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["name"] = name,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("name")] = name,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["name"] = name,
+			    };
+			}
 		}
 		
 		global::System.Threading.Tasks.Task global::IFoo.SayHi(string name, int age)
@@ -103,19 +165,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("SayHi");
 			string __rpcMethodName = this.transformedSayHi3 ??= this.TransformMethodName("SayHi", typeof(global::IFoo));
+			int __parameterNameTransformState = this.SayHiParameterNameTransformState3;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, SayHiParameterNames3);
+			    this.SayHiParameterNameTransformState3 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.SayHiTransformedNamedArgumentDeclaredTypes3 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, SayHiParameterNames3, SayHiPositionalArgumentDeclaredTypes3) :
+			    SayHiNamedArgumentDeclaredTypes3;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), SayHiNamedArgumentDeclaredTypes3, default) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, default) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [name, age], SayHiPositionalArgumentDeclaredTypes3, default);
 			this.OnCalledMethod("SayHi");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["name"] = name,
-					["age"] = age,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("name")] = name,
+				[this.Options.ParameterNameTransform("age")] = age,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["name"] = name,
+				["age"] = age,
+			    };
+			}
 		}
 	}
 }

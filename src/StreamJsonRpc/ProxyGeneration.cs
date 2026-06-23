@@ -52,9 +52,13 @@ internal static class ProxyGeneration
 
     private static readonly MethodInfo MethodNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.MethodNameTransform))!.GetMethod!;
     private static readonly MethodInfo MethodNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.MethodNameTransform.Invoke), new Type[] { typeof(string) })!;
+    private static readonly MethodInfo ParameterNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ParameterNameTransform))!.GetMethod!;
     private static readonly MethodInfo EventNameTransformPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.EventNameTransform))!.GetMethod!;
     private static readonly MethodInfo EventNameTransformInvoke = typeof(Func<string, string>).GetRuntimeMethod(nameof(JsonRpcProxyOptions.EventNameTransform.Invoke), new Type[] { typeof(string) })!;
     private static readonly MethodInfo ServerRequiresNamedArgumentsPropertyGetter = typeof(JsonRpcProxyOptions).GetRuntimeProperty(nameof(JsonRpcProxyOptions.ServerRequiresNamedArguments))!.GetMethod!;
+    private static readonly MethodInfo CreateNamedArgumentsMethod = typeof(CodeGenHelpers).GetRuntimeMethod(nameof(CodeGenHelpers.CreateNamedArguments), [typeof(Func<string, string>), typeof(IReadOnlyList<string>), typeof(IReadOnlyList<object>)])!;
+    private static readonly MethodInfo CreateNamedArgumentDeclaredTypesMethod = typeof(CodeGenHelpers).GetRuntimeMethod(nameof(CodeGenHelpers.CreateNamedArgumentDeclaredTypes), [typeof(Func<string, string>), typeof(IReadOnlyList<string>), typeof(IReadOnlyList<Type>)])!;
+    private static readonly MethodInfo GetParameterNameTransformStateMethod = typeof(CodeGenHelpers).GetRuntimeMethod(nameof(CodeGenHelpers.GetParameterNameTransformState), [typeof(Func<string, string>), typeof(IReadOnlyList<string>)])!;
 
     private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)) ?? throw Assumes.NotReachable();
     private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed))!.GetMethod ?? throw Assumes.NotReachable();
@@ -272,11 +276,11 @@ internal static class ProxyGeneration
             MethodInfo invokeWithCancellationAsyncOfTaskOfTMethodInfo = invokeWithCancellationAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters().Length == 4);
 
             IEnumerable<MethodInfo> invokeWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.InvokeWithParameterObjectAsync));
-            MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _]);
-            MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _]);
+            MethodInfo invokeWithParameterObjectAsyncOfTaskMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _, _]);
+            MethodInfo invokeWithParameterObjectAsyncOfTaskOfTMethodInfo = invokeWithParameterObjectAsyncMethodInfos.Single(m => m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _, _]);
 
             IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
-            MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }]);
+            MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _]);
 
             HashSet<MethodInfo> implementedMethods = new() { DisposeMethod };
             foreach ((Type rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
@@ -349,25 +353,77 @@ internal static class ProxyGeneration
                         il.EmitCall(OpCodes.Callvirt, ServerRequiresNamedArgumentsPropertyGetter, null);
                         il.Emit(OpCodes.Brfalse, positionalArgsLabel);
 
-                        // The second argument is a single parameter object.
+                        // The second argument is a named arguments dictionary.
                         {
                             if (argumentCountExcludingCancellationToken > 0)
                             {
-                                ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, methodParameters.Take(argumentCountExcludingCancellationToken).ToArray());
-                                for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                                ParameterInfo[] dataParameters = methodParameters.Take(argumentCountExcludingCancellationToken).ToArray();
+                                bool hasAttributedParameters = dataParameters.Any(static parameter => parameter.GetCustomAttribute<JsonRpcParameterAttribute>() is not null);
+                                Label useTransformedNamesLabel = il.DefineLabel();
+
+                                if (!hasAttributedParameters)
                                 {
-                                    il.Emit(OpCodes.Ldarg, i + 1);
+                                    il.Emit(OpCodes.Ldarg_0);
+                                    il.Emit(OpCodes.Ldfld, optionsField);
+                                    il.EmitCall(OpCodes.Callvirt, ParameterNameTransformPropertyGetter, null);
+                                    LoadParameterNameArrayField(proxyTypeBuilder, dataParameters, il);
+                                    il.EmitCall(OpCodes.Call, GetParameterNameTransformStateMethod, null);
+                                    il.Emit(OpCodes.Ldc_I4_2);
+                                    il.Emit(OpCodes.Beq, useTransformedNamesLabel);
+
+                                    ConstructorInfo paramObjectCtor = CreateParameterObjectType(proxyModuleBuilder, dataParameters);
+                                    for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                                    {
+                                        il.Emit(OpCodes.Ldarg, i + 1);
+                                    }
+
+                                    il.Emit(OpCodes.Newobj, paramObjectCtor);
+                                    il.Emit(OpCodes.Ldnull); // argument declared types
+
+                                    MethodInfo invokingMethodUnchangedNames =
+                                        invokeResultTypeArgument is not null ? invokeWithParameterObjectAsyncOfTaskOfTMethodInfo.MakeGenericMethod(invokeResultTypeArgument) :
+                                        returnTypeIsVoid ? notifyWithParameterObjectAsyncOfTaskMethodInfo :
+                                        invokeWithParameterObjectAsyncOfTaskMethodInfo;
+
+                                    CompleteCall(invokingMethodUnchangedNames);
                                 }
 
-                                il.Emit(OpCodes.Newobj, paramObjectCtor);
+                                il.MarkLabel(useTransformedNamesLabel);
+                                il.Emit(OpCodes.Ldarg_0);
+                                il.Emit(OpCodes.Ldfld, optionsField);
+                                il.EmitCall(OpCodes.Callvirt, ParameterNameTransformPropertyGetter, null);
+                                LoadParameterNameArrayField(proxyTypeBuilder, dataParameters, il);
+
+                                il.Emit(OpCodes.Ldc_I4, argumentCountExcludingCancellationToken);
+                                il.Emit(OpCodes.Newarr, typeof(object));
+                                for (int i = 0; i < argumentCountExcludingCancellationToken; i++)
+                                {
+                                    il.Emit(OpCodes.Dup); // duplicate the array on the stack
+                                    il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
+                                    il.Emit(OpCodes.Ldarg, i + 1);
+                                    if (methodParameters[i].ParameterType.GetTypeInfo().IsValueType)
+                                    {
+                                        il.Emit(OpCodes.Box, methodParameters[i].ParameterType); // box if the argument is a value type
+                                    }
+
+                                    il.Emit(OpCodes.Stelem_Ref); // set the array element.
+                                }
+
+                                il.EmitCall(OpCodes.Call, CreateNamedArgumentsMethod, null);
+
+                                // The third argument is a Type[] describing each named parameter type.
+                                il.Emit(OpCodes.Ldarg_0);
+                                il.Emit(OpCodes.Ldfld, optionsField);
+                                il.EmitCall(OpCodes.Callvirt, ParameterNameTransformPropertyGetter, null);
+                                LoadParameterNameArrayField(proxyTypeBuilder, dataParameters, il);
+                                LoadParameterTypeArrayField(proxyTypeBuilder, dataParameters, il);
+                                il.EmitCall(OpCodes.Call, CreateNamedArgumentDeclaredTypesMethod, null);
                             }
                             else
                             {
                                 il.Emit(OpCodes.Ldnull);
+                                il.Emit(OpCodes.Ldnull);
                             }
-
-                            // Note that we do NOT need to load in a dictionary of named parameter types
-                            // because of our specialized parameter object that strongly types all arguments for us.
 
                             // Construct the InvokeAsync<T> method with the T argument supplied if we have a return type.
                             MethodInfo invokingMethod =
@@ -576,6 +632,43 @@ internal static class ProxyGeneration
         il.Emit(OpCodes.Dup);
         il.Emit(OpCodes.Stsfld, field);
 
+        il.MarkLabel(skipInitLabel);
+    }
+
+    private static void LoadParameterNameArrayField(TypeBuilder proxyTypeBuilder, ParameterInfo[] parameterInfos, ILGenerator il)
+    {
+        if (parameterInfos.Length == 0)
+        {
+            // No need for a field when the array would be empty.
+            il.Emit(OpCodes.Ldnull);
+            return;
+        }
+
+        string fieldName = Guid.NewGuid().ToString("n");
+        FieldBuilder field = proxyTypeBuilder.DefineField(
+            fieldName,
+            typeof(string[]),
+            FieldAttributes.Static | FieldAttributes.Private);
+
+        Label skipInitLabel = il.DefineLabel();
+
+        il.Emit(OpCodes.Ldsfld, field);
+        il.Emit(OpCodes.Dup); // keep a copy on the stack after the test in case it's non-null.
+        il.Emit(OpCodes.Brtrue, skipInitLabel);
+
+        il.Emit(OpCodes.Pop); // ditch the null from stack.
+        il.Emit(OpCodes.Ldc_I4, parameterInfos.Length);
+        il.Emit(OpCodes.Newarr, typeof(string));
+        for (int i = 0; i < parameterInfos.Length; i++)
+        {
+            il.Emit(OpCodes.Dup); // duplicate the array on the stack
+            il.Emit(OpCodes.Ldc_I4, i); // push the index of the array to be initialized.
+            il.Emit(OpCodes.Ldstr, parameterInfos[i].GetCustomAttribute<JsonRpcParameterAttribute>()?.Name ?? parameterInfos[i].Name ?? string.Empty);
+            il.Emit(OpCodes.Stelem_Ref); // set the array element.
+        }
+
+        il.Emit(OpCodes.Dup); // keep a copy for the stack after assignment.
+        il.Emit(OpCodes.Stsfld, field);
         il.MarkLabel(skipInitLabel);
     }
 

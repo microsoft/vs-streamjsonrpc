@@ -1826,6 +1826,46 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task AddLocalRpcTarget_JsonRpcParameterAttribute()
+    {
+        var streams = FullDuplexStream.CreatePair();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server());
+        rpc.StartListening();
+
+        int result = await rpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithRenamedParameters),
+            new Dictionary<string, object?> { ["left"] = 1, ["right"] = 2 },
+            this.TimeoutToken);
+        Assert.Equal(3, result);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithRenamedParameters),
+            new Dictionary<string, object?> { ["a"] = 1, ["b"] = 2 },
+            this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task AddLocalRpcTarget_ParameterNameTransformAndJsonRpcParameterAttribute()
+    {
+        var streams = FullDuplexStream.CreatePair();
+        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
+        rpc.StartListening();
+
+        int result = await rpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithRenamedParameters),
+            new Dictionary<string, object?> { ["rpc.left"] = 1, ["rpc.right"] = 2 },
+            this.TimeoutToken);
+        Assert.Equal(3, result);
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => rpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithRenamedParameters),
+            new Dictionary<string, object?> { ["left"] = 1, ["right"] = 2 },
+            this.TimeoutToken));
+    }
+
+    [Fact]
     public async Task AddLocalRpcMethod_ActionWith0Args()
     {
         this.ReinitializeRpcWithoutListening();
@@ -3577,6 +3617,11 @@ public abstract partial class JsonRpcTests : TestBase
         public static int MethodWithOneNonObjectParameter(int x)
         {
             return x;
+        }
+
+        public static int MethodWithRenamedParameters([JsonRpcParameter("left")] int a, [JsonRpcParameter("right")] int b)
+        {
+            return a + b;
         }
 
         [JsonRpcMethod("test/MethodWithSingleObjectParameter", UseSingleObjectParameterDeserialization = true)]

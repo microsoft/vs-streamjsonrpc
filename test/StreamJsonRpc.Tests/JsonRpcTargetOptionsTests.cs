@@ -15,6 +15,7 @@ public class JsonRpcTargetOptionsTests
         options.DisposeOnDisconnect = !options.DisposeOnDisconnect;
         options.EventNameTransform = s => s;
         options.MethodNameTransform = s => s;
+        options.ParameterNameTransform = s => s;
         options.NotifyClientOfEvents = !options.NotifyClientOfEvents;
         options.UseSingleObjectParameterDeserialization = !options.UseSingleObjectParameterDeserialization;
 
@@ -24,6 +25,7 @@ public class JsonRpcTargetOptionsTests
         Assert.Equal(options.DisposeOnDisconnect, copy.DisposeOnDisconnect);
         Assert.Equal(options.EventNameTransform, copy.EventNameTransform);
         Assert.Equal(options.MethodNameTransform, copy.MethodNameTransform);
+        Assert.Equal(options.ParameterNameTransform, copy.ParameterNameTransform);
         Assert.Equal(options.NotifyClientOfEvents, copy.NotifyClientOfEvents);
         Assert.Equal(options.UseSingleObjectParameterDeserialization, copy.UseSingleObjectParameterDeserialization);
     }

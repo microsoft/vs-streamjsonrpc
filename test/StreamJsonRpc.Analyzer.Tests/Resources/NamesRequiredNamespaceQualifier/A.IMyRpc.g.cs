@@ -28,7 +28,13 @@ namespace StreamJsonRpc.Generated
 		{
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> JustCancellationAsyncParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+		};
+		
 		private string? transformedJustCancellationAsync1;
+		private int JustCancellationAsyncParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? JustCancellationAsyncTransformedNamedArgumentDeclaredTypes1;
 		
 		public A_IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -41,17 +47,37 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("JustCancellationAsync");
 			string __rpcMethodName = this.transformedJustCancellationAsync1 ??= this.TransformMethodName("JustCancellationAsync", typeof(global::A.IMyRpc));
+			int __parameterNameTransformState = this.JustCancellationAsyncParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, JustCancellationAsyncParameterNames1);
+			    this.JustCancellationAsyncParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.JustCancellationAsyncTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, JustCancellationAsyncParameterNames1, JustCancellationAsyncPositionalArgumentDeclaredTypes1) :
+			    JustCancellationAsyncNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), JustCancellationAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [], JustCancellationAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 			this.OnCalledMethod("JustCancellationAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-				};
+			        return new()
+			        {
+			        };
+			    }
+			
+			    return new()
+			    {
+			    };
+			}
 		}
 	}
 }

@@ -221,11 +221,35 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
     /// The length of this span must equal the length of <paramref name="parameters"/>.
     /// </param>
-    /// <returns><see langword="true"/> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <see langword="false"/> otherwise.</returns>
+    /// <returns>
+    /// An <see cref="ArgumentMatchResult"/> describing whether argument matching succeeded or why it failed.
+    /// </returns>
     /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
     public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
     {
+        return this.TryGetTypedArguments(parameters, parameterNames: default, typedArguments);
+    }
+
+    /// <summary>
+    /// Gets the arguments to supply to the method invocation, coerced to types that will satisfy the given list of parameters.
+    /// </summary>
+    /// <param name="parameters">The list of parameters that the arguments must satisfy.</param>
+    /// <param name="parameterNames">
+    /// The names to use when matching named arguments to parameters.
+    /// When omitted, each <see cref="ParameterInfo.Name"/> from <paramref name="parameters"/> is used.
+    /// </param>
+    /// <param name="typedArguments">
+    /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
+    /// The length of this span must equal the length of <paramref name="parameters"/>.
+    /// </param>
+    /// <returns>
+    /// An <see cref="ArgumentMatchResult"/> describing whether argument matching succeeded or why it failed.
+    /// </returns>
+    /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
+    public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+    {
         Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
+        Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
 
         // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
         if (parameters.Length < this.ArgumentCount)
@@ -241,7 +265,8 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
         for (int i = 0; i < parameters.Length; i++)
         {
             ParameterInfo parameter = parameters[i];
-            if (this.TryGetArgumentByNameOrIndex(parameter.Name, i, parameter.ParameterType, out object? argument))
+            string? parameterName = parameterNames.IsEmpty ? parameter.Name : parameterNames[i];
+            if (this.TryGetArgumentByNameOrIndex(parameterName, i, parameter.ParameterType, out object? argument))
             {
                 if (argument is null)
                 {

@@ -7,6 +7,7 @@ public class JsonRpcProxyOptionsTests
     public void DefaultIsFrozen()
     {
         Assert.Throws<InvalidOperationException>(() => JsonRpcProxyOptions.Default.MethodNameTransform = s => s);
+        Assert.Throws<InvalidOperationException>(() => JsonRpcProxyOptions.Default.ParameterNameTransform = s => s);
         Assert.Throws<InvalidOperationException>(() => JsonRpcProxyOptions.Default.EventNameTransform = s => s);
         Assert.Throws<InvalidOperationException>(() => JsonRpcProxyOptions.Default.ServerRequiresNamedArguments = true);
     }
@@ -17,6 +18,7 @@ public class JsonRpcProxyOptionsTests
         JsonRpcProxyOptions options = new()
         {
             MethodNameTransform = s => s,
+            ParameterNameTransform = s => s,
             EventNameTransform = s => s,
             ServerRequiresNamedArguments = true,
         };

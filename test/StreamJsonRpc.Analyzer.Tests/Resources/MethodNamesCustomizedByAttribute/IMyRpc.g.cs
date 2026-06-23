@@ -29,7 +29,15 @@ namespace StreamJsonRpc.Generated
 			typeof(int),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> AddAsyncParameterNames1 = new global::System.Collections.Generic.List<string>
+		{
+			"a",
+			"b",
+		};
+		
 		private string? transformedAddAsync1;
+		private int AddAsyncParameterNameTransformState1;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? AddAsyncTransformedNamedArgumentDeclaredTypes1;
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> IntegrateAsyncNamedArgumentDeclaredTypes2 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
@@ -43,7 +51,15 @@ namespace StreamJsonRpc.Generated
 			typeof(double),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> IntegrateAsyncParameterNames2 = new global::System.Collections.Generic.List<string>
+		{
+			"from",
+			"to",
+		};
+		
 		private string? transformedIntegrateAsync2;
+		private int IntegrateAsyncParameterNameTransformState2;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? IntegrateAsyncTransformedNamedArgumentDeclaredTypes2;
 		
 		private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> DivideAsyncNamedArgumentDeclaredTypes3 = new global::System.Collections.Generic.Dictionary<string, global::System.Type>
 		{
@@ -57,7 +73,15 @@ namespace StreamJsonRpc.Generated
 			typeof(double),
 		};
 		
+		private static readonly global::System.Collections.Generic.IReadOnlyList<string> DivideAsyncParameterNames3 = new global::System.Collections.Generic.List<string>
+		{
+			"from",
+			"to",
+		};
+		
 		private string? transformedDivideAsync3;
+		private int DivideAsyncParameterNameTransformState3;
+		private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? DivideAsyncTransformedNamedArgumentDeclaredTypes3;
 		
 		public IMyRpc_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
@@ -70,19 +94,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("AddAsync");
 			string __rpcMethodName = this.transformedAddAsync1 ??= this.TransformMethodName("AddRenamed", typeof(global::IMyRpc));
+			int __parameterNameTransformState = this.AddAsyncParameterNameTransformState1;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, AddAsyncParameterNames1);
+			    this.AddAsyncParameterNameTransformState1 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.AddAsyncTransformedNamedArgumentDeclaredTypes1 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, AddAsyncParameterNames1, AddAsyncPositionalArgumentDeclaredTypes1) :
+			    AddAsyncNamedArgumentDeclaredTypes1;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), AddAsyncNamedArgumentDeclaredTypes1, cancellationToken) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [a, b], AddAsyncPositionalArgumentDeclaredTypes1, cancellationToken);
 			this.OnCalledMethod("AddAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["a"] = a,
-					["b"] = b,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("a")] = a,
+				[this.Options.ParameterNameTransform("b")] = b,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["a"] = a,
+				["b"] = b,
+			    };
+			}
 		}
 		
 		global::System.Threading.Tasks.Task global::IMyRpc.IntegrateAsync(double from, double to, global::System.Threading.CancellationToken cancellationToken)
@@ -91,19 +137,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("IntegrateAsync");
 			string __rpcMethodName = this.transformedIntegrateAsync2 ??= this.TransformMethodName("IntegrateRenamed", typeof(global::IMyRpc));
+			int __parameterNameTransformState = this.IntegrateAsyncParameterNameTransformState2;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, IntegrateAsyncParameterNames2);
+			    this.IntegrateAsyncParameterNameTransformState2 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.IntegrateAsyncTransformedNamedArgumentDeclaredTypes2 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, IntegrateAsyncParameterNames2, IntegrateAsyncPositionalArgumentDeclaredTypes2) :
+			    IntegrateAsyncNamedArgumentDeclaredTypes2;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), IntegrateAsyncNamedArgumentDeclaredTypes2, cancellationToken) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [from, to], IntegrateAsyncPositionalArgumentDeclaredTypes2, cancellationToken);
 			this.OnCalledMethod("IntegrateAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["from"] = from,
-					["to"] = to,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("from")] = from,
+				[this.Options.ParameterNameTransform("to")] = to,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["from"] = from,
+				["to"] = to,
+			    };
+			}
 		}
 		
 		global::System.Threading.Tasks.Task global::IMyRpc.DivideAsync(double from, double to, global::System.Threading.CancellationToken cancellationToken)
@@ -112,19 +180,41 @@ namespace StreamJsonRpc.Generated
 			
 			this.OnCallingMethod("DivideAsync");
 			string __rpcMethodName = this.transformedDivideAsync3 ??= this.TransformMethodName("DivideRenamed", typeof(global::IMyRpc));
+			int __parameterNameTransformState = this.DivideAsyncParameterNameTransformState3;
+			if (__parameterNameTransformState == 0)
+			{
+			    __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, DivideAsyncParameterNames3);
+			    this.DivideAsyncParameterNameTransformState3 = __parameterNameTransformState;
+			}
+			
+			bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+			global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+			    this.DivideAsyncTransformedNamedArgumentDeclaredTypes3 ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, DivideAsyncParameterNames3, DivideAsyncPositionalArgumentDeclaredTypes3) :
+			    DivideAsyncNamedArgumentDeclaredTypes3;
 			global::System.Threading.Tasks.Task __result = this.Options.ServerRequiresNamedArguments ?
-			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(), DivideAsyncNamedArgumentDeclaredTypes3, cancellationToken) :
+			    this.JsonRpc.InvokeWithParameterObjectAsync(__rpcMethodName, ConstructNamedArgs(__useTransformedParameterNames), __namedArgumentTypes, cancellationToken) :
 			    this.JsonRpc.InvokeWithCancellationAsync(__rpcMethodName, [from, to], DivideAsyncPositionalArgumentDeclaredTypes3, cancellationToken);
 			this.OnCalledMethod("DivideAsync");
 			
 			return __result;
 			
-			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs()
-			    => new()
+			global::System.Collections.Generic.Dictionary<string, object?> ConstructNamedArgs(bool __useTransformedParameterNames)
+			{
+			    if (__useTransformedParameterNames)
 			    {
-					["from"] = from,
-					["to"] = to,
-				};
+			        return new()
+			        {
+				[this.Options.ParameterNameTransform("from")] = from,
+				[this.Options.ParameterNameTransform("to")] = to,
+			        };
+			    }
+			
+			    return new()
+			    {
+				["from"] = from,
+				["to"] = to,
+			    };
+			}
 		}
 	}
 }

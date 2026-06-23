@@ -24,6 +24,7 @@ internal record KnownSymbols(
     INamedTypeSymbol ExportRpcContractProxiesAttribute,
     INamedTypeSymbol JsonRpcProxyMappingAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
+    INamedTypeSymbol JsonRpcParameterAttribute,
     INamedTypeSymbol? MethodShapeAttribute,
     INamedTypeSymbol SystemType,
     INamedTypeSymbol Stream)
@@ -47,6 +48,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? exportRpcContractProxiesAttribute = compilation.GetTypeByMetadataName(Types.ExportRpcContractProxiesAttribute.FullName);
         INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcProxyMappingAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
+        INamedTypeSymbol? jsonRpcParameterAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcParameterAttribute.FullName);
         INamedTypeSymbol? methodShapeAttribute = compilation.GetTypeByMetadataName(Types.MethodShapeAttribute.FullName);
         INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
         INamedTypeSymbol? systemIOStream = compilation.GetTypeByMetadataName("System.IO.Stream");
@@ -60,6 +62,7 @@ internal record KnownSymbols(
             exportRpcContractProxiesAttribute is null ||
             rpcProxyMappingAttribute is null ||
             jsonRpcMethodAttribute is null ||
+            jsonRpcParameterAttribute is null ||
             systemType is null ||
             systemIOStream is null ||
             cancellationToken is null)
@@ -68,7 +71,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, methodShapeAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, jsonRpcParameterAttribute, methodShapeAttribute, systemType, systemIOStream);
         return true;
     }
 }

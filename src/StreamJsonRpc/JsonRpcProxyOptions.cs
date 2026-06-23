@@ -19,6 +19,11 @@ public class JsonRpcProxyOptions
     private Func<string, string> eventNameTransform = n => n;
 
     /// <summary>
+    /// Backing field for the <see cref="ParameterNameTransform"/> property.
+    /// </summary>
+    private Func<string, string> parameterNameTransform = n => n;
+
+    /// <summary>
     /// Backing field for the <see cref="OnDispose"/> property.
     /// </summary>
     private Action? onDispose;
@@ -60,6 +65,7 @@ public class JsonRpcProxyOptions
         Requires.NotNull(copyFrom, nameof(copyFrom));
 
         this.MethodNameTransform = copyFrom.MethodNameTransform;
+        this.ParameterNameTransform = copyFrom.ParameterNameTransform;
         this.EventNameTransform = copyFrom.EventNameTransform;
         this.ServerRequiresNamedArguments = copyFrom.ServerRequiresNamedArguments;
         this.AcceptProxyWithExtraInterfaces = copyFrom.AcceptProxyWithExtraInterfaces;
@@ -110,7 +116,8 @@ public class JsonRpcProxyOptions
         set
         {
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
-            this.methodNameTransform = Requires.NotNull(value, nameof(value));
+            Requires.NotNull(value);
+            this.methodNameTransform = value;
         }
     }
 
@@ -126,7 +133,26 @@ public class JsonRpcProxyOptions
         set
         {
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
-            this.eventNameTransform = Requires.NotNull(value, nameof(value));
+            Requires.NotNull(value);
+            this.eventNameTransform = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a function that takes the effective pre-transform parameter name and returns the RPC parameter name.
+    /// The effective pre-transform name is the CLR parameter name unless <see cref="JsonRpcParameterAttribute"/> overrides it.
+    /// This function applies to named arguments only.
+    /// </summary>
+    /// <value>A function, defaulting to a straight pass-through. Never null.</value>
+    /// <exception cref="ArgumentNullException">Thrown if set to a null value.</exception>
+    public Func<string, string> ParameterNameTransform
+    {
+        get => this.parameterNameTransform;
+        set
+        {
+            Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            Requires.NotNull(value);
+            this.parameterNameTransform = value;
         }
     }
 
