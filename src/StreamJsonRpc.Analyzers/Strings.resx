@@ -208,10 +208,10 @@
     <value>The type '{0}' should use {1} since it is an optional RPC marshalable contract type.</value>
   </data>
   <data name="StreamJsonRpc0040_Title" xml:space="preserve">
-    <value>Accessible proxy type</value>
+    <value>Proxy type must be accessible</value>
   </data>
   <data name="StreamJsonRpc0040_MessageFormat" xml:space="preserve">
-    <value>Proxy type {0} is not accessible from the calling assembly.</value>
+    <value>Proxy type '{0}' is not accessible from the calling assembly.</value>
   </data>
   <data name="StreamJsonRpc0030_Title" xml:space="preserve">
     <value>JsonRpcProxyAttribute&lt;T&gt; should be applied only to generic interfaces</value>
