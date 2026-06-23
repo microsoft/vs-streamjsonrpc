@@ -37,7 +37,7 @@ namespace Proxies
 
         static async Task MultipleProxiesOption1(Stream rpcStream)
         {
-            #region MultipleProxiesOption1
+            #region MultipleProxiesPattern3
             ICalculator calculator = JsonRpc.Attach<ICalculator>(rpcStream);
             JsonRpc rpc = ((IJsonRpcClientProxy)calculator).JsonRpc;
             IAdvancedCalculator advancedCalculator = rpc.Attach<IAdvancedCalculator>();
@@ -52,7 +52,7 @@ namespace Proxies
 
         static async Task MultipleProxiesOption2(Stream rpcStream)
         {
-            #region MultipleProxiesOption2
+            #region MultipleProxiesPattern2
             using JsonRpc rpc = JsonRpc.Attach(rpcStream);
             ICalculator calculator = rpc.Attach<ICalculator>();
             IAdvancedCalculator advancedCalculator = rpc.Attach<IAdvancedCalculator>();
@@ -67,7 +67,7 @@ namespace Proxies
 
         static async Task MultipleProxiesOption3(Stream rpcStream)
         {
-            #region MultipleProxiesOption3
+            #region MultipleProxiesPattern1
             using JsonRpc rpc = JsonRpc.Attach(rpcStream);
             object combinedProxy = rpc.Attach([typeof(ICalculator), typeof(IAdvancedCalculator)], options: null);
             ICalculator calculator = (ICalculator)combinedProxy;

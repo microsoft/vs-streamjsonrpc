@@ -26,15 +26,15 @@ When you need multiple client proxies over one connection, use one of these patt
 
 1. Create one proxy that implements multiple interfaces at once.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption3)]
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern1)]
 
 1. Create the <xref:StreamJsonRpc.JsonRpc> connection first, then call instance `Attach<T>` for each proxy.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption2)]
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern2)]
 
 1. Create the first proxy with the static `Attach<T>` method, then get its <xref:StreamJsonRpc.JsonRpc> instance through <xref:StreamJsonRpc.IJsonRpcClientProxy> and create additional proxies with instance `Attach<T>` calls.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption1)]
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern3)]
 
 ## Proxy traits
 
