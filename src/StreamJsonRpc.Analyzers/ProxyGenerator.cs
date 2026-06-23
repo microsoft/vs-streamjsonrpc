@@ -25,23 +25,6 @@ public partial class ProxyGenerator : IIncrementalGenerator
     /// </summary>
     public const string GenerationNamespace = "StreamJsonRpc.Generated";
 
-    /// <summary>
-    /// Diagnostic ID for "proxy type must be accessible from the calling assembly".
-    /// </summary>
-    public const string ProxyTypeNotAccessibleId = "StreamJsonRpc0040";
-
-    /// <summary>
-    /// Diagnostic for StreamJsonRpc0040: proxy type must be accessible from the calling assembly.
-    /// </summary>
-    public static readonly DiagnosticDescriptor ProxyTypeNotAccessible = new(
-        id: ProxyTypeNotAccessibleId,
-        title: Strings.StreamJsonRpc0040_Title,
-        messageFormat: Strings.StreamJsonRpc0040_MessageFormat,
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true,
-        helpLinkUri: AnalyzerUtilities.GetHelpLink(ProxyTypeNotAccessibleId));
-
     internal static readonly SymbolDisplayFormat FullyQualifiedWithNullableFormat = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
         typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,

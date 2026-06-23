@@ -1125,7 +1125,7 @@ public class ProxyGeneratorTests
                     {
                         void Foo(System.IO.Stream s)
                         {
-                            IMyService service = {|StreamJsonRpc0040:JsonRpc.Attach<IMyService>(s)|};
+                            IMyService service = JsonRpc.Attach<IMyService>(s);
                         }
                     }
                     """,
