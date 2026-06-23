@@ -274,6 +274,16 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     }
 
     [Fact]
+    public async Task NotifyAsync_IgnoresOutboundRequestTimeout()
+    {
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(1);
+        await this.clientRpc.NotifyAsync("test");
+        JToken request = await this.ReceiveAsync();
+        Assert.Equal("test", request["method"]?.ToString());
+        Assert.Null(request["id"]);
+    }
+
+    [Fact]
     public async Task ErrorResponseIncludesCallstack()
     {
         var requestTask = this.clientRpc.InvokeAsync("SomeMethod");

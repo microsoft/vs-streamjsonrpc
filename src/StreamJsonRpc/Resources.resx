@@ -256,6 +256,9 @@
   <data name="PositiveIntegerRequired" xml:space="preserve">
     <value>A positive integer is required.</value>
   </data>
+  <data name="PositiveTimeSpanRequired" xml:space="preserve">
+    <value>A positive TimeSpan is required.</value>
+  </data>
   <data name="ReachedEndOfStream" xml:space="preserve">
     <value>Reached end of stream.</value>
   </data>
@@ -320,6 +323,9 @@
   </data>
   <data name="TaskWasCancelled" xml:space="preserve">
     <value>The task was cancelled.</value>
+  </data>
+  <data name="OutboundInvocationTimedOut" xml:space="preserve">
+    <value>The outbound JSON-RPC invocation was canceled automatically after reaching the timeout configured by {0}. The server may still be processing the request.</value>
   </data>
   <data name="TextEncoderNotApplicable" xml:space="preserve">
     <value>Text encoding is not supported because the formatter "{0}" does not implement "{1}".</value>

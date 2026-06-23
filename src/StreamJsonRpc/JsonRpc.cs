@@ -127,6 +127,13 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     private bool cancelLocallyInvokedMethodsWhenConnectionIsClosed;
 
     /// <summary>
+    /// Backing field for the <see cref="OutboundRequestTimeout"/> property.
+    /// Stores timeout ticks, with 0 representing <see langword="null"/>.
+    /// </summary>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    private long outboundRequestTimeoutTicks;
+
+    /// <summary>
     /// Backing field for the <see cref="SynchronizationContext"/> property.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -587,6 +594,47 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             // to that otherwise non-deterministic behavior, or simply set it before listening starts.
             this.ThrowIfConfigurationLocked();
             this.cancelLocallyInvokedMethodsWhenConnectionIsClosed = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the timeout to apply to each outbound invocation that expects a response.
+    /// </summary>
+    /// <value>
+    /// The timeout, or <see langword="null"/> to disable this behavior.
+    /// The default value is <see langword="null"/>.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// This timeout is applied to outbound method invocations (such as <see cref="InvokeWithCancellationAsync(string, IReadOnlyList{object?}?, CancellationToken)"/> and proxy method calls),
+    /// but not notifications.
+    /// </para>
+    /// <para>
+    /// When a timeout triggers, a notification is sent to the server to request cancellation
+    /// and the local invocation is immediately canceled allowing the caller to handle the timeout
+    /// as a <see cref="TimeoutException"/>.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if a non-positive timeout value is assigned.</exception>
+    public TimeSpan? OutboundRequestTimeout
+    {
+        get
+        {
+            long timeoutTicks = Interlocked.Read(ref this.outboundRequestTimeoutTicks);
+            return timeoutTicks == 0 ? null : TimeSpan.FromTicks(timeoutTicks);
+        }
+
+        set
+        {
+            if (value is TimeSpan timeout)
+            {
+                Requires.Range(timeout > TimeSpan.Zero, nameof(value), Resources.PositiveTimeSpanRequired);
+                Interlocked.Exchange(ref this.outboundRequestTimeoutTicks, timeout.Ticks);
+            }
+            else
+            {
+                Interlocked.Exchange(ref this.outboundRequestTimeoutTicks, 0);
+            }
         }
     }
 
@@ -2120,9 +2168,19 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         Requires.NotNull(request, nameof(request));
         Assumes.NotNull(request.Method);
 
+        CancellationToken effectiveOutboundCancellationToken = cancellationToken;
+        CancellationTokenSource? timeoutCancellationSource = null;
+        if (request.IsResponseExpected && this.OutboundRequestTimeout is TimeSpan outboundRequestTimeout)
+        {
+            timeoutCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCancellationSource.CancelAfter(outboundRequestTimeout);
+            effectiveOutboundCancellationToken = timeoutCancellationSource.Token;
+        }
+
         try
         {
-            using (CancellationTokenExtensions.CombinedCancellationToken cts = this.DisconnectedToken.CombineWith(cancellationToken))
+            using (timeoutCancellationSource)
+            using (CancellationTokenExtensions.CombinedCancellationToken cts = this.DisconnectedToken.CombineWith(effectiveOutboundCancellationToken))
             {
                 if (!request.IsResponseExpected)
                 {
@@ -2161,10 +2219,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                                 JsonRpcEventSource.Instance.ReceivedNoResponse(request.RequestId.NumberIfPossibleForEvent);
                             }
 
-                            if (cancellationToken.IsCancellationRequested)
+                            if (effectiveOutboundCancellationToken.IsCancellationRequested)
                             {
                                 // Consider lost connection to be result of task canceled and set state to canceled.
-                                tcs.TrySetCanceled(cancellationToken);
+                                tcs.TrySetCanceled(effectiveOutboundCancellationToken);
                             }
                             else
                             {
@@ -2180,7 +2238,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
                             if (error.Error?.Code == JsonRpcErrorCode.RequestCanceled)
                             {
-                                tcs.TrySetCanceled(cancellationToken.IsCancellationRequested ? cancellationToken : CancellationToken.None);
+                                tcs.TrySetCanceled(effectiveOutboundCancellationToken.IsCancellationRequested ? effectiveOutboundCancellationToken : CancellationToken.None);
                             }
                             else
                             {
@@ -2241,22 +2299,49 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 // Arrange for sending a cancellation message if canceled while we're waiting for a response.
                 try
                 {
-                    using (cancellationToken.Register(this.cancelPendingOutboundRequestAction!, request.RequestId, useSynchronizationContext: false))
+                    using (effectiveOutboundCancellationToken.Register(this.cancelPendingOutboundRequestAction!, request.RequestId, useSynchronizationContext: false))
                     {
-                        // This task will be completed when the Response object comes back from the other end of the pipe
-                        return await tcs.Task.ConfigureAwait(false);
+                        // This task will be completed when the Response object comes back from the other end of the pipe.
+                        try
+                        {
+                            if (timeoutCancellationSource is null)
+                            {
+                                return await tcs.Task.ConfigureAwait(false);
+                            }
+
+                            Task completedTask = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, effectiveOutboundCancellationToken)).ConfigureAwait(false);
+                            if (completedTask == tcs.Task)
+                            {
+                                return await tcs.Task.ConfigureAwait(false);
+                            }
+
+                            effectiveOutboundCancellationToken.ThrowIfCancellationRequested();
+                            throw Assumes.NotReachable();
+                        }
+                        catch (OperationCanceledException ex) when (timeoutCancellationSource?.IsCancellationRequested is true && !cancellationToken.IsCancellationRequested)
+                        {
+                            throw new TimeoutException(Resources.FormatOutboundInvocationTimedOut(nameof(this.OutboundRequestTimeout)), ex);
+                        }
                     }
                 }
                 finally
                 {
-                    if (cancellationToken.IsCancellationRequested)
+                    if (effectiveOutboundCancellationToken.IsCancellationRequested)
                     {
                         this.CancellationStrategy?.OutboundRequestEnded(request.RequestId);
                     }
                 }
             }
         }
-        catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested && ex.CancellationToken != cancellationToken)
+        {
+            throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+        }
+        catch (OperationCanceledException ex) when (timeoutCancellationSource?.IsCancellationRequested is true && !cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException(Resources.FormatOutboundInvocationTimedOut(nameof(this.OutboundRequestTimeout)), ex);
+        }
+        catch (OperationCanceledException ex) when (this.DisconnectedToken.IsCancellationRequested && !effectiveOutboundCancellationToken.IsCancellationRequested)
         {
             throw new ConnectionLostException(Resources.ConnectionDropped, ex);
         }

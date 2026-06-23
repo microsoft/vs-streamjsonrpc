@@ -62,6 +62,24 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         }
     }
 
+    [Fact]
+    public async Task InvokeAsync_UsesOutboundRequestTimeoutWhenSendAsyncTimesOut()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new BlockingSendJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2), this.server);
+
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+        clientRpc.OutboundRequestTimeout = ExpectedTimeout;
+        clientRpc.BlockRequestSend = true;
+        Task<int> invokeTask = clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync));
+        await clientRpc.RequestSendBlocked.WaitAsync(this.TimeoutToken);
+
+        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
+        Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
+    }
+
 #pragma warning disable CA1801 // use all parameters
     public class Server
     {
@@ -155,6 +173,29 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
             }
 
             return base.SendAsync(message, cancellationToken);
+        }
+    }
+
+    private sealed class BlockingSendJsonRpc : DelegatedJsonRpc
+    {
+        public BlockingSendJsonRpc(IJsonRpcMessageHandler handler)
+            : base(handler)
+        {
+        }
+
+        public bool BlockRequestSend { get; set; }
+
+        public AsyncAutoResetEvent RequestSendBlocked { get; } = new AsyncAutoResetEvent();
+
+        protected override async ValueTask SendAsync(JsonRpcMessage message, CancellationToken cancellationToken)
+        {
+            if (this.BlockRequestSend && message is JsonRpcRequest)
+            {
+                this.RequestSendBlocked.Set();
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+
+            await base.SendAsync(message, cancellationToken);
         }
     }
 
