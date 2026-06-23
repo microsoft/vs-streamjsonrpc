@@ -14,6 +14,28 @@ This changes the above example to something like this:
 
 [!code-csharp[](../../samples/Proxies.cs#WithProxies)]
 
+## Multiple proxies on one connection
+
+Do not call static `JsonRpc.Attach<T>` multiple times on the same stream. Each static call creates a distinct <xref:StreamJsonRpc.JsonRpc> instance, and multiple instances cannot safely share one transport.
+
+The following examples use this second RPC interface in addition to `ICalculator`.
+
+[!code-csharp[](../../samples/Proxies.cs#MultipleProxiesInterfaces)]
+
+When you need multiple client proxies over one connection, use one of these patterns:
+
+1. Create one proxy that implements multiple interfaces at once.
+
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption3)]
+
+1. Create the <xref:StreamJsonRpc.JsonRpc> connection first, then call instance `Attach<T>` for each proxy.
+
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption2)]
+
+1. Create the first proxy with the static `Attach<T>` method, then get its <xref:StreamJsonRpc.JsonRpc> instance through <xref:StreamJsonRpc.IJsonRpcClientProxy> and create additional proxies with instance `Attach<T>` calls.
+
+   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesOption1)]
+
 ## Proxy traits
 
 Generated proxies have the following traits:
