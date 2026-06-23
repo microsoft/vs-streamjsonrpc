@@ -1022,6 +1022,57 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task InvokeWithCancellationAsync_CancelOnFirstWriteToStream_WithOutboundRequestTimeout()
+    {
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMinutes(1);
+        this.server.DelayAsyncMethodWithCancellation = true;
+
+        using var cts = new CancellationTokenSource();
+        ((Nerdbank.FullDuplexStream)this.clientStream).BeforeWrite = (stream, buffer, offset, count) =>
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                cts.Cancel();
+            }
+        };
+
+        try
+        {
+            var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token)).WithTimeout(UnexpectedTimeout);
+            Assert.Equal(cts.Token, ex.CancellationToken);
+        }
+        finally
+        {
+            ((Nerdbank.FullDuplexStream)this.clientStream).BeforeWrite = null;
+        }
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_UsesOutboundRequestTimeout()
+    {
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, CancellationToken.None);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+
+        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
+        Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeWithCancellationAsync_CallerCancellationTakesPrecedenceOverOutboundRequestTimeout()
+    {
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMinutes(1);
+        using var cts = new CancellationTokenSource();
+        Task<string> invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>(nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cts.Token);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        cts.Cancel();
+
+        OperationCanceledException ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invokeTask);
+        Assert.DoesNotContain(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
+        Assert.Equal(cts.Token, ex.CancellationToken);
+    }
+
+    [Fact]
     public async Task Invoke_ThrowsCancellationExceptionOverDisposedException()
     {
         this.clientRpc.Dispose();
@@ -2703,6 +2754,14 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.NotNull(this.clientRpc.CancellationStrategy);
         this.clientRpc.AllowModificationWhileListening = true;
         this.clientRpc.CancellationStrategy = null;
+    }
+
+    [Fact]
+    public void OutboundRequestTimeout_RequiresPositiveValue()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => this.clientRpc.OutboundRequestTimeout = TimeSpan.Zero);
+        Assert.Throws<ArgumentOutOfRangeException>(() => this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(-1));
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(1);
     }
 
     [Fact]

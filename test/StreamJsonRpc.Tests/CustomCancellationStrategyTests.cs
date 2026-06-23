@@ -92,6 +92,18 @@ public class CustomCancellationStrategyTests : TestBase
     }
 
     [Fact]
+    public async Task CancelRequest_WhenOutboundRequestTimesOut()
+    {
+        this.clientRpc.OutboundRequestTimeout = TimeSpan.FromMilliseconds(100);
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { false }, cancellationToken: CancellationToken.None);
+
+        TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
+        Assert.Contains(nameof(JsonRpc.OutboundRequestTimeout), ex.Message, StringComparison.Ordinal);
+        Assert.True(this.mockStrategy.CancelRequestMade);
+        await this.mockStrategy.OutboundRequestEndedInvoked.WaitAsync(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task UncanceledRequest_GetsNoClientSideInvocations()
     {
         using var cts = new CancellationTokenSource();
