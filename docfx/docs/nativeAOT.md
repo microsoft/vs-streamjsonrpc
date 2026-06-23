@@ -9,6 +9,8 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
    Activating this feature will cause requests for proxies to fail _if_ those requests include interfaces for which proxies have not been source generated.
    The source generator can predict these types in limited cases, and by default any <xref:StreamJsonRpc.JsonRpcContractAttribute> interface will have a proxy generated for it.
 
+   If the RPC contracts live in a separate assembly, that assembly must expose the proxies with `[assembly: ExportRpcContractProxies]` so interceptor generation can reference them.
+
    Use the <xref:StreamJsonRpc.JsonRpcProxyInterfaceGroupAttribute> to specify sets of interfaces that should be supported.
 
    Set the <xref:StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces?displayProperty=nameWithType> property to `true` to reduce the number of predefined groups for which proxies must be specially generated.

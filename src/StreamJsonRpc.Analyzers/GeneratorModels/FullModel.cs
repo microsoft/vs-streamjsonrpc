@@ -10,14 +10,17 @@ internal record FullModel
 {
     internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses, ImmutableEquatableSet<InterfaceModel> optionalInterfacesOrTheirPrimaries, bool interceptorsEnabled)
     {
+        this.AttachUses = attachUses;
+        this.InterceptorsEnabled = interceptorsEnabled;
+
         // Generate a proxy for attributed interfaces in this assembly, and for interfaces used by Attach methods.
-        this.Proxies = [.. proxies.Concat(attachUses.Where(a => a.Contracts is not null).Select(a => new ProxyModel(a.Contracts!, a.ExternalProxyName))).Distinct()];
+        this.Proxies = [.. proxies.Concat(attachUses.Where(a => a.Contracts is not null && a.ExternalProxyAccessible).Select(a => new ProxyModel(a.Contracts!, a.ExternalProxyName))).Distinct()];
         this.OptionalInterfacesOrTheirPrimaries = optionalInterfacesOrTheirPrimaries;
 
         if (interceptorsEnabled)
         {
             this.Interceptions = [..
-                from use in attachUses
+                from use in attachUses.Where(a => a.ExternalProxyAccessible)
                 group use by (use.Contracts, use.Signature, use.ExternalProxyName) into attachByProxy
                 let proxy = attachByProxy.Key.Contracts is null ? null : new ProxyModel(attachByProxy.Key.Contracts, attachByProxy.Key.ExternalProxyName)
                 select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation])];
@@ -25,6 +28,10 @@ internal record FullModel
     }
 
     internal required bool PublicRpcMarshalableInterfaceExtensions { get; init; }
+
+    internal ImmutableEquatableArray<AttachUse> AttachUses { get; }
+
+    internal bool InterceptorsEnabled { get; }
 
     internal ImmutableEquatableArray<ProxyModel> Proxies { get; }
 
@@ -38,6 +45,17 @@ internal record FullModel
     {
         try
         {
+            if (this.InterceptorsEnabled)
+            {
+                foreach (AttachUse attachUse in this.AttachUses.Where(a => !a.ExternalProxyAccessible))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        ProxyGenerator.ProxyTypeNotAccessible,
+                        attachUse.InvocationLocation,
+                        attachUse.ExternalProxyName ?? "<unknown>"));
+                }
+            }
+
             foreach (ProxyModel proxy in this.Proxies)
             {
                 proxy.GenerateSource(context, this.PublicProxies);

@@ -88,7 +88,7 @@ public class AttachAOTDiagnosticSuppressor : DiagnosticSuppressor
                 continue;
             }
 
-            if (ProxyGenerator.TryGetInterceptInfo(invocation, context.GetSemanticModel(location.SourceTree), symbols, context.CancellationToken) is null)
+            if (ProxyGenerator.TryGetInterceptInfo(invocation, context.GetSemanticModel(location.SourceTree), symbols, context.CancellationToken) is not { ExternalProxyAccessible: true })
             {
                 continue;
             }

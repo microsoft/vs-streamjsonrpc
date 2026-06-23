@@ -14,6 +14,7 @@ StreamJsonRpc0006 | Usage | Error | All interfaces in a proxy group must be attr
 StreamJsonRpc0007 | Usage | Error | Use RpcMarshalableAttribute on optional marshalable interface
 StreamJsonRpc0008 | Usage | Warning | Add methods to PolyType shape for RPC contract interface
 StreamJsonRpc0009 | Usage | Warning | Use GenerateShapeAttribute on optional marshalable interface
+StreamJsonRpc0040 | Usage | Error | Proxy type must be accessible from the calling assembly
 StreamJsonRpc0011 | Usage | Error | Unsupported RPC method return type
 StreamJsonRpc0012 | Usage | Error | RPC contracts may not include this type of member
 StreamJsonRpc0013 | Usage | Error | RPC contracts may not include generic methods

@@ -1088,4 +1088,65 @@ public class ProxyGeneratorTests
 
         await test.RunAsync(TestContext.Current.CancellationToken);
     }
+
+    [Fact]
+    public async Task Interceptor_ExternalProxyInaccessible_DifferentProject()
+    {
+        string libSource = VerifyCS.SourceFilePrefix + /* lang=c#-test */ """
+
+            #nullable enable
+
+            [assembly: ExportRpcContractProxies(ForbidExternalProxyGeneration = true)]
+
+            [JsonRpcContract]
+            [StreamJsonRpc.Reflection.JsonRpcProxyMapping(typeof(StreamJsonRpc.Generated.MyServiceProxy))] // sourcegen runs too late in the test harness, so we have to write it ourselves.
+            public partial interface IMyService
+            {
+            }
+
+            namespace StreamJsonRpc.Generated
+            {
+                internal class MyServiceProxy(JsonRpc client, in StreamJsonRpc.Reflection.ProxyInputs inputs)
+                    : StreamJsonRpc.Reflection.ProxyBase(client, inputs), IMyService
+                {
+                }
+            }
+            """;
+
+        VerifyCS.Test test = new()
+        {
+            TestState =
+            {
+                Sources =
+                {
+                    VerifyCS.SourceFilePrefix + /* lang=c#-test */ """
+
+                    class Test
+                    {
+                        void Foo(System.IO.Stream s)
+                        {
+                            IMyService service = {|StreamJsonRpc0040:JsonRpc.Attach<IMyService>(s)|};
+                        }
+                    }
+                    """,
+                },
+                AdditionalProjects =
+                {
+                    ["ContractsLib"] =
+                    {
+                        Sources =
+                        {
+                            ("IMyService.cs", libSource),
+                        },
+                    },
+                },
+                AdditionalProjectReferences =
+                {
+                    "ContractsLib",
+                },
+            },
+        };
+
+        await test.RunAsync(TestContext.Current.CancellationToken);
+    }
 }
