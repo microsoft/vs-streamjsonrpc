@@ -93,7 +93,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     return null;
                 }
 
-                (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? analysis =
+                (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? analysis =
                     TryGetInterceptInfo(invocation, context.SemanticModel, symbols, cancellationToken);
 
                 if (analysis is null)
@@ -107,7 +107,8 @@ public partial class ProxyGenerator : IIncrementalGenerator
                     analysis.Value.InterceptableLocation,
                     analysis.Value.Signature,
                     analysis.Value.Interfaces is null ? null : [.. analysis.Value.Interfaces.Select(c => InterfaceModel.Create(c, symbols, declaredInThisCompilation: SymbolEqualityComparer.Default.Equals(c.ContainingAssembly, context.SemanticModel.Compilation.Assembly), cancellationToken))],
-                    analysis.Value.ExternalProxyName);
+                    analysis.Value.ExternalProxyName,
+                    analysis.Value.ExternalProxyAccessible);
             }).Where(m => m is not null)!;
 
         IncrementalValueProvider<bool> publicProxy = context.CompilationProvider.Select((c, token) => this.AreProxiesPublic(c));
@@ -235,7 +236,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         }
     }
 
-    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
+    internal static (AttachSignature Signature, INamedTypeSymbol[]? Interfaces, InterceptableLocation InterceptableLocation, string? ExternalProxyName, bool ExternalProxyAccessible)? TryGetInterceptInfo(InvocationExpressionSyntax invocation, SemanticModel semanticModel, KnownSymbols symbols, CancellationToken cancellationToken)
     {
         (AttachSignature Signature, INamedTypeSymbol[]? Interfaces)? analysis = AnalyzeAttachInvocation(invocation, semanticModel, symbols, cancellationToken);
         if (analysis is null)
@@ -250,6 +251,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         }
 
         string? externalProxyName = null;
+        bool externalProxyAccessible = true;
         if (analysis.Value.Interfaces is not null)
         {
             // Only act on interfaces attributed with [JsonRpcContract] so we know they've been vetted.
@@ -259,7 +261,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
             }
 
             // Look for an existing external proxy to reuse, if available.
-            if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, out externalProxyName))
+            if (TryGetImplementingProxy(analysis.Value.Interfaces, symbols, semanticModel.Compilation, out externalProxyName, out externalProxyAccessible))
             {
                 // Score! There's an existing proxy that suits our needs.
             }
@@ -270,7 +272,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
             }
         }
 
-        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName);
+        return (analysis.Value.Signature, analysis.Value.Interfaces, interceptableLocation, externalProxyName, externalProxyAccessible);
 
         bool IsAllowedToGenerateProxyFor(INamedTypeSymbol iface)
         {
@@ -316,7 +318,7 @@ public partial class ProxyGenerator : IIncrementalGenerator
         static bool Equal(ITypeSymbol candidate, ITypeSymbol? standard) => standard is not null && SymbolEqualityComparer.Default.Equals(candidate, standard);
     }
 
-    private static bool TryGetImplementingProxy(INamedTypeSymbol[] ifaces, KnownSymbols symbols, out string? implementingProxyName)
+    private static bool TryGetImplementingProxy(INamedTypeSymbol[] ifaces, KnownSymbols symbols, Compilation compilation, out string? implementingProxyName, out bool implementingProxyAccessible)
     {
         HashSet<INamedTypeSymbol> requiredInterfaces = new(ifaces, SymbolEqualityComparer.Default);
         foreach (INamedTypeSymbol iface in requiredInterfaces)
@@ -338,12 +340,14 @@ public partial class ProxyGenerator : IIncrementalGenerator
                 {
                     // TODO: skip proxies that implement too many interfaces.
                     implementingProxyName = proxyType.ToDisplayString(FullyQualifiedNoGlobalWithNullableFormat);
+                    implementingProxyAccessible = compilation.IsSymbolAccessibleWithin(proxyType, compilation.Assembly);
                     return true;
                 }
             }
         }
 
         implementingProxyName = null;
+        implementingProxyAccessible = true;
         return false;
     }
 

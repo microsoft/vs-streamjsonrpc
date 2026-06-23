@@ -10,21 +10,25 @@ internal record FullModel
 {
     internal FullModel(ImmutableEquatableSet<ProxyModel> proxies, ImmutableEquatableArray<AttachUse> attachUses, ImmutableEquatableSet<InterfaceModel> optionalInterfacesOrTheirPrimaries, bool interceptorsEnabled)
     {
+        this.AttachUses = attachUses;
+
         // Generate a proxy for attributed interfaces in this assembly, and for interfaces used by Attach methods.
-        this.Proxies = [.. proxies.Concat(attachUses.Where(a => a.Contracts is not null).Select(a => new ProxyModel(a.Contracts!, a.ExternalProxyName))).Distinct()];
+        this.Proxies = [.. proxies.Concat(attachUses.Where(a => a.Contracts is not null && a.ExternalProxyAccessible).Select(a => new ProxyModel(a.Contracts!, a.ExternalProxyName))).Distinct()];
         this.OptionalInterfacesOrTheirPrimaries = optionalInterfacesOrTheirPrimaries;
 
         if (interceptorsEnabled)
         {
             this.Interceptions = [..
                 from use in attachUses
-                group use by (use.Contracts, use.Signature, use.ExternalProxyName) into attachByProxy
+                group use by (use.Contracts, use.Signature, use.ExternalProxyName, use.ExternalProxyAccessible) into attachByProxy
                 let proxy = attachByProxy.Key.Contracts is null ? null : new ProxyModel(attachByProxy.Key.Contracts, attachByProxy.Key.ExternalProxyName)
-                select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation])];
+                select new InterceptionModel(proxy, attachByProxy.Key.Signature, [.. from attach in attachByProxy select attach.InterceptableLocation], !attachByProxy.Key.ExternalProxyAccessible)];
         }
     }
 
     internal required bool PublicRpcMarshalableInterfaceExtensions { get; init; }
+
+    internal ImmutableEquatableArray<AttachUse> AttachUses { get; }
 
     internal ImmutableEquatableArray<ProxyModel> Proxies { get; }
 
@@ -174,6 +178,26 @@ internal record FullModel
         foreach (InterceptionModel model in interceptions)
         {
             model.WriteInterceptor(writer);
+        }
+
+        if (interceptions.Any(i => i.UseReflectionActivation))
+        {
+            writer.WriteLine("""
+                private static global::StreamJsonRpc.IJsonRpcClientProxy CreateProxy(global::StreamJsonRpc.JsonRpc jsonRpc, in global::StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool disposeJsonRpcOnFailure)
+                {
+                    if (global::StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(jsonRpc, proxyInputs, out global::StreamJsonRpc.IJsonRpcClientProxy? proxy))
+                    {
+                        return proxy;
+                    }
+
+                    if (disposeJsonRpcOnFailure)
+                    {
+                        jsonRpc.Dispose();
+                    }
+
+                    throw new global::System.NotImplementedException("Unable to find a source generated proxy filling the specified requirements. Research the NativeAOT topic in the documentation at https://microsoft.github.io/vs-streamjsonrpc");
+                }
+                """);
         }
 
         writer.WriteLine("""
