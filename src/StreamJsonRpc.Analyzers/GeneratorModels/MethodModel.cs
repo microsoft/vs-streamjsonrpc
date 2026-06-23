@@ -24,7 +24,13 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
     private string PositionalTypesFieldName => $"{this.Name}PositionalArgumentDeclaredTypes{this.UniqueSuffix}";
 
+    private string ParameterNamesFieldName => $"{this.Name}ParameterNames{this.UniqueSuffix}";
+
     private string TransformedMethodNameFieldName => $"transformed{this.Name}{this.UniqueSuffix}";
+
+    private string ParameterNameTransformStateFieldName => $"{this.Name}ParameterNameTransformState{this.UniqueSuffix}";
+
+    private string TransformedNamedTypesFieldName => $"{this.Name}TransformedNamedArgumentDeclaredTypes{this.UniqueSuffix}";
 
     private string? CancellationTokenExpression => this.CancellationToken?.Name;
 
@@ -50,7 +56,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
         writer.Indentation++;
         foreach (ParameterModel parameter in this.DataParameters.Span)
         {
-            writer.WriteLine($"""["{parameter.Name}"] = typeof({parameter.TypeNoNullRefAnnotations}),""");
+            writer.WriteLine($"""["{parameter.RpcName}"] = typeof({parameter.TypeNoNullRefAnnotations}),""");
         }
 
         writer.Indentation--;
@@ -75,6 +81,30 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
                 """);
 
         if (this.IsSupported)
+        {
+            writer.WriteLine($$"""
+
+                    private static readonly global::System.Collections.Generic.IReadOnlyList<string> {{this.ParameterNamesFieldName}} = new global::System.Collections.Generic.List<string>
+                    {
+                    """);
+            writer.Indentation++;
+            foreach (ParameterModel parameter in this.DataParameters.Span)
+            {
+                writer.WriteLine($$"""
+                        "{{parameter.RpcName}}",
+                        """);
+            }
+
+            writer.Indentation--;
+            writer.WriteLine($$"""
+                    };
+
+                    private string? {{this.TransformedMethodNameFieldName}};
+                    private int {{this.ParameterNameTransformStateFieldName}};
+                    private global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>? {{this.TransformedNamedTypesFieldName}};
+                    """);
+        }
+        else
         {
             writer.WriteLine($"""
 
@@ -133,8 +163,19 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
                     this.OnCallingMethod("{{this.Name}}");
                     string __rpcMethodName = this.{{this.TransformedMethodNameFieldName}} ??= this.TransformMethodName("{{this.RpcMethodName}}", typeof({{this.DeclaringInterfaceName}}));
+                    int __parameterNameTransformState = this.{{this.ParameterNameTransformStateFieldName}};
+                    if (__parameterNameTransformState == 0)
+                    {
+                        __parameterNameTransformState = global::StreamJsonRpc.Reflection.CodeGenHelpers.GetParameterNameTransformState(this.Options.ParameterNameTransform, {{this.ParameterNamesFieldName}});
+                        this.{{this.ParameterNameTransformStateFieldName}} = __parameterNameTransformState;
+                    }
+
+                    bool __useTransformedParameterNames = __parameterNameTransformState == 2;
+                    global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type> __namedArgumentTypes = __useTransformedParameterNames ?
+                        this.{{this.TransformedNamedTypesFieldName}} ??= global::StreamJsonRpc.Reflection.CodeGenHelpers.CreateNamedArgumentDeclaredTypes(this.Options.ParameterNameTransform, {{this.ParameterNamesFieldName}}, {{this.PositionalTypesFieldName}}) :
+                        {{this.NamedTypesFieldName}};
                     global::System.Threading.Tasks.Task{{returnTypeArg}} __result = this.Options.ServerRequiresNamedArguments ?
-                        this.JsonRpc.{{namedArgsInvocationMethodName}}(__rpcMethodName, {{namedArgs}}(), {{this.NamedTypesFieldName}}{{cancellationArg}}) :
+                        this.JsonRpc.{{namedArgsInvocationMethodName}}(__rpcMethodName, {{namedArgs}}(__useTransformedParameterNames), __namedArgumentTypes{{cancellationArg}}) :
                         this.JsonRpc.{{positionalArgsInvocationMethodName}}(__rpcMethodName, {{positionalArgs}}, {{this.PositionalTypesFieldName}}{{cancellationArg}});
                     this.OnCalledMethod("{{this.Name}}");
 
@@ -143,19 +184,38 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
             writer.WriteLine($$"""
 
-                global::System.Collections.Generic.Dictionary<string, object?> {{namedArgs}}()
-                    => new()
+                global::System.Collections.Generic.Dictionary<string, object?> {{namedArgs}}(bool __useTransformedParameterNames)
+                {
+                    if (__useTransformedParameterNames)
                     {
+                        return new()
+                        {
                 """);
-            writer.Indentation += 2;
+            writer.Indentation++;
             foreach (ParameterModel parameter in this.DataParameters.Span)
             {
-                writer.WriteLine($@"[""{parameter.Name}""] = {parameter.Name},");
+                writer.WriteLine($@"[this.Options.ParameterNameTransform(""{parameter.RpcName}"")] = {parameter.Name},");
             }
 
             writer.Indentation--;
-            writer.WriteLine("};");
+            writer.WriteLine("""
+                        };
+                    }
+
+                    return new()
+                    {
+                """);
+            writer.Indentation++;
+            foreach (ParameterModel parameter in this.DataParameters.Span)
+            {
+                writer.WriteLine($@"[""{parameter.RpcName}""] = {parameter.Name},");
+            }
+
             writer.Indentation--;
+            writer.WriteLine("""
+                    };
+                }
+                """);
         }
 
         writer.Indentation--;

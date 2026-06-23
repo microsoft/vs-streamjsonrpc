@@ -24,6 +24,7 @@ public class JsonRpcTargetOptions
         Requires.NotNull(copyFrom, nameof(copyFrom));
 
         this.MethodNameTransform = copyFrom.MethodNameTransform;
+        this.ParameterNameTransform = copyFrom.ParameterNameTransform;
         this.EventNameTransform = copyFrom.EventNameTransform;
         this.NotifyClientOfEvents = copyFrom.NotifyClientOfEvents;
         this.AllowNonPublicInvocation = copyFrom.AllowNonPublicInvocation;
@@ -37,6 +38,12 @@ public class JsonRpcTargetOptions
     /// This method is useful for adding prefixes to all methods, or making them camelCased.
     /// </summary>
     public Func<string, string>? MethodNameTransform { get; set; }
+
+    /// <summary>
+    /// Gets or sets a function that takes the CLR parameter name and returns the RPC parameter name.
+    /// This function applies to named arguments only.
+    /// </summary>
+    public Func<string, string>? ParameterNameTransform { get; set; }
 
     /// <summary>
     /// Gets or sets a function that takes the CLR event name and returns the RPC event name used in notification messages.

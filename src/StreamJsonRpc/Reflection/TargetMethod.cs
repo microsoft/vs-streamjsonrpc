@@ -43,7 +43,7 @@ public sealed class TargetMethod
             try
             {
                 Span<object?> args = argumentArray.AsSpan(0, parameterCount);
-                if (this.TryGetArguments(request, candidateMethod.Signature, args))
+                if (this.TryGetArguments(request, candidateMethod, args))
                 {
                     this.synchronizationContext = candidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
                     this.target = candidateMethod.Target;
@@ -145,43 +145,47 @@ public sealed class TargetMethod
         this.errorMessages.Add(message);
     }
 
-    private bool TryGetArguments(JsonRpcRequest request, RpcTargetMetadata.TargetMethodMetadata method, Span<object?> arguments)
+    private bool TryGetArguments(JsonRpcRequest request, MethodSignatureAndTarget method, Span<object?> arguments)
     {
         Requires.NotNull(request, nameof(request));
-        Requires.NotNull(method, nameof(method));
-        Requires.Argument(arguments.Length == method.Parameters.Count, nameof(arguments), "Length must equal number of parameters in method signature.");
+        Requires.NotNull(method.Signature, nameof(method));
+        Requires.Argument(arguments.Length == method.Signature.Parameters.Count, nameof(arguments), "Length must equal number of parameters in method signature.");
 
         // ref and out parameters aren't supported.
-        if (method.HasOutOrRefParameters)
+        if (method.Signature.HasOutOrRefParameters)
         {
-            this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method));
+            this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodHasRefOrOutParameters, method.Signature));
             return false;
         }
 
         // When there is a CancellationToken parameter, we require that it always be the last parameter.
-        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = method.ParametersMemory.Span[..method.TotalParamCountExcludingCancellationToken];
-        Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.TotalParamCountExcludingCancellationToken);
-        if (method.HasCancellationTokenParameter)
+        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = method.Signature.ParametersMemory.Span[..method.Signature.TotalParamCountExcludingCancellationToken];
+        Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.Signature.TotalParamCountExcludingCancellationToken);
+        if (method.Signature.HasCancellationTokenParameter)
         {
             arguments[arguments.Length - 1] = CancellationToken.None;
         }
 
-        switch (request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken))
+        JsonRpcRequest.ArgumentMatchResult argumentMatch = method.ParameterNamesExcludingCancellationToken.IsEmpty
+            ? request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken)
+            : request.TryGetTypedArguments(methodParametersExcludingCancellationToken, method.ParameterNamesExcludingCancellationToken, argumentsExcludingCancellationToken);
+
+        switch (argumentMatch)
         {
             case JsonRpcRequest.ArgumentMatchResult.Success:
                 return true;
             case JsonRpcRequest.ArgumentMatchResult.ParameterArgumentCountMismatch:
                 string methodParameterCount;
-                methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.RequiredParamCount, method.TotalParamCountExcludingCancellationToken);
+                methodParameterCount = string.Format(CultureInfo.CurrentCulture, "{0} - {1}", method.Signature.RequiredParamCount, method.Signature.TotalParamCountExcludingCancellationToken);
                 this.AddErrorMessage(string.Format(
                     CultureInfo.CurrentCulture,
                     Resources.MethodParameterCountDoesNotMatch,
-                    method,
+                    method.Signature,
                     methodParameterCount,
                     request.ArgumentCount));
                 return false;
             case JsonRpcRequest.ArgumentMatchResult.ParameterArgumentTypeMismatch:
-                this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method));
+                this.AddErrorMessage(string.Format(CultureInfo.CurrentCulture, Resources.MethodParametersNotCompatible, method.Signature));
                 return false;
             case JsonRpcRequest.ArgumentMatchResult.MissingArgument:
                 this.AddErrorMessage(Resources.RequiredArgumentMissing);

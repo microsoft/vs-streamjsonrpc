@@ -500,6 +500,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
 
         public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
+            => this.TryGetTypedArguments(parameters, parameterNames: default, typedArguments);
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
         {
             using (this.formatter.TrackDeserialization(this, parameters))
             {
@@ -510,7 +513,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     return ArgumentMatchResult.Success;
                 }
 
-                return base.TryGetTypedArguments(parameters, typedArguments);
+                return base.TryGetTypedArguments(parameters, parameterNames, typedArguments);
             }
         }
 

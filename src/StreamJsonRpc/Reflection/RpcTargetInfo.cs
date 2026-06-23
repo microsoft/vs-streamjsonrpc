@@ -303,7 +303,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
                     if (!alreadyExists || !existingList!.Any(e => e.Equals(newMethod)))
                     {
-                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null);
+                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
                         existingList!.Add(signatureAndTarget);

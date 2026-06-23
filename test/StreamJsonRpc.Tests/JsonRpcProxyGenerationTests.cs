@@ -140,6 +140,13 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServerWithRenamedParamsObject
+    {
+        [JsonRpcMethod(nameof(Server.SumOfRenamedParameterObject))]
+        Task<int> SumOfParameterObject([JsonRpcParameter("x")] int a, [JsonRpcParameter("y")] int b, CancellationToken cancellationToken);
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithValueTasks
     {
         ValueTask DoSomethingValueAsync();
@@ -163,6 +170,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     public interface IServerWithUnsupportedEventTypes
     {
         event Action MyActionEvent;
+    }
+
+    public interface IDynamicServer
+    {
+        Task<int> AddAsync(int a, int b);
     }
 
     ////[JsonRpcContract] // This would trigger a compile error, but we're testing runtime handling of disallowed members.
@@ -831,6 +843,98 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task CallServerWithParameterObject_ParameterNameTransform()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = new JsonRpc(streams.Item2);
+        serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
+        serverRpc.StartListening();
+
+        var client = new JsonRpc(streams.Item1);
+        var clientRpc = client.Attach<IServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions)
+        {
+            ServerRequiresNamedArguments = true,
+            ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc."),
+        });
+        client.StartListening();
+
+        int result = await clientRpc.AddAsync(1, 2);
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_JsonRpcParameterAttribute()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1);
+        var clientRpc = client.Attach<IServerWithRenamedParamsObject>(new JsonRpcProxyOptions(this.DefaultProxyOptions) { ServerRequiresNamedArguments = true });
+        client.StartListening();
+
+        int result = await clientRpc.SumOfParameterObject(1, 2, this.TimeoutToken);
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_IdentityParameterNameTransformCheckedOnce()
+    {
+        int parameterNameTransformInvocationCount = 0;
+        Func<string, string> identityParameterNameTransform = name =>
+        {
+            Interlocked.Increment(ref parameterNameTransformInvocationCount);
+            return name;
+        };
+
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1);
+        var clientRpc = client.Attach<IServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions)
+        {
+            ServerRequiresNamedArguments = true,
+            ParameterNameTransform = identityParameterNameTransform,
+        });
+        client.StartListening();
+
+        Assert.Equal(3, await clientRpc.AddAsync(1, 2));
+        Assert.Equal(7, await clientRpc.AddAsync(3, 4));
+        Assert.Equal(2, Volatile.Read(ref parameterNameTransformInvocationCount));
+    }
+
+    [Fact]
+    public async Task CallServerWithParameterObject_IdentityParameterNameTransformCheckedOnce_DynamicProxy()
+    {
+        int parameterNameTransformInvocationCount = 0;
+        Func<string, string> identityParameterNameTransform = name =>
+        {
+            Interlocked.Increment(ref parameterNameTransformInvocationCount);
+            return name;
+        };
+
+        var streams = FullDuplexStream.CreateStreams();
+        var server = new Server();
+        var serverRpc = JsonRpc.Attach(streams.Item2, server);
+
+        var client = new JsonRpc(streams.Item1);
+#pragma warning disable StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        var clientRpc = client.Attach<IDynamicServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions)
+        {
+            ServerRequiresNamedArguments = true,
+            ParameterNameTransform = identityParameterNameTransform,
+        });
+#pragma warning restore StreamJsonRpc0003
+        client.StartListening();
+
+        Assert.Equal(3, await clientRpc.AddAsync(1, 2));
+        Assert.Equal(7, await clientRpc.AddAsync(3, 4));
+        Assert.Equal(2, Volatile.Read(ref parameterNameTransformInvocationCount));
+    }
+
+    [Fact]
     public async Task CallServerWithParameterObject_WithCancellationToken()
     {
         var streams = FullDuplexStream.CreateStreams();
@@ -1157,6 +1261,15 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         {
             this.MethodEntered.Set();
             int sum = paramObject.Value<int>("a") + paramObject.Value<int>("b");
+            this.MethodResult.SetResult(sum);
+            await this.ResumeMethod.WaitAsync(cancellationToken);
+            return sum;
+        }
+
+        public async Task<int> SumOfRenamedParameterObject(Newtonsoft.Json.Linq.JToken paramObject, CancellationToken cancellationToken)
+        {
+            this.MethodEntered.Set();
+            int sum = paramObject.Value<int>("x") + paramObject.Value<int>("y");
             this.MethodResult.SetResult(sum);
             await this.ResumeMethod.WaitAsync(cancellationToken);
             return sum;
