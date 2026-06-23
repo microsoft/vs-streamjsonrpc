@@ -96,17 +96,27 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
             result = await this.WebSocket.ReceiveAsync(memory, cancellationToken).ConfigureAwait(false);
             this.contentSequenceBuilder.Advance(result.Count);
 #else
-            ArrayPool<byte> pool = ArrayPool<byte>.Shared;
-            byte[] segment = pool.Rent(this.sizeHint);
-            try
+            Memory<byte> memory = this.contentSequenceBuilder.GetMemory(this.sizeHint);
+            if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
             {
-                result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(segment), cancellationToken).ConfigureAwait(false);
-                this.contentSequenceBuilder.Write(segment.AsSpan(0, result.Count));
+                result = await this.WebSocket.ReceiveAsync(segment, cancellationToken).ConfigureAwait(false);
             }
-            finally
+            else
             {
-                pool.Return(segment);
+                ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+                byte[] rented = pool.Rent(memory.Length);
+                try
+                {
+                    result = await this.WebSocket.ReceiveAsync(new ArraySegment<byte>(rented, 0, memory.Length), cancellationToken).ConfigureAwait(false);
+                    rented.AsSpan(0, result.Count).CopyTo(memory.Span);
+                }
+                finally
+                {
+                    pool.Return(rented);
+                }
             }
+
+            this.contentSequenceBuilder.Advance(result.Count);
 #endif
             if (result.MessageType == WebSocketMessageType.Close)
             {
