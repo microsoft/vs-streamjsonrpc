@@ -40,7 +40,8 @@ public class JsonRpcTargetOptions
     public Func<string, string>? MethodNameTransform { get; set; }
 
     /// <summary>
-    /// Gets or sets a function that takes the CLR parameter name and returns the RPC parameter name.
+    /// Gets or sets a function that takes the effective pre-transform parameter name and returns the RPC parameter name.
+    /// The effective pre-transform name is the CLR parameter name unless <see cref="JsonRpcParameterAttribute"/> overrides it.
     /// This function applies to named arguments only.
     /// </summary>
     public Func<string, string>? ParameterNameTransform { get; set; }

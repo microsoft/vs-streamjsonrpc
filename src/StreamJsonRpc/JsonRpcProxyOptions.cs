@@ -115,8 +115,8 @@ public class JsonRpcProxyOptions
         get => this.methodNameTransform;
         set
         {
-            Requires.NotNull(value);
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            Requires.NotNull(value);
             this.methodNameTransform = value;
         }
     }
@@ -132,14 +132,15 @@ public class JsonRpcProxyOptions
         get => this.eventNameTransform;
         set
         {
-            Requires.NotNull(value);
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            Requires.NotNull(value);
             this.eventNameTransform = value;
         }
     }
 
     /// <summary>
-    /// Gets or sets a function that takes the CLR parameter name and returns the RPC parameter name.
+    /// Gets or sets a function that takes the effective pre-transform parameter name and returns the RPC parameter name.
+    /// The effective pre-transform name is the CLR parameter name unless <see cref="JsonRpcParameterAttribute"/> overrides it.
     /// This function applies to named arguments only.
     /// </summary>
     /// <value>A function, defaulting to a straight pass-through. Never null.</value>
@@ -149,8 +150,8 @@ public class JsonRpcProxyOptions
         get => this.parameterNameTransform;
         set
         {
-            Requires.NotNull(value);
             Verify.Operation(!this.IsFrozen, Resources.CannotMutateFrozenInstance);
+            Requires.NotNull(value);
             this.parameterNameTransform = value;
         }
     }

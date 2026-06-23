@@ -221,7 +221,9 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
     /// The length of this span must equal the length of <paramref name="parameters"/>.
     /// </param>
-    /// <returns><see langword="true"/> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <see langword="false"/> otherwise.</returns>
+    /// <returns>
+    /// An <see cref="ArgumentMatchResult"/> describing whether argument matching succeeded or why it failed.
+    /// </returns>
     /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
     public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
     {
@@ -240,7 +242,9 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
     /// The length of this span must equal the length of <paramref name="parameters"/>.
     /// </param>
-    /// <returns><see langword="true"/> if all the arguments can conform to the types of the <paramref name="parameters"/> and <paramref name="typedArguments"/> is initialized; <see langword="false"/> otherwise.</returns>
+    /// <returns>
+    /// An <see cref="ArgumentMatchResult"/> describing whether argument matching succeeded or why it failed.
+    /// </returns>
     /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
     public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
     {

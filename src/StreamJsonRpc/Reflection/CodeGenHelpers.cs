@@ -37,7 +37,7 @@ public static class CodeGenHelpers
         {
             string transformedName = parameterNameTransform(parameterNames[i]);
             Requires.Argument(transformedName is not null, nameof(parameterNameTransform), "Delegate returned a null parameter name.");
-            result[transformedName] = argumentValues[i];
+            result.Add(transformedName, argumentValues[i]);
         }
 
         return result;
@@ -58,7 +58,7 @@ public static class CodeGenHelpers
         {
             string transformedName = parameterNameTransform(parameterNames[i]);
             Requires.Argument(transformedName is not null, nameof(parameterNameTransform), "Delegate returned a null parameter name.");
-            result[transformedName] = parameterTypes[i];
+            result.Add(transformedName, parameterTypes[i]);
         }
 
         return result;
