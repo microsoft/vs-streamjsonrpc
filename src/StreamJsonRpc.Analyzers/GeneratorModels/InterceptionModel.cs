@@ -154,25 +154,5 @@ internal record InterceptionModel(ProxyModel? Proxy, AttachSignature Signature, 
             default:
                 throw new NotSupportedException();
         }
-
-        if (this.UseReflectionActivation)
-        {
-            writer.WriteLine("""
-                private static global::StreamJsonRpc.IJsonRpcClientProxy CreateProxy(global::StreamJsonRpc.JsonRpc jsonRpc, in global::StreamJsonRpc.Reflection.ProxyInputs proxyInputs, bool disposeJsonRpcOnFailure)
-                {
-                    if (global::StreamJsonRpc.Reflection.ProxyBase.TryCreateProxy(jsonRpc, proxyInputs, out global::StreamJsonRpc.IJsonRpcClientProxy? proxy))
-                    {
-                        return proxy;
-                    }
-
-                    if (disposeJsonRpcOnFailure)
-                    {
-                        jsonRpc.Dispose();
-                    }
-
-                    throw new global::System.NotImplementedException("Unable to find a source generated proxy filling the specified requirements. Research the NativeAOT topic in the documentation at https://microsoft.github.io/vs-streamjsonrpc");
-                }
-                """);
-        }
     }
 }
