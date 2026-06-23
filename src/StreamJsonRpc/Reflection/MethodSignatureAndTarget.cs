@@ -66,30 +66,37 @@ internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
             return ReadOnlyMemory<string?>.Empty;
         }
 
-        var result = new string?[parameterCount];
-        bool customNameDetected = false;
+        string?[]? result = null;
         for (int i = 0; i < parameterCount; i++)
         {
             ParameterInfo parameter = signature.Parameters[i];
             string? parameterName = parameter.GetCustomAttribute<JsonRpcParameterAttribute>()?.Name ?? parameter.Name;
-            if (!StringComparer.Ordinal.Equals(parameterName, parameter.Name))
-            {
-                customNameDetected = true;
-            }
-
-            if (parameterName is not null && parameterNameTransform is not null)
+            if (parameterNameTransform is not null && parameterName is not null)
             {
                 parameterName = parameterNameTransform(parameterName);
                 Requires.Argument(parameterName is not null, nameof(parameterNameTransform), "Delegate returned a null parameter name.");
-                if (!StringComparer.Ordinal.Equals(parameterName, parameter.Name))
-                {
-                    customNameDetected = true;
-                }
             }
 
-            result[i] = parameterName;
+            if (!StringComparer.Ordinal.Equals(parameterName, parameter.Name))
+            {
+                if (result is null)
+                {
+                    // Lazily allocate and back-fill with the original (unchanged) names for all preceding parameters.
+                    result = new string?[parameterCount];
+                    for (int j = 0; j < i; j++)
+                    {
+                        result[j] = signature.Parameters[j].Name;
+                    }
+                }
+
+                result[i] = parameterName;
+            }
+            else if (result is not null)
+            {
+                result[i] = parameterName;
+            }
         }
 
-        return customNameDetected ? result : ReadOnlyMemory<string?>.Empty;
+        return result is not null ? result : ReadOnlyMemory<string?>.Empty;
     }
 }
