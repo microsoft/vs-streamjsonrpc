@@ -12,6 +12,10 @@ namespace StreamJsonRpc;
 internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 {
     private readonly Func<string, string>? parameterNameTransform;
+
+    /// <summary>
+    /// The list of RPC parameter names, or an empty list if we're using the ordinary CLR parameter names.
+    /// </summary>
     private ReadOnlyMemory<string?>? parameterNamesExcludingCancellationToken;
 
     internal MethodSignatureAndTarget(RpcTargetMetadata.TargetMethodMetadata signature, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext, Func<string, string>? parameterNameTransform = null)
@@ -58,10 +62,16 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     /// <inheritdoc/>
     public override string ToString() => $"{this.Signature} ({this.Target})";
 
+    /// <summary>
+    /// Gets the RPC parameter names for a method, excluding any <see cref="CancellationToken"/> parameter.
+    /// </summary>
+    /// <param name="signature">The method signature.</param>
+    /// <param name="parameterNameTransform">A runtime-supplied transform for parameter names.</param>
+    /// <returns>The list of RPC parameter names, or an empty list if we're using the ordinary CLR parameter names.</returns>
     private static ReadOnlyMemory<string?> GetEffectiveParameterNames(RpcTargetMetadata.TargetMethodMetadata signature, Func<string, string>? parameterNameTransform)
     {
         int parameterCount = signature.TotalParamCountExcludingCancellationToken;
-        if (parameterCount == 0)
+        if (parameterCount == 0 || (parameterNameTransform is null && !signature.HasRenamedParameters))
         {
             return ReadOnlyMemory<string?>.Empty;
         }
@@ -70,7 +80,7 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         for (int i = 0; i < parameterCount; i++)
         {
             ParameterInfo parameter = signature.Parameters[i];
-            string? parameterName = parameter.GetCustomAttribute<JsonRpcParameterAttribute>()?.Name ?? parameter.Name;
+            string? parameterName = signature.ParameterNames[i];
             if (parameterNameTransform is not null && parameterName is not null)
             {
                 parameterName = parameterNameTransform(parameterName);

@@ -730,7 +730,13 @@ public class RpcTargetMetadata
     [DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
     public class TargetMethodMetadata
     {
+        private readonly object syncObject = new();
+
         private ParameterInfo[]? parameters;
+
+        private string?[]? parameterNames;
+
+        private bool hasRenamedParameters;
 
         internal TargetMethodMetadata(MethodInfo method, JsonRpcMethodAttribute? attribute, IMethodShape? shape, MethodShapeAttribute? methodShapeAttribute)
         {
@@ -782,6 +788,33 @@ public class RpcTargetMetadata
         /// </summary>
         /// <seealso cref="Parameters"/>
         internal ReadOnlyMemory<ParameterInfo> ParametersMemory => (ParameterInfo[])this.Parameters;
+
+        /// <summary>
+        /// Gets the statically known names of the parameters on the method.
+        /// </summary>
+        /// <remarks>
+        /// This defaults to the names of the parameters as defined in the method signature, but can be overridden by <see cref="JsonRpcParameterAttribute"/> on a parameter.
+        /// </remarks>
+        internal ReadOnlySpan<string?> ParameterNames
+        {
+            get
+            {
+                this.EnsureParameterNamesInitialized();
+                return this.parameterNames;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether any parameter has a unique RPC name specified by <see cref="JsonRpcParameterAttribute"/>.
+        /// </summary>
+        internal bool HasRenamedParameters
+        {
+            get
+            {
+                this.EnsureParameterNamesInitialized();
+                return this.hasRenamedParameters;
+            }
+        }
 
         internal Type ReturnType => this.MethodInfo.ReturnType;
 
@@ -845,6 +878,34 @@ public class RpcTargetMetadata
             }
 
             return false;
+        }
+
+        [MemberNotNull(nameof(parameterNames))]
+        private void EnsureParameterNamesInitialized()
+        {
+            lock (this.syncObject)
+            {
+                if (this.parameterNames is null)
+                {
+                    ReadOnlySpan<ParameterInfo> parameters = this.ParametersMemory.Span;
+                    var parameterNames = new string?[this.Parameters.Count];
+                    for (int i = 0; i < parameters.Length; i++)
+                    {
+                        ParameterInfo parameter = parameters[i];
+                        string? parameterName = parameter.Name;
+
+                        if (parameter.GetCustomAttribute<JsonRpcParameterAttribute>()?.Name is string renamed && renamed != parameterName)
+                        {
+                            parameterName = renamed;
+                            this.hasRenamedParameters = true;
+                        }
+
+                        parameterNames[i] = parameterName;
+                    }
+
+                    this.parameterNames = parameterNames;
+                }
+            }
         }
     }
 
