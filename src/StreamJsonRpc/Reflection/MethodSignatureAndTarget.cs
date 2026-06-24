@@ -9,17 +9,18 @@ using System.Runtime.CompilerServices;
 namespace StreamJsonRpc;
 
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
-internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
+internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 {
-    private readonly ReadOnlyMemory<string?> parameterNamesExcludingCancellationToken;
+    private readonly Func<string, string>? parameterNameTransform;
+    private ReadOnlyMemory<string?>? parameterNamesExcludingCancellationToken;
 
     internal MethodSignatureAndTarget(RpcTargetMetadata.TargetMethodMetadata signature, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext, Func<string, string>? parameterNameTransform = null)
     {
         this.Signature = signature;
         this.Target = target;
         this.SynchronizationContext = perMethodSynchronizationContext;
+        this.parameterNameTransform = parameterNameTransform;
         this.Attribute = attribute ?? signature.Attribute;
-        this.parameterNamesExcludingCancellationToken = GetEffectiveParameterNames(signature, parameterNameTransform);
     }
 
     internal RpcTargetMetadata.TargetMethodMetadata Signature { get; }
@@ -30,7 +31,7 @@ internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
     internal SynchronizationContext? SynchronizationContext { get; }
 
-    internal ReadOnlySpan<string?> ParameterNamesExcludingCancellationToken => this.parameterNamesExcludingCancellationToken.Span;
+    internal ReadOnlySpan<string?> ParameterNamesExcludingCancellationToken => (this.parameterNamesExcludingCancellationToken ??= GetEffectiveParameterNames(this.Signature, this.parameterNameTransform)).Span;
 
     [ExcludeFromCodeCoverage]
     private string DebuggerDisplay => this.ToString();
@@ -43,10 +44,9 @@ internal struct MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     }
 
     /// <inheritdoc/>
-    public bool Equals(MethodSignatureAndTarget other)
+    public bool Equals(MethodSignatureAndTarget? other)
     {
-        return this.Signature.Equals(other.Signature)
-            && object.ReferenceEquals(this.Target, other.Target);
+        return other is not null && this.Signature.Equals(other.Signature) && object.ReferenceEquals(this.Target, other.Target);
     }
 
     /// <inheritdoc/>
