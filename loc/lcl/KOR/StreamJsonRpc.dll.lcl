@@ -400,6 +400,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";OutboundInvocationTimedOut" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The outbound JSON-RPC invocation was canceled automatically after reaching the timeout configured by {0}. The server may still be processing the request.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[{0}에서 구성한 시간 제한에 도달한 후 아웃바운드 JSON-RPC 호출이 자동으로 취소되었습니다. 서버가 여전히 요청을 처리하고 있을 수 있습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";OutboundMessageOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is only appropriate for outbound messages.]]></Val>
@@ -432,6 +441,15 @@
           <Val><![CDATA[A positive integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[양의 정수는 필수입니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";PositiveTimeSpanRequired" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[A positive TimeSpan is required.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[양수인 TimeSpan이 필요합니다.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

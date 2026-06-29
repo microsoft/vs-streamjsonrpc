@@ -400,6 +400,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";OutboundInvocationTimedOut" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The outbound JSON-RPC invocation was canceled automatically after reaching the timeout configured by {0}. The server may still be processing the request.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[傳出的 JSON-RPC 叫用在達到 {0} 設定的逾時時間後已自動取消。伺服器可能仍在處理要求。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";OutboundMessageOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is only appropriate for outbound messages.]]></Val>
@@ -432,6 +441,15 @@
           <Val><![CDATA[A positive integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[需要正整數。]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";PositiveTimeSpanRequired" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[A positive TimeSpan is required.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[需要正數 TimeSpan。]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
