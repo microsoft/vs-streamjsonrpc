@@ -400,6 +400,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";OutboundInvocationTimedOut" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[The outbound JSON-RPC invocation was canceled automatically after reaching the timeout configured by {0}. The server may still be processing the request.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Wywołanie w ruchu wychodzącym JSON-RPC zostało anulowane automatycznie po osiągnięciu limitu czasu skonfigurowanego przez {0}. Serwer może nadal przetwarzać żądanie.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";OutboundMessageOnly" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[This operation is only appropriate for outbound messages.]]></Val>
@@ -432,6 +441,15 @@
           <Val><![CDATA[A positive integer is required.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Wymagana jest dodatnia liczba całkowita.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";PositiveTimeSpanRequired" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[A positive TimeSpan is required.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Wymagany jest dodatni przedział czasu.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />
