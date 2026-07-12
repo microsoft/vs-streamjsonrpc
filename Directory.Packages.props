@@ -9,7 +9,7 @@
     <MicroBuildVersion>2.0.226</MicroBuildVersion>
     <RoslynVersion>5.3.0</RoslynVersion>
     <RoslynVersionForAnalyzers>4.11.0</RoslynVersionForAnalyzers>
-    <CodeAnalysisAnalyzerVersion>4.14.0</CodeAnalysisAnalyzerVersion>
+    <CodeAnalysisAnalyzerVersion>5.6.0</CodeAnalysisAnalyzerVersion>
     <VisualStudioThreadingVersion>17.14.15</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
