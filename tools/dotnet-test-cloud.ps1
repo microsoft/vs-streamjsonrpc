@@ -60,16 +60,14 @@ if ($logIsolationName) {
 
 $globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
 $isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
-$extraArgs = @()
+$dotnetArgs = @()
 $failedTests = 0
 
 if ($netfxOnly) {
-    $extraArgs += '--framework','net472'
+    $dotnetArgs += '--framework','net472'
 }
 
 if ($isMTP) {
-    if ($OnCI) { $extraArgs += '--no-progress' }
-
     $dumpSwitches = @(
         ,'--hangdump'
         ,'--hangdump-timeout','5m'
@@ -86,6 +84,7 @@ if ($isMTP) {
         ,'--results-directory',$testLogs
         ,'--report-trx'
     )
+    if ($OnCI) { $mtpArgs += ,'--no-progress' }
 
     if (-not $NoCoverage) {
         $mtpArgs += @(
@@ -105,11 +104,11 @@ if ($isMTP) {
         --no-build `
         -c $Configuration `
         -bl:"$testBinLog" `
+        @dotnetArgs `
         -- `
         --filter-not-trait 'TestCategory=FailsInCloudTest' `
         @mtpArgs `
-        @dumpSwitches `
-        @extraArgs
+        @dumpSwitches
     if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
 
     $trxFiles = Get-ChildItem -Recurse -Path $testLogs\*.trx
@@ -133,7 +132,7 @@ if ($isMTP) {
         --diag "$testDiagLog;TraceLevel=info" `
         --logger trx `
         @coverageArgs `
-        @extraArgs
+        @dotnetArgs
     if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
 
     $trxFiles = Get-ChildItem -Recurse -Path $RepoRoot\test\*.trx
