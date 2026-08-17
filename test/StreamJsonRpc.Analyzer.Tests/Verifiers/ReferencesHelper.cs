@@ -17,7 +17,7 @@ internal static class ReferencesHelper
         .AddPackages([
             new PackageIdentity("System.Memory", "4.6.3"),
             new PackageIdentity("System.Threading.Tasks.Extensions", "4.6.1"),
-            new PackageIdentity("Microsoft.Bcl.AsyncInterfaces", "10.0.8"),
+            new PackageIdentity("Microsoft.Bcl.AsyncInterfaces", "10.0.10"),
             ]);
 #endif
 
