@@ -374,35 +374,33 @@ public partial class NerdbankMessagePackFormatterTests : FormatterTestBase<Nerdb
     }
 
     [Fact]
-    public void StringsInUserDataAreInterned()
+    public void StringsWithinUserDataAreInterned()
     {
         var dynamic = new
         {
             jsonrpc = "2.0",
             method = "something",
             extra = (object?)null,
-            @params = new object[] { "hi" },
+            @params = new object[] { new[] { "hi", "hi" } },
         };
-        var request1 = this.Read<JsonRpcRequest>(dynamic);
-        var request2 = this.Read<JsonRpcRequest>(dynamic);
-        Assert.True(request1.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg1));
-        Assert.True(request2.TryGetArgumentByNameOrIndex(null, 0, typeof(string), out object? arg2));
-        Assert.Same(arg2, arg1); // reference equality to ensure it was interned.
+        var request = this.Read<JsonRpcRequest>(dynamic);
+        Assert.True(request.TryGetArgumentByNameOrIndex(null, 0, typeof(string[]), out object? arg));
+        string[] strings = Assert.IsType<string[]>(arg);
+        Assert.Same(strings[0], strings[1]); // reference equality to ensure it was interned.
     }
 
     [Fact]
-    public void StringValuesOfStandardPropertiesAreInterned()
+    public void StringValuesWithinMessageEnvelopeAreInterned()
     {
         var dynamic = new
         {
             jsonrpc = "2.0",
             method = "something",
             extra = (object?)null,
-            @params = Array.Empty<object?>(),
+            @params = new Dictionary<string, object?> { ["something"] = null },
         };
-        var request1 = this.Read<JsonRpcRequest>(dynamic);
-        var request2 = this.Read<JsonRpcRequest>(dynamic);
-        Assert.Same(request1.Method, request2.Method); // reference equality to ensure it was interned.
+        var request = this.Read<JsonRpcRequest>(dynamic);
+        Assert.Same(request.Method, Assert.Single(request.ArgumentNames!)); // reference equality to ensure it was interned.
     }
 
     protected override NerdbankMessagePackFormatter CreateFormatter()
