@@ -53,7 +53,7 @@
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
   </ItemGroup>
   <ItemGroup>
-    <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(RoslynVersion)" />
+    <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="5.0.0-1.25277.114" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
