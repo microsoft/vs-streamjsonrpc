@@ -8,7 +8,7 @@
     <MessagePackVersion>2.5.302</MessagePackVersion>
     <MicroBuildVersion>2.0.226</MicroBuildVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
-    <VisualStudioThreadingVersion>17.14.15</VisualStudioThreadingVersion>
+    <VisualStudioThreadingVersion>18.7.23</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />

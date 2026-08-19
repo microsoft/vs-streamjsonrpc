@@ -1107,7 +1107,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         private IAsyncEnumerable<T> ReadJson<T>(JsonReader reader, JsonSerializer serializer)
 #pragma warning restore VSTHRD200 // Use "Async" suffix in names of methods that return an awaitable type.
         {
+#pragma warning disable VSTHRD103 // Newtonsoft.Json invokes this converter through its synchronous ReadJson API.
             JToken enumJToken = JToken.Load(reader);
+#pragma warning restore VSTHRD103 // Call async methods when in an async method
             JToken? handle = enumJToken[MessageFormatterEnumerableTracker.TokenPropertyName];
             IReadOnlyList<T>? prefetchedItems = enumJToken[MessageFormatterEnumerableTracker.ValuesPropertyName]?.ToObject<IReadOnlyList<T>>(serializer);
 
