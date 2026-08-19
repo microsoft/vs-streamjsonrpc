@@ -3,7 +3,7 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove($(MSBuildThisFile), $(MSBuildThisFileDirectory)..))" />
 
   <ItemGroup>
-    <PackageVersion Update="System.IO.Pipelines" Version="10.0.8" />
-    <PackageVersion Update="System.Text.Json" Version="10.0.8" />
+    <PackageVersion Update="System.IO.Pipelines" Version="10.0.10" />
+    <PackageVersion Update="System.Text.Json" Version="10.0.10" />
   </ItemGroup>
 </Project>
