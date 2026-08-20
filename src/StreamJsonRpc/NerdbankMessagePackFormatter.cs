@@ -468,6 +468,7 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
                             result.MsgPackNamedArguments = namedArgs;
                             break;
                         case MessagePackType.Nil:
+                            formatter.TraceNullParamsProtocolViolation();
                             result.MsgPackPositionalArguments = [];
                             reader.ReadNil();
                             break;

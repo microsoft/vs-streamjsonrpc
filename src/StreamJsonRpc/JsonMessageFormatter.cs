@@ -595,6 +595,11 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         // We leave arguments as JTokens at this point, so that we can try deserializing them
         // to more precise .NET types as required by the method we're invoking.
         JToken? args = json["params"];
+        if (args?.Type == JTokenType.Null)
+        {
+            this.TraceNullParamsProtocolViolation();
+        }
+
         object? arguments =
             args is JObject argsObject ? PartiallyParseNamedArguments(argsObject) :
             args is JArray argsArray ? (object)PartiallyParsePositionalArguments(argsArray) :

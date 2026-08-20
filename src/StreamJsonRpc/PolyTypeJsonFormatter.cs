@@ -534,10 +534,16 @@ public partial class PolyTypeJsonFormatter : FormatterBase, IJsonRpcMessageForma
             get => this.jsonArguments;
             init
             {
-                this.jsonArguments = value;
-                if (value.HasValue)
+                if (value?.ValueKind == JsonValueKind.Null)
                 {
-                    this.argumentCount = CountArguments(value.Value);
+                    this.formatter.TraceNullParamsProtocolViolation();
+                    this.jsonArguments = null;
+                    this.argumentCount = 0;
+                }
+                else
+                {
+                    this.jsonArguments = value;
+                    this.argumentCount = value.HasValue ? CountArguments(value.Value) : null;
                 }
             }
         }
