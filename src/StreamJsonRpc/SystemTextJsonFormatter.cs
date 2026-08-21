@@ -48,6 +48,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    private readonly Dictionary<Type, IGenericTypeArgStore> genericLifts = [];
+
     private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
 
     private JsonSerializerOptions massagedUserDataSerializerOptions;
@@ -83,6 +85,25 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     {
         get => this.massagedUserDataSerializerOptions;
         set => this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new(value));
+    }
+
+    /// <summary>
+    /// Registers a type that may be used as a generic type argument for some generic value to be serialized,
+    /// such as <see cref="IProgress{T}"/> or <see cref="IAsyncEnumerable{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The type argument to some generic type.</typeparam>
+    /// <remarks>
+    /// This method must be called for value types used as generic arguments when running under Native AOT.
+    /// </remarks>
+    public void RegisterGenericType<T>()
+    {
+        this.ThrowIfInitialized();
+        if (this.genericLifts.ContainsKey(typeof(T)))
+        {
+            return;
+        }
+
+        this.genericLifts.Add(typeof(T), new GenericTypeArgStore<T>());
     }
 
     /// <inheritdoc/>
@@ -366,6 +387,18 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         options.Converters.Add(new ExceptionConverter(this));
 
         return options;
+    }
+
+    private bool TryGenericMethodInvoke(Type typeArg, IGenericTypeArgAssist assist, [NotNullWhen(true)] out object? result)
+    {
+        if (this.genericLifts.TryGetValue(typeArg, out IGenericTypeArgStore? lift))
+        {
+            result = lift.Invoke(assist) ?? throw new InvalidOperationException();
+            return true;
+        }
+
+        result = null;
+        return false;
     }
 
     private static class Utf8Strings
@@ -754,7 +787,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters)]
-    private class ProgressConverterFactory : JsonConverterFactory
+    private class ProgressConverterFactory : JsonConverterFactory, IGenericTypeArgAssist
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -770,9 +803,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             Type? iface = TrackerHelpers.FindIProgressInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
             Type genericTypeArg = iface.GetGenericArguments()[0];
+            if (this.formatter.TryGenericMethodInvoke(genericTypeArg, this, out object? converter))
+            {
+                return (JsonConverter)converter;
+            }
+
             Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
+
+        object IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
 
         [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
         private class Converter<T> : JsonConverter<IProgress<T>>
@@ -806,7 +846,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-    private class AsyncEnumerableConverter : JsonConverterFactory
+    private class AsyncEnumerableConverter : JsonConverterFactory, IGenericTypeArgAssist
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -822,9 +862,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             Type? iface = TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeToConvert);
             Assumes.NotNull(iface);
             Type genericTypeArg = iface.GetGenericArguments()[0];
+            if (this.formatter.TryGenericMethodInvoke(genericTypeArg, this, out object? converter))
+            {
+                return (JsonConverter)converter;
+            }
+
             Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
             return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
         }
+
+        object IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
 
         [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
         private class Converter<T> : JsonConverter<IAsyncEnumerable<T>>
