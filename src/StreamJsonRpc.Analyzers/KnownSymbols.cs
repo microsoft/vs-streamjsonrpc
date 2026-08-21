@@ -23,7 +23,7 @@ internal record KnownSymbols(
     INamedTypeSymbol JsonRpcProxyInterfaceGroupAttribute,
     INamedTypeSymbol ExportRpcContractProxiesAttribute,
     INamedTypeSymbol JsonRpcProxyMappingAttribute,
-    INamedTypeSymbol JsonRpcIgnoreAttribute,
+    INamedTypeSymbol? JsonRpcIgnoreAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
     INamedTypeSymbol JsonRpcParameterAttribute,
     INamedTypeSymbol? MethodShapeAttribute,
@@ -63,7 +63,6 @@ internal record KnownSymbols(
             jsonRpcProxyInterfaceGroupAttribute is null ||
             exportRpcContractProxiesAttribute is null ||
             rpcProxyMappingAttribute is null ||
-            jsonRpcIgnoreAttribute is null ||
             jsonRpcMethodAttribute is null ||
             jsonRpcParameterAttribute is null ||
             systemType is null ||
