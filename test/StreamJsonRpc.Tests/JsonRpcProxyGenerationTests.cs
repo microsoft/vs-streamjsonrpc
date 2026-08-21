@@ -124,6 +124,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObject
     {
         Task<int> SumOfParameterObject(int a, int b);
@@ -132,6 +133,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObjectNoResult
     {
         Task SumOfParameterObject(int a, int b);

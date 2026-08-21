@@ -497,6 +497,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             {
                 (IMethodSymbol method, int minimumArgumentCount, int maximumArgumentCount) = methods[i];
                 bool overlaps = methods.Where((_, index) => index != i).Any(other =>
+                    !this.HaveEquivalentContractSignature(method, other.Method) &&
                     minimumArgumentCount <= other.MaximumArgumentCount &&
                     other.MinimumArgumentCount <= maximumArgumentCount);
                 if (overlaps)
@@ -510,6 +511,28 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+    }
+
+    private bool HaveEquivalentContractSignature(IMethodSymbol first, IMethodSymbol second)
+    {
+        if (!SymbolEqualityComparer.Default.Equals(first.ReturnType, second.ReturnType) ||
+            first.Parameters.Length != second.Parameters.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < first.Parameters.Length; i++)
+        {
+            IParameterSymbol firstParameter = first.Parameters[i];
+            IParameterSymbol secondParameter = second.Parameters[i];
+            if (firstParameter.RefKind != secondParameter.RefKind ||
+                !SymbolEqualityComparer.Default.Equals(firstParameter.Type, secondParameter.Type))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private string GetNormalizedRpcMethodName(IMethodSymbol method, KnownSymbols knownSymbols)

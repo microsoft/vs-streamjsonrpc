@@ -204,6 +204,28 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task AmbiguousMethodOverloads_EquivalentInheritedSignatures()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc : IBaseRpc1, IBaseRpc2
+            {
+                new Task RunAsync(int value);
+            }
+
+            public interface IBaseRpc1
+            {
+                Task RunAsync(int value);
+            }
+
+            public interface IBaseRpc2
+            {
+                Task RunAsync(int value);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task InaccessibleInterface_Private()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
