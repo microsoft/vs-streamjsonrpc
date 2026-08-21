@@ -401,6 +401,23 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         return false;
     }
 
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    private JsonConverter CreateGenericConverterWithReflection(Type converterTypeDefinition, Type genericTypeArg)
+    {
+        try
+        {
+            Type converterType = converterTypeDefinition.MakeGenericType(genericTypeArg);
+            return (JsonConverter)Activator.CreateInstance(converterType, this)!;
+        }
+        catch (NotSupportedException ex)
+        {
+            throw new NotSupportedException(
+                $"The converter for generic type argument '{genericTypeArg}' could not be created dynamically. "
+                + $"When using Native AOT, call {nameof(this.RegisterGenericType)}<T>() with this type argument before the formatter is initialized.",
+                ex);
+        }
+    }
+
     private static class Utf8Strings
     {
 #pragma warning disable SA1300 // Element should begin with upper-case letter
@@ -808,8 +825,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 return (JsonConverter)converter;
             }
 
-            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
-            return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
+            return this.formatter.CreateGenericConverterWithReflection(typeof(Converter<>), genericTypeArg);
         }
 
         object IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
@@ -867,8 +883,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 return (JsonConverter)converter;
             }
 
-            Type converterType = typeof(Converter<>).MakeGenericType(genericTypeArg);
-            return (JsonConverter)Activator.CreateInstance(converterType, this.formatter)!;
+            return this.formatter.CreateGenericConverterWithReflection(typeof(Converter<>), genericTypeArg);
         }
 
         object IGenericTypeArgAssist.Invoke<T>(object? state) => new Converter<T>(this.formatter);
