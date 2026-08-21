@@ -143,6 +143,22 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task AmbiguousMethodOverloads_MethodShapeNamesAreVerbatim()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                [MethodShape(Name = "Shared")]
+                Task FirstAsync(int value);
+
+                [MethodShape(Name = "SharedAsync")]
+                Task SecondAsync(string value);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task AmbiguousMethodOverloads_NonOverlappingArgumentCounts()
     {
         await VerifyCS.VerifyAnalyzerAsync("""

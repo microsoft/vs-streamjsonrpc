@@ -4,7 +4,7 @@ Methods declared on an RPC interface should have signatures that the server can 
 
 Two methods are considered ambiguous when:
 
-- Their convention-derived RPC names match after removing a trailing `Async`. Names explicitly specified by <xref:StreamJsonRpc.JsonRpcMethodAttribute> are compared verbatim.
+- Their convention-derived RPC names match after removing a trailing `Async`. Names explicitly specified by <xref:StreamJsonRpc.JsonRpcMethodAttribute> or <xref:PolyType.MethodShapeAttribute.Name> are compared verbatim.
 - Their supported positional argument counts overlap. Optional parameters define the minimum and maximum accepted counts, and <xref:System.Threading.CancellationToken> parameters are excluded.
 
 Parameter names and types do not resolve this warning because positional JSON-RPC arguments include neither. StreamJsonRpc may try deserializing arguments into each candidate overload, but the first overload that succeeds is not a reliable way to select a method and adds avoidable overhead.
