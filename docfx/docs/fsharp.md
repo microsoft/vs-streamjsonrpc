@@ -1,6 +1,6 @@
 # F# sample
 
-The following executable sample hosts an RPC server and calls it from a client over a named pipe.
+The following executable sample hosts an RPC server and client in the same process and connects them over a named pipe.
 The `IGreeter` interface is the RPC contract shared by both sides.
 
 [!code-fsharp[](../../samples/fs/Program.fs)]

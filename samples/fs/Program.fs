@@ -58,6 +58,5 @@ module Program =
             }
             |> fun operation -> operation.GetAwaiter().GetResult()
         with ex ->
-            eprintfn "%s: %s" (ex.GetType().FullName) ex.Message
-            eprintfn "%s" ex.StackTrace
+            eprintfn "%O" ex
             1
