@@ -1570,6 +1570,7 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                             result.MsgPackNamedArguments = namedArgs;
                             break;
                         case MessagePackType.Nil:
+                            this.formatter.TraceNullParamsProtocolViolation();
                             result.MsgPackPositionalArguments = Array.Empty<ReadOnlySequence<byte>>();
                             reader.ReadNil();
                             break;

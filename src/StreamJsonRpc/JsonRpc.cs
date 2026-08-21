@@ -457,6 +457,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         /// An error occurred while deserializing a value within an <see cref="IFormatterConverter"/> interface.
         /// </summary>
         IFormatterConverterDeserializationFailure,
+
+        /// <summary>
+        /// The remote party violated the JSON-RPC protocol in a way that did not require terminating the connection.
+        /// </summary>
+        NonFatalProtocolViolation,
     }
 
     /// <summary>

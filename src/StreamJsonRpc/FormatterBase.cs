@@ -52,6 +52,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
 
     private bool serializingRequest;
 
+    private int nullParamsWarningEmitted;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatterBase"/> class.
     /// </summary>
@@ -248,6 +250,21 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
         }
 
         return type;
+    }
+
+    /// <summary>
+    /// Traces the first occurrence of a JSON-RPC message with an explicit <see langword="null"/> value for its <c>params</c> property.
+    /// </summary>
+    private protected void TraceNullParamsProtocolViolation()
+    {
+        JsonRpc? jsonRpc = this.JsonRpc;
+        if (jsonRpc is not null && Interlocked.Exchange(ref this.nullParamsWarningEmitted, 1) == 0)
+        {
+            jsonRpc.TraceSource.TraceEvent(
+                TraceEventType.Warning,
+                (int)JsonRpc.TraceEvents.NonFatalProtocolViolation,
+                "The remote party sent a JSON-RPC message with a null \"params\" property. Treating it as omitted, although the JSON-RPC protocol requires \"params\" to be an object or array when present.");
+        }
     }
 
     private protected abstract MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc);
