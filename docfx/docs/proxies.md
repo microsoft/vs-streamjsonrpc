@@ -2,7 +2,7 @@
 
 A client may of course issue loosely typed RPC requests, like this:
 
-[!code-csharp[](../../samples/Proxies.cs#WithoutProxies)]
+[!code-csharp[](../../samples/cs/Proxies.cs#WithoutProxies)]
 
 But it can provide a superior experience to use strongly-typed proxies.
 
@@ -12,7 +12,7 @@ These proxies can be created using either the static <xref:StreamJsonRpc.JsonRpc
 
 This changes the above example to something like this:
 
-[!code-csharp[](../../samples/Proxies.cs#WithProxies)]
+[!code-csharp[](../../samples/cs/Proxies.cs#WithProxies)]
 
 ## Multiple proxies on one connection
 
@@ -20,21 +20,21 @@ Do not call static `JsonRpc.Attach<T>` multiple times on the same stream. Each s
 
 The following examples use this second RPC interface in addition to `ICalculator`.
 
-[!code-csharp[](../../samples/Proxies.cs#MultipleProxiesInterfaces)]
+[!code-csharp[](../../samples/cs/Proxies.cs#MultipleProxiesInterfaces)]
 
 When you need multiple client proxies over one connection, use one of these patterns:
 
 1. Create one proxy that implements multiple interfaces at once.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern1)]
+   [!code-csharp[](../../samples/cs/Proxies.cs#MultipleProxiesPattern1)]
 
 1. Create the <xref:StreamJsonRpc.JsonRpc> connection first, then call instance `Attach<T>` for each proxy.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern2)]
+   [!code-csharp[](../../samples/cs/Proxies.cs#MultipleProxiesPattern2)]
 
 1. Create the first proxy with the static `Attach<T>` method, then get its <xref:StreamJsonRpc.JsonRpc> instance through <xref:StreamJsonRpc.IJsonRpcClientProxy> and create additional proxies with instance `Attach<T>` calls.
 
-   [!code-csharp[](../../samples/Proxies.cs#MultipleProxiesPattern3)]
+   [!code-csharp[](../../samples/cs/Proxies.cs#MultipleProxiesPattern3)]
 
 ## Proxy traits
 
@@ -73,12 +73,12 @@ On the server side, these same methods may be simple and naturally synchronous.
 Returning values from the server wrapped in a @System.Threading.Tasks.Task may seem unnatural.
 The server need not itself explicitly implement the interface -- it could implement the same method signatures as are found on the interface except return `void` (or whatever your `T` is in your @System.Threading.Tasks.Task`1 method signature on the interface) and it would be just fine.
 
-[!code-csharp[](../../samples/Proxies.cs#ServerWithoutInterface)]
+[!code-csharp[](../../samples/cs/Proxies.cs#ServerWithoutInterface)]
 
 Of course implementing the interface may make it easier to maintain a consistent contract between client and server.
 In which case, you can declare your server methods to also return @System.Threading.Tasks.Task`1 values and implement synchronous methods to return values using <xref:System.Threading.Tasks.Task.FromResult*?displayProperty=nameWithType>.
 
-[!code-csharp[](../../samples/Proxies.cs#ServerWithInterface)]
+[!code-csharp[](../../samples/cs/Proxies.cs#ServerWithInterface)]
 
 ### Client-side concerns
 

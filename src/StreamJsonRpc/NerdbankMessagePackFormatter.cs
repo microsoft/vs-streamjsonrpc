@@ -114,8 +114,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
     /// </para>
     /// </remarks>
     /// <example>
-    /// <code source="../../samples/Extensibility.cs" region="CreateNBMsgPackFormatter" lang="C#" />
-    /// <code source="../../samples/Extensibility.cs" region="PolyTypeWitness" lang="C#" />
+    /// <code source="../../samples/cs/Extensibility.cs" region="CreateNBMsgPackFormatter" lang="C#" />
+    /// <code source="../../samples/cs/Extensibility.cs" region="PolyTypeWitness" lang="C#" />
     /// </example>
     /// <seealso href="https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes">Witness classes</seealso>
     /// <seealso href="https://aarnott.github.io/Nerdbank.MessagePack/docs/customizing-serialization.html">Customizing serialization</seealso>

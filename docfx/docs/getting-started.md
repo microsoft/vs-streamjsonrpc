@@ -26,6 +26,7 @@ The rest of our documentation are organized around use case.
 
 See [full samples](https://github.com/AArnott/StreamJsonRpc.Sample) demonstrating two processes
 on the same machine utilizing this library for RPC, using either named pipes or web sockets.
+An executable [F# sample](fsharp.md) is also included in this repository.
 
 [Learn more about how you can customize the JSON-RPC protocol's wire format](extensibility.md) that StreamJsonRpc uses for better interoperability or better performance.
 
