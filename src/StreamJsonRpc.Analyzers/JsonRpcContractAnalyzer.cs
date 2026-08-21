@@ -48,6 +48,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public const string UseGenerateShapeOnOptionalMarshalableInterfaceId = "StreamJsonRpc0009";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0010: RPC method overloads should be unambiguous by argument count.
+    /// </summary>
+    public const string AmbiguousMethodOverloadsId = "StreamJsonRpc0010";
+
+    /// <summary>
     /// Diagnostic ID for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public const string UnsupportedReturnTypeId = "StreamJsonRpc0011";
@@ -150,6 +155,18 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         helpLinkUri: AnalyzerUtilities.GetHelpLink(UseGenerateShapeOnOptionalMarshalableInterfaceId));
 
     /// <summary>
+    /// Diagnostic for StreamJsonRpc0010: RPC method overloads should be unambiguous by argument count.
+    /// </summary>
+    public static readonly DiagnosticDescriptor AmbiguousMethodOverloads = new(
+        id: AmbiguousMethodOverloadsId,
+        title: Strings.StreamJsonRpc0010_Title,
+        messageFormat: Strings.StreamJsonRpc0010_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(AmbiguousMethodOverloadsId));
+
+    /// <summary>
     /// Diagnostic for StreamJsonRpc0011: RPC methods use supported return types.
     /// </summary>
     public static readonly DiagnosticDescriptor UnsupportedReturnType = new(
@@ -231,6 +248,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         UseRpcMarshalableAttributeOnOptionalInterfaces,
         GeneratePolyTypeMethodsOnRpcContractInterface,
         UseGenerateShapeOnOptionalMarshalableInterface,
+        AmbiguousMethodOverloads,
         UnsupportedReturnType,
         UnsupportedMemberType,
         NoGenericMethods,
@@ -389,6 +407,8 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        this.InspectAmbiguousMethodOverloads(context, knownSymbols, namedType);
+
         foreach (ISymbol member in namedType.GetAllMembers())
         {
             // Members may be declared within namedType, or in a base type.
@@ -437,6 +457,80 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
                 }
             });
         }
+    }
+
+    private void InspectAmbiguousMethodOverloads(SymbolStartAnalysisContext context, KnownSymbols knownSymbols, INamedTypeSymbol namedType)
+    {
+        var methodsByRpcName = new Dictionary<string, List<(IMethodSymbol Method, int MinimumArgumentCount, int MaximumArgumentCount)>>(StringComparer.Ordinal);
+        var visitedMethods = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        foreach (IMethodSymbol method in namedType.GetAllMembers().OfType<IMethodSymbol>())
+        {
+            if (method.IsStatic ||
+                method.MethodKind != MethodKind.Ordinary ||
+                method.GetAttributes().Any(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.JsonRpcIgnoreAttribute)) ||
+                !visitedMethods.Add(method))
+            {
+                continue;
+            }
+
+            string rpcName = this.GetNormalizedRpcMethodName(method, knownSymbols);
+            int minimumArgumentCount = method.Parameters.Count(parameter =>
+                !parameter.IsOptional &&
+                !SymbolEqualityComparer.Default.Equals(parameter.Type, knownSymbols.CancellationToken));
+            int maximumArgumentCount = method.Parameters.Count(parameter =>
+                !SymbolEqualityComparer.Default.Equals(parameter.Type, knownSymbols.CancellationToken));
+
+            if (!methodsByRpcName.TryGetValue(rpcName, out List<(IMethodSymbol Method, int MinimumArgumentCount, int MaximumArgumentCount)>? methods))
+            {
+                methodsByRpcName.Add(rpcName, methods = []);
+            }
+
+            methods.Add((method, minimumArgumentCount, maximumArgumentCount));
+        }
+
+        foreach (KeyValuePair<string, List<(IMethodSymbol Method, int MinimumArgumentCount, int MaximumArgumentCount)>> entry in methodsByRpcName)
+        {
+            string rpcName = entry.Key;
+            List<(IMethodSymbol Method, int MinimumArgumentCount, int MaximumArgumentCount)> methods = entry.Value;
+            for (int i = 0; i < methods.Count; i++)
+            {
+                (IMethodSymbol method, int minimumArgumentCount, int maximumArgumentCount) = methods[i];
+                bool overlaps = methods.Where((_, index) => index != i).Any(other =>
+                    minimumArgumentCount <= other.MaximumArgumentCount &&
+                    other.MinimumArgumentCount <= maximumArgumentCount);
+                if (overlaps)
+                {
+                    ReportMemberDiagnostic(
+                        context,
+                        namedType,
+                        method,
+                        method.Locations.FirstOrDefault(),
+                        (location, addl, _) => Diagnostic.Create(AmbiguousMethodOverloads, location, addl, rpcName));
+                }
+            }
+        }
+    }
+
+    private string GetNormalizedRpcMethodName(IMethodSymbol method, KnownSymbols knownSymbols)
+    {
+        AttributeData? jsonRpcMethodAttribute = method.GetAttributes().FirstOrDefault(attribute =>
+            SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.JsonRpcMethodAttribute));
+        if (jsonRpcMethodAttribute?.ConstructorArguments is [{ Value: string jsonRpcMethodName }, ..])
+        {
+            return jsonRpcMethodName;
+        }
+
+        AttributeData? methodShapeAttribute = method.GetAttributes().FirstOrDefault(attribute =>
+            SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.MethodShapeAttribute));
+        if (methodShapeAttribute?.NamedArguments.FirstOrDefault(argument => argument.Key == Types.MethodShapeAttribute.NameProperty).Value.Value is string methodShapeName)
+        {
+            return methodShapeName;
+        }
+
+        const string AsyncSuffix = "Async";
+        string rpcName = method.Name;
+        return rpcName.EndsWith(AsyncSuffix, StringComparison.Ordinal) ? rpcName[..^AsyncSuffix.Length] : rpcName;
     }
 
     private IReadOnlyList<(ITypeSymbol Symbol, Location Location)> GetNonPartialElements(INamedTypeSymbol namedType, CancellationToken cancellationToken)
