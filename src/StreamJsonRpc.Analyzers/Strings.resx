@@ -163,7 +163,7 @@
     <value>Unsupported by-reference parameter</value>
   </data>
   <data name="StreamJsonRpc0017_MessageFormat" xml:space="preserve">
-    <value>Parameter {0} on RPC method {1} may not use the in, ref, or out modifier.</value>
+    <value>Parameter {0} on RPC method {1} may not use a by-reference modifier.</value>
   </data>
   <data name="StreamJsonRpc0002_Title" xml:space="preserve">
     <value>Declare partial interface</value>
