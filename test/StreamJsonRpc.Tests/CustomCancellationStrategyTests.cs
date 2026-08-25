@@ -95,7 +95,9 @@ public class CustomCancellationStrategyTests : TestBase
     public async Task CancelRequest_WhenOutboundRequestTimesOut()
     {
         this.clientRpc.OutboundRequestTimeout = TimeSpan.FromSeconds(1);
-        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { false }, cancellationToken: CancellationToken.None);
+
+        // Throw when the timeout cancellation reaches the server so its response cannot race the timeout with a successful result.
+        Task invokeTask = this.clientRpc.InvokeWithCancellationAsync(nameof(Server.NoticeCancellationAsync), new object?[] { true }, cancellationToken: CancellationToken.None);
         await this.server.MethodEntered.WaitAsync(this.TimeoutToken);
 
         TimeoutException ex = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
