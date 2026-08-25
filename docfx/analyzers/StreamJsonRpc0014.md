@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may declar
 
 The following RPC interface declares a method with <xref:System.Threading.CancellationToken> appearing as a parameter in the middle of the parameter list.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0014.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0014.cs#Violation)]
 
 ## Resolution
 
 Move the <xref:System.Threading.CancellationToken> parameter to the end of the parameter list.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0014.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0014.cs#Fix)]

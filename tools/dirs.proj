@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.Build.Traversal">
   <ItemGroup>
-    <ProjectReference Include="$(RepoRootPath)samples\Samples.csproj" Publish="false" />
+    <ProjectReference Include="$(RepoRootPath)samples\cs\Samples.csproj" Publish="false" />
+    <ProjectReference Include="$(RepoRootPath)samples\fs\FSharpSample.fsproj" Publish="false" />
     <ProjectReference Include="$(RepoRootPath)src\dirs.proj" />
     <ProjectReference Include="$(RepoRootPath)test\dirs.proj" />
   </ItemGroup>

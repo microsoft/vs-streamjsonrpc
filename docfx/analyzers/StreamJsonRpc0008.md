@@ -9,10 +9,10 @@ This diagnostic may be disabled when running in a trimmed application is not in 
 
 The following interface serves as an RPC interface but has no PolyType shape with methods included:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0008.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0008.cs#Violation)]
 
 ## Resolution
 
 Add a <xref:PolyType.TypeShapeAttribute> to the interface and set its <xref:PolyType.TypeShapeAttribute.IncludeMethods> named argument to <xref:PolyType.MethodShapeFlags.PublicInstance> (or a superset of that).
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0008.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0008.cs#Fix)]

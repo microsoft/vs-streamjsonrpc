@@ -6,12 +6,13 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MicrosoftTestingPlatformVersion>2.3.3</MicrosoftTestingPlatformVersion>
     <MessagePackVersion>2.5.302</MessagePackVersion>
-    <MicroBuildVersion>2.0.226</MicroBuildVersion>
+    <MicroBuildVersion>2.0.257</MicroBuildVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
     <VisualStudioThreadingVersion>18.7.23</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
+    <PackageVersion Include="FSharp.Core" Version="10.0.100" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackVersion)" />
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.3.12" />

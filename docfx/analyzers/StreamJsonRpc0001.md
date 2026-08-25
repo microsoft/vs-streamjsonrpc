@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied must be de
 
 The following RPC interface is declared as a nested, `private` type.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0001.cs#Violation)]
 
 ## Resolution
 
 Change the visibility modifier to `internal`.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0001.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0001.cs#Fix)]

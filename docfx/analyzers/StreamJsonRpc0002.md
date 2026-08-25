@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied should be 
 
 The following RPC interface is declared without adequate `partial` modifiers:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0002.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0002.cs#Violation)]
 
 ## Resolution
 
 Add `partial` to the interface any all containing types.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0002.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0002.cs#Fix)]

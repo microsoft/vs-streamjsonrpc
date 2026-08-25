@@ -7,11 +7,11 @@ An interface specified as an argument to <xref:StreamJsonRpc.RpcMarshalableOptio
 The following interfaces are meant to both be RPC marshalable, but only one has the <xref:StreamJsonRpc.RpcMarshalableAttribute>.
 The other is designated as optional and thus needs the attribute.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0007.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0007.cs#Violation)]
 
 ## Resolution
 
 Add <xref:StreamJsonRpc.RpcMarshalableAttribute> to the optional interface, taking care to set <xref:StreamJsonRpc.RpcMarshalableAttribute.IsOptional> to true.
 We also add <xref:PolyType.TypeShapeAttribute> as required by [StreamJsonRpc0008](StreamJsonRpc0008.md).
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0007.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0007.cs#Fix)]
