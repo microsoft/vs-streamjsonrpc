@@ -1,5 +1,6 @@
 items:
 - href: getting-started.md
+- href: fsharp.md
 - href: connecting.md
 - href: sendrequest.md
 - href: recvrequest.md

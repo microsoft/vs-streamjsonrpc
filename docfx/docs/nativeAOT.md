@@ -31,10 +31,10 @@ The following program can execute in a NativeAOT published application:
 
 The <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best experience for NativeAOT-safe programs:
 
-[!code-csharp[](../../samples/NativeAOT/NerdbankMessagePack.cs#Sample)]
+[!code-csharp[](../../samples/cs/NativeAOT/NerdbankMessagePack.cs#Sample)]
 
 ### UTF-8 JSON
 
 The <xref:StreamJsonRpc.SystemTextJsonFormatter> provides a semi-safe NativeAOT experience for those that require UTF-8 encoded JSON:
 
-[!code-csharp[](../../samples/NativeAOT/SystemTextJson.cs#Sample)]
+[!code-csharp[](../../samples/cs/NativeAOT/SystemTextJson.cs#Sample)]

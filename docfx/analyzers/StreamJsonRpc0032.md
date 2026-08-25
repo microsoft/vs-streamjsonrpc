@@ -6,10 +6,10 @@ The <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> attribute is intended for closi
 
 The following interface has an <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> applied but no RPC contract attribute:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0032.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0032.cs#Violation)]
 
 ## Resolution
 
 Add either <xref:StreamJsonRpc.JsonRpcContractAttribute> or <xref:StreamJsonRpc.RpcMarshalableAttribute> to the interface:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0032.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0032.cs#Fix)]
