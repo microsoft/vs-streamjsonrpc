@@ -5,6 +5,7 @@ public partial class RpcTargetMetadataTests
 {
     internal interface IRpcContractBase
     {
+        [JsonRpcEvent("BaseEventRenamed")]
         event EventHandler BaseEvent;
 
         Task MethodBaseAsync(int value);
@@ -26,6 +27,7 @@ public partial class RpcTargetMetadataTests
     [GenerateShape, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     internal partial interface IShapedContract
     {
+        [JsonRpcEvent("DidMathRenamed")]
         event EventHandler DidMath;
 
         Task<int> AddAsync(int a, int b);
@@ -54,8 +56,8 @@ public partial class RpcTargetMetadataTests
 
         // Verify that JsonRpcMethod.Name takes precedence over MethodShape.Name.
         var multiply = Assert.Single(metadata.Methods["Times"]);
+        Assert.Equal("DidMathRenamed", Assert.Single(metadata.Events).Name);
 
-        // Fail the test when support for events is added so we can update the test.
         Assert.Equal(3, metadata.Methods.Count);
         Assert.Single(metadata.AliasedMethods);
     }
@@ -74,8 +76,8 @@ public partial class RpcTargetMetadataTests
 
         // Verify that JsonRpcMethod.Name takes precedence over MethodShape.Name.
         var multiply = Assert.Single(metadata.Methods["Times"]);
+        Assert.Equal("DidMathRenamed", Assert.Single(metadata.Events).Name);
 
-        // Fail the test when support for events is added so we can update the test.
         Assert.Equal(3, metadata.Methods.Count);
         Assert.Single(metadata.AliasedMethods);
     }
@@ -88,7 +90,7 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromInterface(rpcContract);
 
         Assert.Contains(metadata.Methods, m => m.Key == nameof(IRpcContractBase.MethodBaseAsync));
-        Assert.Contains(metadata.Events, e => e.Name == nameof(IRpcContractBase.BaseEvent));
+        Assert.Contains(metadata.Events, e => e.Name == "BaseEventRenamed");
     }
 
     [Fact]
@@ -108,6 +110,14 @@ public partial class RpcTargetMetadataTests
         RpcTargetMetadata metadata = RpcTargetMetadata.FromClass(typeof(RpcContractDerivedClass));
         Assert.Contains(metadata.Methods, m => m.Key == "RenamedBaseMethod2");
         Assert.DoesNotContain(metadata.Methods, m => m.Key == nameof(IRpcContractBase.RenamedBaseMethod));
+    }
+
+    [Fact]
+    public void EventRenameInheritedFromInterface()
+    {
+        RpcTargetMetadata metadata = RpcTargetMetadata.FromClass(typeof(RpcContractDerivedClass));
+        Assert.Contains(metadata.Events, e => e.Name == "BaseEventRenamed");
+        Assert.DoesNotContain(metadata.Events, e => e.Name == nameof(IRpcContractBase.BaseEvent));
     }
 
     [Fact]

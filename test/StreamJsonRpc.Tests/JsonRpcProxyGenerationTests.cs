@@ -50,6 +50,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
+        [JsonRpcEvent("AThingHappened")]
         event EventHandler ItHappened;
 
         event EventHandler<CustomEventArgs> TreeGrown;
@@ -831,7 +832,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public async Task NonGenericEventRaisedOnClient()
+    public async Task SharedContractRenamedEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
         EventHandler handler = (sender, args) => tcs.SetResult(args);

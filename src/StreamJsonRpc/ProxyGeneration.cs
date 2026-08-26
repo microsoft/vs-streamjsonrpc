@@ -131,6 +131,7 @@ internal static class ProxyGeneration
             foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contractInterfaces, i => i.DeclaredEvents))
             {
                 VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+                string rpcEventName = evt.GetCustomAttribute<JsonRpcEventAttribute>()?.Name ?? evt.Name;
 
                 // public event EventHandler EventName;
                 EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
@@ -168,11 +169,11 @@ internal static class ProxyGeneration
 
                     // First argument to AddLocalRpcMethod is the method name.
                     // Run it through the method name transform.
-                    // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
+                    // this.options.EventNameTransform.Invoke("clrOrAttributedEventName")
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, optionsField);
                     il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
-                    il.Emit(OpCodes.Ldstr, evt.Name);
+                    il.Emit(OpCodes.Ldstr, rpcEventName);
                     il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
 
                     il.Emit(OpCodes.Ldarg_0);

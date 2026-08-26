@@ -55,6 +55,11 @@ internal static class Types
         internal const string FullName = "StreamJsonRpc.JsonRpcMethodAttribute";
     }
 
+    internal static class JsonRpcEventAttribute
+    {
+        internal const string FullName = "StreamJsonRpc.JsonRpcEventAttribute";
+    }
+
     internal static class JsonRpcIgnoreAttribute
     {
         internal const string FullName = "StreamJsonRpc.JsonRpcIgnoreAttribute";
