@@ -42,6 +42,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer2
     {
+        IAsyncEnumerable<int> FailBeforeReturningAsync(CancellationToken cancellationToken);
+
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
@@ -551,6 +553,17 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task DisposeAsyncDoesNotRepeatMoveNextAsyncException()
+    {
+        var proxy = this.clientRpc.Attach<IServer2>();
+        IAsyncEnumerator<int> enumerator = proxy.FailBeforeReturningAsync(this.TimeoutToken).GetAsyncEnumerator(this.TimeoutToken);
+
+        RemoteInvocationException ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () => await enumerator.MoveNextAsync());
+        Assert.Equal(Server.FailByDesignExceptionMessage, ex.Message);
+        await enumerator.DisposeAsync();
+    }
+
+    [Fact]
     public async Task EnumerableIdDisposal()
     {
         // This test is specially arranged to create two RPC calls going opposite directions, with the same request ID.
@@ -702,6 +715,11 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         {
             return this.GetNumbersAsync(totalCount, endWithException, cancellationToken)
                 .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = batchSize, MaxReadAhead = readAhead, Prefetch = prefetch });
+        }
+
+        public Task<IAsyncEnumerable<int>> FailBeforeReturningAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromException<IAsyncEnumerable<int>>(new InvalidOperationException(FailByDesignExceptionMessage));
         }
 
         public async IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync([EnumeratorCancellation] CancellationToken cancellationToken)
