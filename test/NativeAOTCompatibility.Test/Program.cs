@@ -21,6 +21,13 @@ internal partial interface IServer
     event EventHandler<int> Added;
 
     Task<int> AddAsync(int a, int b);
+
+    IAsyncEnumerable<CommandOutput> GetOutputsAsync();
+}
+
+internal struct CommandOutput
+{
+    public required string Text { get; init; }
 }
 
 internal class Server : IServer
@@ -32,6 +39,13 @@ internal class Server : IServer
         int sum = a + b;
         this.OnAdded(sum);
         return Task.FromResult(sum);
+    }
+
+    public async IAsyncEnumerable<CommandOutput> GetOutputsAsync()
+    {
+        yield return new CommandOutput { Text = "Output 1" };
+        await Task.Yield();
+        yield return new CommandOutput { Text = "Output 2" };
     }
 
     protected virtual void OnAdded(int sum) => this.Added?.Invoke(this, sum);
