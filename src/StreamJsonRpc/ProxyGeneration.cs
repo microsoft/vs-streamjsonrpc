@@ -303,6 +303,10 @@ internal static class ProxyGeneration
                         VerifySupported(returnTypeIsVoid || returnTypeIsTask || returnTypeIsValueTask || returnTypeIsIAsyncEnumerable, Resources.UnsupportedMethodReturnTypeOnClientProxyInterface, method, method.ReturnType.FullName!);
                         VerifySupported(!method.IsGenericMethod, Resources.UnsupportedGenericMethodsOnClientProxyInterface, method);
 
+                        ParameterInfo[] methodParameters = method.GetParameters();
+                        ParameterInfo? unsupportedByRefParameter = methodParameters.FirstOrDefault(p => p.ParameterType.IsByRef);
+                        VerifySupported(unsupportedByRefParameter is null, Resources.UnsupportedByRefParameterOnClientProxyInterface, method, unsupportedByRefParameter?.Name!);
+
                         bool hasReturnValue = method.ReturnType.GetTypeInfo().IsGenericType;
                         Type? invokeResultTypeArgument = hasReturnValue
                             ? (returnTypeIsIAsyncEnumerable ? method.ReturnType : method.ReturnType.GetTypeInfo().GenericTypeArguments[0])
@@ -316,7 +320,6 @@ internal static class ProxyGeneration
                             rpcMethodName = $"{rpcInterfaceCode}.{rpcMethodName}";
                         }
 
-                        ParameterInfo[] methodParameters = method.GetParameters();
                         MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
                             methodName,
                             MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,

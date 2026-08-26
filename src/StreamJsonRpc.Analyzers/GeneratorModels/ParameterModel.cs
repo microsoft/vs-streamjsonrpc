@@ -6,8 +6,12 @@ using Microsoft.CodeAnalysis;
 
 namespace StreamJsonRpc.Analyzers.GeneratorModels;
 
-internal record ParameterModel(string Name, string RpcName, string Type, string TypeNoNullRefAnnotations, RpcSpecialType SpecialType)
+internal record ParameterModel(string Name, string RpcName, string Type, string TypeNoNullRefAnnotations, RpcSpecialType SpecialType, RefKind RefKind)
 {
+    internal string Declaration => $"{this.RefKind switch { RefKind.In => "in ", RefKind.Out => "out ", RefKind.Ref => "ref ", RefKind.RefReadOnlyParameter => "ref readonly ", _ => string.Empty }}{this.Type} {this.Name}";
+
+    internal bool IsSupported => this.RefKind is RefKind.None;
+
     internal static ParameterModel Create(IParameterSymbol parameter, KnownSymbols symbols)
     {
         AttributeData? jsonRpcParameterAttribute = parameter.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.JsonRpcParameterAttribute));
@@ -18,6 +22,7 @@ internal record ParameterModel(string Name, string RpcName, string Type, string 
             rpcName,
             parameter.Type.ToDisplayString(ProxyGenerator.FullyQualifiedWithNullableFormat),
             parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            ProxyGenerator.ClassifySpecialType(parameter.Type, symbols));
+            ProxyGenerator.ClassifySpecialType(parameter.Type, symbols),
+            parameter.RefKind);
     }
 }
