@@ -23,7 +23,7 @@ namespace StreamJsonRpc.Reflection;
 /// Abstract base class for source generated proxies.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public abstract class ProxyBase : IJsonRpcClientProxyInternal
+public abstract class ProxyBase : IJsonRpcClientProxyInternal, IAsyncDisposable
 {
     /// <summary>
     /// A map of .NET BCL types that we have special handling for so that users can use them in their RPC interfaces
@@ -326,6 +326,20 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal
         else
         {
             this.client.Dispose();
+        }
+    }
+
+    /// <inheritdoc/>
+    public ValueTask DisposeAsync()
+    {
+        try
+        {
+            this.Dispose();
+            return default;
+        }
+        catch (Exception ex)
+        {
+            return new ValueTask(Task.FromException(ex));
         }
     }
 

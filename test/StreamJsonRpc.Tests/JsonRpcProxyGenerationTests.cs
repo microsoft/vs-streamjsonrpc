@@ -124,6 +124,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IAsyncDisposableServer2 : System.IAsyncDisposable, IServer2
+    {
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObject
     {
@@ -397,6 +402,23 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task RpcInterfaceCanDispose_IAsyncDisposable()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+
+        var clientRpc = this.AttachJsonRpc<IAsyncDisposableServer2>(streams.Item1);
+        var server = new Server2();
+
+        this.serverRpc = new JsonRpc(streams.Item2);
+        this.serverRpc.AddLocalRpcTarget(server);
+        this.serverRpc.StartListening();
+
+        Assert.Equal(6, await clientRpc.MultiplyAsync(2, 3));
+        await clientRpc.DisposeAsync();
+        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
+    }
+
+    [Fact]
     public async Task CallMethod_void_String()
     {
         Assert.Equal("Hi!", await this.clientRpc.SayHiAsync());
@@ -451,6 +473,14 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
             await Task.Delay(1, TestContext.Current.CancellationToken);
             this.TimeoutToken.ThrowIfCancellationRequested();
         }
+    }
+
+    [Fact]
+    public async Task ImplementsIAsyncDisposable()
+    {
+        var disposableClient = Assert.IsAssignableFrom<System.IAsyncDisposable>(this.clientRpc);
+        await disposableClient.DisposeAsync();
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
     }
 
     [Fact]
