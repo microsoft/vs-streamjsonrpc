@@ -167,8 +167,8 @@ internal static class ProxyGeneration
                     // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
                     il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
 
-                    // First argument to AddLocalRpcMethod is the method name.
-                    // Run it through the method name transform.
+                    // First argument to AddLocalRpcMethod is the event's RPC method name.
+                    // Run it through the event name transform.
                     // this.options.EventNameTransform.Invoke("clrOrAttributedEventName")
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, optionsField);

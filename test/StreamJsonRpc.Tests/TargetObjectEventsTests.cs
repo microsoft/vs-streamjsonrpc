@@ -314,7 +314,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         var explicitEventRaised = new TaskCompletionSource<EventArgs>();
         this.clientRpc.AddLocalRpcMethod(nameof(IServer.ExplicitInterfaceImplementation_Event), new Action<EventArgs>(explicitEventRaised.SetResult));
         var classOnlyEventRaised = new TaskCompletionSource<EventArgs>();
-        this.clientRpc.AddLocalRpcMethod(nameof(Server.ServerEvent), new Action<EventArgs>(classOnlyEventRaised.SetResult));
+        this.clientRpc.AddLocalRpcMethod(RenamedServerEventName, new Action<EventArgs>(classOnlyEventRaised.SetResult));
         this.clientRpc.StartListening();
 
         // Verify that ordinary interface events can be raised.
@@ -348,7 +348,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         var explicitEventRaised = new TaskCompletionSource<EventArgs>();
         this.clientRpc.AddLocalRpcMethod(nameof(IServerDerived.ExplicitInterfaceImplementation_Event), new Action<EventArgs>(explicitEventRaised.SetResult));
         var classOnlyEventRaised = new TaskCompletionSource<EventArgs>();
-        this.clientRpc.AddLocalRpcMethod(nameof(Server.ServerEvent), new Action<EventArgs>(classOnlyEventRaised.SetResult));
+        this.clientRpc.AddLocalRpcMethod(RenamedServerEventName, new Action<EventArgs>(classOnlyEventRaised.SetResult));
         this.clientRpc.StartListening();
 
         // Verify that ordinary interface events can be raised.
