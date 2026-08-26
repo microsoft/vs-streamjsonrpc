@@ -378,8 +378,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             RawMessagePackFormatter.Instance,
         };
 
-        // Add our own resolvers for RPC-specific types before the user resolver so broad resolvers
-        // such as TypelessObjectResolver cannot intercept types whose wire format we control.
+        // Add resolvers for RPC types with StreamJsonRpc-controlled wire formats before the user resolver
+        // so broad resolvers such as TypelessObjectResolver cannot intercept them.
         List<IFormatterResolver> resolvers =
         [
             new RpcMarshalableResolver(this), // Support for marshalled objects.
