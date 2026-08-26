@@ -15,6 +15,7 @@ Some of these diagnostics will include a suggested code fix that can apply the c
 | [StreamJsonRpc0007](StreamJsonRpc0007.md) | Usage    | Error    | Use RpcMarshalableAttribute on optional marshalable interface   |
 | [StreamJsonRpc0008](StreamJsonRpc0008.md) | Usage    | Warning  | Add methods to PolyType shape for RPC contract interface        |
 | [StreamJsonRpc0009](StreamJsonRpc0009.md) | Usage    | Warning  | Use GenerateShapeAttribute on optional marshalable interface    |
+| [StreamJsonRpc0010](StreamJsonRpc0010.md) | Usage    | Warning  | Avoid ambiguous RPC method overloads                            |
 | [StreamJsonRpc0011](StreamJsonRpc0011.md) | Usage    | Error    | RPC methods use supported return types                          |
 | [StreamJsonRpc0012](StreamJsonRpc0012.md) | Usage    | Error    | Unsupported member                                              |
 | [StreamJsonRpc0013](StreamJsonRpc0013.md) | Usage    | Error    | No generic methods                                              |

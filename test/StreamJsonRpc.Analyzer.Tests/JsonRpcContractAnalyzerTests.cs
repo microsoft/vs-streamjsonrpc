@@ -109,6 +109,137 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task AmbiguousMethodOverloads()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task {|StreamJsonRpc0010:AddAsync|}(int a, string b);
+                Task {|StreamJsonRpc0010:AddAsync|}(int a, float b, CancellationToken cancellationToken);
+                Task {|StreamJsonRpc0010:AddAsync|}(int a, float b, string c = null);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_AsyncSuffixIsIgnored()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task {|StreamJsonRpc0010:Get|}(int value);
+                Task {|StreamJsonRpc0010:GetAsync|}(string value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_ExplicitRpcNamesAreVerbatim()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                [JsonRpcMethod("Shared")]
+                Task FirstAsync(int value);
+
+                [JsonRpcMethod("SharedAsync")]
+                Task SecondAsync(string value);
+
+                [JsonRpcMethod("Unique")]
+                Task ThirdAsync(int value);
+
+                Task ThirdAsync(string value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_MethodShapeNamesAreVerbatim()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                [MethodShape(Name = "Shared")]
+                Task FirstAsync(int value);
+
+                [MethodShape(Name = "SharedAsync")]
+                Task SecondAsync(string value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_NonOverlappingArgumentCounts()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task ExecuteAsync(int value, CancellationToken cancellationToken);
+                Task ExecuteAsync(int value, string text);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_IgnoresNonRpcMethods()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task ExecuteAsync(int value);
+
+                [JsonRpcIgnore]
+                Task ExecuteAsync(string value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_InheritedMethods()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc : {|StreamJsonRpc0010:IBaseRpc|}
+            {
+                Task {|StreamJsonRpc0010:RunAsync|}(string value);
+            }
+
+            public interface IBaseRpc
+            {
+                Task RunAsync(int value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_EquivalentInheritedSignatures()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc : IBaseRpc1, IBaseRpc2
+            {
+                new Task RunAsync(int value);
+            }
+
+            public interface IBaseRpc1
+            {
+                Task RunAsync(int value);
+            }
+
+            public interface IBaseRpc2
+            {
+                Task RunAsync(int value);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task InaccessibleInterface_Private()
     {
         await VerifyCS.VerifyAnalyzerAsync("""

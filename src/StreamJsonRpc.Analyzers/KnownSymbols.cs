@@ -23,6 +23,7 @@ internal record KnownSymbols(
     INamedTypeSymbol JsonRpcProxyInterfaceGroupAttribute,
     INamedTypeSymbol ExportRpcContractProxiesAttribute,
     INamedTypeSymbol JsonRpcProxyMappingAttribute,
+    INamedTypeSymbol? JsonRpcIgnoreAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
     INamedTypeSymbol JsonRpcParameterAttribute,
     INamedTypeSymbol? MethodShapeAttribute,
@@ -47,6 +48,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? jsonRpcProxyInterfaceGroupAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcProxyInterfaceGroupAttribute.FullName);
         INamedTypeSymbol? exportRpcContractProxiesAttribute = compilation.GetTypeByMetadataName(Types.ExportRpcContractProxiesAttribute.FullName);
         INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcProxyMappingAttribute.FullName);
+        INamedTypeSymbol? jsonRpcIgnoreAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcIgnoreAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
         INamedTypeSymbol? jsonRpcParameterAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcParameterAttribute.FullName);
         INamedTypeSymbol? methodShapeAttribute = compilation.GetTypeByMetadataName(Types.MethodShapeAttribute.FullName);
@@ -71,7 +73,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcMethodAttribute, jsonRpcParameterAttribute, methodShapeAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcIgnoreAttribute, jsonRpcMethodAttribute, jsonRpcParameterAttribute, methodShapeAttribute, systemType, systemIOStream);
         return true;
     }
 }
