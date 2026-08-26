@@ -19,7 +19,7 @@ public class JsonRpcEventAttribute : Attribute
     /// <param name="name">The replacement name of the event.</param>
     public JsonRpcEventAttribute(string name)
     {
-        Requires.NotNullOrEmpty(name);
+        Requires.NotNullOrEmpty(name, nameof(name));
         this.Name = name;
     }
 
