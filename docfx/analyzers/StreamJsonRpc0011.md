@@ -13,10 +13,10 @@ Methods declared on an RPC interface (including those annotated with <xref:Strea
 
 In the following RPC interface, a method returns a disallowed type.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0011.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0011.cs#Violation)]
 
 ## Resolution
 
 Wrap the return type in <xref:System.Threading.Tasks.Task`1> or <xref:System.Threading.Tasks.ValueTask`1>, which are supported types and allow for RPC to be completed asynchronously.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0011.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0011.cs#Fix)]

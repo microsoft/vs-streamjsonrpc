@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may declar
 
 The following RPC interface declares an event with a custom delegate:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0016.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0016.cs#Violation)]
 
 ## Resolution
 
 Use <xref:System.EventHandler> or <xref:System.EventHandler`1> instead.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0016.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0016.cs#Fix)]

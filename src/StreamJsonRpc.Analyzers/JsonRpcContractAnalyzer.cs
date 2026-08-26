@@ -83,6 +83,11 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
     public const string UnsupportedEventDelegateId = "StreamJsonRpc0016";
 
     /// <summary>
+    /// Diagnostic ID for StreamJsonRpc0017: RPC methods may not declare by-reference parameters.
+    /// </summary>
+    public const string UnsupportedByRefParameterId = "StreamJsonRpc0017";
+
+    /// <summary>
     /// Diagnostic for StreamJsonRpc0001: Inaccessible interface.
     /// </summary>
     public static readonly DiagnosticDescriptor InaccessibleInterface = new(
@@ -238,6 +243,18 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedEventDelegateId));
 
+    /// <summary>
+    /// Diagnostic for StreamJsonRpc0017: Unsupported by-reference parameter.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedByRefParameter = new(
+        id: UnsupportedByRefParameterId,
+        title: Strings.StreamJsonRpc0017_Title,
+        messageFormat: Strings.StreamJsonRpc0017_MessageFormat,
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        helpLinkUri: AnalyzerUtilities.GetHelpLink(UnsupportedByRefParameterId));
+
     private static readonly SymbolDisplayFormat NameOnly = new();
 
     /// <inheritdoc/>
@@ -255,6 +272,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         CancellationTokenPosition,
         NoGenericInterface,
         UnsupportedEventDelegate,
+        UnsupportedByRefParameter,
     ];
 
     /// <inheritdoc/>
@@ -588,6 +606,17 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
                 location,
                 addl,
                 method.ReturnType.Name,
+                method.ToDisplayString(memberFormat)));
+        }
+
+        foreach (IParameterSymbol parameter in method.Parameters.Where(p => p.RefKind is not RefKind.None))
+        {
+            Location diagnosticLocation = parameter.Locations.FirstOrDefault() ?? Location.None;
+            ReportMemberDiagnostic(context, namedType, method, diagnosticLocation, (location, addl, memberFormat) => Diagnostic.Create(
+                UnsupportedByRefParameter,
+                location,
+                addl,
+                parameter.Name,
                 method.ToDisplayString(memberFormat)));
         }
 

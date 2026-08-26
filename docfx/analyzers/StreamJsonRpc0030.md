@@ -6,10 +6,10 @@ The <xref:StreamJsonRpc.JsonRpcProxyAttribute`1> attribute is intended for closi
 
 The following RPC contract is not generic, yet applies this attribute:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0030.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0030.cs#Violation)]
 
 ## Resolution
 
 Drop the unnecessary attribute:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0030.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0030.cs#Fix)]

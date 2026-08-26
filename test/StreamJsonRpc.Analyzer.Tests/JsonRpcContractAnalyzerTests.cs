@@ -95,6 +95,20 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task ByReferenceParameters()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task UnsupportedInAsync(in int {|StreamJsonRpc0017:value|});
+                Task UnsupportedOutAsync(out int {|StreamJsonRpc0017:value|});
+                Task UnsupportedRefAsync(ref int {|StreamJsonRpc0017:value|});
+            }
+            """);
+    }
+
+    [Fact]
     public async Task AmbiguousMethodOverloads()
     {
         await VerifyCS.VerifyAnalyzerAsync("""

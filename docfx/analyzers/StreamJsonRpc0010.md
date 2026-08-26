@@ -13,7 +13,7 @@ Parameter names and types do not resolve this warning because positional JSON-RP
 
 Both overloads below accept two serialized arguments.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0010.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0010.cs#Violation)]
 
 ## Resolution
 
@@ -22,4 +22,4 @@ Give each method a distinct RPC name, either by renaming the method or applying 
 > [!CAUTION]
 > Changing a method name, RPC name, or signature changes the RPC protocol and may break communication when the client and server use different contract versions. Coordinate or version these changes when independently deployed peers may not upgrade together.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0010.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0010.cs#Fix)]

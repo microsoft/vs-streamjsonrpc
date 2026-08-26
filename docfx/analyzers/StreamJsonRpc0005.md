@@ -7,14 +7,14 @@ unless the attribute sets <xref:StreamJsonRpc.RpcMarshalableAttribute.CallScoped
 
 The following RPC marshalable interface does not derive from <xref:System.IDisposable>:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0005.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0005.cs#Violation)]
 
 ## Resolution
 
 Add <xref:System.IDisposable> as a base type:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0005.cs#Fix1)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0005.cs#Fix1)]
 
 Or indicate that the object lifetime is scoped to the call:
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0005.cs#Fix2)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0005.cs#Fix2)]

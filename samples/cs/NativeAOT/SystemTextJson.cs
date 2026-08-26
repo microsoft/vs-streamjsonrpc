@@ -30,10 +30,18 @@ partial class SystemTextJson
     // the very limited use case shown in this program.
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Using the Json source generator.")]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Using the Json source generator.")]
-    static IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter()
+    static IJsonRpcMessageFormatter CreateFormatter()
     {
-        JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
-    };
+        var formatter = new SystemTextJsonFormatter
+        {
+            JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
+        };
+
+        // Native AOT requires this for every value type used as T in IAsyncEnumerable<T> or IProgress<T>.
+        // For example, a contract that uses IAsyncEnumerable<int> requires the following registration:
+        formatter.RegisterGenericType<int>();
+        return formatter;
+    }
 
     // Every data type used in the RPC methods must be annotated for serialization.
     [JsonSerializable(typeof(int))]

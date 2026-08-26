@@ -44,7 +44,7 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
     };
 
     [MemberNotNullWhen(true, nameof(ReturnExpression))]
-    private bool IsSupported => this.ReturnExpression is not null;
+    private bool IsSupported => this.ReturnExpression is not null && this.Parameters.All(p => p.IsSupported);
 
     internal override void WriteFields(SourceWriter writer)
     {
@@ -144,17 +144,27 @@ internal record MethodModel(string DeclaringInterfaceName, string Name, string R
 
         writer.WriteLine($$"""
 
-                {{this.ReturnType}} {{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => $"{p.Type} {p.Name}"))}})
+                {{this.ReturnType}} {{this.DeclaringInterfaceName}}.{{this.Name}}({{string.Join(", ", this.Parameters.Select(p => p.Declaration))}})
                 {
                 """);
 
         writer.Indentation++;
         if (!this.IsSupported)
         {
-            // StreamJsonRpc0011
-            writer.WriteLine($"""
-                    throw new global::System.NotSupportedException($"The return type '{this.ReturnType}' is not supported by the generated proxy method.");
-                    """);
+            if (this.Parameters.FirstOrDefault(p => !p.IsSupported) is { } unsupportedParameter)
+            {
+                // StreamJsonRpc0017
+                writer.WriteLine($"""
+                        throw new global::System.NotSupportedException("By-reference parameter '{unsupportedParameter.Name}' is not supported by generated proxy methods.");
+                        """);
+            }
+            else
+            {
+                // StreamJsonRpc0011
+                writer.WriteLine($"""
+                        throw new global::System.NotSupportedException($"The return type '{this.ReturnType}' is not supported by the generated proxy method.");
+                        """);
+            }
         }
         else
         {

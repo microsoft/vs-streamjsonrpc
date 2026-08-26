@@ -381,6 +381,9 @@
   <data name="UnsupportedMethodReturnTypeOnClientProxyInterface" xml:space="preserve">
     <value>Method "{0}" has unsupported return type "{1}". Only Task-returning methods are supported.</value>
   </data>
+  <data name="UnsupportedByRefParameterOnClientProxyInterface" xml:space="preserve">
+    <value>Method "{0}" has unsupported by-reference parameter "{1}". By-reference parameters are not supported.</value>
+  </data>
   <data name="UnsupportedPropertiesOnClientProxyInterface" xml:space="preserve">
     <value>Properties are not supported for service interfaces.</value>
   </data>

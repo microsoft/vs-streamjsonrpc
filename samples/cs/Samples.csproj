@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
+    <ProjectReference Include="..\..\src\StreamJsonRpc\StreamJsonRpc.csproj" />
   </ItemGroup>
 
   <ItemGroup>

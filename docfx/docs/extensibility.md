@@ -91,11 +91,11 @@ StreamJsonRpc includes the following <xref:StreamJsonRpc.IJsonRpcMessageFormatte
     and optionally with serializer customizations.
     When customizing the serializer, always base the new serializer on the default one defined by <xref:StreamJsonRpc.NerdbankMessagePackFormatter.DefaultSerializer> as shown below:
 
-    [!code-csharp[](../../samples/Extensibility.cs#CreateNBMsgPackFormatter)]
+    [!code-csharp[](../../samples/cs/Extensibility.cs#CreateNBMsgPackFormatter)]
 
     In the above sample, the type shape provider comes from a [witness class](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes), which you can trivially define like this:
 
-    [!code-csharp[](../../samples/Extensibility.cs#PolyTypeWitness)]
+    [!code-csharp[](../../samples/cs/Extensibility.cs#PolyTypeWitness)]
 
    Learn more about [witness classes](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes) and [customizing serialization](https://aarnott.github.io/Nerdbank.MessagePack/docs/customizing-serialization.html).
 

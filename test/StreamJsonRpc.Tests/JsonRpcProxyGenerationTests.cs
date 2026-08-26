@@ -191,6 +191,21 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Task AddAsync<T>(T a, T b);
     }
 
+    public interface IServerWithOutParameter
+    {
+        Task GetValueAsync(out int value);
+    }
+
+    public interface IServerWithRefParameter
+    {
+        Task SetValueAsync(ref int value);
+    }
+
+    public interface IServerWithInParameter
+    {
+        Task<int> EchoAsync(in int value);
+    }
+
     [JsonRpcContract]
     [SuppressMessage("Usage", "StreamJsonRpc0008", Justification = "Source generated shapes cause this to fail unrelated tests.")]
     public partial interface IReferenceAnUnreachableAssembly
@@ -522,6 +537,36 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var exception = Assert.Throws<NotSupportedException>(() => JsonRpc.Attach<IServerWithGenericMethod>(this.clientStream));
 #pragma warning restore StreamJsonRpc0003 // Use JsonRpcContractAttribute
         this.Logger.WriteLine(exception.Message);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void OutParameterOnInterface()
+    {
+#pragma warning disable StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => new JsonRpc(Stream.Null).Attach(typeof(IServerWithOutParameter), new JsonRpcProxyOptions { ProxySource = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic }));
+#pragma warning restore StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        Assert.Contains("value", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void RefParameterOnInterface()
+    {
+#pragma warning disable StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => new JsonRpc(Stream.Null).Attach(typeof(IServerWithRefParameter), new JsonRpcProxyOptions { ProxySource = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic }));
+#pragma warning restore StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        Assert.Contains("value", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("NegativeTest", "")]
+    public void InParameterOnInterface()
+    {
+#pragma warning disable StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => new JsonRpc(Stream.Null).Attach(typeof(IServerWithInParameter), new JsonRpcProxyOptions { ProxySource = JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic }));
+#pragma warning restore StreamJsonRpc0003 // Dynamic-proxy fallback coverage.
+        Assert.Contains("value", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

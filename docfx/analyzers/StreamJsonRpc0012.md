@@ -6,10 +6,10 @@ Interfaces with <xref:StreamJsonRpc.JsonRpcContractAttribute> applied may only d
 
 The following RPC interface is declared with a property.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0012.cs#Violation)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0012.cs#Violation)]
 
 ## Resolution
 
 Change the property to an async method.
 
-[!code-csharp[](../../samples/Analyzers/StreamJsonRpc0012.cs#Fix)]
+[!code-csharp[](../../samples/cs/Analyzers/StreamJsonRpc0012.cs#Fix)]
