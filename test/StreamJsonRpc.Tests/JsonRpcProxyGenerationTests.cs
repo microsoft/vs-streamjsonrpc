@@ -11,6 +11,7 @@ using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc.Reflection;
 using StreamJsonRpc.Tests;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
@@ -413,6 +414,20 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         await this.clientRpc.IncrementAsync();
         Assert.Equal(1, this.server.Counter);
+    }
+
+    [Fact]
+    public async Task CallMethod_void_void_ServerRequiresNamedArguments_NeverUsesArray()
+    {
+        var messageHandler = new CapturingMessageHandler();
+        using JsonRpc clientRpc = new(messageHandler);
+        IServer proxy = clientRpc.Attach<IServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions) { ServerRequiresNamedArguments = true });
+        clientRpc.StartListening();
+
+        _ = proxy.IncrementAsync();
+        JToken request = await messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+
+        Assert.NotEqual(JTokenType.Array, request["params"]?.Type);
     }
 
     [Theory]
@@ -1379,6 +1394,41 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
             => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
+    }
+
+    private sealed class CapturingMessageHandler : MessageHandlerBase
+    {
+        private readonly JsonMessageFormatter formatter;
+
+        internal CapturingMessageHandler()
+            : this(new JsonMessageFormatter())
+        {
+        }
+
+        private CapturingMessageHandler(JsonMessageFormatter formatter)
+            : base(formatter)
+        {
+            this.formatter = formatter;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanWrite => true;
+
+        internal AsyncQueue<JToken> MessagesToRead { get; } = new();
+
+        internal AsyncQueue<JToken> WrittenMessages { get; } = new();
+
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
+            => this.formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
+
+        protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
+        {
+            this.WrittenMessages.Enqueue(this.formatter.Serialize(content));
+            return default;
+        }
+
+        protected override ValueTask FlushAsync(CancellationToken cancellationToken) => default;
     }
 
     private class TimeTestedServer : ITimeTestedProxy
