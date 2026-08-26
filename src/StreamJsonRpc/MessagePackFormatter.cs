@@ -378,7 +378,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             RawMessagePackFormatter.Instance,
         };
 
-        // Add our own resolvers to fill in specialized behavior if the user doesn't provide/override it by their own resolver.
+        // Add our own resolvers for RPC-specific types before the user resolver so broad resolvers
+        // such as TypelessObjectResolver cannot intercept types whose wire format we control.
         List<IFormatterResolver> resolvers =
         [
             new RpcMarshalableResolver(this), // Support for marshalled objects.
@@ -391,14 +392,17 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
         resolvers.AddRange(
         [
+
+            // Async enumerables and their protocol payloads must use our connection-specific wire format.
+            this.asyncEnumerableFormatterResolver,
+
             userSuppliedOptions.Resolver,
 
             // Add stateless, non-specialized resolvers that help basic functionality to "just work".
             BasicTypesResolver,
 
-            // Stateful or per-connection resolvers.
+            // Stateful or per-connection resolvers that users may override.
             this.progressFormatterResolver,
-            this.asyncEnumerableFormatterResolver,
             this.pipeFormatterResolver,
             this.exceptionResolver,
         ]);
@@ -885,6 +889,10 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
                     else if (TrackerHelpers.FindIAsyncEnumerableInterfaceImplementedBy(typeof(T)) is { } iface)
                     {
                         formatter = (IMessagePackFormatter<T>?)Activator.CreateInstance(typeof(GeneratorFormatter<,>).MakeGenericType(typeof(T), iface.GenericTypeArguments[0]), new object[] { this.mainFormatter });
+                    }
+                    else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(MessageFormatterEnumerableTracker.EnumeratorResults<>))
+                    {
+                        formatter = StandardResolverAllowPrivate.Instance.GetFormatter<T>();
                     }
 
                     this.enumerableFormatters.Add(typeof(T), formatter);
@@ -1817,7 +1825,13 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
             options.Resolver.GetFormatterWithVerify<RequestId>().Serialize(ref writer, value.RequestId, options);
 
             ResultPropertyName.Write(ref writer);
-            if (value.ResultDeclaredType is object && value.ResultDeclaredType != typeof(void))
+            if (value.Result?.GetType() is Type resultType
+                && resultType.IsGenericType
+                && resultType.GetGenericTypeDefinition() == typeof(MessageFormatterEnumerableTracker.EnumeratorResults<>))
+            {
+                MessagePackSerializer.Serialize(resultType, ref writer, value.Result, this.formatter.userDataSerializationOptions);
+            }
+            else if (value.ResultDeclaredType is object && value.ResultDeclaredType != typeof(void))
             {
                 MessagePackSerializer.Serialize(value.ResultDeclaredType, ref writer, value.Result, this.formatter.userDataSerializationOptions);
             }
