@@ -46,7 +46,7 @@ internal record InterfaceModel(string FullName, string Name, ImmutableEquatableA
                 case IMethodSymbol method when SymbolEqualityComparer.Default.Equals(method.ContainingType, symbols.IDisposable):
                     // We don't map this special Dispose method.
                     break;
-                case IMethodSymbol method when SymbolEqualityComparer.Default.Equals(method.ContainingType, symbols.IAsyncDisposable):
+                case IMethodSymbol method when symbols.IAsyncDisposable is not null && SymbolEqualityComparer.Default.Equals(method.ContainingType, symbols.IAsyncDisposable):
                     // We don't map this special DisposeAsync method.
                     break;
                 case IMethodSymbol { AssociatedSymbol: not null }:

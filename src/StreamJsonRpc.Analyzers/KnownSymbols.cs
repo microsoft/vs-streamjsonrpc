@@ -16,7 +16,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? TypeShapeAttribute,
     INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
-    INamedTypeSymbol IAsyncDisposable,
+    INamedTypeSymbol? IAsyncDisposable,
     INamedTypeSymbol RpcMarshalableAttribute,
     INamedTypeSymbol RpcMarshalableOptionalInterface,
     INamedTypeSymbol JsonRpcContractAttribute,
@@ -58,7 +58,6 @@ internal record KnownSymbols(
         INamedTypeSymbol? systemIOStream = compilation.GetTypeByMetadataName("System.IO.Stream");
 
         if (idisposable is null ||
-            iasyncDisposable is null ||
             rpcMarshalableAttribute is null ||
             rpcMarshalableOptionalInterface is null ||
             rpcContractAttribute is null ||
