@@ -330,7 +330,7 @@ public abstract class ProxyBase : IJsonRpcClientProxyInternal, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync()
+    ValueTask IAsyncDisposable.DisposeAsync()
     {
         try
         {

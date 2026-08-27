@@ -746,7 +746,7 @@ internal static class ProxyGeneration
     private static void ImplementDisposeAsyncMethod(TypeBuilder proxyTypeBuilder, MethodBuilder disposeMethod)
     {
         MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
-            DisposeAsyncMethod.Name,
+            $"{DisposeAsyncMethod.DeclaringType!.FullName}.{DisposeAsyncMethod.Name}",
             MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
             DisposeAsyncMethod.ReturnType,
             Type.EmptyTypes);

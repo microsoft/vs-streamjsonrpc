@@ -129,6 +129,12 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServerWithDisposeAsyncMethod
+    {
+        ValueTask DisposeAsync();
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObject
     {
@@ -481,6 +487,27 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var disposableClient = Assert.IsAssignableFrom<System.IAsyncDisposable>(this.clientRpc);
         await disposableClient.DisposeAsync();
         Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+    }
+
+    [Fact]
+    public void RpcMethodNamedDisposeAsyncDoesNotCollideWithAsyncDisposal()
+    {
+        var rpc = new JsonRpc(Stream.Null);
+        var clientRpc = rpc.Attach<IServerWithDisposeAsyncMethod>(this.DefaultProxyOptions);
+
+        Assert.IsAssignableFrom<System.IAsyncDisposable>(clientRpc);
+    }
+
+    [Fact]
+    public async Task DisposeAsyncReturnsFaultedValueTaskWhenDisposalFails()
+    {
+        var rpc = new ThrowingDisposeJsonRpc();
+        var clientRpc = (System.IAsyncDisposable)rpc.Attach<IServer>(this.DefaultProxyOptions);
+
+        ValueTask disposal = clientRpc.DisposeAsync();
+
+        Assert.True(disposal.IsCompleted);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => disposal.AsTask());
     }
 
     [Fact]
@@ -1409,6 +1436,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
             => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
+    }
+
+    private sealed class ThrowingDisposeJsonRpc() : JsonRpc(Stream.Null)
+    {
+        protected override void Dispose(bool disposing) => throw new InvalidOperationException();
     }
 
     private class TimeTestedServer : ITimeTestedProxy
