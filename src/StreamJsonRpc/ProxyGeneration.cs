@@ -67,6 +67,7 @@ internal static class ProxyGeneration
         m => m is { Name: nameof(Task.FromException), IsGenericMethod: false }
             && m.GetParameters() is [{ ParameterType: Type parameterType }]
             && parameterType == typeof(Exception));
+
     private static readonly ConstructorInfo ValueTaskFromTaskCtor = typeof(ValueTask).GetConstructor([typeof(Task)]) ?? throw Assumes.NotReachable();
 
     /// <summary>
