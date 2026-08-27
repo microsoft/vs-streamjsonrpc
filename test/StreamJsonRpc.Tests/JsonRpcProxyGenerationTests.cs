@@ -165,6 +165,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithVoidReturnType
     {
+        void Notify();
+
         void Notify(int a, int b);
 
         void NotifyWithCancellation(int a, int b, CancellationToken cancellationToken);
@@ -417,17 +419,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public async Task CallMethod_void_void_ServerRequiresNamedArguments_NeverUsesArray()
+    public async Task CallVoidMethod_NoArguments_ServerRequiresNamedArguments_NeverUsesArray()
     {
         var messageHandler = new CapturingMessageHandler();
         using JsonRpc clientRpc = new(messageHandler);
-        IServer proxy = clientRpc.Attach<IServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions) { ServerRequiresNamedArguments = true });
+        IServerWithVoidReturnType proxy = clientRpc.Attach<IServerWithVoidReturnType>(new JsonRpcProxyOptions(this.DefaultProxyOptions) { ServerRequiresNamedArguments = true });
         clientRpc.StartListening();
 
-        _ = proxy.IncrementAsync();
+        proxy.Notify();
         JToken request = await messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
 
-        Assert.NotEqual(JTokenType.Array, request["params"]?.Type);
+        Assert.True(request["params"] is null or JObject);
     }
 
     [Theory]
@@ -1352,6 +1354,10 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         public ValueTask DoSomethingValueAsync() => default;
 
         public ValueTask<int> AddValueAsync(int a, int b) => new ValueTask<int>(a + b);
+
+        public void Notify()
+        {
+        }
 
         public void Notify(int a, int b) => this.NotifyResult.SetResult(a + b);
 
