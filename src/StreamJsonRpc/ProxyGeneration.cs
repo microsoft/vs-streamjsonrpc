@@ -63,7 +63,10 @@ internal static class ProxyGeneration
     private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)) ?? throw Assumes.NotReachable();
     private static readonly MethodInfo DisposeAsyncMethod = typeof(System.IAsyncDisposable).GetMethod(nameof(System.IAsyncDisposable.DisposeAsync)) ?? throw Assumes.NotReachable();
     private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed))!.GetMethod ?? throw Assumes.NotReachable();
-    private static readonly MethodInfo TaskFromExceptionMethod = typeof(Task).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(m => m.Name == nameof(Task.FromException) && !m.IsGenericMethod);
+    private static readonly MethodInfo TaskFromExceptionMethod = typeof(Task).GetRuntimeMethods().Single(
+        m => m is { Name: nameof(Task.FromException), IsGenericMethod: false }
+            && m.GetParameters() is [{ ParameterType: Type parameterType }]
+            && parameterType == typeof(Exception));
     private static readonly ConstructorInfo ValueTaskFromTaskCtor = typeof(ValueTask).GetConstructor([typeof(Task)]) ?? throw Assumes.NotReachable();
 
     /// <summary>
