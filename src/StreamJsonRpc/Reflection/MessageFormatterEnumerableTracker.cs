@@ -471,11 +471,7 @@ public class MessageFormatterEnumerableTracker
                 if (!this.disposed)
                 {
                     this.disposed = true;
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
-                    await this.cancellationRegistration.DisposeAsync().ConfigureAwait(false);
-#else
-                    this.cancellationRegistration.Dispose();
-#endif
+                    await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
 
                     // Recycle buffers
                     this.localCachedValues.Reset();
@@ -531,17 +527,14 @@ public class MessageFormatterEnumerableTracker
                         this.generatorReportsFinished = results.Finished;
                         if (this.generatorReportsFinished)
                         {
-#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
-                            await this.cancellationRegistration.DisposeAsync().ConfigureAwait(false);
-#else
-                            this.cancellationRegistration.Dispose();
-#endif
+                            await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
                         }
                     }
                     catch (RemoteInvocationException ex)
                     {
                         // Avoid spending a message asking the server to dispose of the marshalled enumerator since they threw an exception at us.
                         this.generatorReportsFinished = true;
+                        await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
 
                         if (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
                         {
@@ -564,6 +557,16 @@ public class MessageFormatterEnumerableTracker
                 }
 
                 writer.Advance(values.Count);
+            }
+
+            private ValueTask DisposeCancellationRegistrationAsync()
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                return this.cancellationRegistration.DisposeAsync();
+#else
+                this.cancellationRegistration.Dispose();
+                return default;
+#endif
             }
 
             private Task NotifyServerOfAbortAsync()
