@@ -185,20 +185,12 @@ public class MessageFormatterEnumerableTracker
     }
 
     private ValueTask OnDisposeAsync(long token)
-        => this.DisposeGeneratorAsync(token, throwIfNotFound: true);
-
-    private ValueTask DisposeGeneratorAsync(long token, bool throwIfNotFound)
     {
         IGeneratingEnumeratorTracker? generator;
         lock (this.syncObject)
         {
             if (!this.generatorsByToken.TryGetValue(token, out generator))
             {
-                if (throwIfNotFound)
-                {
-                    throw new LocalRpcException(Resources.UnknownTokenToMarshaledObject) { ErrorCode = (int)JsonRpcErrorCode.NoMarshaledObjectFound };
-                }
-
                 return default;
             }
 
@@ -335,7 +327,7 @@ public class MessageFormatterEnumerableTracker
                     {
                         // Clean up all resources since we don't expect the client to send a dispose notification
                         // since finishing the enumeration implicitly should dispose of it.
-                        await this.tracker.DisposeGeneratorAsync(this.token, throwIfNotFound: false).ConfigureAwait(false);
+                        await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
                     }
 
                     return new EnumeratorResults<T>
@@ -348,7 +340,7 @@ public class MessageFormatterEnumerableTracker
             catch
             {
                 // An error is considered fatal to the enumerable, so clean up everything.
-                await this.tracker.DisposeGeneratorAsync(this.token, throwIfNotFound: false).ConfigureAwait(false);
+                await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
                 throw;
             }
         }
