@@ -107,7 +107,14 @@ internal static class ProxyGeneration
             // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
             // leading to runtime errors or unexpected behavior when loading types or invoking methods.
-            Type[] proxyInterfaces = [.. rpcInterfaces.Select(i => i.Type), typeof(IJsonRpcClientProxy), typeof(IJsonRpcClientProxyInternal), typeof(System.IAsyncDisposable)];
+            Type[] proxyInterfaces =
+            [
+                .. rpcInterfaces.Select(i => i.Type)
+                    .Append(typeof(IJsonRpcClientProxy))
+                    .Append(typeof(IJsonRpcClientProxyInternal))
+                    .Append(typeof(System.IAsyncDisposable))
+                    .Distinct(),
+            ];
             ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
 
             TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(

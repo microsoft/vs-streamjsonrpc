@@ -1216,7 +1216,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 #endif
 
 #if NO_INTERCEPTORS
-    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
+    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
+    {
+        [Fact]
+        public void IAsyncDisposableMayBeContractInterface()
+        {
+            using JsonRpc rpc = new(Stream.Null);
+            object proxy = rpc.Attach(typeof(System.IAsyncDisposable), this.DefaultProxyOptions);
+
+            Assert.IsAssignableFrom<System.IAsyncDisposable>(proxy);
+        }
+    }
 #endif
 
     public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
