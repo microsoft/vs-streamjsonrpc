@@ -185,13 +185,21 @@ public class MessageFormatterEnumerableTracker
     }
 
     private ValueTask OnDisposeAsync(long token)
+        => this.DisposeGeneratorAsync(token, throwIfNotFound: true);
+
+    private ValueTask DisposeGeneratorAsync(long token, bool throwIfNotFound)
     {
         IGeneratingEnumeratorTracker? generator;
         lock (this.syncObject)
         {
             if (!this.generatorsByToken.TryGetValue(token, out generator))
             {
-                throw new LocalRpcException(Resources.UnknownTokenToMarshaledObject) { ErrorCode = (int)JsonRpcErrorCode.NoMarshaledObjectFound };
+                if (throwIfNotFound)
+                {
+                    throw new LocalRpcException(Resources.UnknownTokenToMarshaledObject) { ErrorCode = (int)JsonRpcErrorCode.NoMarshaledObjectFound };
+                }
+
+                return default;
             }
 
             this.generatorsByToken.Remove(token);
@@ -327,7 +335,7 @@ public class MessageFormatterEnumerableTracker
                     {
                         // Clean up all resources since we don't expect the client to send a dispose notification
                         // since finishing the enumeration implicitly should dispose of it.
-                        await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
+                        await this.tracker.DisposeGeneratorAsync(this.token, throwIfNotFound: false).ConfigureAwait(false);
                     }
 
                     return new EnumeratorResults<T>
@@ -340,7 +348,7 @@ public class MessageFormatterEnumerableTracker
             catch
             {
                 // An error is considered fatal to the enumerable, so clean up everything.
-                await this.tracker.OnDisposeAsync(this.token).ConfigureAwait(false);
+                await this.tracker.DisposeGeneratorAsync(this.token, throwIfNotFound: false).ConfigureAwait(false);
                 throw;
             }
         }
@@ -414,8 +422,11 @@ public class MessageFormatterEnumerableTracker
         {
             private readonly AsyncEnumerableProxy<T> owner;
             private readonly CancellationToken cancellationToken;
+            private readonly CancellationTokenRegistration cancellationRegistration;
             private readonly object[]? nextOrDisposeArguments;
             private readonly IDisposable? requestResourcesDeferral;
+            private readonly object abortSyncObject = new object();
+            private Task? abortNotificationTask;
 
             /// <summary>
             /// A sequence of values that have already been received from the generator but not yet consumed.
@@ -444,6 +455,9 @@ public class MessageFormatterEnumerableTracker
 
                 this.generatorReportsFinished = finished;
                 this.requestResourcesDeferral = requestResourcesDeferral;
+                this.cancellationRegistration = cancellationToken.Register(
+                    static state => ((AsyncEnumeratorProxy)state!).NotifyServerOfAbortAsync().Forget(),
+                    this);
             }
 
             public T Current
@@ -465,6 +479,11 @@ public class MessageFormatterEnumerableTracker
                 if (!this.disposed)
                 {
                     this.disposed = true;
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                    await this.cancellationRegistration.DisposeAsync().ConfigureAwait(false);
+#else
+                    this.cancellationRegistration.Dispose();
+#endif
 
                     // Recycle buffers
                     this.localCachedValues.Reset();
@@ -472,7 +491,7 @@ public class MessageFormatterEnumerableTracker
                     // Notify server if it wasn't already finished.
                     if (!this.generatorReportsFinished)
                     {
-                        await this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments).ConfigureAwait(false);
+                        await this.NotifyServerOfAbortAsync().ConfigureAwait(false);
                     }
 
                     // Clean up any local resources that were held open for the remote source of the enumeration.
@@ -518,6 +537,14 @@ public class MessageFormatterEnumerableTracker
                         }
 
                         this.generatorReportsFinished = results.Finished;
+                        if (this.generatorReportsFinished)
+                        {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                            await this.cancellationRegistration.DisposeAsync().ConfigureAwait(false);
+#else
+                            this.cancellationRegistration.Dispose();
+#endif
+                        }
                     }
                     catch (RemoteInvocationException ex)
                     {
@@ -545,6 +572,16 @@ public class MessageFormatterEnumerableTracker
                 }
 
                 writer.Advance(values.Count);
+            }
+
+            private Task NotifyServerOfAbortAsync()
+            {
+                lock (this.abortSyncObject)
+                {
+                    return this.generatorReportsFinished || this.nextOrDisposeArguments is null
+                        ? Task.CompletedTask
+                        : this.abortNotificationTask ??= this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments);
+                }
             }
         }
     }
