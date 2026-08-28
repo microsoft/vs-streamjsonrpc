@@ -1562,7 +1562,9 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                             continue;
                         }
 
-                        if (property.PropertyType is not null && TryGetMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
+                        if (property.PropertyType is not null
+                            && TryGetMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter)
+                            && !ReferenceEquals(property.Converter, propertyConverter))
                         {
                             property.Converter = propertyConverter;
                         }
