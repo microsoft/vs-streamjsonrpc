@@ -2,11 +2,17 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+#if !NET
+using System.Collections.Concurrent;
+#endif
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Reflection;
+#if NET
+using System.Runtime.CompilerServices;
+#endif
 using System.Runtime.ExceptionServices;
 using System.Runtime.Serialization;
 using System.Text;
@@ -35,6 +41,16 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     internal const string ExceptionDataKey = "JToken";
 
     private static readonly ProxyFactory ProxyFactory = ProxyFactory.Default;
+
+#if NET
+    private static readonly ConditionalWeakTable<Type, RpcMarshalableConverterResolution> RpcMarshalableConverters = new();
+
+    private static readonly ConditionalWeakTable<Type, JsonContract> DefaultContracts = new();
+#else
+    private static readonly ConcurrentDictionary<Type, RpcMarshalableConverterResolution> RpcMarshalableConvertersStrong = new();
+
+    private static readonly ConcurrentDictionary<Type, JsonContract> DefaultContractsStrong = new();
+#endif
 
     /// <summary>
     /// JSON parse settings.
@@ -110,11 +126,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     private Encoding encoding;
 
     /// <summary>
-    /// Whether <see cref="EnforceFormatterIsInitialized"/> has been executed.
-    /// </summary>
-    private bool formatterInitializationChecked;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="JsonMessageFormatter"/> class
     /// that uses JsonProgress (without the preamble) for its text encoding.
     /// </summary>
@@ -137,7 +148,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             NullValueHandling = NullValueHandling.Ignore,
             ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
             DateParseHandling = DateParseHandling.None,
-            ContractResolver = new MarshalContractResolver(this),
+            ContractResolver = new MarshalContractResolver(this, null),
             Converters =
             {
                 new JsonProgressServerConverter(this),
@@ -391,19 +402,50 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         return jtokenArray;
     }
 
+    private static bool TryGetMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
+    {
+        RpcMarshalableConverterResolution resolution = GetMarshaledJsonConverter(type);
+        converter = resolution.Converter;
+        return converter is not null;
+    }
+
+    private static RpcMarshalableConverterResolution GetMarshaledJsonConverter(Type type)
+    {
+#if NET
+        return RpcMarshalableConverters.GetValue(type, static type => CreateMarshaledJsonConverterResolution(type));
+#else
+        return RpcMarshalableConvertersStrong.GetOrAdd(type, static type => CreateMarshaledJsonConverterResolution(type));
+#endif
+    }
+
+    private static RpcMarshalableConverterResolution CreateMarshaledJsonConverterResolution(Type type)
+    {
+        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? rpcMarshalableAttribute))
+        {
+            var converter = new RpcMarshalableConverter(type, proxyOptions, targetOptions, rpcMarshalableAttribute);
+            return new RpcMarshalableConverterResolution(converter, new JsonObjectContract(type) { Converter = converter, CreatedType = type });
+        }
+
+        return new RpcMarshalableConverterResolution(null, null);
+    }
+
+    private static JsonContract ResolveDefaultContract(Type type)
+    {
+#if NET
+        return DefaultContracts.GetValue(type, static type => new DefaultContractResolver().ResolveContract(type));
+#else
+        return DefaultContractsStrong.GetOrAdd(type, static type => new DefaultContractResolver().ResolveContract(type));
+#endif
+    }
+
     private void EnforceFormatterIsInitialized()
     {
         lock (this.syncObject)
         {
-            if (!this.formatterInitializationChecked)
+            IContractResolver? originalContractResolver = this.JsonSerializer.ContractResolver;
+            if (originalContractResolver is not MarshalContractResolver)
             {
-                IContractResolver? originalContractResolver = this.JsonSerializer.ContractResolver;
-                if (originalContractResolver is not MarshalContractResolver)
-                {
-                    this.JsonSerializer.ContractResolver = new MarshalContractResolver(this, originalContractResolver);
-                }
-
-                this.formatterInitializationChecked = true;
+                this.JsonSerializer.ContractResolver = new MarshalContractResolver(this, originalContractResolver);
             }
         }
     }
@@ -544,7 +586,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             return JValue.CreateNull();
         }
 
-        if (declaredType is not null && this.TryGetMarshaledJsonConverter(declaredType, out RpcMarshalableConverter? converter))
+        if (declaredType is not null && TryGetMarshaledJsonConverter(declaredType, out RpcMarshalableConverter? converter))
         {
             using JTokenWriter jsonWriter = this.CreateJTokenWriter();
             converter.WriteJson(jsonWriter, value, this.JsonSerializer);
@@ -572,18 +614,6 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             Culture = this.JsonSerializer.Culture,
             DateFormatString = this.JsonSerializer.DateFormatString,
         };
-    }
-
-    private bool TryGetMarshaledJsonConverter(Type type, [NotNullWhen(true)] out RpcMarshalableConverter? converter)
-    {
-        if (MessageFormatterRpcMarshaledContextTracker.TryGetMarshalOptionsForType(type, JsonRpcProxyOptions.Default, out JsonRpcProxyOptions? proxyOptions, out JsonRpcTargetOptions? targetOptions, out RpcMarshalableAttribute? rpcMarshalableAttribute))
-        {
-            converter = new RpcMarshalableConverter(type, this, proxyOptions, targetOptions, rpcMarshalableAttribute);
-            return true;
-        }
-
-        converter = null;
-        return false;
     }
 
     private InboundJsonRpcRequest ReadRequest(JToken json)
@@ -1278,7 +1308,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     [RequiresUnreferencedCode(RuntimeReasons.RefEmit)]
-    private class RpcMarshalableConverter([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type interfaceType, JsonMessageFormatter jsonMessageFormatter, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
+    private class RpcMarshalableConverter([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents | DynamicallyAccessedMemberTypes.NonPublicEvents | DynamicallyAccessedMemberTypes.Interfaces)] Type interfaceType, JsonRpcProxyOptions proxyOptions, JsonRpcTargetOptions targetOptions, RpcMarshalableAttribute rpcMarshalableAttribute) : JsonConverter
     {
         private string DebuggerDisplay => $"Converter for marshalable objects of type {interfaceType.FullName}";
 
@@ -1287,7 +1317,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var token = (MessageFormatterRpcMarshaledContextTracker.MarshalToken?)JToken.Load(reader).ToObject(typeof(MessageFormatterRpcMarshaledContextTracker.MarshalToken), serializer);
-            return jsonMessageFormatter.RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
+            return GetFormatter(serializer).RpcMarshaledContextTracker.GetObject(objectType, token, proxyOptions);
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
@@ -1303,10 +1333,33 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
             else
             {
                 RpcTargetMetadata mapping = RpcTargetMetadata.FromInterface(interfaceType);
-                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = jsonMessageFormatter.RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
+                MessageFormatterRpcMarshaledContextTracker.MarshalToken token = GetFormatter(serializer).RpcMarshaledContextTracker.GetToken(value, targetOptions, mapping, rpcMarshalableAttribute);
                 serializer.Serialize(writer, token);
             }
         }
+
+        private static JsonMessageFormatter GetFormatter(JsonSerializer serializer)
+        {
+            if (serializer.ContractResolver is not MarshalContractResolver resolver)
+            {
+                throw new InvalidOperationException("The RPC marshalable converter can only be used with the JsonSerializer that belongs to a JsonMessageFormatter.");
+            }
+
+            return resolver.Formatter;
+        }
+    }
+
+    private sealed class RpcMarshalableConverterResolution(RpcMarshalableConverter? converter, JsonObjectContract? contract)
+    {
+        /// <summary>
+        /// Gets the converter for the resolved type, if it is marshalable.
+        /// </summary>
+        internal RpcMarshalableConverter? Converter { get; } = converter;
+
+        /// <summary>
+        /// Gets the contract for the resolved type, if it is marshalable.
+        /// </summary>
+        internal JsonObjectContract? Contract { get; } = contract;
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
@@ -1477,32 +1530,28 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class MarshalContractResolver : IContractResolver
     {
-        private readonly JsonMessageFormatter formatter;
-        private readonly IContractResolver underlyingContractResolver;
-
-        public MarshalContractResolver(JsonMessageFormatter formatter)
-            : this(formatter, null)
-        {
-        }
+        private readonly IContractResolver? underlyingContractResolver;
 
         public MarshalContractResolver(JsonMessageFormatter formatter, IContractResolver? underlyingContractResolver)
         {
-            this.formatter = formatter;
-            this.underlyingContractResolver = underlyingContractResolver ?? new DefaultContractResolver();
+            this.Formatter = formatter;
+            this.underlyingContractResolver = underlyingContractResolver;
         }
+
+        /// <summary>
+        /// Gets the formatter that owns this resolver.
+        /// </summary>
+        internal JsonMessageFormatter Formatter { get; }
 
         public JsonContract ResolveContract(Type type)
         {
-            if (this.formatter.TryGetMarshaledJsonConverter(type, out RpcMarshalableConverter? converter))
+            RpcMarshalableConverterResolution converterResolution = GetMarshaledJsonConverter(type);
+            if (converterResolution.Contract is JsonObjectContract marshaledContract)
             {
-                return new JsonObjectContract(type)
-                {
-                    Converter = converter,
-                    CreatedType = type,
-                };
+                return marshaledContract;
             }
 
-            JsonContract? result = this.underlyingContractResolver.ResolveContract(type);
+            JsonContract result = this.underlyingContractResolver?.ResolveContract(type) ?? ResolveDefaultContract(type);
             switch (result)
             {
                 case JsonObjectContract objectContract:
@@ -1513,7 +1562,7 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                             continue;
                         }
 
-                        if (property.PropertyType is not null && this.formatter.TryGetMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
+                        if (property.PropertyType is not null && TryGetMarshaledJsonConverter(property.PropertyType, out RpcMarshalableConverter? propertyConverter))
                         {
                             property.Converter = propertyConverter;
                         }
