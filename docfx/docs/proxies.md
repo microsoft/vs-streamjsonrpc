@@ -47,6 +47,7 @@ Generated proxies have the following traits:
 1. They implement <xref:StreamJsonRpc.IJsonRpcClientProxy>, allowing access back to the <xref:StreamJsonRpc.JsonRpc> instance that created them.
 1. They implement <xref:System.IDisposable> and <xref:System.IAsyncDisposable>.
    *If* the proxy is created using a *static* <xref:StreamJsonRpc.JsonRpc.Attach``1(System.IO.Stream)> overload, disposal of the proxy is forwarded to <xref:StreamJsonRpc.JsonRpc.Dispose>.
+   An exception is when the RPC contract itself derives from <xref:System.IAsyncDisposable>: its `DisposeAsync` method is treated as an RPC method and does not dispose the local proxy.
 
 ## RPC interfaces
 
@@ -58,7 +59,8 @@ A proxy can only be generated for an interface that meets these requirements:
 1. All events are typed with <xref:System.EventHandler> or <xref:System.EventHandler`1>. The JSON-RPC contract for raising such events is that the request contain exactly one argument, which supplies the value for the `T` in <xref:System.EventHandler`1>.
 1. Methods *may* accept a @System.Threading.CancellationToken as the last parameter.
 
-The RPC interface may derive from <xref:System.IDisposable> or <xref:System.IAsyncDisposable> and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
+The RPC interface may derive from <xref:System.IDisposable> and is encouraged to do so as it encourages folks who hold proxies to dispose of them and thereby close the JSON-RPC connection.
+An RPC interface may also derive from <xref:System.IAsyncDisposable>, but its `DisposeAsync` method is invoked on the remote target and does not close the local JSON-RPC connection.
 
 Applying the <xref:StreamJsonRpc.JsonRpcContractAttribute> to all RPC interfaces is strongly encouraged, as it has two significant benefits:
 
