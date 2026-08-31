@@ -411,7 +411,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public async Task RpcInterfaceCanDispose_IAsyncDisposable()
+    public async Task RpcInterfaceIAsyncDisposableRemainsRemote()
     {
         var streams = FullDuplexStream.CreateStreams();
 
@@ -424,7 +424,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         Assert.Equal(6, await clientRpc.MultiplyAsync(2, 3));
         await clientRpc.DisposeAsync();
-        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
+        Assert.Equal(1, server.AsyncDisposeCount);
+        Assert.False(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
+        ((IDisposable)clientRpc).Dispose();
     }
 
     [Fact]
@@ -1448,6 +1450,14 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
     internal class Server2 : IServer2
     {
+        internal int AsyncDisposeCount { get; private set; }
+
+        public ValueTask DisposeAsync()
+        {
+            this.AsyncDisposeCount++;
+            return default;
+        }
+
         public Task<int> MultiplyAsync(int a, int b) => Task.FromResult(a * b);
     }
 
