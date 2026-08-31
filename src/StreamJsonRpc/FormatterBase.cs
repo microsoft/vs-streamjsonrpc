@@ -17,7 +17,7 @@ namespace StreamJsonRpc;
 /// A base class for <see cref="IJsonRpcMessageFormatter"/> implementations
 /// that support exotic types.
 /// </summary>
-public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceContainer, IDisposable
+public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcFormatterStateInternal, IJsonRpcInstanceContainer, IDisposable
 {
     private JsonRpc? rpc;
 
@@ -52,6 +52,8 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
 
     private bool serializingRequest;
 
+    private bool deserializingRequest;
+
     private int nullParamsWarningEmitted;
 
     /// <summary>
@@ -80,6 +82,9 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
 
     /// <inheritdoc  />
     bool IJsonRpcFormatterState.SerializingRequest => this.serializingRequest;
+
+    /// <inheritdoc/>
+    bool IJsonRpcFormatterStateInternal.DeserializingRequest => this.deserializingRequest;
 
     /// <inheritdoc/>
     JsonRpc IJsonRpcInstanceContainer.Rpc
@@ -326,6 +331,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
             {
                 formatter.DeserializingMessage = message;
                 formatter.deserializingMessageWithId = (message as IJsonRpcMessageWithId)?.RequestId ?? default;
+                formatter.deserializingRequest = message is JsonRpcRequest;
 
                 // Consider the attribute applied to the particular overload that we're considering right now.
                 formatter.ApplicableMethodAttributeOnDeserializingMethod = message is JsonRpcRequest { Method: not null } request ? formatter.JsonRpc?.GetJsonRpcMethodAttribute(request.Method, parameters) : null;
@@ -342,6 +348,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcInstanceCo
             if (this.formatter is not null)
             {
                 this.formatter.deserializingMessageWithId = default;
+                this.formatter.deserializingRequest = false;
                 this.formatter.DeserializingMessage = null;
                 this.formatter.ApplicableMethodAttributeOnDeserializingMethod = null;
             }
