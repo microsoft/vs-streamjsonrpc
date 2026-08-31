@@ -34,7 +34,14 @@ public partial class CommonErrorData
         this.StackTrace = copyFrom.StackTrace;
         this.HResult = copyFrom.HResult;
         this.TypeName = copyFrom.GetType().FullName;
-        this.Inner = copyFrom.InnerException is not null ? new CommonErrorData(copyFrom.InnerException) : null;
+        if (copyFrom.InnerException is not null)
+        {
+            this.Inner = new CommonErrorData(copyFrom.InnerException);
+        }
+        else if (copyFrom is RemoteInvocationException { DeserializedErrorData: CommonErrorData remoteErrorData })
+        {
+            this.Inner = remoteErrorData;
+        }
     }
 
     /// <summary>
