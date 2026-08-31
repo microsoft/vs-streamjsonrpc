@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using Microsoft.VisualStudio.Threading;
@@ -216,6 +217,24 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         }
 
         Assert.Equal<byte>(MemoryBuffer.Take(bytesToReceive), buffer.Take(bytesToReceive));
+    }
+
+    [Fact]
+    public async Task ReturnedPipeReaderIsCollectedAfterCompletion()
+    {
+        WeakReference readerReference = await GetAndCompleteReaderAsync();
+        await this.AssertWeakReferenceGetsCollectedAsync(readerReference);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        async Task<WeakReference> GetAndCompleteReaderAsync()
+        {
+            PipeReader reader = await this.clientRpc.InvokeAsync<PipeReader>(nameof(Server.ServerMethodThatReturnsPipeReader));
+            using var content = new MemoryStream();
+            await reader.CopyToAsync(content, this.TimeoutToken);
+            reader.Complete();
+            Assert.Equal(MemoryBuffer, content.ToArray());
+            return new WeakReference(reader);
+        }
     }
 
     [Theory]
@@ -893,6 +912,14 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         public Task RejectCall(IDuplexPipe pipe) => Task.FromException(new InvalidOperationException("Expected test exception."));
 
         public object ReturnPipeAsObject() => FullDuplexStream.CreatePipePair().Item1;
+
+        public async Task<PipeReader> ServerMethodThatReturnsPipeReader()
+        {
+            var pipe = new Pipe();
+            await pipe.Writer.WriteAsync(MemoryBuffer);
+            pipe.Writer.Complete();
+            return pipe.Reader;
+        }
 
         public Stream ServerMethodThatReturnsStream() => new MemoryStream(Encoding.UTF8.GetBytes("Streamed bits!"));
 

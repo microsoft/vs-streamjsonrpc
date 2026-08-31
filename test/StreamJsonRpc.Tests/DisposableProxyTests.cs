@@ -89,6 +89,20 @@ public abstract partial class DisposableProxyTests : TestBase
     }
 
     [Fact]
+    public async Task DisposableReturnValue_DisposeAsyncSendsRemoteDisposalAndDisposeIsIdempotent()
+    {
+        IDisposable? proxyDisposable = await this.client.GetDisposableAsync();
+        Assert.NotNull(proxyDisposable);
+        Assumes.NotNull(this.server.ReturnedDisposable);
+
+        await ((System.IAsyncDisposable)proxyDisposable).DisposeAsync();
+        proxyDisposable.Dispose();
+
+        await this.server.ReturnedDisposableDisposed.WaitAsync(this.TimeoutToken);
+        Assert.True(this.server.ReturnedDisposable.IsDisposed);
+    }
+
+    [Fact]
     public async Task DisposableReturnValue_IsMarshaledAndLaterCollected()
     {
         var weakRefs = await this.DisposableReturnValue_Helper();

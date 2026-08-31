@@ -42,6 +42,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer2
     {
+        IAsyncEnumerable<int> FailBeforeReturningAsync(CancellationToken cancellationToken);
+
         IAsyncEnumerable<int> WaitTillCanceledBeforeReturningAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersParameterizedAsync(int batchSize, int readAhead, int prefetch, int totalCount, bool endWithException, CancellationToken cancellationToken);
@@ -59,6 +61,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         IAsyncEnumerable<int> GetNumbersAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> GetNumbersNoCancellationAsync();
+
+        IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync(CancellationToken cancellationToken);
 
@@ -322,6 +326,23 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await enumerator.MoveNextAsync());
     }
 
+    [Theory]
+    [PairwiseData]
+    public async Task Cancellation_BetweenMoveNextCallsCancelsServerMethod(bool useProxy)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(this.TimeoutToken);
+        IAsyncEnumerable<int> enumerable = useProxy
+            ? this.clientProxy.Value.WaitForCancellationAfterYieldAsync(cts.Token)
+            : await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.WaitForCancellationAfterYieldAsync), cancellationToken: cts.Token);
+
+        await using IAsyncEnumerator<int> enumerator = enumerable.GetAsyncEnumerator(useProxy ? CancellationToken.None : cts.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+
+        cts.Cancel();
+
+        await this.server.MethodCancellationObserved.WaitAsync(this.TimeoutToken);
+    }
+
     [Fact]
     public async Task Cancellation_AfterFirstMoveNext_NaturalForEach_Proxy()
     {
@@ -551,6 +572,17 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task DisposeAsyncDoesNotRepeatMoveNextAsyncException()
+    {
+        var proxy = this.clientRpc.Attach<IServer2>();
+        IAsyncEnumerator<int> enumerator = proxy.FailBeforeReturningAsync(this.TimeoutToken).GetAsyncEnumerator(this.TimeoutToken);
+
+        RemoteInvocationException ex = await Assert.ThrowsAsync<RemoteInvocationException>(async () => await enumerator.MoveNextAsync());
+        Assert.Equal(Server.FailByDesignExceptionMessage, ex.Message);
+        await enumerator.DisposeAsync();
+    }
+
+    [Fact]
     public async Task EnumerableIdDisposal()
     {
         // This test is specially arranged to create two RPC calls going opposite directions, with the same request ID.
@@ -655,6 +687,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public AsyncManualResetEvent MethodExited { get; } = new AsyncManualResetEvent();
 
+        public AsyncManualResetEvent MethodCancellationObserved { get; } = new AsyncManualResetEvent();
+
         public Task? ArgEnumeratorAfterReturn { get; private set; }
 
         public AsyncManualResetEvent AllowEnumeratorToContinue { get; } = new AsyncManualResetEvent();
@@ -683,6 +717,15 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public IAsyncEnumerable<int> GetNumbersNoCancellationAsync() => this.GetNumbersAsync(CancellationToken.None);
 
+        public async IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            using (cancellationToken.Register(this.MethodCancellationObserved.Set))
+            {
+                yield return 1;
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+        }
+
         public async IAsyncEnumerable<int> GetNumbersAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
             try
@@ -702,6 +745,11 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         {
             return this.GetNumbersAsync(totalCount, endWithException, cancellationToken)
                 .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MinBatchSize = batchSize, MaxReadAhead = readAhead, Prefetch = prefetch });
+        }
+
+        public Task<IAsyncEnumerable<int>> FailBeforeReturningAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromException<IAsyncEnumerable<int>>(new InvalidOperationException(FailByDesignExceptionMessage));
         }
 
         public async IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync([EnumeratorCancellation] CancellationToken cancellationToken)

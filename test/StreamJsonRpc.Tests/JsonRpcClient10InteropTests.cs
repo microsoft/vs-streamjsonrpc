@@ -12,12 +12,14 @@ using Newtonsoft.Json.Linq;
 public class JsonRpcClient10InteropTests : InteropTestBase
 {
     private readonly JsonRpc clientRpc;
+    private readonly NotificationTarget notificationTarget = new();
 
     public JsonRpcClient10InteropTests(ITestOutputHelper logger)
         : base(logger)
     {
         this.messageHandler.Formatter.ProtocolVersion = new Version(1, 0);
         this.clientRpc = new JsonRpc(this.messageHandler);
+        this.clientRpc.AddLocalRpcTarget(this.notificationTarget);
         this.clientRpc.StartListening();
     }
 
@@ -81,6 +83,35 @@ public class JsonRpcClient10InteropTests : InteropTestBase
     {
         await this.clientRpc.NotifyAsync("method");
         JToken request = await this.ReceiveAsync();
+        Assert.Null(request["jsonrpc"]);
         Assert.Equal(JTokenType.Null, request["id"]?.Type);
+    }
+
+    [Fact]
+    public async Task NotificationsWithNullIdDoNotReceiveResponses()
+    {
+        this.Send(new
+        {
+            method = nameof(NotificationTarget.OnNotification),
+            @params = new[] { "value" },
+            id = (object?)null,
+        });
+
+        Assert.Equal("value", await this.notificationTarget.NotificationReceived.Task.WithCancellation(this.TimeoutToken));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.messageHandler.WrittenMessages.DequeueAsync(ExpectedTimeoutToken));
+    }
+
+    private class NotificationTarget
+    {
+        /// <summary>
+        /// Gets a task that completes when the notification arrives.
+        /// </summary>
+        internal TaskCompletionSource<string> NotificationReceived { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>
+        /// Receives a test notification.
+        /// </summary>
+        /// <param name="value">The notification value.</param>
+        public void OnNotification(string value) => this.NotificationReceived.SetResult(value);
     }
 }

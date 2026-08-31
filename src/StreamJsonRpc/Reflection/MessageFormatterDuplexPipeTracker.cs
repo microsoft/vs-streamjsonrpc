@@ -91,7 +91,9 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// <summary>
     /// Gets the ID of the request currently being deserialized for use as a key in <see cref="inboundRequestChannelMap"/>.
     /// </summary>
-    private RequestId RequestIdBeingDeserialized => this.formatterState.DeserializingMessageWithId;
+    private RequestId RequestIdBeingDeserialized => this.formatterState is IJsonRpcFormatterStateInternal { DeserializingRequest: false }
+        ? default
+        : this.formatterState.DeserializingMessageWithId;
 
     /// <inheritdoc cref="GetULongToken(IDuplexPipe?)"/>
     [return: NotNullIfNotNull("duplexPipe")]

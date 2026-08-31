@@ -27,3 +27,14 @@ public interface IJsonRpcFormatterState
     /// </remarks>
     public bool SerializingRequest { get; }
 }
+
+/// <summary>
+/// Describes internal formatter state that supports distinguishing requests from responses.
+/// </summary>
+internal interface IJsonRpcFormatterStateInternal
+{
+    /// <summary>
+    /// Gets a value indicating whether a <see cref="Protocol.JsonRpcRequest"/> is being deserialized.
+    /// </summary>
+    bool DeserializingRequest { get; }
+}

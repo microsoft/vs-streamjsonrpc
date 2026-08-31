@@ -831,7 +831,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="stream">The bidirectional stream used to send and receive JSON-RPC messages.</param>
     /// <returns>
     /// An instance of the generated proxy.
-    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/> and <see cref="System.IAsyncDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <remarks>
@@ -853,7 +853,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
     /// <returns>
     /// An instance of the generated proxy.
-    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/> and <see cref="System.IAsyncDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
@@ -874,7 +874,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="handler">The message handler to use.</param>
     /// <returns>
     /// An instance of the generated proxy.
-    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/> and <see cref="System.IAsyncDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
@@ -893,7 +893,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="options">A set of customizations for how the client proxy is wired up. If <see langword="null"/>, default options will be used.</param>
     /// <returns>
     /// An instance of the generated proxy.
-    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/>
+    /// In addition to implementing <typeparamref name="T"/>, it also implements <see cref="IDisposable"/> and <see cref="System.IAsyncDisposable"/>
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
