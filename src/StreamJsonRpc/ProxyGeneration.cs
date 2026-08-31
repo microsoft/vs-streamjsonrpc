@@ -1191,6 +1191,7 @@ internal static class ProxyGeneration
         private class AsyncEnumeratorProxy : IAsyncEnumerator<T>
         {
             private readonly AsyncLazy<IAsyncEnumerator<T>> enumeratorLazy;
+            private bool enumeratorCreationFailureObserved;
 
             internal AsyncEnumeratorProxy(Task<IAsyncEnumerable<T>> enumerableTask, CancellationToken cancellationToken)
             {
@@ -1216,12 +1217,27 @@ internal static class ProxyGeneration
 
             public async ValueTask<bool> MoveNextAsync()
             {
-                IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                IAsyncEnumerator<T> enumerator;
+                try
+                {
+                    enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    this.enumeratorCreationFailureObserved = true;
+                    throw;
+                }
+
                 return await enumerator.MoveNextAsync().ConfigureAwait(false);
             }
 
             public async ValueTask DisposeAsync()
             {
+                if (this.enumeratorCreationFailureObserved)
+                {
+                    return;
+                }
+
                 // Even if we haven't been asked for the iterator yet, the server has (or soon may), so we must acquire it
                 // and dispose of it so that we don't incur a memory leak on the server.
                 IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
