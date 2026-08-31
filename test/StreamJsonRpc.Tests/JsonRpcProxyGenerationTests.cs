@@ -125,6 +125,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IAsyncDisposableServer2 : System.IAsyncDisposable, IServer2
+    {
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServerWithDisposeAsyncMethod
+    {
+        ValueTask DisposeAsync();
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObject
     {
@@ -400,6 +411,24 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task RpcInterfaceCanDispose_IAsyncDisposable()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+
+        var clientRpc = this.AttachJsonRpc<IAsyncDisposableServer2>(streams.Item1);
+        var server = new Server2();
+
+        this.serverRpc = new JsonRpc(streams.Item2);
+        this.serverRpc.AddLocalRpcTarget(server);
+        this.serverRpc.StartListening();
+
+        Assert.Equal(6, await clientRpc.MultiplyAsync(2, 3));
+        await clientRpc.DisposeAsync();
+        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
+        ((IDisposable)clientRpc).Dispose();
+    }
+
+    [Fact]
     public async Task CallMethod_void_String()
     {
         Assert.Equal("Hi!", await this.clientRpc.SayHiAsync());
@@ -468,6 +497,35 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
             await Task.Delay(1, TestContext.Current.CancellationToken);
             this.TimeoutToken.ThrowIfCancellationRequested();
         }
+    }
+
+    [Fact]
+    public async Task ImplementsIAsyncDisposable()
+    {
+        var disposableClient = Assert.IsAssignableFrom<System.IAsyncDisposable>(this.clientRpc);
+        await disposableClient.DisposeAsync();
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+    }
+
+    [Fact]
+    public void RpcMethodNamedDisposeAsyncDoesNotCollideWithAsyncDisposal()
+    {
+        var rpc = new JsonRpc(Stream.Null);
+        var clientRpc = rpc.Attach<IServerWithDisposeAsyncMethod>(this.DefaultProxyOptions);
+
+        Assert.IsAssignableFrom<System.IAsyncDisposable>(clientRpc);
+    }
+
+    [Fact]
+    public async Task DisposeAsyncReturnsFaultedValueTaskWhenDisposalFails()
+    {
+        var rpc = new ThrowingDisposeJsonRpc();
+        var clientRpc = (System.IAsyncDisposable)rpc.Attach<IServer>(this.DefaultProxyOptions);
+
+        ValueTask disposal = clientRpc.DisposeAsync();
+
+        Assert.True(disposal.IsCompleted);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => disposal.AsTask());
     }
 
     [Fact]
@@ -1176,7 +1234,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 #endif
 
 #if NO_INTERCEPTORS
-    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
+    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
+    {
+        [Fact]
+        public void IAsyncDisposableMayBeContractInterface()
+        {
+            using JsonRpc rpc = new(Stream.Null);
+            object proxy = rpc.Attach(typeof(System.IAsyncDisposable), this.DefaultProxyOptions);
+
+            Assert.IsAssignableFrom<System.IAsyncDisposable>(proxy);
+        }
+    }
 #endif
 
     public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
@@ -1400,6 +1468,11 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
             => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
+    }
+
+    private sealed class ThrowingDisposeJsonRpc() : JsonRpc(Stream.Null)
+    {
+        protected override void Dispose(bool disposing) => throw new InvalidOperationException();
     }
 
     private sealed class CapturingMessageHandler : MessageHandlerBase
