@@ -17,8 +17,8 @@ $ActivityName = "Collecting symbols from $Path"
 Write-Progress -Activity $ActivityName -CurrentOperation "Discovery PDB files"
 $PDBs = Get-ChildItem -rec "$Path/*.pdb"
 
-# Remove samples
-$PDBs = $PDBs | Where-Object { $_.FullName -notmatch "samples" }
+# Remove sample project outputs. Build outputs are grouped by project name rather than source path.
+$PDBs = $PDBs | Where-Object { $_.FullName -notmatch "[\\/](Samples|FSharpSample)[\\/]" }
 
 # Filter PDBs to product OR test related.
 $testregex = "unittest|tests|\.test\.|Benchmarks|UnreachableAssembly"
