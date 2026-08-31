@@ -427,6 +427,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         Assert.Equal(1, server.AsyncDisposeCount);
         Assert.False(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
         ((IDisposable)clientRpc).Dispose();
+        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
     }
 
     [Fact]
