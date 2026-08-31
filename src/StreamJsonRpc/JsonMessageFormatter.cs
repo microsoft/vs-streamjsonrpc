@@ -278,11 +278,13 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                 case 1:
                     this.VerifyProtocolCompliance(json["jsonrpc"] is null, json, "\"jsonrpc\" property not expected. Use protocol version 2.0.");
                     this.VerifyProtocolCompliance(json["id"] is not null, json, "\"id\" property missing.");
-                    return
+                    JsonRpcMessage message =
                         json["method"] is not null ? this.ReadRequest(json) :
                         json["error"]?.Type == JTokenType.Null ? this.ReadResult(json) :
                         json["error"] is { Type: not JTokenType.Null } ? this.ReadError(json) :
                         throw this.CreateProtocolNonComplianceException(json);
+                    message.Version = "1.0";
+                    return message;
                 case 2:
                     this.VerifyProtocolCompliance(json.Value<string>("jsonrpc") == "2.0", json, $"\"jsonrpc\" property must be set to \"2.0\", or set {nameof(this.ProtocolVersion)} to 1.0 mode.");
                     return
@@ -330,10 +332,29 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
                 json["result"] = JValue.CreateNull();
             }
 
-            if (this.ProtocolVersion.Major == 1 && json["id"] is null)
+            if (this.ProtocolVersion.Major == 1)
             {
+                ((JObject)json).Remove("jsonrpc");
+
                 // JSON-RPC 1.0 requires the id property to be present even for notifications.
-                json["id"] = JValue.CreateNull();
+                if (json["id"] is null)
+                {
+                    json["id"] = JValue.CreateNull();
+                }
+
+                // JSON-RPC 1.0 requires both response properties, with one set to null.
+                if (message is Protocol.JsonRpcResult)
+                {
+                    json["error"] = JValue.CreateNull();
+                }
+                else if (message is Protocol.JsonRpcError)
+                {
+                    json["result"] = JValue.CreateNull();
+                }
+            }
+            else
+            {
+                json["jsonrpc"] = "2.0";
             }
 
             // Copy over extra top-level properties.
@@ -621,6 +642,10 @@ public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextForma
         Requires.NotNull(json, nameof(json));
 
         RequestId id = json["id"]?.ToObject<RequestId>(DefaultSerializer) ?? default;
+        if (this.ProtocolVersion.Major == 1 && id.IsNull)
+        {
+            id = RequestId.NotSpecified;
+        }
 
         // We leave arguments as JTokens at this point, so that we can try deserializing them
         // to more precise .NET types as required by the method we're invoking.
