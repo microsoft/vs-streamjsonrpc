@@ -191,7 +191,7 @@ public class MessageFormatterEnumerableTracker
         {
             if (!this.generatorsByToken.TryGetValue(token, out generator))
             {
-                throw new LocalRpcException(Resources.UnknownTokenToMarshaledObject) { ErrorCode = (int)JsonRpcErrorCode.NoMarshaledObjectFound };
+                return default;
             }
 
             this.generatorsByToken.Remove(token);
@@ -414,8 +414,11 @@ public class MessageFormatterEnumerableTracker
         {
             private readonly AsyncEnumerableProxy<T> owner;
             private readonly CancellationToken cancellationToken;
+            private readonly CancellationTokenRegistration cancellationRegistration;
             private readonly object[]? nextOrDisposeArguments;
             private readonly IDisposable? requestResourcesDeferral;
+            private readonly object abortSyncObject = new object();
+            private Task? abortNotificationTask;
 
             /// <summary>
             /// A sequence of values that have already been received from the generator but not yet consumed.
@@ -444,6 +447,9 @@ public class MessageFormatterEnumerableTracker
 
                 this.generatorReportsFinished = finished;
                 this.requestResourcesDeferral = requestResourcesDeferral;
+                this.cancellationRegistration = cancellationToken.Register(
+                    static state => ((AsyncEnumeratorProxy)state!).NotifyServerOfAbortAsync().Forget(),
+                    this);
             }
 
             public T Current
@@ -465,6 +471,7 @@ public class MessageFormatterEnumerableTracker
                 if (!this.disposed)
                 {
                     this.disposed = true;
+                    await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
 
                     // Recycle buffers
                     this.localCachedValues.Reset();
@@ -472,7 +479,7 @@ public class MessageFormatterEnumerableTracker
                     // Notify server if it wasn't already finished.
                     if (!this.generatorReportsFinished)
                     {
-                        await this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments).ConfigureAwait(false);
+                        await this.NotifyServerOfAbortAsync().ConfigureAwait(false);
                     }
 
                     // Clean up any local resources that were held open for the remote source of the enumeration.
@@ -518,11 +525,16 @@ public class MessageFormatterEnumerableTracker
                         }
 
                         this.generatorReportsFinished = results.Finished;
+                        if (this.generatorReportsFinished)
+                        {
+                            await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
+                        }
                     }
                     catch (RemoteInvocationException ex)
                     {
                         // Avoid spending a message asking the server to dispose of the marshalled enumerator since they threw an exception at us.
                         this.generatorReportsFinished = true;
+                        await this.DisposeCancellationRegistrationAsync().ConfigureAwait(false);
 
                         if (ex.ErrorCode == (int)JsonRpcErrorCode.NoMarshaledObjectFound)
                         {
@@ -545,6 +557,26 @@ public class MessageFormatterEnumerableTracker
                 }
 
                 writer.Advance(values.Count);
+            }
+
+            private ValueTask DisposeCancellationRegistrationAsync()
+            {
+#if NETSTANDARD2_1_OR_GREATER || NET6_0_OR_GREATER
+                return this.cancellationRegistration.DisposeAsync();
+#else
+                this.cancellationRegistration.Dispose();
+                return default;
+#endif
+            }
+
+            private Task NotifyServerOfAbortAsync()
+            {
+                lock (this.abortSyncObject)
+                {
+                    return this.generatorReportsFinished || this.nextOrDisposeArguments is null
+                        ? Task.CompletedTask
+                        : this.abortNotificationTask ??= this.owner.jsonRpc.NotifyAsync(DisposeMethodName, this.nextOrDisposeArguments);
+                }
             }
         }
     }
