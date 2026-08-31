@@ -5,10 +5,13 @@ using System.Diagnostics;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
 public partial class JsonContractResolverTest : TestBase
 {
+    private static readonly IContractResolver SharedContractResolver = new CamelCasePropertyNamesContractResolver();
+
     private readonly Server server = new Server();
     private readonly JsonRpc serverRpc;
     private readonly JsonRpc clientRpc;
@@ -58,6 +61,51 @@ public partial class JsonContractResolverTest : TestBase
     public partial interface IMarshalable : IDisposable
     {
         void DoSomething();
+    }
+
+    [Fact]
+    public void DefaultContractsAreSharedAcrossFormatters()
+    {
+        var firstFormatter = new JsonMessageFormatter();
+        var secondFormatter = new JsonMessageFormatter();
+
+        Assert.Same(
+            firstFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(Container<string>)),
+            secondFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(Container<string>)));
+        Assert.Same(
+            firstFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(IObserver<int>)),
+            secondFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(IObserver<int>)));
+    }
+
+    [Fact]
+    public void MarshalablePropertyConvertersAreSharedAcrossFormatters()
+    {
+        var firstFormatter = new JsonMessageFormatter();
+        var secondFormatter = new JsonMessageFormatter();
+
+        var firstContract = (JsonObjectContract)firstFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(Container<IObserver<int>>));
+        JsonConverter? firstConverter = firstContract.Properties[nameof(Container<IObserver<int>>.Field)]?.Converter;
+        var secondContract = (JsonObjectContract)secondFormatter.JsonSerializer.ContractResolver.ResolveContract(typeof(Container<IObserver<int>>));
+
+        Assert.NotNull(firstConverter);
+        Assert.Same(firstContract, secondContract);
+        Assert.Same(firstConverter, secondContract.Properties[nameof(Container<IObserver<int>>.Field)]?.Converter);
+    }
+
+    [Fact]
+    public void ContractResolverCanBeReplacedAfterFirstUse()
+    {
+        var formatter = new JsonMessageFormatter();
+        formatter.Serialize(new JsonRpcRequest { Method = "first" });
+
+        var replacementResolver = new CamelCasePropertyNamesContractResolver();
+        JsonContract expectedContract = replacementResolver.ResolveContract(typeof(Container<string>));
+        formatter.JsonSerializer.ContractResolver = replacementResolver;
+
+        formatter.Serialize(new JsonRpcRequest { Method = "second" });
+
+        Assert.NotSame(replacementResolver, formatter.JsonSerializer.ContractResolver);
+        Assert.Same(expectedContract, formatter.JsonSerializer.ContractResolver.ResolveContract(typeof(Container<string>)));
     }
 
     [Fact]
@@ -127,7 +175,7 @@ public partial class JsonContractResolverTest : TestBase
     private IJsonRpcMessageFormatter CreateFormatter()
     {
         var formatter = new JsonMessageFormatter();
-        formatter.JsonSerializer.ContractResolver = new CamelCasePropertyNamesContractResolver();
+        formatter.JsonSerializer.ContractResolver = SharedContractResolver;
 
         return formatter;
     }
