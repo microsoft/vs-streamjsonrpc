@@ -288,6 +288,7 @@ public class ProxyGeneratorTests
             [JsonRpcContract]
             partial interface IFoo
             {
+                [JsonRpcEvent("MyRenamedEvent")]
                 event EventHandler MyEvent;
                 event EventHandler<string> MyGenericEvent;
             }

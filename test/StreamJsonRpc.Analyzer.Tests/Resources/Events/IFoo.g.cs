@@ -20,7 +20,7 @@ namespace StreamJsonRpc.Generated
 		public IFoo_Proxy(global::StreamJsonRpc.JsonRpc client, global::StreamJsonRpc.Reflection.ProxyInputs inputs)
 		    : base(client, inputs)
 		{
-			this.JsonRpc.AddLocalRpcMethod(this.TransformEventName("MyEvent", typeof(global::IFoo)), this.OnMyEvent);
+			this.JsonRpc.AddLocalRpcMethod(this.TransformEventName("MyRenamedEvent", typeof(global::IFoo)), this.OnMyEvent);
 			this.JsonRpc.AddLocalRpcMethod(this.TransformEventName("MyGenericEvent", typeof(global::IFoo)), this.OnMyGenericEvent);
 		}
 		
