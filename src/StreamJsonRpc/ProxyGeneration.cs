@@ -103,7 +103,6 @@ internal static class ProxyGeneration
 
             Type[] contractInterfaces = [contractInterface, .. additionalContractInterfaces];
             IList<(Type Type, int? Code)> rpcInterfaces = GetSortedInterfaceAndCodes(inputs);
-            bool hasAsyncDisposableContract = rpcInterfaces.Any(i => typeof(System.IAsyncDisposable).IsAssignableFrom(i.Type));
 
             // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
@@ -239,11 +238,7 @@ internal static class ProxyGeneration
             }
 
             MethodBuilder disposeMethod = ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, onDisposeField, disposedField);
-            if (!hasAsyncDisposableContract)
-            {
-                ImplementDisposeAsyncMethod(proxyTypeBuilder, disposeMethod);
-            }
-
+            ImplementDisposeAsyncMethod(proxyTypeBuilder, disposeMethod);
             ImplementIsDisposedProperty(proxyTypeBuilder, jsonRpcField, disposedField);
             ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField, marshaledObjectHandleField);
 
@@ -302,7 +297,7 @@ internal static class ProxyGeneration
             IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
             MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _]);
 
-            HashSet<MethodInfo> implementedMethods = hasAsyncDisposableContract ? new() { DisposeMethod } : new() { DisposeMethod, DisposeAsyncMethod };
+            HashSet<MethodInfo> implementedMethods = new() { DisposeMethod, DisposeAsyncMethod };
             foreach ((Type rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
             {
                 RpcTargetMetadata methodNameMap = RpcTargetMetadata.FromInterface(rpcInterface.GetTypeInfo());
