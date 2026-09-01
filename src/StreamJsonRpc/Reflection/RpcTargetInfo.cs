@@ -297,16 +297,17 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, existingList = new List<MethodSignatureAndTarget>());
                 }
 
-                // Only add methods that do not have equivalent signatures to what we already have.
+                // Avoid adding the same metadata twice while allowing distinct wire-equivalent overloads.
                 foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
                 {
+                    var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
+
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
-                    if (!alreadyExists || !existingList!.Any(e => e.Equals(newMethod)))
+                    if (!alreadyExists || !existingList!.Any(e => e.Equals(signatureAndTarget)))
                     {
-                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                        existingList!.Add(signatureAndTarget);
+                        AddMethodWithCancellationPreference(existingList!, signatureAndTarget);
                     }
                     else
                     {
@@ -318,6 +319,24 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
             }
         }
+    }
+
+    private static void AddMethodWithCancellationPreference(List<MethodSignatureAndTarget> methods, MethodSignatureAndTarget method)
+    {
+        if (method.Signature.HasCancellationTokenParameter)
+        {
+            int equivalentNonCancelableMethodIndex = methods.FindIndex(candidate =>
+                ReferenceEquals(candidate.Target, method.Target) &&
+                !candidate.Signature.HasCancellationTokenParameter &&
+                candidate.Signature.EqualSignature(method.Signature));
+            if (equivalentNonCancelableMethodIndex >= 0)
+            {
+                methods.Insert(equivalentNonCancelableMethodIndex, method);
+                return;
+            }
+        }
+
+        methods.Add(method);
     }
 
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
