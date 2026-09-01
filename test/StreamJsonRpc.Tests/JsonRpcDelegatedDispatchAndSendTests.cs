@@ -52,6 +52,43 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
     [Fact]
+    public async Task CancellationPreferencePreservesTargetRegistrationOrder()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcTarget(new FirstTarget());
+        serverRpc.AddLocalRpcTarget(new SecondTarget());
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(FirstTarget.GetTargetAsync));
+
+        Assert.Equal("first", result);
+    }
+
+    [Fact]
+    public async Task RegisteringSameTargetTypeRetainsDistinctTargets()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        var firstTarget = new RepeatedTarget("first");
+        var secondTarget = new RepeatedTarget("second");
+        serverRpc.AddLocalRpcTarget(firstTarget, new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
+        serverRpc.AddLocalRpcTarget(secondTarget);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(RepeatedTarget.GetTargetAsync),
+            new { argument = "argument" },
+            this.TimeoutToken);
+
+        Assert.Equal("second", result);
+    }
+
+    [Fact]
     public async Task DelegatedDispatcherCanDispatchInReverseOrderBasedOnTopLevelProperty()
     {
         this.serverRpc.EnableBuffering = true;
@@ -114,6 +151,28 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         {
             throw new InvalidProgramException();
         }
+    }
+
+    public class FirstTarget
+    {
+        public Task<string> GetTargetAsync() => Task.FromResult("first");
+    }
+
+    public class SecondTarget
+    {
+        public Task<string> GetTargetAsync(CancellationToken cancellationToken) => Task.FromResult("second");
+    }
+
+    public class RepeatedTarget
+    {
+        private readonly string value;
+
+        public RepeatedTarget(string value)
+        {
+            this.value = value;
+        }
+
+        public Task<string> GetTargetAsync(string argument) => Task.FromResult(this.value);
     }
 
     public class DelegatedJsonRpc : JsonRpc

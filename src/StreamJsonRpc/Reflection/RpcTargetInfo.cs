@@ -300,10 +300,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 // Avoid adding the same metadata twice while allowing distinct wire-equivalent overloads.
                 foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
                 {
+                    var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
+
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
-                    if (!alreadyExists || !existingList!.Any(e => ReferenceEquals(e.Signature, newMethod)))
+                    if (!alreadyExists || !existingList!.Any(e => e.Equals(signatureAndTarget)))
                     {
-                        var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
                         AddMethodWithCancellationPreference(existingList!, signatureAndTarget);
@@ -325,6 +326,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         if (method.Signature.HasCancellationTokenParameter)
         {
             int equivalentNonCancelableMethodIndex = methods.FindIndex(candidate =>
+                ReferenceEquals(candidate.Target, method.Target) &&
                 !candidate.Signature.HasCancellationTokenParameter &&
                 candidate.Signature.EqualSignature(method.Signature));
             if (equivalentNonCancelableMethodIndex >= 0)
