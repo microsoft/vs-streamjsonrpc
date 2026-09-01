@@ -297,11 +297,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     this.targetRequestMethodToClrMethodMap.Add(rpcMethodName, existingList = new List<MethodSignatureAndTarget>());
                 }
 
-                // Only add methods that do not have equivalent signatures to what we already have.
+                // Avoid adding the same metadata twice while allowing distinct wire-equivalent overloads.
                 foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
                 {
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
-                    if (!alreadyExists || !existingList!.Any(e => e.Signature == newMethod))
+                    if (!alreadyExists || !existingList!.Any(e => ReferenceEquals(e.Signature, newMethod)))
                     {
                         var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
