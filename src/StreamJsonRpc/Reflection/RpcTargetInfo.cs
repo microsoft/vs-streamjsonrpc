@@ -306,7 +306,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                        existingList!.Add(signatureAndTarget);
+                        AddMethodWithCancellationPreference(existingList!, signatureAndTarget);
                     }
                     else
                     {
@@ -318,6 +318,23 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
             }
         }
+    }
+
+    private static void AddMethodWithCancellationPreference(List<MethodSignatureAndTarget> methods, MethodSignatureAndTarget method)
+    {
+        if (method.Signature.HasCancellationTokenParameter)
+        {
+            int equivalentNonCancelableMethodIndex = methods.FindIndex(candidate =>
+                !candidate.Signature.HasCancellationTokenParameter &&
+                candidate.Signature.EqualSignature(method.Signature));
+            if (equivalentNonCancelableMethodIndex >= 0)
+            {
+                methods.Insert(equivalentNonCancelableMethodIndex, method);
+                return;
+            }
+        }
+
+        methods.Add(method);
     }
 
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)

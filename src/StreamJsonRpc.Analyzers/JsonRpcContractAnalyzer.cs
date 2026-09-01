@@ -515,7 +515,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             {
                 (IMethodSymbol method, int minimumArgumentCount, int maximumArgumentCount) = methods[i];
                 bool overlaps = methods.Where((_, index) => index != i).Any(other =>
-                    !this.HaveEquivalentContractSignature(method, other.Method) &&
+                    !this.HaveEquivalentRpcSignature(method, other.Method, knownSymbols) &&
                     minimumArgumentCount <= other.MaximumArgumentCount &&
                     other.MinimumArgumentCount <= maximumArgumentCount);
                 if (overlaps)
@@ -531,15 +531,21 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private bool HaveEquivalentContractSignature(IMethodSymbol first, IMethodSymbol second)
+    private bool HaveEquivalentRpcSignature(IMethodSymbol first, IMethodSymbol second, KnownSymbols knownSymbols)
     {
-        if (!SymbolEqualityComparer.Default.Equals(first.ReturnType, second.ReturnType) ||
-            first.Parameters.Length != second.Parameters.Length)
+        if (!SymbolEqualityComparer.Default.Equals(first.ReturnType, second.ReturnType))
         {
             return false;
         }
 
-        for (int i = 0; i < first.Parameters.Length; i++)
+        int firstParameterCount = GetRpcParameterCount(first);
+        int secondParameterCount = GetRpcParameterCount(second);
+        if (firstParameterCount != secondParameterCount)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < firstParameterCount; i++)
         {
             IParameterSymbol firstParameter = first.Parameters[i];
             IParameterSymbol secondParameter = second.Parameters[i];
@@ -551,6 +557,14 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
         }
 
         return true;
+
+        int GetRpcParameterCount(IMethodSymbol method)
+        {
+            return method.Parameters is [.., { Type: { } type }] &&
+                SymbolEqualityComparer.Default.Equals(type, knownSymbols.CancellationToken)
+                ? method.Parameters.Length - 1
+                : method.Parameters.Length;
+        }
     }
 
     private string GetNormalizedRpcMethodName(IMethodSymbol method, KnownSymbols knownSymbols)

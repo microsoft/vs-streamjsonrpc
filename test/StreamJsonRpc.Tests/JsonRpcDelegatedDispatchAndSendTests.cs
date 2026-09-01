@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Microsoft.VisualStudio.Threading;
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
@@ -39,6 +40,15 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
         Assert.Equal(typeof(Server), this.serverRpc.LastTargetMethodDispatched?.TargetObjectType);
         Assert.Equal(typeof(Server).GetMethod(nameof(Server.TestMethodAsync)), this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
+    }
+
+    [Fact]
+    public async Task DispatchRequestPrefersEquivalentOverloadWithCancellationToken()
+    {
+        await this.clientRpc.InvokeAsync(nameof(Server.PreferCancelableAsync));
+
+        MethodInfo? expectedMethod = typeof(Server).GetMethod(nameof(Server.PreferCancelableAsync), [typeof(CancellationToken)]);
+        Assert.Equal(expectedMethod, this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
     }
 
     [Fact]
@@ -89,6 +99,10 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         {
             return Task.CompletedTask;
         }
+
+        public Task PreferCancelableAsync() => Task.CompletedTask;
+
+        public Task PreferCancelableAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task<int> GetCallCountAsync()
         {

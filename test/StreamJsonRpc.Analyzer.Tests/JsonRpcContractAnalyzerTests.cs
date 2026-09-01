@@ -186,6 +186,19 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task AmbiguousMethodOverloads_DifferOnlyByCancellationToken()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task ExecuteAsync();
+                Task ExecuteAsync(CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task AmbiguousMethodOverloads_IgnoresNonRpcMethods()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
