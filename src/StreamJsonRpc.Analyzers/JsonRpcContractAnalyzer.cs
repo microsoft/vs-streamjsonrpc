@@ -487,7 +487,7 @@ public class JsonRpcContractAnalyzer : DiagnosticAnalyzer
             if (method.IsStatic ||
                 method.MethodKind != MethodKind.Ordinary ||
                 SymbolEqualityComparer.Default.Equals(method.ContainingType, knownSymbols.IDisposable) ||
-                (knownSymbols.IAsyncDisposable is not null && SymbolEqualityComparer.Default.Equals(method.ContainingType, knownSymbols.IAsyncDisposable)) ||
+                SymbolEqualityComparer.Default.Equals(method.ContainingType, knownSymbols.IAsyncDisposable) ||
                 method.GetAttributes().Any(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.JsonRpcIgnoreAttribute)) ||
                 !visitedMethods.Add(method))
             {
