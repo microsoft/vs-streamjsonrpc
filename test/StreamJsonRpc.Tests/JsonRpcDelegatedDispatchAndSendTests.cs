@@ -48,6 +48,7 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         await this.clientRpc.InvokeAsync(nameof(Server.PreferCancelableAsync));
 
         MethodInfo? expectedMethod = typeof(Server).GetMethod(nameof(Server.PreferCancelableAsync), [typeof(CancellationToken)]);
+        Assert.NotNull(expectedMethod);
         Assert.Equal(expectedMethod, this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
     }
 
